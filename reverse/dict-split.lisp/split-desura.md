@@ -1,0 +1,19 @@
+# split-desura
+
+**Package:** `ichiran/dict`  
+**Source:** `dict-split.lisp:382`  
+**Definition form:** `defun`
+
+## Inputs
+
+`(#:rv6)`
+
+## Outputs
+
+Declared ftype: `(function (t) (values list (integer 30 30) &optional))`
+
+## Dependencies (ichiran symbols)
+
+- `ichiran/characters:safe-subseq`
+- `ichiran/dict:find-word-seq`
+- `ichiran/dict:true-text`

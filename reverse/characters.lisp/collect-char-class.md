@@ -1,0 +1,21 @@
+# collect-char-class
+
+**Package:** `ichiran/characters`  
+**Source:** `characters.lisp:201`  
+**Definition form:** `defun`
+
+## Inputs
+
+`(ichiran/characters::word ichiran/characters::char-class)`
+
+## Outputs
+
+Declared ftype: `(function
+                  (t
+                   (member :number :nonword :traditional :kana :kanji-char
+                           :kanji :hiragana :katakana-uniq :katakana))
+                  (values list &optional))`
+
+## Dependencies (ichiran symbols)
+
+_(none detected)_

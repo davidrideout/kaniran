@@ -1,0 +1,17 @@
+# rmap-item-p
+
+**Package:** `ichiran`  
+**Source:** `deromanize.lisp:3`  
+**Definition form:** `defun`
+
+## Inputs
+
+`(sb-kernel::object)`
+
+## Outputs
+
+Declared ftype: `(function (t) (values boolean &optional))`
+
+## Dependencies (ichiran symbols)
+
+_(none detected)_

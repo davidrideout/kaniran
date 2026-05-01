@@ -1,0 +1,18 @@
+# find-word-with-suffix
+
+**Package:** `ichiran/dict`  
+**Source:** `dict-grammar.lisp:100`  
+**Definition form:** `defun`
+
+## Inputs
+
+`(ichiran/dict::wordstr &rest ichiran/dict::suffix-classes)`
+
+## Outputs
+
+Declared ftype: `(function (t &rest t) (values list &optional))`
+
+## Dependencies (ichiran symbols)
+
+- `ichiran/dict:find-word-full`
+- `ichiran/dict:seq`

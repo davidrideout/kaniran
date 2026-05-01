@@ -1,0 +1,18 @@
+# load-settings
+
+**Package:** `ichiran/conn`  
+**Source:** `conn.lisp:76`  
+**Definition form:** `defun`
+
+## Inputs
+
+`(&key ichiran/conn::keep-connection)`
+
+## Outputs
+
+Declared ftype: `(function (&key (:keep-connection t)) *)`
+
+## Dependencies (ichiran symbols)
+
+- `ichiran/conn:load-connection-from-env`
+- `ichiran/conn:switch-conn-vars`

@@ -1,0 +1,17 @@
+# long-vowel-modifier-p
+
+**Package:** `ichiran/characters`  
+**Source:** `characters.lisp:54`  
+**Definition form:** `defun`
+
+## Inputs
+
+`(ichiran/characters::modifier ichiran/characters::prev-char)`
+
+## Outputs
+
+Declared ftype: `(function (t t) (values boolean &optional))`
+
+## Dependencies (ichiran symbols)
+
+- `ichiran/characters:get-char-class`

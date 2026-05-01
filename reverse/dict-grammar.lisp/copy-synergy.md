@@ -1,0 +1,18 @@
+# copy-synergy
+
+**Package:** `ichiran/dict`  
+**Source:** `dict-grammar.lisp:727`  
+**Definition form:** `defun`
+
+## Inputs
+
+`(sb-kernel:instance)`
+
+## Outputs
+
+Declared ftype: `(function (ichiran/dict::synergy)
+                  (values ichiran/dict::synergy &optional))`
+
+## Dependencies (ichiran symbols)
+
+_(none detected)_
