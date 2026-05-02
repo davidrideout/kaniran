@@ -1,0 +1,13 @@
+[package]
+name = "kaniran-core"
+description = "Rust port of ichiran (Japanese morphology / segmentation / romanization). Core library."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+lexpr = { workspace = true }
+serde-lexpr = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

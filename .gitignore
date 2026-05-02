@@ -5,3 +5,11 @@ settings.lisp
 ichiran-cli
 ichiran-cli.exe
 docker/pgdata/
+
+# Rust
+/target/
+**/target/
+Cargo.lock.bak
+
+# IDE
+.idea/

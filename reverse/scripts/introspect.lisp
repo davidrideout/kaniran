@@ -92,6 +92,32 @@
           (1+ (count #\Newline c :end (min offset (length c)))))
       (error () nil))))
 
+(defun source-line-by-name (path sym-name def-keywords)
+  "Fallback line lookup. SBCL does not record character offsets for class
+   definitions (only form-path / form-number), so for defstruct/defclass we
+   scan the source file for the first line matching `(<keyword> <name>` or
+   `(<keyword> (<name>` (column 0). Linear scan; only used for the 53
+   class/struct definitions, so not hot."
+  (when (and path (probe-file path) sym-name def-keywords)
+    (handler-case
+        (with-open-file (s path :direction :input :external-format :utf-8)
+          (let ((needle (string-downcase sym-name))
+                (prefixes (mapcar (lambda (kw) (format nil "(~a " (string-downcase kw)))
+                                  def-keywords))
+                (line 0))
+            (loop for raw = (read-line s nil nil)
+                  while raw
+                  do (incf line)
+                     (let ((dl (string-downcase raw)))
+                       (when (some (lambda (p)
+                                     (and (>= (length dl) (length p))
+                                          (string= p dl :end2 (length p))
+                                          (or (search (concatenate 'string p needle) dl)
+                                              (search (concatenate 'string p "(" needle) dl))))
+                                   prefixes)
+                         (return line))))))
+      (error () nil))))
+
 (defun safe-source-by-name (sym kind)
   (handler-case
       (first (sb-introspect:find-definition-sources-by-name
@@ -423,17 +449,236 @@
                         base fname kindlbl (pkg-prefix sym))))
             (format out "~%")))))))
 
+;;; --- Class / struct / DAO introspection -----------------------------------
+;;;
+;;; The function pass above misses defstruct and defclass forms. This pass
+;;; walks find-class for every symbol in the ichiran universe and emits one
+;;; markdown file per class or struct. Files use suffixes (_class, _struct,
+;;; _dao) so they cannot collide with same-named function md files.
+;;;
+;;; DAO classes (postmodern :metaclass dao-class) get extra sections for
+;;; table name, primary key, and per-column type info.
+
+(defstruct class-entry sym cls kind src filename basename)
+
+(defun dao-class-p (cls)
+  "Test by metaclass name string so we don't depend on postmodern being aliased."
+  (string= "DAO-CLASS" (symbol-name (class-name (class-of cls)))))
+
+(defun class-kind (cls)
+  (cond
+    ((typep cls 'structure-class) :struct)
+    ((dao-class-p cls) :dao)
+    (t :class)))
+
+(defun safe-class-source (sym kind)
+  (handler-case
+      (first (sb-introspect:find-definition-sources-by-name
+              sym (case kind (:struct :structure) (otherwise :class))))
+    (error () nil)))
+
+(defun collect-class-entries ()
+  (let (out)
+    (loop for sym being the hash-keys of *universe* do
+      (let ((cls (handler-case (find-class sym nil) (error () nil))))
+        (when cls
+          (let ((spkg (and (class-name cls) (symbol-package (class-name cls)))))
+            (when (ichiran-package-p spkg)
+              (handler-case (sb-mop:finalize-inheritance cls) (error () nil))
+              (let* ((kind (class-kind cls))
+                     (src (safe-class-source sym kind)))
+                (when src
+                  (push (make-class-entry
+                         :sym sym :cls cls :kind kind :src src
+                         :filename (src-path src)
+                         :basename (source-basename (src-path src)))
+                        out))))))))
+    out))
+
+(defun dao-slot-col-info (slot)
+  "Returns (col-type sql-name primary-key) using slot-value with bound checks."
+  (let ((ct (find-symbol "COL-TYPE" :postmodern))
+        (sn (find-symbol "SQL-NAME" :postmodern))
+        (pk (find-symbol "COL-PRIMARY-KEY" :postmodern)))
+    (list
+     (and ct (slot-boundp slot ct) (slot-value slot ct))
+     (and sn (slot-boundp slot sn) (slot-value slot sn))
+     (and pk (slot-boundp slot pk) (slot-value slot pk)))))
+
+(defun fmt-name-list (names)
+  "Format a list of symbol-ish names as comma-separated backtick-wrapped lower."
+  (if names
+      (format nil "~{`~(~a~)`~^, ~}" names)
+      "_(none)_"))
+
+(defun write-dao-md (out cls)
+  (let ((tn (find-symbol "DAO-TABLE-NAME" :postmodern))
+        (kk (find-symbol "DAO-KEYS" :postmodern))
+        (cs (find-symbol "DAO-COLUMN-SLOTS" :postmodern)))
+    (format out "**Table:** `~a`  ~%"
+            (and tn (handler-case (funcall tn cls) (error () "?"))))
+    (format out "**Primary key:** `~a`~%~%"
+            (and kk (handler-case (funcall kk cls) (error () "?"))))
+    (format out "## Inheritance~%~%")
+    (format out "- Direct supers: ~a~%"
+            (fmt-name-list (mapcar #'class-name (sb-mop:class-direct-superclasses cls))))
+    (format out "- Precedence list: ~a~%~%"
+            (fmt-name-list (mapcar #'class-name (sb-mop:class-precedence-list cls))))
+    (format out "## Columns~%~%")
+    (format out "| name | column | type | initargs | readers |~%")
+    (format out "|---|---|---|---|---|~%")
+    (when cs
+      (dolist (slot (handler-case (funcall cs cls) (error () nil)))
+        (let ((info (dao-slot-col-info slot)))
+          (format out "| ~a | ~a | `~(~s~)` | ~a | ~a |~%"
+                  (sb-mop:slot-definition-name slot)
+                  (or (second info) "")
+                  (or (first info) t)
+                  (handler-case (sb-mop:slot-definition-initargs slot) (error () nil))
+                  (handler-case (sb-mop:slot-definition-readers slot) (error () nil))))))
+    (format out "~%")))
+
+(defun write-struct-md (out sym)
+  (let ((dd (handler-case (sb-kernel:find-defstruct-description sym) (error () nil))))
+    (cond
+      ((null dd)
+       (format out "_(unable to retrieve defstruct description)_~%"))
+      (t
+       (format out "**Conc-name:** `~a`  ~%" (sb-kernel::dd-conc-name dd))
+       (format out "**Default constructor:** `~a`  ~%" (sb-kernel::dd-default-constructor dd))
+       (format out "**All constructors:** `~(~s~)`  ~%" (sb-kernel::dd-constructors dd))
+       (format out "**Predicate:** `~a`  ~%" (sb-kernel::dd-predicate-name dd))
+       (format out "**Copier:** `~a`  ~%" (sb-kernel::dd-copier-name dd))
+       (format out "**Include:** `~a`  ~%" (sb-kernel::dd-include dd))
+       (when (sb-kernel::dd-doc dd)
+         (format out "**Documentation:** ~a  ~%" (escape-md (sb-kernel::dd-doc dd))))
+       (format out "~%## Slots~%~%")
+       (format out "| name | default | type | accessor |~%")
+       (format out "|---|---|---|---|~%")
+       (dolist (s (sb-kernel::dd-slots dd))
+         (format out "| ~a | `~(~s~)` | `~(~s~)` | `~(~a~)` |~%"
+                 (sb-kernel::dsd-name s)
+                 (sb-kernel::dsd-default s)
+                 (sb-kernel::dsd-type s)
+                 (sb-kernel::dsd-accessor-name s)))
+       (format out "~%")))))
+
+(defun write-clos-md (out cls)
+  (format out "## Inheritance~%~%")
+  (format out "- Direct supers: ~a~%"
+          (fmt-name-list (mapcar #'class-name (sb-mop:class-direct-superclasses cls))))
+  (format out "- Precedence list: ~a~%~%"
+          (fmt-name-list (mapcar #'class-name (sb-mop:class-precedence-list cls))))
+  (format out "## Direct slots~%~%")
+  (format out "| name | initform | allocation | initargs | readers | writers |~%")
+  (format out "|---|---|---|---|---|---|~%")
+  (dolist (s (sb-mop:class-direct-slots cls))
+    (format out "| ~a | `~(~s~)` | ~a | ~a | ~a | ~a |~%"
+            (sb-mop:slot-definition-name s)
+            (handler-case (sb-mop:slot-definition-initform s) (error () nil))
+            (handler-case (sb-mop:slot-definition-allocation s) (error () :instance))
+            (handler-case (sb-mop:slot-definition-initargs s) (error () nil))
+            (handler-case (sb-mop:slot-definition-readers s) (error () nil))
+            (handler-case (sb-mop:slot-definition-writers s) (error () nil))))
+  (format out "~%"))
+
+(defun write-class-md (path entry)
+  (ensure-directories-exist path)
+  (let* ((sym (class-entry-sym entry))
+         (cls (class-entry-cls entry))
+         (kind (class-entry-kind entry))
+         (src (class-entry-src entry))
+         (file (source-basename (src-path src)))
+         (line (or (offset-to-line (src-path src) (src-offset src))
+                   (source-line-by-name
+                    (src-path src)
+                    (symbol-name sym)
+                    (case kind
+                      (:struct '("defstruct"))
+                      (otherwise '("defclass")))))))
+    (with-open-file (out path :direction :output
+                              :if-exists :supersede :if-does-not-exist :create
+                              :external-format :utf-8)
+      (format out "# ~a (~a)~%~%"
+              (string-downcase (symbol-name sym))
+              (case kind (:struct "defstruct") (:dao "dao-class") (:class "defclass")))
+      (format out "**Package:** `~a`  ~%" (pkg-prefix sym))
+      (when file
+        (if line
+            (format out "**Source:** `~a:~a`  ~%" file line)
+            (format out "**Source:** `~a`  ~%" file)))
+      (format out "**Metaclass:** `~(~a~)`~%~%" (class-name (class-of cls)))
+      (case kind
+        (:struct (write-struct-md out sym))
+        (:dao    (write-dao-md out cls))
+        (:class  (write-clos-md out cls))))))
+
+(defun class-suffix (kind)
+  (case kind (:struct "_struct") (:dao "_dao") (:class "_class")))
+
+(defun emit-class-entries (entries)
+  (let ((groups (make-hash-table :test 'equal)))
+    (dolist (e entries)
+      (push e (gethash (class-entry-basename e) groups)))
+    (loop for base being the hash-keys of groups
+          for es = (gethash base groups) do
+      (dolist (e es)
+        (let* ((sym (class-entry-sym e))
+               (fname (concatenate 'string
+                                   (sanitize-name (string-downcase (symbol-name sym)))
+                                   (class-suffix (class-entry-kind e))
+                                   ".md"))
+               (out-path (native-path
+                          (concatenate 'string *output-dir-string* base "/" fname))))
+          (handler-case
+              (write-class-md out-path e)
+            (error (c)
+              (format t ";; SKIP class ~a (~a): ~a~%"
+                      sym (class-entry-kind e) c))))))
+    groups))
+
+(defun extend-index (fn-groups cl-groups)
+  "Append a Classes/Structs section per source file into the existing index.md."
+  (let ((index (native-path (concatenate 'string *output-dir-string* "index.md"))))
+    (with-open-file (out index :direction :output
+                               :if-exists :append :if-does-not-exist :create
+                               :external-format :utf-8)
+      (declare (ignore fn-groups))
+      (format out "~%---~%~%# Classes / structs / DAO~%~%")
+      (let ((bases (sort (loop for k being the hash-keys of cl-groups collect k) #'string<)))
+        (dolist (base bases)
+          (let* ((es (sort (copy-list (gethash base cl-groups))
+                           #'string<
+                           :key (lambda (e) (string-downcase (symbol-name (class-entry-sym e)))))))
+            (format out "## ~a~%~%" base)
+            (dolist (e es)
+              (let* ((sym (class-entry-sym e))
+                     (fname (concatenate 'string
+                                         (sanitize-name (string-downcase (symbol-name sym)))
+                                         (class-suffix (class-entry-kind e))
+                                         ".md"))
+                     (kindlbl (case (class-entry-kind e)
+                                (:struct "struct") (:dao "dao-class") (:class "class"))))
+                (format out "- [~a](~a/~a) — ~a (`~a`)~%"
+                        (string-downcase (symbol-name sym))
+                        base fname kindlbl (pkg-prefix sym))))
+            (format out "~%")))))))
+
 ;;; --- Run -------------------------------------------------------------------
 (format t ";; Building call graph (who-calls inversion)...~%")
 (setf *call-graph* (build-call-graph))
 (format t ";; Call graph entries: ~a~%" (hash-table-count *call-graph*))
 
-(format t ";; Collecting entries...~%")
-(let* ((entries (collect-entries)))
-  (format t ";; ~a entries to emit.~%" (length entries))
-  (let ((groups (emit-all entries)))
-    (write-index groups)
-    (format t ";; Wrote ~a source-file directories.~%"
-            (hash-table-count groups))))
+(format t ";; Collecting function entries...~%")
+(let* ((entries (collect-entries))
+       (class-entries (collect-class-entries)))
+  (format t ";; ~a function entries, ~a class/struct entries.~%"
+          (length entries) (length class-entries))
+  (let ((fn-groups (emit-all entries))
+        (cl-groups (emit-class-entries class-entries)))
+    (write-index fn-groups)
+    (extend-index fn-groups cl-groups)
+    (format t ";; Wrote ~a function-source dirs and ~a class-source dirs.~%"
+            (hash-table-count fn-groups) (hash-table-count cl-groups))))
 
 (format t ";; Done. Output: ~a~%" *output-dir*)

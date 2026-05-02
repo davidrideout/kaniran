@@ -846,3 +846,88 @@ Counts: function=4, macro=2
 - [test-job](tests.lisp/test-job.md) — macro (`ichiran/test`)
 - [test-progress](tests.lisp/test-progress.md) — fn (`ichiran/test`)
 
+
+---
+
+# Classes / structs / DAO
+
+## conn.lisp
+
+- [cache](conn.lisp/cache_class.md) — class (`ichiran/conn`)
+
+## deromanize.lisp
+
+- [kana-representation](deromanize.lisp/kana-representation_struct.md) — struct (`ichiran`)
+- [rmap-item](deromanize.lisp/rmap-item_struct.md) — struct (`ichiran`)
+
+## dict-counters.lisp
+
+- [counter-age](dict-counters.lisp/counter-age_class.md) — class (`ichiran/dict`)
+- [counter-days-kun](dict-counters.lisp/counter-days-kun_class.md) — class (`ichiran/dict`)
+- [counter-days-on](dict-counters.lisp/counter-days-on_class.md) — class (`ichiran/dict`)
+- [counter-halfhour](dict-counters.lisp/counter-halfhour_class.md) — class (`ichiran/dict`)
+- [counter-hifumi](dict-counters.lisp/counter-hifumi_class.md) — class (`ichiran/dict`)
+- [counter-months](dict-counters.lisp/counter-months_class.md) — class (`ichiran/dict`)
+- [counter-people](dict-counters.lisp/counter-people_class.md) — class (`ichiran/dict`)
+- [counter-text](dict-counters.lisp/counter-text_class.md) — class (`ichiran/dict`)
+- [counter-tsu](dict-counters.lisp/counter-tsu_class.md) — class (`ichiran/dict`)
+- [counter-wari](dict-counters.lisp/counter-wari_class.md) — class (`ichiran/dict`)
+- [number-text](dict-counters.lisp/number-text_class.md) — class (`ichiran/dict`)
+
+## dict-custom.lisp
+
+- [csv-loader](dict-custom.lisp/csv-loader_class.md) — class (`ichiran/custom`)
+- [custom-source](dict-custom.lisp/custom-source_class.md) — class (`ichiran/custom`)
+- [municipality](dict-custom.lisp/municipality_struct.md) — struct (`ichiran/custom`)
+- [municipality-csv](dict-custom.lisp/municipality-csv_class.md) — class (`ichiran/custom`)
+- [ward](dict-custom.lisp/ward_struct.md) — struct (`ichiran/custom`)
+- [ward-csv](dict-custom.lisp/ward-csv_class.md) — class (`ichiran/custom`)
+- [xml-entry](dict-custom.lisp/xml-entry_struct.md) — struct (`ichiran/custom`)
+- [xml-loader](dict-custom.lisp/xml-loader_class.md) — class (`ichiran/custom`)
+
+## dict-grammar.lisp
+
+- [synergy](dict-grammar.lisp/synergy_struct.md) — struct (`ichiran/dict`)
+
+## dict-load.lisp
+
+- [conjugation-rule](dict-load.lisp/conjugation-rule_struct.md) — struct (`ichiran/dict`)
+
+## dict.lisp
+
+- [compound-text](dict.lisp/compound-text_class.md) — class (`ichiran/dict`)
+- [conj-data](dict.lisp/conj-data_struct.md) — struct (`ichiran/dict`)
+- [conj-prop](dict.lisp/conj-prop_dao.md) — dao-class (`ichiran/dict`)
+- [conj-source-reading](dict.lisp/conj-source-reading_dao.md) — dao-class (`ichiran/dict`)
+- [conjugation](dict.lisp/conjugation_dao.md) — dao-class (`ichiran/dict`)
+- [entry](dict.lisp/entry_dao.md) — dao-class (`ichiran/dict`)
+- [gloss](dict.lisp/gloss_dao.md) — dao-class (`ichiran/dict`)
+- [kana-text](dict.lisp/kana-text_dao.md) — dao-class (`ichiran/dict`)
+- [kanji-text](dict.lisp/kanji-text_dao.md) — dao-class (`ichiran/dict`)
+- [proxy-text](dict.lisp/proxy-text_class.md) — class (`ichiran/dict`)
+- [restricted-readings](dict.lisp/restricted-readings_dao.md) — dao-class (`ichiran/dict`)
+- [segment](dict.lisp/segment_struct.md) — struct (`ichiran/dict`)
+- [segment-list](dict.lisp/segment-list_struct.md) — struct (`ichiran/dict`)
+- [sense](dict.lisp/sense_dao.md) — dao-class (`ichiran/dict`)
+- [sense-prop](dict.lisp/sense-prop_dao.md) — dao-class (`ichiran/dict`)
+- [simple-text](dict.lisp/simple-text_class.md) — class (`ichiran/dict`)
+- [top-array](dict.lisp/top-array_class.md) — class (`ichiran/dict`)
+- [top-array-item](dict.lisp/top-array-item_struct.md) — struct (`ichiran/dict`)
+- [word-info](dict.lisp/word-info_class.md) — class (`ichiran/dict`)
+
+## kanji.lisp
+
+- [kanji](kanji.lisp/kanji_dao.md) — dao-class (`ichiran/kanji`)
+- [meaning](kanji.lisp/meaning_dao.md) — dao-class (`ichiran/kanji`)
+- [okurigana](kanji.lisp/okurigana_dao.md) — dao-class (`ichiran/kanji`)
+- [reading](kanji.lisp/reading_dao.md) — dao-class (`ichiran/kanji`)
+
+## romanize.lisp
+
+- [generic-hepburn](romanize.lisp/generic-hepburn_class.md) — class (`ichiran`)
+- [generic-romanization](romanize.lisp/generic-romanization_class.md) — class (`ichiran`)
+- [kunrei-siki](romanize.lisp/kunrei-siki_class.md) — class (`ichiran`)
+- [modified-hepburn](romanize.lisp/modified-hepburn_class.md) — class (`ichiran`)
+- [simplified-hepburn](romanize.lisp/simplified-hepburn_class.md) — class (`ichiran`)
+- [traditional-hepburn](romanize.lisp/traditional-hepburn_class.md) — class (`ichiran`)
+
