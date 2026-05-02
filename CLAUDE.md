@@ -12,20 +12,42 @@ Everything related to the port is under `reverse/`.
 
 ```
 reverse/
-  *.lisp/                # auto-generated md files: one per defun/defmacro/defgeneric in upstream ichiran.
+  *.lisp/                # auto-generated md files for upstream ichiran symbols.
+                         # Suffixes carry the kind:
+                         #   <name>.md           = function / macro / generic
+                         #   <name>_struct.md    = defstruct
+                         #   <name>_class.md     = defclass (plain CLOS)
+                         #   <name>_dao.md       = defclass :metaclass dao-class
+                         #   <name>_global.md    = defparameter / defvar / defconstant
+                         #   <name>_type.md      = deftype
+                         #   <name>_condition.md = define-condition
   index.md               # generated table of contents
   scripts/
-    introspect.lisp      # original SBCL introspector (produces the md files); run on the ichiran host.
-    run-remote.sh        # scp+ssh wrapper for introspect.lisp against the remote host.
-    build_graph.py       # parses md files into symbols.csv + edges.csv.
+    introspect.lisp      # SBCL introspector (6-kind capture); run on the ichiran host.
+    run-remote.sh        # scp+ssh+rsync wrapper. NB: rsync --delete --exclude='scripts/'
+                         # wipes any non-introspector md (e.g. hand-written ones).
+    build_graph.py       # parses all 6 md kinds into symbols.csv + edges.csv.
     query.py             # graph queries: leaves, plan, deps, dependents, mark, stats, ...
     symbols.csv          # one row per symbol (sorted by fqn for diff stability).
-    edges.csv            # directed call edges (resolved=0 => external/builtin, ignored by traversal).
+    edges.csv            # directed dependency edges (resolved=0 => external/builtin).
     PORT_PLAN.md         # canonical topologically-sorted port order (commit this).
+    HANDOFF.md           # current state + open decisions + next moves.
     README.md            # detailed usage for everything in scripts/.
-```
 
-The Rust crate(s) will live somewhere outside `reverse/` (TBD — not yet started). `reverse/` itself is purely the analysis + planning layer.
+crates/kaniran-core/     # The Rust port crate. Workspace member at repo root.
+  src/
+    lib.rs               # declares pub mod kani; (and future per-package port modules)
+    kani.rs              # kani:: namespace — kaniran infra, NOT ports
+    kani/
+      fixture.rs         # JSONL fixture envelope + lexpr-based replay parsing
+      naming.rs          # Lisp FQN -> Rust path (single source of truth, exhaustively tested)
+  Cargo.toml
+
+ichiran-repl.sh          # local->remote SBCL wrapper. Pre-loads ichiran on .103 plus:
+                         #   :ichi package — REPL helpers (score, words, full-trace, etc.)
+                         #   :ichi-trace package — sb-int:encapsulate-based fixture recorder
+                         # The tracer lives HERE, not in a separate trace_capture.lisp.
+```
 
 ## Port methodology
 
@@ -39,12 +61,14 @@ The Rust crate(s) will live somewhere outside `reverse/` (TBD — not yet starte
 
 ## Key facts about the codebase
 
-- **763 symbols** across 16 source files (10 packages).
-- **271 leaves** — functions/macros/generics with no internal callees. Bulk of immediately-portable work.
-- **2 real strongly-connected components** (4 symbols total) — must port as a unit. Despite earlier intuition, cycles are tiny.
-- **36 macro leaves** — most are DSL definers in `dict-grammar.lisp` / `dict-split.lisp` / `dict-counters.lisp` that register data into global tables. They don't translate as macros — they collapse to literal Rust data tables (≈600 callsites total to transcribe, automatable from `macroexpand-1` dumps).
-- **Ichiran/dict** alone is 585 / 763 symbols — 77% of the codebase. The hard part.
-- **Pure leaves** (no DB) live in `characters.lisp` (22) and `numbers.lisp` (2). Best starting point — fixtures capture without needing the Postgres setup.
+- **944 symbols** across 16 source files (10 packages). Breakdown: 689 fn, 126 global, 38 gf, 36 macro, 28 class, 14 dao, 11 struct, 1 type, 1 condition.
+- **923 symbols / 921 waves** in PORT_PLAN.md (excludes ichiran/maintenance and ichiran/test).
+- **2 real strongly-connected components** (4 symbols total) — must port as a unit. Cycles are tiny.
+- **36 macro leaves** — most are DSL definers in `dict-grammar.lisp` / `dict-split.lisp` / `dict-counters.lisp`. They don't translate as macros; the DATA they register lives in `_global.md` files (e.g. `*suffix-list*` is the populated registry for `def-simple-suffix` callsites).
+- **Ichiran/dict** is the bulk of the codebase. The hard part.
+- **No global requires the database to initialize.** `*reading-cache*` is the only global that interacts with Postgres, and it does so lazily per-key inside `get-readings-cache`. The cache itself starts empty.
+- **No macros expand to defclass/defstruct.** Everything dynamic in the codebase is data registered into existing globals.
+- **About 78 leaves classify as TRIVIAL** (≤8 lines, no DB, no regex, no recursion) and can be hand-ported without fixtures. Of those, 13 collapse into 2 Rust files (defstruct families).
 
 ## Remote ichiran host
 
@@ -65,18 +89,23 @@ The driver entrypoint is `(ichiran/test:run-all-tests)`.
 - **Re-running `build_graph.py` resets `status` to `pending` for every row** (it overwrites the CSV). Commit before regenerating, or back up.
 - **Use `query.py` over hand-grepping the md files.** The dependency analysis is non-trivial (cycles, unresolved external refs) and the script handles it correctly.
 
-## Tracer / sniffer (planned, not yet built)
+## Tracer / sniffer
 
-A future `reverse/scripts/trace_capture.lisp` will:
+Built. Lives in `ichiran-repl.sh` as the `:ichi-trace` Common Lisp package — NOT in a separate `trace_capture.lisp`. Embedded in the wrapper because every wrapper invocation already loads ichiran on `.103`, so the tracer comes pre-loaded.
 
-1. Install `sb-int:encapsulate` recorders on a target list of FQNs (probably the current `query.py leaves`).
-2. Run `(ichiran/test:run-all-tests)` + a Tatoeba-style corpus driver.
-3. Dedupe `(fn, prin1-args)` pairs, dump JSONL fixtures to `reverse/scripts/fixtures/<package>/<symbol>.jsonl`.
-4. Self-test (Layer 1) at install time + replay-equivalence (Layer 2) after capture, before declaring fixtures trustworthy.
+API (all under `ichi-trace:`):
+- `install fqn` / `install-many fqns` — wrap target functions with `sb-int:encapsulate` recorders.
+- `clear` / `n-captures` / `captures` — inspect.
+- `dump-jsonl path` / `dump-per-symbol dir` — write fixtures.
+- `uninstall` / `uninstall-all` — clean removal (fully reversible; doesn't touch source or fasls).
 
-The probe in `/tmp/probe.lisp` (run during design) confirmed: `sb-int:encapsulate` works on both `defun` and `defgeneric`; `prin1-to-string` round-trips faithfully for the leaf types we care about (chars, strings, lists, conses, NIL, keywords, integers); `jsown` is already loaded; `ichiran/test:run-all-tests` is a viable driver.
+Invariants the implementation respects:
+- Re-entrance guard via `*in-recorder*` (prevents loops when traced fns call other traced fns).
+- Primitive-shape gate on args and result — non-readable shapes (closures, hash-tables, classes) get logged to `*skipped*` rather than recorded.
+- Fully-qualified function names in JSONL (`ICHIRAN/CHARACTERS:MORA-LENGTH`).
+- `*print-readably*` bound during prin1 so captured strings round-trip via Rust's `lexpr::from_str`.
 
-The sniffer **does not modify ichiran source or its compiled fasls** — it's a runtime function-cell swap, fully reversible within the SBCL image.
+Status: proven end-to-end via probes. Has NOT yet been run against `(ichiran/test:run-all-tests)` for a real fixture sweep — that's the obvious next step when actual port work begins.
 
 ## Common commands
 
@@ -105,7 +134,11 @@ python3 reverse/scripts/query.py plan --out reverse/scripts/PORT_PLAN.md
 
 ## Things you might think are true but aren't
 
-- ❌ "There are 102 cycles in the graph." (That number came from a naive layer-walk; Tarjan finds **2** real SCCs.)
+- ❌ "There are 102 cycles in the graph." (Naive layer-walk artifact; Tarjan finds **2** real SCCs covering 4 symbols.)
 - ❌ "Macros are unportable." (Most of the 36 macro leaves dissolve into Rust data tables or idioms; only ~6 need real thought.)
-- ❌ "build_graph.py preserves status across runs." (It rewrites the file. Commit first.)
-- ❌ "Plan ordering shifts between runs." (Fixed earlier — Tarjan now uses sorted set iteration; output is byte-identical across `PYTHONHASHSEED` values.)
+- ❌ "build_graph.py preserves status across runs." (It rewrites the file. Commit first or use `query.py mark`.)
+- ❌ "Plan ordering shifts between runs." (Fixed earlier — Tarjan uses sorted set iteration; output is byte-identical.)
+- ❌ "The Rust crate is TBD." (It exists at `crates/kaniran-core/` with a working naming convention and fixture-replay infra. Bootstrapped, not populated.)
+- ❌ "Globals get loaded from the database at startup." (Verified false — every defparameter/defvar/defconstant initializer is in-memory only. Only `*reading-cache*` interacts with Postgres, and it does so lazily inside the function `get-readings-cache`.)
+- ❌ "We need to build a separate `trace_capture.lisp`." (The tracer is already in `ichiran-repl.sh` as the `:ichi-trace` package. Don't duplicate it.)
+- ❌ "`reverse/` only covers functions." (Now covers 6 kinds — fn/macro/gf + struct/class/dao/global, plus 1 hand-written deftype and 1 define-condition.)
