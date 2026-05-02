@@ -4,11 +4,11 @@ ichiran/characters:*all-characters*,*all-characters*,ichiran/characters,characte
 ichiran/characters:*basic-split-regex*,*basic-split-regex*,ichiran/characters,characters.lisp,131,global,ported
 ichiran/characters:*char-class-hash*,*char-class-hash*,ichiran/characters,characters.lisp,37,global,ported
 ichiran/characters:*char-class-regex-mapping*,*char-class-regex-mapping*,ichiran/characters,characters.lisp,136,global,ported
-ichiran/characters:*char-scanners*,*char-scanners*,ichiran/characters,characters.lisp,151,global,pending
-ichiran/characters:*char-scanners-inner*,*char-scanners-inner*,ichiran/characters,characters.lisp,155,global,pending
-ichiran/characters:*dakuten-hash*,*dakuten-hash*,ichiran/characters,characters.lisp,0,global,pending
-ichiran/characters:*dakuten-join*,*dakuten-join*,ichiran/characters,characters.lisp,103,global,pending
-ichiran/characters:*decimal-point-regex*,*decimal-point-regex*,ichiran/characters,characters.lisp,129,global,pending
+ichiran/characters:*char-scanners*,*char-scanners*,ichiran/characters,characters.lisp,151,global,ported
+ichiran/characters:*char-scanners-inner*,*char-scanners-inner*,ichiran/characters,characters.lisp,155,global,ported
+ichiran/characters:*dakuten-hash*,*dakuten-hash*,ichiran/characters,characters.lisp,0,global,ported
+ichiran/characters:*dakuten-join*,*dakuten-join*,ichiran/characters,characters.lisp,103,global,ported
+ichiran/characters:*decimal-point-regex*,*decimal-point-regex*,ichiran/characters,characters.lisp,129,global,ported
 ichiran/characters:*digit-regex*,*digit-regex*,ichiran/characters,characters.lisp,128,global,pending
 ichiran/characters:*full-width-kana*,*full-width-kana*,ichiran/characters,characters.lisp,107,global,pending
 ichiran/characters:*half-width-kana*,*half-width-kana*,ichiran/characters,characters.lisp,106,global,pending

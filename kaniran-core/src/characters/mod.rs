@@ -12,3 +12,8 @@ pub mod _star_all_characters_star_;
 pub mod _star_basic_split_regex_star_;
 pub mod _star_char_class_hash_star_;
 pub mod _star_char_class_regex_mapping_star_;
+pub mod _star_char_scanners_inner_star_;
+pub mod _star_char_scanners_star_;
+pub mod _star_dakuten_hash_star_;
+pub mod _star_dakuten_join_star_;
+pub mod _star_decimal_point_regex_star_;
