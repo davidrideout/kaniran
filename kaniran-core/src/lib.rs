@@ -8,3 +8,5 @@
 //!   ported Lisp symbol; see [`kani::naming`] for the mapping rule.
 
 pub mod kani;
+
+pub mod characters;

@@ -1,9 +1,9 @@
 fqn,name,package,file,line,kind,status
-ichiran/characters:*abnormal-chars*,*abnormal-chars*,ichiran/characters,characters.lisp,109,global,pending
-ichiran/characters:*all-characters*,*all-characters*,ichiran/characters,characters.lisp,32,global,pending
-ichiran/characters:*basic-split-regex*,*basic-split-regex*,ichiran/characters,characters.lisp,131,global,pending
-ichiran/characters:*char-class-hash*,*char-class-hash*,ichiran/characters,characters.lisp,37,global,pending
-ichiran/characters:*char-class-regex-mapping*,*char-class-regex-mapping*,ichiran/characters,characters.lisp,136,global,pending
+ichiran/characters:*abnormal-chars*,*abnormal-chars*,ichiran/characters,characters.lisp,109,global,ported
+ichiran/characters:*all-characters*,*all-characters*,ichiran/characters,characters.lisp,32,global,ported
+ichiran/characters:*basic-split-regex*,*basic-split-regex*,ichiran/characters,characters.lisp,131,global,ported
+ichiran/characters:*char-class-hash*,*char-class-hash*,ichiran/characters,characters.lisp,37,global,ported
+ichiran/characters:*char-class-regex-mapping*,*char-class-regex-mapping*,ichiran/characters,characters.lisp,136,global,ported
 ichiran/characters:*char-scanners*,*char-scanners*,ichiran/characters,characters.lisp,151,global,pending
 ichiran/characters:*char-scanners-inner*,*char-scanners-inner*,ichiran/characters,characters.lisp,155,global,pending
 ichiran/characters:*dakuten-hash*,*dakuten-hash*,ichiran/characters,characters.lisp,0,global,pending
@@ -32,7 +32,7 @@ ichiran/characters:*word-regex*,*word-regex*,ichiran/characters,characters.lisp,
 ichiran/characters:as-hiragana,as-hiragana,ichiran/characters,characters.lisp,282,fn,pending
 ichiran/characters:as-katakana,as-katakana,ichiran/characters,characters.lisp,292,fn,pending
 ichiran/characters:basic-split,basic-split,ichiran/characters,characters.lisp,267,fn,pending
-ichiran/characters:char-class,char-class,ichiran/characters,characters.lisp,147,type,pending
+ichiran/characters:char-class,char-class,ichiran/characters,characters.lisp,147,type,ported
 ichiran/characters:collect-char-class,collect-char-class,ichiran/characters,characters.lisp,201,fn,pending
 ichiran/characters:consecutive-char-groups,consecutive-char-groups,ichiran/characters,characters.lisp,300,fn,pending
 ichiran/characters:count-char-class,count-char-class,ichiran/characters,characters.lisp,194,fn,pending

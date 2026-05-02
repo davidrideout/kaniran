@@ -29,15 +29,23 @@
 //!
 //! ## Coverage
 //!
-//! Verified against all 763 symbols in `reverse/scripts/symbols.csv`:
-//! every one produces a path matching `[a-z0-9_]+(/[a-z0-9_]+)*\.rs`,
-//! and no two symbols collide on the same case-insensitive path.
+//! Verified against all 944 symbols in `reverse/scripts/symbols.csv`
+//! (689 fn, 126 global, 38 gf, 36 macro, 28 class, 14 dao, 11 struct,
+//! 1 type, 1 condition): every one produces a path matching
+//! `[a-z0-9_]+(/[a-z0-9_]+)*\.rs`, and no two symbols collide on the
+//! same case-insensitive path.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SymbolKind {
     Fn,
     Gf,
     Macro,
+    Global,
+    Struct,
+    Class,
+    Dao,
+    Type,
+    Condition,
 }
 
 impl SymbolKind {
@@ -46,7 +54,28 @@ impl SymbolKind {
             "fn" => Ok(Self::Fn),
             "gf" => Ok(Self::Gf),
             "macro" => Ok(Self::Macro),
+            "global" => Ok(Self::Global),
+            "struct" => Ok(Self::Struct),
+            "class" => Ok(Self::Class),
+            "dao" => Ok(Self::Dao),
+            "type" => Ok(Self::Type),
+            "condition" => Ok(Self::Condition),
             other => Err(format!("unknown symbol kind: {other:?}")),
+        }
+    }
+
+    /// Stem suffix that distinguishes this kind from a same-named
+    /// function in the same package. Mirrors the suffix scheme used by
+    /// the introspector's md-file output.
+    fn stem_suffix(self) -> &'static str {
+        match self {
+            Self::Fn | Self::Gf | Self::Global => "",
+            Self::Macro => "_macro",
+            Self::Struct => "_struct",
+            Self::Class => "_class",
+            Self::Dao => "_dao",
+            Self::Type => "_type",
+            Self::Condition => "_condition",
         }
     }
 }
@@ -82,8 +111,9 @@ pub fn fqn_to_path(fqn: &str, kind: SymbolKind) -> Result<RustPath, String> {
         return Err(format!("empty symbol name in FQN: {fqn}"));
     }
     let mut file_stem = name_to_stem(name);
-    if kind == SymbolKind::Macro {
-        file_stem.push_str("_macro");
+    let suffix = kind.stem_suffix();
+    if !suffix.is_empty() {
+        file_stem.push_str(suffix);
         file_stem = collapse_underscores(&file_stem);
     }
     Ok(RustPath {
@@ -198,6 +228,30 @@ mod tests {
     }
 
     #[test]
+    fn global_keeps_earmuffs_no_suffix() {
+        let p = fqn_to_path("ICHIRAN/CHARACTERS:*ABNORMAL-CHARS*", SymbolKind::Global).unwrap();
+        assert_eq!(p.module_dir, "characters");
+        assert_eq!(p.file_stem, "_star_abnormal_chars_star_");
+        assert_eq!(p.file_path(), "characters/_star_abnormal_chars_star_.rs");
+    }
+
+    #[test]
+    fn struct_class_dao_type_condition_get_suffix() {
+        let cases = [
+            (SymbolKind::Struct, "kana-representation", "kana_representation_struct"),
+            (SymbolKind::Class, "simple-text", "simple_text_class"),
+            (SymbolKind::Dao, "kanji", "kanji_dao"),
+            (SymbolKind::Type, "char-class", "char_class_type"),
+            (SymbolKind::Condition, "not-a-number", "not_a_number_condition"),
+        ];
+        for (kind, name, expected_stem) in cases {
+            let fqn = format!("ICHIRAN/CHARACTERS:{name}");
+            let p = fqn_to_path(&fqn, kind).unwrap();
+            assert_eq!(p.file_stem, expected_stem, "kind={kind:?} name={name}");
+        }
+    }
+
+    #[test]
     fn macro_gets_macro_suffix() {
         let p = fqn_to_path("ICHIRAN/DICT:DEF-COUNTER", SymbolKind::Macro).unwrap();
         assert_eq!(p.file_stem, "def_counter_macro");
@@ -216,7 +270,7 @@ mod tests {
 
     fn read_symbols_csv() -> Vec<(String, SymbolKind)> {
         let csv_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../reverse/scripts/symbols.csv");
+            .join("../reverse/scripts/symbols.csv");
         let body = std::fs::read_to_string(&csv_path)
             .unwrap_or_else(|e| panic!("can't read {}: {e}", csv_path.display()));
         let mut lines = body.lines();
