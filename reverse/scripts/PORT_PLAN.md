@@ -51,17 +51,17 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   48. `ichiran/characters:kanji-mask`  — fn, characters.lisp:212  *[ported]*
   49. `ichiran/characters:kanji-regex`  — fn, characters.lisp:215  *[ported]*
   50. `ichiran/characters:kanji-match`  — fn, characters.lisp:220  *[ported]*
-  51. `ichiran/characters:kanji-prefix`  — fn, characters.lisp:306
-  52. `ichiran/characters:long-vowel-modifier-p`  — fn, characters.lisp:54
-  53. `ichiran/characters:match-diff`  — fn, characters.lisp:347
-  54. `ichiran/characters:mora-length`  — fn, characters.lisp:275
-  55. `ichiran/characters:simplify-ngrams`  — fn, characters.lisp:230
-  56. `ichiran/characters:normalize`  — fn, characters.lisp:247
-  57. `ichiran/characters:rendaku`  — fn, characters.lisp:320
-  58. `ichiran/characters:safe-subseq`  — fn, characters.lisp:371
-  59. `ichiran/characters:sequential-kanji-positions`  — fn, characters.lisp:207
-  60. `ichiran/characters:unrendaku`  — fn, characters.lisp:308
-  61. `ichiran/characters:voice-char`  — fn, characters.lisp:91
+  51. `ichiran/characters:kanji-prefix`  — fn, characters.lisp:306  *[ported]*
+  52. `ichiran/characters:long-vowel-modifier-p`  — fn, characters.lisp:54  *[ported]*
+  53. `ichiran/characters:match-diff`  — fn, characters.lisp:347  *[ported]*
+  54. `ichiran/characters:mora-length`  — fn, characters.lisp:275  *[ported]*
+  55. `ichiran/characters:simplify-ngrams`  — fn, characters.lisp:230  *[ported]*
+  56. `ichiran/characters:normalize`  — fn, characters.lisp:247  *[ported]*
+  57. `ichiran/characters:rendaku`  — fn, characters.lisp:320  *[ported]*
+  58. `ichiran/characters:safe-subseq`  — fn, characters.lisp:371  *[ported]*
+  59. `ichiran/characters:sequential-kanji-positions`  — fn, characters.lisp:207  *[ported]*
+  60. `ichiran/characters:unrendaku`  — fn, characters.lisp:308  *[ported]*
+  61. `ichiran/characters:voice-char`  — fn, characters.lisp:91  *[ported]*
   62. `ichiran/cli:print-error`  — fn, cli.lisp:37
   63. `ichiran/cli:setup-debugger`  — fn, cli.lisp:95
   64. `ichiran/conn:all-caches`  — fn, conn.lisp:110
