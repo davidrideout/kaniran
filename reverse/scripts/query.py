@@ -8,7 +8,7 @@ Usage:
     query.py dependents <fqn>        # callers of <fqn>  (transitive: --deep)
     query.py deps <fqn>              # callees of <fqn>  (transitive: --deep)
     query.py layers                  # assign topological layer to every symbol
-    query.py mark <fqn>... --status ported
+    query.py mark <fqn>... --status ported [--reason "text"]
     query.py stats
     query.py plan [--out FILE] [--skip-packages PKG,PKG] [--include-status STATUS]
 
@@ -69,7 +69,18 @@ def resolve_fqn(token: str, syms: dict[str, dict]) -> str:
 
 
 def fmt(sym: dict) -> str:
-    return f"{sym['fqn']:<55} {sym['kind']:<5} {sym['file']}:{sym['line']}  [{sym['status']}]"
+    reason = sym.get("reason", "")
+    suffix = f" — {reason}" if reason else ""
+    return f"{sym['fqn']:<55} {sym['kind']:<5} {sym['file']}:{sym['line']}  [{sym['status']}{suffix}]"
+
+
+def _badge(sym: dict) -> str:
+    """Plan-line badge for non-pending symbols. Shows the reason when present
+    so a reader of PORT_PLAN.md can see why something is off the books."""
+    reason = sym.get("reason", "")
+    if reason:
+        return f"  *[{sym['status']} — {reason}]*"
+    return f"  *[{sym['status']}]*"
 
 
 def cmd_leaves(args, syms, callees, callers):
@@ -172,13 +183,19 @@ def cmd_mark(args, syms, callees, callers):
     targets = [resolve_fqn(t, syms) for t in args.fqns]
     for t in targets:
         syms[t]["status"] = args.status
-    fields = ["fqn", "name", "package", "file", "line", "kind", "status"]
+        if args.reason is not None:
+            syms[t]["reason"] = args.reason
+    fields = ["fqn", "name", "package", "file", "line", "kind", "status", "reason"]
     with SYMBOLS_CSV.open("w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=fields)
         w.writeheader()
         for r in sorted(syms.values(), key=lambda r: r["fqn"]):
+            # Preserve existing reason for rows not touched; ensure column
+            # exists for old CSVs that pre-date the reason field.
+            r.setdefault("reason", "")
             w.writerow(r)
-    print(f"marked {len(targets)} symbol(s) as {args.status}", file=sys.stderr)
+    detail = f" with reason {args.reason!r}" if args.reason is not None else ""
+    print(f"marked {len(targets)} symbol(s) as {args.status}{detail}", file=sys.stderr)
 
 
 def cmd_stats(args, syms, callees, callers):
@@ -278,7 +295,7 @@ def cmd_plan(args, syms, callees, callers):
         members = sorted(comp)
         if len(members) == 1:
             s = syms[members[0]]
-            badge = "" if s["status"] == "pending" else f"  *[{s['status']}]*"
+            badge = "" if s["status"] == "pending" else _badge(s)
             out_lines.append(
                 f"{i+1:>4}. `{s['fqn']}`  — {s['kind']}, "
                 f"{s['file']}:{s['line']}{badge}"
@@ -289,7 +306,7 @@ def cmd_plan(args, syms, callees, callers):
             )
             for fqn in members:
                 s = syms[fqn]
-                badge = "" if s["status"] == "pending" else f"  *[{s['status']}]*"
+                badge = "" if s["status"] == "pending" else _badge(s)
                 out_lines.append(
                     f"        - `{s['fqn']}`  — {s['kind']}, "
                     f"{s['file']}:{s['line']}{badge}"
@@ -325,6 +342,8 @@ def main() -> int:
     p = sub.add_parser("mark")
     p.add_argument("fqns", nargs="+")
     p.add_argument("--status", default="ported", help="status to set (default: ported)")
+    p.add_argument("--reason", default=None,
+                   help="free-form note (recommended for skip/wip). Omit to leave any existing reason untouched.")
     p.set_defaults(fn=cmd_mark)
 
     sub.add_parser("stats").set_defaults(fn=cmd_stats)

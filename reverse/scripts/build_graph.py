@@ -2,8 +2,13 @@
 """
 Parse the auto-generated *.md files under reverse/ into two normalized CSVs:
 
-  symbols.csv  fqn, name, package, file, line, kind, status
+  symbols.csv  fqn, name, package, file, line, kind, status, reason
   edges.csv    caller_fqn, callee_fqn, resolved
+
+The `reason` column captures *why* a symbol is off-the-books (e.g. why a
+`skip` was chosen over `pending`). Free-form text; empty for pending /
+ported rows. build_graph.py wipes both `status` and `reason` on every
+run — commit symbols.csv first or re-record via `query.py mark --reason`.
 
 Recognised md kinds (by filename suffix):
   *.md            function / macro / generic   — dependency = "## Dependencies" list
@@ -216,6 +221,7 @@ def parse_md(path: Path) -> tuple[dict, list[str]] | None:
             "line": line_no,
             "kind": kind_out,
             "status": "pending",
+            "reason": "",
         },
         deps,
     )
@@ -267,7 +273,7 @@ def main() -> int:
     with SYMBOLS_CSV.open("w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(
             fh,
-            fieldnames=["fqn", "name", "package", "file", "line", "kind", "status"],
+            fieldnames=["fqn", "name", "package", "file", "line", "kind", "status", "reason"],
         )
         w.writeheader()
         for r in sorted(rows, key=lambda r: r["fqn"]):

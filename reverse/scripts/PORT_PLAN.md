@@ -62,10 +62,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   59. `ichiran/characters:sequential-kanji-positions`  — fn, characters.lisp:207  *[ported]*
   60. `ichiran/characters:unrendaku`  — fn, characters.lisp:308  *[ported]*
   61. `ichiran/characters:voice-char`  — fn, characters.lisp:91  *[ported]*
-  62. `ichiran/cli:print-error`  — fn, cli.lisp:37  *[skip]*
-  63. `ichiran/cli:setup-debugger`  — fn, cli.lisp:95  *[skip]*
-  64. `ichiran/conn:all-caches`  — fn, conn.lisp:110
-  65. `ichiran/conn:init-all-caches`  — fn, conn.lisp:144
+  62. `ichiran/cli:print-error`  — fn, cli.lisp:37  *[skip — CLI-only stderr/debugger glue; Rust uses eprintln!/anyhow/panic-hook. Belongs in a future kaniran-cli crate, not kaniran-core.]*
+  63. `ichiran/cli:setup-debugger`  — fn, cli.lisp:95  *[skip — CLI-only stderr/debugger glue; Rust uses eprintln!/anyhow/panic-hook. Belongs in a future kaniran-cli crate, not kaniran-core.]*
+  64. `ichiran/conn:all-caches`  — fn, conn.lisp:110  *[skip — Class-slot registry pattern doesn't translate. Replaced in Rust by per-cache OnceLock + DI when the DB layer lands; no 1:1 counterpart.]*
+  65. `ichiran/conn:init-all-caches`  — fn, conn.lisp:144  *[skip — Class-slot registry pattern doesn't translate. Replaced in Rust by per-cache OnceLock + DI when the DB layer lands; no 1:1 counterpart.]*
   66. `ichiran/conn:get-spec`  — fn, conn.lisp:25
   67. `ichiran/conn:switch-conn-vars`  — fn, conn.lisp:65
   68. `ichiran/dict:init-suffix-hashtables`  — fn, dict-grammar.lisp:6

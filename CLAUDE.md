@@ -86,8 +86,8 @@ The driver entrypoint is `(ichiran/test:run-all-tests)`.
 - **Rust port coding/naming conventions live in [`CONVENTIONS.md`](./CONVENTIONS.md).** Read it before adding or editing port files — it covers file layout, doc-comment requirements, the rules for translating Lisp shapes (multi-value returns, `&key` keywords, in-place mutation, tagged cons cells) into idiomatic Rust APIs, the testing policy (logic not data), and the workflow steps below in concrete form. The single source of truth for FQN→Rust path translation is the module-doc on [`kaniran-core/src/kani/naming.rs`](./kaniran-core/src/kani/naming.rs); CONVENTIONS.md and HANDOFF.md both defer to it.
 - **Don't edit upstream `*.lisp` files at the repo root.** They're checked in for reference / introspection input. Treat as read-only.
 - **`PORT_PLAN.md` is the source of truth for porting order.** Regenerate (don't hand-edit) via `query.py plan --out reverse/scripts/PORT_PLAN.md`. It's deterministic across runs (Tarjan + sorted set iteration); re-running on the same CSVs produces a byte-identical file.
-- **Mark progress in `symbols.csv`'s `status` column** (`pending` → `ported`, `wip`, `skip`, etc.). `query.py mark` does this round-trip-safely.
-- **Re-running `build_graph.py` resets `status` to `pending` for every row** (it overwrites the CSV). Commit before regenerating, or back up.
+- **Mark progress in `symbols.csv`'s `status` column** (`pending` → `ported`, `wip`, `skip`, etc.). `query.py mark` does this round-trip-safely. Pair `--status skip` (or any off-the-books status) with `--reason "..."` — the reason lands in the CSV's `reason` column and surfaces in the PORT_PLAN.md badge.
+- **Re-running `build_graph.py` resets `status` to `pending` and `reason` to empty for every row** (it overwrites the CSV). Commit before regenerating, or back up.
 - **Use `query.py` over hand-grepping the md files.** The dependency analysis is non-trivial (cycles, unresolved external refs) and the script handles it correctly.
 
 ## Tracer / sniffer
@@ -137,7 +137,7 @@ python3 reverse/scripts/query.py plan --out reverse/scripts/PORT_PLAN.md
 
 - ❌ "There are 102 cycles in the graph." (Naive layer-walk artifact; Tarjan finds **2** real SCCs covering 4 symbols.)
 - ❌ "Macros are unportable." (Most of the 36 macro leaves dissolve into Rust data tables or idioms; only ~6 need real thought.)
-- ❌ "build_graph.py preserves status across runs." (It rewrites the file. Commit first or use `query.py mark`.)
+- ❌ "build_graph.py preserves status or reason across runs." (It rewrites the file, resetting both. Commit first or re-mark via `query.py mark --reason ...`.)
 - ❌ "Plan ordering shifts between runs." (Fixed earlier — Tarjan uses sorted set iteration; output is byte-identical.)
 - ❌ "The Rust crate is TBD." (It exists at `crates/kaniran-core/` with a working naming convention and fixture-replay infra. Bootstrapped, not populated.)
 - ❌ "Globals get loaded from the database at startup." (Verified false — every defparameter/defvar/defconstant initializer is in-memory only. Only `*reading-cache*` interacts with Postgres, and it does so lazily inside the function `get-readings-cache`.)
