@@ -62,9 +62,9 @@ ichiran/characters:unrendaku,unrendaku,ichiran/characters,characters.lisp,308,fn
 ichiran/characters:voice-char,voice-char,ichiran/characters,characters.lisp,91,fn,ported
 ichiran/cli:build,build,ichiran/cli,cli.lisp,102,fn,pending
 ichiran/cli:main,main,ichiran/cli,cli.lisp,48,fn,pending
-ichiran/cli:print-error,print-error,ichiran/cli,cli.lisp,37,fn,pending
+ichiran/cli:print-error,print-error,ichiran/cli,cli.lisp,37,fn,skip
 ichiran/cli:print-romanize-info,print-romanize-info,ichiran/cli,cli.lisp,44,fn,pending
-ichiran/cli:setup-debugger,setup-debugger,ichiran/cli,cli.lisp,95,fn,pending
+ichiran/cli:setup-debugger,setup-debugger,ichiran/cli,cli.lisp,95,fn,skip
 ichiran/cli:unknown-option,unknown-option,ichiran/cli,cli.lisp,33,fn,pending
 ichiran/conn:*conn-var-cache*,*conn-var-cache*,ichiran/conn,conn.lisp,41,global,pending
 ichiran/conn:*conn-vars*,*conn-vars*,ichiran/conn,conn.lisp,39,global,pending
@@ -853,7 +853,7 @@ ichiran/maintenance:add-errata,add-errata,ichiran/maintenance,ichiran.lisp,152,f
 ichiran/maintenance:collect-entries,collect-entries,ichiran/maintenance,ichiran.lisp,107,fn,pending
 ichiran/maintenance:compare-queries,compare-queries,ichiran/maintenance,ichiran.lisp,47,macro,pending
 ichiran/maintenance:custom-init,custom-init,ichiran/maintenance,ichiran.lisp,40,fn,pending
-ichiran/maintenance:diff-content,diff-content,ichiran/maintenance,ichiran.lisp,138,fn,pending
+ichiran/maintenance:diff-content,diff-content,ichiran/maintenance,ichiran.lisp,138,fn,ported
 ichiran/maintenance:display-seq-set,display-seq-set,ichiran/maintenance,ichiran.lisp,54,macro,pending
 ichiran/maintenance:full-init,full-init,ichiran/maintenance,ichiran.lisp,29,fn,pending
 ichiran/maintenance:get-hardcoded-constants,get-hardcoded-constants,ichiran/maintenance,ichiran.lisp,98,fn,pending
@@ -920,7 +920,7 @@ ichiran:make-rmap-item,make-rmap-item,ichiran,deromanize.lisp,3,fn,pending
 ichiran:modified-hepburn,modified-hepburn,ichiran,romanize.lisp,162,class,pending
 ichiran:not-a-number,not-a-number,ichiran,numbers.lisp,67,condition,pending
 ichiran:possible-long-vowel-p,possible-long-vowel-p,ichiran,deromanize.lisp,30,fn,pending
-ichiran:process-iteration-characters,process-iteration-characters,ichiran,romanize.lisp,7,fn,pending
+ichiran:process-iteration-characters,process-iteration-characters,ichiran,romanize.lisp,7,fn,ported
 ichiran:process-modifiers,process-modifiers,ichiran,romanize.lisp,15,fn,pending
 ichiran:r-apply,r-apply,ichiran,romanize.lisp,0,gf,pending
 ichiran:r-base,r-base,ichiran,romanize.lisp,0,gf,pending

@@ -10,3 +10,5 @@
 pub mod kani;
 
 pub mod characters;
+pub mod core;
+pub mod maintenance;

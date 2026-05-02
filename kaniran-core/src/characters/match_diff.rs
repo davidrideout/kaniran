@@ -6,10 +6,14 @@
 //! portions (number of *characters*, not bytes). Used by the kanji
 //! reading-matcher for any non-kanji string pair.
 //!
-//! Returns `None` when either input is empty — mirroring the upstream
-//! `(zerop l1)` / `(zerop l2)` cond branches that fall through with
-//! `nil`. (A Lisp port that returned `Some((vec![], 0))` here would
-//! diverge from upstream nil-checking callers.)
+//! Returns `None` when either input is empty. The upstream `cond` for
+//! these branches is `((zerop l1))` / `((zerop l2))` with no body —
+//! which means the cond returns `T` (the value of `(zerop ...)` when
+//! true), not `nil`. The Rust port deliberately returns `None` instead
+//! of trying to surface that `T` sentinel, because (a) `T` carries no
+//! useful data, and (b) the only non-recursive caller
+//! (`dict-split.lisp:933`) only ever passes non-empty strings, so no
+//! upstream code reads the `T` return.
 //!
 //! Algorithmic notes:
 //! - When one input has length 1 (and the inputs differ), the result

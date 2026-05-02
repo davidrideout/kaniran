@@ -62,8 +62,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   59. `ichiran/characters:sequential-kanji-positions`  — fn, characters.lisp:207  *[ported]*
   60. `ichiran/characters:unrendaku`  — fn, characters.lisp:308  *[ported]*
   61. `ichiran/characters:voice-char`  — fn, characters.lisp:91  *[ported]*
-  62. `ichiran/cli:print-error`  — fn, cli.lisp:37
-  63. `ichiran/cli:setup-debugger`  — fn, cli.lisp:95
+  62. `ichiran/cli:print-error`  — fn, cli.lisp:37  *[skip]*
+  63. `ichiran/cli:setup-debugger`  — fn, cli.lisp:95  *[skip]*
   64. `ichiran/conn:all-caches`  — fn, conn.lisp:110
   65. `ichiran/conn:init-all-caches`  — fn, conn.lisp:144
   66. `ichiran/conn:get-spec`  — fn, conn.lisp:25
@@ -204,7 +204,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  199. `ichiran/dict:process-hints`  — fn, dict-split.lisp:872
  200. `ichiran:get-character-classes`  — fn, romanize.lisp:3
  201. `ichiran:r-special`  — gf, romanize.lisp:0
- 202. `ichiran:process-iteration-characters`  — fn, romanize.lisp:7
+ 202. `ichiran:process-iteration-characters`  — fn, romanize.lisp:7  *[ported]*
  203. `ichiran:process-modifiers`  — fn, romanize.lisp:15
  204. `ichiran:r-simplify`  — gf, romanize.lisp:0
  205. `ichiran:r-apply`  — gf, romanize.lisp:0

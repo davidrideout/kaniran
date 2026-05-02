@@ -12,3 +12,4 @@ serde-lexpr = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 fancy-regex = { workspace = true }
+similar = { workspace = true }

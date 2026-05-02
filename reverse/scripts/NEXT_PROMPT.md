@@ -1,6 +1,6 @@
 `ichiran/characters` is fully ported (61/61). The next wave is a transition point: 19 symbols are unblocked across 7 packages, but most of them touch the database. **Before tackling `ichiran/dict`, the DB-layer decision needs to be made** — see "Open architectural decisions" in [`HANDOFF.md`](./HANDOFF.md).
 
-**Starting state:** the commit that lands items 51–61 (built on top of `18c70ec`). `cargo test -p kaniran-core --lib` should report **49 passed** before you start. If it doesn't, stop and figure out why before doing anything else — the baseline is wrong.
+**Starting state:** commit `124c2dc` (`master`). `cargo test -p kaniran-core --lib` should report **49 passed** before you start. If it doesn't, stop and figure out why before doing anything else — the baseline is wrong.
 
 ## Read first
 

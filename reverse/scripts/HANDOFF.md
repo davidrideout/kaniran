@@ -2,7 +2,7 @@
 
 Read [`CLAUDE.md`](../../CLAUDE.md) and [`CONVENTIONS.md`](../../CONVENTIONS.md) first for orientation. This doc is the current snapshot.
 
-**Baseline commit:** the commit that lands items 51–61 (built on top of `18c70ec`). Run `git log --oneline` to find it. The *previous* batch — items 41–50 plus the `*dakuten-join*` derivation — is `18c70ec`.
+**Baseline commit:** `124c2dc` — `Port characters.lisp items 51-61; close out ichiran/characters`. Phase-1 of the next-wave (this session) is on top of that, uncommitted in the working tree. Run `git log --oneline` for the full port history.
 
 ---
 
@@ -13,12 +13,12 @@ Read [`CLAUDE.md`](../../CLAUDE.md) and [`CONVENTIONS.md`](../../CONVENTIONS.md)
 | Original Lisp source | Checked in at repo root, untouched. |
 | **Symbol / dependency extraction** (md files) | Done. **945 md files** under `reverse/<file>.lisp/` covering 6 introspected kinds + 2 hand-written. |
 | **Graph CSVs** (symbols.csv, edges.csv) | Done. **944 symbols** (689 fn, 126 global, 38 gf, 36 macro, 28 class, 14 dao, 11 struct, 1 type, 1 condition) + 2698 edges. |
-| **PORT_PLAN.md** | Regenerated. **923 symbols across 921 waves**. **61 marked ported** — `ichiran/characters` is fully complete. |
+| **PORT_PLAN.md** | Regenerated. **921 waves, 923 symbols**. **63 marked ported** — `ichiran/characters` complete + first 2 next-wave leaves. |
 | **Tracer** (`:ichi-trace` package in `ichiran-repl.sh`) | Built and proven via probes. Has not yet been run on `(ichiran/test:run-all-tests)` or a corpus. |
-| **Rust crate `kaniran-core`** | 61 ports + 2 Rust-only sidecars + 1 sidecar method (`KanaClass::lisp_name`). **49 tests pass.** |
+| **Rust crate `kaniran-core`** | 63 ports + 2 Rust-only sidecars + 1 sidecar method (`KanaClass::lisp_name`). Three package directories: `characters/`, `core/`, `maintenance/`. **60 tests pass.** |
 | **Conventions doc** | [`CONVENTIONS.md`](../../CONVENTIONS.md) at repo root — single source for coding/naming rules; both this file and [`CLAUDE.md`](../../CLAUDE.md) defer to it. |
 
-`ichiran/characters` is now **61 of 61 symbols ported (100%)** — closes out the package. 19 symbols across 7 other packages are unblocked for the next wave (see "Next in the plan" below).
+`ichiran/characters` remains 61/61 (100%). Phase-1 of the next wave landed two leaves: `ichiran:process-iteration-characters` (opens `core/`) and `ichiran/maintenance:diff-content` (opens `maintenance/`). 17 symbols across 5 packages are still unblocked, but most need the open DB-layer decision.
 
 ---
 
@@ -38,6 +38,12 @@ kaniran/                              # repo root — workspace Cargo.toml here
 │       ├── kani/
 │       │   ├── fixture.rs            # JSONL replay
 │       │   └── naming.rs             # FQN → path; canonical for the path mapping rule. Covers all 9 kinds.
+│       ├── core/                     # NEW: bare `ichiran` package; renamed to avoid shadowing crate root
+│       │   ├── mod.rs
+│       │   └── process_iteration_characters.rs   # NEW (62): inline CcItem enum (KanaClass | char)
+│       ├── maintenance/              # NEW: `ichiran/maintenance` package (DB-free leaves only so far)
+│       │   ├── mod.rs
+│       │   └── diff_content.rs       # NEW (63): DiffResult enum, similar-crate unified diff
 │       └── characters/
 │           ├── mod.rs
 │           ├── char_class_type.rs
@@ -81,36 +87,23 @@ kaniran/                              # repo root — workspace Cargo.toml here
 
 ## What got built / changed this session
 
-### 11 function ports — closes out `ichiran/characters`
+### Phase-1 of the next wave — 2 non-DB leaves, 2 new package directories
+
+The session-1 plan (see `NEXT_PROMPT.md`) was to take the 2-4 leaves that don't depend on the unresolved DB-layer decision. `as-xml-simple` was triaged out because it builds an XML DOM that flows directly into `ichiran/dict::load-entry` (DAO consumers `municipality` and `ward`); it belongs with the XML-library decision in phase 4, not phase 1.
 
 | # | Symbol | Rust shape | Notable choice |
 |---|---|---|---|
-| 51 | `kanji-prefix` | `pub fn kanji_prefix(&str) -> String` | Cached `OnceLock<Regex>` for `^.*[kanji]`. Empty string when no kanji (mirrors `(or scan "")`). |
-| 52 | `long-vowel-modifier-p` | `pub fn long_vowel_modifier_p(KanaClass, char) -> bool` | Uses the new `KanaClass::lisp_name()` sidecar method. Predicate-only (CONVENTIONS §4.1). |
-| 53 | `match-diff` | `pub fn match_diff(&str, &str) -> Option<(Vec<MatchSegment>, usize)>` | Inline `MatchSegment { Equal, Diff }` enum (avoids name collision with `fancy_regex::Match`). Char-position throughout. Empty inputs return `None`. |
-| 54 | `mora-length` | `pub fn mora_length(&str) -> usize` | Modifier set inlined as `&str` literal; per-char `.contains`. |
-| 55 | `simplify-ngrams` | `pub fn simplify_ngrams<S, T>(&str, &[(S, T)]) -> String` | Generic over `AsRef<str>` so both `*punctuation-marks*` (`&[(&str, &str)]`) and `dakuten_join()` (`&Vec<(String, String)>`) work without conversion. Per-call regex (caller-driven, unbounded keys). |
-| 56 | `normalize` | `pub fn normalize(&str, NormalizationContext) -> String` | Two-pass: char-by-char `to_normal_char` then `simplify_ngrams`. Default-context map combines `*punctuation-marks*` with `dakuten_join()`. `:fresh` dropped. |
-| 57 | `rendaku` | `pub fn rendaku(&str, Voicing) -> String` | `&key handakuten` → 2-variant `Voicing { Dakuten, Handakuten }` (CONVENTIONS §4.4). `:fresh` dropped. |
-| 58 | `safe-subseq` | `pub fn safe_subseq(&str, usize, Option<usize>) -> Option<String>` | Char-position bounds check; `&optional end` → `Option<usize>`. |
-| 59 | `sequential-kanji-positions` | `pub fn sequential_kanji_positions(&str, usize) -> Vec<usize>` | Cached zero-width lookahead. Returns char positions (CONVENTIONS §4.5). |
-| 60 | `unrendaku` | `pub fn unrendaku(&str) -> String` | Introduces `pub(super) fn transpose(char, KanaClass, KanaClass) -> Option<char>` reused by `rendaku`. `:fresh` dropped. |
-| 61 | `voice-char` | `pub fn voice_char(KanaClass) -> KanaClass` | `(gethash cc h cc)` collapses to `unwrap_or(cc)` when input/output are same-typed (CONVENTIONS §4.2 example). |
+| 62 | `process-iteration-characters` (bare `ichiran`) | `pub fn process_iteration_characters(&[CcItem]) -> Vec<CcItem>` | First file under `core/` (bare-package directory). Inline `CcItem { Class(KanaClass), Char(char) }` enum (CONVENTIONS §4.3) models the dual-shape items from `*char-class-hash*`'s default-as-self lookup. `IterV` voicing only fires on `Class(_)` items — `Char(_)` previas pass through to mirror upstream's hash-miss fallback. |
+| 63 | `diff-content` (`ichiran/maintenance`) | `pub fn diff_content(Option<&str>, Option<&str>, bool) -> DiffResult` | First file under `maintenance/`. `DiffResult { Gone, New, Diff(String) }` collapses upstream's `(or simple-string (member :gone :new))` (CONVENTIONS §4.3). `Option<&str>` makes the "absent vs. empty" distinction explicit. `&key short` stays a `bool` — the parameter name reads naturally at the callsite (CONVENTIONS §4.4). Diff library: `similar` (closest Rust equivalent of upstream `cl-diff`'s unified output); output text not byte-identical with cl-diff, tests pin behavior not literal text. |
 
-### `KanaClass::lisp_name()` method on the sidecar
+### New workspace dependency
 
-Added an inherent method `pub fn lisp_name(&self) -> &'static str` to `KanaClass` in `kani_kana_class.rs`. One arm per of the 87 variants; returns the upstream Lisp keyword's `(string :keyword)` form (`Ka` → `"KA"`, `PlusYa` → `"+YA"`, `LongVowel` → `"LONG-VOWEL"`, `IterV` → `"ITER-V"`). `long_vowel_modifier_p` is the only current consumer; the method is also useful debug-output and is the natural place to land any future "upstream symbol form" needs.
+`similar = "2"` added to `[workspace.dependencies]` and pulled into `kaniran-core` as a regular (non-feature-gated) dep. If `ichiran/maintenance` grows further and the dep becomes a candidate for separation, feature-gating it under a `maintenance` feature is the cheap migration.
 
-### Test count 34 → 49 (+15)
+### Test count 49 → 60 (+11)
 
-- +2 `kanji_prefix` (greedy-prefix behavior, empty-when-no-kanji)
-- +5 `match_diff` (empty → None, equal-strings, single-char Diff, shared-prefix-then-Diff, CJK char-position alignment with non-trivial score)
-- +2 `safe_subseq` (char vs byte slicing, out-of-range / inverted bounds)
-- +2 `sequential_kanji_positions` (lookahead semantics on adjacent kanji, non-adjacency rejection)
-- +2 `simplify_ngrams` (runtime `dakuten_join()` integration, empty-map no-op)
-- +2 `normalize` (Default mode end-to-end through both phases, Kana mode preserving punctuation)
-
-No tests added for `voice_char`, `mora_length`, `long_vowel_modifier_p`, `rendaku`, `unrendaku` — they're either single-line lookups, thin wrappers around already-tested machinery, or pure data-driven (CONVENTIONS §6).
+- +6 `process_iteration_characters` (iter-at-start drops, iter repeats prev, iter-v voices Sa→Za, run-of-iters all reference original prev, iter-v on unvoiceable A falls through, char prev passes through iter-v unchanged)
+- +5 `diff_content` (short=true → Gone when new is None, short=true → New when old is None, short=false returns Diff even with one missing side, identical inputs produce empty body, `[\r\n]+` collapses runs of newlines so `"a\r\n\r\nb"` matches `"a\nb"`)
 
 ---
 
@@ -144,7 +137,8 @@ The detailed rules live in [`CONVENTIONS.md`](../../CONVENTIONS.md). Pointers re
 
 1. **DB layer** — sqlx+tokio (async), diesel (sync), sea-orm (async), or hand-rolled. Affects every `ichiran/dict::*` DAO port, and `ichiran/conn`, and a meaningful slice of `ichiran/kanji`. Heavier deps should be feature-gated since `kaniran-core` is intended to publish standalone. **This decision now blocks most of the next-wave work** — see below.
 2. **JMdict schema** — share ichiran's Postgres schema, or design a fresh one.
-3. **Port scope** — full port (~944 symbols) vs. romanize/segment public API only (~100 symbols).
+3. **XML reader** for the initial JMdict.xml corpus load. Upstream's `as-xml-simple` synthesizes XML only to feed it into the same-process loader, so a Rust port skips the writer entirely and constructs the loaded shape directly — `as-xml-simple` itself doesn't need a counterpart. The reader, however, must parse real JMdict.xml (one-shot at corpus-load time). Candidates: `roxmltree` (read-only DOM, fast), `quick-xml` event reader (fast, no DOM), `xmltree` (mutable DOM, slower). JMdict's external DTD entities (`&n;` etc.) are not auto-resolved by any of these — the standard workaround is a small entity-inlining preprocessing step using the DTD's internal-subset mechanism. Library-agnostic.
+4. **Port scope** — full port (~944 symbols) vs. romanize/segment public API only (~100 symbols).
 
 The repo is intended as a multi-crate workspace; future siblings (`kaniran-cli`, `kaniran-demo`) will live at the repo root.
 
@@ -152,24 +146,20 @@ The repo is intended as a multi-crate workspace; future siblings (`kaniran-cli`,
 
 ## Next in the plan
 
-`ichiran/characters` is closed out. The next wave (`query.py next`) reports **19 unblocked symbols**, distributed:
+Phase 1 complete. `query.py next` now reports **17 unblocked symbols**, distributed:
 
-- **`ichiran` (bare package)** — `process-iteration-characters` (`romanize.lisp:7`). Pure kana logic; opens a new package directory (`core/`).
-- **`ichiran/custom`** — `as-xml-simple`, `normalize-geo` (2). XML / dict-custom utilities.
+- **`ichiran/custom`** — `as-xml-simple`, `normalize-geo` (2). XML / dict-custom utilities. `as-xml-simple` is gated on the XML library decision (#3 above) and is consumed exclusively by DAO methods; `normalize-geo` is a small string-cleanup helper that's likely portable independently.
 - **`ichiran/dict`** — 11 leaves (`find-word`, `find-substring-words`, `find-word-seq`, `find-word-with-pos`, `find-words-seqs`, `find-sticky-positions`, `add-reading`, `get-candidates`, `get-kanji-kana-old`, `process-hints`, `process-word-info`, `remove-hiragana-nokanji`, `sense-exists-p`). Most of these touch the database — DB-layer decision is the prerequisite.
 - **`ichiran/kanji`** — `get-original-reading`, `get-reading-alternatives` (2). Likely DB-touching.
-- **`ichiran/maintenance`** — `diff-content` (1). String-diff utility.
+- **`ichiran/maintenance`** — 12 remaining symbols, all DB-touching. Wait for phase 2.
 
 Recommended order:
 
-1. **Take the non-DB leaves first to keep moving while the DB-layer decision settles**:
-   - `ichiran:process-iteration-characters` (kana-only)
-   - `ichiran/maintenance:diff-content` (probably string-only)
-   - `ichiran/custom:as-xml-simple` if it's pure XML emission, defer if it queries
-2. **Make the DB-layer decision** before anything in `ichiran/dict`. Three concrete options to evaluate: `sqlx` (async, query macros, compile-time-checked), `diesel` (sync, type-safe ORM), `sea-orm` (async, ActiveRecord-shaped). The choice ripples through every DAO and into `kaniran-core`'s public surface.
-3. Either `ichiran/numbers` (13 symbols, leaf math, no DB) or `ichiran/conn` (26 symbols, DB plumbing — only after the DB-layer decision) opens up larger as more leaves get ported.
+1. **Phase 2 — make the DB-layer decision** before anything in `ichiran/dict`. Three concrete options to evaluate: `sqlx` (async, query macros, compile-time-checked), `diesel` (sync, type-safe ORM), `sea-orm` (async, ActiveRecord-shaped). The choice ripples through every DAO and into `kaniran-core`'s public surface. Decisions #1 (DB), #2 (schema), #3 (XML libs) cluster naturally — opening any one effectively opens the others. **User's call; do not pick autonomously.**
+2. **Phase 3 — fixture harvest.** With `characters` closed and ports about to enter the bulk-of-the-codebase `dict` package, this is the natural moment to run `:ichi-trace` against `(ichiran/test:run-all-tests)` and harvest fixtures for the 63 ported functions. The fixture-replay infra in `kani::fixture` is wired and waiting.
+3. **Phase 4 — `ichiran/dict` proper**, fixture-driven from day one.
 
-The tracer (`:ichi-trace`) is still built and proven via probes but **has not yet been run against `(ichiran/test:run-all-tests)` or a Japanese corpus.** With `ichiran/characters` now closed, this is a natural inflection point to run a fixture-harvest sweep before tackling `ichiran/dict` — many of those functions need real-world Japanese text to verify equivalence.
+A non-DB tangent that doesn't need decisions: `ichiran/numbers` (13 symbols, leaf math, no DB). Could fill time during phase 2 if the DB decision takes a while.
 
 ---
 
@@ -177,15 +167,15 @@ The tracer (`:ichi-trace`) is still built and proven via probes but **has not ye
 
 ```sh
 # 1. Confirm the Rust crate compiles + tests pass
-cargo test -p kaniran-core
-# expect: 49 passed
+cargo test -p kaniran-core --lib
+# expect: 60 passed
 
 # 2. See what's unblocked next (mix of packages — see "Next in the plan")
 python3 reverse/scripts/query.py next | head
 
 # 3. Confirm the package counts
 python3 reverse/scripts/query.py stats
-# expect: ichiran/characters 0 61 (100% complete)
+# expect: ichiran/characters 0 61, ichiran 1 ported, ichiran/maintenance 1 ported
 ```
 
 ---
