@@ -664,6 +664,180 @@
                         base fname kindlbl (pkg-prefix sym))))
             (format out "~%")))))))
 
+;;; --- Global value introspection ------------------------------------------
+;;;
+;;; Walks every bound (value-cell) symbol in the ichiran universe and emits
+;;; one md per global. Captures source location, kind (constant vs variable),
+;;; type of value, and the printed value itself (best-effort: tries readable
+;;; print first, falls back to a structural dump for hash tables and other
+;;; non-readable shapes).
+
+(defstruct global-entry sym src filename basename kind)
+
+(defun global-kind (sym)
+  (if (constantp sym) :constant :variable))
+
+(defun safe-global-source (sym)
+  (handler-case
+      (first (sb-introspect:find-definition-sources-by-name sym :variable))
+    (error () nil)))
+
+(defun collect-global-entries ()
+  (let (out)
+    (loop for sym being the hash-keys of *universe* do
+      (when (and (boundp sym)
+                 (not (handler-case (find-class sym nil) (error () nil))))
+        (let ((src (safe-global-source sym)))
+          (when src
+            (push (make-global-entry
+                   :sym sym :src src
+                   :filename (src-path src)
+                   :basename (source-basename (src-path src))
+                   :kind (global-kind sym))
+                  out)))))
+    out))
+
+(defparameter *global-value-max-chars* 50000
+  "Cap on the printed length of a single global's value. Bigger values get
+   truncated with a marker. Stops one bad global from producing a multi-MB md.")
+
+(defparameter *global-value-print-length* 1000)
+(defparameter *global-value-print-level* 20)
+
+(defun safe-prin1 (value)
+  "Try a readable prin1; fall back to non-readable. Returns
+   (text truncated-p readable-p)."
+  (labels ((with-caps (readably)
+             (let ((*print-readably* readably)
+                   (*print-circle* t)
+                   (*print-length* *global-value-print-length*)
+                   (*print-level* *global-value-print-level*)
+                   (*print-pretty* nil))
+               (prin1-to-string value)))
+           (cap (text readable)
+             (if (> (length text) *global-value-max-chars*)
+                 (values (subseq text 0 *global-value-max-chars*) t readable)
+                 (values text nil readable))))
+    (handler-case (cap (with-caps t) t)
+      (error ()
+        (handler-case (cap (with-caps nil) nil)
+          (error (c)
+            (values (format nil "<unprintable: ~a>" c) nil nil)))))))
+
+(defun hash-table-dump (ht)
+  "Structural dump of a hash table — keys and values, capped."
+  (let ((*print-readably* nil)
+        (*print-circle* t)
+        (*print-length* 200)
+        (*print-level* 10)
+        (*print-pretty* nil)
+        (n 0)
+        (cap *global-value-print-length*))
+    (with-output-to-string (out)
+      (format out "(:hash-table :test ~(~a~) :count ~a"
+              (hash-table-test ht) (hash-table-count ht))
+      (block walking
+        (maphash
+         (lambda (k v)
+           (when (>= n cap)
+             (format out "~%  ;; ... ~a more entries elided"
+                     (- (hash-table-count ht) cap))
+             (return-from walking))
+           (handler-case
+               (format out "~%  (~s . ~s)" k v)
+             (error (c)
+               (format out "~%  ;; <unprintable entry: ~a>" c)))
+           (incf n))
+         ht))
+      (format out ")"))))
+
+(defun write-global-md (path entry)
+  (ensure-directories-exist path)
+  (let* ((sym (global-entry-sym entry))
+         (src (global-entry-src entry))
+         (kind (global-entry-kind entry))
+         (val (handler-case (symbol-value sym) (error () :unbound)))
+         (file (source-basename (src-path src)))
+         (line (or (offset-to-line (src-path src) (src-offset src))
+                   (source-line-by-name
+                    (src-path src) (symbol-name sym)
+                    '("defparameter" "defvar" "defconstant")))))
+    (with-open-file (out path :direction :output
+                              :if-exists :supersede :if-does-not-exist :create
+                              :external-format :utf-8)
+      (format out "# ~a (~a)~%~%"
+              (string-downcase (symbol-name sym))
+              (case kind (:constant "global constant") (otherwise "global variable")))
+      (format out "**Package:** `~a`  ~%" (pkg-prefix sym))
+      (when file
+        (if line
+            (format out "**Source:** `~a:~a`  ~%" file line)
+            (format out "**Source:** `~a`  ~%" file)))
+      (format out "**Type of value:** `~(~a~)`~%~%" (type-of val))
+      (let ((doc (handler-case (documentation sym 'variable) (error () nil))))
+        (when doc (format out "**Documentation:** ~a~%~%" (escape-md doc))))
+      (format out "## Value~%~%")
+      (cond
+        ((eq val :unbound)
+         (format out "_(symbol-value raised an error — value cell may have been cleared)_~%"))
+        ((hash-table-p val)
+         (format out "Hash-table — ~a entries, test: `~(~a~)`~%~%```lisp~%~a~%```~%"
+                 (hash-table-count val) (hash-table-test val)
+                 (hash-table-dump val)))
+        (t
+         (multiple-value-bind (text trunc readable) (safe-prin1 val)
+           (format out "```lisp~%~a~%```~%" text)
+           (cond
+             ((and trunc (not readable))
+              (format out "~%_(value truncated and is not round-trippable via `read`)_~%"))
+             (trunc
+              (format out "~%_(value truncated at ~a chars)_~%" *global-value-max-chars*))
+             ((not readable)
+              (format out "~%_(value is not round-trippable via `read` — likely contains closures, classes, or other unreadable shapes)_~%")))))))))
+
+(defun emit-global-entries (entries)
+  (let ((groups (make-hash-table :test 'equal)))
+    (dolist (e entries)
+      (push e (gethash (global-entry-basename e) groups)))
+    (loop for base being the hash-keys of groups
+          for es = (gethash base groups) do
+      (dolist (e es)
+        (let* ((sym (global-entry-sym e))
+               (fname (concatenate 'string
+                                   (sanitize-name (string-downcase (symbol-name sym)))
+                                   "_global.md"))
+               (out-path (native-path
+                          (concatenate 'string *output-dir-string* base "/" fname))))
+          (handler-case
+              (write-global-md out-path e)
+            (error (c)
+              (format t ";; SKIP global ~a: ~a~%" sym c))))))
+    groups))
+
+(defun extend-index-globals (gl-groups)
+  (let ((index (native-path (concatenate 'string *output-dir-string* "index.md"))))
+    (with-open-file (out index :direction :output
+                               :if-exists :append :if-does-not-exist :create
+                               :external-format :utf-8)
+      (format out "~%---~%~%# Globals (defparameter / defvar / defconstant)~%~%")
+      (let ((bases (sort (loop for k being the hash-keys of gl-groups collect k) #'string<)))
+        (dolist (base bases)
+          (let* ((es (sort (copy-list (gethash base gl-groups))
+                           #'string<
+                           :key (lambda (e) (string-downcase (symbol-name (global-entry-sym e)))))))
+            (format out "## ~a~%~%" base)
+            (dolist (e es)
+              (let* ((sym (global-entry-sym e))
+                     (fname (concatenate 'string
+                                         (sanitize-name (string-downcase (symbol-name sym)))
+                                         "_global.md"))
+                     (kindlbl (case (global-entry-kind e)
+                                (:constant "const") (otherwise "var"))))
+                (format out "- [~a](~a/~a) — ~a (`~a`)~%"
+                        (string-downcase (symbol-name sym))
+                        base fname kindlbl (pkg-prefix sym))))
+            (format out "~%")))))))
+
 ;;; --- Run -------------------------------------------------------------------
 (format t ";; Building call graph (who-calls inversion)...~%")
 (setf *call-graph* (build-call-graph))
@@ -671,14 +845,19 @@
 
 (format t ";; Collecting function entries...~%")
 (let* ((entries (collect-entries))
-       (class-entries (collect-class-entries)))
-  (format t ";; ~a function entries, ~a class/struct entries.~%"
-          (length entries) (length class-entries))
+       (class-entries (collect-class-entries))
+       (global-entries (collect-global-entries)))
+  (format t ";; ~a function entries, ~a class/struct entries, ~a globals.~%"
+          (length entries) (length class-entries) (length global-entries))
   (let ((fn-groups (emit-all entries))
-        (cl-groups (emit-class-entries class-entries)))
+        (cl-groups (emit-class-entries class-entries))
+        (gl-groups (emit-global-entries global-entries)))
     (write-index fn-groups)
     (extend-index fn-groups cl-groups)
-    (format t ";; Wrote ~a function-source dirs and ~a class-source dirs.~%"
-            (hash-table-count fn-groups) (hash-table-count cl-groups))))
+    (extend-index-globals gl-groups)
+    (format t ";; Wrote ~a function dirs, ~a class dirs, ~a global dirs.~%"
+            (hash-table-count fn-groups)
+            (hash-table-count cl-groups)
+            (hash-table-count gl-groups))))
 
 (format t ";; Done. Output: ~a~%" *output-dir*)

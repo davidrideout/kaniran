@@ -931,3 +931,179 @@ Counts: function=4, macro=2
 - [simplified-hepburn](romanize.lisp/simplified-hepburn_class.md) — class (`ichiran`)
 - [traditional-hepburn](romanize.lisp/traditional-hepburn_class.md) — class (`ichiran`)
 
+
+---
+
+# Globals (defparameter / defvar / defconstant)
+
+## characters.lisp
+
+- [*abnormal-chars*](characters.lisp/*abnormal-chars*_global.md) — var (`ichiran/characters`)
+- [*all-characters*](characters.lisp/*all-characters*_global.md) — var (`ichiran/characters`)
+- [*basic-split-regex*](characters.lisp/*basic-split-regex*_global.md) — var (`ichiran/characters`)
+- [*char-class-hash*](characters.lisp/*char-class-hash*_global.md) — var (`ichiran/characters`)
+- [*char-class-regex-mapping*](characters.lisp/*char-class-regex-mapping*_global.md) — var (`ichiran/characters`)
+- [*char-scanners*](characters.lisp/*char-scanners*_global.md) — var (`ichiran/characters`)
+- [*char-scanners-inner*](characters.lisp/*char-scanners-inner*_global.md) — var (`ichiran/characters`)
+- [*dakuten-hash*](characters.lisp/*dakuten-hash*_global.md) — var (`ichiran/characters`)
+- [*dakuten-join*](characters.lisp/*dakuten-join*_global.md) — var (`ichiran/characters`)
+- [*decimal-point-regex*](characters.lisp/*decimal-point-regex*_global.md) — var (`ichiran/characters`)
+- [*digit-regex*](characters.lisp/*digit-regex*_global.md) — var (`ichiran/characters`)
+- [*full-width-kana*](characters.lisp/*full-width-kana*_global.md) — var (`ichiran/characters`)
+- [*half-width-kana*](characters.lisp/*half-width-kana*_global.md) — var (`ichiran/characters`)
+- [*handakuten-hash*](characters.lisp/*handakuten-hash*_global.md) — var (`ichiran/characters`)
+- [*hiragana-regex*](characters.lisp/*hiragana-regex*_global.md) — var (`ichiran/characters`)
+- [*iteration-characters*](characters.lisp/*iteration-characters*_global.md) — var (`ichiran/characters`)
+- [*kana-characters*](characters.lisp/*kana-characters*_global.md) — var (`ichiran/characters`)
+- [*kanji-char-regex*](characters.lisp/*kanji-char-regex*_global.md) — var (`ichiran/characters`)
+- [*kanji-regex*](characters.lisp/*kanji-regex*_global.md) — var (`ichiran/characters`)
+- [*katakana-regex*](characters.lisp/*katakana-regex*_global.md) — var (`ichiran/characters`)
+- [*katakana-uniq-regex*](characters.lisp/*katakana-uniq-regex*_global.md) — var (`ichiran/characters`)
+- [*modifier-characters*](characters.lisp/*modifier-characters*_global.md) — var (`ichiran/characters`)
+- [*nonword-regex*](characters.lisp/*nonword-regex*_global.md) — var (`ichiran/characters`)
+- [*normal-chars*](characters.lisp/*normal-chars*_global.md) — var (`ichiran/characters`)
+- [*num-word-regex*](characters.lisp/*num-word-regex*_global.md) — var (`ichiran/characters`)
+- [*numeric-regex*](characters.lisp/*numeric-regex*_global.md) — var (`ichiran/characters`)
+- [*punctuation-marks*](characters.lisp/*punctuation-marks*_global.md) — var (`ichiran/characters`)
+- [*sokuon-characters*](characters.lisp/*sokuon-characters*_global.md) — var (`ichiran/characters`)
+- [*undakuten-hash*](characters.lisp/*undakuten-hash*_global.md) — var (`ichiran/characters`)
+- [*word-regex*](characters.lisp/*word-regex*_global.md) — var (`ichiran/characters`)
+
+## conn.lisp
+
+- [*conn-var-cache*](conn.lisp/*conn-var-cache*_global.md) — var (`ichiran/conn`)
+- [*conn-vars*](conn.lisp/*conn-vars*_global.md) — var (`ichiran/conn`)
+- [*connection-env-var*](conn.lisp/*connection-env-var*_global.md) — var (`ichiran/conn`)
+- [*debug*](conn.lisp/*debug*_global.md) — var (`ichiran/conn`)
+- [*is-dynamic-connection*](conn.lisp/*is-dynamic-connection*_global.md) — var (`ichiran/conn`)
+- [*test-var*](conn.lisp/*test-var*_global.md) — var (`ichiran/conn`)
+
+## deromanize.lisp
+
+- [*romaji-kana*](deromanize.lisp/*romaji-kana*_global.md) — var (`ichiran`)
+- [*romaji-kana-next*](deromanize.lisp/*romaji-kana-next*_global.md) — var (`ichiran`)
+
+## dict-counters.lisp
+
+- [*counter-accepts*](dict-counters.lisp/*counter-accepts*_global.md) — var (`ichiran/dict`)
+- [*counter-cache*](dict-counters.lisp/*counter-cache*_global.md) — var (`ichiran/dict`)
+- [*counter-foreign*](dict-counters.lisp/*counter-foreign*_global.md) — var (`ichiran/dict`)
+- [*counter-suffixes*](dict-counters.lisp/*counter-suffixes*_global.md) — var (`ichiran/dict`)
+- [*extra-counter-ids*](dict-counters.lisp/*extra-counter-ids*_global.md) — var (`ichiran/dict`)
+- [*skip-counter-ids*](dict-counters.lisp/*skip-counter-ids*_global.md) — var (`ichiran/dict`)
+- [*special-counters*](dict-counters.lisp/*special-counters*_global.md) — var (`ichiran/dict`)
+
+## dict-custom.lisp
+
+- [*municipality-types*](dict-custom.lisp/*municipality-types*_global.md) — var (`ichiran/custom`)
+- [*municipality-types-description*](dict-custom.lisp/*municipality-types-description*_global.md) — var (`ichiran/custom`)
+- [*municipality-types-order*](dict-custom.lisp/*municipality-types-order*_global.md) — var (`ichiran/custom`)
+- [*silent-p*](dict-custom.lisp/*silent-p*_global.md) — var (`ichiran/custom`)
+
+## dict-errata.lisp
+
+- [*copulae*](dict-errata.lisp/*copulae*_global.md) — var (`ichiran/dict`)
+- [*final-prt*](dict-errata.lisp/*final-prt*_global.md) — var (`ichiran/dict`)
+- [*force-kanji-break*](dict-errata.lisp/*force-kanji-break*_global.md) — var (`ichiran/dict`)
+- [*no-kanji-break*](dict-errata.lisp/*no-kanji-break*_global.md) — var (`ichiran/dict`)
+- [*no-kanji-break-penalty*](dict-errata.lisp/*no-kanji-break-penalty*_global.md) — var (`ichiran/dict`)
+- [*non-final-prt*](dict-errata.lisp/*non-final-prt*_global.md) — var (`ichiran/dict`)
+- [*semi-final-prt*](dict-errata.lisp/*semi-final-prt*_global.md) — var (`ichiran/dict`)
+- [*skip-conj-forms*](dict-errata.lisp/*skip-conj-forms*_global.md) — var (`ichiran/dict`)
+- [*skip-words*](dict-errata.lisp/*skip-words*_global.md) — var (`ichiran/dict`)
+- [*weak-conj-forms*](dict-errata.lisp/*weak-conj-forms*_global.md) — var (`ichiran/dict`)
+
+## dict-grammar.lisp
+
+- [*aux-verbs*](dict-grammar.lisp/*aux-verbs*_global.md) — var (`ichiran/dict`)
+- [*honorifics*](dict-grammar.lisp/*honorifics*_global.md) — var (`ichiran/dict`)
+- [*init-suffixes-lock*](dict-grammar.lisp/*init-suffixes-lock*_global.md) — var (`ichiran/dict`)
+- [*noun-particles*](dict-grammar.lisp/*noun-particles*_global.md) — var (`ichiran/dict`)
+- [*penalty-list*](dict-grammar.lisp/*penalty-list*_global.md) — var (`ichiran/dict`)
+- [*segfilter-list*](dict-grammar.lisp/*segfilter-list*_global.md) — var (`ichiran/dict`)
+- [*suffix-cache*](dict-grammar.lisp/*suffix-cache*_global.md) — var (`ichiran/dict`)
+- [*suffix-class*](dict-grammar.lisp/*suffix-class*_global.md) — var (`ichiran/dict`)
+- [*suffix-description*](dict-grammar.lisp/*suffix-description*_global.md) — var (`ichiran/dict`)
+- [*suffix-list*](dict-grammar.lisp/*suffix-list*_global.md) — var (`ichiran/dict`)
+- [*suffix-unique-only*](dict-grammar.lisp/*suffix-unique-only*_global.md) — var (`ichiran/dict`)
+- [*synergy-list*](dict-grammar.lisp/*synergy-list*_global.md) — var (`ichiran/dict`)
+
+## dict-load.lisp
+
+- [*conj-description*](dict-load.lisp/*conj-description*_global.md) — var (`ichiran/dict`)
+- [*conj-rules*](dict-load.lisp/*conj-rules*_global.md) — var (`ichiran/dict`)
+- [*do-not-conjugate*](dict-load.lisp/*do-not-conjugate*_global.md) — var (`ichiran/dict`)
+- [*do-not-conjugate-seq*](dict-load.lisp/*do-not-conjugate-seq*_global.md) — var (`ichiran/dict`)
+- [*pos-by-index*](dict-load.lisp/*pos-by-index*_global.md) — var (`ichiran/dict`)
+- [*pos-index*](dict-load.lisp/*pos-index*_global.md) — var (`ichiran/dict`)
+- [*pos-with-conj-rules*](dict-load.lisp/*pos-with-conj-rules*_global.md) — var (`ichiran/dict`)
+- [*secondary-conjugation-types*](dict-load.lisp/*secondary-conjugation-types*_global.md) — var (`ichiran/dict`)
+- [*secondary-conjugation-types-from*](dict-load.lisp/*secondary-conjugation-types-from*_global.md) — var (`ichiran/dict`)
+
+## dict-split.lisp
+
+- [*easy-hints-seqs*](dict-split.lisp/*easy-hints-seqs*_global.md) — var (`ichiran/dict`)
+- [*hint-char-map*](dict-split.lisp/*hint-char-map*_global.md) — var (`ichiran/dict`)
+- [*hint-map*](dict-split.lisp/*hint-map*_global.md) — var (`ichiran/dict`)
+- [*hint-simplify-map*](dict-split.lisp/*hint-simplify-map*_global.md) — var (`ichiran/dict`)
+- [*hints-checked*](dict-split.lisp/*hints-checked*_global.md) — var (`ichiran/dict`)
+- [*kana-hint-map*](dict-split.lisp/*kana-hint-map*_global.md) — var (`ichiran/dict`)
+- [*kana-hint-mod*](dict-split.lisp/*kana-hint-mod*_global.md) — var (`ichiran/dict`)
+- [*kana-hint-space*](dict-split.lisp/*kana-hint-space*_global.md) — var (`ichiran/dict`)
+- [*segsplit-map*](dict-split.lisp/*segsplit-map*_global.md) — var (`ichiran/dict`)
+- [*split-map*](dict-split.lisp/*split-map*_global.md) — var (`ichiran/dict`)
+
+## dict.lisp
+
+- [*disable-hints*](dict.lisp/*disable-hints*_global.md) — var (`ichiran/dict`)
+- [*gap-penalty*](dict.lisp/*gap-penalty*_global.md) — var (`ichiran/dict`)
+- [*identical-word-score-cutoff*](dict.lisp/*identical-word-score-cutoff*_global.md) — var (`ichiran/dict`)
+- [*is-arch-cache*](dict.lisp/*is-arch-cache*_global.md) — var (`ichiran/dict`)
+- [*length-coeff-sequences*](dict.lisp/*length-coeff-sequences*_global.md) — var (`ichiran/dict`)
+- [*max-word-length*](dict.lisp/*max-word-length*_global.md) — var (`ichiran/dict`)
+- [*no-conj-data*](dict.lisp/*no-conj-data*_global.md) — var (`ichiran/dict`)
+- [*score-cutoff*](dict.lisp/*score-cutoff*_global.md) — var (`ichiran/dict`)
+- [*segment-score-cutoff*](dict.lisp/*segment-score-cutoff*_global.md) — var (`ichiran/dict`)
+- [*substring-hash*](dict.lisp/*substring-hash*_global.md) — var (`ichiran/dict`)
+- [*suffix-map-temp*](dict.lisp/*suffix-map-temp*_global.md) — var (`ichiran/dict`)
+- [*suffix-next-end*](dict.lisp/*suffix-next-end*_global.md) — var (`ichiran/dict`)
+
+## kanji.lisp
+
+- [*reading-cache*](kanji.lisp/*reading-cache*_global.md) — var (`ichiran/kanji`)
+
+## numbers.lisp
+
+- [*char-number-class*](numbers.lisp/*char-number-class*_global.md) — var (`ichiran/numbers`)
+- [*char-number-class-hash*](numbers.lisp/*char-number-class-hash*_global.md) — var (`ichiran/numbers`)
+- [*digit-kanji-default*](numbers.lisp/*digit-kanji-default*_global.md) — var (`ichiran/numbers`)
+- [*digit-kanji-legal*](numbers.lisp/*digit-kanji-legal*_global.md) — var (`ichiran/numbers`)
+- [*digit-to-kana*](numbers.lisp/*digit-to-kana*_global.md) — var (`ichiran/numbers`)
+- [*power-kanji*](numbers.lisp/*power-kanji*_global.md) — var (`ichiran/numbers`)
+- [*power-to-kana*](numbers.lisp/*power-to-kana*_global.md) — var (`ichiran/numbers`)
+
+## romanize.lisp
+
+- [*default-romanization-method*](romanize.lisp/*default-romanization-method*_global.md) — var (`ichiran`)
+- [*hepburn-basic*](romanize.lisp/*hepburn-basic*_global.md) — var (`ichiran`)
+- [*hepburn-kana-table*](romanize.lisp/*hepburn-kana-table*_global.md) — var (`ichiran`)
+- [*hepburn-modified*](romanize.lisp/*hepburn-modified*_global.md) — var (`ichiran`)
+- [*hepburn-passport*](romanize.lisp/*hepburn-passport*_global.md) — var (`ichiran`)
+- [*hepburn-simple*](romanize.lisp/*hepburn-simple*_global.md) — var (`ichiran`)
+- [*hepburn-traditional*](romanize.lisp/*hepburn-traditional*_global.md) — var (`ichiran`)
+- [*kunrei-siki*](romanize.lisp/*kunrei-siki*_global.md) — var (`ichiran`)
+- [*kunrei-siki-kana-table*](romanize.lisp/*kunrei-siki-kana-table*_global.md) — var (`ichiran`)
+
+## settings.lisp
+
+- [*connection*](settings.lisp/*connection*_global.md) — var (`ichiran/conn`)
+- [*connections*](settings.lisp/*connections*_global.md) — var (`ichiran/conn`)
+- [*jmdict-data*](settings.lisp/*jmdict-data*_global.md) — var (`ichiran/dict`)
+- [*jmdict-path*](settings.lisp/*jmdict-path*_global.md) — var (`ichiran/dict`)
+- [*kanjidic-path*](settings.lisp/*kanjidic-path*_global.md) — var (`ichiran/kanji`)
+
+## tests.lisp
+
+- [*delays*](tests.lisp/*delays*_global.md) — var (`ichiran/test`)
+- [*test-thread-count*](tests.lisp/*test-thread-count*_global.md) — var (`ichiran/test`)
+
