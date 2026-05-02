@@ -67,9 +67,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   64. `ichiran/conn:all-caches`  — fn, conn.lisp:110  *[skip — Class-slot registry pattern doesn't translate. Replaced in Rust by per-cache OnceLock + DI when the DB layer lands; no 1:1 counterpart.]*
   65. `ichiran/conn:init-all-caches`  — fn, conn.lisp:144  *[skip — Class-slot registry pattern doesn't translate. Replaced in Rust by per-cache OnceLock + DI when the DB layer lands; no 1:1 counterpart.]*
   66. `ichiran/conn:get-spec`  — fn, conn.lisp:25  *[skip — Lisp dbid-dispatch (nil/list/keyword → connection spec) doesn't translate. Connection registry will be handled via the Rust config crate when the DB layer lands.]*
-  67. `ichiran/conn:switch-conn-vars`  — fn, conn.lisp:65
-  68. `ichiran/dict:init-suffix-hashtables`  — fn, dict-grammar.lisp:6
-  69. `ichiran/dict:init-suffixes-running-p`  — fn, dict-grammar.lisp:165
+  67. `ichiran/conn:switch-conn-vars`  — fn, conn.lisp:65  *[skip — Per-connection variable rebinding from *conn-var-cache*. Rust has no dynamic-variable shadowing; replaced by per-Database struct ownership of caches when the DB layer lands. Same family as all-caches / get-spec.]*
+  68. `ichiran/dict:init-suffix-hashtables`  — fn, dict-grammar.lisp:6  *[skip — Empty-hashtable initializer for *suffix-cache* / *suffix-class* def-conn-vars. Rust replacement is OnceLock<HashMap> populated on first read; no standalone init verb survives.]*
+  69. `ichiran/dict:init-suffixes-running-p`  — fn, dict-grammar.lisp:165  *[skip — Loader-busy predicate over a one-shot init thread + def-conn-var cache. Rust replacement is OnceLock::get().is_some() or eager startup init; the verb has nowhere to live.]*
   70. `ichiran/dict:find-word-seq`  — fn, dict-grammar.lisp:73
   71. `ichiran/dict:find-word-conj-of`  — fn, dict-grammar.lisp:77
   72. `ichiran/dict:get-kana-form`  — fn, dict-grammar.lisp:36

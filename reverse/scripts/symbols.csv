@@ -89,7 +89,7 @@ ichiran/conn:let-db,let-db,ichiran/conn,conn.lisp,32,macro,pending,
 ichiran/conn:load-connection-from-env,load-connection-from-env,ichiran/conn,conn.lisp,166,fn,pending,
 ichiran/conn:load-settings,load-settings,ichiran/conn,conn.lisp,76,fn,pending,
 ichiran/conn:reset-cache,reset-cache,ichiran/conn,conn.lisp,0,gf,pending,
-ichiran/conn:switch-conn-vars,switch-conn-vars,ichiran/conn,conn.lisp,65,fn,pending,
+ichiran/conn:switch-conn-vars,switch-conn-vars,ichiran/conn,conn.lisp,65,fn,skip,Per-connection variable rebinding from *conn-var-cache*. Rust has no dynamic-variable shadowing; replaced by per-Database struct ownership of caches when the DB layer lands. Same family as all-caches / get-spec.
 ichiran/conn:with-db,with-db,ichiran/conn,conn.lisp,46,macro,pending,
 ichiran/conn:with-log,with-log,ichiran/conn,conn.lisp,86,macro,pending,
 ichiran/custom:*municipality-types*,*municipality-types*,ichiran/custom,dict-custom.lisp,97,global,pending,
@@ -419,9 +419,9 @@ ichiran/dict:get-suffixes,get-suffixes,ichiran/dict,dict-grammar.lisp,697,fn,pen
 ichiran/dict:get-synergies,get-synergies,ichiran/dict,dict-grammar.lisp,976,fn,pending,
 ichiran/dict:get-text,get-text,ichiran/dict,dict.lisp,0,gf,pending,
 ichiran/dict:gloss,gloss,ichiran/dict,dict.lisp,178,dao,pending,
-ichiran/dict:init-suffix-hashtables,init-suffix-hashtables,ichiran/dict,dict-grammar.lisp,6,fn,pending,
+ichiran/dict:init-suffix-hashtables,init-suffix-hashtables,ichiran/dict,dict-grammar.lisp,6,fn,skip,Empty-hashtable initializer for *suffix-cache* / *suffix-class* def-conn-vars. Rust replacement is OnceLock<HashMap> populated on first read; no standalone init verb survives.
 ichiran/dict:init-suffixes,init-suffixes,ichiran/dict,dict-grammar.lisp,332,fn,pending,
-ichiran/dict:init-suffixes-running-p,init-suffixes-running-p,ichiran/dict,dict-grammar.lisp,165,fn,pending,
+ichiran/dict:init-suffixes-running-p,init-suffixes-running-p,ichiran/dict,dict-grammar.lisp,165,fn,skip,Loader-busy predicate over a one-shot init thread + def-conn-var cache. Rust replacement is OnceLock::get().is_some() or eager startup init; the verb has nowhere to live.
 ichiran/dict:init-suffixes-thread,init-suffixes-thread,ichiran/dict,dict-grammar.lisp,169,fn,pending,
 ichiran/dict:init-tables,init-tables,ichiran/dict,dict-load.lisp,3,fn,pending,
 ichiran/dict:insert-conjugation,insert-conjugation,ichiran/dict,dict-load.lisp,375,fn,pending,
