@@ -66,7 +66,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   63. `ichiran/cli:setup-debugger`  — fn, cli.lisp:95  *[skip — CLI-only stderr/debugger glue; Rust uses eprintln!/anyhow/panic-hook. Belongs in a future kaniran-cli crate, not kaniran-core.]*
   64. `ichiran/conn:all-caches`  — fn, conn.lisp:110  *[skip — Class-slot registry pattern doesn't translate. Replaced in Rust by per-cache OnceLock + DI when the DB layer lands; no 1:1 counterpart.]*
   65. `ichiran/conn:init-all-caches`  — fn, conn.lisp:144  *[skip — Class-slot registry pattern doesn't translate. Replaced in Rust by per-cache OnceLock + DI when the DB layer lands; no 1:1 counterpart.]*
-  66. `ichiran/conn:get-spec`  — fn, conn.lisp:25
+  66. `ichiran/conn:get-spec`  — fn, conn.lisp:25  *[skip — Lisp dbid-dispatch (nil/list/keyword → connection spec) doesn't translate. Connection registry will be handled via the Rust config crate when the DB layer lands.]*
   67. `ichiran/conn:switch-conn-vars`  — fn, conn.lisp:65
   68. `ichiran/dict:init-suffix-hashtables`  — fn, dict-grammar.lisp:6
   69. `ichiran/dict:init-suffixes-running-p`  — fn, dict-grammar.lisp:165

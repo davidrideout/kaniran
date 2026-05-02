@@ -82,7 +82,7 @@ ichiran/conn:dp,dp,ichiran/conn,conn.lisp,149,fn,pending,
 ichiran/conn:ensure,ensure,ichiran/conn,conn.lisp,0,gf,pending,
 ichiran/conn:get-cache,get-cache,ichiran/conn,conn.lisp,113,fn,pending,
 ichiran/conn:get-ichiran-connection-env,get-ichiran-connection-env,ichiran/conn,conn.lisp,154,fn,pending,
-ichiran/conn:get-spec,get-spec,ichiran/conn,conn.lisp,25,fn,pending,
+ichiran/conn:get-spec,get-spec,ichiran/conn,conn.lisp,25,fn,skip,Lisp dbid-dispatch (nil/list/keyword → connection spec) doesn't translate. Connection registry will be handled via the Rust config crate when the DB layer lands.
 ichiran/conn:init-all-caches,init-all-caches,ichiran/conn,conn.lisp,144,fn,skip,Class-slot registry pattern doesn't translate. Replaced in Rust by per-cache OnceLock + DI when the DB layer lands; no 1:1 counterpart.
 ichiran/conn:init-cache,init-cache,ichiran/conn,conn.lisp,0,gf,pending,
 ichiran/conn:let-db,let-db,ichiran/conn,conn.lisp,32,macro,pending,
