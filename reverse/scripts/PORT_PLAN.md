@@ -41,16 +41,16 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   38. `ichiran/characters:collect-char-class`  — fn, characters.lisp:201  *[ported]*
   39. `ichiran/characters:consecutive-char-groups`  — fn, characters.lisp:300  *[ported]*
   40. `ichiran/characters:count-char-class`  — fn, characters.lisp:194  *[ported]*
-  41. `ichiran/characters:dakuten-join`  — fn, characters.lisp:100
-  42. `ichiran/characters:destem`  — fn, characters.lisp:340
-  43. `ichiran/characters:geminate`  — fn, characters.lisp:336
-  44. `ichiran/characters:get-char-class`  — fn, characters.lisp:52
-  45. `ichiran/characters:hash-from-list`  — macro, characters.lisp:64
-  46. `ichiran/characters:join`  — fn, characters.lisp:371
-  47. `ichiran/characters:kanji-cross-match`  — fn, characters.lisp:222
-  48. `ichiran/characters:kanji-mask`  — fn, characters.lisp:212
-  49. `ichiran/characters:kanji-regex`  — fn, characters.lisp:215
-  50. `ichiran/characters:kanji-match`  — fn, characters.lisp:220
+  41. `ichiran/characters:dakuten-join`  — fn, characters.lisp:100  *[ported]*
+  42. `ichiran/characters:destem`  — fn, characters.lisp:340  *[ported]*
+  43. `ichiran/characters:geminate`  — fn, characters.lisp:336  *[ported]*
+  44. `ichiran/characters:get-char-class`  — fn, characters.lisp:52  *[ported]*
+  45. `ichiran/characters:hash-from-list`  — macro, characters.lisp:64  *[ported]*
+  46. `ichiran/characters:join`  — fn, characters.lisp:371  *[ported]*
+  47. `ichiran/characters:kanji-cross-match`  — fn, characters.lisp:222  *[ported]*
+  48. `ichiran/characters:kanji-mask`  — fn, characters.lisp:212  *[ported]*
+  49. `ichiran/characters:kanji-regex`  — fn, characters.lisp:215  *[ported]*
+  50. `ichiran/characters:kanji-match`  — fn, characters.lisp:220  *[ported]*
   51. `ichiran/characters:kanji-prefix`  — fn, characters.lisp:306
   52. `ichiran/characters:long-vowel-modifier-p`  — fn, characters.lisp:54
   53. `ichiran/characters:match-diff`  — fn, characters.lisp:347

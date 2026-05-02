@@ -2,8 +2,8 @@
 //! (`characters.lisp:85-91`).
 //!
 //! Pairs of `(japanese-mark, ascii-equivalent)` used to romanize
-//! punctuation. 18 entries. Same shape as
-//! [`DAKUTEN_JOIN`][super::_star_dakuten_join_star_::DAKUTEN_JOIN].
+//! punctuation. 18 entries. Same shape as the value returned by
+//! [`super::_star_dakuten_join_star_::dakuten_join`].
 //!
 //! Note: the introspected md uses Lisp's shared-structure reader
 //! notation (`#1=` / `#1#`, `#2=` / `#2#`) for two distinct repeated
