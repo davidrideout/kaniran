@@ -10,7 +10,7 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use super::_star_all_characters_star_::KanaClass;
+use super::kani_kana_class::KanaClass;
 
 static CACHE: OnceLock<HashMap<KanaClass, KanaClass>> = OnceLock::new();
 

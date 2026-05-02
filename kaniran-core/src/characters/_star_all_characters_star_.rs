@@ -1,197 +1,144 @@
 //! Port of `ichiran/characters:*all-characters*`
-//! (`characters.lisp:32`).
+//! (`characters.lisp:32-35`).
 //!
 //! Flat list of `(class, chars)` pairs covering every kana mora /
 //! modifier / iteration mark recognized by ichiran. Each `chars` string
 //! holds the hiragana form followed by the katakana form, except
-//! [`KanaClass::LongVowel`] which has the single character `ー`. Used
-//! to build `*char-class-hash*` and to look up the kana glyphs for a
-//! given class.
+//! [`KanaClass::LongVowel`] which has the single character `ー`.
 //!
-//! [`KanaClass`] also lives here. Lisp lacks a named type for the
-//! 87-tag set of mora/modifier classes; the closest thing is the keys
-//! of this very plist (plus the same-shape `eql` callsites in
-//! `romanize.lisp` and `dict.lisp`). Co-locating the enum with the
-//! data avoids inventing a separate file for an unnamed-in-Lisp type.
+//! Built lazily on first access by appending the four constituents in
+//! the same order as the upstream `(append *sokuon-characters*
+//! *iteration-characters* *modifier-characters* *kana-characters*)`.
+//! A regression test pins the build output to the value the
+//! introspector captured — drift in any constituent surfaces there.
+//!
+//! The `KanaClass` enum lives in [`super::kani_kana_class`] (no Lisp
+//! counterpart — see that file for the rationale).
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[repr(u8)]
-pub enum KanaClass {
-    Sokuon,
-    Iter,
-    IterV,
-    PlusA,
-    PlusI,
-    PlusU,
-    PlusE,
-    PlusO,
-    PlusYa,
-    PlusYu,
-    PlusYo,
-    PlusWa,
-    LongVowel,
-    A,
-    I,
-    U,
-    E,
-    O,
-    Ka,
-    Ki,
-    Ku,
-    Ke,
-    Ko,
-    Sa,
-    Shi,
-    Su,
-    Se,
-    So,
-    Ta,
-    Chi,
-    Tsu,
-    Te,
-    To,
-    Na,
-    Ni,
-    Nu,
-    Ne,
-    No,
-    Ha,
-    Hi,
-    Fu,
-    He,
-    Ho,
-    Ma,
-    Mi,
-    Mu,
-    Me,
-    Mo,
-    Ya,
-    Yu,
-    Yo,
-    Ra,
-    Ri,
-    Ru,
-    Re,
-    Ro,
-    Wa,
-    Wi,
-    We,
-    Wo,
-    N,
-    Ga,
-    Gi,
-    Gu,
-    Ge,
-    Go,
-    Za,
-    Ji,
-    Zu,
-    Ze,
-    Zo,
-    Da,
-    Dji,
-    Dzu,
-    De,
-    Do,
-    Ba,
-    Bi,
-    Bu,
-    Be,
-    Bo,
-    Pa,
-    Pi,
-    Pu,
-    Pe,
-    Po,
-    Vu,
+use std::sync::OnceLock;
+
+use super::_star_iteration_characters_star_::ITERATION_CHARACTERS;
+use super::_star_kana_characters_star_::KANA_CHARACTERS;
+use super::_star_modifier_characters_star_::MODIFIER_CHARACTERS;
+use super::_star_sokuon_characters_star_::SOKUON_CHARACTERS;
+use super::kani_kana_class::KanaClass;
+
+static CACHE: OnceLock<Vec<(KanaClass, &'static str)>> = OnceLock::new();
+
+pub fn all_characters() -> &'static [(KanaClass, &'static str)] {
+    CACHE.get_or_init(|| {
+        let mut v = Vec::with_capacity(
+            SOKUON_CHARACTERS.len()
+                + ITERATION_CHARACTERS.len()
+                + MODIFIER_CHARACTERS.len()
+                + KANA_CHARACTERS.len(),
+        );
+        v.extend_from_slice(SOKUON_CHARACTERS);
+        v.extend_from_slice(ITERATION_CHARACTERS);
+        v.extend_from_slice(MODIFIER_CHARACTERS);
+        v.extend_from_slice(KANA_CHARACTERS);
+        v
+    })
 }
 
-pub static ALL_CHARACTERS: &[(KanaClass, &str)] = &[
-    (KanaClass::Sokuon, "っッ"),
-    (KanaClass::Iter, "ゝヽ"),
-    (KanaClass::IterV, "ゞヾ"),
-    (KanaClass::PlusA, "ぁァ"),
-    (KanaClass::PlusI, "ぃィ"),
-    (KanaClass::PlusU, "ぅゥ"),
-    (KanaClass::PlusE, "ぇェ"),
-    (KanaClass::PlusO, "ぉォ"),
-    (KanaClass::PlusYa, "ゃャ"),
-    (KanaClass::PlusYu, "ゅュ"),
-    (KanaClass::PlusYo, "ょョ"),
-    (KanaClass::PlusWa, "ゎヮ"),
-    (KanaClass::LongVowel, "ー"),
-    (KanaClass::A, "あア"),
-    (KanaClass::I, "いイ"),
-    (KanaClass::U, "うウ"),
-    (KanaClass::E, "えエ"),
-    (KanaClass::O, "おオ"),
-    (KanaClass::Ka, "かカ"),
-    (KanaClass::Ki, "きキ"),
-    (KanaClass::Ku, "くク"),
-    (KanaClass::Ke, "けケ"),
-    (KanaClass::Ko, "こコ"),
-    (KanaClass::Sa, "さサ"),
-    (KanaClass::Shi, "しシ"),
-    (KanaClass::Su, "すス"),
-    (KanaClass::Se, "せセ"),
-    (KanaClass::So, "そソ"),
-    (KanaClass::Ta, "たタ"),
-    (KanaClass::Chi, "ちチ"),
-    (KanaClass::Tsu, "つツ"),
-    (KanaClass::Te, "てテ"),
-    (KanaClass::To, "とト"),
-    (KanaClass::Na, "なナ"),
-    (KanaClass::Ni, "にニ"),
-    (KanaClass::Nu, "ぬヌ"),
-    (KanaClass::Ne, "ねネ"),
-    (KanaClass::No, "のノ"),
-    (KanaClass::Ha, "はハ"),
-    (KanaClass::Hi, "ひヒ"),
-    (KanaClass::Fu, "ふフ"),
-    (KanaClass::He, "へヘ"),
-    (KanaClass::Ho, "ほホ"),
-    (KanaClass::Ma, "まマ"),
-    (KanaClass::Mi, "みミ"),
-    (KanaClass::Mu, "むム"),
-    (KanaClass::Me, "めメ"),
-    (KanaClass::Mo, "もモ"),
-    (KanaClass::Ya, "やヤ"),
-    (KanaClass::Yu, "ゆユ"),
-    (KanaClass::Yo, "よヨ"),
-    (KanaClass::Ra, "らラ"),
-    (KanaClass::Ri, "りリ"),
-    (KanaClass::Ru, "るル"),
-    (KanaClass::Re, "れレ"),
-    (KanaClass::Ro, "ろロ"),
-    (KanaClass::Wa, "わワ"),
-    (KanaClass::Wi, "ゐヰ"),
-    (KanaClass::We, "ゑヱ"),
-    (KanaClass::Wo, "をヲ"),
-    (KanaClass::N, "んン"),
-    (KanaClass::Ga, "がガ"),
-    (KanaClass::Gi, "ぎギ"),
-    (KanaClass::Gu, "ぐグ"),
-    (KanaClass::Ge, "げゲ"),
-    (KanaClass::Go, "ごゴ"),
-    (KanaClass::Za, "ざザ"),
-    (KanaClass::Ji, "じジ"),
-    (KanaClass::Zu, "ずズ"),
-    (KanaClass::Ze, "ぜゼ"),
-    (KanaClass::Zo, "ぞゾ"),
-    (KanaClass::Da, "だダ"),
-    (KanaClass::Dji, "ぢヂ"),
-    (KanaClass::Dzu, "づヅ"),
-    (KanaClass::De, "でデ"),
-    (KanaClass::Do, "どド"),
-    (KanaClass::Ba, "ばバ"),
-    (KanaClass::Bi, "びビ"),
-    (KanaClass::Bu, "ぶブ"),
-    (KanaClass::Be, "べベ"),
-    (KanaClass::Bo, "ぼボ"),
-    (KanaClass::Pa, "ぱパ"),
-    (KanaClass::Pi, "ぴピ"),
-    (KanaClass::Pu, "ぷプ"),
-    (KanaClass::Pe, "ぺペ"),
-    (KanaClass::Po, "ぽポ"),
-    (KanaClass::Vu, "ゔヴ"),
-];
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use KanaClass::*;
+
+    /// Pinned to the value the Lisp introspector captured. Any drift
+    /// in the four constituent slices surfaces as a failure here.
+    #[test]
+    fn matches_introspected_value() {
+        let expected: &[(KanaClass, &str)] = &[
+            (Sokuon, "っッ"),
+            (Iter, "ゝヽ"),
+            (IterV, "ゞヾ"),
+            (PlusA, "ぁァ"),
+            (PlusI, "ぃィ"),
+            (PlusU, "ぅゥ"),
+            (PlusE, "ぇェ"),
+            (PlusO, "ぉォ"),
+            (PlusYa, "ゃャ"),
+            (PlusYu, "ゅュ"),
+            (PlusYo, "ょョ"),
+            (PlusWa, "ゎヮ"),
+            (LongVowel, "ー"),
+            (A, "あア"),
+            (I, "いイ"),
+            (U, "うウ"),
+            (E, "えエ"),
+            (O, "おオ"),
+            (Ka, "かカ"),
+            (Ki, "きキ"),
+            (Ku, "くク"),
+            (Ke, "けケ"),
+            (Ko, "こコ"),
+            (Sa, "さサ"),
+            (Shi, "しシ"),
+            (Su, "すス"),
+            (Se, "せセ"),
+            (So, "そソ"),
+            (Ta, "たタ"),
+            (Chi, "ちチ"),
+            (Tsu, "つツ"),
+            (Te, "てテ"),
+            (To, "とト"),
+            (Na, "なナ"),
+            (Ni, "にニ"),
+            (Nu, "ぬヌ"),
+            (Ne, "ねネ"),
+            (No, "のノ"),
+            (Ha, "はハ"),
+            (Hi, "ひヒ"),
+            (Fu, "ふフ"),
+            (He, "へヘ"),
+            (Ho, "ほホ"),
+            (Ma, "まマ"),
+            (Mi, "みミ"),
+            (Mu, "むム"),
+            (Me, "めメ"),
+            (Mo, "もモ"),
+            (Ya, "やヤ"),
+            (Yu, "ゆユ"),
+            (Yo, "よヨ"),
+            (Ra, "らラ"),
+            (Ri, "りリ"),
+            (Ru, "るル"),
+            (Re, "れレ"),
+            (Ro, "ろロ"),
+            (Wa, "わワ"),
+            (Wi, "ゐヰ"),
+            (We, "ゑヱ"),
+            (Wo, "をヲ"),
+            (N, "んン"),
+            (Ga, "がガ"),
+            (Gi, "ぎギ"),
+            (Gu, "ぐグ"),
+            (Ge, "げゲ"),
+            (Go, "ごゴ"),
+            (Za, "ざザ"),
+            (Ji, "じジ"),
+            (Zu, "ずズ"),
+            (Ze, "ぜゼ"),
+            (Zo, "ぞゾ"),
+            (Da, "だダ"),
+            (Dji, "ぢヂ"),
+            (Dzu, "づヅ"),
+            (De, "でデ"),
+            (Do, "どド"),
+            (Ba, "ばバ"),
+            (Bi, "びビ"),
+            (Bu, "ぶブ"),
+            (Be, "べベ"),
+            (Bo, "ぼボ"),
+            (Pa, "ぱパ"),
+            (Pi, "ぴピ"),
+            (Pu, "ぷプ"),
+            (Pe, "ぺペ"),
+            (Po, "ぽポ"),
+            (Vu, "ゔヴ"),
+        ];
+        assert_eq!(all_characters(), expected);
+    }
+}

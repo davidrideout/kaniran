@@ -6,31 +6,31 @@ _skipped packages: ichiran/maintenance, ichiran/test_
    3. `ichiran/characters:*basic-split-regex*`  — global, characters.lisp:131  *[ported]*
    4. `ichiran/characters:*char-class-hash*`  — global, characters.lisp:37  *[ported]*
    5. `ichiran/characters:*char-class-regex-mapping*`  — global, characters.lisp:136  *[ported]*
-   6. `ichiran/characters:*char-scanners*`  — global, characters.lisp:151
-   7. `ichiran/characters:*char-scanners-inner*`  — global, characters.lisp:155
-   8. `ichiran/characters:*dakuten-hash*`  — global, characters.lisp:0
-   9. `ichiran/characters:*dakuten-join*`  — global, characters.lisp:103
-  10. `ichiran/characters:*decimal-point-regex*`  — global, characters.lisp:129
-  11. `ichiran/characters:*digit-regex*`  — global, characters.lisp:128
-  12. `ichiran/characters:*full-width-kana*`  — global, characters.lisp:107
-  13. `ichiran/characters:*half-width-kana*`  — global, characters.lisp:106
-  14. `ichiran/characters:*handakuten-hash*`  — global, characters.lisp:0
-  15. `ichiran/characters:*hiragana-regex*`  — global, characters.lisp:120
-  16. `ichiran/characters:*iteration-characters*`  — global, characters.lisp:5
-  17. `ichiran/characters:*kana-characters*`  — global, characters.lisp:11
-  18. `ichiran/characters:*kanji-char-regex*`  — global, characters.lisp:122
-  19. `ichiran/characters:*kanji-regex*`  — global, characters.lisp:121
-  20. `ichiran/characters:*katakana-regex*`  — global, characters.lisp:118
-  21. `ichiran/characters:*katakana-uniq-regex*`  — global, characters.lisp:119
-  22. `ichiran/characters:*modifier-characters*`  — global, characters.lisp:7
-  23. `ichiran/characters:*nonword-regex*`  — global, characters.lisp:124
-  24. `ichiran/characters:*normal-chars*`  — global, characters.lisp:114
-  25. `ichiran/characters:*num-word-regex*`  — global, characters.lisp:126
-  26. `ichiran/characters:*numeric-regex*`  — global, characters.lisp:125
-  27. `ichiran/characters:*punctuation-marks*`  — global, characters.lisp:85
-  28. `ichiran/characters:*sokuon-characters*`  — global, characters.lisp:3
-  29. `ichiran/characters:*undakuten-hash*`  — global, characters.lisp:0
-  30. `ichiran/characters:*word-regex*`  — global, characters.lisp:127
+   6. `ichiran/characters:*char-scanners*`  — global, characters.lisp:151  *[ported]*
+   7. `ichiran/characters:*char-scanners-inner*`  — global, characters.lisp:155  *[ported]*
+   8. `ichiran/characters:*dakuten-hash*`  — global, characters.lisp:0  *[ported]*
+   9. `ichiran/characters:*dakuten-join*`  — global, characters.lisp:103  *[ported]*
+  10. `ichiran/characters:*decimal-point-regex*`  — global, characters.lisp:129  *[ported]*
+  11. `ichiran/characters:*digit-regex*`  — global, characters.lisp:128  *[ported]*
+  12. `ichiran/characters:*full-width-kana*`  — global, characters.lisp:107  *[ported]*
+  13. `ichiran/characters:*half-width-kana*`  — global, characters.lisp:106  *[ported]*
+  14. `ichiran/characters:*handakuten-hash*`  — global, characters.lisp:0  *[ported]*
+  15. `ichiran/characters:*hiragana-regex*`  — global, characters.lisp:120  *[ported]*
+  16. `ichiran/characters:*iteration-characters*`  — global, characters.lisp:5  *[ported]*
+  17. `ichiran/characters:*kana-characters*`  — global, characters.lisp:11  *[ported]*
+  18. `ichiran/characters:*kanji-char-regex*`  — global, characters.lisp:122  *[ported]*
+  19. `ichiran/characters:*kanji-regex*`  — global, characters.lisp:121  *[ported]*
+  20. `ichiran/characters:*katakana-regex*`  — global, characters.lisp:118  *[ported]*
+  21. `ichiran/characters:*katakana-uniq-regex*`  — global, characters.lisp:119  *[ported]*
+  22. `ichiran/characters:*modifier-characters*`  — global, characters.lisp:7  *[ported]*
+  23. `ichiran/characters:*nonword-regex*`  — global, characters.lisp:124  *[ported]*
+  24. `ichiran/characters:*normal-chars*`  — global, characters.lisp:114  *[ported]*
+  25. `ichiran/characters:*num-word-regex*`  — global, characters.lisp:126  *[ported]*
+  26. `ichiran/characters:*numeric-regex*`  — global, characters.lisp:125  *[ported]*
+  27. `ichiran/characters:*punctuation-marks*`  — global, characters.lisp:85  *[ported]*
+  28. `ichiran/characters:*sokuon-characters*`  — global, characters.lisp:3  *[ported]*
+  29. `ichiran/characters:*undakuten-hash*`  — global, characters.lisp:0  *[ported]*
+  30. `ichiran/characters:*word-regex*`  — global, characters.lisp:127  *[ported]*
   31. `ichiran/characters:to-normal-char`  — fn, characters.lisp:242
   32. `ichiran/characters:as-hiragana`  — fn, characters.lisp:282
   33. `ichiran/characters:as-katakana`  — fn, characters.lisp:292

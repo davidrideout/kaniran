@@ -5,25 +5,25 @@
 //! (e.g. `'っ' → KanaClass::Sokuon`, `'ア' → KanaClass::A`). Built once
 //! on first access by walking `*all-characters*` and exploding each
 //! `chars` string into per-character entries — exactly mirroring the
-//! Lisp `loop ... do (setf (gethash char hash) class)` construction.
+//! upstream construction.
 //!
-//! Lookups for a non-kana char return `None`; in the Lisp the lookup
-//! falls back to the input char itself, which made the result a
-//! heterogeneous "tag-or-char" value. Rust callers reconstruct that
-//! shape at the lookup site (e.g. wrap in an `Either<KanaClass, char>`)
-//! when the consuming function is ported.
+//! Lookups on a non-kana char return `None`; the Lisp hashtable
+//! returns `nil` in the same case. The "tag-or-char fallback" lives
+//! one level up in `get-char-class` (which substitutes the input char
+//! itself when the table misses), not in this table.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use super::_star_all_characters_star_::{ALL_CHARACTERS, KanaClass};
+use super::_star_all_characters_star_::all_characters;
+use super::kani_kana_class::KanaClass;
 
 static CACHE: OnceLock<HashMap<char, KanaClass>> = OnceLock::new();
 
 pub fn char_class_hash() -> &'static HashMap<char, KanaClass> {
     CACHE.get_or_init(|| {
         let mut h = HashMap::new();
-        for (class, chars) in ALL_CHARACTERS {
+        for (class, chars) in all_characters() {
             for c in chars.chars() {
                 h.insert(c, *class);
             }

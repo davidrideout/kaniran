@@ -6,7 +6,7 @@
 //! (and back) without ambiguity. This is the single source of truth
 //! for how Lisp names land in the Rust tree.
 //!
-//! ## Rules
+//! ## Rules for ported symbols
 //!
 //! - The package qualifier becomes a subdirectory:
 //!   `ichiran/characters` → `characters/`,
@@ -18,14 +18,35 @@
 //!   `-` → `_`. Runs of `_` are collapsed but leading/trailing `_` is
 //!   preserved — the codebase contains pairs like `suffix-ren` /
 //!   `suffix-ren-` that would otherwise collide on the same filename.
-//! - Macros get a `_macro` stem suffix so they cannot be mistaken for
-//!   ported functions (per the port plan, macros do not become Rust
-//!   functions; they collapse into data tables).
+//! - The kind suffix mirrors the introspector's md-file naming:
+//!   `_macro` for macros, `_struct` / `_class` / `_dao` / `_type` /
+//!   `_condition` for the corresponding kinds. Functions, generics,
+//!   and globals get no suffix — `*…*` earmuffs and arity make their
+//!   names unambiguous.
 //! - Generic functions and ordinary functions share the same path —
 //!   the generic itself goes in `<name>.rs`; method implementations
 //!   are a separate decision handled in their own files.
 //! - The introspector annotates generic-function FQNs with a literal
 //!   trailing ` (generic function)`; that annotation is stripped here.
+//!
+//! ## Rust-only sidecars
+//!
+//! Files holding types or values that have **no Lisp counterpart**
+//! use the convention `kani_<snake_name>.rs` and live alongside the
+//! port files in the same package directory. The `kani_` prefix
+//! disambiguates them from:
+//!
+//! - `_star_<name>_star_.rs` — port of a Lisp `defparameter` /
+//!   `defvar` / `defconstant`.
+//! - `<name>_<kind>.rs` (with one of the kind suffixes above) — port
+//!   of a typed Lisp definition.
+//! - `<name>.rs` — port of a Lisp function or generic.
+//!
+//! Sidecars do not appear in `symbols.csv`, are not enumerated by the
+//! coverage tests below, and never get a `_<kind>` suffix (they have
+//! no Lisp kind to match). Current sidecars: `characters/kani_kana_class`
+//! holds [`KanaClass`][crate::characters::kani_kana_class::KanaClass]
+//! (the 87 mora/modifier tags have no Lisp deftype).
 //!
 //! ## Coverage
 //!
@@ -33,7 +54,8 @@
 //! (689 fn, 126 global, 38 gf, 36 macro, 28 class, 14 dao, 11 struct,
 //! 1 type, 1 condition): every one produces a path matching
 //! `[a-z0-9_]+(/[a-z0-9_]+)*\.rs`, and no two symbols collide on the
-//! same case-insensitive path.
+//! same case-insensitive path. Sidecars are out of scope for these
+//! tests (they have no FQN to feed in).
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SymbolKind {
