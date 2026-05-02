@@ -1,11 +1,11 @@
 # Port plan — 923 symbols in 921 waves (2 mutual-recursion groups covering 4 symbols)
 _skipped packages: ichiran/maintenance, ichiran/test_
 
-   1. `ichiran/characters:*abnormal-chars*`  — global, characters.lisp:109
-   2. `ichiran/characters:*all-characters*`  — global, characters.lisp:32
-   3. `ichiran/characters:*basic-split-regex*`  — global, characters.lisp:131
-   4. `ichiran/characters:*char-class-hash*`  — global, characters.lisp:37
-   5. `ichiran/characters:*char-class-regex-mapping*`  — global, characters.lisp:136
+   1. `ichiran/characters:*abnormal-chars*`  — global, characters.lisp:109  *[ported]*
+   2. `ichiran/characters:*all-characters*`  — global, characters.lisp:32  *[ported]*
+   3. `ichiran/characters:*basic-split-regex*`  — global, characters.lisp:131  *[ported]*
+   4. `ichiran/characters:*char-class-hash*`  — global, characters.lisp:37  *[ported]*
+   5. `ichiran/characters:*char-class-regex-mapping*`  — global, characters.lisp:136  *[ported]*
    6. `ichiran/characters:*char-scanners*`  — global, characters.lisp:151
    7. `ichiran/characters:*char-scanners-inner*`  — global, characters.lisp:155
    8. `ichiran/characters:*dakuten-hash*`  — global, characters.lisp:0
@@ -37,7 +37,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   34. `ichiran/characters:split-by-regex`  — fn, characters.lisp:263
   35. `ichiran/characters:test-word`  — fn, characters.lisp:187
   36. `ichiran/characters:basic-split`  — fn, characters.lisp:267
-  37. `ichiran/characters:char-class`  — type, characters.lisp:147
+  37. `ichiran/characters:char-class`  — type, characters.lisp:147  *[ported]*
   38. `ichiran/characters:collect-char-class`  — fn, characters.lisp:201
   39. `ichiran/characters:consecutive-char-groups`  — fn, characters.lisp:300
   40. `ichiran/characters:count-char-class`  — fn, characters.lisp:194
