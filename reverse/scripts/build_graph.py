@@ -5,6 +5,17 @@ Parse the auto-generated *.md files under reverse/ into two normalized CSVs:
   symbols.csv  fqn, name, package, file, line, kind, status
   edges.csv    caller_fqn, callee_fqn, resolved
 
+Recognised md kinds (by filename suffix):
+  *.md            function / macro / generic   — dependency = "## Dependencies" list
+  *_struct.md     defstruct                    — dependency = :include parent struct
+  *_class.md      defclass                     — dependency = direct superclasses
+  *_dao.md        defclass :metaclass dao-class — dependency = direct superclasses
+  *_global.md     defparameter / defvar / defconstant
+                                               — dependency = symbol references
+                                                 inside the printed value block
+  *_type.md       deftype                      — dependency = members referenced
+  *_condition.md  define-condition             — dependency = inherited condition
+
 Run from repo root:
     python3 reverse/scripts/build_graph.py
 """
@@ -21,14 +32,37 @@ OUT_DIR = REVERSE_DIR / "scripts"
 SYMBOLS_CSV = OUT_DIR / "symbols.csv"
 EDGES_CSV = OUT_DIR / "edges.csv"
 
-H1 = re.compile(r"^#\s+(\S.*?)\s*$")
+# H1 forms:
+#   "# kr-canonical"
+#   "# kana-representation (defstruct)"
+#   "# *sokuon-characters* (global variable)"
+H1 = re.compile(r"^#\s+(\S.*?)(?:\s+\([^)]+\))?\s*$")
 PACKAGE = re.compile(r"^\*\*Package:\*\*\s+`([^`]+)`")
-SOURCE = re.compile(r"^\*\*Source:\*\*\s+`([^`:]+):(\d+)`")
+SOURCE = re.compile(r"^\*\*Source:\*\*\s+`([^`:]+)(?::(\d+))?`")
 DEFFORM = re.compile(r"^\*\*Definition form:\*\*\s+`([^`]+)`")
 DEP = re.compile(r"^- `([^`]+)`")
 DEP_HEADER = re.compile(r"^##\s+Dependencies")
 
+INCLUDE = re.compile(r"^\*\*Include:\*\*\s+`([^`]+)`")
+INHERITS = re.compile(r"^\*\*Inherits:\*\*\s+`([^`]+)`")
+SUPERS = re.compile(r"^- Direct supers:\s+(.+)$")
+TICK = re.compile(r"`([^`]+)`")
+VALUE_FENCE = re.compile(r"^```")
+# Symbol mention inside a value block, e.g. ICHIRAN/DICT::ABBR-II
+SYMBOL_REF = re.compile(r"ICHIRAN(?:/[A-Z0-9-]+)?::?[A-Z0-9*+/_-]+")
+
 KIND_MAP = {"defun": "fn", "defmacro": "macro", "defgeneric": "gf"}
+
+# Suffix → kind label written into symbols.csv. Order matters for
+# longest-match (none collide here, but keep explicit for clarity).
+SUFFIX_KIND = [
+    ("_struct.md", "struct"),
+    ("_class.md", "class"),
+    ("_dao.md", "dao"),
+    ("_global.md", "global"),
+    ("_type.md", "type"),
+    ("_condition.md", "condition"),
+]
 
 
 def fqn(package: str, name: str) -> str:
@@ -37,7 +71,6 @@ def fqn(package: str, name: str) -> str:
 
 def split_dep(token: str) -> tuple[str, str]:
     """`ichiran/characters:test-word` or `ichiran::strings` → (package, name)."""
-    # collapse `::` (internal) to `:` (single separator)
     if "::" in token:
         pkg, _, name = token.partition("::")
     else:
@@ -45,49 +78,134 @@ def split_dep(token: str) -> tuple[str, str]:
     return pkg, name
 
 
+def normalise_dep(token: str) -> str:
+    """Lowercase the package and name for consistent CSV joining."""
+    pkg, name = split_dep(token.strip("`"))
+    return fqn(pkg.lower(), name.lower())
+
+
+def aux_kind(path: Path) -> str | None:
+    name = path.name
+    for suffix, kind in SUFFIX_KIND:
+        if name.endswith(suffix):
+            return kind
+    return None
+
+
+def parse_value_block_deps(lines: list[str], start_idx: int) -> list[str]:
+    """From a ```lisp fenced block, extract every ICHIRAN-package symbol
+    reference inside. Returns lowercased FQNs."""
+    deps: list[str] = []
+    i = start_idx + 1
+    while i < len(lines):
+        if VALUE_FENCE.match(lines[i]):
+            break
+        for m in SYMBOL_REF.finditer(lines[i]):
+            deps.append(normalise_dep(m.group(0)))
+        i += 1
+    return deps
+
+
 def parse_md(path: Path) -> tuple[dict, list[str]] | None:
-    name = package = source_file = kind = None
+    """Returns ({symbol-row}, [dep-fqns]) or None if the file is unparseable."""
+    raw_lines = path.read_text(encoding="utf-8").splitlines()
+    name = package = source_file = kind_field = None
     line_no = 0
     deps: list[str] = []
     in_deps = False
 
-    with path.open(encoding="utf-8") as fh:
-        for raw in fh:
-            line = raw.rstrip("\n")
-            if name is None:
-                m = H1.match(line)
-                if m:
-                    name = m.group(1).strip()
-                    continue
-            if package is None:
-                m = PACKAGE.match(line)
-                if m:
-                    package = m.group(1)
-                    continue
-            if source_file is None:
-                m = SOURCE.match(line)
-                if m:
-                    source_file = m.group(1)
-                    line_no = int(m.group(2))
-                    continue
-            if kind is None:
-                m = DEFFORM.match(line)
-                if m:
-                    kind = KIND_MAP.get(m.group(1), m.group(1))
-                    continue
+    suffix_kind = aux_kind(path)
+
+    # First pass: header fields.
+    for idx, line in enumerate(raw_lines):
+        if name is None:
+            m = H1.match(line)
+            if m:
+                name = m.group(1).strip()
+                continue
+        if package is None:
+            m = PACKAGE.match(line)
+            if m:
+                package = m.group(1)
+                continue
+        if source_file is None:
+            m = SOURCE.match(line)
+            if m:
+                source_file = m.group(1)
+                line_no = int(m.group(2)) if m.group(2) else 0
+                continue
+        if kind_field is None and suffix_kind is None:
+            m = DEFFORM.match(line)
+            if m:
+                kind_field = KIND_MAP.get(m.group(1), m.group(1))
+                continue
+
+    if not (name and package):
+        return None
+
+    # Second pass: dependency extraction (kind-specific).
+    if suffix_kind is None:
+        # Original: walk the "## Dependencies" section.
+        for line in raw_lines:
             if DEP_HEADER.match(line):
                 in_deps = True
                 continue
             if in_deps:
-                if line.startswith("## "):  # next section
+                if line.startswith("## "):
                     in_deps = False
                     continue
                 m = DEP.match(line)
                 if m:
-                    deps.append(m.group(1))
-
-    if not (name and package):
-        return None
+                    deps.append(normalise_dep(m.group(1)))
+        kind_out = kind_field or ""
+    elif suffix_kind in ("struct",):
+        for line in raw_lines:
+            m = INCLUDE.match(line)
+            if m and m.group(1).strip().upper() != "NIL":
+                # Bare struct name, e.g. `SOMETHING` — assume same package.
+                inc = m.group(1).strip()
+                deps.append(normalise_dep(f"{package}:{inc}"))
+                break
+        kind_out = "struct"
+    elif suffix_kind in ("class", "dao"):
+        for line in raw_lines:
+            m = SUPERS.match(line)
+            if m:
+                # Pull each backticked symbol; superclasses can be
+                # bare (same-package) or fully-qualified.
+                for tok in TICK.findall(m.group(1)):
+                    if tok.upper() == "STANDARD-OBJECT" or tok.lower() == "_(none)_":
+                        continue
+                    if ":" in tok:
+                        deps.append(normalise_dep(tok))
+                    else:
+                        deps.append(normalise_dep(f"{package}:{tok}"))
+                break
+        kind_out = suffix_kind
+    elif suffix_kind == "global":
+        # Find the ```lisp fence and walk for symbol references.
+        for idx, line in enumerate(raw_lines):
+            if VALUE_FENCE.match(line) and "lisp" in line:
+                deps.extend(parse_value_block_deps(raw_lines, idx))
+                break
+        kind_out = "global"
+    elif suffix_kind == "type":
+        # The single deftype in the codebase has no ichiran-symbol deps;
+        # walking the value block harmlessly returns nothing.
+        for idx, line in enumerate(raw_lines):
+            if VALUE_FENCE.match(line) and "lisp" in line:
+                deps.extend(parse_value_block_deps(raw_lines, idx))
+                break
+        kind_out = "type"
+    elif suffix_kind == "condition":
+        for line in raw_lines:
+            m = INHERITS.match(line)
+            if m and m.group(1).upper() != "ERROR":
+                deps.append(normalise_dep(f"{package}:{m.group(1).strip()}"))
+                break
+        kind_out = "condition"
+    else:
+        kind_out = suffix_kind
 
     return (
         {
@@ -96,7 +214,7 @@ def parse_md(path: Path) -> tuple[dict, list[str]] | None:
             "package": package,
             "file": source_file or "",
             "line": line_no,
-            "kind": kind or "",
+            "kind": kind_out,
             "status": "pending",
         },
         deps,
@@ -111,6 +229,7 @@ def main() -> int:
 
     rows: list[dict] = []
     pending_edges: list[tuple[str, str]] = []
+    seen: set[str] = set()
 
     for path in md_files:
         parsed = parse_md(path)
@@ -118,10 +237,21 @@ def main() -> int:
             print(f"skip (no header): {path}", file=sys.stderr)
             continue
         sym, deps = parsed
+        # If the same fqn appears via both a function md and a struct md
+        # (e.g. autogenerated accessor + struct itself collide), keep the
+        # first one encountered alphabetically and warn. In practice the
+        # struct/class fqns are distinct from their accessor fqns so this
+        # only fires on real duplicates.
+        if sym["fqn"] in seen:
+            print(
+                f"duplicate fqn: {sym['fqn']} (skipping {path.name})",
+                file=sys.stderr,
+            )
+            continue
+        seen.add(sym["fqn"])
         rows.append(sym)
         for dep in deps:
-            pkg, name = split_dep(dep)
-            pending_edges.append((sym["fqn"], fqn(pkg, name)))
+            pending_edges.append((sym["fqn"], dep))
 
     by_fqn = {r["fqn"]: r for r in rows}
     edges: list[tuple[str, str, int]] = []
@@ -154,6 +284,14 @@ def main() -> int:
     print(f"edges:   {len(edges)} -> {rel(EDGES_CSV)}")
     if unresolved:
         print(f"unresolved callees: {len(unresolved)} (external / built-in)")
+
+    # Per-kind breakdown for sanity.
+    from collections import Counter
+    kinds = Counter(r["kind"] for r in rows)
+    print(
+        "by kind: "
+        + ", ".join(f"{k}={n}" for k, n in sorted(kinds.items(), key=lambda x: -x[1]))
+    )
     return 0
 
 

@@ -1,7 +1,38 @@
 fqn,name,package,file,line,kind,status
+ichiran/characters:*abnormal-chars*,*abnormal-chars*,ichiran/characters,characters.lisp,109,global,pending
+ichiran/characters:*all-characters*,*all-characters*,ichiran/characters,characters.lisp,32,global,pending
+ichiran/characters:*basic-split-regex*,*basic-split-regex*,ichiran/characters,characters.lisp,131,global,pending
+ichiran/characters:*char-class-hash*,*char-class-hash*,ichiran/characters,characters.lisp,37,global,pending
+ichiran/characters:*char-class-regex-mapping*,*char-class-regex-mapping*,ichiran/characters,characters.lisp,136,global,pending
+ichiran/characters:*char-scanners*,*char-scanners*,ichiran/characters,characters.lisp,151,global,pending
+ichiran/characters:*char-scanners-inner*,*char-scanners-inner*,ichiran/characters,characters.lisp,155,global,pending
+ichiran/characters:*dakuten-hash*,*dakuten-hash*,ichiran/characters,characters.lisp,0,global,pending
+ichiran/characters:*dakuten-join*,*dakuten-join*,ichiran/characters,characters.lisp,103,global,pending
+ichiran/characters:*decimal-point-regex*,*decimal-point-regex*,ichiran/characters,characters.lisp,129,global,pending
+ichiran/characters:*digit-regex*,*digit-regex*,ichiran/characters,characters.lisp,128,global,pending
+ichiran/characters:*full-width-kana*,*full-width-kana*,ichiran/characters,characters.lisp,107,global,pending
+ichiran/characters:*half-width-kana*,*half-width-kana*,ichiran/characters,characters.lisp,106,global,pending
+ichiran/characters:*handakuten-hash*,*handakuten-hash*,ichiran/characters,characters.lisp,0,global,pending
+ichiran/characters:*hiragana-regex*,*hiragana-regex*,ichiran/characters,characters.lisp,120,global,pending
+ichiran/characters:*iteration-characters*,*iteration-characters*,ichiran/characters,characters.lisp,5,global,pending
+ichiran/characters:*kana-characters*,*kana-characters*,ichiran/characters,characters.lisp,11,global,pending
+ichiran/characters:*kanji-char-regex*,*kanji-char-regex*,ichiran/characters,characters.lisp,122,global,pending
+ichiran/characters:*kanji-regex*,*kanji-regex*,ichiran/characters,characters.lisp,121,global,pending
+ichiran/characters:*katakana-regex*,*katakana-regex*,ichiran/characters,characters.lisp,118,global,pending
+ichiran/characters:*katakana-uniq-regex*,*katakana-uniq-regex*,ichiran/characters,characters.lisp,119,global,pending
+ichiran/characters:*modifier-characters*,*modifier-characters*,ichiran/characters,characters.lisp,7,global,pending
+ichiran/characters:*nonword-regex*,*nonword-regex*,ichiran/characters,characters.lisp,124,global,pending
+ichiran/characters:*normal-chars*,*normal-chars*,ichiran/characters,characters.lisp,114,global,pending
+ichiran/characters:*num-word-regex*,*num-word-regex*,ichiran/characters,characters.lisp,126,global,pending
+ichiran/characters:*numeric-regex*,*numeric-regex*,ichiran/characters,characters.lisp,125,global,pending
+ichiran/characters:*punctuation-marks*,*punctuation-marks*,ichiran/characters,characters.lisp,85,global,pending
+ichiran/characters:*sokuon-characters*,*sokuon-characters*,ichiran/characters,characters.lisp,3,global,pending
+ichiran/characters:*undakuten-hash*,*undakuten-hash*,ichiran/characters,characters.lisp,0,global,pending
+ichiran/characters:*word-regex*,*word-regex*,ichiran/characters,characters.lisp,127,global,pending
 ichiran/characters:as-hiragana,as-hiragana,ichiran/characters,characters.lisp,282,fn,pending
 ichiran/characters:as-katakana,as-katakana,ichiran/characters,characters.lisp,292,fn,pending
 ichiran/characters:basic-split,basic-split,ichiran/characters,characters.lisp,267,fn,pending
+ichiran/characters:char-class,char-class,ichiran/characters,characters.lisp,147,type,pending
 ichiran/characters:collect-char-class,collect-char-class,ichiran/characters,characters.lisp,201,fn,pending
 ichiran/characters:consecutive-char-groups,consecutive-char-groups,ichiran/characters,characters.lisp,300,fn,pending
 ichiran/characters:count-char-class,count-char-class,ichiran/characters,characters.lisp,194,fn,pending
@@ -35,36 +66,53 @@ ichiran/cli:print-error,print-error,ichiran/cli,cli.lisp,37,fn,pending
 ichiran/cli:print-romanize-info,print-romanize-info,ichiran/cli,cli.lisp,44,fn,pending
 ichiran/cli:setup-debugger,setup-debugger,ichiran/cli,cli.lisp,95,fn,pending
 ichiran/cli:unknown-option,unknown-option,ichiran/cli,cli.lisp,33,fn,pending
+ichiran/conn:*conn-var-cache*,*conn-var-cache*,ichiran/conn,conn.lisp,41,global,pending
+ichiran/conn:*conn-vars*,*conn-vars*,ichiran/conn,conn.lisp,39,global,pending
+ichiran/conn:*connection*,*connection*,ichiran/conn,settings.lisp,3,global,pending
+ichiran/conn:*connection-env-var*,*connection-env-var*,ichiran/conn,conn.lisp,13,global,pending
+ichiran/conn:*connections*,*connections*,ichiran/conn,settings.lisp,5,global,pending
+ichiran/conn:*debug*,*debug*,ichiran/conn,conn.lisp,20,global,pending
+ichiran/conn:*is-dynamic-connection*,*is-dynamic-connection*,ichiran/conn,conn.lisp,14,global,pending
+ichiran/conn:*test-var*,*test-var*,ichiran/conn,conn.lisp,0,global,pending
 ichiran/conn:all-caches,all-caches,ichiran/conn,conn.lisp,110,fn,pending
+ichiran/conn:cache,cache,ichiran/conn,conn.lisp,96,class,pending
 ichiran/conn:def-conn-var,def-conn-var,ichiran/conn,conn.lisp,41,macro,pending
 ichiran/conn:defcache,defcache,ichiran/conn,conn.lisp,135,macro,pending
 ichiran/conn:dp,dp,ichiran/conn,conn.lisp,149,fn,pending
-ichiran/conn:ensure (generic function),ensure (generic function),ichiran/conn,,0,gf,pending
+ichiran/conn:ensure,ensure,ichiran/conn,conn.lisp,0,gf,pending
 ichiran/conn:get-cache,get-cache,ichiran/conn,conn.lisp,113,fn,pending
 ichiran/conn:get-ichiran-connection-env,get-ichiran-connection-env,ichiran/conn,conn.lisp,154,fn,pending
 ichiran/conn:get-spec,get-spec,ichiran/conn,conn.lisp,25,fn,pending
 ichiran/conn:init-all-caches,init-all-caches,ichiran/conn,conn.lisp,144,fn,pending
-ichiran/conn:init-cache (generic function),init-cache (generic function),ichiran/conn,,0,gf,pending
+ichiran/conn:init-cache,init-cache,ichiran/conn,conn.lisp,0,gf,pending
 ichiran/conn:let-db,let-db,ichiran/conn,conn.lisp,32,macro,pending
 ichiran/conn:load-connection-from-env,load-connection-from-env,ichiran/conn,conn.lisp,166,fn,pending
 ichiran/conn:load-settings,load-settings,ichiran/conn,conn.lisp,76,fn,pending
-ichiran/conn:reset-cache (generic function),reset-cache (generic function),ichiran/conn,,0,gf,pending
+ichiran/conn:reset-cache,reset-cache,ichiran/conn,conn.lisp,0,gf,pending
 ichiran/conn:switch-conn-vars,switch-conn-vars,ichiran/conn,conn.lisp,65,fn,pending
 ichiran/conn:with-db,with-db,ichiran/conn,conn.lisp,46,macro,pending
 ichiran/conn:with-log,with-log,ichiran/conn,conn.lisp,86,macro,pending
-ichiran/custom:as-xml (generic function),as-xml (generic function),ichiran/custom,,0,gf,pending
+ichiran/custom:*municipality-types*,*municipality-types*,ichiran/custom,dict-custom.lisp,97,global,pending
+ichiran/custom:*municipality-types-description*,*municipality-types-description*,ichiran/custom,dict-custom.lisp,107,global,pending
+ichiran/custom:*municipality-types-order*,*municipality-types-order*,ichiran/custom,dict-custom.lisp,118,global,pending
+ichiran/custom:*silent-p*,*silent-p*,ichiran/custom,dict-custom.lisp,5,global,pending
+ichiran/custom:as-xml,as-xml,ichiran/custom,dict-custom.lisp,0,gf,pending
 ichiran/custom:as-xml-simple,as-xml-simple,ichiran/custom,dict-custom.lisp,225,fn,pending
 ichiran/custom:copy-municipality,copy-municipality,ichiran/custom,dict-custom.lisp,142,fn,pending
 ichiran/custom:copy-ward,copy-ward,ichiran/custom,dict-custom.lisp,274,fn,pending
 ichiran/custom:copy-xml-entry,copy-xml-entry,ichiran/custom,dict-custom.lisp,61,fn,pending
+ichiran/custom:csv-loader,csv-loader,ichiran/custom,dict-custom.lisp,82,class,pending
+ichiran/custom:custom-source,custom-source,ichiran/custom,dict-custom.lisp,54,class,pending
 ichiran/custom:get-custom-data,get-custom-data,ichiran/custom,dict-custom.lisp,322,fn,pending
-ichiran/custom:get-words (generic function),get-words (generic function),ichiran/custom,,0,gf,pending
-ichiran/custom:insert (generic function),insert (generic function),ichiran/custom,,0,gf,pending
-ichiran/custom:insert-entry (generic function),insert-entry (generic function),ichiran/custom,,0,gf,pending
+ichiran/custom:get-words,get-words,ichiran/custom,dict-custom.lisp,0,gf,pending
+ichiran/custom:insert,insert,ichiran/custom,dict-custom.lisp,0,gf,pending
+ichiran/custom:insert-entry,insert-entry,ichiran/custom,dict-custom.lisp,0,gf,pending
 ichiran/custom:load-custom-data,load-custom-data,ichiran/custom,dict-custom.lisp,329,fn,pending
 ichiran/custom:make-municipality,make-municipality,ichiran/custom,dict-custom.lisp,142,fn,pending
 ichiran/custom:make-ward,make-ward,ichiran/custom,dict-custom.lisp,274,fn,pending
 ichiran/custom:make-xml-entry,make-xml-entry,ichiran/custom,dict-custom.lisp,61,fn,pending
+ichiran/custom:municipality,municipality,ichiran/custom,dict-custom.lisp,140,struct,pending
+ichiran/custom:municipality-csv,municipality-csv,ichiran/custom,dict-custom.lisp,93,class,pending
 ichiran/custom:municipality-definition,municipality-definition,ichiran/custom,dict-custom.lisp,142,fn,pending
 ichiran/custom:municipality-p,municipality-p,ichiran/custom,dict-custom.lisp,142,fn,pending
 ichiran/custom:municipality-prefecture,municipality-prefecture,ichiran/custom,dict-custom.lisp,142,fn,pending
@@ -73,21 +121,87 @@ ichiran/custom:municipality-short,municipality-short,ichiran/custom,dict-custom.
 ichiran/custom:municipality-text,municipality-text,ichiran/custom,dict-custom.lisp,142,fn,pending
 ichiran/custom:municipality-type,municipality-type,ichiran/custom,dict-custom.lisp,142,fn,pending
 ichiran/custom:normalize-geo,normalize-geo,ichiran/custom,dict-custom.lisp,176,fn,pending
-ichiran/custom:process-entry (generic function),process-entry (generic function),ichiran/custom,,0,gf,pending
+ichiran/custom:process-entry,process-entry,ichiran/custom,dict-custom.lisp,0,gf,pending
 ichiran/custom:romanize-municipality,romanize-municipality,ichiran/custom,dict-custom.lisp,133,fn,pending
-ichiran/custom:slurp (generic function),slurp (generic function),ichiran/custom,,0,gf,pending
+ichiran/custom:slurp,slurp,ichiran/custom,dict-custom.lisp,0,gf,pending
 ichiran/custom:source-path,source-path,ichiran/custom,dict-custom.lisp,318,fn,pending
-ichiran/custom:test-entry (generic function),test-entry (generic function),ichiran/custom,,0,gf,pending
-ichiran/custom:update-entry (generic function),update-entry (generic function),ichiran/custom,,0,gf,pending
-ichiran/custom:update-entry-gloss (generic function),update-entry-gloss (generic function),ichiran/custom,,0,gf,pending
+ichiran/custom:test-entry,test-entry,ichiran/custom,dict-custom.lisp,0,gf,pending
+ichiran/custom:update-entry,update-entry,ichiran/custom,dict-custom.lisp,0,gf,pending
+ichiran/custom:update-entry-gloss,update-entry-gloss,ichiran/custom,dict-custom.lisp,0,gf,pending
+ichiran/custom:ward,ward,ichiran/custom,dict-custom.lisp,269,struct,pending
 ichiran/custom:ward-city,ward-city,ichiran/custom,dict-custom.lisp,274,fn,pending
+ichiran/custom:ward-csv,ward-csv,ichiran/custom,dict-custom.lisp,266,class,pending
 ichiran/custom:ward-definition,ward-definition,ichiran/custom,dict-custom.lisp,274,fn,pending
 ichiran/custom:ward-p,ward-p,ichiran/custom,dict-custom.lisp,274,fn,pending
 ichiran/custom:ward-reading,ward-reading,ichiran/custom,dict-custom.lisp,274,fn,pending
 ichiran/custom:ward-text,ward-text,ichiran/custom,dict-custom.lisp,274,fn,pending
+ichiran/custom:xml-entry,xml-entry,ichiran/custom,dict-custom.lisp,63,struct,pending
 ichiran/custom:xml-entry-content,xml-entry-content,ichiran/custom,dict-custom.lisp,61,fn,pending
 ichiran/custom:xml-entry-p,xml-entry-p,ichiran/custom,dict-custom.lisp,61,fn,pending
 ichiran/custom:xml-entry-seq,xml-entry-seq,ichiran/custom,dict-custom.lisp,61,fn,pending
+ichiran/custom:xml-loader,xml-loader,ichiran/custom,dict-custom.lisp,59,class,pending
+ichiran/dict:*aux-verbs*,*aux-verbs*,ichiran/dict,dict-grammar.lisp,1072,global,pending
+ichiran/dict:*conj-description*,*conj-description*,ichiran/dict,dict-load.lisp,0,global,pending
+ichiran/dict:*conj-rules*,*conj-rules*,ichiran/dict,dict-load.lisp,0,global,pending
+ichiran/dict:*copulae*,*copulae*,ichiran/dict,dict-errata.lisp,1205,global,pending
+ichiran/dict:*counter-accepts*,*counter-accepts*,ichiran/dict,dict-counters.lisp,217,global,pending
+ichiran/dict:*counter-cache*,*counter-cache*,ichiran/dict,dict-counters.lisp,0,global,pending
+ichiran/dict:*counter-foreign*,*counter-foreign*,ichiran/dict,dict-counters.lisp,219,global,pending
+ichiran/dict:*counter-suffixes*,*counter-suffixes*,ichiran/dict,dict-counters.lisp,213,global,pending
+ichiran/dict:*disable-hints*,*disable-hints*,ichiran/dict,dict.lisp,78,global,pending
+ichiran/dict:*do-not-conjugate*,*do-not-conjugate*,ichiran/dict,dict-load.lisp,303,global,pending
+ichiran/dict:*do-not-conjugate-seq*,*do-not-conjugate-seq*,ichiran/dict,dict-load.lisp,305,global,pending
+ichiran/dict:*easy-hints-seqs*,*easy-hints-seqs*,ichiran/dict,dict-split.lisp,904,global,pending
+ichiran/dict:*extra-counter-ids*,*extra-counter-ids*,ichiran/dict,dict-counters.lisp,310,global,pending
+ichiran/dict:*final-prt*,*final-prt*,ichiran/dict,dict-errata.lisp,1182,global,pending
+ichiran/dict:*force-kanji-break*,*force-kanji-break*,ichiran/dict,dict-errata.lisp,1226,global,pending
+ichiran/dict:*gap-penalty*,*gap-penalty*,ichiran/dict,dict.lisp,1165,global,pending
+ichiran/dict:*hint-char-map*,*hint-char-map*,ichiran/dict,dict-split.lisp,816,global,pending
+ichiran/dict:*hint-map*,*hint-map*,ichiran/dict,dict-split.lisp,850,global,pending
+ichiran/dict:*hint-simplify-map*,*hint-simplify-map*,ichiran/dict,dict-split.lisp,818,global,pending
+ichiran/dict:*hints-checked*,*hints-checked*,ichiran/dict,dict-split.lisp,947,global,pending
+ichiran/dict:*honorifics*,*honorifics*,ichiran/dict,dict-grammar.lisp,1156,global,pending
+ichiran/dict:*identical-word-score-cutoff*,*identical-word-score-cutoff*,ichiran/dict,dict.lisp,1020,global,pending
+ichiran/dict:*init-suffixes-lock*,*init-suffixes-lock*,ichiran/dict,dict-grammar.lisp,163,global,pending
+ichiran/dict:*is-arch-cache*,*is-arch-cache*,ichiran/dict,dict.lisp,0,global,pending
+ichiran/dict:*jmdict-data*,*jmdict-data*,ichiran/dict,settings.lisp,12,global,pending
+ichiran/dict:*jmdict-path*,*jmdict-path*,ichiran/dict,settings.lisp,10,global,pending
+ichiran/dict:*kana-hint-map*,*kana-hint-map*,ichiran/dict,dict-split.lisp,832,global,pending
+ichiran/dict:*kana-hint-mod*,*kana-hint-mod*,ichiran/dict,dict-split.lisp,813,global,pending
+ichiran/dict:*kana-hint-space*,*kana-hint-space*,ichiran/dict,dict-split.lisp,814,global,pending
+ichiran/dict:*length-coeff-sequences*,*length-coeff-sequences*,ichiran/dict,dict.lisp,686,global,pending
+ichiran/dict:*max-word-length*,*max-word-length*,ichiran/dict,dict.lisp,486,global,pending
+ichiran/dict:*no-conj-data*,*no-conj-data*,ichiran/dict,dict.lisp,0,global,pending
+ichiran/dict:*no-kanji-break*,*no-kanji-break*,ichiran/dict,dict-errata.lisp,1229,global,pending
+ichiran/dict:*no-kanji-break-penalty*,*no-kanji-break-penalty*,ichiran/dict,dict-errata.lisp,1214,global,pending
+ichiran/dict:*non-final-prt*,*non-final-prt*,ichiran/dict,dict-errata.lisp,1209,global,pending
+ichiran/dict:*noun-particles*,*noun-particles*,ichiran/dict,dict-grammar.lisp,801,global,pending
+ichiran/dict:*penalty-list*,*penalty-list*,ichiran/dict,dict-grammar.lisp,964,global,pending
+ichiran/dict:*pos-by-index*,*pos-by-index*,ichiran/dict,dict-load.lisp,0,global,pending
+ichiran/dict:*pos-index*,*pos-index*,ichiran/dict,dict-load.lisp,0,global,pending
+ichiran/dict:*pos-with-conj-rules*,*pos-with-conj-rules*,ichiran/dict,dict-load.lisp,307,global,pending
+ichiran/dict:*score-cutoff*,*score-cutoff*,ichiran/dict,dict.lisp,1069,global,pending
+ichiran/dict:*secondary-conjugation-types*,*secondary-conjugation-types*,ichiran/dict,dict-load.lisp,314,global,pending
+ichiran/dict:*secondary-conjugation-types-from*,*secondary-conjugation-types-from*,ichiran/dict,dict-load.lisp,312,global,pending
+ichiran/dict:*segfilter-list*,*segfilter-list*,ichiran/dict,dict-grammar.lisp,1024,global,pending
+ichiran/dict:*segment-score-cutoff*,*segment-score-cutoff*,ichiran/dict,dict.lisp,1351,global,pending
+ichiran/dict:*segsplit-map*,*segsplit-map*,ichiran/dict,dict-split.lisp,704,global,pending
+ichiran/dict:*semi-final-prt*,*semi-final-prt*,ichiran/dict,dict-errata.lisp,1196,global,pending
+ichiran/dict:*skip-conj-forms*,*skip-conj-forms*,ichiran/dict,dict-errata.lisp,1310,global,pending
+ichiran/dict:*skip-counter-ids*,*skip-counter-ids*,ichiran/dict,dict-counters.lisp,315,global,pending
+ichiran/dict:*skip-words*,*skip-words*,ichiran/dict,dict-errata.lisp,1155,global,pending
+ichiran/dict:*special-counters*,*special-counters*,ichiran/dict,dict-counters.lisp,211,global,pending
+ichiran/dict:*split-map*,*split-map*,ichiran/dict,dict-split.lisp,5,global,pending
+ichiran/dict:*substring-hash*,*substring-hash*,ichiran/dict,dict.lisp,487,global,pending
+ichiran/dict:*suffix-cache*,*suffix-cache*,ichiran/dict,dict-grammar.lisp,0,global,pending
+ichiran/dict:*suffix-class*,*suffix-class*,ichiran/dict,dict-grammar.lisp,0,global,pending
+ichiran/dict:*suffix-description*,*suffix-description*,ichiran/dict,dict-grammar.lisp,0,global,pending
+ichiran/dict:*suffix-list*,*suffix-list*,ichiran/dict,dict-grammar.lisp,329,global,pending
+ichiran/dict:*suffix-map-temp*,*suffix-map-temp*,ichiran/dict,dict.lisp,1049,global,pending
+ichiran/dict:*suffix-next-end*,*suffix-next-end*,ichiran/dict,dict.lisp,1050,global,pending
+ichiran/dict:*suffix-unique-only*,*suffix-unique-only*,ichiran/dict,dict-grammar.lisp,330,global,pending
+ichiran/dict:*synergy-list*,*synergy-list*,ichiran/dict,dict-grammar.lisp,723,global,pending
+ichiran/dict:*weak-conj-forms*,*weak-conj-forms*,ichiran/dict,dict-errata.lisp,1316,global,pending
 ichiran/dict:abbr-beba,abbr-beba,ichiran/dict,dict-grammar.lisp,658,fn,pending
 ichiran/dict:abbr-dewanai,abbr-dewanai,ichiran/dict,dict-grammar.lisp,635,fn,pending
 ichiran/dict:abbr-geba,abbr-geba,ichiran/dict,dict-grammar.lisp,652,fn,pending
@@ -131,9 +245,9 @@ ichiran/dict:add-primary-nokanji,add-primary-nokanji,ichiran/dict,dict-errata.li
 ichiran/dict:add-reading,add-reading,ichiran/dict,dict-errata.lisp,35,fn,pending
 ichiran/dict:add-sense,add-sense,ichiran/dict,dict-errata.lisp,146,fn,pending
 ichiran/dict:add-sense-prop,add-sense-prop,ichiran/dict,dict-errata.lisp,140,fn,pending
-ichiran/dict:adjoin-word (generic function),adjoin-word (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:adjoin-word,adjoin-word,ichiran/dict,dict.lisp,0,gf,pending
 ichiran/dict:apply-patch,apply-patch,ichiran/dict,dict-grammar.lisp,444,fn,pending
-ichiran/dict:apply-score-mod (generic function),apply-score-mod (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:apply-score-mod,apply-score-mod,ichiran/dict,dict.lisp,0,gf,pending
 ichiran/dict:apply-segfilters,apply-segfilters,ichiran/dict,dict-grammar.lisp,1177,fn,pending
 ichiran/dict:best-kana-conj,best-kana-conj,ichiran/dict,dict.lisp,428,fn,pending
 ichiran/dict:best-kanji-conj,best-kanji-conj,ichiran/dict,dict.lisp,457,fn,pending
@@ -141,6 +255,8 @@ ichiran/dict:calc-score,calc-score,ichiran/dict,dict.lisp,775,fn,pending
 ichiran/dict:check-easy-hints,check-easy-hints,ichiran/dict,dict-split.lisp,950,fn,pending
 ichiran/dict:classify,classify,ichiran/dict,dict-grammar.lisp,1046,fn,pending
 ichiran/dict:compare-common,compare-common,ichiran/dict,dict.lisp,1022,fn,pending
+ichiran/dict:compound-text,compound-text,ichiran/dict,dict.lisp,608,class,pending
+ichiran/dict:conj-data,conj-data,ichiran/dict,dict.lisp,327,struct,pending
 ichiran/dict:conj-data-from,conj-data-from,ichiran/dict,dict.lisp,325,fn,pending
 ichiran/dict:conj-data-p,conj-data-p,ichiran/dict,dict.lisp,325,fn,pending
 ichiran/dict:conj-data-prop,conj-data-prop,ichiran/dict,dict.lisp,325,fn,pending
@@ -150,12 +266,16 @@ ichiran/dict:conj-data-via,conj-data-via,ichiran/dict,dict.lisp,325,fn,pending
 ichiran/dict:conj-info-json,conj-info-json,ichiran/dict,dict.lisp,1698,fn,pending
 ichiran/dict:conj-info-json*,conj-info-json*,ichiran/dict,dict.lisp,1665,fn,pending
 ichiran/dict:conj-info-short,conj-info-short,ichiran/dict,dict.lisp,275,fn,pending
+ichiran/dict:conj-prop,conj-prop,ichiran/dict,dict.lisp,262,dao,pending
 ichiran/dict:conj-prop-json,conj-prop-json,ichiran/dict,dict.lisp,283,fn,pending
+ichiran/dict:conj-source-reading,conj-source-reading,ichiran/dict,dict.lisp,309,dao,pending
 ichiran/dict:conj-type-order,conj-type-order,ichiran/dict,dict.lisp,1612,fn,pending
 ichiran/dict:conjugate-da,conjugate-da,ichiran/dict,dict-errata.lisp,281,fn,pending
 ichiran/dict:conjugate-entry-inner,conjugate-entry-inner,ichiran/dict,dict-load.lisp,314,fn,pending
 ichiran/dict:conjugate-entry-outer,conjugate-entry-outer,ichiran/dict,dict-load.lisp,342,fn,pending
 ichiran/dict:conjugate-word,conjugate-word,ichiran/dict,dict-load.lisp,294,fn,pending
+ichiran/dict:conjugation,conjugation,ichiran/dict,dict.lisp,238,dao,pending
+ichiran/dict:conjugation-rule,conjugation-rule,ichiran/dict,dict-load.lisp,262,struct,pending
 ichiran/dict:conjugation-rule-p,conjugation-rule-p,ichiran/dict,dict-load.lisp,260,fn,pending
 ichiran/dict:construct-conjugation,construct-conjugation,ichiran/dict,dict-load.lisp,281,fn,pending
 ichiran/dict:copy-conj-data,copy-conj-data,ichiran/dict,dict.lisp,325,fn,pending
@@ -164,7 +284,17 @@ ichiran/dict:copy-segment,copy-segment,ichiran/dict,dict.lisp,674,fn,pending
 ichiran/dict:copy-segment-list,copy-segment-list,ichiran/dict,dict.lisp,1038,fn,pending
 ichiran/dict:copy-synergy,copy-synergy,ichiran/dict,dict-grammar.lisp,727,fn,pending
 ichiran/dict:copy-top-array-item,copy-top-array-item,ichiran/dict,dict.lisp,1138,fn,pending
-ichiran/dict:counter-join (generic function),counter-join (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:counter-age,counter-age,ichiran/dict,dict-counters.lisp,757,class,pending
+ichiran/dict:counter-days-kun,counter-days-kun,ichiran/dict,dict-counters.lisp,686,class,pending
+ichiran/dict:counter-days-on,counter-days-on,ichiran/dict,dict-counters.lisp,709,class,pending
+ichiran/dict:counter-halfhour,counter-halfhour,ichiran/dict,dict-counters.lisp,391,class,pending
+ichiran/dict:counter-hifumi,counter-hifumi,ichiran/dict,dict-counters.lisp,518,class,pending
+ichiran/dict:counter-join,counter-join,ichiran/dict,dict-counters.lisp,0,gf,pending
+ichiran/dict:counter-months,counter-months,ichiran/dict,dict-counters.lisp,721,class,pending
+ichiran/dict:counter-people,counter-people,ichiran/dict,dict-counters.lisp,735,class,pending
+ichiran/dict:counter-text,counter-text,ichiran/dict,dict-counters.lisp,9,class,pending
+ichiran/dict:counter-tsu,counter-tsu,ichiran/dict,dict-counters.lisp,497,class,pending
+ichiran/dict:counter-wari,counter-wari,ichiran/dict,dict-counters.lisp,746,class,pending
 ichiran/dict:cr-conj,cr-conj,ichiran/dict,dict-load.lisp,260,fn,pending
 ichiran/dict:cr-euphk,cr-euphk,ichiran/dict,dict-load.lisp,260,fn,pending
 ichiran/dict:cr-euphr,cr-euphr,ichiran/dict,dict-load.lisp,260,fn,pending
@@ -205,6 +335,7 @@ ichiran/dict:dict-segment,dict-segment,ichiran/dict,dict.lisp,1451,fn,pending
 ichiran/dict:do-node-list-ord,do-node-list-ord,ichiran/dict,dict-load.lisp,26,macro,pending
 ichiran/dict:do-readings,do-readings,ichiran/dict,dict-errata.lisp,246,macro,pending
 ichiran/dict:drop-extras,drop-extras,ichiran/dict,dict-load.lisp,194,fn,pending
+ichiran/dict:entry,entry,ichiran/dict,dict.lisp,26,dao,pending
 ichiran/dict:entry-digest,entry-digest,ichiran/dict,dict.lisp,64,fn,pending
 ichiran/dict:entry-info-long,entry-info-long,ichiran/dict,dict.lisp,1601,fn,pending
 ichiran/dict:entry-info-short,entry-info-short,ichiran/dict,dict.lisp,1595,fn,pending
@@ -246,7 +377,7 @@ ichiran/dict:fix-entities,fix-entities,ichiran/dict,dict-load.lisp,159,fn,pendin
 ichiran/dict:gap-penalty,gap-penalty,ichiran/dict,dict.lisp,1169,fn,pending
 ichiran/dict:gen-score,gen-score,ichiran/dict,dict.lisp,985,fn,pending
 ichiran/dict:get-all-readings,get-all-readings,ichiran/dict,dict-errata.lisp,257,fn,pending
-ichiran/dict:get-array (generic function),get-array (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:get-array,get-array,ichiran/dict,dict.lisp,0,gf,pending
 ichiran/dict:get-candidates,get-candidates,ichiran/dict,dict.lisp,1904,fn,pending
 ichiran/dict:get-conj-data,get-conj-data,ichiran/dict,dict.lisp,340,fn,pending
 ichiran/dict:get-conj-description,get-conj-description,ichiran/dict,dict-load.lisp,255,fn,pending
@@ -257,16 +388,16 @@ ichiran/dict:get-counter-stags,get-counter-stags,ichiran/dict,dict-counters.lisp
 ichiran/dict:get-digit,get-digit,ichiran/dict,dict-counters.lisp,94,fn,pending
 ichiran/dict:get-glosses,get-glosses,ichiran/dict,dict.lisp,1892,fn,pending
 ichiran/dict:get-hint,get-hint,ichiran/dict,dict-split.lisp,968,fn,pending
-ichiran/dict:get-kana (generic function),get-kana (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:get-kana,get-kana,ichiran/dict,dict.lisp,0,gf,pending
 ichiran/dict:get-kana-form,get-kana-form,ichiran/dict,dict-grammar.lisp,36,fn,pending
 ichiran/dict:get-kana-forms,get-kana-forms,ichiran/dict,dict-grammar.lisp,32,fn,pending
 ichiran/dict:get-kana-forms*,get-kana-forms*,ichiran/dict,dict-grammar.lisp,17,fn,pending
 ichiran/dict:get-kana-forms-conj-data-filter,get-kana-forms-conj-data-filter,ichiran/dict,dict-grammar.lisp,10,fn,pending
-ichiran/dict:get-kanji (generic function),get-kanji (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:get-kanji,get-kanji,ichiran/dict,dict.lisp,0,gf,pending
 ichiran/dict:get-kanji-kana-old,get-kanji-kana-old,ichiran/dict,dict.lisp,115,fn,pending
 ichiran/dict:get-kanji-words,get-kanji-words,ichiran/dict,dict.lisp,1836,fn,pending
 ichiran/dict:get-non-arch-posi,get-non-arch-posi,ichiran/dict,dict.lisp,762,fn,pending
-ichiran/dict:get-original-text (generic function),get-original-text (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:get-original-text,get-original-text,ichiran/dict,dict.lisp,0,gf,pending
 ichiran/dict:get-original-text*,get-original-text*,ichiran/dict,dict.lisp,378,fn,pending
 ichiran/dict:get-original-text-once,get-original-text-once,ichiran/dict,dict.lisp,369,fn,pending
 ichiran/dict:get-penalties,get-penalties,ichiran/dict,dict-grammar.lisp,1030,fn,pending
@@ -274,7 +405,7 @@ ichiran/dict:get-pos,get-pos,ichiran/dict,dict-load.lisp,251,fn,pending
 ichiran/dict:get-pos-index,get-pos-index,ichiran/dict,dict-load.lisp,247,fn,pending
 ichiran/dict:get-seg-initial,get-seg-initial,ichiran/dict,dict.lisp,1172,fn,pending
 ichiran/dict:get-seg-splits,get-seg-splits,ichiran/dict,dict.lisp,1175,fn,pending
-ichiran/dict:get-segment-score (generic function),get-segment-score (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:get-segment-score,get-segment-score,ichiran/dict,dict.lisp,0,gf,pending
 ichiran/dict:get-segsplit,get-segsplit,ichiran/dict,dict-split.lisp,823,fn,pending
 ichiran/dict:get-senses,get-senses,ichiran/dict,dict.lisp,1487,fn,pending
 ichiran/dict:get-senses-json,get-senses-json,ichiran/dict,dict.lisp,1537,fn,pending
@@ -286,7 +417,8 @@ ichiran/dict:get-suffix-description,get-suffix-description,ichiran/dict,dict-gra
 ichiran/dict:get-suffix-map,get-suffix-map,ichiran/dict,dict-grammar.lisp,685,fn,pending
 ichiran/dict:get-suffixes,get-suffixes,ichiran/dict,dict-grammar.lisp,697,fn,pending
 ichiran/dict:get-synergies,get-synergies,ichiran/dict,dict-grammar.lisp,976,fn,pending
-ichiran/dict:get-text (generic function),get-text (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:get-text,get-text,ichiran/dict,dict.lisp,0,gf,pending
+ichiran/dict:gloss,gloss,ichiran/dict,dict.lisp,178,dao,pending
 ichiran/dict:init-suffix-hashtables,init-suffix-hashtables,ichiran/dict,dict-grammar.lisp,6,fn,pending
 ichiran/dict:init-suffixes,init-suffixes,ichiran/dict,dict-grammar.lisp,332,fn,pending
 ichiran/dict:init-suffixes-running-p,init-suffixes-running-p,ichiran/dict,dict-grammar.lisp,165,fn,pending
@@ -301,7 +433,9 @@ ichiran/dict:is-arch,is-arch,ichiran/dict,dict.lisp,760,fn,pending
 ichiran/dict:is-rareru,is-rareru,ichiran/dict,dict.lisp,1619,fn,pending
 ichiran/dict:join-substring-words,join-substring-words,ichiran/dict,dict.lisp,1113,fn,pending
 ichiran/dict:join-substring-words*,join-substring-words*,ichiran/dict,dict.lisp,1069,fn,pending
+ichiran/dict:kana-text,kana-text,ichiran/dict,dict.lisp,128,dao,pending
 ichiran/dict:kanji-break-penalty,kanji-break-penalty,ichiran/dict,dict.lisp,702,fn,pending
+ichiran/dict:kanji-text,kanji-text,ichiran/dict,dict.lisp,86,dao,pending
 ichiran/dict:length-multiplier,length-multiplier,ichiran/dict,dict.lisp,681,fn,pending
 ichiran/dict:length-multiplier-coeff,length-multiplier-coeff,ichiran/dict,dict.lisp,694,fn,pending
 ichiran/dict:lex-compare,lex-compare,ichiran/dict,dict-load.lisp,365,fn,pending
@@ -331,6 +465,7 @@ ichiran/dict:match-unique,match-unique,ichiran/dict,dict-grammar.lisp,702,fn,pen
 ichiran/dict:next-seq,next-seq,ichiran/dict,dict-load.lisp,110,fn,pending
 ichiran/dict:no-conj-data,no-conj-data,ichiran/dict,dict.lisp,337,fn,pending
 ichiran/dict:node-text,node-text,ichiran/dict,dict-load.lisp,14,fn,pending
+ichiran/dict:number-text,number-text,ichiran/dict,dict-counters.lisp,203,class,pending
 ichiran/dict:optprefix,optprefix,ichiran/dict,dict-split.lisp,580,fn,pending
 ichiran/dict:or-as-hiragana,or-as-hiragana,ichiran/dict,dict-grammar.lisp,95,fn,pending
 ichiran/dict:ordinal-str,ordinal-str,ichiran/dict,dict-counters.lisp,38,fn,pending
@@ -341,23 +476,25 @@ ichiran/dict:penalty-short,penalty-short,ichiran/dict,dict-grammar.lisp,1020,fn,
 ichiran/dict:print-conj-info,print-conj-info,ichiran/dict,dict.lisp,1649,fn,pending
 ichiran/dict:process-hints,process-hints,ichiran/dict,dict-split.lisp,872,fn,pending
 ichiran/dict:process-word-info,process-word-info,ichiran/dict,dict.lisp,1417,fn,pending
+ichiran/dict:proxy-text,proxy-text,ichiran/dict,dict.lisp,550,class,pending
 ichiran/dict:query-parents-kana,query-parents-kana,ichiran/dict,dict.lisp,415,fn,pending
 ichiran/dict:query-parents-kanji,query-parents-kanji,ichiran/dict,dict.lisp,400,fn,pending
-ichiran/dict:reading-str (generic function),reading-str (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:reading-str,reading-str,ichiran/dict,dict.lisp,0,gf,pending
 ichiran/dict:reading-str*,reading-str*,ichiran/dict,dict.lisp,1580,fn,pending
 ichiran/dict:reading-str-seq,reading-str-seq,ichiran/dict,dict.lisp,1584,fn,pending
 ichiran/dict:rearrange-readings,rearrange-readings,ichiran/dict,dict-errata.lisp,229,fn,pending
 ichiran/dict:rearrange-readings-conj,rearrange-readings-conj,ichiran/dict,dict-errata.lisp,241,fn,pending
 ichiran/dict:recalc-entry-stats,recalc-entry-stats,ichiran/dict,dict.lisp,53,fn,pending
 ichiran/dict:recalc-entry-stats-all,recalc-entry-stats-all,ichiran/dict,dict.lisp,59,fn,pending
-ichiran/dict:register-item (generic function),register-item (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:register-item,register-item,ichiran/dict,dict.lisp,0,gf,pending
 ichiran/dict:remove-hiragana-nokanji,remove-hiragana-nokanji,ichiran/dict,dict-errata.lisp,217,fn,pending
 ichiran/dict:replace-reading,replace-reading,ichiran/dict,dict-errata.lisp,49,fn,pending
 ichiran/dict:replace-reading-conj,replace-reading-conj,ichiran/dict,dict-errata.lisp,60,fn,pending
 ichiran/dict:reset-readings,reset-readings,ichiran/dict,dict-errata.lisp,70,fn,pending
+ichiran/dict:restricted-readings,restricted-readings,ichiran/dict,dict.lisp,221,dao,pending
 ichiran/dict:root-diff,root-diff,ichiran/dict,dict-errata.lisp,95,fn,pending
 ichiran/dict:root-diff-fn,root-diff-fn,ichiran/dict,dict-errata.lisp,104,fn,pending
-ichiran/dict:score-base (generic function),score-base (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:score-base,score-base,ichiran/dict,dict.lisp,0,gf,pending
 ichiran/dict:segfilter-aux-verb,segfilter-aux-verb,ichiran/dict,dict-grammar.lisp,1099,fn,pending
 ichiran/dict:segfilter-badend,segfilter-badend,ichiran/dict,dict-grammar.lisp,1114,fn,pending
 ichiran/dict:segfilter-dashi,segfilter-dashi,ichiran/dict,dict-grammar.lisp,1167,fn,pending
@@ -374,8 +511,10 @@ ichiran/dict:segfilter-toomou,segfilter-toomou,ichiran/dict,dict-grammar.lisp,11
 ichiran/dict:segfilter-totte,segfilter-totte,ichiran/dict,dict-grammar.lisp,1165,fn,pending
 ichiran/dict:segfilter-tsu-iru,segfilter-tsu-iru,ichiran/dict,dict-grammar.lisp,1101,fn,pending
 ichiran/dict:segfilter-wokarasu,segfilter-wokarasu,ichiran/dict,dict-grammar.lisp,1112,fn,pending
+ichiran/dict:segment,segment,ichiran/dict,dict.lisp,674,struct,pending
 ichiran/dict:segment-end,segment-end,ichiran/dict,dict.lisp,674,fn,pending
 ichiran/dict:segment-info,segment-info,ichiran/dict,dict.lisp,674,fn,pending
+ichiran/dict:segment-list,segment-list,ichiran/dict,dict.lisp,1038,struct,pending
 ichiran/dict:segment-list-end,segment-list-end,ichiran/dict,dict.lisp,1038,fn,pending
 ichiran/dict:segment-list-matches,segment-list-matches,ichiran/dict,dict.lisp,1038,fn,pending
 ichiran/dict:segment-list-p,segment-list-p,ichiran/dict,dict.lisp,1038,fn,pending
@@ -390,12 +529,15 @@ ichiran/dict:segment-top,segment-top,ichiran/dict,dict.lisp,674,fn,pending
 ichiran/dict:segment-word,segment-word,ichiran/dict,dict.lisp,674,fn,pending
 ichiran/dict:select-conjs,select-conjs,ichiran/dict,dict.lisp,1604,fn,pending
 ichiran/dict:select-conjs-and-props,select-conjs-and-props,ichiran/dict,dict.lisp,1640,fn,pending
+ichiran/dict:sense,sense,ichiran/dict,dict.lisp,166,dao,pending
 ichiran/dict:sense-exists-p,sense-exists-p,ichiran/dict,dict-load.lisp,80,fn,pending
+ichiran/dict:sense-prop,sense-prop,ichiran/dict,dict.lisp,197,dao,pending
 ichiran/dict:set-common,set-common,ichiran/dict,dict-errata.lisp,166,fn,pending
 ichiran/dict:set-primary-nokanji,set-primary-nokanji,ichiran/dict,dict-errata.lisp,224,fn,pending
-ichiran/dict:set-reading (generic function),set-reading (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:set-reading,set-reading,ichiran/dict,dict-load.lisp,0,gf,pending
 ichiran/dict:short-sense-str,short-sense-str,ichiran/dict,dict.lisp,1562,fn,pending
 ichiran/dict:simple-segment,simple-segment,ichiran/dict,dict.lisp,1456,fn,pending
+ichiran/dict:simple-text,simple-text,ichiran/dict,dict.lisp,69,class,pending
 ichiran/dict:simple-word-info,simple-word-info,ichiran/dict,dict.lisp,1282,fn,pending
 ichiran/dict:simplify-reading-list,simplify-reading-list,ichiran/dict,dict.lisp,1704,fn,pending
 ichiran/dict:skip-by-conj-data,skip-by-conj-data,ichiran/dict,dict-errata.lisp,1336,fn,pending
@@ -625,6 +767,7 @@ ichiran/dict:suffix-teiru,suffix-teiru,ichiran/dict,dict-grammar.lisp,405,fn,pen
 ichiran/dict:suffix-teiru+,suffix-teiru+,ichiran/dict,dict-grammar.lisp,408,fn,pending
 ichiran/dict:suffix-to,suffix-to,ichiran/dict,dict-grammar.lisp,436,fn,pending
 ichiran/dict:suffix-tosuru,suffix-tosuru,ichiran/dict,dict-grammar.lisp,549,fn,pending
+ichiran/dict:synergy,synergy,ichiran/dict,dict-grammar.lisp,713,struct,pending
 ichiran/dict:synergy-connector,synergy-connector,ichiran/dict,dict-grammar.lisp,727,fn,pending
 ichiran/dict:synergy-description,synergy-description,ichiran/dict,dict-grammar.lisp,727,fn,pending
 ichiran/dict:synergy-end,synergy-end,ichiran/dict,dict-grammar.lisp,727,fn,pending
@@ -653,15 +796,18 @@ ichiran/dict:tai-score,tai-score,ichiran/dict,dict.lisp,1138,fn,pending
 ichiran/dict:te-check,te-check,ichiran/dict,dict-grammar.lisp,395,fn,pending
 ichiran/dict:teiru-check,teiru-check,ichiran/dict,dict-grammar.lisp,404,fn,pending
 ichiran/dict:test-conj-prop,test-conj-prop,ichiran/dict,dict-errata.lisp,1336,fn,pending
+ichiran/dict:top-array,top-array,ichiran/dict,dict.lisp,1140,class,pending
+ichiran/dict:top-array-item,top-array-item,ichiran/dict,dict.lisp,1138,struct,pending
 ichiran/dict:top-array-item-p,top-array-item-p,ichiran/dict,dict.lisp,1138,fn,pending
 ichiran/dict:translate-hint-position,translate-hint-position,ichiran/dict,dict-split.lisp,930,fn,pending
 ichiran/dict:translate-hints,translate-hints,ichiran/dict,dict-split.lisp,942,fn,pending
-ichiran/dict:true-kana (generic function),true-kana (generic function),ichiran/dict,,0,gf,pending
-ichiran/dict:true-kanji (generic function),true-kanji (generic function),ichiran/dict,,0,gf,pending
-ichiran/dict:true-text (generic function),true-text (generic function),ichiran/dict,,0,gf,pending
-ichiran/dict:value-string (generic function),value-string (generic function),ichiran/dict,,0,gf,pending
-ichiran/dict:verify (generic function),verify (generic function),ichiran/dict,,0,gf,pending
-ichiran/dict:word-conj-data (generic function),word-conj-data (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:true-kana,true-kana,ichiran/dict,dict.lisp,0,gf,pending
+ichiran/dict:true-kanji,true-kanji,ichiran/dict,dict.lisp,0,gf,pending
+ichiran/dict:true-text,true-text,ichiran/dict,dict.lisp,0,gf,pending
+ichiran/dict:value-string,value-string,ichiran/dict,dict-counters.lisp,0,gf,pending
+ichiran/dict:verify,verify,ichiran/dict,dict-counters.lisp,0,gf,pending
+ichiran/dict:word-conj-data,word-conj-data,ichiran/dict,dict.lisp,0,gf,pending
+ichiran/dict:word-info,word-info,ichiran/dict,dict.lisp,1245,class,pending
 ichiran/dict:word-info-from-segment,word-info-from-segment,ichiran/dict,dict.lisp,1327,fn,pending
 ichiran/dict:word-info-from-segment-list,word-info-from-segment-list,ichiran/dict,dict.lisp,1353,fn,pending
 ichiran/dict:word-info-from-text,word-info-from-text,ichiran/dict,dict.lisp,1382,fn,pending
@@ -672,7 +818,9 @@ ichiran/dict:word-info-reading-str,word-info-reading-str,ichiran/dict,dict.lisp,
 ichiran/dict:word-info-rec-find,word-info-rec-find,ichiran/dict,dict.lisp,1409,fn,pending
 ichiran/dict:word-info-str,word-info-str,ichiran/dict,dict.lisp,1747,fn,pending
 ichiran/dict:word-readings,word-readings,ichiran/dict,dict.lisp,536,fn,pending
-ichiran/dict:word-type (generic function),word-type (generic function),ichiran/dict,,0,gf,pending
+ichiran/dict:word-type,word-type,ichiran/dict,dict.lisp,0,gf,pending
+ichiran/kanji:*kanjidic-path*,*kanjidic-path*,ichiran/kanji,settings.lisp,16,global,pending
+ichiran/kanji:*reading-cache*,*reading-cache*,ichiran/kanji,kanji.lisp,199,global,pending
 ichiran/kanji:calculate-perc,calculate-perc,ichiran/kanji,kanji.lisp,349,fn,pending
 ichiran/kanji:first-node-text,first-node-text,ichiran/kanji,kanji.lisp,106,fn,pending
 ichiran/kanji:get-normal-readings,get-normal-readings,ichiran/kanji,kanji.lisp,231,fn,pending
@@ -682,6 +830,7 @@ ichiran/kanji:get-reading-stats,get-reading-stats,ichiran/kanji,kanji.lisp,399,f
 ichiran/kanji:get-readings,get-readings,ichiran/kanji,kanji.lisp,211,fn,pending
 ichiran/kanji:get-readings-cache,get-readings-cache,ichiran/kanji,kanji.lisp,199,fn,pending
 ichiran/kanji:init-tables,init-tables,ichiran/kanji,kanji.lisp,98,fn,pending
+ichiran/kanji:kanji,kanji,ichiran/kanji,kanji.lisp,10,dao,pending
 ichiran/kanji:kanji-info-json,kanji-info-json,ichiran/kanji,kanji.lisp,392,fn,pending
 ichiran/kanji:kanji-reading-json,kanji-reading-json,ichiran/kanji,kanji.lisp,410,fn,pending
 ichiran/kanji:kanji-word-stats,kanji-word-stats,ichiran/kanji,kanji.lisp,316,fn,pending
@@ -693,10 +842,13 @@ ichiran/kanji:make-rmap,make-rmap,ichiran/kanji,kanji.lisp,273,fn,pending
 ichiran/kanji:match-readings,match-readings,ichiran/kanji,kanji.lisp,292,fn,pending
 ichiran/kanji:match-readings*,match-readings*,ichiran/kanji,kanji.lisp,241,fn,pending
 ichiran/kanji:match-readings-json,match-readings-json,ichiran/kanji,kanji.lisp,452,fn,pending
+ichiran/kanji:meaning,meaning,ichiran/kanji,kanji.lisp,83,dao,pending
+ichiran/kanji:okurigana,okurigana,ichiran/kanji,kanji.lisp,67,dao,pending
 ichiran/kanji:process-match-json,process-match-json,ichiran/kanji,kanji.lisp,428,fn,pending
 ichiran/kanji:query-kanji-json,query-kanji-json,ichiran/kanji,kanji.lisp,458,macro,pending
+ichiran/kanji:reading,reading,ichiran/kanji,kanji.lisp,42,dao,pending
 ichiran/kanji:reading-info-json,reading-info-json,ichiran/kanji,kanji.lisp,354,fn,pending
-ichiran/kanji:to-json (generic function),to-json (generic function),ichiran/kanji,,0,gf,pending
+ichiran/kanji:to-json,to-json,ichiran/kanji,kanji.lisp,0,gf,pending
 ichiran/maintenance:add-errata,add-errata,ichiran/maintenance,ichiran.lisp,152,fn,pending
 ichiran/maintenance:collect-entries,collect-entries,ichiran/maintenance,ichiran.lisp,107,fn,pending
 ichiran/maintenance:compare-queries,compare-queries,ichiran/maintenance,ichiran.lisp,47,macro,pending
@@ -710,44 +862,71 @@ ichiran/maintenance:regex-file,regex-file,ichiran/maintenance,ichiran.lisp,93,fn
 ichiran/maintenance:show-diffs,show-diffs,ichiran/maintenance,ichiran.lisp,147,fn,pending
 ichiran/maintenance:show-missing-constants,show-missing-constants,ichiran/maintenance,ichiran.lisp,117,fn,pending
 ichiran/maintenance:switch-connection,switch-connection,ichiran/maintenance,ichiran.lisp,82,fn,pending
+ichiran/numbers:*char-number-class*,*char-number-class*,ichiran/numbers,numbers.lisp,9,global,pending
+ichiran/numbers:*char-number-class-hash*,*char-number-class-hash*,ichiran/numbers,numbers.lisp,18,global,pending
+ichiran/numbers:*digit-kanji-default*,*digit-kanji-default*,ichiran/numbers,numbers.lisp,3,global,pending
+ichiran/numbers:*digit-kanji-legal*,*digit-kanji-legal*,ichiran/numbers,numbers.lisp,5,global,pending
+ichiran/numbers:*digit-to-kana*,*digit-to-kana*,ichiran/numbers,numbers.lisp,25,global,pending
+ichiran/numbers:*power-kanji*,*power-kanji*,ichiran/numbers,numbers.lisp,7,global,pending
+ichiran/numbers:*power-to-kana*,*power-to-kana*,ichiran/numbers,numbers.lisp,28,global,pending
 ichiran/numbers:group-to-kana,group-to-kana,ichiran/numbers,numbers.lisp,117,fn,pending
-ichiran/numbers:num-sandhi (generic function),num-sandhi (generic function),ichiran/numbers,,0,gf,pending
+ichiran/numbers:num-sandhi,num-sandhi,ichiran/numbers,numbers.lisp,0,gf,pending
 ichiran/numbers:number-to-kana,number-to-kana,ichiran/numbers,numbers.lisp,125,fn,pending
 ichiran/numbers:number-to-kanji,number-to-kanji,ichiran/numbers,numbers.lisp,35,fn,pending
 ichiran/numbers:parse-number,parse-number,ichiran/numbers,numbers.lisp,77,fn,pending
 ichiran/numbers:parse-number*,parse-number*,ichiran/numbers,numbers.lisp,57,fn,pending
+ichiran/test:*delays*,*delays*,ichiran/test,tests.lisp,4,global,pending
+ichiran/test:*test-thread-count*,*test-thread-count*,ichiran/test,tests.lisp,3,global,pending
 ichiran/test:assert-segment,assert-segment,ichiran/test,tests.lisp,30,fn,pending
 ichiran/test:define-parallel-test,define-parallel-test,ichiran/test,tests.lisp,24,macro,pending
 ichiran/test:run-all-tests,run-all-tests,ichiran/test,tests.lisp,682,fn,pending
 ichiran/test:run-parallel-tests,run-parallel-tests,ichiran/test,tests.lisp,682,fn,pending
 ichiran/test:test-job,test-job,ichiran/test,tests.lisp,12,macro,pending
 ichiran/test:test-progress,test-progress,ichiran/test,tests.lisp,4,fn,pending
+ichiran:*default-romanization-method*,*default-romanization-method*,ichiran,romanize.lisp,203,global,pending
+ichiran:*hepburn-basic*,*hepburn-basic*,ichiran,romanize.lisp,144,global,pending
+ichiran:*hepburn-kana-table*,*hepburn-kana-table*,ichiran,romanize.lisp,0,global,pending
+ichiran:*hepburn-modified*,*hepburn-modified*,ichiran,romanize.lisp,168,global,pending
+ichiran:*hepburn-passport*,*hepburn-passport*,ichiran,romanize.lisp,149,global,pending
+ichiran:*hepburn-simple*,*hepburn-simple*,ichiran,romanize.lisp,146,global,pending
+ichiran:*hepburn-traditional*,*hepburn-traditional*,ichiran,romanize.lisp,160,global,pending
+ichiran:*kunrei-siki*,*kunrei-siki*,ichiran,romanize.lisp,201,global,pending
+ichiran:*kunrei-siki-kana-table*,*kunrei-siki-kana-table*,ichiran,romanize.lisp,0,global,pending
+ichiran:*romaji-kana*,*romaji-kana*,ichiran,deromanize.lisp,0,global,pending
+ichiran:*romaji-kana-next*,*romaji-kana-next*,ichiran,deromanize.lisp,21,global,pending
 ichiran:apply-rmap-item,apply-rmap-item,ichiran,deromanize.lisp,35,fn,pending
 ichiran:branches-next,branches-next,ichiran,deromanize.lisp,69,fn,pending
 ichiran:copy-kana-representation,copy-kana-representation,ichiran,deromanize.lisp,21,fn,pending
 ichiran:copy-rmap-item,copy-rmap-item,ichiran,deromanize.lisp,3,fn,pending
+ichiran:generic-hepburn,generic-hepburn,ichiran,romanize.lisp,103,class,pending
+ichiran:generic-romanization,generic-romanization,ichiran,romanize.lisp,62,class,pending
 ichiran:get-character-classes,get-character-classes,ichiran,romanize.lisp,3,fn,pending
 ichiran:get-romaji-kana,get-romaji-kana,ichiran,deromanize.lisp,5,fn,pending
 ichiran:has-successors,has-successors,ichiran,deromanize.lisp,11,fn,pending
 ichiran:join-branches,join-branches,ichiran,deromanize.lisp,54,fn,pending
 ichiran:join-parts,join-parts,ichiran,romanize.lisp,235,fn,pending
+ichiran:kana-representation,kana-representation,ichiran,deromanize.lisp,23,struct,pending
 ichiran:kana-representation-p,kana-representation-p,ichiran,deromanize.lisp,21,fn,pending
 ichiran:kr-branch,kr-branch,ichiran,deromanize.lisp,21,fn,pending
 ichiran:kr-canonical,kr-canonical,ichiran,deromanize.lisp,21,fn,pending
 ichiran:kr-concat,kr-concat,ichiran,deromanize.lisp,23,fn,pending
 ichiran:kr-pattern,kr-pattern,ichiran,deromanize.lisp,21,fn,pending
 ichiran:kr-rest,kr-rest,ichiran,deromanize.lisp,21,fn,pending
+ichiran:kunrei-siki,kunrei-siki,ichiran,romanize.lisp,194,class,pending
 ichiran:leftmost-atom,leftmost-atom,ichiran,romanize.lisp,25,fn,pending
 ichiran:load-romaji-kana,load-romaji-kana,ichiran,deromanize.lisp,5,fn,pending
 ichiran:make-kana-representation,make-kana-representation,ichiran,deromanize.lisp,21,fn,pending
 ichiran:make-rmap-item,make-rmap-item,ichiran,deromanize.lisp,3,fn,pending
+ichiran:modified-hepburn,modified-hepburn,ichiran,romanize.lisp,162,class,pending
+ichiran:not-a-number,not-a-number,ichiran,numbers.lisp,67,condition,pending
 ichiran:possible-long-vowel-p,possible-long-vowel-p,ichiran,deromanize.lisp,30,fn,pending
 ichiran:process-iteration-characters,process-iteration-characters,ichiran,romanize.lisp,7,fn,pending
 ichiran:process-modifiers,process-modifiers,ichiran,romanize.lisp,15,fn,pending
-ichiran:r-apply (generic function),r-apply (generic function),ichiran,,0,gf,pending
-ichiran:r-base (generic function),r-base (generic function),ichiran,,0,gf,pending
-ichiran:r-simplify (generic function),r-simplify (generic function),ichiran,,0,gf,pending
-ichiran:r-special (generic function),r-special (generic function),ichiran,,0,gf,pending
+ichiran:r-apply,r-apply,ichiran,romanize.lisp,0,gf,pending
+ichiran:r-base,r-base,ichiran,romanize.lisp,0,gf,pending
+ichiran:r-simplify,r-simplify,ichiran,romanize.lisp,0,gf,pending
+ichiran:r-special,r-special,ichiran,romanize.lisp,0,gf,pending
+ichiran:rmap-item,rmap-item,ichiran,deromanize.lisp,5,struct,pending
 ichiran:rmap-item-p,rmap-item-p,ichiran,deromanize.lisp,3,fn,pending
 ichiran:rmi-kana,rmi-kana,ichiran,deromanize.lisp,3,fn,pending
 ichiran:rmi-next,rmi-next,ichiran,deromanize.lisp,3,fn,pending
@@ -762,3 +941,5 @@ ichiran:romanize-list,romanize-list,ichiran,romanize.lisp,205,fn,pending
 ichiran:romanize-word,romanize-word,ichiran,romanize.lisp,217,fn,pending
 ichiran:romanize-word-geo,romanize-word-geo,ichiran,romanize.lisp,232,fn,pending
 ichiran:romanize-word-info,romanize-word-info,ichiran,romanize.lisp,248,fn,pending
+ichiran:simplified-hepburn,simplified-hepburn,ichiran,romanize.lisp,136,class,pending
+ichiran:traditional-hepburn,traditional-hepburn,ichiran,romanize.lisp,152,class,pending
