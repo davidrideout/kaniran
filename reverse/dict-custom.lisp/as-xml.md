@@ -43,3 +43,16 @@ _(none detected)_
 - `ichiran/custom:municipality-reading`
 - `ichiran/custom:municipality-text`
 
+
+## Source-walked references
+
+- `ichiran/custom:as-xml-simple`
+- `ichiran/custom:entry`
+- `ichiran/custom:municipality`
+- `ichiran/custom:municipality-definition`
+- `ichiran/custom:municipality-reading`
+- `ichiran/custom:municipality-text`
+- `ichiran/custom:ward`
+- `ichiran/custom:ward-definition`
+- `ichiran/custom:ward-reading`
+- `ichiran/custom:ward-text`

@@ -15,3 +15,11 @@ Declared ftype: `(function (t) *)`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:reading-str*`
+
+## Source-walked references
+
+- `ichiran/dict:kana-text`
+- `ichiran/dict:kanji-text`
+- `ichiran/dict:ord`
+- `ichiran/dict:reading-str*`
+- `ichiran/dict:seq`

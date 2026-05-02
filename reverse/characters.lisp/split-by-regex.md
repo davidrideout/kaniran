@@ -18,3 +18,9 @@ Declared ftype: `(function (t t)
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/characters:regex`
+- `ichiran/characters:seg`
+- `ichiran/characters:str`

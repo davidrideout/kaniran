@@ -26,3 +26,7 @@ Declared ftype: `(function (t t t t t t t t t)
 - `ichiran/dict:onum`
 - `ichiran/dict:pos`
 - `ichiran/dict:stem`
+
+## Source-walked references
+
+_(none detected)_

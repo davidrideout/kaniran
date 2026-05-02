@@ -18,3 +18,12 @@ Declared ftype: `(function nil *)`
 - `ichiran/dict:delete-sense-prop`
 - `ichiran/dict:replace-reading`
 - `ichiran/dict:set-common`
+
+## Source-walked references
+
+- `ichiran/dict:add-sense-prop`
+- `ichiran/dict:delete-sense-prop`
+- `ichiran/dict:kana-text`
+- `ichiran/dict:kanji-text`
+- `ichiran/dict:replace-reading`
+- `ichiran/dict:set-common`

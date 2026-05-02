@@ -27,3 +27,32 @@ Declared ftype: `(function
 - `ichiran/dict:next-seq`
 - `ichiran/dict:node-text`
 - `ichiran/dict:seq`
+
+## Source-walked references
+
+- `ichiran/dict:*pos-with-conj-rules*`
+- `ichiran/dict:conjugate-entry-outer`
+- `ichiran/dict:conjugate-p`
+- `ichiran/dict:content`
+- `ichiran/dict:entry`
+- `ichiran/dict:entseq-node`
+- `ichiran/dict:find-word`
+- `ichiran/dict:get-text`
+- `ichiran/dict:if-exists`
+- `ichiran/dict:insert-readings`
+- `ichiran/dict:insert-senses`
+- `ichiran/dict:kana-nodes`
+- `ichiran/dict:kana-text`
+- `ichiran/dict:kanji-nodes`
+- `ichiran/dict:kanji-text`
+- `ichiran/dict:load-secondary-conjugations`
+- `ichiran/dict:next-seq`
+- `ichiran/dict:node-text`
+- `ichiran/dict:parsed`
+- `ichiran/dict:posi`
+- `ichiran/dict:sense-nodes`
+- `ichiran/dict:sense-prop`
+- `ichiran/dict:seq`
+- `ichiran/dict:tag`
+- `ichiran/dict:upstream`
+- `ichiran/dict:word`

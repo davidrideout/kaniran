@@ -15,3 +15,8 @@ Declared ftype: `(function nil *)`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:*init-suffixes-lock*`
+- `ichiran/dict:*suffix-cache*`

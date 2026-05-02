@@ -15,3 +15,10 @@ Declared ftype: `(function (t t) *)`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:entry`
+- `ichiran/dict:primary-nokanji`
+- `ichiran/dict:seq`
+- `ichiran/dict:value`

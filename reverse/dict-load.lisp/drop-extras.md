@@ -15,3 +15,11 @@ Declared ftype: `(function nil *)`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:conj-prop`
+- `ichiran/dict:conj-source-reading`
+- `ichiran/dict:conjugation`
+- `ichiran/dict:entry`
+- `ichiran/dict:root-p`

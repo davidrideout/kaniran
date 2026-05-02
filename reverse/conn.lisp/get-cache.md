@@ -15,3 +15,8 @@ Declared ftype: `(function (t) (values t &optional))`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/conn:all-caches`
+
+## Source-walked references
+
+- `ichiran/conn:all-caches`
+- `ichiran/conn:name`

@@ -17,3 +17,15 @@ Declared ftype: `(function (t) (values t &optional))`
 - `ichiran/characters:as-katakana`
 - `ichiran/dict:find-kanji-for-pattern`
 - `ichiran:romaji-kana`
+
+## Source-walked references
+
+- `ichiran/characters:as-katakana`
+- `ichiran/dict:find-kanji-for-pattern`
+- `ichiran:canon`
+- `ichiran:hiragana`
+- `ichiran:pattern`
+- `ichiran:pkana`
+- `ichiran:pkanji`
+- `ichiran:romaji-kana`
+- `ichiran:s`

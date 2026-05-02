@@ -15,3 +15,12 @@ _unknown — no declared ftype, no docstring_
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/test:*delays*`
+- `ichiran/test:future`
+- `ichiran/test:result-var`
+- `ichiran/test:test-progress`
+- `ichiran/test:tester`
+- `ichiran/test:worker`

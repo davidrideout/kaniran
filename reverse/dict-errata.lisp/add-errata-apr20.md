@@ -17,3 +17,10 @@ Declared ftype: `(function nil *)`
 - `ichiran/dict:add-new-sense*`
 - `ichiran/dict:add-sense-prop`
 - `ichiran/dict:set-common`
+
+## Source-walked references
+
+- `ichiran/dict:add-new-sense*`
+- `ichiran/dict:add-sense-prop`
+- `ichiran/dict:kana-text`
+- `ichiran/dict:set-common`

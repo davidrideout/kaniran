@@ -41,3 +41,27 @@ _(none detected)_
 
 _(none detected)_
 
+
+## Source-walked references
+
+- `ichiran/characters:as-hiragana`
+- `ichiran/characters:normalize`
+- `ichiran/custom:definition`
+- `ichiran/custom:entry`
+- `ichiran/custom:id`
+- `ichiran/custom:loader`
+- `ichiran/custom:make-municipality`
+- `ichiran/custom:muni`
+- `ichiran/custom:muni-short`
+- `ichiran/custom:municipality-csv`
+- `ichiran/custom:municipality-short`
+- `ichiran/custom:pref`
+- `ichiran/custom:prefecture`
+- `ichiran/custom:prefecture-p`
+- `ichiran/custom:reading`
+- `ichiran/custom:rmuni`
+- `ichiran/custom:romanize-municipality`
+- `ichiran/custom:row`
+- `ichiran/custom:rpref`
+- `ichiran/custom:short`
+- `ichiran/custom:source`

@@ -17,3 +17,9 @@ Declared ftype: `(function nil *)`
 - `ichiran/conn:init-all-caches`
 - `ichiran/dict:init-suffixes`
 - `ichiran/test:run-parallel-tests`
+
+## Source-walked references
+
+- `ichiran/conn:init-all-caches`
+- `ichiran/dict:init-suffixes`
+- `ichiran/test:run-parallel-tests`

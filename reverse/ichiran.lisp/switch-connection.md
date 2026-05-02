@@ -18,3 +18,13 @@ Declared ftype: `(function (t &key (:reset t)) (values t &optional))`
 - `ichiran/conn:init-all-caches`
 - `ichiran/conn:switch-conn-vars`
 - `ichiran/dict:init-suffixes`
+
+## Source-walked references
+
+- `ichiran/conn:*connection*`
+- `ichiran/conn:init-all-caches`
+- `ichiran/conn:switch-conn-vars`
+- `ichiran/conn:with-db`
+- `ichiran/dict:init-suffixes`
+- `ichiran/maintenance:conn`
+- `ichiran/maintenance:reset`

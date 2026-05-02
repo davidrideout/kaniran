@@ -18,3 +18,14 @@ Declared ftype: `(function (t &key (:method t)) *)`
 - `ichiran/dict:strip-hints`
 - `ichiran/dict:word-info-text`
 - `ichiran:romanize-word`
+
+## Source-walked references
+
+- `ichiran/dict:map-word-info-kana`
+- `ichiran/dict:strip-hints`
+- `ichiran/dict:word-info`
+- `ichiran/dict:word-info-text`
+- `ichiran:*default-romanization-method*`
+- `ichiran:orig-text`
+- `ichiran:romanize-word`
+- `ichiran:wk`

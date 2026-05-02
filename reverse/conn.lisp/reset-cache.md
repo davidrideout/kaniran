@@ -31,3 +31,13 @@ _(none detected)_
 - `ichiran/conn:get-cache`
 - `ichiran/conn:init-cache`
 
+
+## Source-walked references
+
+- `ichiran/conn:cache`
+- `ichiran/conn:cache-lock`
+- `ichiran/conn:cache-name`
+- `ichiran/conn:cache-var`
+- `ichiran/conn:get-cache`
+- `ichiran/conn:init-cache`
+- `ichiran/conn:val`

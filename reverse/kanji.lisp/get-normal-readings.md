@@ -16,3 +16,21 @@ Declared ftype: `(function (t &key (:rendaku t)) (values list &optional))`
 
 - `ichiran/kanji:get-reading-alternatives`
 - `ichiran/kanji:get-readings-cache`
+
+## Source-walked references
+
+- `ichiran/characters:rendaku`
+- `ichiran/kanji:alt-readings`
+- `ichiran/kanji:collect`
+- `ichiran/kanji:finally`
+- `ichiran/kanji:for`
+- `ichiran/kanji:get-reading-alternatives`
+- `ichiran/kanji:get-readings-cache`
+- `ichiran/kanji:in`
+- `ichiran/kanji:into`
+- `ichiran/kanji:main`
+- `ichiran/kanji:main-readings`
+- `ichiran/kanji:reading`
+- `ichiran/kanji:readings`
+- `ichiran/kanji:readings*`
+- `ichiran/kanji:str`

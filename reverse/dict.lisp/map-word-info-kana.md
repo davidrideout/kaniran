@@ -19,3 +19,13 @@ Declared ftype: `(function (t t &key (:separator t)) *)`
 - `ichiran/characters:join`
 - `ichiran/dict:simplify-reading-list`
 - `ichiran/dict:word-info-kana`
+
+## Source-walked references
+
+- `ichiran/characters:join`
+- `ichiran/dict:fn`
+- `ichiran/dict:separator`
+- `ichiran/dict:simplify-reading-list`
+- `ichiran/dict:wkana`
+- `ichiran/dict:word-info`
+- `ichiran/dict:word-info-kana`

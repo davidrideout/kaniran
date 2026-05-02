@@ -21,3 +21,20 @@ Declared ftype: `(function (t t) (values t &optional))`
 - `ichiran/kanji:stat-common`
 - `ichiran/kanji:suffixp`
 - `ichiran:romanize-word`
+
+## Source-walked references
+
+- `ichiran/conn:*connection*`
+- `ichiran/kanji:calculate-perc`
+- `ichiran/kanji:id`
+- `ichiran/kanji:js`
+- `ichiran/kanji:okurigana`
+- `ichiran/kanji:prefixp`
+- `ichiran/kanji:reading`
+- `ichiran/kanji:reading-id`
+- `ichiran/kanji:reading-type`
+- `ichiran/kanji:stat-common`
+- `ichiran/kanji:suffixp`
+- `ichiran/kanji:total`
+- `ichiran:*hepburn-basic*`
+- `ichiran:romanize-word`

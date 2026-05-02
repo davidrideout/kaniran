@@ -15,3 +15,8 @@ Declared ftype: `(function (t t t) (values number &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:len-lim`
+- `ichiran/dict:power`

@@ -17,3 +17,14 @@ Declared ftype: `(function (t t) (values list &optional))`
 - `ichiran/dict:conj-type`
 - `ichiran/dict:is-rareru`
 - `ichiran/dict:pos`
+
+## Source-walked references
+
+- `ichiran/dict:collect`
+- `ichiran/dict:conj-type`
+- `ichiran/dict:for`
+- `ichiran/dict:in`
+- `ichiran/dict:is-rareru`
+- `ichiran/dict:pos`
+- `ichiran/dict:prop`
+- `ichiran/dict:props`

@@ -17,3 +17,12 @@ Declared ftype: `(function (t &key (:with-pos t))
 
 - `ichiran/dict:reading-str-seq`
 - `ichiran/dict:short-sense-str`
+
+## Source-walked references
+
+- `ichiran/dict:reading-str-seq`
+- `ichiran/dict:s`
+- `ichiran/dict:sense-str`
+- `ichiran/dict:seq`
+- `ichiran/dict:short-sense-str`
+- `ichiran/dict:with-pos`

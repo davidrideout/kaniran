@@ -16,3 +16,21 @@ Declared ftype: `(function (t t t) (values t &optional))`
 
 - `ichiran/dict:match-kana-kanji`
 - `ichiran/dict:word-type`
+
+## Source-walked references
+
+- `ichiran/dict:kana-text`
+- `ichiran/dict:kanji-text`
+- `ichiran/dict:match-kana-kanji`
+- `ichiran/dict:props`
+- `ichiran/dict:reading`
+- `ichiran/dict:restricted`
+- `ichiran/dict:restricted-readings`
+- `ichiran/dict:rk`
+- `ichiran/dict:rkana`
+- `ichiran/dict:rkanji`
+- `ichiran/dict:seq`
+- `ichiran/dict:stagk`
+- `ichiran/dict:stagr`
+- `ichiran/dict:word-type`
+- `ichiran/dict:wtype`

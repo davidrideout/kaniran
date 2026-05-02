@@ -28,3 +28,9 @@ _(none detected)_
 
 _(none detected)_
 
+
+## Source-walked references
+
+- `ichiran/dict:collection`
+- `ichiran/dict:obj`
+- `ichiran/dict:top-array`

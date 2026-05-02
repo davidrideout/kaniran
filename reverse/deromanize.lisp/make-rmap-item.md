@@ -16,3 +16,7 @@ Declared ftype: `(function (&key (:text t) (:kana t) (:next t))
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+_(none detected)_

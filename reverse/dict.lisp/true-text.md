@@ -38,3 +38,9 @@ _(none detected)_
 - `ichiran/dict:source`
 - `ichiran/dict:true-text`
 
+
+## Source-walked references
+
+- `ichiran/dict:obj`
+- `ichiran/dict:proxy-text`
+- `ichiran/dict:source`

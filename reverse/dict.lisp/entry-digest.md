@@ -17,3 +17,10 @@ Declared ftype: `(function (t) (values cons &optional))`
 - `ichiran/dict:get-kana`
 - `ichiran/dict:get-text`
 - `ichiran/dict:seq`
+
+## Source-walked references
+
+- `ichiran/dict:entry`
+- `ichiran/dict:get-kana`
+- `ichiran/dict:get-text`
+- `ichiran/dict:seq`

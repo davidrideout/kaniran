@@ -15,3 +15,10 @@ _unknown — no declared ftype, no docstring_
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/conn:*conn-vars*`
+- `ichiran/conn:args`
+- `ichiran/conn:initial-value`
+- `ichiran/conn:name`

@@ -16,3 +16,11 @@ _unknown — no declared ftype, no docstring_
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:*segfilter-list*`
+- `ichiran/dict:body`
+- `ichiran/dict:left-var`
+- `ichiran/dict:name`
+- `ichiran/dict:right-var`

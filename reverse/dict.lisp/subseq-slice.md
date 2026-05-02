@@ -16,3 +16,11 @@ Declared ftype: `(function (t t t &optional t) (values array &optional))`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:make-slice`
+
+## Source-walked references
+
+- `ichiran/dict:end`
+- `ichiran/dict:make-slice`
+- `ichiran/dict:slice`
+- `ichiran/dict:start`
+- `ichiran/dict:str`

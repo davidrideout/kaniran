@@ -53,3 +53,30 @@ _(none detected)_
 
 _(none detected)_
 
+
+## Source-walked references
+
+- `ichiran/characters:*char-class-hash*`
+- `ichiran/characters:geminate`
+- `ichiran/characters:rendaku`
+- `ichiran/dict:counter`
+- `ichiran/dict:counter-foreign`
+- `ichiran/dict:counter-kana`
+- `ichiran/dict:counter-text`
+- `ichiran/dict:digit`
+- `ichiran/dict:digit-opts`
+- `ichiran/dict:else`
+- `ichiran/dict:for`
+- `ichiran/dict:get-digit`
+- `ichiran/dict:head`
+- `ichiran/dict:in`
+- `ichiran/dict:mod-counter`
+- `ichiran/dict:n`
+- `ichiran/dict:number-kana`
+- `ichiran/dict:obj`
+- `ichiran/dict:off`
+- `ichiran/dict:opt`
+- `ichiran/dict:stem`
+- `ichiran/dict:with`
+- `ichiran/numbers:*digit-to-kana*`
+- `ichiran/numbers:*power-to-kana*`

@@ -17,3 +17,7 @@ Declared ftype: `(function (t) (values list (integer 300 300) &optional))`
 - `ichiran/characters:safe-subseq`
 - `ichiran/dict:find-word-seq`
 - `ichiran/dict:true-text`
+
+## Source-walked references
+
+_(none detected)_

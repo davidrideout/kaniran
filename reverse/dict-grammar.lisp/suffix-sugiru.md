@@ -22,3 +22,7 @@ Declared ftype: `(function (t t t) (values list &optional))`
 - `ichiran/dict:find-word-with-conj-prop`
 - `ichiran/dict:find-word-with-pos`
 - `ichiran/dict:get-kana`
+
+## Source-walked references
+
+_(none detected)_

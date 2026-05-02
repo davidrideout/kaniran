@@ -17,3 +17,11 @@ Declared ftype: `(function nil *)`
 - `ichiran/dict:delete-sense-prop`
 - `ichiran/dict:set-common`
 - `ichiran/dict:set-primary-nokanji`
+
+## Source-walked references
+
+- `ichiran/dict:delete-sense-prop`
+- `ichiran/dict:kana-text`
+- `ichiran/dict:kanji-text`
+- `ichiran/dict:set-common`
+- `ichiran/dict:set-primary-nokanji`

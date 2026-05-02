@@ -20,3 +20,13 @@ Declared ftype: `(function (t t)
 - `ichiran:kr-pattern`
 - `ichiran:kr-rest`
 - `ichiran:make-kana-representation`
+
+## Source-walked references
+
+- `ichiran:kr-branch`
+- `ichiran:kr-canonical`
+- `ichiran:kr-pattern`
+- `ichiran:kr-rest`
+- `ichiran:kr1`
+- `ichiran:kr2`
+- `ichiran:make-kana-representation`

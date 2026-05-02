@@ -18,3 +18,15 @@ Declared ftype: `(function (t t &key (:start t) (:end t))
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/characters:*char-scanners-inner*`
+- `ichiran/characters:char-class`
+- `ichiran/characters:e`
+- `ichiran/characters:end`
+- `ichiran/characters:regex`
+- `ichiran/characters:result`
+- `ichiran/characters:s`
+- `ichiran/characters:start`
+- `ichiran/characters:str`

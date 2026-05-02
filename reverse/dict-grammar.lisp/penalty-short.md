@@ -22,3 +22,7 @@ Declared ftype: `(function (t t)
 - `ichiran/dict:segment-list-end`
 - `ichiran/dict:segment-list-segments`
 - `ichiran/dict:segment-list-start`
+
+## Source-walked references
+
+_(none detected)_

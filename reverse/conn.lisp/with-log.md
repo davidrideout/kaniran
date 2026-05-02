@@ -16,3 +16,9 @@ _unknown — no declared ftype, no docstring_
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/conn:body`
+- `ichiran/conn:if-exists`
+- `ichiran/conn:path`

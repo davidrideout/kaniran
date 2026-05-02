@@ -15,3 +15,13 @@ Declared ftype: `(function (t &rest t) *)`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/characters:test-word`
+
+## Source-walked references
+
+- `ichiran/characters:test-word`
+- `ichiran/dict:kana-text`
+- `ichiran/dict:kanji-text`
+- `ichiran/dict:seq`
+- `ichiran/dict:seqs`
+- `ichiran/dict:table`
+- `ichiran/dict:word`

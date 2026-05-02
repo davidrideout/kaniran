@@ -15,3 +15,7 @@ Declared ftype: `(function (t) (values (mod 4611686018427387901) &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/characters:str`

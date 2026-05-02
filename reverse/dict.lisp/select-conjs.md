@@ -15,3 +15,11 @@ Declared ftype: `(function (t &optional t) *)`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:conj-ids`
+- `ichiran/dict:conjugation`
+- `ichiran/dict:id`
+- `ichiran/dict:seq`
+- `ichiran/dict:via`

@@ -19,3 +19,11 @@ Declared ftype: `(function nil *)`
 - `ichiran/dict:load-conjugations`
 - `ichiran/dict:load-secondary-conjugations`
 - `ichiran/dict:recalc-entry-stats-all`
+
+## Source-walked references
+
+- `ichiran/custom:load-custom-data`
+- `ichiran/dict:add-errata`
+- `ichiran/dict:load-conjugations`
+- `ichiran/dict:load-secondary-conjugations`
+- `ichiran/dict:recalc-entry-stats-all`

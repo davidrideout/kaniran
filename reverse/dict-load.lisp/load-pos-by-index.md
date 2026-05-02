@@ -15,3 +15,7 @@ Declared ftype: `(function nil (values null &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+_(none detected)_

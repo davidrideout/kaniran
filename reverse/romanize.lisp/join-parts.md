@@ -15,3 +15,14 @@ Declared ftype: `(function (t) (values simple-string &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran:for`
+- `ichiran:in`
+- `ichiran:last-space`
+- `ichiran:len`
+- `ichiran:part`
+- `ichiran:parts`
+- `ichiran:s`
+- `ichiran:with`

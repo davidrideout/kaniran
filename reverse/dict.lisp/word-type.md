@@ -75,3 +75,15 @@ _(none detected)_
 
 _(none detected)_
 
+
+## Source-walked references
+
+- `ichiran/characters:count-char-class`
+- `ichiran/dict:compound-text`
+- `ichiran/dict:counter-text`
+- `ichiran/dict:kana-text`
+- `ichiran/dict:kanji-text`
+- `ichiran/dict:obj`
+- `ichiran/dict:primary`
+- `ichiran/dict:proxy-text`
+- `ichiran/dict:source`

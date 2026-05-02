@@ -38,3 +38,10 @@ _(none detected)_
 - `ichiran/dict:source`
 - `ichiran/dict:true-kanji`
 
+
+## Source-walked references
+
+- `ichiran/dict:get-kanji`
+- `ichiran/dict:obj`
+- `ichiran/dict:proxy-text`
+- `ichiran/dict:source`

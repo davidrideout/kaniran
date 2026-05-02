@@ -15,3 +15,7 @@ Declared ftype: `(function nil *)`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:errata-conj-description-hook`
+
+## Source-walked references
+
+_(none detected)_

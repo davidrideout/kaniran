@@ -16,3 +16,11 @@ _unknown — no declared ftype, no docstring_
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:*split-map*`
+- `ichiran/dict:body`
+- `ichiran/dict:name`
+- `ichiran/dict:reading-var`
+- `ichiran/dict:seq`

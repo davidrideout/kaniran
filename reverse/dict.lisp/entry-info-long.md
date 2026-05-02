@@ -16,3 +16,9 @@ Declared ftype: `(function (t) (values simple-string &optional))`
 
 - `ichiran/dict:get-senses-str`
 - `ichiran/dict:reading-str-seq`
+
+## Source-walked references
+
+- `ichiran/dict:get-senses-str`
+- `ichiran/dict:reading-str-seq`
+- `ichiran/dict:seq`

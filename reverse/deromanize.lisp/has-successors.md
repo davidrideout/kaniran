@@ -15,3 +15,15 @@ Declared ftype: `(function (t) (values hash-table &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran:below`
+- `ichiran:end`
+- `ichiran:for`
+- `ichiran:from`
+- `ichiran:hash`
+- `ichiran:in`
+- `ichiran:s`
+- `ichiran:ss`
+- `ichiran:strings`

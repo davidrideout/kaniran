@@ -23,3 +23,7 @@ Declared ftype: `(function (t t) (values list &optional))`
 - `ichiran/dict:segment-list-start`
 - `ichiran/dict:segment-word`
 - `ichiran/dict:seq`
+
+## Source-walked references
+
+_(none detected)_

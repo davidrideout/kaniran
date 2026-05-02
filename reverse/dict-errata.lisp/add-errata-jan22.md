@@ -19,3 +19,12 @@ Declared ftype: `(function nil *)`
 - `ichiran/dict:add-sense-prop`
 - `ichiran/dict:delete-sense-prop`
 - `ichiran/dict:set-common`
+
+## Source-walked references
+
+- `ichiran/dict:add-conj-reading`
+- `ichiran/dict:add-reading`
+- `ichiran/dict:add-sense-prop`
+- `ichiran/dict:delete-sense-prop`
+- `ichiran/dict:kana-text`
+- `ichiran/dict:set-common`

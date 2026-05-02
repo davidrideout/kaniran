@@ -18,3 +18,18 @@ _unknown — no declared ftype, no docstring_
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:defhint`
+- `ichiran/dict:get-kana`
+- `ichiran/dict:hint`
+- `ichiran/dict:hints-def`
+- `ichiran/dict:insert-hints`
+- `ichiran/dict:kana-var`
+- `ichiran/dict:length-var`
+- `ichiran/dict:reading-var`
+- `ichiran/dict:seqs`
+- `ichiran/dict:test-var`
+- `ichiran/dict:test-var-used`
+- `ichiran/dict:true-kana`

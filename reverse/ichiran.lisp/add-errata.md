@@ -16,3 +16,9 @@ Declared ftype: `(function (&optional t) *)`
 
 - `ichiran/conn:get-spec`
 - `ichiran/dict:add-errata`
+
+## Source-walked references
+
+- `ichiran/conn:with-db`
+- `ichiran/dict:add-errata`
+- `ichiran/maintenance:conn`

@@ -15,3 +15,8 @@ Declared ftype: `(function (t) *)`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:find-word-with-conj-type`
+
+## Source-walked references
+
+- `ichiran/dict:find-word-with-conj-type`
+- `ichiran/dict:root`

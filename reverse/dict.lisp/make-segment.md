@@ -20,3 +20,7 @@ Declared ftype: `(function
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+_(none detected)_

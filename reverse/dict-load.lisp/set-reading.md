@@ -41,3 +41,27 @@ _(none detected)_
 - `ichiran/dict:nokanji`
 - `ichiran/dict:seq`
 
+
+## Source-walked references
+
+- `ichiran/dict:best-kana`
+- `ichiran/dict:best-kanji`
+- `ichiran/dict:collect`
+- `ichiran/dict:cur-best`
+- `ichiran/dict:for`
+- `ichiran/dict:in`
+- `ichiran/dict:kana-text`
+- `ichiran/dict:kanji-list`
+- `ichiran/dict:kanji-text`
+- `ichiran/dict:kt`
+- `ichiran/dict:ktext`
+- `ichiran/dict:nokanji`
+- `ichiran/dict:obj`
+- `ichiran/dict:ord`
+- `ichiran/dict:reading`
+- `ichiran/dict:restr`
+- `ichiran/dict:restricted`
+- `ichiran/dict:restricted-readings`
+- `ichiran/dict:rt`
+- `ichiran/dict:rtext`
+- `ichiran/dict:seq`

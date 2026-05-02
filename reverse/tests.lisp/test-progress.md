@@ -15,3 +15,8 @@ Declared ftype: `(function (t &optional t) (values null &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/test:err`
+- `ichiran/test:result`

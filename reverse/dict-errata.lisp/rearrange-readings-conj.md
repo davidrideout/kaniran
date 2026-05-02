@@ -15,3 +15,12 @@ Declared ftype: `(function (t t t) (values null &optional))`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:rearrange-readings`
+
+## Source-walked references
+
+- `ichiran/dict:conjugation`
+- `ichiran/dict:from`
+- `ichiran/dict:prefix`
+- `ichiran/dict:rearrange-readings`
+- `ichiran/dict:seq`
+- `ichiran/dict:table`

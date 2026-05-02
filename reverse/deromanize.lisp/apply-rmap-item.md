@@ -20,3 +20,14 @@ Declared ftype: `(function (t t)
 - `ichiran:rmi-kana`
 - `ichiran:rmi-next`
 - `ichiran:rmi-text`
+
+## Source-walked references
+
+- `ichiran:kana`
+- `ichiran:make-kana-representation`
+- `ichiran:possible-long-vowel-p`
+- `ichiran:rmi`
+- `ichiran:rmi-kana`
+- `ichiran:rmi-next`
+- `ichiran:rmi-text`
+- `ichiran:s`

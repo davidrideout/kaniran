@@ -15,3 +15,10 @@ Declared ftype: `(function (t t t) (values list &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:props`
+- `ichiran/dict:sense-prop`
+- `ichiran/dict:seq`
+- `ichiran/dict:tag`

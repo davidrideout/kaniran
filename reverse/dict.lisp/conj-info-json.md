@@ -18,3 +18,13 @@ Declared ftype: `(function
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:conj-info-json*`
+
+## Source-walked references
+
+- `ichiran/dict:c`
+- `ichiran/dict:cij`
+- `ichiran/dict:conj-info-json*`
+- `ichiran/dict:conjugations`
+- `ichiran/dict:fcij`
+- `ichiran/dict:has-gloss`
+- `ichiran/dict:seq`

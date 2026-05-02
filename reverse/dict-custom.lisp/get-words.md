@@ -40,3 +40,17 @@ _(none detected)_
 - `ichiran/custom:municipality-prefecture`
 - `ichiran/custom:municipality-type`
 
+
+## Source-walked references
+
+- `ichiran/custom:*municipality-types-description*`
+- `ichiran/custom:entry`
+- `ichiran/custom:municipality`
+- `ichiran/custom:municipality-definition`
+- `ichiran/custom:municipality-prefecture`
+- `ichiran/custom:municipality-type`
+- `ichiran/custom:name`
+- `ichiran/custom:typeword`
+- `ichiran/custom:ward`
+- `ichiran/custom:ward-city`
+- `ichiran/custom:ward-definition`

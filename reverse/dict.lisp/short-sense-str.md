@@ -16,3 +16,14 @@ Declared ftype: `(function (t &key (:with-pos t))
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:gloss`
+- `ichiran/dict:gloss.sense-id`
+- `ichiran/dict:sense`
+- `ichiran/dict:sense.id`
+- `ichiran/dict:sense.ord`
+- `ichiran/dict:sense.seq`
+- `ichiran/dict:seq`
+- `ichiran/dict:with-pos`

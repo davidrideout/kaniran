@@ -20,3 +20,11 @@ Declared ftype: `(function * (values function &optional))`
 - `ichiran/dict:segment-word`
 - `ichiran/dict:seq`
 - `ichiran/dict:seqs`
+
+## Source-walked references
+
+- `ichiran/dict:segment`
+- `ichiran/dict:segment-info`
+- `ichiran/dict:segment-word`
+- `ichiran/dict:seq`
+- `ichiran/dict:seqs`

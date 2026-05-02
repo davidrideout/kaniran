@@ -21,3 +21,14 @@ Declared ftype: `(function
 - `ichiran:get-character-classes`
 - `ichiran:r-special`
 - `ichiran:romanize-list`
+
+## Source-walked references
+
+- `ichiran/characters:normalize`
+- `ichiran/dict:process-hints`
+- `ichiran:*default-romanization-method*`
+- `ichiran:get-character-classes`
+- `ichiran:original-spelling`
+- `ichiran:r-special`
+- `ichiran:romanize-list`
+- `ichiran:word`

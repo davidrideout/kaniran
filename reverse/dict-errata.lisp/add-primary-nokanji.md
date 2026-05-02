@@ -15,3 +15,13 @@ Declared ftype: `(function (t t) (values null &optional))`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:set-primary-nokanji`
+
+## Source-walked references
+
+- `ichiran/dict:do-readings`
+- `ichiran/dict:kana-text`
+- `ichiran/dict:kt`
+- `ichiran/dict:nokanji`
+- `ichiran/dict:reading`
+- `ichiran/dict:seq`
+- `ichiran/dict:set-primary-nokanji`

@@ -259,6 +259,150 @@
     (sort (remove-duplicates (append from-graph from-form) :test #'eq)
           #'string< :key #'fmt-sym)))
 
+;;; --- Source-walk pass ------------------------------------------------------
+;;;
+;;; Runtime introspection misses dependency edges that only appear at the
+;;; source level — most importantly DAO-class symbols passed as data to
+;;; postmodern helpers like (select-dao 'kana-text ...). The runtime call
+;;; graph only sees function calls; quoted symbols are data, not calls.
+;;;
+;;; This pass re-reads each ichiran .lisp source file with the Lisp reader,
+;;; identifies every top-level defining form, and walks the form for
+;;; ichiran-package symbols. Output: a hash table keyed by defining symbol
+;;; with the set of ichiran symbols mentioned anywhere in its body. The md
+;;; writers consult this table to emit a "## Source-walked references"
+;;; section. build_graph.py reads that section and unions it with the
+;;; runtime call-graph deps before writing edges.csv. Symbols that are not
+;;; top-level definitions (locals, lambda-list parameters, slot names) get
+;;; filtered out on the Python side via cross-reference with symbols.csv.
+
+(defparameter *defining-head-names*
+  '("DEFUN" "DEFMACRO" "DEFMETHOD" "DEFGENERIC" "DEFCLASS" "DEFSTRUCT"
+    "DEFINE-CONDITION" "DEFTYPE" "DEFPARAMETER" "DEFVAR" "DEFCONSTANT"))
+
+(defparameter *source-walk-deps* (make-hash-table :test 'eq)
+  "Defining-symbol -> hash-set of ichiran-package symbols seen in its form.
+   Methods are aggregated under the GF symbol — the runtime pass already
+   gives precise per-method edges, and the source pass complements it at
+   the GF level.")
+
+(defun defining-symbol-of-form (form)
+  "Return the ichiran symbol defined by FORM, or NIL.
+   Handles `(defstruct (name options) ...)` plus the common
+   `(defXXX name ...)` shape."
+  (when (and (consp form)
+             (symbolp (car form))
+             (member (symbol-name (car form))
+                     *defining-head-names* :test #'string=)
+             (consp (cdr form)))
+    (let ((second (cadr form)))
+      (cond
+        ((and (symbolp second)
+              (symbol-package second)
+              (ichiran-package-p (symbol-package second)))
+         second)
+        ((and (consp second)
+              (symbolp (car second))
+              (symbol-package (car second))
+              (ichiran-package-p (symbol-package (car second))))
+         (car second))
+        (t nil)))))
+
+(defun walk-form-for-ichiran-syms (form set)
+  "Collect every ichiran-package symbol from FORM into SET (a hash-set).
+   No filtering against *universe* here — that's done on the Python side
+   so the md output preserves all observations for transparency."
+  (labels ((w (x)
+             (cond
+               ((and (symbolp x)
+                     (symbol-package x)
+                     (ichiran-package-p (symbol-package x)))
+                (setf (gethash x set) t))
+               ((consp x) (w (car x)) (w (cdr x))))))
+    (w form)))
+
+(defun read-and-walk-file (path)
+  "Read every top-level form from PATH; populate *source-walk-deps*.
+   Tracks (in-package ...) forms so unqualified symbols read into the
+   correct package — same as how LOAD would intern them."
+  (handler-case
+      (with-open-file (s path :direction :input :external-format :utf-8)
+        (let ((*package* (find-package :common-lisp-user))
+              (*read-eval* nil))
+          (loop for form = (handler-case (read s nil :seof)
+                             (error (c)
+                               (format t ";;   read error in ~a: ~a~%" path c)
+                               :seof))
+                until (eq form :seof)
+                do (cond
+                     ((and (consp form)
+                           (symbolp (car form))
+                           (string= (symbol-name (car form)) "IN-PACKAGE")
+                           (consp (cdr form)))
+                      (let* ((arg (cadr form))
+                             (name (cond ((symbolp arg) (symbol-name arg))
+                                         ((stringp arg) arg)
+                                         (t arg)))
+                             (pkg (handler-case (find-package name)
+                                    (error () nil))))
+                        (when pkg (setf *package* pkg))))
+                     (t
+                      (let ((defsym (defining-symbol-of-form form)))
+                        (when defsym
+                          (let ((set (or (gethash defsym *source-walk-deps*)
+                                         (setf (gethash defsym *source-walk-deps*)
+                                               (make-hash-table :test 'eq)))))
+                            (walk-form-for-ichiran-syms form set)))))))))
+    (error (c)
+      (format t ";; error walking ~a: ~a~%" path c))))
+
+(defun discover-source-files ()
+  "Distinct .lisp pathnames mentioned by any universe symbol's source info.
+   Iterates over a few definition-source kinds because some files only
+   define classes or globals and would be missed by :function alone."
+  (let ((seen (make-hash-table :test 'equal))
+        (out nil))
+    (loop for sym being the hash-keys of *universe* do
+      (dolist (kind '(:function :variable :class :structure :macro))
+        (handler-case
+            (dolist (def (sb-introspect:find-definition-sources-by-name sym kind))
+              (let ((path (sb-introspect:definition-source-pathname def)))
+                (when (and path
+                           (let ((tp (pathname-type path)))
+                             (and tp (string-equal tp "lisp")))
+                           (not (gethash (namestring path) seen)))
+                  (setf (gethash (namestring path) seen) t)
+                  (push path out))))
+          (error () nil))))
+    out))
+
+(defun run-source-walk ()
+  (let ((files (discover-source-files)))
+    (format t ";; Source-walk: ~a files...~%" (length files))
+    (dolist (path files)
+      (read-and-walk-file path))
+    (format t ";; Source-walk: ~a defining symbols recorded.~%"
+            (hash-table-count *source-walk-deps*))))
+
+(defun emit-source-walk-section (out sym)
+  "Append the '## Source-walked references' block to OUT for SYM."
+  (let ((set (gethash sym *source-walk-deps*)))
+    (format out "~%## Source-walked references~%~%")
+    (cond
+      ((or (null set) (zerop (hash-table-count set)))
+       (format out "_(none detected)_~%"))
+      (t
+       (let ((sorted (sort
+                      (loop for k being the hash-keys of set
+                            unless (eq k sym)
+                            collect k)
+                      #'string< :key #'fmt-sym)))
+         (cond
+           ((null sorted)
+            (format out "_(none detected)_~%"))
+           (t
+            (dolist (s sorted) (format out "- `~a`~%" (fmt-sym s))))))))))
+
 ;;; --- Markdown writers ------------------------------------------------------
 (defun escape-md (s)
   (when s
@@ -301,7 +445,8 @@
       (format out "## Dependencies (ichiran symbols)~%~%")
       (if deps
           (dolist (d deps) (format out "- `~a`~%" (fmt-sym d)))
-          (format out "_(none detected)_~%")))))
+          (format out "_(none detected)_~%"))
+      (emit-source-walk-section out sym))))
 
 (defun write-generic-md (path sym src deps-top methods)
   (ensure-directories-exist path)
@@ -359,7 +504,8 @@
               (if mdeps
                   (dolist (d mdeps) (format out "- `~a`~%" (fmt-sym d)))
                   (format out "_(none detected)_~%"))
-              (format out "~%")))))))
+              (format out "~%"))))
+      (emit-source-walk-section out sym))))
 
 ;;; --- Main loop -------------------------------------------------------------
 (defstruct entry sym kind src filename basename methods)
@@ -842,6 +988,9 @@
 (format t ";; Building call graph (who-calls inversion)...~%")
 (setf *call-graph* (build-call-graph))
 (format t ";; Call graph entries: ~a~%" (hash-table-count *call-graph*))
+
+(format t ";; Running source-walk pass...~%")
+(run-source-walk)
 
 (format t ";; Collecting function entries...~%")
 (let* ((entries (collect-entries))

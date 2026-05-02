@@ -7,7 +7,7 @@
 ## Value
 
 ```lisp
-(:II :SEBA :MEBA :BEBA :NEBA :GEBA :KEBA :REBA :TEBA :EBA :DEWANAI :NAI-N :GAI :NIKUI :MO (:DESU . #<FUNCTION #1=(LAMBDA (ICHIRAN/DICT::MATCHES) :IN "/home/david/storage/ichiran/dict-grammar.lisp") {53D3834B}>) :RA (:SA . #<FUNCTION #1# {53D3694B}>))
+(:II :SEBA :MEBA :BEBA :NEBA :GEBA :KEBA :REBA :TEBA :EBA :DEWANAI :NAI-N :GAI :NIKUI :MO (:DESU . #<FUNCTION #1=(LAMBDA (ICHIRAN/DICT::MATCHES) :IN "/home/david/storage/ichiran/dict-grammar.lisp") {53D383FB}>) :RA (:SA . #<FUNCTION #1# {53D369FB}>))
 ```
 
 _(value is not round-trippable via `read` — likely contains closures, classes, or other unreadable shapes)_

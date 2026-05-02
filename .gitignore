@@ -13,3 +13,6 @@ Cargo.lock.bak
 
 # IDE
 .idea/
+
+# Python
+__pycache__/

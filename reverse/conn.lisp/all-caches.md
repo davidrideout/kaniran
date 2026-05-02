@@ -15,3 +15,8 @@ Declared ftype: `(function nil (values t &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/conn:cache`
+- `ichiran/conn:mapping`

@@ -15,3 +15,7 @@ Declared ftype: `(function nil (values null &optional))`
 ## Dependencies (ichiran symbols)
 
 - `ichiran:make-rmap-item`
+
+## Source-walked references
+
+_(none detected)_

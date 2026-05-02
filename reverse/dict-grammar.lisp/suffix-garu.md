@@ -20,3 +20,7 @@ Declared ftype: `(function (t t t) (values list &optional))`
 - `ichiran/dict:find-word-with-conj-type`
 - `ichiran/dict:find-word-with-suffix`
 - `ichiran/dict:get-kana`
+
+## Source-walked references
+
+_(none detected)_

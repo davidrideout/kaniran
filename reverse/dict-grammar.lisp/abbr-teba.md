@@ -17,3 +17,7 @@ Declared ftype: `(function (t t t) (values list &optional))`
 - `ichiran/characters:destem`
 - `ichiran/dict:find-word-full`
 - `ichiran/dict:get-kana`
+
+## Source-walked references
+
+_(none detected)_

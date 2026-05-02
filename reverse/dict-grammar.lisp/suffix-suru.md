@@ -18,3 +18,7 @@ Declared ftype: `(function (t t t) (values list &optional))`
 - `ichiran/dict:adjoin-word`
 - `ichiran/dict:find-word-with-pos`
 - `ichiran/dict:get-kana`
+
+## Source-walked references
+
+_(none detected)_

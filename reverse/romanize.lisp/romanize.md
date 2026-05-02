@@ -22,3 +22,26 @@ Declared ftype: `(function (t &key (:method t) (:with-info t))
 - `ichiran/dict:word-info-str`
 - `ichiran:join-parts`
 - `ichiran:romanize-word-info`
+
+## Source-walked references
+
+- `ichiran/characters:basic-split`
+- `ichiran/characters:normalize`
+- `ichiran/dict:simple-segment`
+- `ichiran/dict:word-info-str`
+- `ichiran:*default-romanization-method*`
+- `ichiran:definitions`
+- `ichiran:finally`
+- `ichiran:for`
+- `ichiran:in`
+- `ichiran:input`
+- `ichiran:into`
+- `ichiran:join-parts`
+- `ichiran:parts`
+- `ichiran:rom`
+- `ichiran:romanize-word-info`
+- `ichiran:split-text`
+- `ichiran:split-type`
+- `ichiran:with`
+- `ichiran:with-info`
+- `ichiran:word`

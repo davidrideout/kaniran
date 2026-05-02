@@ -19,3 +19,12 @@ Declared ftype: `(function (t) (values simple-string &optional))`
 - `ichiran/dict:conj-type`
 - `ichiran/dict:get-conj-description`
 - `ichiran/dict:pos`
+
+## Source-walked references
+
+- `ichiran/dict:conj-fml`
+- `ichiran/dict:conj-neg`
+- `ichiran/dict:conj-type`
+- `ichiran/dict:get-conj-description`
+- `ichiran/dict:obj`
+- `ichiran/dict:pos`

@@ -15,3 +15,10 @@ Declared ftype: `(function (t) (values simple-string &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:digit`
+- `ichiran/dict:n`
+- `ichiran/dict:suffix`
+- `ichiran/dict:teenp`

@@ -22,3 +22,13 @@ Declared ftype: `(function * (values function &optional))`
 - `ichiran/dict:texts`
 - `ichiran/dict:word`
 - `ichiran/dict:words`
+
+## Source-walked references
+
+- `ichiran/dict:get-text`
+- `ichiran/dict:segment`
+- `ichiran/dict:segment-word`
+- `ichiran/dict:seq`
+- `ichiran/dict:texts`
+- `ichiran/dict:word`
+- `ichiran/dict:words`

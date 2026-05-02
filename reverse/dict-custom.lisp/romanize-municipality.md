@@ -17,3 +17,12 @@ Declared ftype: `(function (t t &key (:include-type t))
 
 - `ichiran/custom:municipality-short`
 - `ichiran:romanize-word-geo`
+
+## Source-walked references
+
+- `ichiran/custom:*municipality-types-description*`
+- `ichiran/custom:include-type`
+- `ichiran/custom:municipality-short`
+- `ichiran/custom:reading`
+- `ichiran/custom:short-reading`
+- `ichiran:romanize-word-geo`

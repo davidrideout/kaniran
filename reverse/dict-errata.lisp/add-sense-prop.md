@@ -15,3 +15,14 @@ Declared ftype: `(function (t t t t) *)`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:id`
+
+## Source-walked references
+
+- `ichiran/dict:id`
+- `ichiran/dict:ord`
+- `ichiran/dict:sense`
+- `ichiran/dict:sense-id`
+- `ichiran/dict:sense-ord`
+- `ichiran/dict:sense-prop`
+- `ichiran/dict:seq`
+- `ichiran/dict:tag`

@@ -20,3 +20,17 @@ Declared ftype: `(function (t t)
 - `ichiran/dict:cr-euphr`
 - `ichiran/dict:cr-okuri`
 - `ichiran/dict:cr-stem`
+
+## Source-walked references
+
+- `ichiran/characters:test-word`
+- `ichiran/dict:cr-euphk`
+- `ichiran/dict:cr-euphr`
+- `ichiran/dict:cr-okuri`
+- `ichiran/dict:cr-stem`
+- `ichiran/dict:euphk`
+- `ichiran/dict:euphr`
+- `ichiran/dict:iskana`
+- `ichiran/dict:rule`
+- `ichiran/dict:stem`
+- `ichiran/dict:word`

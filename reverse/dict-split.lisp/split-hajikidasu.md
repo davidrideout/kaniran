@@ -18,3 +18,7 @@ Declared ftype: `(function (t) (values list (integer 100 100) &optional))`
 - `ichiran/dict:find-word-conj-of`
 - `ichiran/dict:find-word-seq`
 - `ichiran/dict:true-text`
+
+## Source-walked references
+
+_(none detected)_

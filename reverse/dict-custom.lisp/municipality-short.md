@@ -15,3 +15,15 @@ Declared ftype: `(function (t t) (values cons &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/custom:*municipality-types*`
+- `ichiran/custom:for`
+- `ichiran/custom:in`
+- `ichiran/custom:reading`
+- `ichiran/custom:short-reading`
+- `ichiran/custom:short-text`
+- `ichiran/custom:thereis`
+- `ichiran/custom:tpr`
+- `ichiran/custom:type-readings`

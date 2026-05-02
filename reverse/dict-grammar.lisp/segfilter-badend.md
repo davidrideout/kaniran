@@ -24,3 +24,7 @@ Declared ftype: `(function (t t) (values list &optional))`
 - `ichiran/dict:segment-word`
 - `ichiran/dict:seq`
 - `ichiran/dict:words`
+
+## Source-walked references
+
+_(none detected)_

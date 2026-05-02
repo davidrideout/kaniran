@@ -15,3 +15,8 @@ Declared ftype: `(function nil (values number &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:entry`
+- `ichiran/dict:seq`

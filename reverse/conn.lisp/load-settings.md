@@ -16,3 +16,13 @@ Declared ftype: `(function (&key (:keep-connection t)) *)`
 
 - `ichiran/conn:load-connection-from-env`
 - `ichiran/conn:switch-conn-vars`
+
+## Source-walked references
+
+- `ichiran/conn:*connection*`
+- `ichiran/conn:*is-dynamic-connection*`
+- `ichiran/conn:keep-connection`
+- `ichiran/conn:load-connection-from-env`
+- `ichiran/conn:old-connection`
+- `ichiran/conn:old-dynamic`
+- `ichiran/conn:switch-conn-vars`

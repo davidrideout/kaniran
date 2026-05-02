@@ -20,3 +20,25 @@ Declared ftype: `(function (t &key (:method t) (:limit t) (:wordprop-fn t))
 - `ichiran/characters:normalize`
 - `ichiran/dict:dict-segment`
 - `ichiran:romanize-word-info`
+
+## Source-walked references
+
+- `ichiran/characters:basic-split`
+- `ichiran/characters:normalize`
+- `ichiran/dict:dict-segment`
+- `ichiran:*default-romanization-method*`
+- `ichiran:collect`
+- `ichiran:for`
+- `ichiran:in`
+- `ichiran:input`
+- `ichiran:limit`
+- `ichiran:pair`
+- `ichiran:prop`
+- `ichiran:romanize-word-info`
+- `ichiran:romanized`
+- `ichiran:score`
+- `ichiran:split-text`
+- `ichiran:split-type`
+- `ichiran:word`
+- `ichiran:word-list`
+- `ichiran:wordprop-fn`

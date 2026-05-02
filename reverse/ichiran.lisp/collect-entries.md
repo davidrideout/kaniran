@@ -18,3 +18,18 @@ Declared ftype: `(function (t &key (:conn t))
 
 - `ichiran/conn:get-spec`
 - `ichiran/dict:seq`
+
+## Source-walked references
+
+- `ichiran/conn:*connection*`
+- `ichiran/conn:with-db`
+- `ichiran/dict:entry`
+- `ichiran/dict:seq`
+- `ichiran/maintenance:collect`
+- `ichiran/maintenance:conn`
+- `ichiran/maintenance:entry`
+- `ichiran/maintenance:for`
+- `ichiran/maintenance:hash`
+- `ichiran/maintenance:in`
+- `ichiran/maintenance:seq`
+- `ichiran/maintenance:seq-set`

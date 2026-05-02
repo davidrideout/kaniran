@@ -18,3 +18,26 @@ _unknown — no declared ftype, no docstring_
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/characters:destem`
+- `ichiran/dict:*suffix-map-temp*`
+- `ichiran/dict:compound-text`
+- `ichiran/dict:defsuffix`
+- `ichiran/dict:get-kana`
+- `ichiran/dict:get-primary-words`
+- `ichiran/dict:k`
+- `ichiran/dict:kana`
+- `ichiran/dict:name`
+- `ichiran/dict:patch-var`
+- `ichiran/dict:primary-words`
+- `ichiran/dict:proxy-text`
+- `ichiran/dict:pw`
+- `ichiran/dict:root-var`
+- `ichiran/dict:simple-text`
+- `ichiran/dict:skana`
+- `ichiran/dict:stem`
+- `ichiran/dict:stext`
+- `ichiran/dict:suf`
+- `ichiran/dict:suf-var`

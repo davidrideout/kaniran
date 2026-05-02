@@ -15,3 +15,8 @@ Declared ftype: `(function nil (values function &optional))`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/cli:print-error`
+
+## Source-walked references
+
+- `ichiran/cli:old-hook`
+- `ichiran/cli:print-error`

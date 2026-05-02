@@ -15,3 +15,8 @@ Declared ftype: `(function (t) *)`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:te-check`
+
+## Source-walked references
+
+- `ichiran/dict:root`
+- `ichiran/dict:te-check`

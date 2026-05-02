@@ -15,3 +15,11 @@ Declared ftype: `(function (t &optional t) (values list &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/characters:e`
+- `ichiran/characters:offset`
+- `ichiran/characters:positions`
+- `ichiran/characters:s`
+- `ichiran/characters:word`

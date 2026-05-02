@@ -20,3 +20,21 @@ Declared ftype: `(function (&key (:path t) (:load-extras t)) *)`
 - `ichiran/dict:load-entry`
 - `ichiran/dict:load-extras`
 - `ichiran/dict:recalc-entry-stats-all`
+
+## Source-walked references
+
+- `ichiran/conn:*connection*`
+- `ichiran/dict:*jmdict-path*`
+- `ichiran/dict:cnt`
+- `ichiran/dict:content`
+- `ichiran/dict:finally`
+- `ichiran/dict:fix-entities`
+- `ichiran/dict:for`
+- `ichiran/dict:from`
+- `ichiran/dict:init-tables`
+- `ichiran/dict:load-entry`
+- `ichiran/dict:load-extras`
+- `ichiran/dict:path`
+- `ichiran/dict:recalc-entry-stats-all`
+- `ichiran/dict:source`
+- `ichiran/dict:while`

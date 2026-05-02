@@ -45,3 +45,26 @@ _(none detected)_
 - `ichiran/custom:update-entry-gloss`
 - `ichiran/dict:next-seq`
 
+
+## Source-walked references
+
+- `ichiran/conn:*connection*`
+- `ichiran/custom:cur-seq`
+- `ichiran/custom:entries`
+- `ichiran/custom:entry`
+- `ichiran/custom:for`
+- `ichiran/custom:in`
+- `ichiran/custom:insert-entry`
+- `ichiran/custom:loader`
+- `ichiran/custom:ok`
+- `ichiran/custom:seq`
+- `ichiran/custom:source`
+- `ichiran/custom:test-entry`
+- `ichiran/custom:update-entry`
+- `ichiran/custom:update-entry-gloss`
+- `ichiran/custom:with`
+- `ichiran/custom:xml-entry-content`
+- `ichiran/custom:xml-entry-seq`
+- `ichiran/custom:xml-loader`
+- `ichiran/dict:load-entry`
+- `ichiran/dict:next-seq`

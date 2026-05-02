@@ -21,3 +21,32 @@ Declared ftype: `(function
 - `ichiran/dict:get-senses`
 - `ichiran/dict:match-sense-restrictions`
 - `ichiran/dict:split-pos`
+
+## Source-walked references
+
+- `ichiran/characters:join`
+- `ichiran/dict:collect`
+- `ichiran/dict:emptypos`
+- `ichiran/dict:field`
+- `ichiran/dict:for`
+- `ichiran/dict:get-senses`
+- `ichiran/dict:gloss`
+- `ichiran/dict:in`
+- `ichiran/dict:inf`
+- `ichiran/dict:js`
+- `ichiran/dict:lpos`
+- `ichiran/dict:match-sense-restrictions`
+- `ichiran/dict:pos`
+- `ichiran/dict:pos-list`
+- `ichiran/dict:props`
+- `ichiran/dict:reading`
+- `ichiran/dict:reading-getter`
+- `ichiran/dict:readp`
+- `ichiran/dict:rfield`
+- `ichiran/dict:rinf`
+- `ichiran/dict:rpos`
+- `ichiran/dict:rr`
+- `ichiran/dict:seq`
+- `ichiran/dict:split-pos`
+- `ichiran/dict:then`
+- `ichiran/dict:with`

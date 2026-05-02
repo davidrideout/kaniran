@@ -93,3 +93,15 @@ _(none detected)_
 
 - `ichiran:romanize-core`
 
+
+## Source-walked references
+
+- `ichiran:cc-tree`
+- `ichiran:generic-hepburn`
+- `ichiran:generic-romanization`
+- `ichiran:inner`
+- `ichiran:kana-table`
+- `ichiran:leftmost-atom`
+- `ichiran:modifier`
+- `ichiran:romanize-core`
+- `ichiran:yoon`

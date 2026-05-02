@@ -17,3 +17,12 @@ Declared ftype: `(function (t t t)
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/characters:m`
+- `ichiran/characters:new-word`
+- `ichiran/characters:r-cut`
+- `ichiran/characters:reading`
+- `ichiran/characters:reading-head`
+- `ichiran/characters:word`

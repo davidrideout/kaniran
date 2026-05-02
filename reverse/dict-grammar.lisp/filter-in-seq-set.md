@@ -18,3 +18,9 @@ Declared ftype: `(function * (values function &optional))`
 - `ichiran/dict:segment`
 - `ichiran/dict:segment-info`
 - `ichiran/dict:seqs`
+
+## Source-walked references
+
+- `ichiran/dict:segment`
+- `ichiran/dict:segment-info`
+- `ichiran/dict:seqs`

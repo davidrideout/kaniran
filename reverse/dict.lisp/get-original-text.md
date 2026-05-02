@@ -40,3 +40,22 @@ _(none detected)_
 - `ichiran/dict:word-conj-data`
 - `ichiran/dict:word-type`
 
+
+## Source-walked references
+
+- `ichiran/dict:conj-data`
+- `ichiran/dict:for`
+- `ichiran/dict:get-original-text*`
+- `ichiran/dict:in`
+- `ichiran/dict:kana-text`
+- `ichiran/dict:kanji-text`
+- `ichiran/dict:orig-texts`
+- `ichiran/dict:proxy-text`
+- `ichiran/dict:reading`
+- `ichiran/dict:seq`
+- `ichiran/dict:simple-text`
+- `ichiran/dict:source`
+- `ichiran/dict:table`
+- `ichiran/dict:txt`
+- `ichiran/dict:word-conj-data`
+- `ichiran/dict:word-type`

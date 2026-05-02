@@ -19,3 +19,7 @@ Declared ftype: `(function (t) (values list (integer 20 20) &optional))`
 - `ichiran/dict:find-word-seq`
 - `ichiran/dict:seq`
 - `ichiran/dict:true-text`
+
+## Source-walked references
+
+_(none detected)_

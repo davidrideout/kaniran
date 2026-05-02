@@ -17,3 +17,15 @@ Declared ftype: `(function (t) (values hash-table &optional))`
 - `ichiran/dict:join-substring-words`
 - `ichiran/dict:segment-list-end`
 - `ichiran/dict:segment-list-start`
+
+## Source-walked references
+
+- `ichiran/dict:for`
+- `ichiran/dict:in`
+- `ichiran/dict:index`
+- `ichiran/dict:join-substring-words`
+- `ichiran/dict:segment-list-end`
+- `ichiran/dict:segment-list-start`
+- `ichiran/dict:sl`
+- `ichiran/dict:sls`
+- `ichiran/dict:str`

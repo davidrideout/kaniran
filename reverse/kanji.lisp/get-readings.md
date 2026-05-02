@@ -15,3 +15,10 @@ Declared ftype: `(function (t &key (:names t)) *)`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/kanji:get-readings-cache`
+
+## Source-walked references
+
+- `ichiran/kanji:get-readings-cache`
+- `ichiran/kanji:names`
+- `ichiran/kanji:str`
+- `ichiran/kanji:typeset`

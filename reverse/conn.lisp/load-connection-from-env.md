@@ -15,3 +15,10 @@ Declared ftype: `(function nil (values boolean &optional))`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/conn:get-ichiran-connection-env`
+
+## Source-walked references
+
+- `ichiran/conn:*connection*`
+- `ichiran/conn:*is-dynamic-connection*`
+- `ichiran/conn:get-ichiran-connection-env`
+- `ichiran/conn:ichiran-connection`

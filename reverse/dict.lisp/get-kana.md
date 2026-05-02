@@ -155,3 +155,36 @@ _(none detected)_
 
 - `ichiran/dict:seq`
 
+
+## Source-walked references
+
+- `ichiran/dict:*disable-hints*`
+- `ichiran/dict:*kana-hint-space*`
+- `ichiran/dict:best-kana-conj`
+- `ichiran/dict:bk`
+- `ichiran/dict:counter-age`
+- `ichiran/dict:counter-days-kun`
+- `ichiran/dict:counter-hifumi`
+- `ichiran/dict:counter-join`
+- `ichiran/dict:counter-kana`
+- `ichiran/dict:counter-people`
+- `ichiran/dict:counter-suffix`
+- `ichiran/dict:counter-text`
+- `ichiran/dict:counter-tsu`
+- `ichiran/dict:digit-set`
+- `ichiran/dict:entry`
+- `ichiran/dict:get-hint`
+- `ichiran/dict:get-kanji-kana-old`
+- `ichiran/dict:hintedp`
+- `ichiran/dict:kana`
+- `ichiran/dict:kana-text`
+- `ichiran/dict:kanji-text`
+- `ichiran/dict:n`
+- `ichiran/dict:number-text`
+- `ichiran/dict:number-value`
+- `ichiran/dict:obj`
+- `ichiran/dict:ord`
+- `ichiran/dict:seq`
+- `ichiran/dict:simple-text`
+- `ichiran/dict:value`
+- `ichiran/numbers:number-to-kana`

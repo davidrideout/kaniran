@@ -20,3 +20,13 @@ Declared ftype: `(function (t) *)`
 - `ichiran/dict:word-info-seq`
 - `ichiran/dict:word-info-text`
 - `ichiran/dict:word-info-type`
+
+## Source-walked references
+
+- `ichiran/dict:reading-str*`
+- `ichiran/dict:word-info`
+- `ichiran/dict:word-info-counter`
+- `ichiran/dict:word-info-kana`
+- `ichiran/dict:word-info-seq`
+- `ichiran/dict:word-info-text`
+- `ichiran/dict:word-info-type`

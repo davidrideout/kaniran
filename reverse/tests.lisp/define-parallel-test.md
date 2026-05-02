@@ -15,3 +15,9 @@ _unknown — no declared ftype, no docstring_
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/test:*delays*`
+- `ichiran/test:body`
+- `ichiran/test:name`

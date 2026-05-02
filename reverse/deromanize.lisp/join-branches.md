@@ -19,3 +19,22 @@ Declared ftype: `(function (t) (values ichiran::kana-representation &optional))`
 - `ichiran:kr-pattern`
 - `ichiran:kr-rest`
 - `ichiran:make-kana-representation`
+
+## Source-walked references
+
+- `ichiran:b`
+- `ichiran:b0`
+- `ichiran:branches`
+- `ichiran:collect`
+- `ichiran:for`
+- `ichiran:head`
+- `ichiran:in`
+- `ichiran:joined-kana`
+- `ichiran:kr-branch`
+- `ichiran:kr-canonical`
+- `ichiran:kr-pattern`
+- `ichiran:kr-rest`
+- `ichiran:make-kana-representation`
+- `ichiran:tails`
+- `ichiran:x`
+- `ichiran:y`

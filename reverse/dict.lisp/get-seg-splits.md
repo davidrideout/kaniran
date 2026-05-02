@@ -17,3 +17,15 @@ Declared ftype: `(function (t t) (values list &optional))`
 - `ichiran/dict:apply-segfilters`
 - `ichiran/dict:get-penalties`
 - `ichiran/dict:get-synergies`
+
+## Source-walked references
+
+- `ichiran/dict:apply-segfilters`
+- `ichiran/dict:for`
+- `ichiran/dict:get-penalties`
+- `ichiran/dict:get-synergies`
+- `ichiran/dict:in`
+- `ichiran/dict:nconcing`
+- `ichiran/dict:seg-left`
+- `ichiran/dict:seg-right`
+- `ichiran/dict:splits`

@@ -15,3 +15,21 @@ Declared ftype: `(function nil (values null &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/conn:*connection*`
+- `ichiran/dict:conj-prop`
+- `ichiran/dict:conj-source-reading`
+- `ichiran/dict:conjugation`
+- `ichiran/dict:entry`
+- `ichiran/dict:for`
+- `ichiran/dict:gloss`
+- `ichiran/dict:in`
+- `ichiran/dict:kana-text`
+- `ichiran/dict:kanji-text`
+- `ichiran/dict:restricted-readings`
+- `ichiran/dict:sense`
+- `ichiran/dict:sense-prop`
+- `ichiran/dict:table`
+- `ichiran/dict:tables`

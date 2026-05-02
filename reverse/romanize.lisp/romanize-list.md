@@ -18,3 +18,13 @@ Declared ftype: `(function (t &key (:method t)) (values t &optional))`
 - `ichiran:process-modifiers`
 - `ichiran:r-simplify`
 - `ichiran:romanize-core`
+
+## Source-walked references
+
+- `ichiran:*default-romanization-method*`
+- `ichiran:cc-list`
+- `ichiran:cc-tree`
+- `ichiran:process-iteration-characters`
+- `ichiran:process-modifiers`
+- `ichiran:r-simplify`
+- `ichiran:romanize-core`

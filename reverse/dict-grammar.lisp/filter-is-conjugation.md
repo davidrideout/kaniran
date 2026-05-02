@@ -20,3 +20,11 @@ Declared ftype: `(function (t) (values function &optional))`
 - `ichiran/dict:filter-is-conjugation`
 - `ichiran/dict:segment`
 - `ichiran/dict:segment-info`
+
+## Source-walked references
+
+- `ichiran/dict:cdata`
+- `ichiran/dict:conj-data-prop`
+- `ichiran/dict:conj-type`
+- `ichiran/dict:segment`
+- `ichiran/dict:segment-info`

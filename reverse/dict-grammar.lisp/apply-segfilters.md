@@ -15,3 +15,15 @@ Declared ftype: `(function (t t) (values list &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:*segfilter-list*`
+- `ichiran/dict:finally`
+- `ichiran/dict:for`
+- `ichiran/dict:in`
+- `ichiran/dict:seg-left`
+- `ichiran/dict:seg-right`
+- `ichiran/dict:segfilter`
+- `ichiran/dict:splits`
+- `ichiran/dict:with`

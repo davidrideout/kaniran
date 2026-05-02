@@ -15,3 +15,7 @@ Declared ftype: `(function (t) (values t &optional))`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:load-conj-description`
+
+## Source-walked references
+
+_(none detected)_

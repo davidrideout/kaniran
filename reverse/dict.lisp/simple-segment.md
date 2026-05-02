@@ -15,3 +15,9 @@ Declared ftype: `(function (t &key (:limit t)) (values t &optional))`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:dict-segment`
+
+## Source-walked references
+
+- `ichiran/dict:dict-segment`
+- `ichiran/dict:limit`
+- `ichiran/dict:str`

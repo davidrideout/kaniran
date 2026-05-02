@@ -15,3 +15,7 @@ Declared ftype: `(function (ichiran/custom::xml-entry) (values t &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+_(none detected)_

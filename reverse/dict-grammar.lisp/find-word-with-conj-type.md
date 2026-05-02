@@ -17,3 +17,12 @@ Declared ftype: `(function (t &rest t) *)`
 - `ichiran/dict:conj-data-prop`
 - `ichiran/dict:conj-type`
 - `ichiran/dict:find-word-with-conj-prop`
+
+## Source-walked references
+
+- `ichiran/dict:cdata`
+- `ichiran/dict:conj-data-prop`
+- `ichiran/dict:conj-type`
+- `ichiran/dict:conj-types`
+- `ichiran/dict:find-word-with-conj-prop`
+- `ichiran/dict:word`

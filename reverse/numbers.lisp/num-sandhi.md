@@ -92,3 +92,14 @@ _(none detected)_
 
 - `ichiran/characters:geminate`
 
+
+## Source-walked references
+
+- `ichiran/characters:geminate`
+- `ichiran/characters:rendaku`
+- `ichiran/numbers:c1`
+- `ichiran/numbers:c2`
+- `ichiran/numbers:s1`
+- `ichiran/numbers:s2`
+- `ichiran/numbers:v1`
+- `ichiran/numbers:v2`

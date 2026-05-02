@@ -15,3 +15,17 @@ _unknown — no declared ftype, no docstring_
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:*suffix-map-temp*`
+- `ichiran/dict:+conj-adjective-stem+`
+- `ichiran/dict:+conj-adverbial+`
+- `ichiran/dict:apply-patch`
+- `ichiran/dict:cdata`
+- `ichiran/dict:conj-data-prop`
+- `ichiran/dict:conj-neg`
+- `ichiran/dict:find-word-with-conj-prop`
+- `ichiran/dict:find-word-with-conj-type`
+- `ichiran/dict:patch`
+- `ichiran/dict:root`

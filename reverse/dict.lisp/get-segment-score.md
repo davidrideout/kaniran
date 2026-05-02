@@ -47,3 +47,15 @@ _(none detected)_
 - `ichiran/dict:segment-list-segments`
 - `ichiran/dict:segment-score`
 
+
+## Source-walked references
+
+- `ichiran/dict:seg`
+- `ichiran/dict:seg-list`
+- `ichiran/dict:segment`
+- `ichiran/dict:segment-list`
+- `ichiran/dict:segment-list-segments`
+- `ichiran/dict:segment-score`
+- `ichiran/dict:syn`
+- `ichiran/dict:synergy`
+- `ichiran/dict:synergy-score`

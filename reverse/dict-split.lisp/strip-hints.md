@@ -18,3 +18,9 @@ Declared ftype: `(function (t)
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:*hint-char-map*`
+- `ichiran/dict:c`
+- `ichiran/dict:word`

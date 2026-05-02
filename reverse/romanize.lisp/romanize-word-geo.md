@@ -16,3 +16,9 @@ Declared ftype: `(function (t &key (:method t))
 ## Dependencies (ichiran symbols)
 
 - `ichiran:romanize-word`
+
+## Source-walked references
+
+- `ichiran:*hepburn-simple*`
+- `ichiran:input`
+- `ichiran:romanize-word`

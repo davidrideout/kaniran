@@ -16,3 +16,15 @@ Declared ftype: `(function (t t t t) (values null &optional))`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:node-text`
+
+## Source-walked references
+
+- `ichiran/dict:do-node-list-ord`
+- `ichiran/dict:node`
+- `ichiran/dict:node-text`
+- `ichiran/dict:ord`
+- `ichiran/dict:sense-id`
+- `ichiran/dict:sense-node`
+- `ichiran/dict:sense-prop`
+- `ichiran/dict:seq`
+- `ichiran/dict:tag`

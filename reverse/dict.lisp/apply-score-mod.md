@@ -46,3 +46,10 @@ _(none detected)_
 
 - `ichiran/dict:apply-score-mod`
 
+
+## Source-walked references
+
+- `ichiran/dict:len`
+- `ichiran/dict:score`
+- `ichiran/dict:score-mod`
+- `ichiran/dict:sm`

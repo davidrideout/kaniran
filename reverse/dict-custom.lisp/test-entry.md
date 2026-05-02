@@ -57,3 +57,22 @@ _(none detected)_
 
 _(none detected)_
 
+
+## Source-walked references
+
+- `ichiran/custom:entry`
+- `ichiran/custom:get-words`
+- `ichiran/custom:loader`
+- `ichiran/custom:match-p`
+- `ichiran/custom:municipality`
+- `ichiran/custom:municipality-reading`
+- `ichiran/custom:municipality-text`
+- `ichiran/custom:municipality-type`
+- `ichiran/custom:normalize-geo`
+- `ichiran/custom:seq`
+- `ichiran/custom:source`
+- `ichiran/custom:ward`
+- `ichiran/custom:ward-reading`
+- `ichiran/custom:ward-text`
+- `ichiran/custom:words`
+- `ichiran/dict:match-glosses`

@@ -15,3 +15,10 @@ Declared ftype: `(function (&optional t t) (values t &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/test:*test-thread-count*`
+- `ichiran/test:pkg`
+- `ichiran/test:res`
+- `ichiran/test:tests`

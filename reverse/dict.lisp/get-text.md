@@ -48,3 +48,16 @@ _(none detected)_
 
 _(none detected)_
 
+
+## Source-walked references
+
+- `ichiran/dict:entry`
+- `ichiran/dict:kana-text`
+- `ichiran/dict:kanji-text`
+- `ichiran/dict:n-kanji`
+- `ichiran/dict:obj`
+- `ichiran/dict:ord`
+- `ichiran/dict:segment`
+- `ichiran/dict:segment-text`
+- `ichiran/dict:segment-word`
+- `ichiran/dict:seq`

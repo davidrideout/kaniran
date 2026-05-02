@@ -18,3 +18,10 @@ Declared ftype: `(function nil *)`
 - `ichiran/dict:load-jmdict`
 - `ichiran/kanji:load-kanji-stats`
 - `ichiran/kanji:load-kanjidic`
+
+## Source-walked references
+
+- `ichiran/dict:load-best-readings`
+- `ichiran/dict:load-jmdict`
+- `ichiran/kanji:load-kanji-stats`
+- `ichiran/kanji:load-kanjidic`

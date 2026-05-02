@@ -15,3 +15,9 @@ Declared ftype: `(function (t t t) *)`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/characters:test-word`
+
+## Source-walked references
+
+- `ichiran/characters:test-word`
+- `ichiran/custom:definition`
+- `ichiran/custom:reading`

@@ -17,3 +17,12 @@ Declared ftype: `(function (t t &key (:short t))
 ## Dependencies (ichiran symbols)
 
 - `ichiran/characters:split-by-regex`
+
+## Source-walked references
+
+- `ichiran/characters:split-by-regex`
+- `ichiran/maintenance:new`
+- `ichiran/maintenance:old`
+- `ichiran/maintenance:re-newline`
+- `ichiran/maintenance:s`
+- `ichiran/maintenance:short`

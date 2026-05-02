@@ -16,3 +16,12 @@ Declared ftype: `(function (t &key (:context t))
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/characters:*abnormal-chars*`
+- `ichiran/characters:*full-width-kana*`
+- `ichiran/characters:*half-width-kana*`
+- `ichiran/characters:*normal-chars*`
+- `ichiran/characters:context`
+- `ichiran/characters:pos`

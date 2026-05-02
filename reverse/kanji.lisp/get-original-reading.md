@@ -16,3 +16,10 @@ Declared ftype: `(function (t &optional t t) (values t &optional))`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/characters:unrendaku`
+
+## Source-walked references
+
+- `ichiran/characters:rendaku`
+- `ichiran/characters:unrendaku`
+- `ichiran/kanji:geminated`
+- `ichiran/kanji:rtext`

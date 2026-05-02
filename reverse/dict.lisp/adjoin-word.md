@@ -53,3 +53,20 @@ _(none detected)_
 - `ichiran/dict:get-kana`
 - `ichiran/dict:get-text`
 
+
+## Source-walked references
+
+- `ichiran/dict:compound-text`
+- `ichiran/dict:get-kana`
+- `ichiran/dict:get-text`
+- `ichiran/dict:kana`
+- `ichiran/dict:s-kana`
+- `ichiran/dict:s-score-mod`
+- `ichiran/dict:s-text`
+- `ichiran/dict:s-words`
+- `ichiran/dict:score-base`
+- `ichiran/dict:score-mod`
+- `ichiran/dict:simple-text`
+- `ichiran/dict:word1`
+- `ichiran/dict:word2`
+- `ichiran/dict:words`

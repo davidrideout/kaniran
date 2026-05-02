@@ -18,3 +18,11 @@ Declared ftype: `(function (&key (:conn t) (:debug t)) *)`
 - `ichiran/conn:init-all-caches`
 - `ichiran/conn:switch-conn-vars`
 - `ichiran/dict:init-suffixes`
+
+## Source-walked references
+
+- `ichiran/cli:conn`
+- `ichiran/cli:setup-debugger`
+- `ichiran/conn:init-all-caches`
+- `ichiran/conn:switch-conn-vars`
+- `ichiran/dict:init-suffixes`

@@ -15,3 +15,8 @@ Declared ftype: `(function nil (values hash-table &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:*suffix-cache*`
+- `ichiran/dict:*suffix-class*`

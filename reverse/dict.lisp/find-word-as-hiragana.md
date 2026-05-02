@@ -18,3 +18,18 @@ Declared ftype: `(function (t &key (:exclude t) (:finder t))
 - `ichiran/characters:as-hiragana`
 - `ichiran/dict:find-word`
 - `ichiran/dict:seq`
+
+## Source-walked references
+
+- `ichiran/characters:as-hiragana`
+- `ichiran/dict:collect`
+- `ichiran/dict:exclude`
+- `ichiran/dict:find-word`
+- `ichiran/dict:finder`
+- `ichiran/dict:for`
+- `ichiran/dict:in`
+- `ichiran/dict:proxy-text`
+- `ichiran/dict:seq`
+- `ichiran/dict:str`
+- `ichiran/dict:w`
+- `ichiran/dict:words`

@@ -29,3 +29,32 @@ Declared ftype: `(function (t) *)`
 - `ichiran/dict:word-conjugations`
 - `ichiran/dict:word-type`
 - `ichiran/dict:words`
+
+## Source-walked references
+
+- `ichiran/dict:collect`
+- `ichiran/dict:compound-text`
+- `ichiran/dict:counter-text`
+- `ichiran/dict:for`
+- `ichiran/dict:get-kana`
+- `ichiran/dict:get-text`
+- `ichiran/dict:in`
+- `ichiran/dict:ordinalp`
+- `ichiran/dict:primary`
+- `ichiran/dict:primary-seq`
+- `ichiran/dict:segment`
+- `ichiran/dict:segment-end`
+- `ichiran/dict:segment-score`
+- `ichiran/dict:segment-start`
+- `ichiran/dict:segment-word`
+- `ichiran/dict:seq`
+- `ichiran/dict:simple-text`
+- `ichiran/dict:true-text`
+- `ichiran/dict:value-string`
+- `ichiran/dict:with`
+- `ichiran/dict:word`
+- `ichiran/dict:word-conjugations`
+- `ichiran/dict:word-info`
+- `ichiran/dict:word-type`
+- `ichiran/dict:words`
+- `ichiran/dict:wrd`

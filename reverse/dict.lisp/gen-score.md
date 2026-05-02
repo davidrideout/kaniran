@@ -17,3 +17,13 @@ Declared ftype: `(function (t &key (:final t) (:kanji-break t))
 
 - `ichiran/dict:calc-score`
 - `ichiran/dict:segment-word`
+
+## Source-walked references
+
+- `ichiran/dict:calc-score`
+- `ichiran/dict:final`
+- `ichiran/dict:kanji-break`
+- `ichiran/dict:segment`
+- `ichiran/dict:segment-info`
+- `ichiran/dict:segment-score`
+- `ichiran/dict:segment-word`

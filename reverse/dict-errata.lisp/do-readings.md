@@ -16,3 +16,10 @@ Docstring: text can be nil for all readings from table
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:body`
+- `ichiran/dict:rvar`
+- `ichiran/dict:seq`
+- `ichiran/dict:table`

@@ -15,3 +15,9 @@ Declared ftype: `(function (t) (values (not null) &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/characters:*kanji-regex*`
+- `ichiran/characters:regex`
+- `ichiran/characters:word`

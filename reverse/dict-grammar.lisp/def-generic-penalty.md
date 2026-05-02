@@ -18,3 +18,20 @@ _unknown — no declared ftype, no docstring_
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:connector`
+- `ichiran/dict:defpenalty`
+- `ichiran/dict:description`
+- `ichiran/dict:end`
+- `ichiran/dict:make-synergy`
+- `ichiran/dict:name`
+- `ichiran/dict:score`
+- `ichiran/dict:segment-list-end`
+- `ichiran/dict:segment-list-left`
+- `ichiran/dict:segment-list-right`
+- `ichiran/dict:segment-list-start`
+- `ichiran/dict:start`
+- `ichiran/dict:test-left`
+- `ichiran/dict:test-right`

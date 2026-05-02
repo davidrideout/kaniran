@@ -18,3 +18,11 @@ Declared ftype: `(function (t &rest t &key (:test t))
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:node-text`
+
+## Source-walked references
+
+- `ichiran/dict:args`
+- `ichiran/dict:node`
+- `ichiran/dict:result`
+- `ichiran/dict:test`
+- `ichiran/dict:val`

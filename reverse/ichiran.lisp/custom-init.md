@@ -19,3 +19,15 @@ Declared ftype: `(function
 
 - `ichiran/conn:get-spec`
 - `ichiran/maintenance:full-init`
+
+## Source-walked references
+
+- `ichiran/conn:let-db`
+- `ichiran/dict:*jmdict-data*`
+- `ichiran/dict:*jmdict-path*`
+- `ichiran/kanji:*kanjidic-path*`
+- `ichiran/maintenance:dict-connection`
+- `ichiran/maintenance:full-init`
+- `ichiran/maintenance:jmdict-data`
+- `ichiran/maintenance:jmdict-path`
+- `ichiran/maintenance:kanjidic-path`

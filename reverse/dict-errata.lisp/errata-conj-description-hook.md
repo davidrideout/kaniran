@@ -15,3 +15,12 @@ Declared ftype: `(function (t) (values (simple-array character (17)) &optional))
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:+conj-adjective-literary+`
+- `ichiran/dict:+conj-adjective-stem+`
+- `ichiran/dict:+conj-adverbial+`
+- `ichiran/dict:+conj-causative-su+`
+- `ichiran/dict:+conj-negative-stem+`
+- `ichiran/dict:hash`

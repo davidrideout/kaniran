@@ -15,3 +15,8 @@ Declared ftype: `(function (t &key (:fresh t)) (values sequence &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/characters:fresh`
+- `ichiran/characters:txt`

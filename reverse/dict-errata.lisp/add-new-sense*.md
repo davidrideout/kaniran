@@ -15,3 +15,10 @@ Declared ftype: `(function (t t &rest t) *)`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:add-new-sense`
+
+## Source-walked references
+
+- `ichiran/dict:add-new-sense`
+- `ichiran/dict:glosses`
+- `ichiran/dict:pos`
+- `ichiran/dict:seq`

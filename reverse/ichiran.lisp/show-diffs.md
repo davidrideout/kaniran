@@ -18,3 +18,17 @@ Declared ftype: `(function (t &key (:short t) (:entry-info t))
 
 - `ichiran/dict:entry-info-long`
 - `ichiran/maintenance:diff-content`
+
+## Source-walked references
+
+- `ichiran/dict:entry-info-long`
+- `ichiran/maintenance:collect`
+- `ichiran/maintenance:diff-content`
+- `ichiran/maintenance:diffs`
+- `ichiran/maintenance:entry-info`
+- `ichiran/maintenance:for`
+- `ichiran/maintenance:in`
+- `ichiran/maintenance:new`
+- `ichiran/maintenance:old`
+- `ichiran/maintenance:seq`
+- `ichiran/maintenance:short`

@@ -18,3 +18,14 @@ Declared ftype: `(function (t &rest t) (values cons &optional))`
 - `ichiran/dict:word-info-text`
 - `ichiran/dict:word-info-type`
 - `ichiran/test:test-progress`
+
+## Source-walked references
+
+- `ichiran/dict:simple-segment`
+- `ichiran/dict:word-info-text`
+- `ichiran/dict:word-info-type`
+- `ichiran/test:result`
+- `ichiran/test:segmentation`
+- `ichiran/test:str`
+- `ichiran/test:test-job`
+- `ichiran/test:wi`

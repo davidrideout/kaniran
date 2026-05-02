@@ -20,3 +20,14 @@ Declared ftype: `(function nil *)`
 - `ichiran/dict:add-sense-prop`
 - `ichiran/dict:delete-reading`
 - `ichiran/dict:set-reading`
+
+## Source-walked references
+
+- `ichiran/dict:add-gloss`
+- `ichiran/dict:add-new-sense*`
+- `ichiran/dict:add-reading`
+- `ichiran/dict:add-sense-prop`
+- `ichiran/dict:delete-reading`
+- `ichiran/dict:kanji-text`
+- `ichiran/dict:seq`
+- `ichiran/dict:set-reading`

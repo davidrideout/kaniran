@@ -18,3 +18,8 @@ Declared ftype: `(function ((mod 10001) (member :strong :weak :tail :ltail))
 - `ichiran/dict:*length-coeff-sequences*`
 - `ichiran/dict:coeffs`
 - `ichiran/dict:length-multiplier-coeff`
+
+## Source-walked references
+
+- `ichiran/dict:*length-coeff-sequences*`
+- `ichiran/dict:coeffs`

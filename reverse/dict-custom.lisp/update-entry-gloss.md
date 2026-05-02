@@ -32,3 +32,22 @@ _(none detected)_
 - `ichiran/custom:municipality-reading`
 - `ichiran/custom:municipality-text`
 
+
+## Source-walked references
+
+- `ichiran/custom:*silent-p*`
+- `ichiran/custom:entry`
+- `ichiran/custom:gloss`
+- `ichiran/custom:gloss.sense-id`
+- `ichiran/custom:gloss.text`
+- `ichiran/custom:loader`
+- `ichiran/custom:municipality-csv`
+- `ichiran/custom:municipality-definition`
+- `ichiran/custom:municipality-reading`
+- `ichiran/custom:municipality-text`
+- `ichiran/custom:new-gloss`
+- `ichiran/custom:sense`
+- `ichiran/custom:sense.id`
+- `ichiran/custom:sense.seq`
+- `ichiran/custom:seq`
+- `ichiran/custom:source`

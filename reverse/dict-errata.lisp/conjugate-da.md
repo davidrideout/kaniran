@@ -16,3 +16,11 @@ Declared ftype: `(function (&key (:seq t)) *)`
 
 - `ichiran/dict:add-sense-prop`
 - `ichiran/dict:conjugate-entry-outer`
+
+## Source-walked references
+
+- `ichiran/dict:add-sense-prop`
+- `ichiran/dict:conjugate-entry-outer`
+- `ichiran/dict:sense-prop`
+- `ichiran/dict:seq`
+- `ichiran/dict:tag`

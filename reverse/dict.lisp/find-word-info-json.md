@@ -17,3 +17,11 @@ Declared ftype: `(function (t &key (:reading t) (:root-only t))
 
 - `ichiran/dict:find-word-info`
 - `ichiran/dict:word-info-gloss-json`
+
+## Source-walked references
+
+- `ichiran/dict:find-word-info`
+- `ichiran/dict:reading`
+- `ichiran/dict:root-only`
+- `ichiran/dict:wi`
+- `ichiran/dict:word-info-gloss-json`

@@ -15,3 +15,7 @@ Declared ftype: `(function (t) (values list unsigned-byte &rest t))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:pos-str`

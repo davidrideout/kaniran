@@ -15,3 +15,7 @@ Declared ftype: `(function (t) *)`
 ## Dependencies (ichiran symbols)
 
 - `ichiran:leftmost-atom`
+
+## Source-walked references
+
+- `ichiran:cc-list`

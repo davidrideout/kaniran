@@ -16,3 +16,12 @@ Declared ftype: `(function (t) (values boolean &optional))`
 
 - `ichiran/dict:conj-data-prop`
 - `ichiran/dict:test-conj-prop`
+
+## Source-walked references
+
+- `ichiran/dict:*skip-conj-forms*`
+- `ichiran/dict:cd`
+- `ichiran/dict:conj-data`
+- `ichiran/dict:conj-data-prop`
+- `ichiran/dict:matches`
+- `ichiran/dict:test-conj-prop`

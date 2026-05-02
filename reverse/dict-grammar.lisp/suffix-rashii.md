@@ -19,3 +19,7 @@ Declared ftype: `(function (t t t) (values list &optional))`
 - `ichiran/dict:find-word-with-conj-type`
 - `ichiran/dict:get-kana`
 - `ichiran/dict:pair-words-by-conj`
+
+## Source-walked references
+
+_(none detected)_

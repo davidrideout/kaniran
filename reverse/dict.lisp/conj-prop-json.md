@@ -19,3 +19,15 @@ Declared ftype: `(function (t) (values t &optional))`
 - `ichiran/dict:conj-type`
 - `ichiran/dict:get-conj-description`
 - `ichiran/dict:pos`
+
+## Source-walked references
+
+- `ichiran/dict:conj-fml`
+- `ichiran/dict:conj-neg`
+- `ichiran/dict:conj-type`
+- `ichiran/dict:fml`
+- `ichiran/dict:get-conj-description`
+- `ichiran/dict:js`
+- `ichiran/dict:neg`
+- `ichiran/dict:obj`
+- `ichiran/dict:pos`

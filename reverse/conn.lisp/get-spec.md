@@ -15,3 +15,10 @@ Declared ftype: `(function (t) (values t &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/conn:*connection*`
+- `ichiran/conn:*connections*`
+- `ichiran/conn:dbid`
+- `ichiran/conn:spec`

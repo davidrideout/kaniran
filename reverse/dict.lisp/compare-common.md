@@ -15,3 +15,8 @@ Declared ftype: `(function (t t) (values t &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/dict:c1`
+- `ichiran/dict:c2`

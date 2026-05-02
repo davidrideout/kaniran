@@ -45,3 +45,21 @@ _(none detected)_
 - `ichiran/custom:municipality-text`
 - `ichiran/dict:load-entry`
 
+
+## Source-walked references
+
+- `ichiran/custom:*silent-p*`
+- `ichiran/custom:as-xml`
+- `ichiran/custom:entry`
+- `ichiran/custom:loader`
+- `ichiran/custom:municipality-csv`
+- `ichiran/custom:municipality-definition`
+- `ichiran/custom:municipality-reading`
+- `ichiran/custom:municipality-text`
+- `ichiran/custom:seq`
+- `ichiran/custom:source`
+- `ichiran/custom:ward-csv`
+- `ichiran/custom:ward-definition`
+- `ichiran/custom:ward-reading`
+- `ichiran/custom:ward-text`
+- `ichiran/dict:load-entry`

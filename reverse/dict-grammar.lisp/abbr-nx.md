@@ -21,3 +21,7 @@ Declared ftype: `(function (t t t) (values list &optional))`
 - `ichiran/dict:find-word-conj-of`
 - `ichiran/dict:find-word-with-conj-prop`
 - `ichiran/dict:get-kana`
+
+## Source-walked references
+
+_(none detected)_

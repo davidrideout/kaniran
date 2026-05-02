@@ -50,3 +50,16 @@ _(none detected)_
 - `ichiran/dict:true-text`
 - `ichiran/dict:word-conjugations`
 
+
+## Source-walked references
+
+- `ichiran/dict:compound-text`
+- `ichiran/dict:counter-text`
+- `ichiran/dict:get-conj-data`
+- `ichiran/dict:obj`
+- `ichiran/dict:seq`
+- `ichiran/dict:simple-text`
+- `ichiran/dict:true-text`
+- `ichiran/dict:word`
+- `ichiran/dict:word-conjugations`
+- `ichiran/dict:words`

@@ -15,3 +15,11 @@ Declared ftype: `(function (t) (values null &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/cli:for`
+- `ichiran/cli:gloss`
+- `ichiran/cli:in`
+- `ichiran/cli:info`
+- `ichiran/cli:word`

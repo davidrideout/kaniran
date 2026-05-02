@@ -15,3 +15,8 @@ Declared ftype: `(function (t) (values (or null standard-char) &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran:ch`
+- `ichiran:text`

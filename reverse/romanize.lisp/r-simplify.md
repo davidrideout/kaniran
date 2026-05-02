@@ -65,3 +65,13 @@ _(none detected)_
 
 _(none detected)_
 
+
+## Source-walked references
+
+- `ichiran/characters:simplify-ngrams`
+- `ichiran:generic-hepburn`
+- `ichiran:kunrei-siki`
+- `ichiran:simplifications`
+- `ichiran:simplified-hepburn`
+- `ichiran:str`
+- `ichiran:traditional-hepburn`

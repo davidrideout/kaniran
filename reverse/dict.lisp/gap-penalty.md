@@ -18,3 +18,9 @@ Declared ftype: `(function (t t) (values number &optional))`
 - `ichiran/dict:end`
 - `ichiran/dict:gap-penalty`
 - `ichiran/dict:start`
+
+## Source-walked references
+
+- `ichiran/dict:*gap-penalty*`
+- `ichiran/dict:end`
+- `ichiran/dict:start`

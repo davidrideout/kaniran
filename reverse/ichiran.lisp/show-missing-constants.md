@@ -18,3 +18,11 @@ Declared ftype: `(function (t t) (values null &optional))`
 - `ichiran/dict:entry-digest`
 - `ichiran/maintenance:collect-entries`
 - `ichiran/maintenance:get-hardcoded-constants`
+
+## Source-walked references
+
+- `ichiran/maintenance:collect-entries`
+- `ichiran/maintenance:display-seq-set`
+- `ichiran/maintenance:get-hardcoded-constants`
+- `ichiran/maintenance:new-conn`
+- `ichiran/maintenance:old-conn`

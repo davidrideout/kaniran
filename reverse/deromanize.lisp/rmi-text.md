@@ -15,3 +15,7 @@ Declared ftype: `(function (ichiran::rmap-item) (values t &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+_(none detected)_

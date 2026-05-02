@@ -15,3 +15,8 @@ Declared ftype: `(function (t &rest t) (values null &optional))`
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/cli:args`
+- `ichiran/cli:fmt`

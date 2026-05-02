@@ -16,3 +16,19 @@ Declared ftype: `(function (t t &optional t) *)`
 
 - `ichiran/dict:id`
 - `ichiran/dict:root-p`
+
+## Source-walked references
+
+- `ichiran/dict:conj`
+- `ichiran/dict:conj-id`
+- `ichiran/dict:conj-ids`
+- `ichiran/dict:conj-prop`
+- `ichiran/dict:conj-source-reading`
+- `ichiran/dict:conjugation`
+- `ichiran/dict:delete-entry`
+- `ichiran/dict:entry`
+- `ichiran/dict:from`
+- `ichiran/dict:id`
+- `ichiran/dict:root-p`
+- `ichiran/dict:seq`
+- `ichiran/dict:via`

@@ -19,3 +19,7 @@ Declared ftype: `(function (t t t) (values list &optional))`
 - `ichiran/dict:find-word-seq`
 - `ichiran/dict:get-kana`
 - `ichiran/dict:or-as-hiragana`
+
+## Source-walked references
+
+_(none detected)_

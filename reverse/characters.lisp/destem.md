@@ -20,3 +20,15 @@ Declared ftype: `(function
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/characters:*char-class-regex-mapping*`
+- `ichiran/characters:char-class`
+- `ichiran/characters:e`
+- `ichiran/characters:pos`
+- `ichiran/characters:regex`
+- `ichiran/characters:s`
+- `ichiran/characters:stem`
+- `ichiran/characters:tail`
+- `ichiran/characters:word`

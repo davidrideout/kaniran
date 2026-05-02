@@ -15,3 +15,13 @@ Declared ftype: `(function (t &optional t) *)`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:seq`
+
+## Source-walked references
+
+- `ichiran/dict:*split-map*`
+- `ichiran/dict:conj-of`
+- `ichiran/dict:for`
+- `ichiran/dict:in`
+- `ichiran/dict:reading`
+- `ichiran/dict:seq`
+- `ichiran/dict:split-fn`

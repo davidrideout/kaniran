@@ -16,3 +16,15 @@ Declared ftype: `(function (t t &key (:rendaku t)) (values cons &optional))`
 
 - `ichiran/characters:geminate`
 - `ichiran/characters:rendaku`
+
+## Source-walked references
+
+- `ichiran/characters:rendaku`
+- `ichiran/kanji:collect`
+- `ichiran/kanji:end`
+- `ichiran/kanji:for`
+- `ichiran/kanji:gem`
+- `ichiran/kanji:in`
+- `ichiran/kanji:lst`
+- `ichiran/kanji:rd`
+- `ichiran/kanji:reading`

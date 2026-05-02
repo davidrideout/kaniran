@@ -15,3 +15,7 @@ Declared ftype: `(function (t) *)`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/characters:kanji-mask`
+
+## Source-walked references
+
+- `ichiran/characters:word`

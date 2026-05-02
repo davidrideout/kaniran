@@ -16,3 +16,7 @@ Declared ftype: `(function (&key (:seq t) (:content t))
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+_(none detected)_

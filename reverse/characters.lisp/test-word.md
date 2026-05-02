@@ -19,3 +19,10 @@ Declared ftype: `(function
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/characters:*char-scanners*`
+- `ichiran/characters:char-class`
+- `ichiran/characters:regex`
+- `ichiran/characters:word`

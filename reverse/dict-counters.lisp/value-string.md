@@ -60,3 +60,16 @@ _(none detected)_
 - `ichiran/dict:ordinal-str`
 - `ichiran/dict:ordinalp`
 
+
+## Source-walked references
+
+- `ichiran/dict:counter`
+- `ichiran/dict:counter-halfhour`
+- `ichiran/dict:counter-months`
+- `ichiran/dict:counter-suffix-descriptions`
+- `ichiran/dict:counter-text`
+- `ichiran/dict:counter-wari`
+- `ichiran/dict:number-value`
+- `ichiran/dict:ordinal-str`
+- `ichiran/dict:ordinalp`
+- `ichiran/dict:value`

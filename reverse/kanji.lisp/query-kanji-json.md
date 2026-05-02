@@ -15,3 +15,12 @@ _unknown — no declared ftype, no docstring_
 ## Dependencies (ichiran symbols)
 
 _(none detected)_
+
+## Source-walked references
+
+- `ichiran/conn:*connection*`
+- `ichiran/kanji:extra-fields`
+- `ichiran/kanji:js`
+- `ichiran/kanji:kanji`
+- `ichiran/kanji:to-json`
+- `ichiran/kanji:var`

@@ -16,3 +16,7 @@ Declared ftype: `(function nil *)`
 
 - `ichiran/dict:errata-conj-rules-hook`
 - `ichiran/dict:make-conjugation-rule`
+
+## Source-walked references
+
+_(none detected)_
