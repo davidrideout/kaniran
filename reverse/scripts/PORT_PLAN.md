@@ -31,16 +31,16 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   28. `ichiran/characters:*sokuon-characters*`  — global, characters.lisp:3  *[ported]*
   29. `ichiran/characters:*undakuten-hash*`  — global, characters.lisp:0  *[ported]*
   30. `ichiran/characters:*word-regex*`  — global, characters.lisp:127  *[ported]*
-  31. `ichiran/characters:to-normal-char`  — fn, characters.lisp:242
-  32. `ichiran/characters:as-hiragana`  — fn, characters.lisp:282
-  33. `ichiran/characters:as-katakana`  — fn, characters.lisp:292
-  34. `ichiran/characters:split-by-regex`  — fn, characters.lisp:263
-  35. `ichiran/characters:test-word`  — fn, characters.lisp:187
-  36. `ichiran/characters:basic-split`  — fn, characters.lisp:267
+  31. `ichiran/characters:to-normal-char`  — fn, characters.lisp:242  *[ported]*
+  32. `ichiran/characters:as-hiragana`  — fn, characters.lisp:282  *[ported]*
+  33. `ichiran/characters:as-katakana`  — fn, characters.lisp:292  *[ported]*
+  34. `ichiran/characters:split-by-regex`  — fn, characters.lisp:263  *[ported]*
+  35. `ichiran/characters:test-word`  — fn, characters.lisp:187  *[ported]*
+  36. `ichiran/characters:basic-split`  — fn, characters.lisp:267  *[ported]*
   37. `ichiran/characters:char-class`  — type, characters.lisp:147  *[ported]*
-  38. `ichiran/characters:collect-char-class`  — fn, characters.lisp:201
-  39. `ichiran/characters:consecutive-char-groups`  — fn, characters.lisp:300
-  40. `ichiran/characters:count-char-class`  — fn, characters.lisp:194
+  38. `ichiran/characters:collect-char-class`  — fn, characters.lisp:201  *[ported]*
+  39. `ichiran/characters:consecutive-char-groups`  — fn, characters.lisp:300  *[ported]*
+  40. `ichiran/characters:count-char-class`  — fn, characters.lisp:194  *[ported]*
   41. `ichiran/characters:dakuten-join`  — fn, characters.lisp:100
   42. `ichiran/characters:destem`  — fn, characters.lisp:340
   43. `ichiran/characters:geminate`  — fn, characters.lisp:336

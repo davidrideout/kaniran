@@ -7,7 +7,18 @@
 //! (typed-Lisp ports). Currently: [`kani_kana_class`].
 
 pub mod char_class_type;
+pub mod kani_char_class_bare_scanners;
 pub mod kani_kana_class;
+
+pub mod as_hiragana;
+pub mod as_katakana;
+pub mod basic_split;
+pub mod collect_char_class;
+pub mod consecutive_char_groups;
+pub mod count_char_class;
+pub mod split_by_regex;
+pub mod test_word;
+pub mod to_normal_char;
 
 pub mod _star_abnormal_chars_star_;
 pub mod _star_all_characters_star_;

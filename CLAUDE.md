@@ -83,6 +83,7 @@ The driver entrypoint is `(ichiran/test:run-all-tests)`.
 
 ## Working conventions
 
+- **Rust port coding/naming conventions live in [`CONVENTIONS.md`](./CONVENTIONS.md).** Read it before adding or editing port files — it covers file layout, doc-comment requirements, the rules for translating Lisp shapes (multi-value returns, `&key` keywords, in-place mutation, tagged cons cells) into idiomatic Rust APIs, the testing policy (logic not data), and the workflow steps below in concrete form. The single source of truth for FQN→Rust path translation is the module-doc on [`kaniran-core/src/kani/naming.rs`](./kaniran-core/src/kani/naming.rs); CONVENTIONS.md and HANDOFF.md both defer to it.
 - **Don't edit upstream `*.lisp` files at the repo root.** They're checked in for reference / introspection input. Treat as read-only.
 - **`PORT_PLAN.md` is the source of truth for porting order.** Regenerate (don't hand-edit) via `query.py plan --out reverse/scripts/PORT_PLAN.md`. It's deterministic across runs (Tarjan + sorted set iteration); re-running on the same CSVs produces a byte-identical file.
 - **Mark progress in `symbols.csv`'s `status` column** (`pending` → `ported`, `wip`, `skip`, etc.). `query.py mark` does this round-trip-safely.
