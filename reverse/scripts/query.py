@@ -22,6 +22,9 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
+import os
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -30,6 +33,9 @@ from typing import Iterator
 HERE = Path(__file__).resolve().parent
 SYMBOLS_CSV = HERE / "symbols.csv"
 EDGES_CSV = HERE / "edges.csv"
+SIGNATURES_JSON = HERE / "signatures.json"
+DIVERGENCES_MD = HERE / "divergences.md"
+KANIRAN_CORE_SRC = HERE.parent.parent / "kaniran-core" / "src"
 
 
 def load() -> tuple[dict[str, dict], dict[str, set[str]], dict[str, set[str]]]:
@@ -320,6 +326,418 @@ def cmd_plan(args, syms, callees, callers):
         sys.stdout.write(text)
 
 
+# ─── audit-signatures ────────────────────────────────────────────────────────
+#
+# Cross-reference every ported callable (fn / macro / gf) against signatures.json
+# to flag arity drift, missing pub fns, and extra public surface (the failure
+# mode that produced the `_with` split during the numbers port).
+#
+# Lisp arity = required + optional + len(keys); &rest is ignored (it usually
+# represents an apply-forwarding artifact rather than a user-visible param).
+# Rust arity = top-level comma-separated args in the `pub fn name(...)` body.
+#
+# Limits of the audit:
+# - Doesn't check parameter *types*, only count.
+# - Macros frequently port to doc-only files (CONVENTIONS §4.8); audit skips
+#   pub fn checks for them and only verifies file existence.
+# - Lambda lists with malformed defaults will degrade gracefully (key count
+#   may be off) — the report flags those as `lambda-parse-fallback`.
+
+KIND_SUFFIX = {
+    "fn": "", "gf": "", "global": "",
+    "macro": "_macro", "struct": "_struct", "class": "_class",
+    "dao": "_dao", "type": "_type", "condition": "_condition",
+}
+
+
+def _translate_chars(s: str) -> str:
+    out: list[str] = []
+    for c in s:
+        if c == "*":
+            out.append("_star_")
+        elif c == "+":
+            out.append("_plus_")
+        elif c == "-":
+            out.append("_")
+        else:
+            out.append(c)
+    return _collapse_underscores("".join(out))
+
+
+def _collapse_underscores(s: str) -> str:
+    out: list[str] = []
+    prev = False
+    for c in s:
+        if c == "_":
+            if not prev:
+                out.append(c)
+            prev = True
+        else:
+            out.append(c)
+            prev = False
+    return "".join(out)
+
+
+def fqn_to_rust_path(fqn: str, kind: str) -> str:
+    """Python mirror of `kani::naming::fqn_to_path` — see naming.rs for the spec."""
+    pkg, _, name = fqn.partition(":")
+    if not name:
+        raise ValueError(f"empty name in FQN: {fqn}")
+    pkg_lower = pkg.lower()
+    if pkg_lower.startswith("ichiran/"):
+        module_dir = _translate_chars(pkg_lower[len("ichiran/"):])
+    elif pkg_lower == "ichiran":
+        module_dir = "core"
+    else:
+        module_dir = _translate_chars(pkg_lower)
+    file_stem = _translate_chars(name.lower())
+    suffix = KIND_SUFFIX.get(kind, "")
+    if suffix:
+        file_stem = _collapse_underscores(file_stem + suffix)
+    return f"{module_dir}/{file_stem}.rs"
+
+
+def _split_top_level_lisp(s: str) -> list[str]:
+    """Split an s-expr body by whitespace, respecting paren nesting and strings."""
+    tokens: list[str] = []
+    cur: list[str] = []
+    depth = 0
+    in_str = False
+    i = 0
+    while i < len(s):
+        c = s[i]
+        if in_str:
+            cur.append(c)
+            if c == "\\" and i + 1 < len(s):
+                cur.append(s[i + 1])
+                i += 2
+                continue
+            if c == '"':
+                in_str = False
+            i += 1
+            continue
+        if c == '"':
+            in_str = True
+            cur.append(c)
+            i += 1
+            continue
+        if c == "(":
+            depth += 1
+            cur.append(c)
+            i += 1
+            continue
+        if c == ")":
+            depth -= 1
+            cur.append(c)
+            i += 1
+            continue
+        if c.isspace() and depth == 0:
+            if cur:
+                tokens.append("".join(cur))
+                cur = []
+            i += 1
+            continue
+        cur.append(c)
+        i += 1
+    if cur:
+        tokens.append("".join(cur))
+    return tokens
+
+
+def _strip_lisp_pkg(name: str) -> str:
+    if "::" in name:
+        return name.split("::", 1)[1]
+    if name.startswith(":"):
+        return name[1:]
+    return name
+
+
+def parse_lisp_lambda_list(s: str | None) -> dict:
+    """Count required / optional / key / rest sections of a Lisp lambda list."""
+    if s is None:
+        return {"required": 0, "optional": 0, "keys": [], "rest": False, "raw": "", "fallback": True}
+    s = s.strip()
+    if not (s.startswith("(") and s.endswith(")")):
+        return {"required": 0, "optional": 0, "keys": [], "rest": False, "raw": s, "fallback": True}
+    body = s[1:-1].strip()
+    try:
+        tokens = _split_top_level_lisp(body)
+    except Exception:
+        return {"required": 0, "optional": 0, "keys": [], "rest": False, "raw": s, "fallback": True}
+    required = 0
+    optional = 0
+    keys: list[str] = []
+    rest = False
+    section = "required"
+    for tok in tokens:
+        low = tok.lower()
+        if low == "&optional":
+            section = "optional"; continue
+        if low == "&rest" or low == "&body":
+            section = "rest"; rest = True; continue
+        if low == "&key":
+            section = "key"; continue
+        if low == "&aux":
+            section = "aux"; continue
+        if low == "&allow-other-keys":
+            continue
+        if section == "required":
+            required += 1
+        elif section == "optional":
+            optional += 1
+        elif section == "key":
+            if tok.startswith("("):
+                inner = tok[1:-1].strip()
+                inner_tokens = _split_top_level_lisp(inner)
+                if inner_tokens:
+                    keys.append(_strip_lisp_pkg(inner_tokens[0]))
+                else:
+                    keys.append("?")
+            else:
+                keys.append(_strip_lisp_pkg(tok))
+        # rest / aux: consume silently
+    return {"required": required, "optional": optional, "keys": keys, "rest": rest, "raw": s, "fallback": False}
+
+
+PUB_FN_NAME = re.compile(r"\bpub\s+fn\s+([A-Za-z_][A-Za-z_0-9]*)")
+
+
+def _rust_count_args(arglist: str) -> int:
+    """Count top-level comma-separated args in a Rust signature body. Replaces
+    `->` so the closure-return arrow doesn't perturb the depth counter."""
+    s = arglist.replace("->", "@@")
+    s = s.strip().rstrip(",").strip()
+    if not s:
+        return 0
+    n = 1
+    depth = 0
+    for c in s:
+        if c in "(<[":
+            depth += 1
+        elif c in ")>]":
+            depth -= 1
+        elif c == "," and depth == 0:
+            n += 1
+    return n
+
+
+def _skip_balanced(text: str, i: int, open_c: str, close_c: str) -> int:
+    """Walk past a balanced `open_c ... close_c` starting at text[i] == open_c.
+    Returns the index just after the matching close. Caller checks bounds."""
+    depth = 1
+    i += 1
+    while i < len(text) and depth > 0:
+        if text[i] == open_c:
+            depth += 1
+        elif text[i] == close_c:
+            depth -= 1
+        i += 1
+    return i
+
+
+def parse_rust_pub_fns(text: str) -> list[dict]:
+    """Find each `pub fn` declaration and count its top-level arguments. Walks
+    optional generic params (`<...>`, possibly nested) before the arglist."""
+    out: list[dict] = []
+    for m in PUB_FN_NAME.finditer(text):
+        name = m.group(1)
+        i = m.end()
+        while i < len(text) and text[i].isspace():
+            i += 1
+        if i < len(text) and text[i] == "<":
+            i = _skip_balanced(text, i, "<", ">")
+            while i < len(text) and text[i].isspace():
+                i += 1
+        if i >= len(text) or text[i] != "(":
+            continue
+        i += 1
+        start = i
+        depth = 1
+        end = -1
+        while i < len(text):
+            c = text[i]
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+            i += 1
+        if end == -1:
+            continue
+        arity = _rust_count_args(text[start:end])
+        out.append({"name": name, "arity": arity})
+    return out
+
+
+def lambda_list_from_ftype(ftype: str | None) -> str | None:
+    """Extract the args portion of a declared ftype as a parseable lambda list.
+
+    `(function (T1 T2 &key (:k T)) (values ...))` → `(T1 T2 &key (:k T))`.
+    Returns None when the ftype is missing, malformed, or has nil args
+    (`(function nil ...)` → `()`).
+    """
+    if not ftype:
+        return None
+    s = ftype.strip()
+    if not (s.startswith("(") and s.endswith(")")):
+        return None
+    body = s[1:-1].strip()
+    tokens = _split_top_level_lisp(body)
+    if len(tokens) < 2 or tokens[0].lower() != "function":
+        return None
+    arg_section = tokens[1]
+    if arg_section.lower() == "nil":
+        return "()"
+    if not (arg_section.startswith("(") and arg_section.endswith(")")):
+        return None
+    return arg_section
+
+
+def _audit_sweep(syms: dict[str, dict]) -> tuple[int, int, list[tuple[str, str, str]]]:
+    """Full audit sweep — returns (fn_gf_checked, macros_skipped, divergences).
+
+    Each divergence is `(fqn, rel_rust_path, message)`. The Rust path is `""`
+    when no port file was found. Sorted by FQN for stable file output.
+    """
+    if not SIGNATURES_JSON.exists():
+        sys.exit(
+            "missing signatures.json — run "
+            "`python3 reverse/scripts/build_graph.py --signatures-only` first"
+        )
+    sigs = json.loads(SIGNATURES_JSON.read_text(encoding="utf-8"))
+
+    divergences: list[tuple[str, str, str]] = []
+    checked = 0
+    skipped_macros = 0
+    by_file_pubfns: dict[str, list[dict]] = {}
+
+    for fqn, sym in syms.items():
+        if sym["status"] != "ported":
+            continue
+        kind = sym["kind"]
+        if kind not in ("fn", "macro", "gf"):
+            continue
+        rel_path = fqn_to_rust_path(fqn, kind)
+        rust_path = KANIRAN_CORE_SRC / rel_path
+        if not rust_path.exists():
+            divergences.append((fqn, "", f"port file not found: kaniran-core/src/{rel_path}"))
+            continue
+        if rel_path not in by_file_pubfns:
+            text = rust_path.read_text(encoding="utf-8")
+            by_file_pubfns[rel_path] = parse_rust_pub_fns(text)
+        pub_fns = by_file_pubfns[rel_path]
+
+        if kind == "macro":
+            # Per CONVENTIONS §4.8 macros usually port to doc-only files;
+            # only verify the file exists.
+            skipped_macros += 1
+            continue
+
+        sig = sigs.get(fqn)
+        if sig is None:
+            divergences.append((fqn, rel_path, "no entry in signatures.json"))
+            continue
+        ll = sig["lambda_list"] or lambda_list_from_ftype(sig["ftype"])
+        info = parse_lisp_lambda_list(ll)
+        if info["fallback"]:
+            divergences.append(
+                (fqn, rel_path,
+                 f"lambda-parse-fallback: lambda_list={sig['lambda_list']!r}, "
+                 f"ftype={sig['ftype']!r}")
+            )
+            continue
+        expected_arity = info["required"] + info["optional"] + len(info["keys"])
+        expected_name = _translate_chars(sym["name"].lower())
+
+        match_fn = next((f for f in pub_fns if f["name"] == expected_name), None)
+        if match_fn is None:
+            names = [f["name"] for f in pub_fns]
+            divergences.append((fqn, rel_path, f"no `pub fn {expected_name}` (found: {names})"))
+            continue
+        if match_fn["arity"] != expected_arity:
+            divergences.append(
+                (fqn, rel_path,
+                 f"arity {match_fn['arity']} ≠ Lisp {expected_arity} "
+                 f"(req={info['required']}, opt={info['optional']}, keys={info['keys']})")
+            )
+        extras = [f["name"] for f in pub_fns if f["name"] != expected_name]
+        if extras:
+            divergences.append((fqn, rel_path, f"extra `pub fn`(s) in same file: {extras}"))
+        checked += 1
+
+    divergences.sort(key=lambda r: (r[0], r[2]))
+    return checked, skipped_macros, divergences
+
+
+def _render_divergences_md(checked: int, skipped_macros: int,
+                           divergences: list[tuple[str, str, str]]) -> str:
+    """Render the audit result as markdown. Deterministic across runs (no
+    timestamps; entries sorted by FQN); designed to diff cleanly when committed."""
+    lines: list[str] = []
+    lines.append("# Audit divergences")
+    lines.append("")
+    lines.append("Auto-generated by `python3 reverse/scripts/query.py audit-signatures`.")
+    lines.append("Commit alongside port files; see CONVENTIONS §7.")
+    lines.append("")
+    lines.append("Each entry is a Rust port whose `pub fn` surface differs from the")
+    lines.append("captured Lisp lambda list. New entries should be either:")
+    lines.append("")
+    lines.append("- intentional, citing a CONVENTIONS section (e.g. §4.4 enum collapse,")
+    lines.append("  §4.6 dropped `:fresh`); or")
+    lines.append("- a bug in the port to fix.")
+    lines.append("")
+    lines.append("## Summary")
+    lines.append("")
+    lines.append(f"- Checked: {checked} fn/gf")
+    lines.append(f"- Macros (file-existence only): {skipped_macros}")
+    lines.append(f"- Divergences: {len(divergences)}")
+    lines.append("")
+    if not divergences:
+        lines.append("No divergences detected.")
+        lines.append("")
+        return "\n".join(lines)
+    lines.append("## Divergences")
+    lines.append("")
+    for fqn, rel_path, msg in divergences:
+        lines.append(f"### `{fqn}`")
+        lines.append("")
+        if rel_path:
+            lines.append(f"- file: `kaniran-core/src/{rel_path}`")
+        lines.append(f"- drift: {msg}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def cmd_audit_signatures(args, syms, callees, callers):
+    checked, skipped_macros, divergences = _audit_sweep(syms)
+
+    if not args.no_write:
+        DIVERGENCES_MD.write_text(_render_divergences_md(checked, skipped_macros, divergences),
+                                  encoding="utf-8")
+
+    only = set((args.only or "").split(",")) if args.only else None
+    if only:
+        shown = [d for d in divergences if any(d[0].startswith(p + ":") for p in only)]
+    else:
+        shown = divergences
+
+    print(f"audit-signatures: {checked} fn/gf checked, {skipped_macros} macro(s) file-only, "
+          f"{len(divergences)} divergence(s) total")
+    if not args.no_write:
+        rel = os.path.relpath(DIVERGENCES_MD, HERE.parent.parent)
+        print(f"  wrote {rel}")
+    if only:
+        print(f"  filtered to {sorted(only)}: {len(shown)} shown")
+    if not shown:
+        print("  no divergences" + (" in filtered scope" if only else ""))
+        return
+    for fqn, _rel, msg in shown:
+        print(f"    {fqn}")
+        print(f"      {msg}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -347,6 +765,16 @@ def main() -> int:
     p.set_defaults(fn=cmd_mark)
 
     sub.add_parser("stats").set_defaults(fn=cmd_stats)
+
+    p = sub.add_parser("audit-signatures",
+                       help="cross-check ported fn/gf signatures against signatures.json")
+    p.add_argument("--only", default=None,
+                   help="comma-separated package prefixes to scope STDOUT output "
+                        "(e.g. 'ichiran/numbers'). The full sweep always runs and "
+                        "writes divergences.md regardless.")
+    p.add_argument("--no-write", action="store_true",
+                   help="don't update reverse/scripts/divergences.md (default: always write)")
+    p.set_defaults(fn=cmd_audit_signatures)
 
     p = sub.add_parser("plan", help="topological port order with SCCs grouped")
     p.add_argument("--out", help="write to file instead of stdout (markdown)")

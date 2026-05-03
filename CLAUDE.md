@@ -111,8 +111,11 @@ Status: proven end-to-end via probes. Has NOT yet been run against `(ichiran/tes
 ## Common commands
 
 ```sh
-# regenerate the dependency CSVs from the md files
+# regenerate the dependency CSVs from the md files (gated — see build_graph.py header)
 python3 reverse/scripts/build_graph.py
+
+# regenerate signatures.json without touching the gated CSVs
+python3 reverse/scripts/build_graph.py --signatures-only
 
 # see what to port next
 python3 reverse/scripts/query.py leaves               # current leaves
@@ -131,7 +134,17 @@ python3 reverse/scripts/query.py stats
 
 # regenerate canonical plan after marking a wave
 python3 reverse/scripts/query.py plan --out reverse/scripts/PORT_PLAN.md
+
+# audit ported pub fns vs captured Lisp lambda lists — run after each port
+# (always rewrites reverse/scripts/divergences.md — commit if it changes)
+python3 reverse/scripts/query.py audit-signatures                # full sweep + rewrite
+python3 reverse/scripts/query.py audit-signatures --only <pkg>   # scope STDOUT only
+python3 reverse/scripts/query.py audit-signatures --no-write     # don't touch the file
 ```
+
+`audit-signatures` is part of the **port-completion checklist** (CONVENTIONS §7) alongside `cargo check` and `cargo test`. It cross-references each ported `pub fn` against the Lisp lambda list captured in `signatures.json` and flags arity drift, dropped keywords, missing pub fns, and extra public functions sharing a port file (the failure mode that produced the original `_with` split).
+
+The committed artifact is **`reverse/scripts/divergences.md`** — sorted by FQN, deterministic across runs, designed to diff cleanly. After every port: `git diff reverse/scripts/divergences.md` is the review surface. New entries are either intentional (cite CONVENTIONS §4.4/§4.6/etc. and commit) or port bugs (fix and re-run until they disappear).
 
 ## Things you might think are true but aren't
 

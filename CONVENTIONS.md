@@ -225,7 +225,14 @@ For frozen-literal globals: a "matches introspected value" test pinning the outp
 
 1. **Before porting**, run `python3 reverse/scripts/query.py deps <fqn>` to confirm prerequisites are ported. The plan is leaf-up — porting out of order means stub deps you'll have to revisit.
 2. **Write the port file** following §1–§6. Add the `pub mod <stem>;` line to `mod.rs`.
-3. **Verify**: `cargo check -p kaniran-core` then `cargo test -p kaniran-core`. **Both must pass before claiming the port is done** — port files often don't get exercised until something else imports them, so `cargo check` catches the mod declaration; `cargo test` catches the tests you wrote.
+3. **Verify**:
+   - `cargo check -p kaniran-core` — catches missing `mod` declarations.
+   - `cargo test -p kaniran-core` — catches behavioral regressions in the tests you wrote.
+   - `python3 reverse/scripts/query.py audit-signatures` — cross-checks each ported `pub fn` against the captured Lisp lambda list (`signatures.json`) and flags arity drift, dropped keywords, missing pub fns, and extra public functions in the same file. **Always runs the full sweep** and **always rewrites `reverse/scripts/divergences.md`** (deterministic, sorted by FQN — diffs cleanly). Use `--only <pkg>` to scope the *stdout* output; the file always reflects the full sweep. Use `--no-write` to suppress the file rewrite (rare).
+
+   **All three must pass before claiming the port is done.** `cargo check` catches the mod declaration, `cargo test` catches behavior, `audit-signatures` catches API-shape drift like the `_with` split that prompted its existence.
+
+   **`reverse/scripts/divergences.md` is committed.** After a port, `git diff reverse/scripts/divergences.md` is the review surface. New entries should be either (a) intentional, citing CONVENTIONS (§4.4 enum collapse, §4.6 dropped `:fresh`, etc.) — commit alongside the port; or (b) a port bug — fix and re-run until the entry disappears.
 4. **Mark progress**: `python3 reverse/scripts/query.py mark <fqn>... --status ported`. This rewrites the `status` column of `symbols.csv` in place.
 5. **Regenerate the plan**: `python3 reverse/scripts/query.py plan --out reverse/scripts/PORT_PLAN.md`. The plan is byte-deterministic across runs on the same CSVs.
 6. **Don't run `python3 reverse/scripts/build_graph.py` casually** — it overwrites `symbols.csv` from the md files and resets every `status` cell to `pending`. Only run it after re-running `introspect.lisp` against an updated upstream, and commit `symbols.csv` first.

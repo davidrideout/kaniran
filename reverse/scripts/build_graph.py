@@ -33,6 +33,7 @@ Run from repo root:
 from __future__ import annotations
 
 import csv
+import json
 import os
 import re
 import sys
@@ -42,6 +43,7 @@ REVERSE_DIR = Path(__file__).resolve().parent.parent
 OUT_DIR = REVERSE_DIR / "scripts"
 SYMBOLS_CSV = OUT_DIR / "symbols.csv"
 EDGES_CSV = OUT_DIR / "edges.csv"
+SIGNATURES_JSON = OUT_DIR / "signatures.json"
 
 # H1 forms:
 #   "# kr-canonical"
@@ -104,6 +106,62 @@ def aux_kind(path: Path) -> str | None:
     return None
 
 
+SECTION_HEADER = re.compile(r"^##\s+")
+INPUTS_HEADER = re.compile(r"^##\s+Inputs\b")
+OUTPUTS_HEADER = re.compile(r"^##\s+Outputs\b")
+DECLARED_FTYPE = re.compile(r"^Declared ftype:\s*`(.+)`\s*$", re.DOTALL)
+DOCSTRING_LINE = re.compile(r"^Docstring:\s*(.+)$", re.DOTALL)
+
+
+def collect_section(lines: list[str], header_idx: int) -> str:
+    """Return the section body (lines after `## Header`, up to the next `## `),
+    joined with newlines and stripped."""
+    j = header_idx + 1
+    body: list[str] = []
+    while j < len(lines) and not SECTION_HEADER.match(lines[j]):
+        body.append(lines[j])
+        j += 1
+    return "\n".join(body).strip()
+
+
+def collapse_ws(s: str) -> str:
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def parse_signature(raw_lines: list[str]) -> dict | None:
+    """Extract the lambda list / declared ftype / docstring from an md file.
+
+    Returns a dict with keys `lambda_list` (str | None), `ftype` (str | None),
+    `docstring` (str | None), or `None` if the md file has no signature
+    sections at all (struct / class / dao / global / type / condition).
+
+    Whitespace inside the lambda list and ftype is collapsed to single spaces
+    so the output is byte-stable across re-runs of the introspector.
+    """
+    lambda_list: str | None = None
+    ftype: str | None = None
+    docstring: str | None = None
+
+    for i, line in enumerate(raw_lines):
+        if INPUTS_HEADER.match(line):
+            body = collect_section(raw_lines, i)
+            if body.startswith("`") and body.endswith("`") and len(body) > 1:
+                lambda_list = collapse_ws(body[1:-1])
+        elif OUTPUTS_HEADER.match(line):
+            body = collect_section(raw_lines, i)
+            m = DECLARED_FTYPE.match(body)
+            if m:
+                ftype = collapse_ws(m.group(1))
+            else:
+                m = DOCSTRING_LINE.match(body)
+                if m:
+                    docstring = collapse_ws(m.group(1))
+
+    if lambda_list is None and ftype is None and docstring is None:
+        return None
+    return {"lambda_list": lambda_list, "ftype": ftype, "docstring": docstring}
+
+
 def parse_value_block_deps(lines: list[str], start_idx: int) -> list[str]:
     """From a ```lisp fenced block, extract every ICHIRAN-package symbol
     reference inside. Returns lowercased FQNs."""
@@ -118,19 +176,17 @@ def parse_value_block_deps(lines: list[str], start_idx: int) -> list[str]:
     return deps
 
 
-def parse_md(path: Path) -> tuple[dict, list[str], list[str]] | None:
-    """Returns ({symbol-row}, [runtime-deps], [source-walk-deps]) or None."""
-    raw_lines = path.read_text(encoding="utf-8").splitlines()
+def parse_md_header(raw_lines: list[str]) -> tuple[str | None, str | None, str | None, int, str | None]:
+    """Parse H1 / Package / Source / Definition-form lines from an md file.
+
+    Returns (name, package, source_file, line_no, kind_field). Any field
+    that wasn't found is None (line_no defaults to 0). Used by both
+    `parse_md` (which then resolves dependencies) and the signatures
+    extractor (which only needs the symbol identity).
+    """
     name = package = source_file = kind_field = None
     line_no = 0
-    deps: list[str] = []
-    source_walk_deps: list[str] = []
-    in_deps = False
-
-    suffix_kind = aux_kind(path)
-
-    # First pass: header fields.
-    for idx, line in enumerate(raw_lines):
+    for line in raw_lines:
         if name is None:
             m = H1.match(line)
             if m:
@@ -147,11 +203,23 @@ def parse_md(path: Path) -> tuple[dict, list[str], list[str]] | None:
                 source_file = m.group(1)
                 line_no = int(m.group(2)) if m.group(2) else 0
                 continue
-        if kind_field is None and suffix_kind is None:
+        if kind_field is None:
             m = DEFFORM.match(line)
             if m:
                 kind_field = KIND_MAP.get(m.group(1), m.group(1))
                 continue
+    return name, package, source_file, line_no, kind_field
+
+
+def parse_md(path: Path) -> tuple[dict, list[str], list[str]] | None:
+    """Returns ({symbol-row}, [runtime-deps], [source-walk-deps]) or None."""
+    raw_lines = path.read_text(encoding="utf-8").splitlines()
+    deps: list[str] = []
+    source_walk_deps: list[str] = []
+    in_deps = False
+
+    suffix_kind = aux_kind(path)
+    name, package, source_file, line_no, kind_field = parse_md_header(raw_lines)
 
     if not (name and package):
         return None
@@ -243,6 +311,62 @@ def parse_md(path: Path) -> tuple[dict, list[str], list[str]] | None:
         deps,
         source_walk_deps,
     )
+
+
+def extract_signatures(md_files: list[Path]) -> dict[str, dict]:
+    """Walk md files and pull the lambda list / declared ftype / docstring
+    for every fn / macro / gf. Skips kinds that have no callable surface
+    (struct / class / dao / global / type / condition).
+
+    Keyed by FQN as derived from the md file's Package + H1 fields. Note:
+    the FQN can be wrong if the introspector mislabeled a symbol's package
+    (see the `not-a-number` case noted in the gate at __main__) — but that
+    bug only affects non-fn kinds, which are skipped here, so signatures.json
+    is unpoisoned.
+    """
+    sigs: dict[str, dict] = {}
+    for path in md_files:
+        raw_lines = path.read_text(encoding="utf-8").splitlines()
+        name, package, source_file, line_no, kind_field = parse_md_header(raw_lines)
+        if not (name and package):
+            continue
+        suffix_kind = aux_kind(path)
+        kind = suffix_kind or (kind_field or "")
+        sig = parse_signature(raw_lines)
+        if sig is None:
+            continue
+        key = fqn(package, name)
+        sigs[key] = {
+            "name": name,
+            "package": package,
+            "file": source_file or "",
+            "line": line_no,
+            "kind": kind,
+            **sig,
+        }
+    return sigs
+
+
+def write_signatures(sigs: dict[str, dict]) -> None:
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    # Sort keys for byte-stable output across runs.
+    payload = {k: sigs[k] for k in sorted(sigs)}
+    SIGNATURES_JSON.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def signatures_only() -> int:
+    md_files = sorted(REVERSE_DIR.glob("*.lisp/*.md"))
+    if not md_files:
+        print(f"no md files under {REVERSE_DIR}", file=sys.stderr)
+        return 1
+    sigs = extract_signatures(md_files)
+    write_signatures(sigs)
+    rel = lambda p: os.path.relpath(p, REVERSE_DIR.parent)
+    print(f"signatures: {len(sigs)} -> {rel(SIGNATURES_JSON)}")
+    return 0
 
 
 def main() -> int:
@@ -339,9 +463,13 @@ def main() -> int:
         for row in sorted(edges):
             w.writerow(row)
 
+    sigs = extract_signatures(md_files)
+    write_signatures(sigs)
+
     rel = lambda p: os.path.relpath(p, REVERSE_DIR.parent)
     print(f"symbols: {len(rows)} -> {rel(SYMBOLS_CSV)}")
     print(f"edges:   {len(edges)} -> {rel(EDGES_CSV)}")
+    print(f"signatures: {len(sigs)} -> {rel(SIGNATURES_JSON)}")
     print(
         f"  origin: runtime={runtime_only}, source={source_only}, both={both_count} "
         f"(source-walk dropped {source_dropped} non-top-level / self refs)"
@@ -360,4 +488,34 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if "--signatures-only" in sys.argv[1:]:
+        # Signatures.json is keyed by FQN but only includes fn / macro / gf
+        # kinds (callable surface). The introspector's package-field bug
+        # only affects non-callable kinds (e.g. `not-a-number`, a condition),
+        # so the signatures pass is unpoisoned and safe to run while the
+        # full regen below is gated.
+        sys.exit(signatures_only())
+
+    raise RuntimeError(
+        "build_graph.py full regen is gated until the introspector's package field is fixed.\n"
+        "\n"
+        "Discovered 2026-05-02 while porting ichiran/numbers: the row for\n"
+        "`not-a-number` was emitted as fqn=`ichiran:not-a-number`, package=`ichiran`,\n"
+        "but the live Lisp resolves the symbol to `ICHIRAN/NUMBERS:NOT-A-NUMBER`\n"
+        "(verified via `(find-symbol \"NOT-A-NUMBER\" (find-package :ichiran/numbers))`).\n"
+        "Running build_graph.py against the current md files would re-introduce the\n"
+        "wrong row and silently re-route the FQN→Rust path translator (kani::naming)\n"
+        "to `core/not_a_number_condition.rs` instead of `numbers/`.\n"
+        "\n"
+        "Likely scope: only `not-a-number` is known to be misclassified, but other\n"
+        "condition / non-fn kinds may have the same quirk — audit before regen.\n"
+        "\n"
+        "To regenerate signatures.json without touching symbols.csv / edges.csv,\n"
+        "use `python3 reverse/scripts/build_graph.py --signatures-only`.\n"
+        "\n"
+        "To unblock the full regen: fix `reverse/scripts/introspect.lisp` so the\n"
+        "package field reflects the symbol's home package (e.g. via\n"
+        "`package-name (symbol-package sym)`), re-run on the .103 host via\n"
+        "`run-remote.sh`, then delete this guard."
+    )
     sys.exit(main())
