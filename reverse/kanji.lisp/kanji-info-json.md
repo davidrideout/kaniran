@@ -20,5 +20,4 @@ Declared ftype: `(function (t) *)`
 
 - `ichiran/conn:*connection*`
 - `ichiran/kanji:kanji`
-- `ichiran/kanji:str`
 - `ichiran/kanji:to-json`

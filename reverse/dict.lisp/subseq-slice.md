@@ -19,8 +19,4 @@ Declared ftype: `(function (t t t &optional t) (values array &optional))`
 
 ## Source-walked references
 
-- `ichiran/dict:end`
 - `ichiran/dict:make-slice`
-- `ichiran/dict:slice`
-- `ichiran/dict:start`
-- `ichiran/dict:str`

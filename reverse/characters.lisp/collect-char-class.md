@@ -23,8 +23,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/characters:*char-class-regex-mapping*`
-- `ichiran/characters:char-class`
-- `ichiran/characters:regex`
-- `ichiran/characters:result`
-- `ichiran/characters:s`
-- `ichiran/characters:word`

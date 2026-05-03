@@ -18,9 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:collect`
-- `ichiran/dict:for`
-- `ichiran/dict:in`
-- `ichiran/dict:substr`
-- `ichiran/dict:v`
-- `ichiran/dict:val`
+_(none detected)_

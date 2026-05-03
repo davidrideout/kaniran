@@ -9,3 +9,7 @@
 ```lisp
 ((1194480 :KAN) (1490430 :KAN) (1333450 :KAN :KANGO))
 ```
+
+## Source-walked references
+
+_(none detected)_

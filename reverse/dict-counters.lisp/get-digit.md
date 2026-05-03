@@ -18,9 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:digit`
-- `ichiran/dict:for`
-- `ichiran/dict:n`
-- `ichiran/dict:on`
-- `ichiran/dict:p`
-- `ichiran/dict:pn`
+_(none detected)_

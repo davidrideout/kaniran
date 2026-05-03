@@ -19,7 +19,4 @@ Declared ftype: `(function (t t) (values ichiran/dict::segment-list &optional))`
 ## Source-walked references
 
 - `ichiran/dict:copy-segment-list`
-- `ichiran/dict:new-segment-list`
-- `ichiran/dict:old-segment-list`
 - `ichiran/dict:segment-list-segments`
-- `ichiran/dict:segments`

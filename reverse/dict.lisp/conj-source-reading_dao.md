@@ -21,3 +21,9 @@
 | TEXT | text | `string` | (TEXT) | (TEXT) |
 | SOURCE-TEXT | source_text | `string` | (SOURCE-TEXT) | (SOURCE-TEXT) |
 
+
+## Source-walked references
+
+- `ichiran/dict:conj-id`
+- `ichiran/dict:id`
+- `ichiran/dict:source-text`

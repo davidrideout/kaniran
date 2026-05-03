@@ -18,11 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/characters:by`
-- `ichiran/characters:for`
-- `ichiran/characters:hash`
-- `ichiran/characters:key`
-- `ichiran/characters:on`
-- `ichiran/characters:test`
-- `ichiran/characters:val`
-- `ichiran/characters:var`
+_(none detected)_

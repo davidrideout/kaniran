@@ -184,3 +184,7 @@ Hash-table — 173 entries, test: `eql`
   (#\HIRAGANA_LETTER_VU . :VU)
   (#\KATAKANA_LETTER_VU . :VU))
 ```
+
+## Source-walked references
+
+- `ichiran/characters:*all-characters*`

@@ -31,6 +31,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:collection`
-- `ichiran/dict:obj`
 - `ichiran/dict:top-array`

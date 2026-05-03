@@ -19,6 +19,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/conn:*conn-vars*`
-- `ichiran/conn:args`
-- `ichiran/conn:initial-value`
-- `ichiran/conn:name`

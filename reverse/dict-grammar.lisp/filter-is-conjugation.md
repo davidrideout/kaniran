@@ -23,7 +23,6 @@ Declared ftype: `(function (t) (values function &optional))`
 
 ## Source-walked references
 
-- `ichiran/dict:cdata`
 - `ichiran/dict:conj-data-prop`
 - `ichiran/dict:conj-type`
 - `ichiran/dict:segment`

@@ -19,10 +19,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/dict:*penalty-list*`
-- `ichiran/dict:finally`
-- `ichiran/dict:fn`
-- `ichiran/dict:for`
-- `ichiran/dict:in`
-- `ichiran/dict:penalty`
-- `ichiran/dict:seg-left`
-- `ichiran/dict:seg-right`

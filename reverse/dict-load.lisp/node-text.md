@@ -21,8 +21,4 @@ Declared ftype: `(function (t &rest t &key (:test t))
 
 ## Source-walked references
 
-- `ichiran/dict:args`
-- `ichiran/dict:node`
-- `ichiran/dict:result`
-- `ichiran/dict:test`
-- `ichiran/dict:val`
+_(none detected)_

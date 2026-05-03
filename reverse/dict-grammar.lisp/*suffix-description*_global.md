@@ -58,3 +58,7 @@ Hash-table — 47 entries, test: `eql`
   (2086960 . "quoting particle")
   (1002980 . "from / because"))
 ```
+
+## Source-walked references
+
+_(none detected)_

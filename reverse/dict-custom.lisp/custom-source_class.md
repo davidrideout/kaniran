@@ -16,3 +16,8 @@
 | DESCRIPTION | `"unknown"` | INSTANCE | NIL | (DESCRIPTION) | NIL |
 | ENTRIES | `nil` | INSTANCE | NIL | (ENTRIES) | ((SETF ENTRIES)) |
 
+
+## Source-walked references
+
+- `ichiran/custom:description`
+- `ichiran/custom:entries`

@@ -20,7 +20,5 @@ Declared ftype: `(function * (values list &optional))`
 
 - `ichiran/dict:kana-text`
 - `ichiran/dict:kanji-text`
-- `ichiran/dict:readings`
 - `ichiran/dict:seq`
-- `ichiran/dict:seqs`
 - `ichiran/dict:set-reading`

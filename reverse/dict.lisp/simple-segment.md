@@ -19,5 +19,3 @@ Declared ftype: `(function (t &key (:limit t)) (values t &optional))`
 ## Source-walked references
 
 - `ichiran/dict:dict-segment`
-- `ichiran/dict:limit`
-- `ichiran/dict:str`

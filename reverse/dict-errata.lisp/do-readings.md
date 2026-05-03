@@ -19,7 +19,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:body`
-- `ichiran/dict:rvar`
 - `ichiran/dict:seq`
-- `ichiran/dict:table`

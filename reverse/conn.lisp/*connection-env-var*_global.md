@@ -11,3 +11,7 @@
 ```lisp
 "ICHIRAN_CONNECTION"
 ```
+
+## Source-walked references
+
+_(none detected)_

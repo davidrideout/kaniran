@@ -22,7 +22,6 @@ Declared ftype: `(function (t t t t) *)`
 - `ichiran/dict:ord`
 - `ichiran/dict:sense`
 - `ichiran/dict:sense-id`
-- `ichiran/dict:sense-ord`
 - `ichiran/dict:sense-prop`
 - `ichiran/dict:seq`
 - `ichiran/dict:tag`

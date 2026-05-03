@@ -41,6 +41,5 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:obj`
 - `ichiran/dict:proxy-text`
 - `ichiran/dict:source`

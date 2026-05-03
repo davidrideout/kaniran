@@ -21,13 +21,6 @@ Declared ftype: `(function (t) (values list &optional))`
 ## Source-walked references
 
 - `ichiran/dict:*suffix-cache*`
-- `ichiran/dict:downto`
-- `ichiran/dict:for`
-- `ichiran/dict:from`
 - `ichiran/dict:init-suffixes`
 - `ichiran/dict:parse-suffix-val`
-- `ichiran/dict:start`
 - `ichiran/dict:subseq-slice`
-- `ichiran/dict:substr`
-- `ichiran/dict:val`
-- `ichiran/dict:word`

@@ -18,4 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/characters:str`
+_(none detected)_

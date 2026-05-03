@@ -22,5 +22,3 @@ Declared ftype: `(function (t t) (values number &optional))`
 ## Source-walked references
 
 - `ichiran/dict:*gap-penalty*`
-- `ichiran/dict:end`
-- `ichiran/dict:start`

@@ -19,4 +19,3 @@ Declared ftype: `(function (t) *)`
 ## Source-walked references
 
 - `ichiran/characters:simplify-ngrams`
-- `ichiran/custom:word`

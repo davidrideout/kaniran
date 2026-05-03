@@ -19,7 +19,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/dict:*suffix-unique-only*`
-- `ichiran/dict:matches`
-- `ichiran/dict:suffix-class`
-- `ichiran/dict:uniq`
-- `ichiran/dict:x`

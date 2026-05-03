@@ -23,5 +23,3 @@ _(none detected)_
 - `ichiran/characters:*full-width-kana*`
 - `ichiran/characters:*half-width-kana*`
 - `ichiran/characters:*normal-chars*`
-- `ichiran/characters:context`
-- `ichiran/characters:pos`

@@ -21,3 +21,7 @@
 | TYPE | `nil` | `t` | `municipality-type` |
 | PREFECTURE | `nil` | `t` | `municipality-prefecture` |
 
+
+## Source-walked references
+
+_(none detected)_

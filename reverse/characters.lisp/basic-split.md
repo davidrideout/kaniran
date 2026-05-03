@@ -20,13 +20,5 @@ Declared ftype: `(function (t) (values list &optional))`
 ## Source-walked references
 
 - `ichiran/characters:*basic-split-regex*`
-- `ichiran/characters:collect`
-- `ichiran/characters:for`
-- `ichiran/characters:in`
-- `ichiran/characters:misc`
-- `ichiran/characters:segment`
 - `ichiran/characters:split-by-regex`
-- `ichiran/characters:split1`
-- `ichiran/characters:str`
 - `ichiran/characters:test-word`
-- `ichiran/characters:then`

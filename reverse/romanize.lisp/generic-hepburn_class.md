@@ -15,3 +15,9 @@
 |---|---|---|---|---|---|
 | KANA-TABLE | `(alexandria:copy-hash-table ichiran::*hepburn-kana-table*)` | INSTANCE | NIL | NIL | NIL |
 
+
+## Source-walked references
+
+- `ichiran:*hepburn-kana-table*`
+- `ichiran:generic-romanization`
+- `ichiran:kana-table`

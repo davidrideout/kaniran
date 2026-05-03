@@ -62,7 +62,6 @@ _(none detected)_
 
 - `ichiran/dict:get-kana`
 - `ichiran/dict:get-kanji`
-- `ichiran/dict:obj`
 - `ichiran/dict:reading-str*`
 - `ichiran/dict:reading-str-seq`
 - `ichiran/dict:simple-text`

@@ -63,7 +63,6 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:counter`
 - `ichiran/dict:counter-halfhour`
 - `ichiran/dict:counter-months`
 - `ichiran/dict:counter-suffix-descriptions`
@@ -72,4 +71,3 @@ _(none detected)_
 - `ichiran/dict:number-value`
 - `ichiran/dict:ordinal-str`
 - `ichiran/dict:ordinalp`
-- `ichiran/dict:value`

@@ -18,5 +18,4 @@ Declared ftype: `(function (t) *)`
 
 ## Source-walked references
 
-- `ichiran/dict:root`
 - `ichiran/dict:te-check`

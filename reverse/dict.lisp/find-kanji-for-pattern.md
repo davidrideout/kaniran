@@ -20,15 +20,5 @@ Declared ftype: `(function (t) (values list list &optional))`
 ## Source-walked references
 
 - `ichiran/conn:*connection*`
-- `ichiran/dict:collect`
-- `ichiran/dict:finally`
 - `ichiran/dict:find-word-kana-pattern`
-- `ichiran/dict:for`
 - `ichiran/dict:get-kanji`
-- `ichiran/dict:in`
-- `ichiran/dict:into`
-- `ichiran/dict:k`
-- `ichiran/dict:kana`
-- `ichiran/dict:kanji`
-- `ichiran/dict:pattern`
-- `ichiran/dict:r`

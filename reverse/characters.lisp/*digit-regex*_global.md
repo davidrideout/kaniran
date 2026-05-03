@@ -9,3 +9,7 @@
 ```lisp
 "[0-9０-９〇]"
 ```
+
+## Source-walked references
+
+_(none detected)_

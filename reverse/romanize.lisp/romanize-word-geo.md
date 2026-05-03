@@ -20,5 +20,4 @@ Declared ftype: `(function (t &key (:method t))
 ## Source-walked references
 
 - `ichiran:*hepburn-simple*`
-- `ichiran:input`
 - `ichiran:romanize-word`

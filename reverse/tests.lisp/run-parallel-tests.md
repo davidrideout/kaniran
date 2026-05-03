@@ -19,6 +19,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/test:*test-thread-count*`
-- `ichiran/test:pkg`
-- `ichiran/test:res`
-- `ichiran/test:tests`

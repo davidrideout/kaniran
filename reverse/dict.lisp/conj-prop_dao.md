@@ -23,3 +23,12 @@
 | NEG | neg | `(or s-sql:db-null boolean)` | (NEG) | (CONJ-NEG) |
 | FML | fml | `(or s-sql:db-null boolean)` | (FML) | (CONJ-FML) |
 
+
+## Source-walked references
+
+- `ichiran/dict:conj-fml`
+- `ichiran/dict:conj-id`
+- `ichiran/dict:conj-neg`
+- `ichiran/dict:conj-type`
+- `ichiran/dict:id`
+- `ichiran/dict:pos`

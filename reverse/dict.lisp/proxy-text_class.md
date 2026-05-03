@@ -17,3 +17,9 @@
 | KANA | `nil` | INSTANCE | (KANA) | (GET-KANA) | NIL |
 | SOURCE | `nil` | INSTANCE | (SOURCE) | (SOURCE) | NIL |
 
+
+## Source-walked references
+
+- `ichiran/dict:get-kana`
+- `ichiran/dict:simple-text`
+- `ichiran/dict:source`

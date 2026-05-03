@@ -21,13 +21,5 @@ Declared ftype: `(function (&key (:path t)) (values null &optional))`
 
 - `ichiran/conn:*connection*`
 - `ichiran/kanji:*kanjidic-path*`
-- `ichiran/kanji:cnt`
-- `ichiran/kanji:content`
-- `ichiran/kanji:finally`
-- `ichiran/kanji:for`
-- `ichiran/kanji:from`
 - `ichiran/kanji:init-tables`
 - `ichiran/kanji:load-kanji`
-- `ichiran/kanji:path`
-- `ichiran/kanji:source`
-- `ichiran/kanji:while`

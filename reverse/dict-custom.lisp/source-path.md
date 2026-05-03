@@ -18,4 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/custom:file`
+_(none detected)_

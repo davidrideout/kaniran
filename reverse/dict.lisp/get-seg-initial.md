@@ -19,8 +19,3 @@ Declared ftype: `(function (t) (values list &optional))`
 ## Source-walked references
 
 - `ichiran/dict:apply-segfilters`
-- `ichiran/dict:collect`
-- `ichiran/dict:for`
-- `ichiran/dict:in`
-- `ichiran/dict:seg`
-- `ichiran/dict:split`

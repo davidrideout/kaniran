@@ -23,3 +23,12 @@
 | N-KANA | n_kana | `integer` | (N-KANA) | (N-KANA) |
 | PRIMARY-NOKANJI | primary_nokanji | `boolean` | NIL | (PRIMARY-NOKANJI) |
 
+
+## Source-walked references
+
+- `ichiran/dict:content`
+- `ichiran/dict:n-kana`
+- `ichiran/dict:n-kanji`
+- `ichiran/dict:primary-nokanji`
+- `ichiran/dict:root-p`
+- `ichiran/dict:seq`

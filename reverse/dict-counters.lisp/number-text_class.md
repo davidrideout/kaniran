@@ -17,3 +17,8 @@
 | KANA | `""` | INSTANCE | NIL | NIL | NIL |
 | ORDINALP | `nil` | INSTANCE | NIL | NIL | NIL |
 
+
+## Source-walked references
+
+- `ichiran/dict:counter-text`
+- `ichiran/dict:ordinalp`

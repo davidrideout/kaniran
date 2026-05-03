@@ -34,3 +34,8 @@
 | EUPHR | `nil` | `t` | `cr-euphr` |
 | EUPHK | `nil` | `t` | `cr-euphk` |
 
+
+## Source-walked references
+
+- `ichiran/dict:make-conjugation-rule`
+- `ichiran/dict:pos`

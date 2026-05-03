@@ -26,8 +26,4 @@ Declared ftype: `(function
 - `ichiran/dict:*jmdict-data*`
 - `ichiran/dict:*jmdict-path*`
 - `ichiran/kanji:*kanjidic-path*`
-- `ichiran/maintenance:dict-connection`
 - `ichiran/maintenance:full-init`
-- `ichiran/maintenance:jmdict-data`
-- `ichiran/maintenance:jmdict-path`
-- `ichiran/maintenance:kanjidic-path`

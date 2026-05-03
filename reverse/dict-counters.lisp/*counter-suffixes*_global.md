@@ -9,3 +9,7 @@
 ```lisp
 ((:KAN "間" "かん" "[duration]") (:KANGO "間後" "かんご" "[after ...]") (:CHUU "中" "ちゅう" "[among/out of ...]"))
 ```
+
+## Source-walked references
+
+_(none detected)_

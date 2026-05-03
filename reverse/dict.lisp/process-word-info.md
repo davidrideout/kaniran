@@ -21,21 +21,5 @@ Declared ftype: `(function (t) (values t &optional))`
 ## Source-walked references
 
 - `ichiran/characters:get-char-class`
-- `ichiran/dict:else`
-- `ichiran/dict:fc-class`
-- `ichiran/dict:finally`
-- `ichiran/dict:first-char`
-- `ichiran/dict:for`
-- `ichiran/dict:in`
-- `ichiran/dict:kana`
-- `ichiran/dict:kn`
-- `ichiran/dict:nan`
-- `ichiran/dict:nani`
-- `ichiran/dict:nani-kana`
-- `ichiran/dict:on`
-- `ichiran/dict:wi`
-- `ichiran/dict:wi-list`
-- `ichiran/dict:wi-next`
-- `ichiran/dict:with`
 - `ichiran/dict:word-info-kana`
 - `ichiran/dict:word-info-text`

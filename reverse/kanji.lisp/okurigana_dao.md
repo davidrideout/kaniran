@@ -20,3 +20,8 @@
 | READING-ID | reading_id | `integer` | (READING-ID) | (READING-ID) |
 | TEXT | text | `string` | (TEXT) | (TEXT) |
 
+
+## Source-walked references
+
+- `ichiran/kanji:id`
+- `ichiran/kanji:reading-id`

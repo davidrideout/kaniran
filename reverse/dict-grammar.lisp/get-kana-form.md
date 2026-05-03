@@ -18,8 +18,6 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:conj`
 - `ichiran/dict:kana-text`
-- `ichiran/dict:res`
 - `ichiran/dict:seq`
 - `ichiran/dict:word-conjugations`

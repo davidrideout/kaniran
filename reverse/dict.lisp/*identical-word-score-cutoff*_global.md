@@ -9,3 +9,7 @@
 ```lisp
 1/2
 ```
+
+## Source-walked references
+
+_(none detected)_

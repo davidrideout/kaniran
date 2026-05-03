@@ -297,6 +297,26 @@ def parse_md(path: Path) -> tuple[dict, list[str], list[str]] | None:
     else:
         kind_out = suffix_kind
 
+    # Source-walked references can appear on any md kind — the introspector
+    # emits the section for fn/macro/gf, classes/structs/daos/conditions, and
+    # globals (the last specifically catches DSL-defined globals like
+    # *counter-cache* / *special-counters* whose populator body the call-graph
+    # pass can't see). The kind-specific branches above don't consume this
+    # section, so we run a unified parse here for kinds that didn't already.
+    if suffix_kind is not None:
+        in_source_walk = False
+        for line in raw_lines:
+            if SOURCE_WALK_HEADER.match(line):
+                in_source_walk = True
+                continue
+            if in_source_walk:
+                if line.startswith("## "):
+                    in_source_walk = False
+                    continue
+                m = DEP.match(line)
+                if m:
+                    source_walk_deps.append(normalise_dep(m.group(1)))
+
     return (
         {
             "fqn": fqn(package, name),
@@ -489,33 +509,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     if "--signatures-only" in sys.argv[1:]:
-        # Signatures.json is keyed by FQN but only includes fn / macro / gf
-        # kinds (callable surface). The introspector's package-field bug
-        # only affects non-callable kinds (e.g. `not-a-number`, a condition),
-        # so the signatures pass is unpoisoned and safe to run while the
-        # full regen below is gated.
         sys.exit(signatures_only())
-
-    raise RuntimeError(
-        "build_graph.py full regen is gated until the introspector's package field is fixed.\n"
-        "\n"
-        "Discovered 2026-05-02 while porting ichiran/numbers: the row for\n"
-        "`not-a-number` was emitted as fqn=`ichiran:not-a-number`, package=`ichiran`,\n"
-        "but the live Lisp resolves the symbol to `ICHIRAN/NUMBERS:NOT-A-NUMBER`\n"
-        "(verified via `(find-symbol \"NOT-A-NUMBER\" (find-package :ichiran/numbers))`).\n"
-        "Running build_graph.py against the current md files would re-introduce the\n"
-        "wrong row and silently re-route the FQN→Rust path translator (kani::naming)\n"
-        "to `core/not_a_number_condition.rs` instead of `numbers/`.\n"
-        "\n"
-        "Likely scope: only `not-a-number` is known to be misclassified, but other\n"
-        "condition / non-fn kinds may have the same quirk — audit before regen.\n"
-        "\n"
-        "To regenerate signatures.json without touching symbols.csv / edges.csv,\n"
-        "use `python3 reverse/scripts/build_graph.py --signatures-only`.\n"
-        "\n"
-        "To unblock the full regen: fix `reverse/scripts/introspect.lisp` so the\n"
-        "package field reflects the symbol's home package (e.g. via\n"
-        "`package-name (symbol-package sym)`), re-run on the .103 host via\n"
-        "`run-remote.sh`, then delete this guard."
-    )
     sys.exit(main())

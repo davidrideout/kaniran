@@ -18,8 +18,5 @@ Declared ftype: `(function (t &optional t) (values sequence &optional t))`
 
 ## Source-walked references
 
-- `ichiran/dict:conj-of`
 - `ichiran/dict:get-split*`
 - `ichiran/dict:reading`
-- `ichiran/dict:score`
-- `ichiran/dict:split`

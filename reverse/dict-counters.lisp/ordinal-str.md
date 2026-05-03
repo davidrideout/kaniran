@@ -18,7 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:digit`
-- `ichiran/dict:n`
-- `ichiran/dict:suffix`
-- `ichiran/dict:teenp`
+_(none detected)_

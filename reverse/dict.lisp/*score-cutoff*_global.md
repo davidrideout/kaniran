@@ -9,3 +9,7 @@
 ```lisp
 5
 ```
+
+## Source-walked references
+
+_(none detected)_

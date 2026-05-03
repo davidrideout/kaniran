@@ -16,3 +16,9 @@
 | DESCRIPTION | `"extra xml data"` | INSTANCE | NIL | NIL | NIL |
 | SOURCE-FILE | `nil` | INSTANCE | (SOURCE-FILE) | (SOURCE-FILE) | NIL |
 
+
+## Source-walked references
+
+- `ichiran/custom:custom-source`
+- `ichiran/custom:description`
+- `ichiran/custom:source-file`

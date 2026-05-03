@@ -21,13 +21,6 @@ Declared ftype: `(function (t &key (:limit t)) (values list &optional))`
 ## Source-walked references
 
 - `ichiran/conn:*connection*`
-- `ichiran/dict:collect`
 - `ichiran/dict:fill-segment-path`
 - `ichiran/dict:find-best-path`
-- `ichiran/dict:for`
-- `ichiran/dict:in`
 - `ichiran/dict:join-substring-words`
-- `ichiran/dict:limit`
-- `ichiran/dict:path`
-- `ichiran/dict:score`
-- `ichiran/dict:str`

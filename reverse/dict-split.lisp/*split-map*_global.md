@@ -185,3 +185,7 @@ Hash-table — 174 entries, test: `eql`
   (1774820 . ICHIRAN/DICT::SPLIT-1774820)
   (1362970 . ICHIRAN/DICT::SPLIT-1362970))
 ```
+
+## Source-walked references
+
+_(none detected)_

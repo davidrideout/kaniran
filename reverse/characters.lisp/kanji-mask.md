@@ -18,5 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/characters:regex`
-- `ichiran/characters:word`
+_(none detected)_

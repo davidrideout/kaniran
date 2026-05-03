@@ -15,3 +15,8 @@
 |---|---|---|---|---|---|
 | DESCRIPTION | `"wards"` | INSTANCE | NIL | NIL | NIL |
 
+
+## Source-walked references
+
+- `ichiran/custom:csv-loader`
+- `ichiran/custom:description`

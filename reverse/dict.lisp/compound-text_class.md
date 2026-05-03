@@ -20,3 +20,11 @@
 | SCORE-BASE | `nil` | INSTANCE | (SCORE-BASE) | NIL | NIL |
 | SCORE-MOD | `nil` | INSTANCE | (SCORE-MOD) | (SCORE-MOD) | NIL |
 
+
+## Source-walked references
+
+- `ichiran/dict:get-kana`
+- `ichiran/dict:primary`
+- `ichiran/dict:score-base`
+- `ichiran/dict:score-mod`
+- `ichiran/dict:words`

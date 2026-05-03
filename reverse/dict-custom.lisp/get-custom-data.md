@@ -18,7 +18,6 @@ Declared ftype: `(function nil (values list &optional))`
 
 ## Source-walked references
 
-- `ichiran/custom:args`
 - `ichiran/custom:municipality-csv`
 - `ichiran/custom:ward-csv`
 - `ichiran/custom:xml-loader`

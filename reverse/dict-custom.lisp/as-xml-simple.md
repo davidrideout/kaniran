@@ -19,5 +19,3 @@ Declared ftype: `(function (t t t) *)`
 ## Source-walked references
 
 - `ichiran/characters:test-word`
-- `ichiran/custom:definition`
-- `ichiran/custom:reading`

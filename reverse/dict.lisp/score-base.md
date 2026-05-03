@@ -33,4 +33,3 @@ _(none detected)_
 
 - `ichiran/dict:compound-text`
 - `ichiran/dict:primary`
-- `ichiran/dict:word`

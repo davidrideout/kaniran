@@ -19,3 +19,7 @@
 | KANA | `nil` | `t` | `rmi-kana` |
 | NEXT | `nil` | `t` | `rmi-next` |
 
+
+## Source-walked references
+
+_(none detected)_

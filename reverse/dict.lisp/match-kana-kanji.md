@@ -19,14 +19,5 @@ Declared ftype: `(function (t t t) (values t &optional))`
 
 ## Source-walked references
 
-- `ichiran/dict:collect`
-- `ichiran/dict:for`
-- `ichiran/dict:in`
-- `ichiran/dict:kana-reading`
 - `ichiran/dict:kana-text`
-- `ichiran/dict:kanji-reading`
-- `ichiran/dict:kt`
 - `ichiran/dict:nokanji`
-- `ichiran/dict:restr`
-- `ichiran/dict:restricted`
-- `ichiran/dict:rt`

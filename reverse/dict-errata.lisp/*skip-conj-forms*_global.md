@@ -9,3 +9,7 @@
 ```lisp
 ((10 T :ANY) (3 T T) ("vs-s" 5 :ANY :ANY))
 ```
+
+## Source-walked references
+
+_(none detected)_

@@ -20,5 +20,3 @@ _(none detected)_
 
 - `ichiran/conn:*connection*`
 - `ichiran/conn:*connections*`
-- `ichiran/conn:dbid`
-- `ichiran/conn:spec`

@@ -22,21 +22,6 @@ Declared ftype: `(function (t)
 ## Source-walked references
 
 - `ichiran/dict:get-kanji-words`
-- `ichiran/kanji:common`
-- `ichiran/kanji:else`
-- `ichiran/kanji:for`
 - `ichiran/kanji:get-original-reading`
-- `ichiran/kanji:in`
-- `ichiran/kanji:irregular`
-- `ichiran/kanji:k`
-- `ichiran/kanji:key`
 - `ichiran/kanji:match-readings`
-- `ichiran/kanji:options`
-- `ichiran/kanji:r`
-- `ichiran/kanji:r-stat`
 - `ichiran/kanji:reading`
-- `ichiran/kanji:rtext`
-- `ichiran/kanji:rtype`
-- `ichiran/kanji:seq`
-- `ichiran/kanji:str`
-- `ichiran/kanji:words`

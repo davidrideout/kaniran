@@ -55,7 +55,6 @@ _(none detected)_
 - `ichiran/dict:kana-text`
 - `ichiran/dict:kanji-text`
 - `ichiran/dict:n-kanji`
-- `ichiran/dict:obj`
 - `ichiran/dict:ord`
 - `ichiran/dict:segment`
 - `ichiran/dict:segment-text`

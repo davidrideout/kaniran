@@ -18,13 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/characters:alist`
-- `ichiran/characters:by`
-- `ichiran/characters:collect`
-- `ichiran/characters:for`
-- `ichiran/characters:from`
-- `ichiran/characters:match`
-- `ichiran/characters:on`
-- `ichiran/characters:scanner`
-- `ichiran/characters:str`
-- `ichiran/characters:to`
+_(none detected)_

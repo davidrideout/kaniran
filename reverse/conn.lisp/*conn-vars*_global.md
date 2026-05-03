@@ -9,3 +9,7 @@
 ```lisp
 ((ICHIRAN/DICT::*COUNTER-CACHE*) (ICHIRAN/DICT::*SUFFIX-CLASS*) (ICHIRAN/DICT::*SUFFIX-CACHE*) (ICHIRAN/DICT::*IS-ARCH-CACHE*) (ICHIRAN/DICT::*NO-CONJ-DATA*) (ICHIRAN/CONN::*TEST-VAR* . 10))
 ```
+
+## Source-walked references
+
+_(none detected)_

@@ -14,3 +14,7 @@
 | name | initform | allocation | initargs | readers | writers |
 |---|---|---|---|---|---|
 
+
+## Source-walked references
+
+- `ichiran/dict:counter-text`

@@ -9,3 +9,7 @@
 ```lisp
 (1247260)
 ```
+
+## Source-walked references
+
+_(none detected)_

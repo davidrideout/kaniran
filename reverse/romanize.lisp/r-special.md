@@ -31,4 +31,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran:word`
+_(none detected)_

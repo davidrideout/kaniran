@@ -18,8 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/characters:e`
-- `ichiran/characters:offset`
-- `ichiran/characters:positions`
-- `ichiran/characters:s`
-- `ichiran/characters:word`
+_(none detected)_

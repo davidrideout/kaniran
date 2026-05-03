@@ -18,3 +18,9 @@
 | VAR | `nil` | INSTANCE | (VAR) | (CACHE-VAR) | NIL |
 | LOCK | `nil` | INSTANCE | NIL | (CACHE-LOCK) | NIL |
 
+
+## Source-walked references
+
+- `ichiran/conn:cache-lock`
+- `ichiran/conn:cache-name`
+- `ichiran/conn:cache-var`

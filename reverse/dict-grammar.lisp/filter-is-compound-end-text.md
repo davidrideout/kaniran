@@ -29,6 +29,4 @@ Declared ftype: `(function * (values function &optional))`
 - `ichiran/dict:segment`
 - `ichiran/dict:segment-word`
 - `ichiran/dict:seq`
-- `ichiran/dict:texts`
-- `ichiran/dict:word`
 - `ichiran/dict:words`

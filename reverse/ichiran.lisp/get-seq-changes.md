@@ -22,18 +22,4 @@ Declared ftype: `(function (t t &key (:regex t) (:seqs t))
 ## Source-walked references
 
 - `ichiran/maintenance:compare-queries`
-- `ichiran/maintenance:content`
-- `ichiran/maintenance:diff`
-- `ichiran/maintenance:diffs`
-- `ichiran/maintenance:else`
-- `ichiran/maintenance:entry`
-- `ichiran/maintenance:for`
 - `ichiran/maintenance:get-hardcoded-constants`
-- `ichiran/maintenance:in`
-- `ichiran/maintenance:new`
-- `ichiran/maintenance:new-conn`
-- `ichiran/maintenance:old`
-- `ichiran/maintenance:old-conn`
-- `ichiran/maintenance:regex`
-- `ichiran/maintenance:seq`
-- `ichiran/maintenance:seqs`

@@ -21,4 +21,3 @@ _(none detected)_
 - `ichiran/dict:entry`
 - `ichiran/dict:primary-nokanji`
 - `ichiran/dict:seq`
-- `ichiran/dict:value`

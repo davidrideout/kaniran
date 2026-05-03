@@ -19,5 +19,3 @@ Declared ftype: `(function (t t) *)`
 ## Source-walked references
 
 - `ichiran/characters:kanji-regex`
-- `ichiran/characters:reading`
-- `ichiran/characters:word`

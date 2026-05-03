@@ -9,3 +9,7 @@
 ```lisp
 (ICHIRAN/DICT::PENALTY-SEMI-FINAL ICHIRAN/DICT::PENALTY-SHORT)
 ```
+
+## Source-walked references
+
+_(none detected)_

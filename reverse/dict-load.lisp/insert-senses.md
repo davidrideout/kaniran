@@ -21,13 +21,9 @@ Declared ftype: `(function (t t) (values null &optional))`
 ## Source-walked references
 
 - `ichiran/dict:do-node-list-ord`
-- `ichiran/dict:for`
 - `ichiran/dict:gloss`
 - `ichiran/dict:id`
-- `ichiran/dict:in`
 - `ichiran/dict:insert-sense-traits`
-- `ichiran/dict:node`
-- `ichiran/dict:node-list`
 - `ichiran/dict:node-text`
 - `ichiran/dict:ord`
 - `ichiran/dict:sense`

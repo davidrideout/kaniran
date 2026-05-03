@@ -23,3 +23,11 @@
 | ORD | ord | `integer` | (ORD) | (ORD) |
 | SEQ | seq | `integer` | (SEQ) | (SEQ) |
 
+
+## Source-walked references
+
+- `ichiran/dict:id`
+- `ichiran/dict:ord`
+- `ichiran/dict:sense-id`
+- `ichiran/dict:seq`
+- `ichiran/dict:tag`

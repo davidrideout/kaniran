@@ -19,4 +19,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/characters:*dakuten-hash*`
-- `ichiran/characters:cc`

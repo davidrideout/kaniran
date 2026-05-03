@@ -18,5 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:len-lim`
-- `ichiran/dict:power`
+_(none detected)_

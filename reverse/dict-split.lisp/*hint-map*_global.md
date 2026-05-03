@@ -670,3 +670,7 @@ Hash-table — 659 entries, test: `eql`
   (2835463 . #<FUNCTION (LAMBDA (#:RV0) :IN "/home/david/storage/ichiran/dict-split.lisp") {53DC365B}>)
   (2849004 . #<FUNCTION (LAMBDA (#:RV0) :IN "/home/david/storage/ichiran/dict-split.lisp") {53DC38AB}>))
 ```
+
+## Source-walked references
+
+_(none detected)_

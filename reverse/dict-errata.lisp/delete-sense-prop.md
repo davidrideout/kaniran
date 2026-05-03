@@ -18,7 +18,6 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:props`
 - `ichiran/dict:sense-prop`
 - `ichiran/dict:seq`
 - `ichiran/dict:tag`

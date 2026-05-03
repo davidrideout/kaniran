@@ -15,3 +15,9 @@
 |---|---|---|---|---|---|
 | KANA-TABLE | `(alexandria:copy-hash-table ichiran::*kunrei-siki-kana-table*)` | INSTANCE | NIL | NIL | NIL |
 
+
+## Source-walked references
+
+- `ichiran:*kunrei-siki-kana-table*`
+- `ichiran:generic-romanization`
+- `ichiran:kana-table`

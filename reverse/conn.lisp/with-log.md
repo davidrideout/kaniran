@@ -19,6 +19,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/conn:body`
-- `ichiran/conn:if-exists`
-- `ichiran/conn:path`
+_(none detected)_

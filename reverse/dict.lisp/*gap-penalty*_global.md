@@ -9,3 +9,7 @@
 ```lisp
 -500
 ```
+
+## Source-walked references
+
+_(none detected)_

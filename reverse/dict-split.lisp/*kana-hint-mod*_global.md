@@ -9,3 +9,7 @@
 ```lisp
 #\ZERO_WIDTH_NON-JOINER
 ```
+
+## Source-walked references
+
+_(none detected)_

@@ -49,7 +49,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:len`
-- `ichiran/dict:score`
 - `ichiran/dict:score-mod`
-- `ichiran/dict:sm`

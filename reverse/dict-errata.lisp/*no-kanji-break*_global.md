@@ -11,3 +11,7 @@
 ```lisp
 ("日置")
 ```
+
+## Source-walked references
+
+_(none detected)_

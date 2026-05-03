@@ -21,13 +21,4 @@ Declared ftype: `(function (t) (values list &optional))`
 
 - `ichiran:*romaji-kana-next*`
 - `ichiran:apply-rmap-item`
-- `ichiran:collect`
-- `ichiran:end`
-- `ichiran:for`
-- `ichiran:from`
 - `ichiran:get-romaji-kana`
-- `ichiran:rmi`
-- `ichiran:s`
-- `ichiran:ss`
-- `ichiran:to`
-- `ichiran:while`

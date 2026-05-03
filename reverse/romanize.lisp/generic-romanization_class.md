@@ -15,3 +15,7 @@
 |---|---|---|---|---|---|
 | KANA-TABLE | `(make-hash-table)` | INSTANCE | NIL | (KANA-TABLE) | NIL |
 
+
+## Source-walked references
+
+- `ichiran:kana-table`

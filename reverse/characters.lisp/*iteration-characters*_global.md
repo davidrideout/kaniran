@@ -9,3 +9,7 @@
 ```lisp
 (:ITER "ゝヽ" :ITER-V "ゞヾ")
 ```
+
+## Source-walked references
+
+_(none detected)_

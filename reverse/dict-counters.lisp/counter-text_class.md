@@ -27,3 +27,19 @@
 | ALLOWED | `nil` | INSTANCE | (ALLOWED) | (COUNTER-ALLOWED) | NIL |
 | FOREIGN | `nil` | INSTANCE | (FOREIGN) | (COUNTER-FOREIGN) | NIL |
 
+
+## Source-walked references
+
+- `ichiran/dict:common`
+- `ichiran/dict:counter-allowed`
+- `ichiran/dict:counter-common`
+- `ichiran/dict:counter-foreign`
+- `ichiran/dict:counter-kana`
+- `ichiran/dict:counter-suffix`
+- `ichiran/dict:counter-suffix-accepts`
+- `ichiran/dict:counter-suffix-descriptions`
+- `ichiran/dict:digit-opts`
+- `ichiran/dict:number-text`
+- `ichiran/dict:number-value`
+- `ichiran/dict:ordinalp`
+- `ichiran/dict:source`

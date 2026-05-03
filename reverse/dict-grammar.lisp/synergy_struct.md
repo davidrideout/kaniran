@@ -21,3 +21,7 @@
 | START | `nil` | `t` | `synergy-start` |
 | END | `nil` | `t` | `synergy-end` |
 
+
+## Source-walked references
+
+_(none detected)_

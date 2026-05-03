@@ -20,15 +20,6 @@ Declared ftype: `(function (t) *)`
 ## Source-walked references
 
 - `ichiran/characters:kanji-regex`
-- `ichiran/dict:finally`
-- `ichiran/dict:for`
-- `ichiran/dict:in`
 - `ichiran/dict:kana-text`
-- `ichiran/dict:kt`
-- `ichiran/dict:kts`
-- `ichiran/dict:obj`
 - `ichiran/dict:ord`
-- `ichiran/dict:regex`
 - `ichiran/dict:seq`
-- `ichiran/dict:tkt`
-- `ichiran/dict:with`

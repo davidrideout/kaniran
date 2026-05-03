@@ -18,11 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran:for`
-- `ichiran:in`
-- `ichiran:last-space`
-- `ichiran:len`
-- `ichiran:part`
-- `ichiran:parts`
-- `ichiran:s`
-- `ichiran:with`
+_(none detected)_

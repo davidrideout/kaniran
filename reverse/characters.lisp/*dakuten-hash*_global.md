@@ -32,3 +32,7 @@ Hash-table — 21 entries, test: `eql`
   (:HO . :BO)
   (:U . :VU))
 ```
+
+## Source-walked references
+
+_(none detected)_

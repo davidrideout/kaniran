@@ -9,3 +9,7 @@
 ```lisp
 "[ァ-ヺヽヾー]"
 ```
+
+## Source-walked references
+
+_(none detected)_

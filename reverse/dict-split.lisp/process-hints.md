@@ -20,4 +20,3 @@ Declared ftype: `(function (t) *)`
 
 - `ichiran/characters:simplify-ngrams`
 - `ichiran/dict:*hint-simplify-map*`
-- `ichiran/dict:word`

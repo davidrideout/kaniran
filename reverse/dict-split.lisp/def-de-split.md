@@ -19,8 +19,4 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/dict:def-simple-split`
-- `ichiran/dict:len`
-- `ichiran/dict:name`
-- `ichiran/dict:score`
 - `ichiran/dict:seq`
-- `ichiran/dict:seq-a`

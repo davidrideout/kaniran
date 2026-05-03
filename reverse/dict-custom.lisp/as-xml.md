@@ -47,7 +47,6 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/custom:as-xml-simple`
-- `ichiran/custom:entry`
 - `ichiran/custom:municipality`
 - `ichiran/custom:municipality-definition`
 - `ichiran/custom:municipality-reading`

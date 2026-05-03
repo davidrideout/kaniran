@@ -19,4 +19,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/characters:*char-class-hash*`
-- `ichiran:word`

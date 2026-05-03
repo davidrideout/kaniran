@@ -19,6 +19,3 @@ Declared ftype: `(function (t &key (:names t)) *)`
 ## Source-walked references
 
 - `ichiran/kanji:get-readings-cache`
-- `ichiran/kanji:names`
-- `ichiran/kanji:str`
-- `ichiran/kanji:typeset`

@@ -20,9 +20,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/characters:m`
-- `ichiran/characters:new-word`
-- `ichiran/characters:r-cut`
-- `ichiran/characters:reading`
-- `ichiran/characters:reading-head`
-- `ichiran/characters:word`
+_(none detected)_

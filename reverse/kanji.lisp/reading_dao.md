@@ -24,3 +24,12 @@
 | PREFIXP | prefixp | `boolean` | (PREFIXP) | (PREFIXP) |
 | STAT-COMMON | stat_common | `integer` | NIL | (STAT-COMMON) |
 
+
+## Source-walked references
+
+- `ichiran/kanji:id`
+- `ichiran/kanji:kanji-id`
+- `ichiran/kanji:prefixp`
+- `ichiran/kanji:reading-type`
+- `ichiran/kanji:stat-common`
+- `ichiran/kanji:suffixp`

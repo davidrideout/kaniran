@@ -21,3 +21,10 @@
 | FROM | from | `integer` | (FROM) | (SEQ-FROM) |
 | VIA | via | `(or integer s-sql:db-null)` | (VIA) | (SEQ-VIA) |
 
+
+## Source-walked references
+
+- `ichiran/dict:id`
+- `ichiran/dict:seq`
+- `ichiran/dict:seq-from`
+- `ichiran/dict:seq-via`

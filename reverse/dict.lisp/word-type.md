@@ -83,7 +83,6 @@ _(none detected)_
 - `ichiran/dict:counter-text`
 - `ichiran/dict:kana-text`
 - `ichiran/dict:kanji-text`
-- `ichiran/dict:obj`
 - `ichiran/dict:primary`
 - `ichiran/dict:proxy-text`
 - `ichiran/dict:source`

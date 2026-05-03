@@ -18,10 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/characters:for`
-- `ichiran/characters:key`
-- `ichiran/characters:more`
-- `ichiran/characters:obj`
-- `ichiran/characters:on`
-- `ichiran/characters:out`
-- `ichiran/characters:separator`
+_(none detected)_

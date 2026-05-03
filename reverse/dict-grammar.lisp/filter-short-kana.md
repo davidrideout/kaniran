@@ -27,10 +27,7 @@ Declared ftype: `(function (t &key (:except t)) (values function &optional))`
 
 ## Source-walked references
 
-- `ichiran/dict:except`
 - `ichiran/dict:get-text`
-- `ichiran/dict:len`
-- `ichiran/dict:seg`
 - `ichiran/dict:segment-info`
 - `ichiran/dict:segment-list`
 - `ichiran/dict:segment-list-end`

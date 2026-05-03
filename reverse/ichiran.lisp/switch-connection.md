@@ -26,5 +26,3 @@ Declared ftype: `(function (t &key (:reset t)) (values t &optional))`
 - `ichiran/conn:switch-conn-vars`
 - `ichiran/conn:with-db`
 - `ichiran/dict:init-suffixes`
-- `ichiran/maintenance:conn`
-- `ichiran/maintenance:reset`

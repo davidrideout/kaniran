@@ -25,29 +25,18 @@ Declared ftype: `(function (t t) (values null &optional))`
 ## Source-walked references
 
 - `ichiran/characters:test-word`
-- `ichiran/dict:base`
-- `ichiran/dict:base-text`
-- `ichiran/dict:conj`
 - `ichiran/dict:conj-id`
 - `ichiran/dict:conj-source-reading`
 - `ichiran/dict:conjugate-p`
 - `ichiran/dict:conjugation`
-- `ichiran/dict:diff-fn`
 - `ichiran/dict:entry`
-- `ichiran/dict:for`
-- `ichiran/dict:from`
 - `ichiran/dict:id`
-- `ichiran/dict:in`
-- `ichiran/dict:is-kana`
 - `ichiran/dict:kana-text`
 - `ichiran/dict:kanji-text`
-- `ichiran/dict:maxord`
 - `ichiran/dict:n-kana`
 - `ichiran/dict:n-kanji`
-- `ichiran/dict:new-text`
 - `ichiran/dict:ord`
 - `ichiran/dict:reading`
 - `ichiran/dict:root-diff-fn`
 - `ichiran/dict:seq`
 - `ichiran/dict:source-text`
-- `ichiran/dict:table`

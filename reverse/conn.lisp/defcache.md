@@ -22,7 +22,4 @@ _(none detected)_
 - `ichiran/conn:cache`
 - `ichiran/conn:cache-var`
 - `ichiran/conn:def-conn-var`
-- `ichiran/conn:init-body`
 - `ichiran/conn:init-cache`
-- `ichiran/conn:name`
-- `ichiran/conn:var`

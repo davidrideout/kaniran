@@ -28,3 +28,23 @@
 | COUNTER | `nil` | INSTANCE | (COUNTER) | (WORD-INFO-COUNTER) | ((SETF WORD-INFO-COUNTER)) |
 | SKIPPED | `0` | INSTANCE | (SKIPPED) | (WORD-INFO-SKIPPED) | ((SETF WORD-INFO-SKIPPED)) |
 
+
+## Source-walked references
+
+- `ichiran/dict:primary`
+- `ichiran/dict:seq`
+- `ichiran/dict:true-text`
+- `ichiran/dict:word-info-alternative`
+- `ichiran/dict:word-info-components`
+- `ichiran/dict:word-info-conjugations`
+- `ichiran/dict:word-info-counter`
+- `ichiran/dict:word-info-end`
+- `ichiran/dict:word-info-kana`
+- `ichiran/dict:word-info-primary`
+- `ichiran/dict:word-info-score`
+- `ichiran/dict:word-info-seq`
+- `ichiran/dict:word-info-skipped`
+- `ichiran/dict:word-info-start`
+- `ichiran/dict:word-info-text`
+- `ichiran/dict:word-info-true-text`
+- `ichiran/dict:word-info-type`

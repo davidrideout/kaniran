@@ -21,8 +21,5 @@ Declared ftype: `(function (t &key (:with-pos t))
 ## Source-walked references
 
 - `ichiran/dict:reading-str-seq`
-- `ichiran/dict:s`
-- `ichiran/dict:sense-str`
 - `ichiran/dict:seq`
 - `ichiran/dict:short-sense-str`
-- `ichiran/dict:with-pos`

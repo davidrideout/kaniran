@@ -26,3 +26,14 @@
 | STAT-COMMON | stat_common | `integer` | NIL | (STAT-COMMON) |
 | STAT-IRREGULAR | stat_irregular | `integer` | NIL | (STAT-IRREGULAR) |
 
+
+## Source-walked references
+
+- `ichiran/kanji:freq`
+- `ichiran/kanji:grade`
+- `ichiran/kanji:id`
+- `ichiran/kanji:radical-c`
+- `ichiran/kanji:radical-n`
+- `ichiran/kanji:stat-common`
+- `ichiran/kanji:stat-irregular`
+- `ichiran/kanji:strokes`

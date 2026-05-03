@@ -28,25 +28,11 @@ Declared ftype: `(function (t) *)`
 ## Source-walked references
 
 - `ichiran/dict:*segment-score-cutoff*`
-- `ichiran/dict:collect`
-- `ichiran/dict:finally`
-- `ichiran/dict:for`
-- `ichiran/dict:in`
-- `ichiran/dict:into`
-- `ichiran/dict:kana-list`
-- `ichiran/dict:matches`
-- `ichiran/dict:max-score`
 - `ichiran/dict:segment-list`
 - `ichiran/dict:segment-list-end`
 - `ichiran/dict:segment-list-matches`
 - `ichiran/dict:segment-list-segments`
 - `ichiran/dict:segment-list-start`
-- `ichiran/dict:segments`
-- `ichiran/dict:seq-list`
-- `ichiran/dict:wi`
-- `ichiran/dict:wi-list`
-- `ichiran/dict:wi-list*`
-- `ichiran/dict:wi1`
 - `ichiran/dict:word-info`
 - `ichiran/dict:word-info-from-segment`
 - `ichiran/dict:word-info-kana`

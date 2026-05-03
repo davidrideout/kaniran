@@ -15,3 +15,7 @@
 |---|---|---|---|---|---|
 | ALLOWED | `'(1 2 3 4 5 6 7 8 9 10 14 20 24 30)` | INSTANCE | NIL | NIL | NIL |
 
+
+## Source-walked references
+
+- `ichiran/dict:counter-text`

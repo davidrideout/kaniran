@@ -19,5 +19,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/conn:*connection-env-var*`
-- `ichiran/conn:connection`
-- `ichiran/conn:connection-str`

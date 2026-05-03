@@ -11,3 +11,7 @@ Hash-table — 0 entries, test: `equal`
 ```lisp
 (:hash-table :test equal :count 0)
 ```
+
+## Source-walked references
+
+_(none detected)_

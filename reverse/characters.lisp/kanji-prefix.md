@@ -19,5 +19,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/characters:*kanji-regex*`
-- `ichiran/characters:regex`
-- `ichiran/characters:word`

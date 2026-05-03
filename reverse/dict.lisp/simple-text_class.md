@@ -16,3 +16,8 @@
 | CONJUGATIONS | `nil` | INSTANCE | NIL | (WORD-CONJUGATIONS) | ((SETF WORD-CONJUGATIONS)) |
 | HINTEDP | `nil` | INSTANCE | (HINTEDP) | (HINTEDP) | ((SETF HINTEDP)) |
 
+
+## Source-walked references
+
+- `ichiran/dict:hintedp`
+- `ichiran/dict:word-conjugations`

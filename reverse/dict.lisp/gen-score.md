@@ -21,8 +21,6 @@ Declared ftype: `(function (t &key (:final t) (:kanji-break t))
 ## Source-walked references
 
 - `ichiran/dict:calc-score`
-- `ichiran/dict:final`
-- `ichiran/dict:kanji-break`
 - `ichiran/dict:segment`
 - `ichiran/dict:segment-info`
 - `ichiran/dict:segment-score`

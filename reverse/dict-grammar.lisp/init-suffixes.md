@@ -21,8 +21,6 @@ Declared ftype: `(function (&optional t t) *)`
 ## Source-walked references
 
 - `ichiran/dict:*suffix-cache*`
-- `ichiran/dict:blocking`
 - `ichiran/dict:init-suffix-hashtables`
 - `ichiran/dict:init-suffixes-running-p`
 - `ichiran/dict:init-suffixes-thread`
-- `ichiran/dict:reset`

@@ -18,8 +18,5 @@ Declared ftype: `(function (t t) (values function &optional))`
 
 ## Source-walked references
 
-- `ichiran/dict:b`
-- `ichiran/dict:base-text`
-- `ichiran/dict:r`
 - `ichiran/dict:reading`
 - `ichiran/dict:root-diff`

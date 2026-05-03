@@ -9,3 +9,7 @@
 ```lisp
 ((51 . #1=(:ANY :ANY)) (52 . #1#) (53 . #1#) (54 . #1#) (9 T :ANY))
 ```
+
+## Source-walked references
+
+_(none detected)_

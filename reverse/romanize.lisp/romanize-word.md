@@ -28,7 +28,5 @@ Declared ftype: `(function
 - `ichiran/dict:process-hints`
 - `ichiran:*default-romanization-method*`
 - `ichiran:get-character-classes`
-- `ichiran:original-spelling`
 - `ichiran:r-special`
 - `ichiran:romanize-list`
-- `ichiran:word`

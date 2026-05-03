@@ -18,5 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:prefix`
-- `ichiran/dict:txt`
+_(none detected)_

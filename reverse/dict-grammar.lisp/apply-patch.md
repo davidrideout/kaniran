@@ -19,5 +19,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:patch`
-- `ichiran/dict:root`
+_(none detected)_

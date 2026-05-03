@@ -18,7 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:entdef`
-- `ichiran/dict:entity-hash`
-- `ichiran/dict:name`
 - `ichiran/dict:source`

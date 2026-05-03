@@ -62,14 +62,12 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/dict:best-kanji-conj`
-- `ichiran/dict:bk`
 - `ichiran/dict:counter-text`
 - `ichiran/dict:entry`
 - `ichiran/dict:kana-text`
 - `ichiran/dict:kanji-text`
 - `ichiran/dict:n-kanji`
 - `ichiran/dict:number-value`
-- `ichiran/dict:obj`
 - `ichiran/dict:ord`
 - `ichiran/dict:seq`
 - `ichiran/numbers:number-to-kanji`

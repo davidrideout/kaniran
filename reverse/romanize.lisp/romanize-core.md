@@ -19,8 +19,5 @@ Declared ftype: `(function (t t) (values simple-string &optional))`
 
 ## Source-walked references
 
-- `ichiran:cc-tree`
-- `ichiran:item`
-- `ichiran:out`
 - `ichiran:r-apply`
 - `ichiran:r-base`

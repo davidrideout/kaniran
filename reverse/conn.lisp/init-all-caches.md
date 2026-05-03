@@ -19,12 +19,5 @@ Declared ftype: `(function (&optional t) (values null &optional))`
 ## Source-walked references
 
 - `ichiran/conn:all-caches`
-- `ichiran/conn:by`
 - `ichiran/conn:ensure`
-- `ichiran/conn:fn`
-- `ichiran/conn:for`
-- `ichiran/conn:name`
-- `ichiran/conn:on`
-- `ichiran/conn:reset`
 - `ichiran/conn:reset-cache`
-- `ichiran/conn:with`

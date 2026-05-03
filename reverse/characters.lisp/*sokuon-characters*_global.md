@@ -9,3 +9,7 @@
 ```lisp
 (:SOKUON "っッ")
 ```
+
+## Source-walked references
+
+_(none detected)_

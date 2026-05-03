@@ -18,5 +18,4 @@ Declared ftype: `(function nil (values function &optional))`
 
 ## Source-walked references
 
-- `ichiran/cli:old-hook`
 - `ichiran/cli:print-error`

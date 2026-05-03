@@ -20,8 +20,6 @@ Declared ftype: `(function (t) (values boolean &optional))`
 ## Source-walked references
 
 - `ichiran/dict:*skip-conj-forms*`
-- `ichiran/dict:cd`
 - `ichiran/dict:conj-data`
 - `ichiran/dict:conj-data-prop`
-- `ichiran/dict:matches`
 - `ichiran/dict:test-conj-prop`

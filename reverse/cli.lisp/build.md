@@ -21,7 +21,6 @@ Declared ftype: `(function (&key (:conn t) (:debug t)) *)`
 
 ## Source-walked references
 
-- `ichiran/cli:conn`
 - `ichiran/cli:setup-debugger`
 - `ichiran/conn:init-all-caches`
 - `ichiran/conn:switch-conn-vars`

@@ -18,5 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran:ch`
-- `ichiran:text`
+_(none detected)_

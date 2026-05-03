@@ -18,4 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:pos-str`
+_(none detected)_

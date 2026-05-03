@@ -19,8 +19,6 @@ Declared ftype: `(function (t t t t &key (:as t)) *)`
 
 ## Source-walked references
 
-- `ichiran/dict:as`
-- `ichiran/dict:obj`
 - `ichiran/dict:reading`
 - `ichiran/dict:seq`
 - `ichiran/dict:word-info`

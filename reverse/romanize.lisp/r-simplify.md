@@ -73,5 +73,4 @@ _(none detected)_
 - `ichiran:kunrei-siki`
 - `ichiran:simplifications`
 - `ichiran:simplified-hepburn`
-- `ichiran:str`
 - `ichiran:traditional-hepburn`

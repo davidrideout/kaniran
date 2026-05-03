@@ -9,3 +9,8 @@
 ```lisp
 ("​" " " "‌は" "わ" "‌ハ" "ワ" "‌へ" "え" "‌ヘ" "エ" "‌" "")
 ```
+
+## Source-walked references
+
+- `ichiran/dict:*kana-hint-mod*`
+- `ichiran/dict:*kana-hint-space*`

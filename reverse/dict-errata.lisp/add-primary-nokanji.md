@@ -20,7 +20,6 @@ Declared ftype: `(function (t t) (values null &optional))`
 
 - `ichiran/dict:do-readings`
 - `ichiran/dict:kana-text`
-- `ichiran/dict:kt`
 - `ichiran/dict:nokanji`
 - `ichiran/dict:reading`
 - `ichiran/dict:seq`

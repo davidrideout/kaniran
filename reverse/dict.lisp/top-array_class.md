@@ -16,3 +16,7 @@
 | ARRAY | `nil` | INSTANCE | NIL | (TOP-ARRAY) | NIL |
 | COUNT | `0` | INSTANCE | NIL | (ITEM-COUNT) | NIL |
 
+
+## Source-walked references
+
+- `ichiran/dict:item-count`

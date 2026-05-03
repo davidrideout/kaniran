@@ -21,3 +21,9 @@
 | TEXT | text | `string` | (TEXT) | (TEXT) |
 | ORD | ord | `integer` | (ORD) | (ORD) |
 
+
+## Source-walked references
+
+- `ichiran/dict:id`
+- `ichiran/dict:ord`
+- `ichiran/dict:sense-id`

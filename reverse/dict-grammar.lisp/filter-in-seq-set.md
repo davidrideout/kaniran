@@ -23,4 +23,3 @@ Declared ftype: `(function * (values function &optional))`
 
 - `ichiran/dict:segment`
 - `ichiran/dict:segment-info`
-- `ichiran/dict:seqs`

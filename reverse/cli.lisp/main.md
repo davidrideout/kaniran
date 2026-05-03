@@ -24,16 +24,8 @@ Declared ftype: `(function nil (values null &optional))`
 ## Source-walked references
 
 - `ichiran/characters:join`
-- `ichiran/cli:con`
-- `ichiran/cli:free-args`
-- `ichiran/cli:info`
-- `ichiran/cli:input`
-- `ichiran/cli:limit-value`
-- `ichiran/cli:options`
 - `ichiran/cli:print-error`
 - `ichiran/cli:print-romanize-info`
-- `ichiran/cli:r`
-- `ichiran/cli:result`
 - `ichiran/cli:unknown-option`
 - `ichiran/conn:load-connection-from-env`
 - `ichiran:romanize`

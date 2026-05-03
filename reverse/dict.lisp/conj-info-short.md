@@ -26,5 +26,4 @@ Declared ftype: `(function (t) (values simple-string &optional))`
 - `ichiran/dict:conj-neg`
 - `ichiran/dict:conj-type`
 - `ichiran/dict:get-conj-description`
-- `ichiran/dict:obj`
 - `ichiran/dict:pos`

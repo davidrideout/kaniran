@@ -24,9 +24,3 @@ _(none detected)_
 - `ichiran/conn:with-db`
 - `ichiran/dict:entry`
 - `ichiran/dict:entry-digest`
-- `ichiran/maintenance:conn`
-- `ichiran/maintenance:entry-var`
-- `ichiran/maintenance:seq`
-- `ichiran/maintenance:seq-set`
-- `ichiran/maintenance:test`
-- `ichiran/maintenance:x`

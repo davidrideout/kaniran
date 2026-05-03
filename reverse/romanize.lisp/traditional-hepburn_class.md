@@ -15,3 +15,8 @@
 |---|---|---|---|---|---|
 | SIMPLIFICATIONS | `'("oo" "ō" "ou" "ō" "uu" "ū")` | INSTANCE | NIL | NIL | NIL |
 
+
+## Source-walked references
+
+- `ichiran:simplifications`
+- `ichiran:simplified-hepburn`

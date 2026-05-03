@@ -19,6 +19,5 @@ Declared ftype: `(function (t t &rest t) *)`
 ## Source-walked references
 
 - `ichiran/dict:add-new-sense`
-- `ichiran/dict:glosses`
 - `ichiran/dict:pos`
 - `ichiran/dict:seq`

@@ -19,5 +19,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/test:*delays*`
-- `ichiran/test:body`
-- `ichiran/test:name`

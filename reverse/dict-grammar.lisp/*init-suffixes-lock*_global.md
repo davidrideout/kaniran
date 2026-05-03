@@ -11,3 +11,7 @@
 ```
 
 _(value is not round-trippable via `read` — likely contains closures, classes, or other unreadable shapes)_
+
+## Source-walked references
+
+_(none detected)_

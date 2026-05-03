@@ -18,6 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/maintenance:contents`
-- `ichiran/maintenance:filename`
-- `ichiran/maintenance:regex`
+_(none detected)_

@@ -303,3 +303,7 @@ Hash-table — 292 entries, test: `equal`
   ("zz" . #S(ICHIRAN::RMAP-ITEM :TEXT "zz" :KANA "っ" :NEXT "z"))
   ("-" . #S(ICHIRAN::RMAP-ITEM :TEXT "-" :KANA "ー" :NEXT NIL)))
 ```
+
+## Source-walked references
+
+_(none detected)_

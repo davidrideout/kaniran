@@ -20,3 +20,8 @@
 | KANJI-ID | kanji_id | `integer` | (KANJI-ID) | (KANJI-ID) |
 | TEXT | text | `string` | (TEXT) | (TEXT) |
 
+
+## Source-walked references
+
+- `ichiran/kanji:id`
+- `ichiran/kanji:kanji-id`

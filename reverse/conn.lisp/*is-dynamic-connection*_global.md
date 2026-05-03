@@ -11,3 +11,7 @@
 ```lisp
 NIL
 ```
+
+## Source-walked references
+
+_(none detected)_

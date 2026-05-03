@@ -32,19 +32,6 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:collection`
-- `ichiran/dict:done`
-- `ichiran/dict:downto`
-- `ichiran/dict:for`
-- `ichiran/dict:from`
-- `ichiran/dict:idx`
-- `ichiran/dict:item`
-- `ichiran/dict:len`
 - `ichiran/dict:make-top-array-item`
-- `ichiran/dict:obj`
-- `ichiran/dict:payload`
-- `ichiran/dict:prev-item`
-- `ichiran/dict:score`
 - `ichiran/dict:tai-score`
 - `ichiran/dict:top-array`
-- `ichiran/dict:until`

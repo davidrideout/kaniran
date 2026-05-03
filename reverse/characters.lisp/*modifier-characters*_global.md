@@ -9,3 +9,7 @@
 ```lisp
 (:+A "ぁァ" :+I "ぃィ" :+U "ぅゥ" :+E "ぇェ" :+O "ぉォ" :+YA "ゃャ" :+YU "ゅュ" :+YO "ょョ" :+WA "ゎヮ" :LONG-VOWEL "ー")
 ```
+
+## Source-walked references
+
+_(none detected)_

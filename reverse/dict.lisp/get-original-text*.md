@@ -22,17 +22,8 @@ Declared ftype: `(function (t t) (values list &optional))`
 
 ## Source-walked references
 
-- `ichiran/dict:collect`
 - `ichiran/dict:conj-data`
 - `ichiran/dict:conj-data-from`
 - `ichiran/dict:conj-data-src-map`
 - `ichiran/dict:conj-data-via`
-- `ichiran/dict:conj-datas`
-- `ichiran/dict:for`
 - `ichiran/dict:get-conj-data`
-- `ichiran/dict:in`
-- `ichiran/dict:new-cd`
-- `ichiran/dict:src-text`
-- `ichiran/dict:src-txt`
-- `ichiran/dict:texts`
-- `ichiran/dict:txt`

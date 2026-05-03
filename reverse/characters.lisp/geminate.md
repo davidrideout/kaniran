@@ -18,5 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/characters:fresh`
-- `ichiran/characters:txt`
+_(none detected)_

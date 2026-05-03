@@ -20,19 +20,4 @@ Declared ftype: `(function (t t) (values (or cons boolean) &optional t))`
 
 ## Source-walked references
 
-- `ichiran/characters:across`
-- `ichiran/characters:best-match`
-- `ichiran/characters:best-match-value`
-- `ichiran/characters:c1`
-- `ichiran/characters:c2`
-- `ichiran/characters:for`
-- `ichiran/characters:from`
-- `ichiran/characters:i`
-- `ichiran/characters:j`
-- `ichiran/characters:l1`
-- `ichiran/characters:l2`
-- `ichiran/characters:m`
-- `ichiran/characters:match`
-- `ichiran/characters:s1`
-- `ichiran/characters:s2`
-- `ichiran/characters:value`
+_(none detected)_

@@ -20,7 +20,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/dict:*penalty-list*`
-- `ichiran/dict:body`
-- `ichiran/dict:left-var`
-- `ichiran/dict:name`
-- `ichiran/dict:right-var`

@@ -19,7 +19,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:body`
-- `ichiran/dict:node-list`
-- `ichiran/dict:node-var`
-- `ichiran/dict:ord-var`
+_(none detected)_

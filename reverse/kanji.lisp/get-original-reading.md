@@ -21,5 +21,3 @@ Declared ftype: `(function (t &optional t t) (values t &optional))`
 
 - `ichiran/characters:rendaku`
 - `ichiran/characters:unrendaku`
-- `ichiran/kanji:geminated`
-- `ichiran/kanji:rtext`

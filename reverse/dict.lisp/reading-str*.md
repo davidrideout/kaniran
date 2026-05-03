@@ -18,5 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:kana`
-- `ichiran/dict:kanji`
+_(none detected)_

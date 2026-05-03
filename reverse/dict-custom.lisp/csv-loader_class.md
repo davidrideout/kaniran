@@ -17,3 +17,10 @@
 | SOURCE-FILE | `nil` | INSTANCE | (SOURCE-FILE) | (SOURCE-FILE) | NIL |
 | CSV-OPTIONS | `'(:separator #\, :skip-first-p nil)` | INSTANCE | NIL | (CSV-OPTIONS) | NIL |
 
+
+## Source-walked references
+
+- `ichiran/custom:csv-options`
+- `ichiran/custom:custom-source`
+- `ichiran/custom:description`
+- `ichiran/custom:source-file`

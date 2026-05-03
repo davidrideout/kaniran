@@ -19,11 +19,7 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/conn:*connection*`
-- `ichiran/kanji:for`
-- `ichiran/kanji:in`
 - `ichiran/kanji:kanji`
 - `ichiran/kanji:meaning`
 - `ichiran/kanji:okurigana`
 - `ichiran/kanji:reading`
-- `ichiran/kanji:table`
-- `ichiran/kanji:tables`

@@ -18,5 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:c1`
-- `ichiran/dict:c2`
+_(none detected)_

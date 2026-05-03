@@ -18,4 +18,4 @@ Declared ftype: `(function (t) *)`
 
 ## Source-walked references
 
-- `ichiran:cc-list`
+_(none detected)_

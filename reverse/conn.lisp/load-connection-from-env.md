@@ -21,4 +21,3 @@ Declared ftype: `(function nil (values boolean &optional))`
 - `ichiran/conn:*connection*`
 - `ichiran/conn:*is-dynamic-connection*`
 - `ichiran/conn:get-ichiran-connection-env`
-- `ichiran/conn:ichiran-connection`

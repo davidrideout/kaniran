@@ -20,13 +20,5 @@ Declared ftype: `(function (t t &key (:unique t)) (values list &optional))`
 ## Source-walked references
 
 - `ichiran/conn:ensure`
-- `ichiran/dict:args`
-- `ichiran/dict:collect`
-- `ichiran/dict:counter`
-- `ichiran/dict:counter-args`
-- `ichiran/dict:counter-obj`
-- `ichiran/dict:for`
-- `ichiran/dict:in`
-- `ichiran/dict:unique`
 - `ichiran/dict:verify`
 - `ichiran/numbers:not-a-number`

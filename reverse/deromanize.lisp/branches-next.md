@@ -22,19 +22,9 @@ Declared ftype: `(function (t) (values sequence &optional))`
 
 ## Source-walked references
 
-- `ichiran:b`
-- `ichiran:branches`
-- `ichiran:collect`
-- `ichiran:for`
-- `ichiran:in`
 - `ichiran:join-branches`
-- `ichiran:k`
-- `ichiran:key`
-- `ichiran:kr`
 - `ichiran:kr-branch`
 - `ichiran:kr-concat`
 - `ichiran:kr-pattern`
 - `ichiran:kr-rest`
-- `ichiran:new-branches`
-- `ichiran:new-len`
 - `ichiran:romaji-next`

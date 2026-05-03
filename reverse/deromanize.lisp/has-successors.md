@@ -18,12 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran:below`
-- `ichiran:end`
-- `ichiran:for`
-- `ichiran:from`
-- `ichiran:hash`
-- `ichiran:in`
-- `ichiran:s`
-- `ichiran:ss`
-- `ichiran:strings`
+_(none detected)_

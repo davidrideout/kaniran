@@ -922,6 +922,10 @@ Counts: function=4, macro=2
 - [okurigana](kanji.lisp/okurigana_dao.md) — dao-class (`ichiran/kanji`)
 - [reading](kanji.lisp/reading_dao.md) — dao-class (`ichiran/kanji`)
 
+## numbers.lisp
+
+- [not-a-number](numbers.lisp/not-a-number_condition.md) — condition (`ichiran/numbers`)
+
 ## romanize.lisp
 
 - [generic-hepburn](romanize.lisp/generic-hepburn_class.md) — class (`ichiran`)

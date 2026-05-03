@@ -27,6 +27,4 @@ Declared ftype: `(function (t t)
 - `ichiran:kr-canonical`
 - `ichiran:kr-pattern`
 - `ichiran:kr-rest`
-- `ichiran:kr1`
-- `ichiran:kr2`
 - `ichiran:make-kana-representation`

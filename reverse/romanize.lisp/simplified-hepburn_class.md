@@ -15,3 +15,8 @@
 |---|---|---|---|---|---|
 | SIMPLIFICATIONS | `nil` | INSTANCE | (SIMPLIFICATIONS) | (SIMPLIFICATIONS) | NIL |
 
+
+## Source-walked references
+
+- `ichiran:generic-hepburn`
+- `ichiran:simplifications`

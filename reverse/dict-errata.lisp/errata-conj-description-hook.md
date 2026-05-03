@@ -23,4 +23,3 @@ _(none detected)_
 - `ichiran/dict:+conj-adverbial+`
 - `ichiran/dict:+conj-causative-su+`
 - `ichiran/dict:+conj-negative-stem+`
-- `ichiran/dict:hash`

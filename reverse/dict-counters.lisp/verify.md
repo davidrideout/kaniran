@@ -50,10 +50,7 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:counter`
 - `ichiran/dict:counter-allowed`
 - `ichiran/dict:counter-days-on`
 - `ichiran/dict:counter-tsu`
-- `ichiran/dict:n`
 - `ichiran/dict:number-value`
-- `ichiran/dict:unique`

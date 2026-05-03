@@ -21,9 +21,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/dict:*suffix-list*`
-- `ichiran/dict:body`
-- `ichiran/dict:key`
-- `ichiran/dict:name`
-- `ichiran/dict:root-var`
-- `ichiran/dict:suf-obj-var`
-- `ichiran/dict:suf-var`

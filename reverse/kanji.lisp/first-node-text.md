@@ -20,6 +20,3 @@ Declared ftype: `(function (t &key (:default t) (:wrapper t)) *)`
 ## Source-walked references
 
 - `ichiran/dict:node-text`
-- `ichiran/kanji:default`
-- `ichiran/kanji:nodes`
-- `ichiran/kanji:wrapper`

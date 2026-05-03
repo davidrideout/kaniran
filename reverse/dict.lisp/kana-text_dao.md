@@ -26,3 +26,15 @@
 | NOKANJI | nokanji | `boolean` | (NOKANJI) | (NOKANJI) |
 | BEST-KANJI | best_kanji | `(or s-sql:db-null string)` | (BEST-KANJI) | (BEST-KANJI) |
 
+
+## Source-walked references
+
+- `ichiran/dict:best-kanji`
+- `ichiran/dict:common`
+- `ichiran/dict:common-tags`
+- `ichiran/dict:conjugate-p`
+- `ichiran/dict:id`
+- `ichiran/dict:nokanji`
+- `ichiran/dict:ord`
+- `ichiran/dict:seq`
+- `ichiran/dict:simple-text`

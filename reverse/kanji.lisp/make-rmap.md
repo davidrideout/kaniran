@@ -19,14 +19,4 @@ Declared ftype: `(function (t) (values list &optional))`
 ## Source-walked references
 
 - `ichiran/characters:*kanji-regex*`
-- `ichiran/kanji:below`
-- `ichiran/kanji:collect`
-- `ichiran/kanji:else`
-- `ichiran/kanji:end`
-- `ichiran/kanji:for`
-- `ichiran/kanji:from`
 - `ichiran/kanji:get-normal-readings`
-- `ichiran/kanji:prev-kanji`
-- `ichiran/kanji:start`
-- `ichiran/kanji:str`
-- `ichiran/kanji:with`

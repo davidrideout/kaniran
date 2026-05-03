@@ -20,5 +20,4 @@ Declared ftype: `(function (t) (values (simple-array character (*)) &optional))`
 
 - `ichiran/characters:*all-characters*`
 - `ichiran/characters:*char-class-hash*`
-- `ichiran/characters:str`
 - `ichiran/characters:to-normal-char`

@@ -21,3 +21,7 @@
 | PROP | `nil` | `t` | `conj-data-prop` |
 | SRC-MAP | `nil` | `t` | `conj-data-src-map` |
 
+
+## Source-walked references
+
+- `ichiran/dict:seq`

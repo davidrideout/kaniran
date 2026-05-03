@@ -18,8 +18,6 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:conj-ids`
 - `ichiran/dict:conjugation`
 - `ichiran/dict:id`
 - `ichiran/dict:seq`
-- `ichiran/dict:via`

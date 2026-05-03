@@ -9,3 +9,7 @@
 ```lisp
 ("n" "vs" "adj-na")
 ```
+
+## Source-walked references
+
+_(none detected)_

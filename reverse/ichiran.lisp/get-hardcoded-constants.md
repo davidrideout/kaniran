@@ -18,12 +18,4 @@ Declared ftype: `(function (&key (:regex t)) (values list &optional))`
 
 ## Source-walked references
 
-- `ichiran/maintenance:component`
-- `ichiran/maintenance:filename`
-- `ichiran/maintenance:for`
-- `ichiran/maintenance:in`
-- `ichiran/maintenance:name`
-- `ichiran/maintenance:nconcing`
-- `ichiran/maintenance:regex`
 - `ichiran/maintenance:regex-file`
-- `ichiran/maintenance:with`

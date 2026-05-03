@@ -18,5 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/kanji:sample`
-- `ichiran/kanji:total`
+_(none detected)_

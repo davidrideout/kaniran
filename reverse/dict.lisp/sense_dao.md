@@ -20,3 +20,9 @@
 | SEQ | seq | `integer` | (SEQ) | (SEQ) |
 | ORD | ord | `integer` | (ORD) | (ORD) |
 
+
+## Source-walked references
+
+- `ichiran/dict:id`
+- `ichiran/dict:ord`
+- `ichiran/dict:seq`

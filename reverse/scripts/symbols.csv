@@ -62,9 +62,9 @@ ichiran/characters:unrendaku,unrendaku,ichiran/characters,characters.lisp,308,fn
 ichiran/characters:voice-char,voice-char,ichiran/characters,characters.lisp,91,fn,ported,
 ichiran/cli:build,build,ichiran/cli,cli.lisp,102,fn,pending,
 ichiran/cli:main,main,ichiran/cli,cli.lisp,48,fn,pending,
-ichiran/cli:print-error,print-error,ichiran/cli,cli.lisp,37,fn,skip,"CLI-only stderr/debugger glue; Rust uses eprintln!/anyhow/panic-hook. Belongs in a future kaniran-cli crate, not kaniran-core."
+ichiran/cli:print-error,print-error,ichiran/cli,cli.lisp,37,fn,skip,"""CLI-only stderr/debugger glue; Rust uses eprintln!/anyhow/panic-hook. Belongs in a future kaniran-cli crate"
 ichiran/cli:print-romanize-info,print-romanize-info,ichiran/cli,cli.lisp,44,fn,pending,
-ichiran/cli:setup-debugger,setup-debugger,ichiran/cli,cli.lisp,95,fn,skip,"CLI-only stderr/debugger glue; Rust uses eprintln!/anyhow/panic-hook. Belongs in a future kaniran-cli crate, not kaniran-core."
+ichiran/cli:setup-debugger,setup-debugger,ichiran/cli,cli.lisp,95,fn,skip,"""CLI-only stderr/debugger glue; Rust uses eprintln!/anyhow/panic-hook. Belongs in a future kaniran-cli crate"
 ichiran/cli:unknown-option,unknown-option,ichiran/cli,cli.lisp,33,fn,pending,
 ichiran/conn:*conn-var-cache*,*conn-var-cache*,ichiran/conn,conn.lisp,41,global,skip,Cache mapping (var . spec) -> value for the per-connection rebinding. Subsumed by per-Ctx field ownership.
 ichiran/conn:*conn-vars*,*conn-vars*,ichiran/conn,conn.lisp,39,global,skip,Registry of per-connection-rebound globals. Unneeded once each Ctx owns its caches directly.
@@ -72,10 +72,10 @@ ichiran/conn:*connection*,*connection*,ichiran/conn,settings.lisp,3,global,skip,
 ichiran/conn:*connection-env-var*,*connection-env-var*,ichiran/conn,conn.lisp,13,global,ported,
 ichiran/conn:*connections*,*connections*,ichiran/conn,settings.lisp,5,global,skip,Alist of secondary connection specs. Replaced by call-site Ctx::from_url(...) per database; no global registry.
 ichiran/conn:*debug*,*debug*,ichiran/conn,conn.lisp,20,global,skip,Debug-flag global gating dp. Replaced by the tracing crate's filter level.
-ichiran/conn:*is-dynamic-connection*,*is-dynamic-connection*,ichiran/conn,conn.lisp,14,global,skip,"Boolean marking 'connection came from env, do not cache across reloads'. Settings-loader concept; Rust is always-explicit Ctx::from_env() returning a Result."
+ichiran/conn:*is-dynamic-connection*,*is-dynamic-connection*,ichiran/conn,conn.lisp,14,global,skip,"""Boolean marking 'connection came from env"
 ichiran/conn:*test-var*,*test-var*,ichiran/conn,conn.lisp,0,global,skip,Test fixture for the def-conn-var rebinding system; obsolete with per-Ctx ownership.
 ichiran/conn:all-caches,all-caches,ichiran/conn,conn.lisp,110,fn,skip,Class-slot registry pattern doesn't translate. Replaced in Rust by per-cache OnceLock + DI when the DB layer lands; no 1:1 counterpart.
-ichiran/conn:cache,cache,ichiran/conn,conn.lisp,96,class,skip,"Class with one cached value, one mutex, registered in a class-side hash. Subsumed by typed OnceCell fields on Ctx (kani_ctx.rs); no 1:1 type."
+ichiran/conn:cache,cache,ichiran/conn,conn.lisp,96,class,skip,"""Class with one cached value"
 ichiran/conn:def-conn-var,def-conn-var,ichiran/conn,conn.lisp,41,macro,skip,Macro registering a global into the per-connection variable rebinding list. The cross-DB rebinding pattern is gone — each Ctx owns its caches directly.
 ichiran/conn:defcache,defcache,ichiran/conn,conn.lisp,135,macro,skip,Macro registering a cache + defining init-cache method. Rust shape has no registry; each cache is a typed Ctx field with hand-written accessor.
 ichiran/conn:dp,dp,ichiran/conn,conn.lisp,149,fn,skip,Debug-printer wrapper around *debug*. Replaced by the tracing crate's emit + filter level.
@@ -84,9 +84,9 @@ ichiran/conn:get-cache,get-cache,ichiran/conn,conn.lisp,113,fn,skip,Looks up a c
 ichiran/conn:get-ichiran-connection-env,get-ichiran-connection-env,ichiran/conn,conn.lisp,154,fn,ported,
 ichiran/conn:get-spec,get-spec,ichiran/conn,conn.lisp,25,fn,skip,Lisp dbid-dispatch (nil/list/keyword → connection spec) doesn't translate. Connection registry will be handled via the Rust config crate when the DB layer lands.
 ichiran/conn:init-all-caches,init-all-caches,ichiran/conn,conn.lisp,144,fn,skip,Class-slot registry pattern doesn't translate. Replaced in Rust by per-cache OnceLock + DI when the DB layer lands; no 1:1 counterpart.
-ichiran/conn:init-cache,init-cache,ichiran/conn,conn.lisp,0,gf,skip,"Generic-function dispatch on a cache name keyword. Per-cache builders become methods on Ctx, not generic dispatch."
+ichiran/conn:init-cache,init-cache,ichiran/conn,conn.lisp,0,gf,skip,"""Generic-function dispatch on a cache name keyword. Per-cache builders become methods on Ctx"
 ichiran/conn:let-db,let-db,ichiran/conn,conn.lisp,32,macro,skip,Rebinds *connection* for a dynamic scope. Multi-DB usage in Rust is Ctx::from_url(other); no scope-binding macro.
-ichiran/conn:load-connection-from-env,load-connection-from-env,ichiran/conn,conn.lisp,166,fn,skip,"Side-effects-on-globals semantics (set *connection*, set *is-dynamic-connection*) replaced by Ctx::from_env() returning a Result directly. No standalone counterpart."
+ichiran/conn:load-connection-from-env,load-connection-from-env,ichiran/conn,conn.lisp,166,fn,skip,"""Side-effects-on-globals semantics (set *connection*"
 ichiran/conn:load-settings,load-settings,ichiran/conn,conn.lisp,76,fn,skip,Loads settings.lisp and overrides connection from env. No counterpart in Rust — config comes from env (or layered config-crate sources) via Ctx::from_env.
 ichiran/conn:reset-cache,reset-cache,ichiran/conn,conn.lisp,0,gf,skip,Generic-function force-rebuild of a named cache. Per-cache reset becomes a method on Ctx; no name->instance dispatch.
 ichiran/conn:switch-conn-vars,switch-conn-vars,ichiran/conn,conn.lisp,65,fn,skip,Per-connection variable rebinding from *conn-var-cache*. Rust has no dynamic-variable shadowing; replaced by per-Database struct ownership of caches when the DB layer lands. Same family as all-caches / get-spec.
@@ -144,10 +144,10 @@ ichiran/dict:*aux-verbs*,*aux-verbs*,ichiran/dict,dict-grammar.lisp,1072,global,
 ichiran/dict:*conj-description*,*conj-description*,ichiran/dict,dict-load.lisp,0,global,pending,
 ichiran/dict:*conj-rules*,*conj-rules*,ichiran/dict,dict-load.lisp,0,global,pending,
 ichiran/dict:*copulae*,*copulae*,ichiran/dict,dict-errata.lisp,1205,global,pending,
-ichiran/dict:*counter-accepts*,*counter-accepts*,ichiran/dict,dict-counters.lisp,217,global,pending,
+ichiran/dict:*counter-accepts*,*counter-accepts*,ichiran/dict,dict-counters.lisp,217,global,ported,
 ichiran/dict:*counter-cache*,*counter-cache*,ichiran/dict,dict-counters.lisp,0,global,pending,
-ichiran/dict:*counter-foreign*,*counter-foreign*,ichiran/dict,dict-counters.lisp,219,global,pending,
-ichiran/dict:*counter-suffixes*,*counter-suffixes*,ichiran/dict,dict-counters.lisp,213,global,pending,
+ichiran/dict:*counter-foreign*,*counter-foreign*,ichiran/dict,dict-counters.lisp,219,global,ported,
+ichiran/dict:*counter-suffixes*,*counter-suffixes*,ichiran/dict,dict-counters.lisp,213,global,ported,
 ichiran/dict:*disable-hints*,*disable-hints*,ichiran/dict,dict.lisp,78,global,pending,
 ichiran/dict:*do-not-conjugate*,*do-not-conjugate*,ichiran/dict,dict-load.lisp,303,global,pending,
 ichiran/dict:*do-not-conjugate-seq*,*do-not-conjugate-seq*,ichiran/dict,dict-load.lisp,305,global,pending,
@@ -870,7 +870,7 @@ ichiran/numbers:*digit-to-kana*,*digit-to-kana*,ichiran/numbers,numbers.lisp,25,
 ichiran/numbers:*power-kanji*,*power-kanji*,ichiran/numbers,numbers.lisp,7,global,ported,
 ichiran/numbers:*power-to-kana*,*power-to-kana*,ichiran/numbers,numbers.lisp,28,global,ported,
 ichiran/numbers:group-to-kana,group-to-kana,ichiran/numbers,numbers.lisp,117,fn,ported,
-ichiran/numbers:not-a-number,not-a-number,ichiran/numbers,numbers.lisp,67,condition,ported,
+ichiran/numbers:not-a-number,not-a-number,ichiran/numbers,numbers.lisp,0,condition,ported,
 ichiran/numbers:num-sandhi,num-sandhi,ichiran/numbers,numbers.lisp,0,gf,ported,
 ichiran/numbers:number-to-kana,number-to-kana,ichiran/numbers,numbers.lisp,125,fn,ported,
 ichiran/numbers:number-to-kanji,number-to-kanji,ichiran/numbers,numbers.lisp,35,fn,ported,

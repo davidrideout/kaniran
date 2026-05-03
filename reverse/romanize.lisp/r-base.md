@@ -41,5 +41,4 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran:generic-romanization`
-- `ichiran:item`
 - `ichiran:kana-table`

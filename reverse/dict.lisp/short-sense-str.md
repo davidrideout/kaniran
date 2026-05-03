@@ -20,10 +20,5 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/dict:gloss`
-- `ichiran/dict:gloss.sense-id`
 - `ichiran/dict:sense`
-- `ichiran/dict:sense.id`
-- `ichiran/dict:sense.ord`
-- `ichiran/dict:sense.seq`
 - `ichiran/dict:seq`
-- `ichiran/dict:with-pos`

@@ -15,3 +15,8 @@
 |---|---|---|---|---|---|
 | DIGIT-SET | `nil` | INSTANCE | (DIGIT-SET) | (DIGIT-SET) | NIL |
 
+
+## Source-walked references
+
+- `ichiran/dict:counter-text`
+- `ichiran/dict:digit-set`

@@ -18,3 +18,7 @@
 | SEQ | `nil` | `t` | `xml-entry-seq` |
 | CONTENT | `nil` | `t` | `xml-entry-content` |
 
+
+## Source-walked references
+
+_(none detected)_

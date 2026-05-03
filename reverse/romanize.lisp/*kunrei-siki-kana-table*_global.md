@@ -94,3 +94,7 @@ Hash-table — 83 entries, test: `eql`
   (:VU . "vu")
   (:+WA . "wa"))
 ```
+
+## Source-walked references
+
+_(none detected)_

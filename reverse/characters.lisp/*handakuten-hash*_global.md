@@ -16,3 +16,7 @@ Hash-table — 5 entries, test: `eql`
   (:HE . :PE)
   (:HO . :PO))
 ```
+
+## Source-walked references
+
+_(none detected)_

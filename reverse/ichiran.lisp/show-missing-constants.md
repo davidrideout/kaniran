@@ -24,5 +24,3 @@ Declared ftype: `(function (t t) (values null &optional))`
 - `ichiran/maintenance:collect-entries`
 - `ichiran/maintenance:display-seq-set`
 - `ichiran/maintenance:get-hardcoded-constants`
-- `ichiran/maintenance:new-conn`
-- `ichiran/maintenance:old-conn`

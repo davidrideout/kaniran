@@ -26,6 +26,4 @@ Declared ftype: `(function (t &key (:method t)) *)`
 - `ichiran/dict:word-info`
 - `ichiran/dict:word-info-text`
 - `ichiran:*default-romanization-method*`
-- `ichiran:orig-text`
 - `ichiran:romanize-word`
-- `ichiran:wk`

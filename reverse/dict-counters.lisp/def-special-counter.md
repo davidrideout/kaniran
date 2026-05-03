@@ -20,12 +20,4 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/dict:*special-counters*`
-- `ichiran/dict:args`
-- `ichiran/dict:args-suffix`
-- `ichiran/dict:body`
-- `ichiran/dict:class-var`
-- `ichiran/dict:kana-var`
-- `ichiran/dict:keys-var`
-- `ichiran/dict:readings-var`
 - `ichiran/dict:seq`
-- `ichiran/dict:text-var`

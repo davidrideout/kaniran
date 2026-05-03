@@ -20,14 +20,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:base-text`
-- `ichiran/dict:downto`
-- `ichiran/dict:finally`
-- `ichiran/dict:for`
-- `ichiran/dict:from`
-- `ichiran/dict:ib`
-- `ichiran/dict:ir`
-- `ichiran/dict:lb`
-- `ichiran/dict:lr`
 - `ichiran/dict:reading`
-- `ichiran/dict:with`

@@ -11,3 +11,7 @@ Hash-table — 0 entries, test: `eql`
 ```lisp
 (:hash-table :test eql :count 0)
 ```
+
+## Source-walked references
+
+_(none detected)_

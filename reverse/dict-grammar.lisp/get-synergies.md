@@ -19,8 +19,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/dict:*synergy-list*`
-- `ichiran/dict:fn`
-- `ichiran/dict:for`
-- `ichiran/dict:in`
-- `ichiran/dict:segment-list-left`
-- `ichiran/dict:segment-list-right`

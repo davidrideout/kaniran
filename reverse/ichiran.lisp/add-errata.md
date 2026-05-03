@@ -21,4 +21,3 @@ Declared ftype: `(function (&optional t) *)`
 
 - `ichiran/conn:with-db`
 - `ichiran/dict:add-errata`
-- `ichiran/maintenance:conn`

@@ -79,7 +79,6 @@ Declared ftype: `(function nil *)`
 - `ichiran/dict:entry`
 - `ichiran/dict:kana-text`
 - `ichiran/dict:kanji-text`
-- `ichiran/dict:prop`
 - `ichiran/dict:rearrange-readings-conj`
 - `ichiran/dict:remove-hiragana-nokanji`
 - `ichiran/dict:root-p`

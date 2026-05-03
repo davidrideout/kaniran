@@ -27,7 +27,6 @@ Declared ftype: `(function (t t) (values t &optional))`
 - `ichiran/conn:*connection*`
 - `ichiran/kanji:calculate-perc`
 - `ichiran/kanji:id`
-- `ichiran/kanji:js`
 - `ichiran/kanji:okurigana`
 - `ichiran/kanji:prefixp`
 - `ichiran/kanji:reading`
@@ -35,6 +34,5 @@ Declared ftype: `(function (t t) (values t &optional))`
 - `ichiran/kanji:reading-type`
 - `ichiran/kanji:stat-common`
 - `ichiran/kanji:suffixp`
-- `ichiran/kanji:total`
 - `ichiran:*hepburn-basic*`
 - `ichiran:romanize-word`

@@ -21,10 +21,5 @@ Declared ftype: `(function
 
 ## Source-walked references
 
-- `ichiran/dict:c`
-- `ichiran/dict:cij`
 - `ichiran/dict:conj-info-json*`
-- `ichiran/dict:conjugations`
-- `ichiran/dict:fcij`
-- `ichiran/dict:has-gloss`
 - `ichiran/dict:seq`

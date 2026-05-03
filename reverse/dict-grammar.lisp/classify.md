@@ -18,13 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:collect`
-- `ichiran/dict:element`
-- `ichiran/dict:else`
-- `ichiran/dict:filter`
-- `ichiran/dict:finally`
-- `ichiran/dict:for`
-- `ichiran/dict:in`
-- `ichiran/dict:into`
-- `ichiran/dict:nope`
-- `ichiran/dict:yep`
+_(none detected)_

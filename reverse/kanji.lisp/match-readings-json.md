@@ -20,8 +20,6 @@ Declared ftype: `(function (t t) *)`
 ## Source-walked references
 
 - `ichiran/characters:*kanji-regex*`
-- `ichiran/kanji:match`
 - `ichiran/kanji:match-readings`
 - `ichiran/kanji:process-match-json`
 - `ichiran/kanji:reading`
-- `ichiran/kanji:str`

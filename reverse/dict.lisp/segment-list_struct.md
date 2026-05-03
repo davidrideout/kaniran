@@ -21,3 +21,7 @@
 | TOP | `nil` | `t` | `segment-list-top` |
 | MATCHES | `0` | `t` | `segment-list-matches` |
 
+
+## Source-walked references
+
+_(none detected)_

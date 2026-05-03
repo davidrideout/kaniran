@@ -102,3 +102,17 @@ Hash-table — 91 entries, test: `eql`
   (1606950 . #<FUNCTION (LAMBDA (#:RV4) :IN "/home/david/storage/ichiran/dict-counters.lisp") {53DD989B}>)
   (1294940 . #<FUNCTION (LAMBDA (#:RV4) :IN "/home/david/storage/ichiran/dict-counters.lisp") {53DD9CFB}>))
 ```
+
+## Source-walked references
+
+- `ichiran/dict:counter-age`
+- `ichiran/dict:counter-days-kun`
+- `ichiran/dict:counter-days-on`
+- `ichiran/dict:counter-halfhour`
+- `ichiran/dict:counter-hifumi`
+- `ichiran/dict:counter-months`
+- `ichiran/dict:counter-people`
+- `ichiran/dict:counter-text`
+- `ichiran/dict:counter-tsu`
+- `ichiran/dict:counter-wari`
+- `ichiran/dict:digit-set`

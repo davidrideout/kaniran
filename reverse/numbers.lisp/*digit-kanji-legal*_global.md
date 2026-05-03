@@ -9,3 +9,7 @@
 ```lisp
 "〇壱弐参四五六七八九拾"
 ```
+
+## Source-walked references
+
+_(none detected)_

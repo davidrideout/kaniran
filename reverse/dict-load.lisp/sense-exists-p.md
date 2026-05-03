@@ -19,17 +19,6 @@ Declared ftype: `(function (t t t) (values boolean &optional))`
 ## Source-walked references
 
 - `ichiran/characters:join`
-- `ichiran/dict:for`
 - `ichiran/dict:gloss`
-- `ichiran/dict:glosses`
-- `ichiran/dict:glosses-str`
-- `ichiran/dict:in`
 - `ichiran/dict:pos`
-- `ichiran/dict:positions`
-- `ichiran/dict:props`
-- `ichiran/dict:rpos`
 - `ichiran/dict:sense`
-- `ichiran/dict:senses`
-- `ichiran/dict:then`
-- `ichiran/dict:thereis`
-- `ichiran/dict:with`

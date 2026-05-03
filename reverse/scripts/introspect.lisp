@@ -28,6 +28,7 @@
 (funcall (read-from-string "ql:quickload") '(:ichiran :ichiran/cli) :silent t)
 
 (require :sb-introspect)
+(require :sb-cltl2)
 
 ;;; --- Output dir ------------------------------------------------------------
 (defparameter *output-dir-string*
@@ -64,6 +65,29 @@
 
 (defparameter *universe* (collect-universe))
 (format t ";; Universe size: ~a symbols~%" (hash-table-count *universe*))
+
+(defun has-any-definition-p (sym)
+  "True if SYM is bound to at least one of: function, macro, generic
+   function, global value, class (incl. condition / DAO / struct), or
+   deftype. Used to filter source-walk output so lexical bindings
+   (loop keywords, let-bound locals, labels-defined helpers) that
+   happened to get interned in an ichiran package don't show up as
+   reference edges."
+  (or (fboundp sym)
+      (boundp sym)
+      (handler-case (find-class sym nil) (error () nil))
+      ;; Could also check deftype, but it's covered by find-class for
+      ;; class-named types and ftype for function-named ones; keep it
+      ;; conservative.
+      nil))
+
+(defparameter *defined-universe*
+  (let ((u (make-hash-table :test 'eq)))
+    (loop for sym being the hash-keys of *universe*
+          when (has-any-definition-p sym) do (setf (gethash sym u) t))
+    u))
+(format t ";; Defined-universe size: ~a symbols~%"
+        (hash-table-count *defined-universe*))
 
 ;;; --- Classification --------------------------------------------------------
 (defun classify (sym)
@@ -280,6 +304,30 @@
   '("DEFUN" "DEFMACRO" "DEFMETHOD" "DEFGENERIC" "DEFCLASS" "DEFSTRUCT"
     "DEFINE-CONDITION" "DEFTYPE" "DEFPARAMETER" "DEFVAR" "DEFCONSTANT"))
 
+;;; DSL definers — macros whose call shape is (def-something X ...) where
+;;; X is the registered subject. Each entry is (macro-name extractor) where
+;;; extractor takes the surface form and returns the ichiran symbol that
+;;; the form populates/registers (or nil if the form should be skipped).
+;;; These forms get sb-cltl2:macroexpand-all'd before the walker runs, so
+;;; symbols inserted by the macro shell (e.g. `init-cache` from `defcache`'s
+;;; expansion) are captured in addition to the user-source body.
+(defparameter *dsl-definer-extractors*
+  (let ((tbl (make-hash-table :test 'equal)))
+    ;; (defcache _name var &body init-body) — subject is var (3rd position)
+    (setf (gethash "DEFCACHE" tbl)
+          (lambda (form)
+            (and (consp (cdr form)) (consp (cddr form))
+                 (let ((v (caddr form)))
+                   (and (symbolp v) (symbol-package v)
+                        (ichiran-package-p (symbol-package v)) v)))))
+    ;; (def-special-counter SEQ (&optional readings-var) &body body)
+    ;; — every call populates *special-counters*; subject is that global.
+    (setf (gethash "DEF-SPECIAL-COUNTER" tbl)
+          (lambda (form)
+            (declare (ignore form))
+            (find-symbol "*SPECIAL-COUNTERS*" :ichiran/dict)))
+    tbl))
+
 (defparameter *source-walk-deps* (make-hash-table :test 'eq)
   "Defining-symbol -> hash-set of ichiran-package symbols seen in its form.
    Methods are aggregated under the GF symbol — the runtime pass already
@@ -288,25 +336,37 @@
 
 (defun defining-symbol-of-form (form)
   "Return the ichiran symbol defined by FORM, or NIL.
-   Handles `(defstruct (name options) ...)` plus the common
-   `(defXXX name ...)` shape."
-  (when (and (consp form)
-             (symbolp (car form))
-             (member (symbol-name (car form))
-                     *defining-head-names* :test #'string=)
-             (consp (cdr form)))
-    (let ((second (cadr form)))
+   Handles `(defstruct (name options) ...)`, the common
+   `(defXXX name ...)` shape, and registered DSL macros via
+   *dsl-definer-extractors*."
+  (when (and (consp form) (symbolp (car form)) (consp (cdr form)))
+    (let* ((head-name (symbol-name (car form)))
+           (dsl (gethash head-name *dsl-definer-extractors*)))
       (cond
-        ((and (symbolp second)
-              (symbol-package second)
-              (ichiran-package-p (symbol-package second)))
-         second)
-        ((and (consp second)
-              (symbolp (car second))
-              (symbol-package (car second))
-              (ichiran-package-p (symbol-package (car second))))
-         (car second))
-        (t nil)))))
+        (dsl (handler-case (funcall dsl form) (error () nil)))
+        ((member head-name *defining-head-names* :test #'string=)
+         (let ((second (cadr form)))
+           (cond
+             ((and (symbolp second)
+                   (symbol-package second)
+                   (ichiran-package-p (symbol-package second)))
+              second)
+             ((and (consp second)
+                   (symbolp (car second))
+                   (symbol-package (car second))
+                   (ichiran-package-p (symbol-package (car second))))
+              (car second))
+             (t nil))))))))
+
+(defun maybe-macroexpand-form (form)
+  "If FORM is a registered DSL macro call, return its sb-cltl2:macroexpand-all
+   expansion (so macro-shell symbols like defcache's `init-cache` get walked).
+   Otherwise return FORM unchanged. Failures fall through to the surface form."
+  (if (and (consp form) (symbolp (car form))
+           (gethash (symbol-name (car form)) *dsl-definer-extractors*))
+      (handler-case (sb-cltl2:macroexpand-all form)
+        (error () form))
+      form))
 
 (defun walk-form-for-ichiran-syms (form set)
   "Collect every ichiran-package symbol from FORM into SET (a hash-set).
@@ -351,8 +411,9 @@
                         (when defsym
                           (let ((set (or (gethash defsym *source-walk-deps*)
                                          (setf (gethash defsym *source-walk-deps*)
-                                               (make-hash-table :test 'eq)))))
-                            (walk-form-for-ichiran-syms form set)))))))))
+                                               (make-hash-table :test 'eq))))
+                                (form-to-walk (maybe-macroexpand-form form)))
+                            (walk-form-for-ichiran-syms form-to-walk set)))))))))
     (error (c)
       (format t ";; error walking ~a: ~a~%" path c))))
 
@@ -392,9 +453,14 @@
       ((or (null set) (zerop (hash-table-count set)))
        (format out "_(none detected)_~%"))
       (t
+       ;; Filter against *defined-universe* — only symbols with at least
+       ;; one definition (fn / macro / gf / global / class / type) count.
+       ;; Drops lexical bindings (loop keywords, let-bound locals, labels
+       ;; functions) that the walker can't distinguish from real refs.
        (let ((sorted (sort
                       (loop for k being the hash-keys of set
-                            unless (eq k sym)
+                            unless (or (eq k sym)
+                                       (not (gethash k *defined-universe*)))
                             collect k)
                       #'string< :key #'fmt-sym)))
          (cond
@@ -611,16 +677,29 @@
   "Test by metaclass name string so we don't depend on postmodern being aliased."
   (string= "DAO-CLASS" (symbol-name (class-name (class-of cls)))))
 
+(defun condition-class-p (cls)
+  "Detect `define-condition`-defined classes. CL conditions inherit from
+   `condition`; SBCL exposes them as instances of CONDITION-CLASS, but
+   `subtypep` against the condition class works portably."
+  (handler-case
+      (let ((cond-cls (find-class 'condition nil)))
+        (and cond-cls (or (eq cls cond-cls) (subtypep cls cond-cls))))
+    (error () nil)))
+
 (defun class-kind (cls)
   (cond
     ((typep cls 'structure-class) :struct)
     ((dao-class-p cls) :dao)
+    ((condition-class-p cls) :condition)
     (t :class)))
 
 (defun safe-class-source (sym kind)
   (handler-case
       (first (sb-introspect:find-definition-sources-by-name
-              sym (case kind (:struct :structure) (otherwise :class))))
+              sym (case kind
+                    (:struct :structure)
+                    (:condition :condition)
+                    (otherwise :class))))
     (error () nil)))
 
 (defun collect-class-entries ()
@@ -747,7 +826,11 @@
                               :external-format :utf-8)
       (format out "# ~a (~a)~%~%"
               (string-downcase (symbol-name sym))
-              (case kind (:struct "defstruct") (:dao "dao-class") (:class "defclass")))
+              (case kind
+                (:struct "defstruct")
+                (:dao "dao-class")
+                (:condition "define-condition")
+                (:class "defclass")))
       (format out "**Package:** `~a`  ~%" (pkg-prefix sym))
       (when file
         (if line
@@ -755,12 +838,18 @@
             (format out "**Source:** `~a`  ~%" file)))
       (format out "**Metaclass:** `~(~a~)`~%~%" (class-name (class-of cls)))
       (case kind
-        (:struct (write-struct-md out sym))
-        (:dao    (write-dao-md out cls))
-        (:class  (write-clos-md out cls))))))
+        (:struct    (write-struct-md out sym))
+        (:dao       (write-dao-md out cls))
+        (:condition (write-clos-md out cls))
+        (:class     (write-clos-md out cls)))
+      (emit-source-walk-section out sym))))
 
 (defun class-suffix (kind)
-  (case kind (:struct "_struct") (:dao "_dao") (:class "_class")))
+  (case kind
+    (:struct "_struct")
+    (:dao "_dao")
+    (:condition "_condition")
+    (:class "_class")))
 
 (defun emit-class-entries (entries)
   (let ((groups (make-hash-table :test 'equal)))
@@ -804,7 +893,8 @@
                                          (class-suffix (class-entry-kind e))
                                          ".md"))
                      (kindlbl (case (class-entry-kind e)
-                                (:struct "struct") (:dao "dao-class") (:class "class"))))
+                                (:struct "struct") (:dao "dao-class")
+                                (:condition "condition") (:class "class"))))
                 (format out "- [~a](~a/~a) — ~a (`~a`)~%"
                         (string-downcase (symbol-name sym))
                         base fname kindlbl (pkg-prefix sym))))
@@ -939,7 +1029,8 @@
              (trunc
               (format out "~%_(value truncated at ~a chars)_~%" *global-value-max-chars*))
              ((not readable)
-              (format out "~%_(value is not round-trippable via `read` — likely contains closures, classes, or other unreadable shapes)_~%")))))))))
+              (format out "~%_(value is not round-trippable via `read` — likely contains closures, classes, or other unreadable shapes)_~%"))))))
+      (emit-source-walk-section out sym))))
 
 (defun emit-global-entries (entries)
   (let ((groups (make-hash-table :test 'equal)))

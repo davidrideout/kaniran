@@ -21,8 +21,3 @@ Declared ftype: `(function (t t &key (:short t))
 ## Source-walked references
 
 - `ichiran/characters:split-by-regex`
-- `ichiran/maintenance:new`
-- `ichiran/maintenance:old`
-- `ichiran/maintenance:re-newline`
-- `ichiran/maintenance:s`
-- `ichiran/maintenance:short`

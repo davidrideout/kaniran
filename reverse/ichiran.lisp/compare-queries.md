@@ -19,7 +19,3 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/conn:with-db`
-- `ichiran/maintenance:conn1`
-- `ichiran/maintenance:conn2`
-- `ichiran/maintenance:q1`
-- `ichiran/maintenance:q2`

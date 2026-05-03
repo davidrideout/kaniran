@@ -71,3 +71,8 @@ Hash-table — 60 entries, test: `equal`
   ("b" . T)
   ("by" . T))
 ```
+
+## Source-walked references
+
+- `ichiran:*romaji-kana*`
+- `ichiran:has-successors`

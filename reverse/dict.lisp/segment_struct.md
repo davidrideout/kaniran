@@ -23,3 +23,7 @@
 | TOP | `nil` | `t` | `segment-top` |
 | TEXT | `nil` | `t` | `segment-text` |
 
+
+## Source-walked references
+
+_(none detected)_

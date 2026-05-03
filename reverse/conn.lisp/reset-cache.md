@@ -40,4 +40,3 @@ _(none detected)_
 - `ichiran/conn:cache-var`
 - `ichiran/conn:get-cache`
 - `ichiran/conn:init-cache`
-- `ichiran/conn:val`

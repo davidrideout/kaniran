@@ -19,8 +19,5 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:kpcl-test`
-- `ichiran/dict:kpcl-vars`
-- `ichiran/dict:pos-list`
 - `ichiran/dict:segment`
 - `ichiran/dict:segment-info`

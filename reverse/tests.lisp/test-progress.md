@@ -18,5 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/test:err`
-- `ichiran/test:result`
+_(none detected)_

@@ -16,3 +16,8 @@
 | ALLOWED | `'(1 2 3 4 5 6 7 8 9 10 11 12)` | INSTANCE | NIL | NIL | NIL |
 | DIGIT-OPTS | `'((4 "し") (7 "しち") (9 "く"))` | INSTANCE | NIL | NIL | NIL |
 
+
+## Source-walked references
+
+- `ichiran/dict:counter-text`
+- `ichiran/dict:digit-opts`

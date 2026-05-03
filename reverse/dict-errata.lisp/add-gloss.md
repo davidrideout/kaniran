@@ -18,16 +18,9 @@ Declared ftype: `(function (t t &rest t) (values null &optional))`
 
 ## Source-walked references
 
-- `ichiran/dict:for`
 - `ichiran/dict:gloss`
-- `ichiran/dict:glosses`
-- `ichiran/dict:glosses-text`
 - `ichiran/dict:id`
-- `ichiran/dict:in`
-- `ichiran/dict:max-ord`
-- `ichiran/dict:new-text`
 - `ichiran/dict:ord`
 - `ichiran/dict:sense`
 - `ichiran/dict:sense-id`
 - `ichiran/dict:seq`
-- `ichiran/dict:texts`

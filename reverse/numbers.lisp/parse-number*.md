@@ -20,17 +20,4 @@ Declared ftype: `(function (t &key (:start t) (:end t))
 
 ## Source-walked references
 
-- `ichiran/numbers:a`
-- `ichiran/numbers:b`
-- `ichiran/numbers:below`
-- `ichiran/numbers:end`
-- `ichiran/numbers:finally`
-- `ichiran/numbers:for`
-- `ichiran/numbers:from`
-- `ichiran/numbers:i`
-- `ichiran/numbers:mi`
-- `ichiran/numbers:mp`
-- `ichiran/numbers:na`
-- `ichiran/numbers:start`
-- `ichiran/numbers:val`
-- `ichiran/numbers:with`
+_(none detected)_

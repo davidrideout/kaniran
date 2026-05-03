@@ -19,11 +19,7 @@ Declared ftype: `(function (t) (values t &optional))`
 
 ## Source-walked references
 
-- `ichiran/dict:c`
 - `ichiran/dict:counter-text`
-- `ichiran/dict:k`
-- `ichiran/dict:l`
-- `ichiran/dict:p`
 - `ichiran/dict:segment`
 - `ichiran/dict:segment-info`
 - `ichiran/dict:segment-word`

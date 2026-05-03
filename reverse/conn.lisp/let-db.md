@@ -19,6 +19,4 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/conn:*connection*`
-- `ichiran/conn:body`
-- `ichiran/conn:dbid`
 - `ichiran/conn:get-spec`

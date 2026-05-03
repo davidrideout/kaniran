@@ -18,6 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/dict:name`
-- `ichiran/dict:obj`
-- `ichiran/dict:slot`
+_(none detected)_

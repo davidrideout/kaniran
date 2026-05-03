@@ -21,3 +21,9 @@
 | READING | reading | `string` | (READING) | (READING) |
 | TEXT | text | `string` | (TEXT) | (TEXT) |
 
+
+## Source-walked references
+
+- `ichiran/dict:id`
+- `ichiran/dict:reading`
+- `ichiran/dict:seq`

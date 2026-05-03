@@ -26,12 +26,8 @@ Declared ftype: `(function (t &key (:as-hiragana t) (:counter t))
 
 - `ichiran/characters:as-hiragana`
 - `ichiran/characters:consecutive-char-groups`
-- `ichiran/dict:counter`
 - `ichiran/dict:find-counter`
 - `ichiran/dict:find-word`
 - `ichiran/dict:find-word-as-hiragana`
 - `ichiran/dict:find-word-suffix`
-- `ichiran/dict:groups`
 - `ichiran/dict:seq`
-- `ichiran/dict:simple-words`
-- `ichiran/dict:word`

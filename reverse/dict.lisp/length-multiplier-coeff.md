@@ -22,4 +22,3 @@ Declared ftype: `(function ((mod 10001) (member :strong :weak :tail :ltail))
 ## Source-walked references
 
 - `ichiran/dict:*length-coeff-sequences*`
-- `ichiran/dict:coeffs`

@@ -53,3 +53,7 @@ Hash-table — 42 entries, test: `eql`
   (#\9 . (:AD 9))
   (#\FULLWIDTH_DIGIT_NINE . (:AD 9)))
 ```
+
+## Source-walked references
+
+- `ichiran/numbers:*char-number-class*`

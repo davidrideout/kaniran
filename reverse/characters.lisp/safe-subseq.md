@@ -21,6 +21,4 @@ _(none detected)_
 
 ## Source-walked references
 
-- `ichiran/characters:end`
-- `ichiran/characters:len`
-- `ichiran/characters:start`
+_(none detected)_

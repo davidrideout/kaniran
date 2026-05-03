@@ -44,12 +44,9 @@ _(none detected)_
 - `ichiran/kanji:freq`
 - `ichiran/kanji:grade`
 - `ichiran/kanji:id`
-- `ichiran/kanji:js`
 - `ichiran/kanji:kanji`
 - `ichiran/kanji:kanji-id`
 - `ichiran/kanji:meaning`
-- `ichiran/kanji:obj`
-- `ichiran/kanji:r`
 - `ichiran/kanji:radical-c`
 - `ichiran/kanji:radical-n`
 - `ichiran/kanji:reading`
@@ -57,4 +54,3 @@ _(none detected)_
 - `ichiran/kanji:stat-common`
 - `ichiran/kanji:stat-irregular`
 - `ichiran/kanji:strokes`
-- `ichiran/kanji:total`

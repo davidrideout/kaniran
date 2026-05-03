@@ -19,4 +19,3 @@ Declared ftype: `(function (t) (values t &optional))`
 ## Source-walked references
 
 - `ichiran/conn:all-caches`
-- `ichiran/conn:name`
