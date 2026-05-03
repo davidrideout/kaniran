@@ -66,32 +66,32 @@ ichiran/cli:print-error,print-error,ichiran/cli,cli.lisp,37,fn,skip,"CLI-only st
 ichiran/cli:print-romanize-info,print-romanize-info,ichiran/cli,cli.lisp,44,fn,pending,
 ichiran/cli:setup-debugger,setup-debugger,ichiran/cli,cli.lisp,95,fn,skip,"CLI-only stderr/debugger glue; Rust uses eprintln!/anyhow/panic-hook. Belongs in a future kaniran-cli crate, not kaniran-core."
 ichiran/cli:unknown-option,unknown-option,ichiran/cli,cli.lisp,33,fn,pending,
-ichiran/conn:*conn-var-cache*,*conn-var-cache*,ichiran/conn,conn.lisp,41,global,pending,
-ichiran/conn:*conn-vars*,*conn-vars*,ichiran/conn,conn.lisp,39,global,pending,
-ichiran/conn:*connection*,*connection*,ichiran/conn,settings.lisp,3,global,pending,
-ichiran/conn:*connection-env-var*,*connection-env-var*,ichiran/conn,conn.lisp,13,global,pending,
-ichiran/conn:*connections*,*connections*,ichiran/conn,settings.lisp,5,global,pending,
-ichiran/conn:*debug*,*debug*,ichiran/conn,conn.lisp,20,global,pending,
-ichiran/conn:*is-dynamic-connection*,*is-dynamic-connection*,ichiran/conn,conn.lisp,14,global,pending,
-ichiran/conn:*test-var*,*test-var*,ichiran/conn,conn.lisp,0,global,pending,
+ichiran/conn:*conn-var-cache*,*conn-var-cache*,ichiran/conn,conn.lisp,41,global,skip,Cache mapping (var . spec) -> value for the per-connection rebinding. Subsumed by per-Ctx field ownership.
+ichiran/conn:*conn-vars*,*conn-vars*,ichiran/conn,conn.lisp,39,global,skip,Registry of per-connection-rebound globals. Unneeded once each Ctx owns its caches directly.
+ichiran/conn:*connection*,*connection*,ichiran/conn,settings.lisp,3,global,skip,Active connection spec global. State lives on Ctx::pool; constructed via Ctx::from_url or Ctx::from_env.
+ichiran/conn:*connection-env-var*,*connection-env-var*,ichiran/conn,conn.lisp,13,global,ported,
+ichiran/conn:*connections*,*connections*,ichiran/conn,settings.lisp,5,global,skip,Alist of secondary connection specs. Replaced by call-site Ctx::from_url(...) per database; no global registry.
+ichiran/conn:*debug*,*debug*,ichiran/conn,conn.lisp,20,global,skip,Debug-flag global gating dp. Replaced by the tracing crate's filter level.
+ichiran/conn:*is-dynamic-connection*,*is-dynamic-connection*,ichiran/conn,conn.lisp,14,global,skip,"Boolean marking 'connection came from env, do not cache across reloads'. Settings-loader concept; Rust is always-explicit Ctx::from_env() returning a Result."
+ichiran/conn:*test-var*,*test-var*,ichiran/conn,conn.lisp,0,global,skip,Test fixture for the def-conn-var rebinding system; obsolete with per-Ctx ownership.
 ichiran/conn:all-caches,all-caches,ichiran/conn,conn.lisp,110,fn,skip,Class-slot registry pattern doesn't translate. Replaced in Rust by per-cache OnceLock + DI when the DB layer lands; no 1:1 counterpart.
-ichiran/conn:cache,cache,ichiran/conn,conn.lisp,96,class,pending,
-ichiran/conn:def-conn-var,def-conn-var,ichiran/conn,conn.lisp,41,macro,pending,
-ichiran/conn:defcache,defcache,ichiran/conn,conn.lisp,135,macro,pending,
-ichiran/conn:dp,dp,ichiran/conn,conn.lisp,149,fn,pending,
-ichiran/conn:ensure,ensure,ichiran/conn,conn.lisp,0,gf,pending,
-ichiran/conn:get-cache,get-cache,ichiran/conn,conn.lisp,113,fn,pending,
-ichiran/conn:get-ichiran-connection-env,get-ichiran-connection-env,ichiran/conn,conn.lisp,154,fn,pending,
+ichiran/conn:cache,cache,ichiran/conn,conn.lisp,96,class,skip,"Class with one cached value, one mutex, registered in a class-side hash. Subsumed by typed OnceCell fields on Ctx (kani_ctx.rs); no 1:1 type."
+ichiran/conn:def-conn-var,def-conn-var,ichiran/conn,conn.lisp,41,macro,skip,Macro registering a global into the per-connection variable rebinding list. The cross-DB rebinding pattern is gone — each Ctx owns its caches directly.
+ichiran/conn:defcache,defcache,ichiran/conn,conn.lisp,135,macro,skip,Macro registering a cache + defining init-cache method. Rust shape has no registry; each cache is a typed Ctx field with hand-written accessor.
+ichiran/conn:dp,dp,ichiran/conn,conn.lisp,149,fn,skip,Debug-printer wrapper around *debug*. Replaced by the tracing crate's emit + filter level.
+ichiran/conn:ensure,ensure,ichiran/conn,conn.lisp,0,gf,skip,Generic-function lazy-init on a cache name. Per-cache lazy access becomes a method on Ctx over its OnceCell field.
+ichiran/conn:get-cache,get-cache,ichiran/conn,conn.lisp,113,fn,skip,Looks up a cache instance from the class-side hash by name. Subsumed by typed-field access on Ctx; no name->instance dispatch.
+ichiran/conn:get-ichiran-connection-env,get-ichiran-connection-env,ichiran/conn,conn.lisp,154,fn,ported,
 ichiran/conn:get-spec,get-spec,ichiran/conn,conn.lisp,25,fn,skip,Lisp dbid-dispatch (nil/list/keyword → connection spec) doesn't translate. Connection registry will be handled via the Rust config crate when the DB layer lands.
 ichiran/conn:init-all-caches,init-all-caches,ichiran/conn,conn.lisp,144,fn,skip,Class-slot registry pattern doesn't translate. Replaced in Rust by per-cache OnceLock + DI when the DB layer lands; no 1:1 counterpart.
-ichiran/conn:init-cache,init-cache,ichiran/conn,conn.lisp,0,gf,pending,
-ichiran/conn:let-db,let-db,ichiran/conn,conn.lisp,32,macro,pending,
-ichiran/conn:load-connection-from-env,load-connection-from-env,ichiran/conn,conn.lisp,166,fn,pending,
-ichiran/conn:load-settings,load-settings,ichiran/conn,conn.lisp,76,fn,pending,
-ichiran/conn:reset-cache,reset-cache,ichiran/conn,conn.lisp,0,gf,pending,
+ichiran/conn:init-cache,init-cache,ichiran/conn,conn.lisp,0,gf,skip,"Generic-function dispatch on a cache name keyword. Per-cache builders become methods on Ctx, not generic dispatch."
+ichiran/conn:let-db,let-db,ichiran/conn,conn.lisp,32,macro,skip,Rebinds *connection* for a dynamic scope. Multi-DB usage in Rust is Ctx::from_url(other); no scope-binding macro.
+ichiran/conn:load-connection-from-env,load-connection-from-env,ichiran/conn,conn.lisp,166,fn,skip,"Side-effects-on-globals semantics (set *connection*, set *is-dynamic-connection*) replaced by Ctx::from_env() returning a Result directly. No standalone counterpart."
+ichiran/conn:load-settings,load-settings,ichiran/conn,conn.lisp,76,fn,skip,Loads settings.lisp and overrides connection from env. No counterpart in Rust — config comes from env (or layered config-crate sources) via Ctx::from_env.
+ichiran/conn:reset-cache,reset-cache,ichiran/conn,conn.lisp,0,gf,skip,Generic-function force-rebuild of a named cache. Per-cache reset becomes a method on Ctx; no name->instance dispatch.
 ichiran/conn:switch-conn-vars,switch-conn-vars,ichiran/conn,conn.lisp,65,fn,skip,Per-connection variable rebinding from *conn-var-cache*. Rust has no dynamic-variable shadowing; replaced by per-Database struct ownership of caches when the DB layer lands. Same family as all-caches / get-spec.
-ichiran/conn:with-db,with-db,ichiran/conn,conn.lisp,46,macro,pending,
-ichiran/conn:with-log,with-log,ichiran/conn,conn.lisp,86,macro,pending,
+ichiran/conn:with-db,with-db,ichiran/conn,conn.lisp,46,macro,skip,Rebinds *connection* and re-derives per-conn-var cache for a dynamic scope. Replaced by per-Ctx ownership of pool and caches; multi-DB = construct another Ctx.
+ichiran/conn:with-log,with-log,ichiran/conn,conn.lisp,86,macro,skip,Wraps cl-postgres:*query-log* to a stream for the body. Replaced by sqlx + tracing query logging.
 ichiran/custom:*municipality-types*,*municipality-types*,ichiran/custom,dict-custom.lisp,97,global,pending,
 ichiran/custom:*municipality-types-description*,*municipality-types-description*,ichiran/custom,dict-custom.lisp,107,global,pending,
 ichiran/custom:*municipality-types-order*,*municipality-types-order*,ichiran/custom,dict-custom.lisp,118,global,pending,
