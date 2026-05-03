@@ -134,8 +134,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  131. `ichiran/dict:counter-days-kun`  — class, dict-counters.lisp:686
  132. `ichiran/dict:counter-hifumi`  — class, dict-counters.lisp:518
  133. `ichiran/dict:get-digit`  — fn, dict-counters.lisp:94
- 134. `ichiran/numbers:*digit-to-kana*`  — global, numbers.lisp:25
- 135. `ichiran/numbers:*power-to-kana*`  — global, numbers.lisp:28
+ 134. `ichiran/numbers:*digit-to-kana*`  — global, numbers.lisp:25  *[ported]*
+ 135. `ichiran/numbers:*power-to-kana*`  — global, numbers.lisp:28  *[ported]*
  136. `ichiran/dict:counter-join`  — gf, dict-counters.lisp:0
  137. `ichiran/dict:counter-people`  — class, dict-counters.lisp:735
  138. `ichiran/dict:counter-tsu`  — class, dict-counters.lisp:497
@@ -148,13 +148,13 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  145. `ichiran/dict:get-hint`  — fn, dict-split.lisp:968
  146. `ichiran/dict:get-kanji-kana-old`  — fn, dict.lisp:115
  147. `ichiran/dict:number-text`  — class, dict-counters.lisp:203
- 148. `ichiran/numbers:*char-number-class-hash*`  — global, numbers.lisp:18
- 149. `ichiran/numbers:num-sandhi`  — gf, numbers.lisp:0
- 150. `ichiran/numbers:group-to-kana`  — fn, numbers.lisp:117
- 151. `ichiran/numbers:*digit-kanji-default*`  — global, numbers.lisp:3
- 152. `ichiran/numbers:*power-kanji*`  — global, numbers.lisp:7
- 153. `ichiran/numbers:number-to-kanji`  — fn, numbers.lisp:35
- 154. `ichiran/numbers:number-to-kana`  — fn, numbers.lisp:125
+ 148. `ichiran/numbers:*char-number-class-hash*`  — global, numbers.lisp:18  *[ported]*
+ 149. `ichiran/numbers:num-sandhi`  — gf, numbers.lisp:0  *[ported]*
+ 150. `ichiran/numbers:group-to-kana`  — fn, numbers.lisp:117  *[ported]*
+ 151. `ichiran/numbers:*digit-kanji-default*`  — global, numbers.lisp:3  *[ported]*
+ 152. `ichiran/numbers:*power-kanji*`  — global, numbers.lisp:7  *[ported]*
+ 153. `ichiran/numbers:number-to-kanji`  — fn, numbers.lisp:35  *[ported]*
+ 154. `ichiran/numbers:number-to-kana`  — fn, numbers.lisp:125  *[ported]*
  155. `ichiran/dict:get-kana`  — gf, dict.lisp:0
  156. `ichiran/dict:segment`  — struct, dict.lisp:674
  157. `ichiran/dict:segment-text`  — fn, dict.lisp:674
@@ -888,43 +888,43 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  830. `ichiran/kanji:process-match-json`  — fn, kanji.lisp:428
  831. `ichiran/kanji:match-readings-json`  — fn, kanji.lisp:452
  832. `ichiran/kanji:query-kanji-json`  — macro, kanji.lisp:458
- 833. `ichiran/numbers:*char-number-class*`  — global, numbers.lisp:9
- 834. `ichiran/numbers:*digit-kanji-legal*`  — global, numbers.lisp:5
- 835. `ichiran/numbers:parse-number*`  — fn, numbers.lisp:57
- 836. `ichiran/numbers:parse-number`  — fn, numbers.lisp:77
- 837. `ichiran:*hepburn-kana-table*`  — global, romanize.lisp:0
- 838. `ichiran:modified-hepburn`  — class, romanize.lisp:162
- 839. `ichiran:*hepburn-modified*`  — global, romanize.lisp:168
- 840. `ichiran:*hepburn-passport*`  — global, romanize.lisp:149
- 841. `ichiran:*hepburn-traditional*`  — global, romanize.lisp:160
- 842. `ichiran:*kunrei-siki*`  — global, romanize.lisp:201
- 843. `ichiran:*kunrei-siki-kana-table*`  — global, romanize.lisp:0
- 844. `ichiran:rmap-item`  — struct, deromanize.lisp:5
- 845. `ichiran:*romaji-kana*`  — global, deromanize.lisp:0
- 846. `ichiran:*romaji-kana-next*`  — global, deromanize.lisp:21
- 847. `ichiran:make-kana-representation`  — fn, deromanize.lisp:21
- 848. `ichiran:possible-long-vowel-p`  — fn, deromanize.lisp:30
- 849. `ichiran:rmi-kana`  — fn, deromanize.lisp:3
- 850. `ichiran:rmi-next`  — fn, deromanize.lisp:3
- 851. `ichiran:rmi-text`  — fn, deromanize.lisp:3
- 852. `ichiran:apply-rmap-item`  — fn, deromanize.lisp:35
- 853. `ichiran:kr-branch`  — fn, deromanize.lisp:21
- 854. `ichiran:kr-canonical`  — fn, deromanize.lisp:21
- 855. `ichiran:kr-pattern`  — fn, deromanize.lisp:21
- 856. `ichiran:kr-rest`  — fn, deromanize.lisp:21
- 857. `ichiran:join-branches`  — fn, deromanize.lisp:54
- 858. `ichiran:kr-concat`  — fn, deromanize.lisp:23
- 859. `ichiran:make-rmap-item`  — fn, deromanize.lisp:3
- 860. `ichiran:load-romaji-kana`  — fn, deromanize.lisp:5
- 861. `ichiran:get-romaji-kana`  — fn, deromanize.lisp:5
- 862. `ichiran:romaji-next`  — fn, deromanize.lisp:46
- 863. `ichiran:branches-next`  — fn, deromanize.lisp:69
- 864. `ichiran:copy-kana-representation`  — fn, deromanize.lisp:21
- 865. `ichiran:copy-rmap-item`  — fn, deromanize.lisp:3
- 866. `ichiran:has-successors`  — fn, deromanize.lisp:11
- 867. `ichiran:kana-representation`  — struct, deromanize.lisp:23
- 868. `ichiran:kana-representation-p`  — fn, deromanize.lisp:21
- 869. `ichiran:not-a-number`  — condition, numbers.lisp:67
+ 833. `ichiran/numbers:*char-number-class*`  — global, numbers.lisp:9  *[ported]*
+ 834. `ichiran/numbers:*digit-kanji-legal*`  — global, numbers.lisp:5  *[ported]*
+ 835. `ichiran/numbers:not-a-number`  — condition, numbers.lisp:67  *[ported]*
+ 836. `ichiran/numbers:parse-number*`  — fn, numbers.lisp:57  *[ported]*
+ 837. `ichiran/numbers:parse-number`  — fn, numbers.lisp:77  *[ported]*
+ 838. `ichiran:*hepburn-kana-table*`  — global, romanize.lisp:0
+ 839. `ichiran:modified-hepburn`  — class, romanize.lisp:162
+ 840. `ichiran:*hepburn-modified*`  — global, romanize.lisp:168
+ 841. `ichiran:*hepburn-passport*`  — global, romanize.lisp:149
+ 842. `ichiran:*hepburn-traditional*`  — global, romanize.lisp:160
+ 843. `ichiran:*kunrei-siki*`  — global, romanize.lisp:201
+ 844. `ichiran:*kunrei-siki-kana-table*`  — global, romanize.lisp:0
+ 845. `ichiran:rmap-item`  — struct, deromanize.lisp:5
+ 846. `ichiran:*romaji-kana*`  — global, deromanize.lisp:0
+ 847. `ichiran:*romaji-kana-next*`  — global, deromanize.lisp:21
+ 848. `ichiran:make-kana-representation`  — fn, deromanize.lisp:21
+ 849. `ichiran:possible-long-vowel-p`  — fn, deromanize.lisp:30
+ 850. `ichiran:rmi-kana`  — fn, deromanize.lisp:3
+ 851. `ichiran:rmi-next`  — fn, deromanize.lisp:3
+ 852. `ichiran:rmi-text`  — fn, deromanize.lisp:3
+ 853. `ichiran:apply-rmap-item`  — fn, deromanize.lisp:35
+ 854. `ichiran:kr-branch`  — fn, deromanize.lisp:21
+ 855. `ichiran:kr-canonical`  — fn, deromanize.lisp:21
+ 856. `ichiran:kr-pattern`  — fn, deromanize.lisp:21
+ 857. `ichiran:kr-rest`  — fn, deromanize.lisp:21
+ 858. `ichiran:join-branches`  — fn, deromanize.lisp:54
+ 859. `ichiran:kr-concat`  — fn, deromanize.lisp:23
+ 860. `ichiran:make-rmap-item`  — fn, deromanize.lisp:3
+ 861. `ichiran:load-romaji-kana`  — fn, deromanize.lisp:5
+ 862. `ichiran:get-romaji-kana`  — fn, deromanize.lisp:5
+ 863. `ichiran:romaji-next`  — fn, deromanize.lisp:46
+ 864. `ichiran:branches-next`  — fn, deromanize.lisp:69
+ 865. `ichiran:copy-kana-representation`  — fn, deromanize.lisp:21
+ 866. `ichiran:copy-rmap-item`  — fn, deromanize.lisp:3
+ 867. `ichiran:has-successors`  — fn, deromanize.lisp:11
+ 868. `ichiran:kana-representation`  — struct, deromanize.lisp:23
+ 869. `ichiran:kana-representation-p`  — fn, deromanize.lisp:21
  870. `ichiran:rmap-item-p`  — fn, deromanize.lisp:3
  871. `ichiran:romaji-kana`  — fn, deromanize.lisp:84
  872. `ichiran:romaji-suggest`  — fn, deromanize.lisp:95
