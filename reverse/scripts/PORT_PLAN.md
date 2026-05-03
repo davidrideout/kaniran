@@ -87,9 +87,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   84. `ichiran/dict:*init-suffixes-lock*`  — global, dict-grammar.lisp:163
   85. `ichiran/dict:init-suffixes-running-p`  — fn, dict-grammar.lisp:165  *[skip — Loader-busy predicate over a one-shot init thread + def-conn-var cache. Rust replacement is OnceLock::get().is_some() or eager startup init; the verb has nowhere to live.]*
   86. `ichiran/dict:conjugation`  — dao, dict.lisp:238
-  87. `ichiran/dict:simple-text`  — class, dict.lisp:69
-  88. `ichiran/dict:kana-text`  — dao, dict.lisp:128
-  89. `ichiran/dict:kanji-text`  — dao, dict.lisp:86
+  87. `ichiran/dict:simple-text`  — class, dict.lisp:69  *[ported]*
+  88. `ichiran/dict:kana-text`  — dao, dict.lisp:128  *[ported]*
+  89. `ichiran/dict:kanji-text`  — dao, dict.lisp:86  *[ported]*
   90. `ichiran/dict:find-word-seq`  — fn, dict-grammar.lisp:73
   91. `ichiran/dict:find-word-conj-of`  — fn, dict-grammar.lisp:77
   92. `ichiran/dict:get-kana-form`  — fn, dict-grammar.lisp:36

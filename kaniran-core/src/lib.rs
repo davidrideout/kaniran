@@ -12,5 +12,6 @@ pub mod kani;
 pub mod characters;
 pub mod conn;
 pub mod core;
+pub mod dict;
 pub mod maintenance;
 pub mod numbers;
