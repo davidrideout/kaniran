@@ -7,6 +7,10 @@
 //! references. Further dao classes, helpers, and the populator
 //! itself land in subsequent waves.
 
+pub mod _star_counter_accepts_star_;
+pub mod _star_counter_foreign_star_;
+pub mod _star_counter_suffixes_star_;
 pub mod kana_text_dao;
+pub mod kani_suffix_kind;
 pub mod kanji_text_dao;
 pub mod simple_text_class;
