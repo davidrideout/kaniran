@@ -161,6 +161,22 @@ Most Lisp macros in this codebase are either (a) DSL definers that register data
 
 For these, create the `_macro` file with a doc-only body explaining the situation and pointing at where the equivalent data/code lives. Don't try to write a Rust macro that mimics the Lisp expansion — that's almost always the wrong tool.
 
+### 4.9. Class hierarchies
+
+Several Lisp packages — most prominently `ichiran/dict` — use CLOS class hierarchies with method dispatch. The `counter-text` family is the worked example: a base class (`counter-text`), 10 subclasses (`number-text`, `counter-tsu`, `counter-hifumi`, etc.), generic functions (`get-kana`, `verify`, `value-string`, `counter-join`) with method overrides per subclass, and `:around` method combination on the base.
+
+Port these as **per-subclass newtype + sub-enum dispatcher**. Concretely:
+
+- **One file per Lisp class.** The base (`counter-text`) and each subclass (`counter-tsu`, etc.) get their own `<name>_class.rs` per §1, each defining a `pub struct`. Bare subclasses with no added slots are newtypes around the base struct (`pub struct CounterTsu(pub CounterText)`); subclasses that add slots get a named struct (`pub struct CounterHifumi { pub base: CounterText, pub digit_set: Vec<i32> }`).
+- **Methods live on the subclass struct.** A method that overrides for `counter-tsu` lands in `counter_tsu_class.rs` as `impl CounterTsu { pub fn get_kana(&self) -> String { ... } }`, not in the base file's match block. This mirrors the Lisp shape "method defined ON the subclass" and keeps each class self-contained.
+- **A sibling enum in the base file dispatches.** `counter_text_class.rs` defines `pub enum Counter { Base(CounterText), Tsu(CounterTsu), Hifumi(CounterHifumi), ... }` with one variant per subclass. Per-generic dispatchers (`Counter::get_kana`, `Counter::verify`, etc.) match on `self` and delegate to the variant's own method, then apply any base-class `:around` wrapping (e.g. `counter-text`'s `:around` appending the `suffix` slot to `get-kana`).
+- **Per-class slot defaults are constructor responsibility.** Lisp `:initform` overrides on a subclass slot (e.g. `counter-days-kun` defaulting `allowed` to a specific list) become defaults applied by that subclass's constructor — they're not visible from the struct definition. Doc-comment them on the subclass file so the future constructor port doesn't miss them.
+- **Wider cross-family generics live on a higher dispatcher.** When a generic dispatches across multiple class families (`get-kana` on simple-text, proxy-text, compound-text, counter-text), the top-level enum (`Word`) wraps each family's sub-enum as one variant and its dispatcher delegates to the family's dispatcher. Each family handles its own `:around` internally; the top-level dispatcher does not stack additional wrappers.
+
+Why not a single tagged-enum `CounterText { kind: CounterKind, ... }` with one match per generic? Smaller total code, but: (a) collapses 11 named Lisp classes into anonymous enum variants, breaking §1's per-symbol-file principle; (b) lumps every subclass's behavior into giant match blocks, hurting locality; (c) per-class slot-default overrides become conditional logic instead of a subclass-owned constructor; (d) subclasses with extra slots (counter-hifumi's `digit_set`) become asymmetric variant payloads.
+
+Why not `trait + Box<dyn>`? Most literally faithful to CLOS dispatch, but costs a heap allocation and indirect call per value. Tokenization constructs tens of thousands of these per query — unacceptable. Static enum dispatch gives the same structural shape without the runtime cost.
+
 A small minority of macros (~6 per the `reverse/` analysis) genuinely encode logic that needs a Rust translation. Those go in the `_macro` file as a regular function or a `macro_rules!` block, with the doc-comment explaining why one was chosen over the other.
 
 ---

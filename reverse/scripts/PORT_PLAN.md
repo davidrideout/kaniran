@@ -78,20 +78,20 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   75. `ichiran/dict:*counter-foreign*`  — global, dict-counters.lisp:219  *[ported]*
   76. `ichiran/dict:*counter-suffixes*`  — global, dict-counters.lisp:213  *[ported]*
   77. **CYCLE (2 symbols — port together)**
-        - `ichiran/dict:counter-text`  — class, dict-counters.lisp:9
-        - `ichiran/dict:number-text`  — class, dict-counters.lisp:203
-  78. `ichiran/dict:counter-age`  — class, dict-counters.lisp:757
-  79. `ichiran/dict:counter-days-kun`  — class, dict-counters.lisp:686
-  80. `ichiran/dict:counter-days-on`  — class, dict-counters.lisp:709
-  81. `ichiran/dict:counter-halfhour`  — class, dict-counters.lisp:391
-  82. `ichiran/dict:counter-hifumi`  — class, dict-counters.lisp:518
-  83. `ichiran/dict:counter-months`  — class, dict-counters.lisp:721
-  84. `ichiran/dict:counter-people`  — class, dict-counters.lisp:735
-  85. `ichiran/dict:counter-tsu`  — class, dict-counters.lisp:497
-  86. `ichiran/dict:counter-wari`  — class, dict-counters.lisp:746
-  87. `ichiran/dict:*special-counters*`  — global, dict-counters.lisp:211
-  88. `ichiran/dict:*extra-counter-ids*`  — global, dict-counters.lisp:310
-  89. `ichiran/dict:*skip-counter-ids*`  — global, dict-counters.lisp:315
+        - `ichiran/dict:counter-text`  — class, dict-counters.lisp:9  *[ported]*
+        - `ichiran/dict:number-text`  — class, dict-counters.lisp:203  *[ported]*
+  78. `ichiran/dict:counter-age`  — class, dict-counters.lisp:757  *[ported]*
+  79. `ichiran/dict:counter-days-kun`  — class, dict-counters.lisp:686  *[ported]*
+  80. `ichiran/dict:counter-days-on`  — class, dict-counters.lisp:709  *[ported]*
+  81. `ichiran/dict:counter-halfhour`  — class, dict-counters.lisp:391  *[ported]*
+  82. `ichiran/dict:counter-hifumi`  — class, dict-counters.lisp:518  *[ported]*
+  83. `ichiran/dict:counter-months`  — class, dict-counters.lisp:721  *[ported]*
+  84. `ichiran/dict:counter-people`  — class, dict-counters.lisp:735  *[ported]*
+  85. `ichiran/dict:counter-tsu`  — class, dict-counters.lisp:497  *[ported]*
+  86. `ichiran/dict:counter-wari`  — class, dict-counters.lisp:746  *[ported]*
+  87. `ichiran/dict:*special-counters*`  — global, dict-counters.lisp:211  *[ported — Doc-only stub: registry value-fn type depends on the unported cache populator (wave 110); storage home depends on the unbuilt KaniranContext::Inner. Re-port as ported once both prerequisites land.]*
+  88. `ichiran/dict:*extra-counter-ids*`  — global, dict-counters.lisp:310  *[ported]*
+  89. `ichiran/dict:*skip-counter-ids*`  — global, dict-counters.lisp:315  *[ported]*
   90. `ichiran/dict:sense-prop`  — dao, dict.lisp:197
   91. `ichiran/dict:get-counter-ids`  — fn, dict-counters.lisp:285
   92. `ichiran/dict:get-counter-stags`  — fn, dict-counters.lisp:292
