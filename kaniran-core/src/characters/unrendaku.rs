@@ -6,32 +6,37 @@
 //! (hiragana vs. katakana) of the first glyph is preserved by aligning
 //! by index inside the input class's `*kana-characters*` entry.
 //!
-//! Returns `txt` unchanged when it's empty, when the first character
-//! has no [`KanaClass`], or when the class has no unvoiced counterpart.
-//! Per CONVENTIONS §4.6 the `:fresh` keyword is dropped — the Rust
-//! port always allocates a fresh `String`.
+//! Leaves `txt` unchanged when it's empty, when the first character has
+//! no [`KanaClass`], or when the class has no unvoiced counterpart.
+//!
+//! The upstream signature is `(txt &key fresh)`. With `:fresh nil`
+//! (default) it mutates `txt` in place; with `:fresh t` it copies first
+//! and mutates the copy. The Rust port takes `&mut String` and always
+//! mutates in place — equivalent to `:fresh nil`. Callers that need
+//! `:fresh t` semantics clone before calling.
 
 use super::_star_kana_characters_star_::KANA_CHARACTERS;
 use super::_star_undakuten_hash_star_::undakuten_hash;
 use super::get_char_class::get_char_class;
 use super::kani_kana_class::KanaClass;
 
-pub fn unrendaku(txt: &str) -> String {
-    let mut chars: Vec<char> = txt.chars().collect();
-    let Some(&first) = chars.first() else {
-        return String::new();
+pub fn unrendaku(txt: &mut String) {
+    let Some(first) = txt.chars().next() else {
+        return;
     };
     let Some(cc) = get_char_class(first) else {
-        return txt.to_string();
+        return;
     };
     let Some(&unvoiced) = undakuten_hash().get(&cc) else {
-        return txt.to_string();
+        return;
     };
     let Some(new_char) = transpose(first, cc, unvoiced) else {
-        return txt.to_string();
+        return;
     };
-    chars[0] = new_char;
-    chars.into_iter().collect()
+    let first_byte_len = first.len_utf8();
+    let mut buf = [0u8; 4];
+    let new_str = new_char.encode_utf8(&mut buf);
+    txt.replace_range(0..first_byte_len, new_str);
 }
 
 /// Find `c`'s position inside `KANA_CHARACTERS[from]`, then return the

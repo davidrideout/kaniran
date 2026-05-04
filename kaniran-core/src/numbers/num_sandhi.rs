@@ -20,11 +20,6 @@
 //! "no previous group" startup state (e.g. from `group-to-kana`'s
 //! initial `last-class = nil`); the Lisp dispatch falls through to the
 //! default method on `nil`, which the `_` arm replicates.
-//!
-//! `geminate` and `rendaku` are called for their return values, not
-//! for in-place mutation — the upstream methods rely on their `:fresh
-//! nil` side effect, but the Rust ports always allocate (CONVENTIONS
-//! §4.6).
 
 use crate::characters::geminate::geminate;
 use crate::characters::rendaku::{rendaku, Voicing};
@@ -40,30 +35,38 @@ pub fn num_sandhi(
     s2: &str,
 ) -> String {
     use NumClass::*;
-    let (s1_out, s2_out): (String, String) = match (c1, v1, c2, v2) {
+    let mut s1_buf = s1.to_string();
+    let mut s2_buf = s2.to_string();
+    match (c1, v1, c2, v2) {
         (Some(Jd), Some(1), P, v) if matches!(v, 3 | 12 | 16) => {
-            (geminate(s1), s2.to_string())
+            geminate(&mut s1_buf);
         }
         (Some(Jd), Some(3), P, v) if matches!(v, 2 | 3) => {
-            (s1.to_string(), rendaku(s2, Voicing::Dakuten))
+            rendaku(&mut s2_buf, Voicing::Dakuten);
         }
         (Some(Jd), Some(6), P, 2) => {
-            (geminate(s1), rendaku(s2, Voicing::Handakuten))
+            geminate(&mut s1_buf);
+            rendaku(&mut s2_buf, Voicing::Handakuten);
         }
-        (Some(Jd), Some(6), P, 16) => (geminate(s1), s2.to_string()),
+        (Some(Jd), Some(6), P, 16) => {
+            geminate(&mut s1_buf);
+        }
         (Some(Jd), Some(8), P, 2) => {
-            (geminate(s1), rendaku(s2, Voicing::Handakuten))
+            geminate(&mut s1_buf);
+            rendaku(&mut s2_buf, Voicing::Handakuten);
         }
         (Some(Jd), Some(8), P, v) if matches!(v, 3 | 12 | 16) => {
-            (geminate(s1), s2.to_string())
+            geminate(&mut s1_buf);
         }
         (Some(P), Some(1), P, v) if matches!(v, 12 | 16) => {
-            (geminate(s1), s2.to_string())
+            geminate(&mut s1_buf);
         }
-        (Some(P), Some(2), P, 16) => (geminate(s1), s2.to_string()),
-        _ => (s1.to_string(), s2.to_string()),
-    };
-    format!("{s1_out}{s2_out}")
+        (Some(P), Some(2), P, 16) => {
+            geminate(&mut s1_buf);
+        }
+        _ => {}
+    }
+    format!("{s1_buf}{s2_buf}")
 }
 
 #[cfg(test)]

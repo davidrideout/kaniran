@@ -68,23 +68,30 @@ Do **not** write doc-comments that:
 
 The Lisp uses idioms (multi-value returns, plist keywords, in-place mutation, tagged cons cells) that don't translate 1:1 to idiomatic Rust. Codified decisions follow. **Apply these mechanically — don't relitigate them per file.**
 
-### 4.1. Predicate-only callers → `bool`
+### 4.1. Faithful return types — never collapse to `bool` at port time
 
-If every caller of a function uses its return value purely as a truthiness check, return `bool`. The Lisp's actual return (often a position from `ppcre:scan` or `T` from a hash-table presence flag) is incidental.
-
-Verify by grepping callers before collapsing. Concretely:
+Port the upstream return type as-is. If the upstream returns a position-or-nothing, the Rust port returns `Option<usize>`. If it returns the matched substring, the port returns `Option<String>`. Predicate callers write `result.is_some()` at the callsite — the few extra characters are the cost of a lossless API.
 
 ```rust
-// Lisp: (defun test-word (word char-class) ... (ppcre:scan regex word))
-// Callers: (if (test-word w :kana) ...)  — pure predicate
-pub fn test_word(word: &str, char_class: CharClass) -> bool { ... }
+// Upstream returns a position or nothing.
+// Port preserves that, even if every visible caller uses it as a predicate today.
+pub fn test_word(word: &str, char_class: CharClass) -> Option<usize> {
+    char_scanner(char_class).find(word).map(|m| m.start())
+}
+
+// Callers — predicate use is explicit, position is still available:
+if test_word(w, CharClass::Kana).is_some() { ... }
 ```
 
-If even one caller uses the position, return the richer type and let predicate-callers do `result.is_some()`.
+**Do not collapse to `bool` based on caller analysis at port time.** The graph is being ported leaf-up — most callers are still in upstream and can't be verified to be predicate-only with any confidence. A wrong collapse silently drops data, breaks fixture replay (the captured value no longer compares directly), and forces a cross-cutting refactor when a future caller needs the dropped data.
 
-### 4.2. `(gethash key table key)` (default-as-self) → `Option<T>`
+**Deferred collapse is allowed once the graph is closed.** When every caller of a function is itself ported into Rust, run `rg '<fn_name>\(' kaniran-core/src/` against the Rust tree. If every callsite uses `.is_some()` (or equivalent truthiness check), open a single PR that changes the signature to `bool` and drops the `.is_some()` calls in the same commit. Cite this section in the commit and let `audit-signatures` flag the divergence in `divergences.md` for review.
 
-The Lisp idiom `(gethash k h k)` returns `k` when the key is missing — useful so the caller can chain. In Rust, return `Option<T>` and let the caller fall back to the input they already have. Concretely:
+The asymmetry is the point: recovering from a faithful port that turned out to be over-typed is a local refactor (one signature, finite verified callsites). Recovering from a premature collapse means widening the type back and touching every callsite that was written against the lossy shape.
+
+### 4.2. Lookup with input as fallback
+
+The Lisp idiom `(gethash k h k)` returns `k` when the key is missing — useful so the caller can chain. The Rust port returns the value type (not `Option<T>`) and inlines the fallback with `.unwrap_or(k)`:
 
 ```rust
 // Lisp: (gethash cc *dakuten-hash* cc)  — returns voiced class or cc itself
@@ -135,33 +142,15 @@ pub fn consecutive_char_groups(class: CharClass, s: &str, start: usize, end: usi
 
 Convert to bytes internally (via `s.char_indices()`) when calling the regex engine; convert back before returning. Add a regression test that pins multi-byte behavior — without it, a future "optimization" to byte offsets passes silently in ASCII-only tests.
 
-### 4.6. `:fresh` flag and in-place mutation → return `String`
-
-Several Lisp functions accept `&key fresh` to control whether they mutate the input string or copy it first. The Rust port **always** allocates a new `String` and returns it. Drop the `fresh` parameter entirely. Document the divergence in the doc-comment.
-
-```rust
-// Lisp: (geminate txt &key fresh)  — replaces last char with っ in-place or in a copy
-pub fn geminate(txt: &str) -> String { ... }
-```
-
-Callers that relied on in-place mutation (rare — most use the return value) need updating when their containing function is ported. That's a port-time problem, not an API problem.
-
-### 4.7. Multi-value returns
-
-Lisp `(values a b)` patterns:
-- **Two values where the second is rarely used:** drop the second value. Prefer simple types.
-- **`(values match-data score)` (genuine pair):** return a tuple `(MatchData, usize)` or a struct. Don't use `Result` — both values are valid.
-- **Optional return + presence flag:** `Option<T>` collapses both.
-
-Document which path was taken if it's not obvious.
-
-### 4.8. Macros
+### 4.6. Macros
 
 Most Lisp macros in this codebase are either (a) DSL definers that register data into existing globals (`def-simple-suffix`, `def-counter`) — the **data** is already captured in the relevant `*global*`, so the macro itself has nothing to translate; or (b) syntactic helpers (`hash-from-list`) whose call-sites are already directly ported.
 
 For these, create the `_macro` file with a doc-only body explaining the situation and pointing at where the equivalent data/code lives. Don't try to write a Rust macro that mimics the Lisp expansion — that's almost always the wrong tool.
 
-### 4.9. Class hierarchies
+A small minority of macros (~6 per the `reverse/` analysis) genuinely encode logic that needs a Rust translation. Those go in the `_macro` file as a regular function or a `macro_rules!` block, with the doc-comment explaining why one was chosen over the other.
+
+### 4.7. Class hierarchies
 
 Several Lisp packages — most prominently `ichiran/dict` — use CLOS class hierarchies with method dispatch. The `counter-text` family is the worked example: a base class (`counter-text`), 10 subclasses (`number-text`, `counter-tsu`, `counter-hifumi`, etc.), generic functions (`get-kana`, `verify`, `value-string`, `counter-join`) with method overrides per subclass, and `:around` method combination on the base.
 
@@ -176,8 +165,6 @@ Port these as **per-subclass newtype + sub-enum dispatcher**. Concretely:
 Why not a single tagged-enum `CounterText { kind: CounterKind, ... }` with one match per generic? Smaller total code, but: (a) collapses 11 named Lisp classes into anonymous enum variants, breaking §1's per-symbol-file principle; (b) lumps every subclass's behavior into giant match blocks, hurting locality; (c) per-class slot-default overrides become conditional logic instead of a subclass-owned constructor; (d) subclasses with extra slots (counter-hifumi's `digit_set`) become asymmetric variant payloads.
 
 Why not `trait + Box<dyn>`? Most literally faithful to CLOS dispatch, but costs a heap allocation and indirect call per value. Tokenization constructs tens of thousands of these per query — unacceptable. Static enum dispatch gives the same structural shape without the runtime cost.
-
-A small minority of macros (~6 per the `reverse/` analysis) genuinely encode logic that needs a Rust translation. Those go in the `_macro` file as a regular function or a `macro_rules!` block, with the doc-comment explaining why one was chosen over the other.
 
 ---
 
@@ -248,7 +235,7 @@ For frozen-literal globals: a "matches introspected value" test pinning the outp
 
    **All three must pass before claiming the port is done.** `cargo check` catches the mod declaration, `cargo test` catches behavior, `audit-signatures` catches API-shape drift like the `_with` split that prompted its existence.
 
-   **`reverse/scripts/divergences.md` is committed.** After a port, `git diff reverse/scripts/divergences.md` is the review surface. New entries should be either (a) intentional, citing CONVENTIONS (§4.4 enum collapse, §4.6 dropped `:fresh`, etc.) — commit alongside the port; or (b) a port bug — fix and re-run until the entry disappears.
+   **`reverse/scripts/divergences.md` is committed.** After a port, `git diff reverse/scripts/divergences.md` is the review surface. New entries should be either (a) intentional, citing CONVENTIONS (e.g. §4.4 enum collapse) — commit alongside the port; or (b) a port bug — fix and re-run until the entry disappears.
 4. **Mark progress**: `python3 reverse/scripts/query.py mark <fqn>... --status ported`. This rewrites the `status` column of `symbols.csv` in place.
 5. **Regenerate the plan**: `python3 reverse/scripts/query.py plan --out reverse/scripts/PORT_PLAN.md`. The plan is byte-deterministic across runs on the same CSVs.
 6. **Don't run `python3 reverse/scripts/build_graph.py` casually** — it overwrites `symbols.csv` from the md files and resets every `status` cell to `pending`. Only run it after re-running `introspect.lisp` against an updated upstream, and commit `symbols.csv` first.
