@@ -92,16 +92,16 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   87. `ichiran/dict:*special-counters*`  — global, dict-counters.lisp:211  *[ported — Doc-only stub: registry value-fn type depends on the unported cache populator (wave 110); storage home depends on the unbuilt KaniranContext::Inner. Re-port as ported once both prerequisites land.]*
   88. `ichiran/dict:*extra-counter-ids*`  — global, dict-counters.lisp:310  *[ported]*
   89. `ichiran/dict:*skip-counter-ids*`  — global, dict-counters.lisp:315  *[ported]*
-  90. `ichiran/dict:sense-prop`  — dao, dict.lisp:197
-  91. `ichiran/dict:get-counter-ids`  — fn, dict-counters.lisp:285
-  92. `ichiran/dict:get-counter-stags`  — fn, dict-counters.lisp:292
+  90. `ichiran/dict:sense-prop`  — dao, dict.lisp:197  *[ported]*
+  91. `ichiran/dict:get-counter-ids`  — fn, dict-counters.lisp:285  *[ported]*
+  92. `ichiran/dict:get-counter-stags`  — fn, dict-counters.lisp:292  *[ported]*
   93. `ichiran/dict:simple-text`  — class, dict.lisp:69  *[ported]*
   94. `ichiran/dict:kana-text`  — dao, dict.lisp:128  *[ported]*
   95. `ichiran/dict:kanji-text`  — dao, dict.lisp:86  *[ported]*
-  96. `ichiran/dict:get-counter-readings`  — fn, dict-counters.lisp:335
-  97. `ichiran/dict:conjugation`  — dao, dict.lisp:238
-  98. `ichiran/dict:sense`  — dao, dict.lisp:166
-  99. `ichiran/dict:entry`  — dao, dict.lisp:26
+  96. `ichiran/dict:get-counter-readings`  — fn, dict-counters.lisp:335  *[ported]*
+  97. `ichiran/dict:conjugation`  — dao, dict.lisp:238  *[ported]*
+  98. `ichiran/dict:sense`  — dao, dict.lisp:166  *[ported]*
+  99. `ichiran/dict:entry`  — dao, dict.lisp:26  *[ported]*
  100. `ichiran/dict:no-conj-data`  — fn, dict.lisp:337
  101. `ichiran/dict:*suffix-cache*`  — global, dict-grammar.lisp:0
  102. `ichiran/dict:*suffix-class*`  — global, dict-grammar.lisp:0

@@ -3,7 +3,7 @@
 Read [`CLAUDE.md`](../../CLAUDE.md) and [`CONVENTIONS.md`](../../CONVENTIONS.md) first for orientation. This doc is the current snapshot.
 
 **Baseline commits this session (3, on top of `d2b0d1a`):**
-1. Port `ichiran/numbers` — 14 symbols, 35 new tests, package now closed.
+1. transliterate and mirror without improvements `ichiran/numbers` — 14 symbols, 35 new tests, package now closed.
 2. Add signature-drift audit + introspector-bug guard — `signatures.json`, `query.py audit-signatures`, committed `divergences.md`.
 3. This HANDOFF update.
 
