@@ -1,20 +1,22 @@
 //! Fixture replay support.
 //!
-//! Fixtures are JSONL files captured by the tracer in `ichiran-repl.sh`
-//! against the live ichiran image on `.103`. Each line describes one call
-//! to a Lisp function:
+//! Fixtures are JSONL or parquet rows captured by `ichiran-extractor` /
+//! the `:ichi-trace` package against the live ichiran image on `.103`.
+//! Each row describes one call to a Lisp function:
 //!
 //! ```text
 //! {"fn":"ICHIRAN/CHARACTERS:TEST-WORD","args":"(\"ねこ\" :HIRAGANA)","result":"(0 2 #() #())"}
 //! ```
 //!
 //! The `args` and `result` fields hold the original values as Lisp source
-//! text (lossless round-trip via `prin1`/`read`). Rust replays a fixture
-//! by deserializing the envelope, parsing the Lisp text via `lexpr`,
-//! calling the port with the parsed arguments, and comparing the produced
-//! value against the expected one.
+//! text (lossless round-trip via `prin1` / our parser). Rust replays a
+//! fixture by deserializing the envelope, parsing the Lisp text via
+//! [`crate::kani::sexp::parse`], calling the port with the parsed
+//! arguments, and comparing the produced value against the expected one.
 
 use serde::{Deserialize, Serialize};
+
+use crate::kani::sexp::{self, ParseError, Sexp};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Fixture {
@@ -29,20 +31,13 @@ impl Fixture {
         serde_json::from_str(line)
     }
 
-    pub fn parse_args(&self) -> Result<lexpr::Value, lexpr::parse::Error> {
-        parse_lisp(&self.args)
+    pub fn parse_args(&self) -> Result<Sexp, ParseError> {
+        sexp::parse(&self.args)
     }
 
-    pub fn parse_result(&self) -> Result<lexpr::Value, lexpr::parse::Error> {
-        parse_lisp(&self.result)
+    pub fn parse_result(&self) -> Result<Sexp, ParseError> {
+        sexp::parse(&self.result)
     }
-}
-
-pub fn parse_lisp(s: &str) -> Result<lexpr::Value, lexpr::parse::Error> {
-    use lexpr::parse::{KeywordSyntax, Options};
-    let opts = Options::new().with_keyword_syntax(KeywordSyntax::ColonPrefix);
-    let mut parser = lexpr::Parser::from_str_custom(s, opts);
-    Ok(parser.next_value()?.expect("empty Lisp input"))
 }
 
 pub fn read_jsonl(path: &std::path::Path) -> std::io::Result<Vec<Fixture>> {
@@ -84,11 +79,9 @@ mod tests {
     fn parses_lisp_args_with_keyword() {
         let f = Fixture::from_jsonl_line(SAMPLE_TEST_WORD).unwrap();
         let args = f.parse_args().unwrap();
-        // ("ねこ" :HIRAGANA) → 2-element list: a string and a keyword
         let elems: Vec<_> = args.list_iter().unwrap().collect();
         assert_eq!(elems.len(), 2);
         assert_eq!(elems[0].as_str(), Some("ねこ"));
-        assert!(elems[1].is_keyword(), "second element should be a keyword: {:?}", elems[1]);
         assert_eq!(elems[1].as_keyword(), Some("HIRAGANA"));
     }
 
@@ -96,7 +89,6 @@ mod tests {
     fn parses_lisp_result_with_vector() {
         let f = Fixture::from_jsonl_line(SAMPLE_TEST_WORD).unwrap();
         let result = f.parse_result().unwrap();
-        // (0 2 #() #()) → 4-element list, last two are empty vectors
         let elems: Vec<_> = result.list_iter().unwrap().collect();
         assert_eq!(elems.len(), 4);
         assert_eq!(elems[0].as_i64(), Some(0));

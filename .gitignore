@@ -16,3 +16,7 @@ Cargo.lock.bak
 
 # Python
 __pycache__/
+.DS_Store
+
+# Captured fixture data — local only, regenerated on demand
+/corpus/
