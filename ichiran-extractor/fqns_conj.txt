@@ -1,0 +1,9 @@
+# Wave 100/113-121 conj-data cluster.
+# All five default to the package generic flatten (no projector column),
+# which handles conj-prop DAOs and conj-data structs uniformly via
+# ichi-projectors:flatten-trace-value.
+ICHIRAN/DICT::NO-CONJ-DATA
+ICHIRAN/DICT::MAKE-CONJ-DATA
+ICHIRAN/DICT::GET-CONJ-DATA
+ICHIRAN/DICT::CONJ-DATA-PROP
+ICHIRAN/DICT::TEST-CONJ-PROP

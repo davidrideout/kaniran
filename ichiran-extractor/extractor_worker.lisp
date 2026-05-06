@@ -116,20 +116,30 @@
 (defun translate-install-specs (raw)
   "Translate the install op's 'fqns' JSON array into specs accepted by
    ichi-trace:install-many. Each element is either a JSON string FQN
-   (no projector) or a JSON object {fqn, result_projector}. Empty or
-   missing result_projector means no projector (raw RESULTS captured)."
-  (mapcar (lambda (item)
-            (cond
-              ((stringp item) item)
-              ((and (listp item) (eq (car item) :obj))
-               (let* ((fqn (jsown:val item "fqn"))
-                      (proj-name (jsown:val-safe item "result_projector")))
-                 (if (and proj-name (stringp proj-name)
-                          (not (zerop (length proj-name))))
-                     (list fqn :result-projector (resolve-projector proj-name))
-                     (list fqn))))
-              (t (error "bad install spec: ~a" item))))
-          raw))
+   or a JSON object {fqn, arg_projector?, result_projector?}. Missing
+   or empty projector fields fall back to the package default (the
+   ICHI-PROJECTORS generic flatten that handles DAOs and structures
+   uniformly). Set a field to the literal string 'none' to disable
+   projection on that side and capture the raw value."
+  (labels ((resolve (name)
+             (cond
+               ((null name) t)
+               ((not (stringp name)) t)
+               ((zerop (length name)) t)
+               ((string-equal name "none") nil)
+               (t (resolve-projector name)))))
+    (mapcar (lambda (item)
+              (cond
+                ((stringp item) item)
+                ((and (listp item) (eq (car item) :obj))
+                 (let ((fqn (jsown:val item "fqn"))
+                       (arg-name (jsown:val-safe item "arg_projector"))
+                       (res-name (jsown:val-safe item "result_projector")))
+                   (list fqn
+                         :arg-projector    (resolve arg-name)
+                         :result-projector (resolve res-name))))
+                (t (error "bad install spec: ~a" item))))
+            raw)))
 
 
 ;; --- dispatch loop ---------------------------------------------------------

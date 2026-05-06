@@ -117,25 +117,50 @@
 ;; the prior fdefinition. Returning multiple values is the wrapper's
 ;; responsibility — verified via toy-fn smoke test on SBCL 2.2.9.
 
-(defun make-recorder (fqn result-projector)
-  (lambda (basic-def &rest args)
-    (let ((results (multiple-value-list (apply basic-def args))))
-      (unless *in-recorder*
-        (let ((*in-recorder* t))
-          ;; Projection runs first, inside HANDLER-CASE, so a buggy or
-          ;; mismatched projector counts the call as skipped rather
-          ;; than aborting the trace.
-          (let* ((projected (handler-case
-                                (if result-projector
-                                    (funcall result-projector results)
-                                    results)
-                              (error () nil)))
-                 (args-str   (and projected (safe-prin1 args)))
-                 (result-str (and projected (safe-prin1 projected))))
-            (if (and args-str result-str)
-                (push (list fqn args-str result-str) *captures*)
-                (incf *skipped*)))))
-      (values-list results))))
+(defparameter *projection-failed* '#:projection-failed
+  "Sentinel returned by APPLY-PROJECTOR when a projector signals an error.
+   Distinct from any user value (uninterned), so NIL projector outputs
+   don't collide with the failure path.")
+
+(defun apply-projector (projector value)
+  "Run PROJECTOR on VALUE inside HANDLER-CASE; return *PROJECTION-FAILED*
+   on error so the caller can count the call as skipped without aborting
+   the trace. When PROJECTOR is nil, VALUE passes through unchanged."
+  (if projector
+      (handler-case (funcall projector value)
+        (error () *projection-failed*))
+      value))
+
+(defun default-arg-projector ()
+  (let ((sym (find-symbol "FLATTEN-ARGS" :ichi-projectors)))
+    (and sym (fboundp sym) (symbol-function sym))))
+
+(defun default-result-projector ()
+  (let ((sym (find-symbol "FLATTEN-RESULTS" :ichi-projectors)))
+    (and sym (fboundp sym) (symbol-function sym))))
+
+(defun make-recorder (fqn arg-projector result-projector)
+  ;; Resolve defaults at recorder-build time. NIL means "no projection";
+  ;; install passes T to mean "use the package default flatten".
+  (let ((arg-fn    (cond ((eq arg-projector    t) (default-arg-projector))
+                         (t arg-projector)))
+        (result-fn (cond ((eq result-projector t) (default-result-projector))
+                         (t result-projector))))
+    (lambda (basic-def &rest args)
+      (let ((results (multiple-value-list (apply basic-def args))))
+        (unless *in-recorder*
+          (let ((*in-recorder* t))
+            (let* ((projected-args    (apply-projector arg-fn    args))
+                   (projected-results (apply-projector result-fn results))
+                   (args-str   (and (not (eq projected-args    *projection-failed*))
+                                    (not (eq projected-results *projection-failed*))
+                                    (safe-prin1 projected-args)))
+                   (result-str (and args-str
+                                    (safe-prin1 projected-results))))
+              (if (and args-str result-str)
+                  (push (list fqn args-str result-str) *captures*)
+                  (incf *skipped*)))))
+        (values-list results)))))
 
 
 ;; --- FQN parsing -----------------------------------------------------------
@@ -163,18 +188,22 @@
 
 ;; --- public API ------------------------------------------------------------
 
-(defun install (fqn-string &key result-projector)
-  "Install a recorder for FQN-STRING, optionally projecting the result
-   via RESULT-PROJECTOR (a function called on the multiple-value-list
-   of the return before SAFE-PRIN1). Re-installing with a different
-   projector swaps the wrapper — the call is NOT idempotent in the
-   projector argument."
+(defun install (fqn-string &key (arg-projector t) (result-projector t))
+  "Install a recorder for FQN-STRING. ARG-PROJECTOR / RESULT-PROJECTOR
+   each accept three values: T (default) uses the package-level
+   ICHI-PROJECTORS:FLATTEN-ARGS / FLATTEN-RESULTS generic flatten;
+   a function value is called as a custom projector (it receives the
+   raw args list / multiple-value-list of the return); NIL disables
+   projection on that side and the raw value goes straight to
+   SAFE-PRIN1. Re-installing swaps the wrapper — the call is NOT
+   idempotent in the projector arguments."
   (let ((sym (resolve-symbol fqn-string)))
     (when (gethash fqn-string *installed*)
       (sb-int:unencapsulate sym 'ichi-trace))
     (sb-int:encapsulate sym 'ichi-trace
-                        (make-recorder fqn-string result-projector))
-    (setf (gethash fqn-string *installed*) (cons sym result-projector))
+                        (make-recorder fqn-string arg-projector result-projector))
+    (setf (gethash fqn-string *installed*)
+          (list sym arg-projector result-projector))
     fqn-string))
 
 (defun install-many (specs)
