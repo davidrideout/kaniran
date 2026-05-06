@@ -66,12 +66,13 @@ echo
 if (( DO_DEPLOY )); then
     echo "=== [1/3] Deploy harness + driver to $REMOTE ==="
     scp "$SCRIPT_DIR/trace_capture.lisp" \
+        "$SCRIPT_DIR/projectors.lisp" \
         "$SCRIPT_DIR/extractor_worker.lisp" \
         "$SCRIPT_DIR/ichiran_main_pooled.py" \
         "$SCRIPT_DIR/ichiran_worker_pool.py" \
         "$REMOTE:$REMOTE_API_DIR/"
     scp "$SCRIPT_DIR/fetch_extractor.py" "$REMOTE:$REMOTE_HOME/"
-    ssh "$REMOTE" "ls -la $REMOTE_API_DIR/{trace_capture,extractor_worker}.lisp $REMOTE_API_DIR/ichiran_{main_pooled,worker_pool}.py $REMOTE_HOME/fetch_extractor.py"
+    ssh "$REMOTE" "ls -la $REMOTE_API_DIR/{trace_capture,projectors,extractor_worker}.lisp $REMOTE_API_DIR/ichiran_{main_pooled,worker_pool}.py $REMOTE_HOME/fetch_extractor.py"
     echo
 fi
 

@@ -13,7 +13,9 @@
 ;;;   {"op":"ping"}                         -> {"ok":true,"result":"pong"}
 ;;;   {"op":"quit"}                         -> exits
 ;;;   {"op":"installed"}                    -> {"ok":true,"result":["FQN", ...]}
-;;;   {"op":"install","fqns":["FQN", ...]}  -> {"ok":true,"result":N}
+;;;   {"op":"install","fqns":[SPEC, ...]}   -> {"ok":true,"result":N}
+;;;     SPEC = "FQN" | {"fqn":"FQN","result_projector":"NAME"}
+;;;     PROJECTOR-NAME resolves via :ichi-projectors (see projectors.lisp).
 ;;;   {"op":"uninstall-all"}                -> {"ok":true,"result":true}
 ;;;   {"op":"clear"}                        -> {"ok":true,"result":true}
 ;;;   {"op":"extract","text":"..."}         -> {"ok":true,"result":{
@@ -28,6 +30,7 @@
 (in-package :cl-user)
 
 (load (merge-pathnames "trace_capture.lisp" *load-pathname*))
+(load (merge-pathnames "projectors.lisp" *load-pathname*))
 
 
 ;; --- entry-point sweep -----------------------------------------------------
@@ -38,14 +41,7 @@
 ;; pipeline; their internal calls into other installed fns get captured
 ;; via the encapsulate hooks regardless.
 (defparameter *entry-points*
-  '("ICHIRAN/CHARACTERS:NORMALIZE"
-    "ICHIRAN/CHARACTERS:BASIC-SPLIT"
-    "ICHIRAN/CHARACTERS:CONSECUTIVE-CHAR-GROUPS"
-    "ICHIRAN/CHARACTERS:AS-HIRAGANA"
-    "ICHIRAN/CHARACTERS:AS-KATAKANA"
-    "ICHIRAN/CHARACTERS:MORA-LENGTH"
-    "ICHIRAN/CHARACTERS:KANJI-PREFIX"
-    "ICHIRAN/CHARACTERS:SEQUENTIAL-KANJI-POSITIONS"))
+  '("ICHIRAN:ROMANIZE*"))
 
 (defun call-entry (fqn text)
   "Invoke FQN with TEXT as its single argument. Wrapped in
@@ -106,6 +102,36 @@
      ("skipped" skipped))))
 
 
+;; --- install spec translation ---------------------------------------------
+
+(defun resolve-projector (name)
+  "Resolve a projector name string to its function in :ichi-projectors.
+   Errors if the symbol is missing or unbound — the worker surfaces
+   that as a JSON error to the install caller."
+  (let ((sym (find-symbol (string-upcase name) :ichi-projectors)))
+    (unless (and sym (fboundp sym))
+      (error "unknown projector: ~a" name))
+    (symbol-function sym)))
+
+(defun translate-install-specs (raw)
+  "Translate the install op's 'fqns' JSON array into specs accepted by
+   ichi-trace:install-many. Each element is either a JSON string FQN
+   (no projector) or a JSON object {fqn, result_projector}. Empty or
+   missing result_projector means no projector (raw RESULTS captured)."
+  (mapcar (lambda (item)
+            (cond
+              ((stringp item) item)
+              ((and (listp item) (eq (car item) :obj))
+               (let* ((fqn (jsown:val item "fqn"))
+                      (proj-name (jsown:val-safe item "result_projector")))
+                 (if (and proj-name (stringp proj-name)
+                          (not (zerop (length proj-name))))
+                     (list fqn :result-projector (resolve-projector proj-name))
+                     (list fqn))))
+              (t (error "bad install spec: ~a" item))))
+          raw))
+
+
 ;; --- dispatch loop ---------------------------------------------------------
 
 (defun extractor-worker-loop ()
@@ -134,10 +160,11 @@
                   (json-ok-value (ichi-trace:installed)))
 
                  ((string-equal op "install")
-                  (let ((fqns (jsown:val-safe query "fqns")))
+                  (let ((raw (jsown:val-safe query "fqns")))
                     (handler-case
-                        (progn (ichi-trace:install-many fqns)
-                               (json-ok-value (length (ichi-trace:installed))))
+                        (let ((specs (translate-install-specs raw)))
+                          (ichi-trace:install-many specs)
+                          (json-ok-value (length (ichi-trace:installed))))
                       (error (e) (json-error (format nil "~a" e))))))
 
                  ((string-equal op "uninstall-all")
@@ -163,5 +190,17 @@
                          (error (e) (json-error (format nil "~a" e)))))) ))
 
                  (t (json-error (format nil "unknown op: ~a" op))))))))))))
+
+;; Force suffix-cache + suffix-class to populate synchronously before
+;; we start accepting requests. Without this, ichiran/dict:init-suffixes
+;; would race the first /extract calls (it spawns a background loader
+;; thread by default), and find-word-seq calls reached via the suffix
+;; matcher would slip past unhooked sentences. Blocking-init is a
+;; one-time ~200ms hit per worker at boot.
+(handler-case
+    (postmodern:with-connection ichiran/conn:*connection*
+      (ichiran/dict:init-suffixes t))
+  (error (e)
+    (format *error-output* "warn: init-suffixes failed: ~a~%" e)))
 
 (extractor-worker-loop)

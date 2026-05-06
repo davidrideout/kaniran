@@ -1,0 +1,11 @@
+# Wave 110/111 corpus capture: find-word-seq + find-word-conj-of.
+# Trace driver: ICHIRAN:ROMANIZE* (set in extractor_worker.lisp's
+# *entry-points*) — its segmentation pass exercises both via the
+# def-simple-suffix / def-simple-split machinery.
+#
+# Wave 112 (get-kana-form) is NOT in this set: every callsite lives
+# inside load-kf in init-suffixes, so it never fires at runtime. It's
+# captured separately via a one-shot install-then-init-suffixes script
+# (see capture_get_kana_form.lisp) — bounded ~25 deterministic calls.
+ICHIRAN/DICT::FIND-WORD-SEQ      DAO-ROWS
+ICHIRAN/DICT::FIND-WORD-CONJ-OF  DAO-ROWS

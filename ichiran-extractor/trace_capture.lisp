@@ -39,7 +39,12 @@
 ;; the recorder and corrupting *captures*.
 (defparameter *in-recorder* nil)
 
-;; FQN string -> symbol, for every fn currently encapsulated.
+;; FQN string -> (sym . result-projector-or-nil) for every fn currently
+;; encapsulated. The projector is a function called on RESULTS (the
+;; multiple-value-list of the original return) before SAFE-PRIN1, so
+;; non-readable shapes (DAO instances, opaque structs) can be flattened
+;; into primitive-printable plists per-FQN before capture. NIL means
+;; the raw RESULTS goes to SAFE-PRIN1 unchanged (the original behavior).
 (defparameter *installed* (make-hash-table :test 'equal))
 
 ;; List of (fqn args-string result-string), most-recent first. DRAIN
@@ -112,13 +117,21 @@
 ;; the prior fdefinition. Returning multiple values is the wrapper's
 ;; responsibility — verified via toy-fn smoke test on SBCL 2.2.9.
 
-(defun make-recorder (fqn)
+(defun make-recorder (fqn result-projector)
   (lambda (basic-def &rest args)
     (let ((results (multiple-value-list (apply basic-def args))))
       (unless *in-recorder*
         (let ((*in-recorder* t))
-          (let ((args-str (safe-prin1 args))
-                (result-str (safe-prin1 results)))
+          ;; Projection runs first, inside HANDLER-CASE, so a buggy or
+          ;; mismatched projector counts the call as skipped rather
+          ;; than aborting the trace.
+          (let* ((projected (handler-case
+                                (if result-projector
+                                    (funcall result-projector results)
+                                    results)
+                              (error () nil)))
+                 (args-str   (and projected (safe-prin1 args)))
+                 (result-str (and projected (safe-prin1 projected))))
             (if (and args-str result-str)
                 (push (list fqn args-str result-str) *captures*)
                 (incf *skipped*)))))
@@ -150,29 +163,39 @@
 
 ;; --- public API ------------------------------------------------------------
 
-(defun install (fqn-string)
-  "Install a recorder for FQN-STRING. Idempotent — repeat calls leave
-   the existing wrapper in place."
+(defun install (fqn-string &key result-projector)
+  "Install a recorder for FQN-STRING, optionally projecting the result
+   via RESULT-PROJECTOR (a function called on the multiple-value-list
+   of the return before SAFE-PRIN1). Re-installing with a different
+   projector swaps the wrapper — the call is NOT idempotent in the
+   projector argument."
   (let ((sym (resolve-symbol fqn-string)))
-    (unless (gethash fqn-string *installed*)
-      (sb-int:encapsulate sym 'ichi-trace (make-recorder fqn-string))
-      (setf (gethash fqn-string *installed*) sym))
+    (when (gethash fqn-string *installed*)
+      (sb-int:unencapsulate sym 'ichi-trace))
+    (sb-int:encapsulate sym 'ichi-trace
+                        (make-recorder fqn-string result-projector))
+    (setf (gethash fqn-string *installed*) (cons sym result-projector))
     fqn-string))
 
-(defun install-many (fqn-strings)
-  (mapcar #'install fqn-strings))
+(defun install-many (specs)
+  "Install each SPEC. SPEC is either a string FQN (no projector) or a
+   list (FQN-STRING &key result-projector ...) suitable for APPLY."
+  (mapcar (lambda (spec)
+            (etypecase spec
+              (string (install spec))
+              (cons   (apply #'install spec))))
+          specs))
 
 (defun uninstall (fqn-string)
-  (let ((sym (gethash fqn-string *installed*)))
-    (when sym
-      (sb-int:unencapsulate sym 'ichi-trace)
+  (let ((entry (gethash fqn-string *installed*)))
+    (when entry
+      (sb-int:unencapsulate (car entry) 'ichi-trace)
       (remhash fqn-string *installed*))
     fqn-string))
 
 (defun uninstall-all ()
-  (loop for fqn being the hash-keys of *installed*
-          using (hash-value sym)
-        do (sb-int:unencapsulate sym 'ichi-trace))
+  (loop for entry being the hash-values of *installed*
+        do (sb-int:unencapsulate (car entry) 'ichi-trace))
   (clrhash *installed*))
 
 (defun installed ()

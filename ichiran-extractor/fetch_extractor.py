@@ -298,13 +298,30 @@ async def writer_task(
 # --- subcommands -------------------------------------------------------------
 
 async def cmd_install(args):
+    # Each non-blank, non-comment line is either:
+    #   FQN
+    #   FQN  PROJECTOR-NAME
+    # Whitespace-delimited, two columns max. PROJECTOR-NAME resolves
+    # via :ichi-projectors on the worker (see projectors.lisp).
+    specs: list[str | dict[str, str]] = []
     with open(args.fqn_file, encoding="utf-8") as f:
-        fqns = [line.strip() for line in f if line.strip() and not line.startswith("#")]
-    if not fqns:
+        for raw in f:
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split()
+            if len(parts) == 1:
+                specs.append(parts[0])
+            elif len(parts) == 2:
+                specs.append({"fqn": parts[0], "result_projector": parts[1]})
+            else:
+                sys.exit(f"bad line (expected FQN [projector]): {line!r}")
+    if not specs:
         sys.exit("no FQNs in file")
-    print(f"installing {len(fqns)} FQNs on {args.api}")
+    n_proj = sum(1 for s in specs if isinstance(s, dict))
+    print(f"installing {len(specs)} FQNs on {args.api} ({n_proj} with projector)")
     async with aiohttp.ClientSession() as session:
-        result = await post_json(session, f"{args.api.rstrip('/')}/install", {"fqns": fqns})
+        result = await post_json(session, f"{args.api.rstrip('/')}/install", {"fqns": specs})
     print(json.dumps(result, indent=2))
 
 

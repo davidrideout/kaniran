@@ -2,12 +2,18 @@
 
 Read [`CLAUDE.md`](../../CLAUDE.md) and [`CONVENTIONS.md`](../../CONVENTIONS.md) first for orientation. This doc is the current snapshot.
 
-**Baseline commits this session (3, on top of `d2b0d1a`):**
-1. transliterate and mirror without improvements `ichiran/numbers` — 14 symbols, 35 new tests, package now closed.
-2. Add signature-drift audit + introspector-bug guard — `signatures.json`, `query.py audit-signatures`, committed `divergences.md`.
-3. This HANDOFF update.
+**Commits since the previous HANDOFF (`08e8ae8`):**
+1. `0e28e20` Open ichiran/dict: simple-text + kanji-text + kana-text DAOs
+2. `080d9a0` Port ichiran/dict static counter globals + SuffixKind sidecar
+3. `3908dad` Macroexpand DSL definers in introspector; lift build_graph gate
+4. `840c30e` Port counter-text family (12 symbols) + Counter dispatch enum
+5. `c7c89af` Drop CONVENTIONS §4.6/§4.7; restore `:fresh` in-place semantics
+6. `52160a2` Add fixture-capture pipeline + replay parser + audit harness
+7. `f6ced57` Port 4 dict DAOs (entry/sense/sense-prop/conjugation) + 3 counter fns
+8. `50e50d4` Port *suffix-cache* / *suffix-class* + audit async-fn coverage
+9. `b28a6ee` Port wave 103 dict caches: *counter-cache*, *is-arch-cache*, *no-conj-data*
 
-`ichiran-repl.sh` remains untracked (intentional — local wrapper, has the `.103` host hardcoded).
+**Uncommitted in working tree:** `*init-suffixes-lock*` marked skip + plan regenerated. Reason: subsumed by `OnceLock::get_or_init`'s built-in once-only synchronization on `*suffix-cache*` / `*suffix-class*`. Two files modified — `reverse/scripts/symbols.csv`, `reverse/scripts/PORT_PLAN.md`. Commit when convenient.
 
 ---
 
@@ -17,15 +23,17 @@ Read [`CLAUDE.md`](../../CLAUDE.md) and [`CONVENTIONS.md`](../../CONVENTIONS.md)
 |---|---|
 | Original Lisp source | Checked in at repo root, untouched. |
 | **Symbol / dependency extraction** (md files) | Done. **945 md files** under `reverse/<file>.lisp/` covering 6 introspected kinds + 2 hand-written. |
-| **Graph CSVs** (symbols.csv, edges.csv) | Done. **944 symbols** + 3145 edges. |
-| **Signatures** (`signatures.json`) | NEW this session. 763 entries (689 fn + 36 macro + 38 gf) keyed by FQN, with lambda list and declared ftype. Used by `audit-signatures`. |
-| **PORT_PLAN.md** | Regenerated. **872 waves, 923 symbols.** |
-| **Marked status** | **79 ported** (was 65) + **28 skip** (unchanged). |
-| **Tracer** (`:ichi-trace` in `ichiran-repl.sh`) | Built, proven via probes. Has not yet been run on `(ichiran/test:run-all-tests)`. |
-| **Rust crate `kaniran-core`** | 79 ports + 4 Rust-only sidecars. Five package directories: `characters/`, `conn/`, `core/`, `maintenance/`, **`numbers/`** (new). **102 tests pass.** |
-| **Audit infrastructure** | NEW. `reverse/scripts/divergences.md` is committed and deterministic; `query.py audit-signatures` rewrites it on every run. Currently lists 6 divergences — 4 documented in port doc-comments (CONVENTIONS §4.4 / §4.6), 2 new from the numbers port. |
+| **Graph CSVs** (symbols.csv, edges.csv) | **944 symbols** + 3145 edges. |
+| **Signatures** (`signatures.json`) | 763 entries (689 fn + 36 macro + 38 gf). Used by `audit-signatures`. |
+| **PORT_PLAN.md** | **862 waves, 923 symbols.** |
+| **Marked status** | **111 ported / 29 skip / 804 pending** (was 79 / 28 in the previous HANDOFF). |
+| **Tracer** (`:ichi-trace` in `ichiran-extractor/trace_capture.lisp`) | End-to-end validated on the 400K-sentence corpus run (per CLAUDE.md). |
+| **Rust crate `kaniran-core`** | 111 ports + 5 Rust-only sidecars. Six package directories: `characters/`, `conn/`, `core/`, `dict/` (NEW), `maintenance/`, `numbers/`. **128 tests pass.** |
+| **Audit infrastructure** | `audit-signatures` now matches `pub async fn` as well. Currently 9 divergences in `divergences.md`. |
 
-`ichiran/numbers` is now closed: **14 ported / 0 pending / 0 skip.** Same shape as `ichiran/conn` (closed) and `ichiran/characters` (closed). Three packages fully ported.
+Closed packages: `characters` (61), `conn` (2 + 24 skip), `numbers` (14). Three closed.
+
+`dict/` is open: 32 ported + 3 skip (out of 679 — most of the work remaining is here).
 
 ---
 
@@ -36,31 +44,27 @@ kaniran/
 ├── Cargo.toml                       # workspace
 ├── Cargo.lock
 ├── CLAUDE.md
-├── CONVENTIONS.md                   # §7 now lists audit-signatures alongside cargo check / cargo test
+├── CONVENTIONS.md
 ├── kaniran-core/
 │   └── src/
-│       ├── lib.rs                   # `pub mod kani; characters; conn; core; maintenance; numbers;`
+│       ├── lib.rs                   # `pub mod kani; characters; conn; core; dict; maintenance; numbers;`
 │       ├── kani.rs / kani/          # naming.rs + fixture.rs
 │       ├── characters/              # 61 ports + 3 sidecars
 │       ├── conn/                    # 2 ports + 1 sidecar (KaniranContext)
 │       ├── core/                    # 1 port
+│       ├── dict/                    # NEW — 32 ports + 1 sidecar (kani_suffix_kind)
 │       ├── maintenance/             # 1 port
-│       └── numbers/                 # NEW — 14 ports + 1 sidecar (kani_num_class)
-│           ├── mod.rs
-│           ├── kani_num_class.rs                       # NumClass enum (:jd / :p / :ad)
-│           ├── _star_*_star_.rs                        # 7 globals
-│           ├── number_to_kanji.rs / number_to_kana.rs
-│           ├── parse_number.rs / parse_number_star_.rs # note trailing _ on file stem (* in Lisp name)
-│           ├── group_to_kana.rs / num_sandhi.rs
-│           └── not_a_number_condition.rs
+│       └── numbers/                 # 14 ports + 1 sidecar (kani_num_class)
+├── ichiran-extractor/               # bulk fixture-capture pipeline (FastAPI + pooled SBCL workers)
+│   └── trace_capture.lisp           # :ichi-trace package
 └── reverse/
     └── scripts/
-        ├── build_graph.py           # gated for full regen; --signatures-only bypasses
-        ├── query.py                 # NEW subcommand: audit-signatures
+        ├── build_graph.py           # gate lifted (`3908dad`); --signatures-only still bypasses
+        ├── query.py                 # audit-signatures handles async fn (`50e50d4`)
         ├── symbols.csv
         ├── edges.csv
-        ├── signatures.json          # NEW — 763 callable signatures
-        ├── divergences.md           # NEW — committed audit output
+        ├── signatures.json
+        ├── divergences.md           # committed, rewritten by every audit run
         ├── PORT_PLAN.md
         ├── HANDOFF.md
         └── README.md
@@ -68,75 +72,51 @@ kaniran/
 
 ---
 
-## What got built / changed this session
+## What got built / changed since the last HANDOFF
 
-### 1. Ported `ichiran/numbers` (14 symbols)
+### 1. Opened `ichiran/dict` package — 32 ports
 
-Full leaf-up port of the Japanese number system. No DB, no regex, no I/O — pure transformation.
+The dict tree is now active. Highlights:
 
-| Symbol | Rust shape | Notes |
-|---|---|---|
-| 7 globals (`*digit-kanji-default*`, etc.) | `pub const` slices + 1 `OnceLock<HashMap>` | `*char-number-class-hash*` derives lazily from `*char-number-class*`. Test pins to introspector-captured count of 42 entries. |
-| `number-to-kanji` | `fn(n, digits, powers, one_sen) -> String` | Single 4-arg fn matching the Lisp keyword surface. |
-| `parse-number` | `fn(&str) -> Result<u64, NotANumber>` | Returns `Err` for any glyph not in the lookup table. |
-| `parse-number*` | `fn(&[(NumClass, u8)]) -> u64` | Drops Lisp `:start :end` for Rust slice idiom. **Surfaces in divergences.md.** |
-| `num-sandhi` | `fn(c1, v1, c2, v2, s1, s2) -> String` | Was `defgeneric`; collapsed to single `fn` with `match` over `(prev, cur)` quadruple. 6-arg signature preserved. |
-| `group-to-kana` | `fn(group, digit_table, power_table) -> String` | Lisp's combined `:class-to-kana` plist split into two table args. **Surfaces in divergences.md.** |
-| `number-to-kana` | `fn(n, sep: Option<char>, kanji_method: impl Fn(u64) -> String) -> NumberToKanaOutput` | Returns enum — `Joined(String)` or `Groups(Vec<String>)` matching Lisp's `:separator nil` branch. |
-| `NotANumber` (condition) | `pub struct NotANumber { text, reason }` with `thiserror::Error` | |
+- **Static counter globals** (`*counter-accepts*`, `*counter-foreign*`, `*counter-suffixes*`, `*extra-counter-ids*`, `*skip-counter-ids*`) plus the `SuffixKind` sidecar enum.
+- **Counter class hierarchy** (12 ports) — `counter-text` base + 10 subclasses + `number-text`. Per-subclass newtype + sub-enum dispatcher per CONVENTIONS §4.7. The `Counter` enum lives in `counter_text_class.rs`.
+- **Static doc-only stubs** for the counter dispatcher fns (`get-counter-ids`, `get-counter-readings`, `get-counter-stags`, `get-counter-readings`'s helpers) — async DB-touching DAO fns. These show up as ctx-injection drift in `divergences.md` (see §3 below).
+- **DAO row representations** — `entry`, `sense`, `sense-prop`, `simple-text`, `kanji-text`, `kana-text`, `conjugation`. Mostly hand-rolled `FromRow` impls because `state` slots have no DB counterpart.
+- **Empty-registry def-conn-var globals** — `*special-counters*`, `*suffix-cache*`, `*suffix-class*`, `*counter-cache*`, `*is-arch-cache*`, `*no-conj-data*`. Same `OnceLock<HashMap>` + `get_or_init(HashMap::new)` pattern; populators are unported (each runs DB queries) so registries return empty until they land.
 
-35 new tests, every one verified against the live Lisp on `.103` via REPL pinning (number-to-kanji, parse-number, number-to-kana with both space and `*kana-hint-space*`/U+200B separator).
+The empty-registry pattern is now the de facto idiom for any def-conn-var cache whose populator is downstream of the JMdict-schema decision — eight ports use it.
 
-Test count: 65 → **102** (+37; some pre-existing tests were also unaffected so the audit math doesn't perfectly equal 35).
+### 2. Convention drops
 
-### 2. Discovered an introspector bug — `not-a-number` mis-packaged
+- **CONVENTIONS §4.6 (`:fresh` keyword) and §4.7 (in-place mutation) dropped** in `c7c89af`. Restored the original semantics where `:fresh` keywords pass through as-is and mutating fns mutate. Reason: codifying these as universal rules made some ports feel artificial; per-port doc-comments handle the divergence cleanly enough on the rare cases.
+- **Class-hierarchy convention added as §4.7** (renumbered, not the dropped one) — codifies the per-subclass newtype + sub-enum dispatcher pattern from the counter-text port. See `840c30e`.
+- **Macroexpand step in introspector** (`3908dad`) replaced the symbol-walking pass for DSL definers (`def-counter`, `def-simple-suffix`, etc.). The build_graph gate that existed for the `not-a-number` mis-package bug is lifted in this commit.
 
-`symbols.csv` had `ichiran:not-a-number,not-a-number,ichiran,...`, but `(find-symbol "NOT-A-NUMBER" (find-package :ichiran/numbers))` on the live Lisp returns `ICHIRAN/NUMBERS:NOT-A-NUMBER`. The introspector emitted the wrong package field for this one symbol. **Corrected the row in place** to `ichiran/numbers:not-a-number,not-a-number,ichiran/numbers,...` so the FQN→Rust path translator (`kani::naming`) routes the file to `numbers/` instead of `core/`.
+### 3. Audit handles `pub async fn`
 
-### 3. Added `build_graph.py` regen guard
+`audit-signatures`' `PUB_FN_NAME` regex previously matched only `pub fn`. Three DAO functions ported in `f6ced57` (`get-counter-ids`, `get-counter-readings`, `get-counter-stags`) are async, and the validator silently couldn't see them — they showed as "no pub fn found".
 
-To prevent silent re-introduction of the `not-a-number` row when someone next runs `build_graph.py`, the full regen path now raises a `RuntimeError` at startup with a multi-line explanation (the bug, how to verify, how to unblock by fixing `introspect.lisp`).
+After `50e50d4`'s regex extension, those three now appear as real arity drift (Rust arity 1/1/2 vs Lisp 0/0/1). The drift is **ctx injection** — DB-touching async fns take a `&KaniranContext` first parameter. This pattern is **not yet codified in CONVENTIONS** — it'll happen organically as more DB-touching fns port. The `divergences.md` ledger is now the audit trail for it.
 
-`--signatures-only` flag bypasses the guard — safe because signatures only cover callable kinds (fn / macro / gf), and the bug only affects the `not-a-number` condition (skipped).
+### 4. Fixture-capture pipeline + replay parser
 
-### 4. Added `signatures.json` extractor in `build_graph.py`
+`52160a2` added the bulk fixture-capture pipeline (FastAPI + pooled SBCL workers, `ichiran-extractor/`) plus the audit harness (`audit_fixtures` example). End-to-end validated on a 400K-sentence corpus run at ~735 sentences/sec, 100K captures/sec, 0 parse errors on replay (per CLAUDE.md). Hand-rolled prin1 reader replaces the prior `lexpr` dependency.
 
-763 entries (689 fn + 36 macro + 38 gf). Each entry: `{name, package, file, line, kind, lambda_list, ftype, docstring}`. Pulled from the `## Inputs` and `## Outputs` blocks of the md files — no introspector change needed; the lambda list was already captured.
-
-```sh
-python3 reverse/scripts/build_graph.py --signatures-only   # safe, ungated
-```
-
-### 5. Added `query.py audit-signatures` subcommand
-
-Cross-references every ported `pub fn` against the captured Lisp lambda list. Always runs the full sweep, **always rewrites `reverse/scripts/divergences.md`** (deterministic, sorted by FQN, designed to diff cleanly when committed).
-
-Catches:
-- Arity drift (e.g. dropped keyword).
-- Missing `pub fn <expected_name>` (e.g. file exists but the function is named differently).
-- Extra `pub fn` siblings in the same port file (the `_with` failure mode).
-- Lambda-parse fallbacks (introspector returned no lambda list AND no parseable ftype).
-
-Macros are checked for file-existence only (CONVENTIONS §4.8 — most macros port to doc-only files).
-
-Flags:
-- `--only <pkg>` — filter STDOUT only; the file always reflects the full sweep.
-- `--no-write` — suppress file rewrite (rare).
-
-Wired into CONVENTIONS §7 (verify step) and CLAUDE.md (Common commands).
-
-### 6. Current state of `divergences.md` (6 entries, all real)
+### 5. Current state of `divergences.md` (9 entries)
 
 | Symbol | Drift | Reason |
 |---|---|---|
-| `characters:geminate` | arity 1 ≠ 2 | dropped `:fresh` per CONVENTIONS §4.6 (always allocate) |
-| `characters:join` | arity 2 ≠ 3 | dropped `:key` (one upstream callsite, easy to do at call site) |
-| `characters:rendaku` | arity 2 ≠ 3 | dropped `:fresh` (§4.6) + collapsed `:handakuten` to enum (§4.4) |
-| `characters:unrendaku` | arity 1 ≠ 2 | dropped `:fresh` (§4.6) |
+| `characters:geminate` | arity 1 ≠ 2 | dropped `:fresh` (per-port doc-comment, §4.6 was retracted) |
+| `characters:join` | arity 2 ≠ 3 | dropped `:key` (one upstream callsite) |
+| `characters:rendaku` | arity 2 ≠ 3 | dropped `:fresh` + collapsed `:handakuten` to enum (§4.4) |
+| `characters:unrendaku` | arity 1 ≠ 2 | dropped `:fresh` |
 | `numbers:group-to-kana` | arity 3 ≠ 2 | split Lisp `:class-to-kana` plist into two table args |
 | `numbers:parse-number*` | arity 1 ≠ 3 | dropped `:start :end` for Rust slice idiom |
+| `dict:get-counter-ids` | arity 1 ≠ 0 | ctx injection on async DAO fn (uncodified) |
+| `dict:get-counter-readings` | arity 1 ≠ 0 | ctx injection on async DAO fn (uncodified) |
+| `dict:get-counter-stags` | arity 2 ≠ 1 | ctx injection on async DAO fn (uncodified) |
 
-The first 4 are codified conventions (apply across all ports). The last 2 are local judgment calls in the numbers port; documented in their port doc-comments. None are bugs — but they're now visible in version control, so future drift / silent regression is catchable via `git diff reverse/scripts/divergences.md`.
+The 3 ctx-injection entries are the open decision item. The rest are documented.
 
 ---
 
@@ -159,48 +139,51 @@ Unchanged this session.
 - **DB layer:** sqlx + tokio (async). Connection on `KaniranContext` sidecar. Multi-DB usage = "construct another `KaniranContext`."
 - **Connection URL format:** standard Postgres URL via `DATABASE_URL` env var.
 - **`ichiran/conn` package shape:** closed (2 ported, 24 skipped).
+- **Audit-signatures is part of the port-completion checklist** (CONVENTIONS §7).
+- **`divergences.md` is the durable record** of every Rust port whose pub-fn surface differs from the captured Lisp lambda list. Committed.
+- **Class-hierarchy port shape codified** as CONVENTIONS §4.7: per-subclass newtype + sub-enum dispatcher.
 
 ### Resolved this session
 
-- **Audit-signatures is part of the port-completion checklist** (CONVENTIONS §7).
-- **`divergences.md` is the durable record** of every Rust port whose `pub fn` surface differs from the captured Lisp lambda list. Committed.
-- **`build_graph.py` full regen is gated** until the introspector's package field is fixed.
+- **Empty-registry pattern is the idiom for unported def-conn-var caches:** `OnceLock<HashMap<...>>` + `get_or_init(HashMap::new)`, with concrete value types committed up front. Eight existing ports use it.
+- **`build_graph.py` regen gate lifted** in `3908dad`. The introspector's macroexpand pass now records DSL-definer expansions correctly.
+- **Audit handles `pub async fn`** in `50e50d4`.
 
 ### Still open
 
-1. **JMdict schema** — share ichiran's Postgres schema or design fresh. Pairs with the DB decision; sqlx works either way but DAO ports look different. Will become unavoidable when the first DAO port lands (wave 86: `ichiran/dict:conjugation`, then `simple-text` / `kana-text` / `kanji-text` at 87–89).
+1. **JMdict schema** — share ichiran's Postgres schema or design fresh. Required before any populator port (currently 8 def-conn-var caches sit empty waiting on it). Already the gating decision for `find-sticky-positions` / `process-word-info` / `get-original-reading` (visible in `query.py next`).
 2. **XML reader** for the initial JMdict.xml corpus load. Candidates: `roxmltree`, `quick-xml`, `xmltree`. JMdict's external DTD entities need a small inlining preprocessing step. Triggered when corpus-load work begins (`dict-load.lisp` chunk).
 3. **Port scope** — full port (~944 symbols) vs. romanize/segment public API only (~100 symbols).
-
-The repo is intended as a multi-crate workspace; future siblings (`kaniran-cli`, `kaniran-demo`) will live at the repo root.
+4. **Ctx-injection convention.** DB-touching async fns take `&KaniranContext` as the first parameter — visible as 3 ctx-injection drift entries in `divergences.md`. Not codified yet; per-port doc-comments cover it for now. Codify when the second batch of DAO fns lands.
 
 ---
 
 ## Next in the plan
 
-`query.py next` reports **6 unblocked symbols** (was 7; `num-sandhi` came off the list when `numbers/` closed):
+`query.py next` reports **27 unblocked symbols** — large jump from the previous HANDOFF's 6 because the dict cache ports unblocked the surrounding suffix / counter / conjugation fns.
 
-| FQN | Kind | File | DB-decision dependent? |
+Top of the list (those without DB-decision dependencies):
+
+| FQN | Kind | File | Notes |
 |---|---|---|---|
-| `ichiran:get-character-classes` | fn | `romanize.lisp:3` | No — pure char-class transform. |
-| `ichiran/custom:as-xml-simple` | fn | `dict-custom.lisp:225` | XML-library decision (#2 in open list). |
-| `ichiran/custom:normalize-geo` | fn | `dict-custom.lisp:176` | No — small string cleanup. |
-| `ichiran/dict:find-sticky-positions` | fn | `dict.lisp:990` | Touches DAOs — needs JMdict-schema decision. |
-| `ichiran/dict:process-word-info` | fn | `dict.lisp:1417` | Touches DAOs — needs JMdict-schema decision. |
-| `ichiran/kanji:get-original-reading` | fn | `kanji.lisp:308` | Touches DAOs — needs JMdict-schema decision. |
+| `ichiran:get-character-classes` | fn | `romanize.lisp:3` | Pure char-class transform — fully unblocked. |
+| `ichiran/custom:normalize-geo` | fn | `dict-custom.lisp:176` | Small string cleanup. |
+| `ichiran/custom:as-xml-simple` | fn | `dict-custom.lisp:225` | XML-library decision (#2). |
 
-**Going strictly in plan order:** the next non-skipped item after the conn block + numbers package is **wave 73: `ichiran/dict:*counter-cache*`** (still — numbers porting was a parallel package, not in the strict-order critical path). Each of the three DB-backed dict caches becomes a typed `OnceCell<T>` field on `KaniranContext` once its builder ports. Builders need both the JMdict-schema decision and the DAOs they query.
+Most of the other 24 unblocked symbols touch DAOs and are gated on the JMdict-schema decision. See `query.py next` for the full list.
 
-**Three things an agent can do right now without further blocking decisions:**
+**Going strictly in plan order:** wave 109 (`init-suffixes-running-p`) is skip; wave 110 is `find-word-seq` — a `find-word-with-pos` derivative that hits the kana/kanji DAOs. The next non-skip walkable item depends on which DAO query helpers port first.
 
-1. **Port the two non-DB unblocked leaves** (`ichiran:get-character-classes`, `ichiran/custom:normalize-geo`). Two more files, same shape as previous-session leaves.
-2. **Run the tracer against the ichiran test suite and harvest fixtures** (`(ichi-trace:install-many '(...))` then `(ichiran/test:run-all-tests)` then `(ichi-trace:dump-per-symbol "/tmp/fixtures/")`). Doesn't touch the Rust crate — pure data harvest for later replay.
-3. **Fix the introspector** (`reverse/scripts/introspect.lisp` — symbol's package should come from `(package-name (symbol-package sym))`, not whatever it's currently using), then re-run on `.103`, then delete the `build_graph.py` gate. Unblocks future regenerations of `symbols.csv` from updated upstream.
+**Things an agent can do right now without further blocking decisions:**
 
-**Decisions that gate further progress:**
-1. **JMdict schema** — required before any DAO port (waves 86+).
+1. **Port the two non-DB unblocked leaves** (`ichiran:get-character-classes`, `ichiran/custom:normalize-geo`).
+2. **Codify ctx-injection in CONVENTIONS** as §4.something — there are now 3 visible divergence entries; the convention has earned its keep.
+3. **Run the tracer against the ichiran test suite** for fixture harvest — the pipeline is built and validated; running it against the real test suite produces the replay corpus.
+
+**Decisions that gate the bulk of remaining work:**
+1. **JMdict schema** — required before any populator port.
 2. **XML reader** — required when corpus-load work begins.
-3. **Port scope** — affects how aggressive the JMdict + DAO decisions need to be.
+3. **Port scope** — affects how aggressively to pursue the long tail.
 
 **User's call; don't pick autonomously.**
 
@@ -211,47 +194,33 @@ The repo is intended as a multi-crate workspace; future siblings (`kaniran-cli`,
 ```sh
 # 1. Confirm the Rust crate compiles + tests pass
 cargo test -p kaniran-core --lib
-# expect: 102 passed
+# expect: 128 passed
 
 # 2. Confirm divergences.md still matches the working tree (audit is deterministic)
 python3 reverse/scripts/query.py audit-signatures
 git diff reverse/scripts/divergences.md
-# expect: no diff. If divergent, the `pub fn` surface drifted since the last commit.
+# expect: no diff
 
-# 3. See what's unblocked next (6 symbols — see "Next in the plan")
+# 3. See what's unblocked next (27 symbols)
 python3 reverse/scripts/query.py next
-```
-
-To inspect the audit's record:
-
-```sh
-cat reverse/scripts/divergences.md
-```
-
-To inspect signatures.json for any specific port:
-
-```sh
-python3 -c "import json; d=json.load(open('reverse/scripts/signatures.json')); print(json.dumps(d['ichiran/numbers:number-to-kanji'], indent=2, ensure_ascii=False))"
 ```
 
 ---
 
 ## Gotchas (still real + new)
 
-- **`build_graph.py` full regen is gated.** Running it without `--signatures-only` raises a `RuntimeError`. The gate explains the introspector's `not-a-number` package mis-recording and how to unblock. `--signatures-only` works fine.
-- **`signatures.json` only covers callable kinds** (fn / macro / gf — 763 entries). Globals, structs, classes, daos, types, conditions are not in the file (they have no callable surface to audit).
-- **`divergences.md` is committed** and rewritten on every `audit-signatures` run. After every port: `git diff reverse/scripts/divergences.md` is the review surface. New entries are either intentional (cite CONVENTIONS) or port bugs (fix and re-run until they vanish).
-- **`audit-signatures --only <pkg>` filters STDOUT only.** The file always reflects the full sweep; do not interpret a partial-stdout run as authorizing a partial file.
+- **Uncommitted skip in working tree.** `*init-suffixes-lock*` was marked skip in this session but not committed. `git status` shows `symbols.csv` + `PORT_PLAN.md` modified.
+- **`signatures.json` only covers callable kinds** (fn / macro / gf — 763 entries). Globals, structs, classes, daos, types, conditions are not in the file (no callable surface to audit).
+- **`divergences.md` is committed** and rewritten on every `audit-signatures` run. After every port: `git diff reverse/scripts/divergences.md` is the review surface.
+- **`audit-signatures --only <pkg>` filters STDOUT only.** The file always reflects the full sweep.
+- **Audit catches `pub fn` AND `pub async fn`.** The regex was extended in `50e50d4` after three async DAO fns ported in `f6ced57` showed as "no pub fn found".
+- **Empty-registry caches use a `_cache` accessor suffix when the bare name collides.** `*no-conj-data*` accessor is `no_conj_data_cache()` because `no-conj-data` (`dict.lisp:339`) is a homonymous Lisp function that's not yet ported.
 - **`run-remote.sh` rsyncs with `--delete --exclude='scripts/'`.** Two hand-written md files (`reverse/characters.lisp/char-class_type.md`, `reverse/numbers.lisp/not-a-number_condition.md`) are at risk on next introspection run. Either commit before re-running, or back them up.
-- **The introspector's package field is currently wrong for `not-a-number`** (records `ichiran` instead of `ichiran/numbers`). The CSV row was hand-corrected; the next full `build_graph.py` regen would re-introduce the wrong row, which is why the gate exists. Fix the introspector before any regen.
-- **Source-walk over-collects on purpose.** Records every ichiran-package symbol the Lisp reader sees in a defining form, including locals. The Python pass filters callees against `symbols.csv` membership; non-top-level names land in the "dropped" counter on rebuild.
-- **Source-walk doesn't see macro expansions.** If a DAO reference only appears inside a macro that expands into a `select-dao` call, neither pass catches it. Most ichiran macros are DSL-style data registrars, so impact is minor in practice.
-- **`ichiran-repl.sh` HELPERS heredoc is single-quoted bash.** Apostrophes inside it terminate the heredoc.
+- **Source-walk over-collects on purpose.** Records every ichiran-package symbol the Lisp reader sees in a defining form, including locals. The Python pass filters callees against `symbols.csv` membership.
 - **The naming.rs CSV-path test uses `../reverse/scripts/symbols.csv`** (relative to `CARGO_MANIFEST_DIR` = `kaniran-core/`). If layout moves, update.
 - **Introspector line numbers can drift from the checked-in `*.lisp` files.** Grep upstream `.lisp` directly when writing new doc-comments.
 - **`query.py mark` requires lowercase FQNs.** CSV stores lowercase even though Lisp symbols print uppercase.
 - **`query.py next` only counts `ported` callees.** A symbol whose every callee is `skip` will NOT appear in `next`. Scan `PORT_PLAN.md` directly for what's actually walkable in plan order after a wave of skips.
-- **Env-var tests in `conn::get_ichiran_connection_env`** mutate process env vars and must serialize on a static `Mutex`. New tests need to use the `with_env` helper.
-- **`load-settings` no longer fires implicitly on file-load.** Library contract is "caller constructs `KaniranContext::from_env()` before invoking any DB-touching API."
-- **`KaniranContext` ownership.** Each instance owns its `PgPool` and (eventually) its caches. `Clone` is derived (cheap — `PgPool` is internally `Arc<Pool>`-shaped).
-- **Function name vs file stem for trailing `*`.** The file stem for `parse-number*` is `parse_number_star_.rs` (trailing `_` per `kani::naming` collision-prevention rule). The `pub fn` name inside must match: `pub fn parse_number_star_(...)`. The audit catches a mismatch — the symptom is `no `pub fn parse_number_star_` (found: ['parse_number_star'])`.
+- **Env-var tests in `conn::get_ichiran_connection_env`** mutate process env vars and must serialize on a static `Mutex`.
+- **`KaniranContext` ownership.** Each instance owns its `PgPool` and (eventually) its caches. `Clone` is derived (cheap — `PgPool` is internally `Arc<Pool>`-shaped). The `Inner` refactor that consolidates the def-conn-var caches into typed `OnceCell` fields hasn't landed yet — the 8 empty-registry globals all currently use module-local `OnceLock` per memory `feedback_no_oncelock`.
+- **Function name vs file stem for trailing `*`.** The file stem for `parse-number*` is `parse_number_star_.rs` (trailing `_` per `kani::naming` collision-prevention rule). The `pub fn` name inside must match. The audit catches mismatches.

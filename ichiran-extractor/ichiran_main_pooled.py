@@ -9,7 +9,11 @@ Routes:
     GET  /health           pool census
     GET  /installed        list of FQNs currently encapsulated on worker 0
     POST /install          install hooks on every worker
-                           body: {"fqns": ["ICHIRAN/CHARACTERS:NORMALIZE", ...]}
+                           body: {"fqns": [SPEC, ...]}
+                             SPEC = "FQN" | {"fqn": "FQN",
+                                             "result_projector": "NAME"}
+                           projector NAME resolves via :ichi-projectors
+                           in projectors.lisp on the worker.
     POST /clear            drop all buffered captures on every worker
     POST /uninstall-all    remove all hooks on every worker
     POST /extract          run entry-points on text, return drained captures
@@ -58,8 +62,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Ichiran Extractor (pooled)", lifespan=lifespan)
 
 
+class InstallSpec(BaseModel):
+    fqn: str
+    result_projector: str | None = None
+
+
 class InstallBody(BaseModel):
-    fqns: list[str]
+    # Each element is either a bare FQN string or an InstallSpec dict
+    # (the latter selects a projector by name from :ichi-projectors).
+    fqns: list[str | InstallSpec]
 
 
 class ExtractBody(BaseModel):
@@ -91,8 +102,15 @@ async def install(body: InstallBody):
     """Install encapsulate hooks for every FQN on every worker."""
     if not body.fqns:
         raise HTTPException(status_code=400, detail="fqns must be non-empty")
+    # Convert InstallSpec models back to plain dicts so the JSON the
+    # pool sends to SBCL stays {"fqn":..., "result_projector":...}
+    # rather than InstallSpec(...) repr.
+    fqns_payload = [
+        item if isinstance(item, str) else item.model_dump()
+        for item in body.fqns
+    ]
     try:
-        results = await pool.broadcast("install", fqns=body.fqns)
+        results = await pool.broadcast("install", fqns=fqns_payload)
         # Each result is the worker's installed-count after the call.
         return {"workers": len(results), "installed_per_worker": results}
     except RuntimeError as e:
