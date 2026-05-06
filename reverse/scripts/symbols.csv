@@ -162,7 +162,7 @@ ichiran/dict:*hint-simplify-map*,*hint-simplify-map*,ichiran/dict,dict-split.lis
 ichiran/dict:*hints-checked*,*hints-checked*,ichiran/dict,dict-split.lisp,947,global,pending,
 ichiran/dict:*honorifics*,*honorifics*,ichiran/dict,dict-grammar.lisp,1156,global,pending,
 ichiran/dict:*identical-word-score-cutoff*,*identical-word-score-cutoff*,ichiran/dict,dict.lisp,1020,global,pending,
-ichiran/dict:*init-suffixes-lock*,*init-suffixes-lock*,ichiran/dict,dict-grammar.lisp,163,global,pending,
+ichiran/dict:*init-suffixes-lock*,*init-suffixes-lock*,ichiran/dict,dict-grammar.lisp,163,global,skip,SBCL mutex guarding init-suffixes-thread's populator and powering init-suffixes-running-p. Subsumed by OnceLock::get_or_init's built-in once-only synchronization on *suffix-cache* / *suffix-class*; no standalone mutex survives.
 ichiran/dict:*is-arch-cache*,*is-arch-cache*,ichiran/dict,dict.lisp,0,global,ported,
 ichiran/dict:*jmdict-data*,*jmdict-data*,ichiran/dict,settings.lisp,12,global,pending,
 ichiran/dict:*jmdict-path*,*jmdict-path*,ichiran/dict,settings.lisp,10,global,pending,
