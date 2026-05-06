@@ -3,31 +3,22 @@
 //! `find-counter` later applies to make-instance to construct a
 //! [`crate::dict::counter_text_class::Counter`].
 //!
-//! The Lisp `def-special-counter` callsites yield raw arglists shaped
+//! Lisp `def-special-counter` callsites yield raw arglists shaped
 //! `(text-key class :text "..." :kana "..." :source <ref> :digit-opts ... ...)`.
-//! In Rust we materialize each arglist as a typed [`CounterArgs`]
-//! struct: every keyword becomes a typed field, with sensible
-//! defaults so a callsite only writes the fields it cares about.
+//! Rust materializes each arglist as a typed [`CounterArgs`] struct.
 //!
-//! ## Multi-text expansion
-//!
-//! Upstream `args` accepts a list of texts (`'("匹" "疋")`) and
-//! defers expansion into per-text cache entries to `add-args` inside
-//! the `*counter-cache*` populator. Rust expands eagerly: [`args_multi`]
-//! returns one [`CounterArgs`] per text variant, with `:source`
-//! resolved to that text's reading row. The downstream cache
-//! populator then iterates a flat `Vec<CounterArgs>` regardless of
-//! whether the upstream form passed a single string or a list.
+//! Diverges from upstream by pre-expanding multi-text in
+//! [`args_multi`] rather than deferring to the populator's `add-args`.
+//! Output is identical given correct insertion order in `add_args`.
 
 use crate::dict::counter_text_class::{Common, CounterSource, DigitOp, DigitOptEntry, DigitOptKey};
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kani_suffix_kind::SuffixKind;
 use crate::dict::kanji_text_dao::KanjiText;
 
-/// Tag-only enum naming the [`crate::dict::counter_text_class::Counter`]
-/// variant a [`CounterArgs`] should instantiate. Decoupled from
-/// `Counter` itself so [`CounterArgs`] can be `Default`/`Clone` without
-/// imposing those bounds on every variant struct.
+/// Tag-only twin of [`crate::dict::counter_text_class::Counter`].
+/// Separate so [`CounterArgs`] can stay `Clone` without forcing it
+/// onto every variant struct.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CounterClass {
     Text,
@@ -43,9 +34,6 @@ pub enum CounterClass {
     People,
 }
 
-/// Recipe for one cache entry. Keyword args from the Lisp `args`
-/// flet become typed fields; defaulted fields stay at their zero
-/// value when a callsite doesn't set them.
 #[derive(Debug, Clone)]
 pub struct CounterArgs {
     pub class: CounterClass,
@@ -64,9 +52,6 @@ pub struct CounterArgs {
 }
 
 impl CounterArgs {
-    /// Construct the base recipe with class/text/kana set and every
-    /// other field at its default. Builder methods below set the
-    /// keyword fields. Mirrors the Lisp `args` flet's positional core.
     pub fn new(class: CounterClass, text: impl Into<String>, kana: impl Into<String>) -> Self {
         CounterArgs {
             class,
@@ -136,10 +121,7 @@ impl CounterArgs {
     }
 }
 
-/// Walk `kanji ++ kana` for the row whose `text` equals `query`.
-/// Mirrors the Lisp `(find query readings :key 'text :test 'equal)`
-/// inside the `args` flet — `:source` resolves to whichever row
-/// produced the surface form.
+/// Mirrors the Lisp `(find query readings :key 'text :test 'equal)`.
 pub fn find_source(query: &str, kanji: &[KanjiText], kana: &[KanaText]) -> Option<CounterSource> {
     if let Some(r) = kanji.iter().find(|r| r.text == query) {
         return Some(CounterSource::Kanji(r.clone()));
@@ -150,8 +132,7 @@ pub fn find_source(query: &str, kanji: &[KanjiText], kana: &[KanaText]) -> Optio
     None
 }
 
-/// Single-text entry. Mirrors `(args class text kana ...)` with
-/// `:text`, `:kana`, `:source` filled in.
+/// Single-text entry. Mirrors `(args class text kana ...)`.
 pub fn args(
     class: CounterClass,
     text: &str,
@@ -162,9 +143,8 @@ pub fn args(
     CounterArgs::new(class, text, kana).source(find_source(text, kanji, kana_rows))
 }
 
-/// Multi-text entry. Mirrors `(args class '(t1 t2 ...) kana ...)`
-/// with eager per-text expansion: returns one [`CounterArgs`] per
-/// text variant, each with `:source` resolved to its row.
+/// Mirrors `(args class '(t1 t2 ...) kana ...)`. Eager per-text
+/// expansion — see module doc for the upstream divergence.
 pub fn args_multi(
     class: CounterClass,
     texts: &[&str],
@@ -178,10 +158,9 @@ pub fn args_multi(
         .collect()
 }
 
-/// Compound text + suffix entry. Mirrors `(args-suffix class
-/// '(stem suf) '(kana-stem kana-suf) ...)` — the cache key is the
-/// concatenated text, `:kana` is the stem-kana, `:suffix` is the
-/// suffix-kana, `:source` is the stem's row.
+/// Mirrors `(args-suffix class '(stem suf) '(kana-stem kana-suf) ...)`.
+/// Cache key = stem + suf concatenated; `:kana` = stem kana; `:suffix`
+/// = suf kana; `:source` = stem's row.
 pub fn args_suffix(
     class: CounterClass,
     text_parts: (&str, &str),
@@ -197,10 +176,7 @@ pub fn args_suffix(
         .source(find_source(stem, kanji, kana_rows))
 }
 
-/// Convenience: build a `Vec<DigitOptEntry>` from a list of
-/// `(key, &[op, ...])` pairs. Each pair maps to one entry. Used
-/// throughout the special-counter callsites; keeps the call sites
-/// matching the Lisp shape `'((3 :r) (4 :h "よ"))`.
+/// Mirrors the Lisp shape `'((3 :r) (4 :h "よ"))` at the callsite.
 pub fn digit_opts(items: &[(DigitOptKey, &[DigitOp])]) -> Vec<DigitOptEntry> {
     items
         .iter()

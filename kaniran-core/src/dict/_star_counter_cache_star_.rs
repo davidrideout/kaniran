@@ -1,29 +1,14 @@
 //! Port of `ichiran/dict:*counter-cache*` (`dict-counters.lisp:221`).
 //!
-//! Per-text registry of counter-instance recipes, keyed by the
-//! counter's surface text (Lisp `equal`, Rust `String` equality).
-//! Each value is the list of [`CounterArgs`] recipes the populator
-//! has built for that text; `find-counter` (unported) iterates the
-//! recipes, instantiates each into a [`Counter`], and runs `verify`.
+//! Per-text registry of [`CounterArgs`] recipes that `find-counter`
+//! (unported) iterates and instantiates per query. Owned by
+//! [`KaniranContext::counter_cache`]; built once by
+//! [`build_counter_cache`] during `from_url`.
 //!
-//! Mirrors the upstream `defcache :counters` body verbatim:
-//!
-//! 1. Empty entry under `""` for `number-text` (the bare-number
-//!    counter that handles "1", "2", "100" etc. with no surface form).
-//! 2. For every counter seq returned by [`get_counter_readings`],
-//!    either run its registered [`super::_star_special_counters_star_`]
-//!    fn or apply the default counter-text construction (one entry
-//!    per kanji-text reading, plus katakana kana when the seq is
-//!    foreign or has no kanji).
-//! 3. For each entry's `:accepts` list, generate suffix derivatives
-//!    (text + `間` / `間後` / `中`) keyed by the combined text.
-//! 4. Final pass: for every non-ordinal entry whose `text + 目` key
-//!    is unused, register an ordinal derivative.
-//!
-//! ## Storage
-//!
-//! Owned by [`KaniranContext::counter_cache`]. [`build_counter_cache`]
-//! runs the populator once during [`KaniranContext::from_url`].
+//! Body mirrors `defcache :counters`: empty `""` seed for
+//! `number-text`, then `*special-counters*` dispatch (or default
+//! counter-text construction over kanji + katakana-kana for foreign
+//! seqs), then `:accepts` suffix expansion and `目` ordinal pass.
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;
@@ -42,17 +27,13 @@ use std::collections::HashMap;
 
 pub type CounterCache = HashMap<String, Vec<CounterArgs>>;
 
-/// Borrow the populated cache off the context.
 pub fn counter_cache(ctx: &KaniranContext) -> &CounterCache {
     &ctx.counter_cache
 }
 
-/// Run the upstream `defcache :counters` body and return the
-/// populated cache. Called from [`KaniranContext::from_url`].
 pub async fn build_counter_cache(ctx: &KaniranContext) -> Result<CounterCache, sqlx::Error> {
     let mut cache: CounterCache = HashMap::new();
 
-    // (add-args "" 'number-text)
     add_args(&mut cache, CounterArgs::new(CounterClass::NumberText, "", ""));
 
     let readings = get_counter_readings(ctx).await?;
@@ -69,15 +50,13 @@ pub async fn build_counter_cache(ctx: &KaniranContext) -> Result<CounterCache, s
         }
     }
 
-    // Ordinal expansion: counter + 目 entries for non-ordinal counters
-    // whose ordinal key is unused. Iterate a snapshot of the keys so
-    // the in-loop add_args calls don't disturb iteration.
+    // Ordinal pass: snapshot keys so the in-loop add_args doesn't
+    // perturb iteration over the same map.
     let snapshot: Vec<String> = cache.keys().cloned().collect();
     for counter in snapshot {
         if counter.is_empty() {
             continue;
         }
-        // (and (> (length counter) 1) (alexandria:ends-with #\目 counter))
         if counter.chars().count() > 1 && counter.ends_with('目') {
             continue;
         }
@@ -107,10 +86,6 @@ pub async fn build_counter_cache(ctx: &KaniranContext) -> Result<CounterCache, s
     Ok(cache)
 }
 
-/// Default counter-text construction for a seq that has no entry in
-/// `*special-counters*`. Iterates the seq's kanji rows (plus the
-/// katakana subset of its kana rows when the seq is foreign or has
-/// no kanji) and registers one entry per row.
 fn add_default_entries(
     cache: &mut CounterCache,
     seq: i32,
@@ -166,22 +141,14 @@ fn build_default_entry(
         .foreign(foreign)
 }
 
-/// Push an entry into the cache under `entry.text`, then expand
-/// each `accepts` suffix into a derivative entry under
-/// `entry.text + suffix.text`. Mirrors the upstream `add-args*` flet.
+/// Mirrors `add-args*`. Multi-text was already pre-expanded in
+/// [`super::kani_counter_args::args_multi`] so the upstream's outer
+/// `add-args` list-text branch has nothing to do here.
 ///
-/// The Lisp's outer `add-args` peeled off the multi-text case before
-/// calling `add-args*`; we don't need that branch — multi-text was
-/// pre-expanded in
-/// [`super::kani_counter_args::args_multi`] when the
-/// `*special-counters*` lambdas ran.
-///
-/// Insertion order matches Lisp's `(push x list)` — newest at index
-/// 0. `find-counter` iterates the per-key list in this order, and
-/// upstream's reliance on `push` makes the most-recently-registered
-/// recipe win the first verify-pass. Lower-priority recipes (e.g.
-/// the default counter-text fallback ordered before a special-counter
-/// override) end up later in the list.
+/// `Vec::insert(0, …)` mirrors Lisp's `(push x list)` — newest
+/// recipe at index 0. `find-counter` (when ported) iterates in this
+/// order, so the most-recently-registered recipe wins the first
+/// verify-pass.
 fn add_args(cache: &mut CounterCache, entry: CounterArgs) {
     let key = entry.text.clone();
     let accepts = entry.accepts.clone();

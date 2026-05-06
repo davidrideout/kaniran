@@ -1,38 +1,18 @@
-//! Rust-only sidecar (CONVENTIONS §1, §2): the port-wide context
-//! object holding the live `PgPool` and per-DB caches eagerly
-//! populated at construction time.
+//! Rust-only sidecar (CONVENTIONS §1, §2): the port-wide context.
 //!
-//! Replaces three layers of upstream globals in one struct:
-//! - `*connection*` (the active connection spec) → [`KaniranContext::pool`].
+//! Replaces three layers of upstream globals:
+//! - `*connection*` → [`KaniranContext::pool`].
 //! - The `cache`-class registry (`get-cache` / `init-cache` / `ensure`
-//!   / `reset-cache`) → typed fields on `KaniranContext`, populated by
-//!   per-cache builder functions called from [`KaniranContext::from_url`].
+//!   / `reset-cache`) → typed fields populated by per-cache builders
+//!   from [`KaniranContext::from_url`].
 //! - The per-connection variable cache (`*conn-vars*` /
-//!   `*conn-var-cache*` / `switch-conn-vars`) → owned per-`KaniranContext`
-//!   state, re-acquired by constructing a new `KaniranContext` against
-//!   another DB.
+//!   `*conn-var-cache*` / `switch-conn-vars`) → owned per-context
+//!   state. Multi-DB use (`with-db` / `let-db`) = construct another
+//!   `KaniranContext`.
 //!
-//! Multi-DB usage (the upstream `with-db` / `let-db` pattern) becomes
-//! "construct another `KaniranContext`": each instance owns its own pool
-//! and its own caches, no scope-binding macro required.
-//!
-//! ## Sharing
-//!
-//! Constructors return [`Arc<Self>`]. The struct is intentionally not
-//! `Clone` — caches are plain `HashMap`s and we never want a deep
-//! clone. Cheap sharing across tasks/threads goes through
-//! `Arc::clone`, which bumps a single refcount regardless of how
-//! many caches the context owns.
-//!
-//! Function callsites take `&KaniranContext`. `Arc<KaniranContext>`
-//! derefs to `&KaniranContext` automatically, so a caller holding
-//! the `Arc` can pass `&ctx` (or `&*ctx`) to any DB-touching fn.
-//!
-//! Connection failures are surfaced both as a returned [`Error`] and
-//! as a one-line `eprintln!` to stderr, so a failure is visible even
-//! when the caller chooses to propagate the error silently. This mirrors
-//! the upstream's `dp` / `*debug*` printout pattern; will move to
-//! `tracing` when query-level logging lands.
+//! `Error` failures are also `eprintln!`ed before propagating; mirrors
+//! upstream's `dp` / `*debug*`. Will move to `tracing` when query-level
+//! logging lands.
 
 use crate::conn::_star_connection_env_var_star_::DATABASE_URL;
 use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;
@@ -68,13 +48,7 @@ pub struct KaniranContext {
 }
 
 impl KaniranContext {
-    /// Build a context from a Postgres URL. Connects the pool and
-    /// runs every cache populator before returning, so the result
-    /// is fully usable for any DB-backed predicate.
-    ///
-    /// On connection failure the underlying [`sqlx::Error`] is logged
-    /// to stderr before being returned, so a panicking or
-    /// silently-ignoring caller still leaves a trace.
+    /// Connect the pool and run every cache populator before returning.
     pub async fn from_url(url: &str) -> Result<Arc<Self>, Error> {
         let pool = PgPoolOptions::new()
             .acquire_timeout(Duration::from_secs(10))
@@ -86,10 +60,8 @@ impl KaniranContext {
             })?;
         let no_conj_data = build_no_conj_data(&pool).await?;
         let is_arch = build_is_arch(&pool).await?;
-        // counter_cache calls get_counter_readings, which needs a
-        // `&KaniranContext`. Build a partial context with empty
-        // counter_cache to satisfy the borrow, then swap in the
-        // populated map before returning.
+        // counter_cache's populator calls get_counter_readings(&ctx) — needs
+        // the partial context first, then swap the populated map in.
         let mut ctx = Self {
             pool,
             no_conj_data,
@@ -100,12 +72,8 @@ impl KaniranContext {
         Ok(Arc::new(ctx))
     }
 
-    /// Build a context using the [`config`] crate to read a Postgres
-    /// URL from the [`DATABASE_URL`] env var (or any layered config
-    /// source that supplies the same key).
-    ///
-    /// Both branches that can fail (missing URL, connection refused)
-    /// log a one-line message to stderr before returning the error.
+    /// Read a Postgres URL via [`config::Config`] (file + env layered)
+    /// and build the context.
     pub async fn from_env() -> Result<Arc<Self>, Error> {
         let url = match get_ichiran_connection_env() {
             Ok(Some(u)) => u,
