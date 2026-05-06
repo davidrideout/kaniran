@@ -28,8 +28,11 @@ use tokio::task::JoinSet;
 const CONCURRENCY: usize = 16;
 
 use kaniran_core::conn::kani_context::KaniranContext;
+use kaniran_core::dict::conj_data_struct::ConjData;
+use kaniran_core::dict::conj_prop_dao::ConjProp;
 use kaniran_core::dict::find_word_conj_of::find_word_conj_of;
 use kaniran_core::dict::find_word_seq::{find_word_seq, WordSeqRows};
+use kaniran_core::dict::get_conj_data::{get_conj_data, FromOrConjIds};
 use kaniran_core::dict::get_kana_form::get_kana_form;
 use kaniran_core::dict::kana_text_dao::KanaText;
 use kaniran_core::dict::kanji_text_dao::KanjiText;
@@ -190,6 +193,198 @@ async fn audit_find_word_conj_of(
         .map_err(|e| format!("find_word_conj_of query: {}", e))?;
     compare_dao_lists(project_word_seq(&actual), expect_one(expected)?)
 }
+
+// --- get-conj-data: DB-backed conj-data list audit -----------------------
+
+fn parse_bool_or_dbnull(s: &Sexp) -> Result<Option<bool>, String> {
+    if s.is_nil() { return Ok(Some(false)); }
+    if s.is_t() { return Ok(Some(true)); }
+    if s.as_keyword() == Some("NULL") { return Ok(None); }
+    Err(format!("not T / NIL / :NULL: {}", s))
+}
+
+fn parse_int_or_nil(s: &Sexp) -> Result<Option<i32>, String> {
+    if s.is_nil() { return Ok(None); }
+    Ok(Some(s.as_i64().ok_or_else(|| format!("not int/nil: {}", s))? as i32))
+}
+
+fn parse_conj_prop_plist(s: &Sexp) -> Result<ConjProp, String> {
+    let elems = list_elems(s)?;
+    let mut id = None;
+    let mut conj_id = None;
+    let mut conj_type = None;
+    let mut pos = None;
+    let mut neg = None;
+    let mut fml = None;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("conj-prop key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" => {} // checked by caller
+            "ID" => id = Some(parse_int(v)?),
+            "CONJ-ID" => conj_id = Some(parse_int(v)?),
+            "CONJ-TYPE" => conj_type = Some(parse_int(v)?),
+            "POS" => pos = Some(v.as_str().ok_or(":POS not string")?.to_string()),
+            "NEG" => neg = Some(parse_bool_or_dbnull(v)?),
+            "FML" => fml = Some(parse_bool_or_dbnull(v)?),
+            other => return Err(format!("unknown conj-prop key: :{}", other)),
+        }
+    }
+    Ok(ConjProp {
+        id: id.ok_or(":ID missing")?,
+        conj_id: conj_id.ok_or(":CONJ-ID missing")?,
+        conj_type: conj_type.ok_or(":CONJ-TYPE missing")?,
+        pos: pos.ok_or(":POS missing")?,
+        neg: neg.ok_or(":NEG missing")?,
+        fml: fml.ok_or(":FML missing")?,
+    })
+}
+
+fn parse_conj_data_plist(s: &Sexp) -> Result<ConjData, String> {
+    let elems = list_elems(s)?;
+    let mut seq = None;
+    let mut from = None;
+    let mut via = None;
+    let mut prop: Option<Option<ConjProp>> = None;
+    let mut src_map: Option<Vec<(String, String)>> = None;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("conj-data key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" => {}
+            "SEQ"  => seq = Some(parse_int_or_nil(v)?),
+            "FROM" => from = Some(parse_int_or_nil(v)?),
+            "VIA"  => via = Some(parse_int_or_nil(v)?),
+            "PROP" => prop = Some(if v.is_nil() { None } else { Some(parse_conj_prop_plist(v)?) }),
+            "SRC-MAP" => {
+                let pairs = if v.is_nil() {
+                    Vec::new()
+                } else {
+                    list_elems(v)?.into_iter()
+                        .map(|p| {
+                            let pv = list_elems(p)?;
+                            if pv.len() != 2 {
+                                return Err(format!("src-map pair want 2: {}", p));
+                            }
+                            Ok((
+                                pv[0].as_str().ok_or("src-map[0] not str")?.to_string(),
+                                pv[1].as_str().ok_or("src-map[1] not str")?.to_string(),
+                            ))
+                        })
+                        .collect::<Result<_, String>>()?
+                };
+                src_map = Some(pairs);
+            }
+            other => return Err(format!("unknown conj-data key: :{}", other)),
+        }
+    }
+    Ok(ConjData {
+        seq:  seq.ok_or(":SEQ missing")?,
+        from: from.ok_or(":FROM missing")?,
+        via:  via.ok_or(":VIA missing")?,
+        prop: prop.ok_or(":PROP missing")?,
+        src_map: src_map.ok_or(":SRC-MAP missing")?,
+    })
+}
+
+fn conj_prop_eq(a: &ConjProp, b: &ConjProp) -> bool {
+    a.id == b.id && a.conj_id == b.conj_id && a.conj_type == b.conj_type
+        && a.pos == b.pos && a.neg == b.neg && a.fml == b.fml
+}
+
+fn conj_data_eq(a: &ConjData, b: &ConjData) -> bool {
+    let prop_eq = match (&a.prop, &b.prop) {
+        (None, None) => true,
+        (Some(p), Some(q)) => conj_prop_eq(p, q),
+        _ => false,
+    };
+    // src_map element order is implementation-defined: neither the Lisp
+    // (postmodern's `(query (:select ...))`) nor the Rust port emits an
+    // ORDER BY on conj_source_reading, so the two databases — captured
+    // on .103, audited locally — return the same rows in different
+    // physical orderings. Compare as a multiset (sort both sides by
+    // (text, source_text)).
+    let mut a_src = a.src_map.clone();
+    let mut b_src = b.src_map.clone();
+    a_src.sort();
+    b_src.sort();
+    a.seq == b.seq && a.from == b.from && a.via == b.via
+        && prop_eq && a_src == b_src
+}
+
+/// Decide which `FromOrConjIds` variant matches the upstream
+/// `from/conj-ids` argument shape (NIL / `:ROOT` / integer / list).
+fn parse_from_or_conj_ids(s: &Sexp) -> Result<FromOrConjIds, String> {
+    if s.is_nil() { return Ok(FromOrConjIds::All); }
+    if s.as_keyword() == Some("ROOT") { return Ok(FromOrConjIds::Root); }
+    if let Some(n) = s.as_i64() { return Ok(FromOrConjIds::From(n as i32)); }
+    if s.is_list() {
+        let elems = list_elems(s)?;
+        let ids: Vec<i32> = elems.iter().map(|e| parse_int(e)).collect::<Result<_, _>>()?;
+        return Ok(FromOrConjIds::ConjIds(ids));
+    }
+    Err(format!("can't classify from/conj-ids: {}", s))
+}
+
+async fn audit_get_conj_data(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.is_empty() { return Err("get-conj-data needs at least seq".into()); }
+    let seq = parse_int(argv[0])?;
+    let from_or = if argv.len() >= 2 {
+        parse_from_or_conj_ids(argv[1])?
+    } else {
+        FromOrConjIds::All
+    };
+    // texts: NIL / single-string / list-of-strings
+    let mut texts_owned: Vec<String> = Vec::new();
+    if argv.len() >= 3 {
+        let t = argv[2];
+        if t.is_nil() {
+            // empty
+        } else if let Some(s) = t.as_str() {
+            texts_owned.push(s.to_string());
+        } else if t.is_list() {
+            for e in list_elems(t)? {
+                texts_owned.push(e.as_str().ok_or("texts list elem not string")?.to_string());
+            }
+        } else {
+            return Err(format!("texts not nil/string/list: {}", t));
+        }
+    }
+    let texts: Vec<&str> = texts_owned.iter().map(String::as_str).collect();
+
+    let actual = get_conj_data(ctx, seq, from_or, &texts).await
+        .map_err(|e| format!("get_conj_data query: {}", e))?;
+
+    let inner = expect_one(expected)?;
+    let exp_elems = if inner.is_nil() { Vec::new() } else { list_elems(inner)? };
+    let mut expected_rows: Vec<ConjData> = exp_elems.iter()
+        .map(|e| parse_conj_data_plist(e))
+        .collect::<Result<_, _>>()?;
+    if actual.len() != expected_rows.len() {
+        return Err(format!("conj-data count: rust={} lisp={}", actual.len(), expected_rows.len()));
+    }
+    let mut actual_sorted = actual;
+    let key = |c: &ConjData| (
+        c.seq.unwrap_or(0), c.from.unwrap_or(0), c.via.unwrap_or(0),
+        c.prop.as_ref().map(|p| p.id).unwrap_or(0),
+    );
+    actual_sorted.sort_by_key(key);
+    expected_rows.sort_by_key(key);
+    for (i, (a, e)) in actual_sorted.iter().zip(&expected_rows).enumerate() {
+        if !conj_data_eq(a, e) {
+            return Err(format!("row {}: rust seq={:?} from={:?} via={:?} prop_id={:?}\n         lisp seq={:?} from={:?} via={:?} prop_id={:?}",
+                i, a.seq, a.from, a.via, a.prop.as_ref().map(|p| p.id),
+                e.seq, e.from, e.via, e.prop.as_ref().map(|p| p.id)));
+        }
+    }
+    Ok(())
+}
+
 
 async fn audit_get_kana_form(
     ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
@@ -436,6 +631,7 @@ async fn audit_one(
         "ICHIRAN/DICT::FIND-WORD-SEQ"     => audit_find_word_seq(ctx, &args, &expected).await,
         "ICHIRAN/DICT::FIND-WORD-CONJ-OF" => audit_find_word_conj_of(ctx, &args, &expected).await,
         "ICHIRAN/DICT::GET-KANA-FORM"     => audit_get_kana_form(ctx, &args, &expected).await,
+        "ICHIRAN/DICT::GET-CONJ-DATA"     => audit_get_conj_data(ctx, &args, &expected).await,
         other => Err(format!("no handler for FQN: {}", other)),
     }
 }

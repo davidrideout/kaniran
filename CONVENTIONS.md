@@ -206,6 +206,14 @@ When the upstream builds a global from a function or other globals you can't yet
 
 Convert to a derivation as soon as the inputs are ported — don't leave dead literals lying around once the construction logic exists in Rust.
 
+### 5.4. Caches: never ship an empty-map stub
+
+A cache port (`*counter-cache*`, `*suffix-cache*`, `*no-conj-data*`, etc.) **must** include its populator. Shipping a `OnceLock<HashMap>` whose `get_or_init(HashMap::new)` returns an always-empty map is **not** a port — it compiles, callers see "nothing in the cache" forever, the system is silently broken on every code path that depends on the cache.
+
+If the populator isn't ready (anonymous `defcache` body that needs a hand-written method, or a named symbol scheduled later in the plan), leave the cache global at status `pending` or `wip`. Don't conflate "compiles" with "ported." A cache global is ported only when its populator runs and the map is non-empty under realistic input.
+
+The Lisp populator routes for the existing cache globals are tracked alongside their wave numbers in HANDOFF.md.
+
 ---
 
 ## 6. Tests

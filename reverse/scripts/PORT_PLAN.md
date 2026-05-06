@@ -89,7 +89,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   84. `ichiran/dict:counter-people`  — class, dict-counters.lisp:735  *[ported]*
   85. `ichiran/dict:counter-tsu`  — class, dict-counters.lisp:497  *[ported]*
   86. `ichiran/dict:counter-wari`  — class, dict-counters.lisp:746  *[ported]*
-  87. `ichiran/dict:*special-counters*`  — global, dict-counters.lisp:211  *[ported — Doc-only stub: registry value-fn type depends on the unported cache populator (wave 110); storage home depends on the unbuilt KaniranContext::Inner. Re-port as ported once both prerequisites land.]*
+  87. `ichiran/dict:*special-counters*`  — global, dict-counters.lisp:211  *[wip — empty-map stub: populated by every def-special-counter callsite (wave 122 macro, dict-counters.lisp:361). Replace with proper init when wave 122 lands.]*
   88. `ichiran/dict:*extra-counter-ids*`  — global, dict-counters.lisp:310  *[ported]*
   89. `ichiran/dict:*skip-counter-ids*`  — global, dict-counters.lisp:315  *[ported]*
   90. `ichiran/dict:sense-prop`  — dao, dict.lisp:197  *[ported]*
@@ -102,32 +102,32 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   97. `ichiran/dict:conjugation`  — dao, dict.lisp:238  *[ported]*
   98. `ichiran/dict:sense`  — dao, dict.lisp:166  *[ported]*
   99. `ichiran/dict:entry`  — dao, dict.lisp:26  *[ported]*
- 100. `ichiran/dict:no-conj-data`  — fn, dict.lisp:337
- 101. `ichiran/dict:*suffix-cache*`  — global, dict-grammar.lisp:0  *[ported]*
- 102. `ichiran/dict:*suffix-class*`  — global, dict-grammar.lisp:0  *[ported]*
+ 100. `ichiran/dict:no-conj-data`  — fn, dict.lisp:337  *[ported]*
+ 101. `ichiran/dict:*suffix-cache*`  — global, dict-grammar.lisp:0  *[wip — empty-map stub: populated by wave 127 init-suffixes via init-suffix-hashtables + load-kf + every def-simple-suffix callsite. Replace with proper init when wave 127 lands.]*
+ 102. `ichiran/dict:*suffix-class*`  — global, dict-grammar.lisp:0  *[wip — empty-map stub: populated by wave 127 init-suffixes via init-suffix-hashtables + load-kf + every def-simple-suffix callsite. Replace with proper init when wave 127 lands.]*
  103. **CYCLE (4 symbols — port together)**
         - `ichiran/conn:*conn-vars*`  — global, conn.lisp:39  *[skip — Registry of per-connection-rebound globals. Unneeded once each Ctx owns its caches directly.]*
-        - `ichiran/dict:*counter-cache*`  — global, dict-counters.lisp:0  *[ported]*
-        - `ichiran/dict:*is-arch-cache*`  — global, dict.lisp:0  *[ported]*
-        - `ichiran/dict:*no-conj-data*`  — global, dict.lisp:0  *[ported]*
+        - `ichiran/dict:*counter-cache*`  — global, dict-counters.lisp:0  *[wip — empty-map stub: defcache anonymous-body populator (single SQL query against the existing DAO schema) is unported. Returns empty HashMap, so callers see 'nothing in cache' on every lookup.]*
+        - `ichiran/dict:*is-arch-cache*`  — global, dict.lisp:0  *[wip — empty-map stub: defcache anonymous-body populator (single SQL query against the existing DAO schema) is unported. Returns empty HashMap, so callers see 'nothing in cache' on every lookup.]*
+        - `ichiran/dict:*no-conj-data*`  — global, dict.lisp:0  *[ported — empty-map stub: defcache anonymous-body populator (single SQL query against the existing DAO schema) is unported. Returns empty HashMap, so callers see 'nothing in cache' on every lookup.]*
  104. `ichiran/conn:*connections*`  — global, settings.lisp:5  *[skip — Alist of secondary connection specs. Replaced by call-site Ctx::from_url(...) per database; no global registry.]*
  105. `ichiran/conn:get-spec`  — fn, conn.lisp:25  *[skip — Lisp dbid-dispatch (nil/list/keyword → connection spec) doesn't translate. Connection registry will be handled via the Rust config crate when the DB layer lands.]*
  106. `ichiran/conn:switch-conn-vars`  — fn, conn.lisp:65  *[skip — Per-connection variable rebinding from *conn-var-cache*. Rust has no dynamic-variable shadowing; replaced by per-Database struct ownership of caches when the DB layer lands. Same family as all-caches / get-spec.]*
  107. `ichiran/dict:init-suffix-hashtables`  — fn, dict-grammar.lisp:6  *[skip — Empty-hashtable initializer for *suffix-cache* / *suffix-class* def-conn-vars. Rust replacement is OnceLock<HashMap> populated on first read; no standalone init verb survives.]*
  108. `ichiran/dict:*init-suffixes-lock*`  — global, dict-grammar.lisp:163  *[skip — SBCL mutex guarding init-suffixes-thread's populator and powering init-suffixes-running-p. Subsumed by OnceLock::get_or_init's built-in once-only synchronization on *suffix-cache* / *suffix-class*; no standalone mutex survives.]*
  109. `ichiran/dict:init-suffixes-running-p`  — fn, dict-grammar.lisp:165  *[skip — Loader-busy predicate over a one-shot init thread + def-conn-var cache. Rust replacement is OnceLock::get().is_some() or eager startup init; the verb has nowhere to live.]*
- 110. `ichiran/dict:find-word-seq`  — fn, dict-grammar.lisp:73
- 111. `ichiran/dict:find-word-conj-of`  — fn, dict-grammar.lisp:77
- 112. `ichiran/dict:get-kana-form`  — fn, dict-grammar.lisp:36
- 113. `ichiran/dict:conj-prop`  — dao, dict.lisp:262
- 114. `ichiran/dict:conj-source-reading`  — dao, dict.lisp:309
- 115. `ichiran/dict:make-conj-data`  — fn, dict.lisp:325
- 116. `ichiran/dict:get-conj-data`  — fn, dict.lisp:340
- 117. `ichiran/dict:*weak-conj-forms*`  — global, dict-errata.lisp:1316
- 118. `ichiran/dict:conj-data`  — struct, dict.lisp:327
- 119. `ichiran/dict:conj-data-prop`  — fn, dict.lisp:325
- 120. `ichiran/dict:*skip-conj-forms*`  — global, dict-errata.lisp:1310
- 121. `ichiran/dict:test-conj-prop`  — fn, dict-errata.lisp:1336
+ 110. `ichiran/dict:find-word-seq`  — fn, dict-grammar.lisp:73  *[ported]*
+ 111. `ichiran/dict:find-word-conj-of`  — fn, dict-grammar.lisp:77  *[ported]*
+ 112. `ichiran/dict:get-kana-form`  — fn, dict-grammar.lisp:36  *[ported]*
+ 113. `ichiran/dict:conj-prop`  — dao, dict.lisp:262  *[ported]*
+ 114. `ichiran/dict:conj-source-reading`  — dao, dict.lisp:309  *[ported]*
+ 115. `ichiran/dict:make-conj-data`  — fn, dict.lisp:325  *[ported]*
+ 116. `ichiran/dict:get-conj-data`  — fn, dict.lisp:340  *[ported]*
+ 117. `ichiran/dict:*weak-conj-forms*`  — global, dict-errata.lisp:1316  *[ported]*
+ 118. `ichiran/dict:conj-data`  — struct, dict.lisp:327  *[ported]*
+ 119. `ichiran/dict:conj-data-prop`  — fn, dict.lisp:325  *[ported]*
+ 120. `ichiran/dict:*skip-conj-forms*`  — global, dict-errata.lisp:1310  *[ported]*
+ 121. `ichiran/dict:test-conj-prop`  — fn, dict-errata.lisp:1336  *[ported]*
  122. `ichiran/dict:skip-by-conj-data`  — fn, dict-errata.lisp:1336
  123. `ichiran/dict:get-kana-forms-conj-data-filter`  — fn, dict-grammar.lisp:10
  124. `ichiran/dict:get-kana-forms*`  — fn, dict-grammar.lisp:17

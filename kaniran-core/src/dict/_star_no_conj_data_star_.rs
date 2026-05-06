@@ -4,37 +4,74 @@
 //! `conjugation` table — calculated negatively because the no-conj
 //! set is much smaller than the conjugatable set and is more robust
 //! when new conjugations are added (per upstream comment). Used as a
-//! set: lookups go through `no-conj-data (seq)`, which Lisp
-//! implements as `(nth-value 1 (gethash seq (ensure :no-conj-data)))`
-//! — only key presence matters.
+//! set: lookups go through [`super::no_conj_data::no_conj_data`],
+//! which Lisp implements as
+//! `(nth-value 1 (gethash seq (ensure :no-conj-data)))` — only key
+//! presence matters.
 //!
 //! Stored as `HashMap<i32, bool>` (with `true` values) to mirror the
-//! Lisp shape literally — the upstream `(setf (gethash seq cache) t)`.
-//! Callers should test via `cache.contains_key(&seq)`, the direct
-//! analogue of Lisp's `nth-value 1 gethash`.
+//! Lisp `(setf (gethash seq cache) t)` shape. Test via
+//! `cache.contains_key(&seq)`.
 //!
-//! ## Storage
+//! ## Lifecycle
 //!
-//! `OnceLock`-backed for now per memory `feedback_no_oncelock`. The
-//! upstream is a `def-conn-var` initialised to `nil` and populated
-//! lazily by the `defcache :no-conj-data` body, which queries
-//! `entry LEFT JOIN conjugation` for seqs with no conjugation row
-//! (sized for the ~200k entries in JMdict). Long-term home is a
-//! per-`Inner` `OnceCell` field on `KaniranContext` (memory
-//! `project_kaniran_context_caches`).
+//! `OnceLock`-backed (memory `feedback_no_oncelock` retracted: lazy
+//! locks are acceptable as interim until [`KaniranContext::Inner`]
+//! lands). [`init_no_conj_data_cache`] runs the upstream
+//! `defcache :no-conj-data` body — one SELECT against `entry LEFT
+//! JOIN conjugation` — and locks the result behind the [`OnceLock`].
+//! Idempotent: subsequent calls are no-ops, so the audit driver and
+//! production drivers may both call it freely at startup.
+//! [`no_conj_data_cache`] returns [`None`] until init runs, then
+//! [`Some(&map)`] thereafter.
 //!
-//! The registry is currently empty — the populator is unported
-//! (depends on the JMdict-schema decision and the `entry` /
-//! `conjugation` query layer).
+//! ## Per-`KaniranContext` ownership (deferred)
+//!
+//! The cache is process-global today; the `Inner` refactor (memory
+//! `project_kaniran_context_caches`) will move it onto a per-context
+//! [`OnceCell`] field. Until then, multi-database use cases see one
+//! shared cache populated by whichever context's
+//! [`init_no_conj_data_cache`] ran first — fine for single-DB
+//! production, audit, and tests.
+//!
+//! [`KaniranContext::Inner`]: super::super::conn::kani_context::KaniranContext
 
+use crate::conn::kani_context::KaniranContext;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-/// Borrow the no-conjugation-data seq registry. Named with the
-/// `_cache` suffix because the bare name `no_conj_data` is reserved
-/// for the upcoming port of the Lisp function `no-conj-data`
-/// (`dict.lisp:339`), which queries this registry.
-pub fn no_conj_data_cache() -> &'static HashMap<i32, bool> {
-    static MAP: OnceLock<HashMap<i32, bool>> = OnceLock::new();
-    MAP.get_or_init(HashMap::new)
+static MAP: OnceLock<HashMap<i32, bool>> = OnceLock::new();
+
+/// Borrow the no-conjugation-data seq registry. Returns [`None`]
+/// until [`init_no_conj_data_cache`] has been awaited; afterward
+/// returns the populated map for the lifetime of the process.
+///
+/// Named with the `_cache` suffix because the bare name
+/// `no_conj_data` is reserved for the predicate function port at
+/// `dict.lisp:339` (`super::no_conj_data::no_conj_data`).
+pub fn no_conj_data_cache() -> Option<&'static HashMap<i32, bool>> {
+    MAP.get()
+}
+
+/// Run the upstream `defcache :no-conj-data` body once: query
+/// `entry LEFT JOIN conjugation` for seqs whose `conjugation.seq` is
+/// NULL (i.e. entries with no conjugation rows), build a HashMap
+/// keyed by seq, and lock it behind [`MAP`]. Idempotent — second and
+/// later calls return [`Ok`] immediately.
+pub async fn init_no_conj_data_cache(ctx: &KaniranContext) -> Result<(), sqlx::Error> {
+    if MAP.get().is_some() {
+        return Ok(());
+    }
+    let seqs: Vec<i32> = sqlx::query_scalar(
+        "SELECT entry.seq FROM entry \
+         LEFT JOIN conjugation c ON entry.seq = c.seq \
+         WHERE c.seq IS NULL",
+    )
+    .fetch_all(&ctx.pool)
+    .await?;
+    let map: HashMap<i32, bool> = seqs.into_iter().map(|s| (s, true)).collect();
+    // OnceLock::set returns Err if a concurrent caller won the race; their
+    // map carries the same data (deterministic SQL), so discard the dup.
+    let _ = MAP.set(map);
+    Ok(())
 }

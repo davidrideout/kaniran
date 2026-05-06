@@ -30,6 +30,13 @@ use kaniran_core::characters::simplify_ngrams::simplify_ngrams;
 use kaniran_core::characters::split_by_regex::split_by_regex;
 use kaniran_core::characters::test_word::test_word;
 use kaniran_core::characters::to_normal_char::{to_normal_char, NormalizationContext};
+use kaniran_core::dict::conj_data_prop::conj_data_prop;
+use kaniran_core::dict::conj_data_struct::ConjData;
+use kaniran_core::dict::conj_prop_dao::ConjProp;
+use kaniran_core::dict::kani_conj_form::{ConjForm, FormToken};
+use kaniran_core::dict::make_conj_data::make_conj_data;
+use kaniran_core::dict::no_conj_data::no_conj_data;
+use kaniran_core::dict::test_conj_prop::test_conj_prop;
 use kaniran_core::kani::sexp::{self, Sexp};
 
 const MISMATCH_PRINT_LIMIT: usize = 5;
@@ -48,6 +55,10 @@ fn handlers() -> BTreeMap<&'static str, Handler> {
     m.insert("ICHIRAN/CHARACTERS:SIMPLIFY-NGRAMS",           audit_simplify_ngrams);
     m.insert("ICHIRAN/CHARACTERS:SPLIT-BY-REGEX",            audit_split_by_regex);
     m.insert("ICHIRAN/CHARACTERS:TEST-WORD",                 audit_test_word);
+    m.insert("ICHIRAN/DICT::NO-CONJ-DATA",                   audit_no_conj_data);
+    m.insert("ICHIRAN/DICT::MAKE-CONJ-DATA",                 audit_make_conj_data);
+    m.insert("ICHIRAN/DICT::CONJ-DATA-PROP",                 audit_conj_data_prop);
+    m.insert("ICHIRAN/DICT::TEST-CONJ-PROP",                 audit_test_conj_prop);
     m
 }
 
@@ -273,6 +284,299 @@ fn audit_test_word(args: &Sexp, expected: &Sexp) -> Result<(), String> {
     }
 }
 
+// --- conj-data cluster helpers (waves 100, 113-121) ----------------------
+
+fn parse_int_or_nil(s: &Sexp) -> Result<Option<i32>, String> {
+    if s.is_nil() { return Ok(None); }
+    Ok(Some(s.as_i64().ok_or_else(|| format!("not int/nil: {}", s))? as i32))
+}
+
+fn parse_bool_or_dbnull(s: &Sexp) -> Result<Option<bool>, String> {
+    if s.is_nil() { return Ok(Some(false)); }
+    if s.is_t() { return Ok(Some(true)); }
+    if s.as_keyword() == Some("NULL") { return Ok(None); }
+    Err(format!("not T / NIL / :NULL: {}", s))
+}
+
+fn parse_conj_prop_plist(s: &Sexp) -> Result<ConjProp, String> {
+    let elems = list_elems(s)?;
+    if elems.len() % 2 != 0 {
+        return Err(format!("conj-prop plist odd length: {}", s));
+    }
+    let mut id = None;
+    let mut conj_id = None;
+    let mut conj_type = None;
+    let mut pos = None;
+    let mut neg = None;
+    let mut fml = None;
+    let mut class_ok = false;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("conj-prop plist key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" => {
+                if v.as_keyword() != Some("CONJ-PROP") {
+                    return Err(format!(":CLASS not :CONJ-PROP: {}", v));
+                }
+                class_ok = true;
+            }
+            "ID" => id = Some(v.as_i64().ok_or("conj-prop :ID not int")? as i32),
+            "CONJ-ID" => conj_id = Some(v.as_i64().ok_or("conj-prop :CONJ-ID not int")? as i32),
+            "CONJ-TYPE" => conj_type = Some(v.as_i64().ok_or("conj-prop :CONJ-TYPE not int")? as i32),
+            "POS" => pos = Some(v.as_str().ok_or("conj-prop :POS not string")?.to_string()),
+            "NEG" => neg = Some(parse_bool_or_dbnull(v)?),
+            "FML" => fml = Some(parse_bool_or_dbnull(v)?),
+            other => return Err(format!("unknown conj-prop key: :{}", other)),
+        }
+    }
+    if !class_ok { return Err(":CLASS missing on conj-prop".into()); }
+    Ok(ConjProp {
+        id: id.ok_or(":ID missing")?,
+        conj_id: conj_id.ok_or(":CONJ-ID missing")?,
+        conj_type: conj_type.ok_or(":CONJ-TYPE missing")?,
+        pos: pos.ok_or(":POS missing")?,
+        neg: neg.ok_or(":NEG missing")?,
+        fml: fml.ok_or(":FML missing")?,
+    })
+}
+
+fn parse_string_pair(s: &Sexp) -> Result<(String, String), String> {
+    let v = list_elems(s)?;
+    if v.len() != 2 {
+        return Err(format!("src-map pair want 2 elems, got {}: {}", v.len(), s));
+    }
+    Ok((
+        v[0].as_str().ok_or_else(|| format!("src-map[0] not string: {}", v[0]))?.to_string(),
+        v[1].as_str().ok_or_else(|| format!("src-map[1] not string: {}", v[1]))?.to_string(),
+    ))
+}
+
+fn parse_src_map(s: &Sexp) -> Result<Vec<(String, String)>, String> {
+    if s.is_nil() { return Ok(Vec::new()); }
+    list_elems(s)?.into_iter().map(parse_string_pair).collect()
+}
+
+fn parse_conj_data_plist(s: &Sexp) -> Result<ConjData, String> {
+    let elems = list_elems(s)?;
+    if elems.len() % 2 != 0 {
+        return Err(format!("conj-data plist odd length: {}", s));
+    }
+    let mut seq = None;
+    let mut from = None;
+    let mut via = None;
+    let mut prop = None;
+    let mut src_map = None;
+    let mut class_ok = false;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("conj-data plist key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" => {
+                if v.as_keyword() != Some("CONJ-DATA") {
+                    return Err(format!(":CLASS not :CONJ-DATA: {}", v));
+                }
+                class_ok = true;
+            }
+            "SEQ"  => seq = Some(parse_int_or_nil(v)?),
+            "FROM" => from = Some(parse_int_or_nil(v)?),
+            "VIA"  => via = Some(parse_int_or_nil(v)?),
+            "PROP" => prop = Some(if v.is_nil() { None } else { Some(parse_conj_prop_plist(v)?) }),
+            "SRC-MAP" => src_map = Some(parse_src_map(v)?),
+            other => return Err(format!("unknown conj-data key: :{}", other)),
+        }
+    }
+    if !class_ok { return Err(":CLASS missing on conj-data".into()); }
+    Ok(ConjData {
+        seq: seq.ok_or(":SEQ missing")?,
+        from: from.ok_or(":FROM missing")?,
+        via: via.ok_or(":VIA missing")?,
+        prop: prop.ok_or(":PROP missing")?,
+        src_map: src_map.ok_or(":SRC-MAP missing")?,
+    })
+}
+
+fn parse_form_token(s: &Sexp) -> Result<FormToken, String> {
+    if s.is_nil() { return Ok(FormToken::Bool(false)); }
+    if s.is_t() { return Ok(FormToken::Bool(true)); }
+    if let Some(k) = s.as_keyword() {
+        return match k {
+            "ANY" => Ok(FormToken::Any),
+            "NULL" => Ok(FormToken::DbNull),
+            other => Err(format!("unknown form-token keyword: :{}", other)),
+        };
+    }
+    if let Some(n) = s.as_i64() { return Ok(FormToken::Int(n as i32)); }
+    if let Some(s) = s.as_str() {
+        // Leak the string; pos values in form data are short and the
+        // audit run is one-shot. Avoids inventing a Cow variant.
+        return Ok(FormToken::Str(Box::leak(s.to_string().into_boxed_str())));
+    }
+    Err(format!("can't parse as form-token: {}", s))
+}
+
+fn parse_conj_form(s: &Sexp) -> Result<ConjForm, String> {
+    let elems = list_elems(s)?;
+    let toks: Vec<FormToken> = elems.iter().map(|e| parse_form_token(e))
+        .collect::<Result<_, _>>()?;
+    match toks.as_slice() {
+        [a, b, c]    => Ok(ConjForm::Triple(*a, *b, *c)),
+        [a, b, c, d] => Ok(ConjForm::Quadruple(*a, *b, *c, *d)),
+        _ => Err(format!("conj-form length not 3 or 4: {}", s)),
+    }
+}
+
+/// Project a Rust [`ConjProp`] back to its captured plist for diffing.
+fn render_conj_prop(p: &ConjProp) -> String {
+    fn b(b: Option<bool>) -> &'static str {
+        match b { Some(true) => "T", Some(false) => "NIL", None => ":NULL" }
+    }
+    format!(
+        "(:CLASS :CONJ-PROP :ID {} :CONJ-ID {} :CONJ-TYPE {} :POS {:?} :NEG {} :FML {})",
+        p.id, p.conj_id, p.conj_type, p.pos, b(p.neg), b(p.fml),
+    )
+}
+
+fn render_conj_data(cd: &ConjData) -> String {
+    fn opt_int(n: Option<i32>) -> String {
+        match n { Some(n) => n.to_string(), None => "NIL".into() }
+    }
+    let prop_str = match &cd.prop {
+        Some(p) => render_conj_prop(p),
+        None => "NIL".into(),
+    };
+    let src_map_str = if cd.src_map.is_empty() {
+        "NIL".into()
+    } else {
+        let pairs: Vec<String> = cd.src_map.iter()
+            .map(|(t, s)| format!("({:?} {:?})", t, s))
+            .collect();
+        format!("({})", pairs.join(" "))
+    };
+    format!(
+        "(:CLASS :CONJ-DATA :SEQ {} :FROM {} :VIA {} :PROP {} :SRC-MAP {})",
+        opt_int(cd.seq), opt_int(cd.from), opt_int(cd.via), prop_str, src_map_str,
+    )
+}
+
+
+// --- conj-data cluster handlers ------------------------------------------
+
+fn audit_no_conj_data(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    let seq = argv.first().and_then(|s| s.as_i64())
+        .ok_or("no-conj-data arg 0 not int")? as i32;
+    let actual = no_conj_data(seq);
+    let inner = expect_one(expected)?;
+    let exp = if inner.is_t() { true } else if inner.is_nil() { false } else {
+        return Err(format!("no-conj-data expected[0] not T/NIL: {}", inner));
+    };
+    if actual == exp { Ok(()) } else {
+        // Cache populator unported: rust returns false for every seq
+        // because the in-memory registry is empty. Lisp T captures
+        // (seq HAS no conjugation rows) will mismatch until the
+        // populator lands. Return a tagged err so the harness counts
+        // it as a fail with a clear cause line.
+        Err(format!("\n  rust: {}\n  lisp: {}  (cache empty — populator unported)", actual, exp))
+    }
+}
+
+fn audit_make_conj_data(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() % 2 != 0 {
+        return Err(format!("make-conj-data args plist odd length: {}", args));
+    }
+    let mut seq = None;
+    let mut from = None;
+    let mut via = None;
+    let mut prop = None;
+    let mut src_map = None;
+    for pair in argv.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("make-conj-data arg key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "SEQ"  => seq = Some(parse_int_or_nil(v)?),
+            "FROM" => from = Some(parse_int_or_nil(v)?),
+            "VIA"  => via = Some(parse_int_or_nil(v)?),
+            "PROP" => prop = Some(if v.is_nil() { None } else { Some(parse_conj_prop_plist(v)?) }),
+            "SRC-MAP" => src_map = Some(parse_src_map(v)?),
+            other => return Err(format!("unknown make-conj-data key: :{}", other)),
+        }
+    }
+    let actual = make_conj_data(
+        seq.unwrap_or(None),
+        from.unwrap_or(None),
+        via.unwrap_or(None),
+        prop.unwrap_or(None),
+        src_map.unwrap_or_default(),
+    );
+    let exp = parse_conj_data_plist(expect_one(expected)?)?;
+    compare_conj_data(&actual, &exp)
+}
+
+fn audit_conj_data_prop(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    let cd = parse_conj_data_plist(argv.first()
+        .ok_or("conj-data-prop args empty")?)?;
+    let actual = conj_data_prop(&cd);
+    let inner = expect_one(expected)?;
+    match (actual, inner.is_nil()) {
+        (None, true) => Ok(()),
+        (Some(a), false) => {
+            let e = parse_conj_prop_plist(inner)?;
+            if conj_prop_eq(&a, &e) { Ok(()) } else {
+                Err(format!("\n  rust: {}\n  lisp: {}",
+                    render_conj_prop(&a), render_conj_prop(&e)))
+            }
+        }
+        (Some(a), true)  => Err(format!("rust returned prop, lisp NIL\n  rust: {}", render_conj_prop(&a))),
+        (None, false)    => Err(format!("rust returned None, lisp returned a plist: {}", inner)),
+    }
+}
+
+fn audit_test_conj_prop(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 2 {
+        return Err(format!("test-conj-prop wants 2 args, got {}", argv.len()));
+    }
+    let prop = parse_conj_prop_plist(argv[0])?;
+    let forms_list = list_elems(argv[1])?;
+    let forms: Vec<ConjForm> = forms_list.iter()
+        .map(|f| parse_conj_form(f))
+        .collect::<Result<_, _>>()?;
+    let actual = test_conj_prop(&prop, &forms);
+    let inner = expect_one(expected)?;
+    let exp = if inner.is_t() { true } else if inner.is_nil() { false } else {
+        return Err(format!("test-conj-prop expected[0] not T/NIL: {}", inner));
+    };
+    if actual == exp { Ok(()) } else {
+        Err(format!("\n  rust: {}\n  lisp: {}", actual, exp))
+    }
+}
+
+fn conj_prop_eq(a: &ConjProp, b: &ConjProp) -> bool {
+    a.id == b.id && a.conj_id == b.conj_id && a.conj_type == b.conj_type
+        && a.pos == b.pos && a.neg == b.neg && a.fml == b.fml
+}
+
+fn compare_conj_data(a: &ConjData, e: &ConjData) -> Result<(), String> {
+    let prop_eq = match (&a.prop, &e.prop) {
+        (None, None) => true,
+        (Some(ap), Some(ep)) => conj_prop_eq(ap, ep),
+        _ => false,
+    };
+    if a.seq == e.seq && a.from == e.from && a.via == e.via
+        && prop_eq && a.src_map == e.src_map
+    {
+        Ok(())
+    } else {
+        Err(format!("\n  rust: {}\n  lisp: {}", render_conj_data(a), render_conj_data(e)))
+    }
+}
+
+
 fn audit_basic_split(args: &Sexp, expected: &Sexp) -> Result<(), String> {
     let argv = list_elems(args)?;
     let s = argv[0].as_str().ok_or("arg 0 not string")?;
@@ -486,6 +790,27 @@ fn main() {
     if parquets.is_empty() {
         eprintln!("no .parquet files at {}", arg);
         std::process::exit(2);
+    }
+
+    // Populate DB-backed caches our handlers may read. Synchronous main()
+    // borrows a tokio runtime just long enough for init; the audit loop
+    // itself stays sync. Skipped when DATABASE_URL is unset — the
+    // handlers then see uninitialised caches and audits that depend on
+    // them legitimately fail with a clear error.
+    if std::env::var("DATABASE_URL").is_ok() {
+        let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
+        rt.block_on(async {
+            match kaniran_core::conn::kani_context::KaniranContext::from_env().await {
+                Ok(ctx) => {
+                    if let Err(e) = kaniran_core::dict::_star_no_conj_data_star_
+                        ::init_no_conj_data_cache(&ctx).await
+                    {
+                        eprintln!("warning: init_no_conj_data_cache failed: {e}");
+                    }
+                }
+                Err(e) => eprintln!("warning: KaniranContext::from_env failed: {e}"),
+            }
+        });
     }
 
     let h = handlers();
