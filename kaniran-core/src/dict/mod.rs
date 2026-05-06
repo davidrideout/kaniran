@@ -13,6 +13,8 @@ pub mod _star_counter_suffixes_star_;
 pub mod _star_extra_counter_ids_star_;
 pub mod _star_skip_counter_ids_star_;
 pub mod _star_special_counters_star_;
+pub mod _star_suffix_cache_star_;
+pub mod _star_suffix_class_star_;
 pub mod counter_age_class;
 pub mod counter_days_kun_class;
 pub mod counter_days_on_class;

@@ -12,9 +12,9 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 38 fn/gf
+- Checked: 41 fn/gf
 - Macros (file-existence only): 1
-- Divergences: 6
+- Divergences: 9
 
 ## Divergences
 
@@ -37,6 +37,21 @@ captured Lisp lambda list. New entries should be either:
 
 - file: `kaniran-core/src/characters/unrendaku.rs`
 - drift: arity 1 ≠ Lisp 2 (req=1, opt=0, keys=['fresh'])
+
+### `ichiran/dict:get-counter-ids`
+
+- file: `kaniran-core/src/dict/get_counter_ids.rs`
+- drift: arity 1 ≠ Lisp 0 (req=0, opt=0, keys=[])
+
+### `ichiran/dict:get-counter-readings`
+
+- file: `kaniran-core/src/dict/get_counter_readings.rs`
+- drift: arity 1 ≠ Lisp 0 (req=0, opt=0, keys=[])
+
+### `ichiran/dict:get-counter-stags`
+
+- file: `kaniran-core/src/dict/get_counter_stags.rs`
+- drift: arity 2 ≠ Lisp 1 (req=1, opt=0, keys=[])
 
 ### `ichiran/numbers:group-to-kana`
 

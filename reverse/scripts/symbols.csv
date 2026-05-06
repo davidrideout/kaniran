@@ -193,8 +193,8 @@ ichiran/dict:*skip-words*,*skip-words*,ichiran/dict,dict-errata.lisp,1155,global
 ichiran/dict:*special-counters*,*special-counters*,ichiran/dict,dict-counters.lisp,211,global,ported,Doc-only stub: registry value-fn type depends on the unported cache populator (wave 110); storage home depends on the unbuilt KaniranContext::Inner. Re-port as ported once both prerequisites land.
 ichiran/dict:*split-map*,*split-map*,ichiran/dict,dict-split.lisp,5,global,pending,
 ichiran/dict:*substring-hash*,*substring-hash*,ichiran/dict,dict.lisp,487,global,pending,
-ichiran/dict:*suffix-cache*,*suffix-cache*,ichiran/dict,dict-grammar.lisp,0,global,pending,
-ichiran/dict:*suffix-class*,*suffix-class*,ichiran/dict,dict-grammar.lisp,0,global,pending,
+ichiran/dict:*suffix-cache*,*suffix-cache*,ichiran/dict,dict-grammar.lisp,0,global,ported,
+ichiran/dict:*suffix-class*,*suffix-class*,ichiran/dict,dict-grammar.lisp,0,global,ported,
 ichiran/dict:*suffix-description*,*suffix-description*,ichiran/dict,dict-grammar.lisp,0,global,pending,
 ichiran/dict:*suffix-list*,*suffix-list*,ichiran/dict,dict-grammar.lisp,329,global,pending,
 ichiran/dict:*suffix-map-temp*,*suffix-map-temp*,ichiran/dict,dict.lisp,1049,global,pending,

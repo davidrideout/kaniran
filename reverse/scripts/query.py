@@ -499,7 +499,7 @@ def parse_lisp_lambda_list(s: str | None) -> dict:
     return {"required": required, "optional": optional, "keys": keys, "rest": rest, "raw": s, "fallback": False}
 
 
-PUB_FN_NAME = re.compile(r"\bpub\s+fn\s+([A-Za-z_][A-Za-z_0-9]*)")
+PUB_FN_NAME = re.compile(r"\bpub\s+(?:async\s+)?fn\s+([A-Za-z_][A-Za-z_0-9]*)")
 
 
 def _rust_count_args(arglist: str) -> int:
@@ -536,8 +536,9 @@ def _skip_balanced(text: str, i: int, open_c: str, close_c: str) -> int:
 
 
 def parse_rust_pub_fns(text: str) -> list[dict]:
-    """Find each `pub fn` declaration and count its top-level arguments. Walks
-    optional generic params (`<...>`, possibly nested) before the arglist."""
+    """Find each `pub fn` / `pub async fn` declaration and count its top-level
+    arguments. Walks optional generic params (`<...>`, possibly nested) before
+    the arglist."""
     out: list[dict] = []
     for m in PUB_FN_NAME.finditer(text):
         name = m.group(1)
@@ -654,7 +655,7 @@ def _audit_sweep(syms: dict[str, dict]) -> tuple[int, int, list[tuple[str, str, 
         match_fn = next((f for f in pub_fns if f["name"] == expected_name), None)
         if match_fn is None:
             names = [f["name"] for f in pub_fns]
-            divergences.append((fqn, rel_path, f"no `pub fn {expected_name}` (found: {names})"))
+            divergences.append((fqn, rel_path, f"no `pub [async] fn {expected_name}` (found: {names})"))
             continue
         if match_fn["arity"] != expected_arity:
             divergences.append(

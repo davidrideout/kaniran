@@ -103,8 +103,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   98. `ichiran/dict:sense`  — dao, dict.lisp:166  *[ported]*
   99. `ichiran/dict:entry`  — dao, dict.lisp:26  *[ported]*
  100. `ichiran/dict:no-conj-data`  — fn, dict.lisp:337
- 101. `ichiran/dict:*suffix-cache*`  — global, dict-grammar.lisp:0
- 102. `ichiran/dict:*suffix-class*`  — global, dict-grammar.lisp:0
+ 101. `ichiran/dict:*suffix-cache*`  — global, dict-grammar.lisp:0  *[ported]*
+ 102. `ichiran/dict:*suffix-class*`  — global, dict-grammar.lisp:0  *[ported]*
  103. **CYCLE (4 symbols — port together)**
         - `ichiran/conn:*conn-vars*`  — global, conn.lisp:39  *[skip — Registry of per-connection-rebound globals. Unneeded once each Ctx owns its caches directly.]*
         - `ichiran/dict:*counter-cache*`  — global, dict-counters.lisp:0
