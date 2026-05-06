@@ -8,9 +8,12 @@
 //! itself land in subsequent waves.
 
 pub mod _star_counter_accepts_star_;
+pub mod _star_counter_cache_star_;
 pub mod _star_counter_foreign_star_;
 pub mod _star_counter_suffixes_star_;
 pub mod _star_extra_counter_ids_star_;
+pub mod _star_is_arch_cache_star_;
+pub mod _star_no_conj_data_star_;
 pub mod _star_skip_counter_ids_star_;
 pub mod _star_special_counters_star_;
 pub mod _star_suffix_cache_star_;

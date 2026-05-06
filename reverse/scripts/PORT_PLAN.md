@@ -107,9 +107,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  102. `ichiran/dict:*suffix-class*`  — global, dict-grammar.lisp:0  *[ported]*
  103. **CYCLE (4 symbols — port together)**
         - `ichiran/conn:*conn-vars*`  — global, conn.lisp:39  *[skip — Registry of per-connection-rebound globals. Unneeded once each Ctx owns its caches directly.]*
-        - `ichiran/dict:*counter-cache*`  — global, dict-counters.lisp:0
-        - `ichiran/dict:*is-arch-cache*`  — global, dict.lisp:0
-        - `ichiran/dict:*no-conj-data*`  — global, dict.lisp:0
+        - `ichiran/dict:*counter-cache*`  — global, dict-counters.lisp:0  *[ported]*
+        - `ichiran/dict:*is-arch-cache*`  — global, dict.lisp:0  *[ported]*
+        - `ichiran/dict:*no-conj-data*`  — global, dict.lisp:0  *[ported]*
  104. `ichiran/conn:*connections*`  — global, settings.lisp:5  *[skip — Alist of secondary connection specs. Replaced by call-site Ctx::from_url(...) per database; no global registry.]*
  105. `ichiran/conn:get-spec`  — fn, conn.lisp:25  *[skip — Lisp dbid-dispatch (nil/list/keyword → connection spec) doesn't translate. Connection registry will be handled via the Rust config crate when the DB layer lands.]*
  106. `ichiran/conn:switch-conn-vars`  — fn, conn.lisp:65  *[skip — Per-connection variable rebinding from *conn-var-cache*. Rust has no dynamic-variable shadowing; replaced by per-Database struct ownership of caches when the DB layer lands. Same family as all-caches / get-spec.]*
