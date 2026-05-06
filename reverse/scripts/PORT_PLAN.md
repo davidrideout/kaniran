@@ -89,7 +89,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   84. `ichiran/dict:counter-people`  — class, dict-counters.lisp:735  *[ported]*
   85. `ichiran/dict:counter-tsu`  — class, dict-counters.lisp:497  *[ported]*
   86. `ichiran/dict:counter-wari`  — class, dict-counters.lisp:746  *[ported]*
-  87. `ichiran/dict:*special-counters*`  — global, dict-counters.lisp:211  *[wip — empty-map stub: populated by every def-special-counter callsite (wave 122 macro, dict-counters.lisp:361). Replace with proper init when wave 122 lands.]*
+  87. `ichiran/dict:*special-counters*`  — global, dict-counters.lisp:211  *[ported]*
   88. `ichiran/dict:*extra-counter-ids*`  — global, dict-counters.lisp:310  *[ported]*
   89. `ichiran/dict:*skip-counter-ids*`  — global, dict-counters.lisp:315  *[ported]*
   90. `ichiran/dict:sense-prop`  — dao, dict.lisp:197  *[ported]*
@@ -107,9 +107,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  102. `ichiran/dict:*suffix-class*`  — global, dict-grammar.lisp:0  *[wip — empty-map stub: populated by wave 127 init-suffixes via init-suffix-hashtables + load-kf + every def-simple-suffix callsite. Replace with proper init when wave 127 lands.]*
  103. **CYCLE (4 symbols — port together)**
         - `ichiran/conn:*conn-vars*`  — global, conn.lisp:39  *[skip — Registry of per-connection-rebound globals. Unneeded once each Ctx owns its caches directly.]*
-        - `ichiran/dict:*counter-cache*`  — global, dict-counters.lisp:0  *[wip — empty-map stub: defcache anonymous-body populator (single SQL query against the existing DAO schema) is unported. Returns empty HashMap, so callers see 'nothing in cache' on every lookup.]*
-        - `ichiran/dict:*is-arch-cache*`  — global, dict.lisp:0  *[wip — empty-map stub: defcache anonymous-body populator (single SQL query against the existing DAO schema) is unported. Returns empty HashMap, so callers see 'nothing in cache' on every lookup.]*
-        - `ichiran/dict:*no-conj-data*`  — global, dict.lisp:0  *[ported — empty-map stub: defcache anonymous-body populator (single SQL query against the existing DAO schema) is unported. Returns empty HashMap, so callers see 'nothing in cache' on every lookup.]*
+        - `ichiran/dict:*counter-cache*`  — global, dict-counters.lisp:0  *[ported]*
+        - `ichiran/dict:*is-arch-cache*`  — global, dict.lisp:0  *[ported]*
+        - `ichiran/dict:*no-conj-data*`  — global, dict.lisp:0  *[ported]*
  104. `ichiran/conn:*connections*`  — global, settings.lisp:5  *[skip — Alist of secondary connection specs. Replaced by call-site Ctx::from_url(...) per database; no global registry.]*
  105. `ichiran/conn:get-spec`  — fn, conn.lisp:25  *[skip — Lisp dbid-dispatch (nil/list/keyword → connection spec) doesn't translate. Connection registry will be handled via the Rust config crate when the DB layer lands.]*
  106. `ichiran/conn:switch-conn-vars`  — fn, conn.lisp:65  *[skip — Per-connection variable rebinding from *conn-var-cache*. Rust has no dynamic-variable shadowing; replaced by per-Database struct ownership of caches when the DB layer lands. Same family as all-caches / get-spec.]*
@@ -398,7 +398,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  382. `ichiran/dict:get-original-text`  — gf, dict.lisp:0
  383. `ichiran/dict:get-split*`  — fn, dict-split.lisp:67
  384. `ichiran/dict:get-split`  — fn, dict-split.lisp:75
- 385. `ichiran/dict:is-arch`  — fn, dict.lisp:760
+ 385. `ichiran/dict:is-arch`  — fn, dict.lisp:760  *[ported]*
  386. `ichiran/dict:*no-kanji-break-penalty*`  — global, dict-errata.lisp:1214
  387. `ichiran/dict:*score-cutoff*`  — global, dict.lisp:1069
  388. `ichiran/dict:parse-suffix-val`  — fn, dict-grammar.lisp:679

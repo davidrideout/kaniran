@@ -12,9 +12,9 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 49 fn/gf
+- Checked: 50 fn/gf
 - Macros (file-existence only): 1
-- Divergences: 13
+- Divergences: 15
 
 ## Divergences
 
@@ -72,6 +72,16 @@ captured Lisp lambda list. New entries should be either:
 
 - file: `kaniran-core/src/dict/get_kana_form.rs`
 - drift: arity 4 ≠ Lisp 3 (req=2, opt=0, keys=['conj'])
+
+### `ichiran/dict:is-arch`
+
+- file: `kaniran-core/src/dict/is_arch.rs`
+- drift: arity 2 ≠ Lisp 1 (req=1, opt=0, keys=[])
+
+### `ichiran/dict:no-conj-data`
+
+- file: `kaniran-core/src/dict/no_conj_data.rs`
+- drift: arity 2 ≠ Lisp 1 (req=1, opt=0, keys=[])
 
 ### `ichiran/numbers:group-to-kana`
 

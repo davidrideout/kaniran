@@ -59,7 +59,7 @@ pub async fn get_conj_data(
     from_or_conj_ids: FromOrConjIds,
     texts: &[&str],
 ) -> Result<Vec<ConjData>, sqlx::Error> {
-    if matches!(from_or_conj_ids, FromOrConjIds::Root) || no_conj_data(seq) {
+    if matches!(from_or_conj_ids, FromOrConjIds::Root) || no_conj_data(ctx, seq) {
         return Ok(Vec::new());
     }
 

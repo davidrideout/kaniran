@@ -23,3 +23,6 @@ __pycache__/
 
 # Working scratchpad — local notes, not authoritative
 reverse/scripts/HANDOFF.md
+
+# Local config (per-machine database URL etc.)
+kaniran.toml

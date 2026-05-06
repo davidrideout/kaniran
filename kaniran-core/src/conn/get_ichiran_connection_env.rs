@@ -1,26 +1,29 @@
 //! Port of `ichiran/conn:get-ichiran-connection-env` (`conn.lisp:154-166`).
 //!
-//! Read the database URL from the configured env var via the [`config`]
-//! crate. Returns [`None`] when unset or empty; surfaces a malformed
-//! read as [`Error::Config`].
+//! Read the database URL from a layered [`config::Config`]: an
+//! optional `kaniran.toml` (or other `config`-supported extension) in
+//! the current working directory, overlaid by env vars. Returns
+//! [`None`] when neither source supplies a value or the value is
+//! empty; surfaces a malformed read as [`Error::Config`].
 //!
 //! Divergences from Lisp:
 //! - Returns `Option<String>` (a Postgres URL) rather than a parsed
 //!   Lisp connection list. Format change is documented on
 //!   [`super::_star_connection_env_var_star_::DATABASE_URL`].
-//! - Read goes through [`config::Config`] / [`config::Environment`] so
-//!   a future config-file source dropping the same key (`kaniran.toml`
-//!   or similar) layers in without changing call sites.
+//! - Layered config-file → env-var read instead of a single env-var
+//!   parse, so checked-in defaults can ride alongside per-shell
+//!   overrides without code changes.
 //! - Upstream silently warns and returns nil on parse failure; Rust
 //!   bubbles parse failure as an error and reserves [`None`] for the
 //!   "unset / empty" case alone.
 
 use crate::conn::_star_connection_env_var_star_::DATABASE_URL;
 use crate::conn::kani_context::Error;
-use config::{Config, ConfigError, Environment};
+use config::{Config, ConfigError, Environment, File};
 
 pub fn get_ichiran_connection_env() -> Result<Option<String>, Error> {
     let cfg = Config::builder()
+        .add_source(File::with_name("kaniran").required(false))
         .add_source(Environment::default())
         .build()?;
     let key = DATABASE_URL.to_ascii_lowercase();

@@ -19,6 +19,7 @@
 //! reads) pointing at a populated ichiran Postgres.
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::Instant;
 
 use arrow::array::StringArray;
@@ -506,7 +507,7 @@ fn fqn_from_metadata(path: &Path) -> Result<String, String> {
 
 async fn audit_file(
     idx: usize, total: usize, path: &Path,
-    ctx: &KaniranContext, totals: &mut Totals,
+    ctx: &Arc<KaniranContext>, totals: &mut Totals,
 ) {
     let fqn = match fqn_from_metadata(path) {
         Ok(f) => f,
@@ -590,7 +591,7 @@ async fn audit_file(
                 }
             }
             let fqn_owned = fqn.clone();
-            let ctx_clone = ctx.clone();
+            let ctx_clone = Arc::clone(ctx);
             let args_clone = args_str.clone();
             set.spawn(async move {
                 let res = audit_one(&fqn_owned, &args_clone, &result_str, &ctx_clone).await;

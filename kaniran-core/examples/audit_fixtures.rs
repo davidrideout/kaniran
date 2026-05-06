@@ -13,11 +13,13 @@
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, OnceLock};
 
 use arrow::array::StringArray;
 use fancy_regex::Regex as FancyRegex;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 
+use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::characters::as_hiragana::as_hiragana;
 use kaniran_core::characters::as_katakana::as_katakana;
 use kaniran_core::characters::basic_split::{basic_split, SegmentKind};
@@ -41,6 +43,17 @@ use kaniran_core::kani::sexp::{self, Sexp};
 
 const MISMATCH_PRINT_LIMIT: usize = 5;
 type Handler = fn(&Sexp, &Sexp) -> Result<(), String>;
+
+/// Driver-scoped context populated in `main` when `DATABASE_URL` is
+/// set. Sync handlers that need DB-backed caches (e.g.
+/// [`audit_no_conj_data`]) read it via [`audit_ctx`]; if unset,
+/// those handlers fail with a clear "no context" message rather
+/// than silently passing on empty caches.
+static AUDIT_CTX: OnceLock<Arc<KaniranContext>> = OnceLock::new();
+
+fn audit_ctx() -> Option<&'static KaniranContext> {
+    AUDIT_CTX.get().map(|a| &**a)
+}
 
 fn handlers() -> BTreeMap<&'static str, Handler> {
     let mut m: BTreeMap<&'static str, Handler> = BTreeMap::new();
@@ -467,18 +480,15 @@ fn audit_no_conj_data(args: &Sexp, expected: &Sexp) -> Result<(), String> {
     let argv = list_elems(args)?;
     let seq = argv.first().and_then(|s| s.as_i64())
         .ok_or("no-conj-data arg 0 not int")? as i32;
-    let actual = no_conj_data(seq);
+    let ctx = audit_ctx()
+        .ok_or("no-conj-data: KaniranContext not initialised (DATABASE_URL unset?)")?;
+    let actual = no_conj_data(ctx, seq);
     let inner = expect_one(expected)?;
     let exp = if inner.is_t() { true } else if inner.is_nil() { false } else {
         return Err(format!("no-conj-data expected[0] not T/NIL: {}", inner));
     };
     if actual == exp { Ok(()) } else {
-        // Cache populator unported: rust returns false for every seq
-        // because the in-memory registry is empty. Lisp T captures
-        // (seq HAS no conjugation rows) will mismatch until the
-        // populator lands. Return a tagged err so the harness counts
-        // it as a fail with a clear cause line.
-        Err(format!("\n  rust: {}\n  lisp: {}  (cache empty — populator unported)", actual, exp))
+        Err(format!("\n  rust: {}\n  lisp: {}", actual, exp))
     }
 }
 
@@ -792,26 +802,26 @@ fn main() {
         std::process::exit(2);
     }
 
-    // Populate DB-backed caches our handlers may read. Synchronous main()
-    // borrows a tokio runtime just long enough for init; the audit loop
-    // itself stays sync. Skipped when DATABASE_URL is unset — the
-    // handlers then see uninitialised caches and audits that depend on
-    // them legitimately fail with a clear error.
-    if std::env::var("DATABASE_URL").is_ok() {
-        let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
-        rt.block_on(async {
-            match kaniran_core::conn::kani_context::KaniranContext::from_env().await {
-                Ok(ctx) => {
-                    if let Err(e) = kaniran_core::dict::_star_no_conj_data_star_
-                        ::init_no_conj_data_cache(&ctx).await
-                    {
-                        eprintln!("warning: init_no_conj_data_cache failed: {e}");
-                    }
-                }
-                Err(e) => eprintln!("warning: KaniranContext::from_env failed: {e}"),
+    // Build a KaniranContext using the layered config (kaniran.toml +
+    // env). `from_env` runs every cache populator before returning,
+    // so the handlers see fully populated caches without further
+    // setup. Sync main borrows a tokio runtime just long enough for
+    // construction; the audit loop itself stays sync. A
+    // `MissingConnection` error means no source supplied a URL —
+    // skip the build silently and let DB-dependent handlers report
+    // "no context".
+    let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
+    rt.block_on(async {
+        match KaniranContext::from_env().await {
+            Ok(ctx) => {
+                let _ = AUDIT_CTX.set(ctx);
             }
-        });
-    }
+            Err(kaniran_core::conn::kani_context::Error::MissingConnection(_)) => {
+                // No URL configured; handlers that need ctx will report.
+            }
+            Err(e) => eprintln!("warning: KaniranContext::from_env failed: {e}"),
+        }
+    });
 
     let h = handlers();
     let mut totals = Totals::default();
