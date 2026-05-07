@@ -472,7 +472,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  454. `ichiran/dict:*synergy-list*`  — global, dict-grammar.lisp:723
  455. `ichiran/dict:get-synergies`  — fn, dict-grammar.lisp:976
  456. `ichiran/dict:get-seg-splits`  — fn, dict.lisp:1175
- 457. `ichiran/dict:synergy`  — struct, dict-grammar.lisp:713
+ 457. `ichiran/dict:synergy`  — struct, dict-grammar.lisp:713  *[ported]*
  458. `ichiran/dict:synergy-score`  — fn, dict-grammar.lisp:727
  459. `ichiran/dict:get-segment-score`  — gf, dict.lisp:0
  460. `ichiran/dict:make-top-array-item`  — fn, dict.lisp:1138
@@ -636,11 +636,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  567. `ichiran/custom:*municipality-types-order*`  — global, dict-custom.lisp:118
  568. `ichiran/custom:*silent-p*`  — global, dict-custom.lisp:5
  569. `ichiran/custom:as-xml-simple`  — fn, dict-custom.lisp:225
- 570. `ichiran/custom:municipality`  — struct, dict-custom.lisp:140
+ 570. `ichiran/custom:municipality`  — struct, dict-custom.lisp:140  *[ported]*
  571. `ichiran/custom:municipality-definition`  — fn, dict-custom.lisp:142
  572. `ichiran/custom:municipality-reading`  — fn, dict-custom.lisp:142
  573. `ichiran/custom:municipality-text`  — fn, dict-custom.lisp:142
- 574. `ichiran/custom:ward`  — struct, dict-custom.lisp:269
+ 574. `ichiran/custom:ward`  — struct, dict-custom.lisp:269  *[ported]*
  575. `ichiran/custom:ward-definition`  — fn, dict-custom.lisp:274
  576. `ichiran/custom:ward-reading`  — fn, dict-custom.lisp:274
  577. `ichiran/custom:ward-text`  — fn, dict-custom.lisp:274
@@ -719,7 +719,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  650. `ichiran/custom:load-custom-data`  — fn, dict-custom.lisp:329
  651. `ichiran/custom:municipality-p`  — fn, dict-custom.lisp:142
  652. `ichiran/custom:ward-p`  — fn, dict-custom.lisp:274
- 653. `ichiran/custom:xml-entry`  — struct, dict-custom.lisp:63
+ 653. `ichiran/custom:xml-entry`  — struct, dict-custom.lisp:63  *[skip — XML reader out of scope per project decision (HANDOFF Resolved 2026-05-03); content slot holds a DOM document that cannot be constructed without an XML reader]*
  654. `ichiran/custom:xml-entry-p`  — fn, dict-custom.lisp:61
  655. `ichiran/dict:*aux-verbs*`  — global, dict-grammar.lisp:1072
  656. `ichiran/dict:*conj-description*`  — global, dict-load.lisp:0
@@ -804,7 +804,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:conj-info-json`  — fn, dict.lisp:1698
         - `ichiran/dict:conj-info-json*`  — fn, dict.lisp:1665
  735. `ichiran/dict:conjugate-word`  — fn, dict-load.lisp:294
- 736. `ichiran/dict:conjugation-rule`  — struct, dict-load.lisp:262
+ 736. `ichiran/dict:conjugation-rule`  — struct, dict-load.lisp:262  *[ported]*
  737. `ichiran/dict:conjugation-rule-p`  — fn, dict-load.lisp:260
  738. `ichiran/dict:copy-conj-data`  — fn, dict.lisp:325
  739. `ichiran/dict:copy-synergy`  — fn, dict-grammar.lisp:727
@@ -903,7 +903,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  832. `ichiran:*hepburn-modified*`  — global, romanize.lisp:168
  833. `ichiran:*hepburn-passport*`  — global, romanize.lisp:149
  834. `ichiran:*kunrei-siki*`  — global, romanize.lisp:201
- 835. `ichiran:rmap-item`  — struct, deromanize.lisp:5
+ 835. `ichiran:rmap-item`  — struct, deromanize.lisp:5  *[ported]*
  836. `ichiran:*romaji-kana*`  — global, deromanize.lisp:0
  837. `ichiran:has-successors`  — fn, deromanize.lisp:11
  838. `ichiran:*romaji-kana-next*`  — global, deromanize.lisp:21
@@ -926,7 +926,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  855. `ichiran:branches-next`  — fn, deromanize.lisp:69
  856. `ichiran:copy-kana-representation`  — fn, deromanize.lisp:21
  857. `ichiran:copy-rmap-item`  — fn, deromanize.lisp:3
- 858. `ichiran:kana-representation`  — struct, deromanize.lisp:23
+ 858. `ichiran:kana-representation`  — struct, deromanize.lisp:23  *[ported]*
  859. `ichiran:kana-representation-p`  — fn, deromanize.lisp:21
  860. `ichiran:rmap-item-p`  — fn, deromanize.lisp:3
  861. `ichiran:romaji-kana`  — fn, deromanize.lisp:84
