@@ -68,3 +68,5 @@ pub mod sense_prop_dao;
 pub mod simple_text_class;
 pub mod skip_by_conj_data;
 pub mod test_conj_prop;
+pub mod word_info_class;
+pub mod process_word_info;

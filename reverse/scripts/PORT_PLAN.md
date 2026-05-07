@@ -141,7 +141,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  132. `ichiran/conn:*connection-env-var*`  — global, conn.lisp:13  *[ported]*
  133. `ichiran/conn:get-ichiran-connection-env`  — fn, conn.lisp:154  *[ported]*
  134. `ichiran/conn:load-connection-from-env`  — fn, conn.lisp:166  *[skip — "Side-effects-on-globals semantics (set *connection*]*
- 135. `ichiran/dict:process-word-info`  — fn, dict.lisp:1417
+ 135. `ichiran/dict:process-word-info`  — fn, dict.lisp:1417  *[ported]*
  136. `ichiran/dict:segment-list`  — struct, dict.lisp:1038
  137. `ichiran/dict:segment-list-end`  — fn, dict.lisp:1038
  138. `ichiran/dict:segment-list-start`  — fn, dict.lisp:1038
@@ -172,7 +172,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:score-base`  — gf, dict.lisp:0
         - `ichiran/dict:true-text`  — gf, dict.lisp:0
         - `ichiran/dict:word-conj-data`  — gf, dict.lisp:0
- 159. `ichiran/dict:word-info`  — class, dict.lisp:1245
+ 159. `ichiran/dict:word-info`  — class, dict.lisp:1245  *[ported]*
  160. `ichiran/dict:*segment-score-cutoff*`  — global, dict.lisp:1351
  161. `ichiran/dict:segment-list-matches`  — fn, dict.lisp:1038
  162. `ichiran/dict:segment-list-segments`  — fn, dict.lisp:1038
