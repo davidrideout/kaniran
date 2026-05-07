@@ -121,10 +121,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  112. `ichiran/dict:get-kana-form`  — fn, dict-grammar.lisp:36  *[ported]*
  113. `ichiran/dict:conj-prop`  — dao, dict.lisp:262  *[ported]*
  114. `ichiran/dict:conj-source-reading`  — dao, dict.lisp:309  *[ported]*
- 115. `ichiran/dict:make-conj-data`  — fn, dict.lisp:325  *[ported]*
- 116. `ichiran/dict:get-conj-data`  — fn, dict.lisp:340  *[ported]*
- 117. `ichiran/dict:*weak-conj-forms*`  — global, dict-errata.lisp:1316  *[ported]*
- 118. `ichiran/dict:conj-data`  — struct, dict.lisp:327  *[ported]*
+ 115. `ichiran/dict:conj-data`  — struct, dict.lisp:327  *[ported]*
+ 116. `ichiran/dict:make-conj-data`  — fn, dict.lisp:325  *[ported]*
+ 117. `ichiran/dict:get-conj-data`  — fn, dict.lisp:340  *[ported]*
+ 118. `ichiran/dict:*weak-conj-forms*`  — global, dict-errata.lisp:1316  *[ported]*
  119. `ichiran/dict:conj-data-prop`  — fn, dict.lisp:325  *[ported]*
  120. `ichiran/dict:*skip-conj-forms*`  — global, dict-errata.lisp:1310  *[ported]*
  121. `ichiran/dict:test-conj-prop`  — fn, dict-errata.lisp:1336  *[ported]*
@@ -445,69 +445,70 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  427. `ichiran/dict:*segfilter-list*`  — global, dict-grammar.lisp:1024
  428. `ichiran/dict:apply-segfilters`  — fn, dict-grammar.lisp:1177
  429. `ichiran/dict:get-seg-initial`  — fn, dict.lisp:1172
- 430. `ichiran/dict:make-synergy`  — fn, dict-grammar.lisp:727
- 431. `ichiran/dict:penalty-semi-final`  — fn, dict-grammar.lisp:1022
- 432. `ichiran/dict:filter-short-kana`  — fn, dict-grammar.lisp:1008
- 433. `ichiran/dict:penalty-short`  — fn, dict-grammar.lisp:1020
- 434. `ichiran/dict:*penalty-list*`  — global, dict-grammar.lisp:964
- 435. `ichiran/dict:get-penalties`  — fn, dict-grammar.lisp:1030
- 436. `ichiran/dict:synergy-kanji-prefix`  — fn, dict-grammar.lisp:940
- 437. `ichiran/dict:synergy-na-adjectives`  — fn, dict-grammar.lisp:892
- 438. `ichiran/dict:synergy-no-adjectives`  — fn, dict-grammar.lisp:884
- 439. `ichiran/dict:synergy-no-da`  — fn, dict-grammar.lisp:871
- 440. `ichiran/dict:synergy-no-toori`  — fn, dict-grammar.lisp:970
- 441. `ichiran/dict:filter-is-noun`  — fn, dict-grammar.lisp:760
- 442. `ichiran/dict:synergy-noun-da`  — fn, dict-grammar.lisp:859
- 443. `ichiran/dict:synergy-noun-particle`  — fn, dict-grammar.lisp:850
- 444. `ichiran/dict:synergy-o-prefix`  — fn, dict-grammar.lisp:935
- 445. `ichiran/dict:synergy-oki`  — fn, dict-grammar.lisp:973
- 446. `ichiran/dict:synergy-shicha-ikenai`  — fn, dict-grammar.lisp:951
- 447. `ichiran/dict:synergy-shika-negative`  — fn, dict-grammar.lisp:959
- 448. `ichiran/dict:synergy-sou-nanda`  — fn, dict-grammar.lisp:878
- 449. `ichiran/dict:synergy-suffix-buri`  — fn, dict-grammar.lisp:925
- 450. `ichiran/dict:synergy-suffix-chu`  — fn, dict-grammar.lisp:914
- 451. `ichiran/dict:synergy-suffix-sei`  — fn, dict-grammar.lisp:929
- 452. `ichiran/dict:synergy-suffix-tachi`  — fn, dict-grammar.lisp:921
- 453. `ichiran/dict:synergy-to-adverbs`  — fn, dict-grammar.lisp:902
- 454. `ichiran/dict:*synergy-list*`  — global, dict-grammar.lisp:723
- 455. `ichiran/dict:get-synergies`  — fn, dict-grammar.lisp:976
- 456. `ichiran/dict:get-seg-splits`  — fn, dict.lisp:1175
- 457. `ichiran/dict:synergy`  — struct, dict-grammar.lisp:713  *[ported]*
+ 430. `ichiran/dict:synergy`  — struct, dict-grammar.lisp:713  *[ported]*
+ 431. `ichiran/dict:make-synergy`  — fn, dict-grammar.lisp:727
+ 432. `ichiran/dict:penalty-semi-final`  — fn, dict-grammar.lisp:1022
+ 433. `ichiran/dict:filter-short-kana`  — fn, dict-grammar.lisp:1008
+ 434. `ichiran/dict:penalty-short`  — fn, dict-grammar.lisp:1020
+ 435. `ichiran/dict:*penalty-list*`  — global, dict-grammar.lisp:964
+ 436. `ichiran/dict:get-penalties`  — fn, dict-grammar.lisp:1030
+ 437. `ichiran/dict:synergy-kanji-prefix`  — fn, dict-grammar.lisp:940
+ 438. `ichiran/dict:synergy-na-adjectives`  — fn, dict-grammar.lisp:892
+ 439. `ichiran/dict:synergy-no-adjectives`  — fn, dict-grammar.lisp:884
+ 440. `ichiran/dict:synergy-no-da`  — fn, dict-grammar.lisp:871
+ 441. `ichiran/dict:synergy-no-toori`  — fn, dict-grammar.lisp:970
+ 442. `ichiran/dict:filter-is-noun`  — fn, dict-grammar.lisp:760
+ 443. `ichiran/dict:synergy-noun-da`  — fn, dict-grammar.lisp:859
+ 444. `ichiran/dict:synergy-noun-particle`  — fn, dict-grammar.lisp:850
+ 445. `ichiran/dict:synergy-o-prefix`  — fn, dict-grammar.lisp:935
+ 446. `ichiran/dict:synergy-oki`  — fn, dict-grammar.lisp:973
+ 447. `ichiran/dict:synergy-shicha-ikenai`  — fn, dict-grammar.lisp:951
+ 448. `ichiran/dict:synergy-shika-negative`  — fn, dict-grammar.lisp:959
+ 449. `ichiran/dict:synergy-sou-nanda`  — fn, dict-grammar.lisp:878
+ 450. `ichiran/dict:synergy-suffix-buri`  — fn, dict-grammar.lisp:925
+ 451. `ichiran/dict:synergy-suffix-chu`  — fn, dict-grammar.lisp:914
+ 452. `ichiran/dict:synergy-suffix-sei`  — fn, dict-grammar.lisp:929
+ 453. `ichiran/dict:synergy-suffix-tachi`  — fn, dict-grammar.lisp:921
+ 454. `ichiran/dict:synergy-to-adverbs`  — fn, dict-grammar.lisp:902
+ 455. `ichiran/dict:*synergy-list*`  — global, dict-grammar.lisp:723
+ 456. `ichiran/dict:get-synergies`  — fn, dict-grammar.lisp:976
+ 457. `ichiran/dict:get-seg-splits`  — fn, dict.lisp:1175
  458. `ichiran/dict:synergy-score`  — fn, dict-grammar.lisp:727
  459. `ichiran/dict:get-segment-score`  — gf, dict.lisp:0
- 460. `ichiran/dict:make-top-array-item`  — fn, dict.lisp:1138
- 461. `ichiran/dict:tai-score`  — fn, dict.lisp:1138
- 462. `ichiran/dict:register-item`  — gf, dict.lisp:0
- 463. `ichiran/dict:segment-list-top`  — fn, dict.lisp:1038
- 464. `ichiran/dict:tai-payload`  — fn, dict.lisp:1138
- 465. `ichiran/dict:find-best-path`  — fn, dict.lisp:1190
- 466. `ichiran/dict:*identical-word-score-cutoff*`  — global, dict.lisp:1020
- 467. `ichiran/dict:cull-segments`  — fn, dict.lisp:1027
- 468. `ichiran/dict:gen-score`  — fn, dict.lisp:985
- 469. `ichiran/dict:*force-kanji-break*`  — global, dict-errata.lisp:1226
- 470. `ichiran/dict:*max-word-length*`  — global, dict.lisp:486
- 471. `ichiran/dict:*no-kanji-break*`  — global, dict-errata.lisp:1229
- 472. `ichiran/dict:*substring-hash*`  — global, dict.lisp:487
- 473. `ichiran/dict:*suffix-map-temp*`  — global, dict.lisp:1049
- 474. `ichiran/dict:*suffix-next-end*`  — global, dict.lisp:1050
- 475. `ichiran/dict:find-sticky-positions`  — fn, dict.lisp:990
- 476. `ichiran/dict:find-substring-words`  — fn, dict.lisp:501
- 477. `ichiran/dict:verify`  — gf, dict-counters.lisp:0
- 478. `ichiran/numbers:not-a-number`  — condition, numbers.lisp:0  *[ported]*
- 479. `ichiran/dict:find-counter`  — fn, dict-counters.lisp:273
- 480. `ichiran/dict:find-word`  — fn, dict.lisp:489
- 481. `ichiran/dict:find-word-as-hiragana`  — fn, dict.lisp:592
- 482. `ichiran/dict:adjoin-word`  — gf, dict.lisp:0
- 483. `ichiran/dict:apply-patch`  — fn, dict-grammar.lisp:444
- 484. `ichiran/dict:or-as-hiragana`  — fn, dict-grammar.lisp:95
- 485. `ichiran/dict:suffix-ra`  — fn, dict-grammar.lisp:516
- 486. `ichiran/dict:lex-compare`  — fn, dict-load.lisp:365
- 487. `ichiran/dict:pair-words-by-conj`  — fn, dict-grammar.lisp:56
- 488. `ichiran/dict:find-word-with-pos`  — fn, dict-grammar.lisp:87
- 489. `ichiran/dict:suffix-suru`  — fn, dict-grammar.lisp:441
- 490. `ichiran/dict:*suffix-unique-only*`  — global, dict-grammar.lisp:330
- 491. `ichiran/dict:match-unique`  — fn, dict-grammar.lisp:702
- 492. **CYCLE (49 symbols — port together)**
+ 460. `ichiran/dict:top-array-item`  — struct, dict.lisp:1138
+ 461. `ichiran/dict:make-top-array-item`  — fn, dict.lisp:1138
+ 462. `ichiran/dict:tai-score`  — fn, dict.lisp:1138
+ 463. `ichiran/dict:register-item`  — gf, dict.lisp:0
+ 464. `ichiran/dict:segment-list-top`  — fn, dict.lisp:1038
+ 465. `ichiran/dict:tai-payload`  — fn, dict.lisp:1138
+ 466. `ichiran/dict:find-best-path`  — fn, dict.lisp:1190
+ 467. `ichiran/dict:*identical-word-score-cutoff*`  — global, dict.lisp:1020
+ 468. `ichiran/dict:cull-segments`  — fn, dict.lisp:1027
+ 469. `ichiran/dict:gen-score`  — fn, dict.lisp:985
+ 470. `ichiran/dict:*force-kanji-break*`  — global, dict-errata.lisp:1226
+ 471. `ichiran/dict:*max-word-length*`  — global, dict.lisp:486
+ 472. `ichiran/dict:*no-kanji-break*`  — global, dict-errata.lisp:1229
+ 473. `ichiran/dict:*substring-hash*`  — global, dict.lisp:487
+ 474. `ichiran/dict:*suffix-map-temp*`  — global, dict.lisp:1049
+ 475. `ichiran/dict:*suffix-next-end*`  — global, dict.lisp:1050
+ 476. `ichiran/dict:find-sticky-positions`  — fn, dict.lisp:990
+ 477. `ichiran/dict:find-substring-words`  — fn, dict.lisp:501
+ 478. `ichiran/dict:verify`  — gf, dict-counters.lisp:0
+ 479. `ichiran/numbers:not-a-number`  — condition, numbers.lisp:0  *[ported]*
+ 480. `ichiran/dict:find-counter`  — fn, dict-counters.lisp:273
+ 481. `ichiran/dict:find-word`  — fn, dict.lisp:489
+ 482. `ichiran/dict:find-word-as-hiragana`  — fn, dict.lisp:592
+ 483. `ichiran/dict:adjoin-word`  — gf, dict.lisp:0
+ 484. `ichiran/dict:apply-patch`  — fn, dict-grammar.lisp:444
+ 485. `ichiran/dict:or-as-hiragana`  — fn, dict-grammar.lisp:95
+ 486. `ichiran/dict:suffix-ra`  — fn, dict-grammar.lisp:516
+ 487. `ichiran/dict:lex-compare`  — fn, dict-load.lisp:365
+ 488. `ichiran/dict:pair-words-by-conj`  — fn, dict-grammar.lisp:56
+ 489. `ichiran/dict:find-word-with-pos`  — fn, dict-grammar.lisp:87
+ 490. `ichiran/dict:suffix-suru`  — fn, dict-grammar.lisp:441
+ 491. `ichiran/dict:*suffix-unique-only*`  — global, dict-grammar.lisp:330
+ 492. `ichiran/dict:match-unique`  — fn, dict-grammar.lisp:702
+ 493. **CYCLE (49 symbols — port together)**
         - `ichiran/dict:*suffix-list*`  — global, dict-grammar.lisp:329
         - `ichiran/dict:abbr-beba`  — fn, dict-grammar.lisp:658
         - `ichiran/dict:abbr-dewanai`  — fn, dict-grammar.lisp:635
@@ -557,319 +558,318 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:suffix-tosuru`  — fn, dict-grammar.lisp:549
         - `ichiran/dict:te-check`  — fn, dict-grammar.lisp:395
         - `ichiran/dict:teiru-check`  — fn, dict-grammar.lisp:404
- 493. `ichiran/dict:get-suffix-map`  — fn, dict-grammar.lisp:685
- 494. `ichiran/dict:make-segment`  — fn, dict.lisp:674
- 495. `ichiran/dict:join-substring-words*`  — fn, dict.lisp:1069
- 496. `ichiran/dict:make-segment-list`  — fn, dict.lisp:1038
- 497. `ichiran/dict:join-substring-words`  — fn, dict.lisp:1113
- 498. `ichiran/dict:dict-segment`  — fn, dict.lisp:1451
- 499. `ichiran/dict:simple-segment`  — fn, dict.lisp:1456
- 500. `ichiran/dict:gloss`  — dao, dict.lisp:178  *[ported]*
- 501. `ichiran/dict:get-senses-raw`  — fn, dict.lisp:1458
- 502. `ichiran/dict:get-senses`  — fn, dict.lisp:1487
- 503. `ichiran/dict:get-senses-str`  — fn, dict.lisp:1495
- 504. `ichiran/dict:*suffix-description*`  — global, dict-grammar.lisp:0
- 505. `ichiran/dict:get-suffix-description`  — fn, dict-grammar.lisp:160
- 506. `ichiran/dict:errata-conj-description-hook`  — fn, dict-errata.lisp:1320
- 507. `ichiran/dict:load-conj-description`  — fn, dict-load.lisp:255
- 508. `ichiran/dict:get-conj-description`  — fn, dict-load.lisp:255
- 509. `ichiran/dict:conj-info-short`  — fn, dict.lisp:275
- 510. `ichiran/dict:reading-str*`  — fn, dict.lisp:1580
- 511. `ichiran/dict:reading-str-seq`  — fn, dict.lisp:1584
- 512. `ichiran/dict:short-sense-str`  — fn, dict.lisp:1562
- 513. `ichiran/dict:entry-info-short`  — fn, dict.lisp:1595
- 514. `ichiran/dict:conj-type-order`  — fn, dict.lisp:1612
- 515. `ichiran/dict:is-rareru`  — fn, dict.lisp:1619
- 516. `ichiran/dict:filter-props`  — fn, dict.lisp:1627
- 517. `ichiran/dict:select-conjs`  — fn, dict.lisp:1604
- 518. `ichiran/dict:select-conjs-and-props`  — fn, dict.lisp:1640
- 519. `ichiran/dict:print-conj-info`  — fn, dict.lisp:1649
- 520. `ichiran/dict:query-parents-kana`  — fn, dict.lisp:415
- 521. `ichiran/dict:best-kanji-conj`  — fn, dict.lisp:457
- 522. `ichiran/dict:get-kanji`  — gf, dict.lisp:0
- 523. `ichiran/dict:word-info-reading-str`  — fn, dict.lisp:1734
- 524. `ichiran/dict:reading-str`  — gf, dict.lisp:0
- 525. `ichiran/dict:word-info-str`  — fn, dict.lisp:1747
- 526. `ichiran:*hepburn-kana-table*`  — global, romanize.lisp:0
- 527. `ichiran:generic-romanization`  — class, romanize.lisp:62
- 528. `ichiran:generic-hepburn`  — class, romanize.lisp:103
- 529. `ichiran:simplified-hepburn`  — class, romanize.lisp:136
- 530. `ichiran:traditional-hepburn`  — class, romanize.lisp:152
- 531. `ichiran:*hepburn-traditional*`  — global, romanize.lisp:160
- 532. `ichiran:*default-romanization-method*`  — global, romanize.lisp:203
- 533. `ichiran:join-parts`  — fn, romanize.lisp:235
- 534. `ichiran/dict:simplify-reading-list`  — fn, dict.lisp:1704
- 535. `ichiran/dict:map-word-info-kana`  — fn, dict.lisp:1728
- 536. `ichiran/dict:*hint-char-map*`  — global, dict-split.lisp:816
- 537. `ichiran/dict:strip-hints`  — fn, dict-split.lisp:874
- 538. `ichiran/dict:*kana-hint-mod*`  — global, dict-split.lisp:813
- 539. `ichiran/dict:*hint-simplify-map*`  — global, dict-split.lisp:818
- 540. `ichiran/dict:process-hints`  — fn, dict-split.lisp:872
- 541. `ichiran:get-character-classes`  — fn, romanize.lisp:3
- 542. `ichiran:r-special`  — gf, romanize.lisp:0
- 543. `ichiran:process-iteration-characters`  — fn, romanize.lisp:7  *[ported]*
- 544. `ichiran:process-modifiers`  — fn, romanize.lisp:15
- 545. `ichiran:*kunrei-siki-kana-table*`  — global, romanize.lisp:0
- 546. `ichiran:kunrei-siki`  — class, romanize.lisp:194
- 547. `ichiran:r-simplify`  — gf, romanize.lisp:0
- 548. `ichiran:leftmost-atom`  — fn, romanize.lisp:25
- 549. `ichiran:r-base`  — gf, romanize.lisp:0
- 550. **CYCLE (2 symbols — port together)**
+ 494. `ichiran/dict:get-suffix-map`  — fn, dict-grammar.lisp:685
+ 495. `ichiran/dict:make-segment`  — fn, dict.lisp:674
+ 496. `ichiran/dict:join-substring-words*`  — fn, dict.lisp:1069
+ 497. `ichiran/dict:make-segment-list`  — fn, dict.lisp:1038
+ 498. `ichiran/dict:join-substring-words`  — fn, dict.lisp:1113
+ 499. `ichiran/dict:dict-segment`  — fn, dict.lisp:1451
+ 500. `ichiran/dict:simple-segment`  — fn, dict.lisp:1456
+ 501. `ichiran/dict:gloss`  — dao, dict.lisp:178  *[ported]*
+ 502. `ichiran/dict:get-senses-raw`  — fn, dict.lisp:1458
+ 503. `ichiran/dict:get-senses`  — fn, dict.lisp:1487
+ 504. `ichiran/dict:get-senses-str`  — fn, dict.lisp:1495
+ 505. `ichiran/dict:*suffix-description*`  — global, dict-grammar.lisp:0
+ 506. `ichiran/dict:get-suffix-description`  — fn, dict-grammar.lisp:160
+ 507. `ichiran/dict:errata-conj-description-hook`  — fn, dict-errata.lisp:1320
+ 508. `ichiran/dict:load-conj-description`  — fn, dict-load.lisp:255
+ 509. `ichiran/dict:get-conj-description`  — fn, dict-load.lisp:255
+ 510. `ichiran/dict:conj-info-short`  — fn, dict.lisp:275
+ 511. `ichiran/dict:reading-str*`  — fn, dict.lisp:1580
+ 512. `ichiran/dict:reading-str-seq`  — fn, dict.lisp:1584
+ 513. `ichiran/dict:short-sense-str`  — fn, dict.lisp:1562
+ 514. `ichiran/dict:entry-info-short`  — fn, dict.lisp:1595
+ 515. `ichiran/dict:conj-type-order`  — fn, dict.lisp:1612
+ 516. `ichiran/dict:is-rareru`  — fn, dict.lisp:1619
+ 517. `ichiran/dict:filter-props`  — fn, dict.lisp:1627
+ 518. `ichiran/dict:select-conjs`  — fn, dict.lisp:1604
+ 519. `ichiran/dict:select-conjs-and-props`  — fn, dict.lisp:1640
+ 520. `ichiran/dict:print-conj-info`  — fn, dict.lisp:1649
+ 521. `ichiran/dict:query-parents-kana`  — fn, dict.lisp:415
+ 522. `ichiran/dict:best-kanji-conj`  — fn, dict.lisp:457
+ 523. `ichiran/dict:get-kanji`  — gf, dict.lisp:0
+ 524. `ichiran/dict:word-info-reading-str`  — fn, dict.lisp:1734
+ 525. `ichiran/dict:reading-str`  — gf, dict.lisp:0
+ 526. `ichiran/dict:word-info-str`  — fn, dict.lisp:1747
+ 527. `ichiran:*hepburn-kana-table*`  — global, romanize.lisp:0
+ 528. `ichiran:generic-romanization`  — class, romanize.lisp:62
+ 529. `ichiran:generic-hepburn`  — class, romanize.lisp:103
+ 530. `ichiran:simplified-hepburn`  — class, romanize.lisp:136
+ 531. `ichiran:traditional-hepburn`  — class, romanize.lisp:152
+ 532. `ichiran:*hepburn-traditional*`  — global, romanize.lisp:160
+ 533. `ichiran:*default-romanization-method*`  — global, romanize.lisp:203
+ 534. `ichiran:join-parts`  — fn, romanize.lisp:235
+ 535. `ichiran/dict:simplify-reading-list`  — fn, dict.lisp:1704
+ 536. `ichiran/dict:map-word-info-kana`  — fn, dict.lisp:1728
+ 537. `ichiran/dict:*hint-char-map*`  — global, dict-split.lisp:816
+ 538. `ichiran/dict:strip-hints`  — fn, dict-split.lisp:874
+ 539. `ichiran/dict:*kana-hint-mod*`  — global, dict-split.lisp:813
+ 540. `ichiran/dict:*hint-simplify-map*`  — global, dict-split.lisp:818
+ 541. `ichiran/dict:process-hints`  — fn, dict-split.lisp:872
+ 542. `ichiran:get-character-classes`  — fn, romanize.lisp:3
+ 543. `ichiran:r-special`  — gf, romanize.lisp:0
+ 544. `ichiran:process-iteration-characters`  — fn, romanize.lisp:7  *[ported]*
+ 545. `ichiran:process-modifiers`  — fn, romanize.lisp:15
+ 546. `ichiran:*kunrei-siki-kana-table*`  — global, romanize.lisp:0
+ 547. `ichiran:kunrei-siki`  — class, romanize.lisp:194
+ 548. `ichiran:r-simplify`  — gf, romanize.lisp:0
+ 549. `ichiran:leftmost-atom`  — fn, romanize.lisp:25
+ 550. `ichiran:r-base`  — gf, romanize.lisp:0
+ 551. **CYCLE (2 symbols — port together)**
         - `ichiran:r-apply`  — gf, romanize.lisp:0
         - `ichiran:romanize-core`  — fn, romanize.lisp:29
- 551. `ichiran:romanize-list`  — fn, romanize.lisp:205
- 552. `ichiran:romanize-word`  — fn, romanize.lisp:217
- 553. `ichiran:romanize-word-info`  — fn, romanize.lisp:248
- 554. `ichiran:romanize`  — fn, romanize.lisp:257
- 555. `ichiran:romanize*`  — fn, romanize.lisp:273
- 556. `ichiran/cli:main`  — fn, cli.lisp:48
- 557. `ichiran/conn:*debug*`  — global, conn.lisp:20  *[skip — Debug-flag global gating dp. Replaced by the tracing crate's filter level.]*
- 558. `ichiran/conn:def-conn-var`  — macro, conn.lisp:41  *[skip — Macro registering a global into the per-connection variable rebinding list. The cross-DB rebinding pattern is gone — each Ctx owns its caches directly.]*
- 559. `ichiran/conn:defcache`  — macro, conn.lisp:135  *[skip — Macro registering a cache + defining init-cache method. Rust shape has no registry; each cache is a typed Ctx field with hand-written accessor.]*
- 560. `ichiran/conn:dp`  — fn, conn.lisp:149  *[skip — Debug-printer wrapper around *debug*. Replaced by the tracing crate's emit + filter level.]*
- 561. `ichiran/conn:let-db`  — macro, conn.lisp:32  *[skip — Rebinds *connection* for a dynamic scope. Multi-DB usage in Rust is Ctx::from_url(other); no scope-binding macro.]*
- 562. `ichiran/conn:load-settings`  — fn, conn.lisp:76  *[skip — Loads settings.lisp and overrides connection from env. No counterpart in Rust — config comes from env (or layered config-crate sources) via Ctx::from_env.]*
- 563. `ichiran/conn:with-db`  — macro, conn.lisp:46  *[skip — Rebinds *connection* and re-derives per-conn-var cache for a dynamic scope. Replaced by per-Ctx ownership of pool and caches; multi-DB = construct another Ctx.]*
- 564. `ichiran/conn:with-log`  — macro, conn.lisp:86  *[skip — Wraps cl-postgres:*query-log* to a stream for the body. Replaced by sqlx + tracing query logging.]*
- 565. `ichiran/custom:*municipality-types*`  — global, dict-custom.lisp:97
- 566. `ichiran/custom:*municipality-types-description*`  — global, dict-custom.lisp:107
- 567. `ichiran/custom:*municipality-types-order*`  — global, dict-custom.lisp:118
- 568. `ichiran/custom:*silent-p*`  — global, dict-custom.lisp:5
- 569. `ichiran/custom:as-xml-simple`  — fn, dict-custom.lisp:225
- 570. `ichiran/custom:municipality`  — struct, dict-custom.lisp:140  *[ported]*
- 571. `ichiran/custom:municipality-definition`  — fn, dict-custom.lisp:142
- 572. `ichiran/custom:municipality-reading`  — fn, dict-custom.lisp:142
- 573. `ichiran/custom:municipality-text`  — fn, dict-custom.lisp:142
- 574. `ichiran/custom:ward`  — struct, dict-custom.lisp:269  *[ported]*
- 575. `ichiran/custom:ward-definition`  — fn, dict-custom.lisp:274
- 576. `ichiran/custom:ward-reading`  — fn, dict-custom.lisp:274
- 577. `ichiran/custom:ward-text`  — fn, dict-custom.lisp:274
- 578. `ichiran/custom:as-xml`  — gf, dict-custom.lisp:0
- 579. `ichiran/custom:copy-municipality`  — fn, dict-custom.lisp:142
- 580. `ichiran/custom:copy-ward`  — fn, dict-custom.lisp:274
- 581. `ichiran/custom:copy-xml-entry`  — fn, dict-custom.lisp:61
- 582. `ichiran/custom:custom-source`  — class, dict-custom.lisp:54
- 583. `ichiran/custom:csv-loader`  — class, dict-custom.lisp:82
- 584. `ichiran/custom:municipality-csv`  — class, dict-custom.lisp:93
- 585. `ichiran/custom:source-path`  — fn, dict-custom.lisp:318
- 586. `ichiran/custom:ward-csv`  — class, dict-custom.lisp:266
- 587. `ichiran/custom:xml-loader`  — class, dict-custom.lisp:59
- 588. `ichiran/custom:get-custom-data`  — fn, dict-custom.lisp:322
- 589. `ichiran/custom:municipality-prefecture`  — fn, dict-custom.lisp:142
- 590. `ichiran/custom:municipality-type`  — fn, dict-custom.lisp:142
- 591. `ichiran/custom:ward-city`  — fn, dict-custom.lisp:274
- 592. `ichiran/custom:get-words`  — gf, dict-custom.lisp:0
- 593. `ichiran/dict:*pos-with-conj-rules*`  — global, dict-load.lisp:307
- 594. `ichiran/dict:*do-not-conjugate*`  — global, dict-load.lisp:303
- 595. `ichiran/dict:cr-euphk`  — fn, dict-load.lisp:260
- 596. `ichiran/dict:cr-euphr`  — fn, dict-load.lisp:260
- 597. `ichiran/dict:cr-okuri`  — fn, dict-load.lisp:260
- 598. `ichiran/dict:cr-stem`  — fn, dict-load.lisp:260
- 599. `ichiran/dict:construct-conjugation`  — fn, dict-load.lisp:281
- 600. `ichiran/dict:cr-conj`  — fn, dict-load.lisp:260
- 601. `ichiran/dict:cr-fml`  — fn, dict-load.lisp:260
- 602. `ichiran/dict:cr-neg`  — fn, dict-load.lisp:260
- 603. `ichiran/dict:cr-onum`  — fn, dict-load.lisp:260
- 604. `ichiran/dict:copy-conjugation-rule`  — fn, dict-load.lisp:260
- 605. `ichiran/dict:load-pos-by-index`  — fn, dict-load.lisp:251
- 606. `ichiran/dict:get-pos`  — fn, dict-load.lisp:251
- 607. `ichiran/dict:load-pos-index`  — fn, dict-load.lisp:247
- 608. `ichiran/dict:get-pos-index`  — fn, dict-load.lisp:247
- 609. `ichiran/dict:make-conjugation-rule`  — fn, dict-load.lisp:260
- 610. `ichiran/dict:errata-conj-rules-hook`  — fn, dict-errata.lisp:1329
- 611. `ichiran/dict:load-conj-rules`  — fn, dict-load.lisp:265
- 612. `ichiran/dict:get-conj-rules`  — fn, dict-load.lisp:265
- 613. `ichiran/dict:conjugate-entry-inner`  — fn, dict-load.lisp:314
- 614. `ichiran/dict:get-all-readings`  — fn, dict-errata.lisp:257
- 615. `ichiran/dict:*secondary-conjugation-types-from*`  — global, dict-load.lisp:312
- 616. `ichiran/dict:insert-conjugation`  — fn, dict-load.lisp:375
- 617. `ichiran/dict:next-seq`  — fn, dict-load.lisp:110
- 618. `ichiran/dict:conjugate-entry-outer`  — fn, dict-load.lisp:342
- 619. `ichiran/dict:do-node-list-ord`  — macro, dict-load.lisp:26
- 620. `ichiran/dict:node-text`  — fn, dict-load.lisp:14
- 621. `ichiran/dict:restricted-readings`  — dao, dict.lisp:221  *[ported]*
- 622. `ichiran/dict:insert-readings`  — fn, dict-load.lisp:32
- 623. `ichiran/dict:insert-sense-traits`  — fn, dict-load.lisp:66
- 624. `ichiran/dict:insert-senses`  — fn, dict-load.lisp:71
- 625. `ichiran/dict:*secondary-conjugation-types*`  — global, dict-load.lisp:314
- 626. `ichiran/dict:load-secondary-conjugations`  — fn, dict-load.lisp:457
- 627. `ichiran/dict:load-entry`  — fn, dict-load.lisp:113
- 628. `ichiran/custom:insert-entry`  — gf, dict-custom.lisp:0
- 629. `ichiran/custom:normalize-geo`  — fn, dict-custom.lisp:176
- 630. `ichiran/dict:get-candidates`  — fn, dict.lisp:1904
- 631. `ichiran/dict:get-glosses`  — fn, dict.lisp:1892
- 632. `ichiran/dict:match-glosses`  — fn, dict.lisp:1921
- 633. `ichiran/custom:test-entry`  — gf, dict-custom.lisp:0
- 634. `ichiran/dict:sense-exists-p`  — fn, dict-load.lisp:80
- 635. `ichiran/dict:add-new-sense`  — fn, dict-load.lisp:91
- 636. `ichiran/custom:update-entry`  — gf, dict-custom.lisp:0
- 637. `ichiran/custom:update-entry-gloss`  — gf, dict-custom.lisp:0
- 638. `ichiran/custom:xml-entry-content`  — fn, dict-custom.lisp:61
- 639. `ichiran/custom:xml-entry-seq`  — fn, dict-custom.lisp:61
- 640. `ichiran/custom:insert`  — gf, dict-custom.lisp:0
- 641. `ichiran/custom:make-ward`  — fn, dict-custom.lisp:274
- 642. `ichiran/custom:make-xml-entry`  — fn, dict-custom.lisp:61
- 643. `ichiran/custom:make-municipality`  — fn, dict-custom.lisp:142
- 644. `ichiran/custom:municipality-short`  — fn, dict-custom.lisp:123
- 645. `ichiran:*hepburn-simple*`  — global, romanize.lisp:146
- 646. `ichiran:romanize-word-geo`  — fn, romanize.lisp:232
- 647. `ichiran/custom:romanize-municipality`  — fn, dict-custom.lisp:133
- 648. `ichiran/custom:process-entry`  — gf, dict-custom.lisp:0
- 649. `ichiran/custom:slurp`  — gf, dict-custom.lisp:0
- 650. `ichiran/custom:load-custom-data`  — fn, dict-custom.lisp:329
- 651. `ichiran/custom:municipality-p`  — fn, dict-custom.lisp:142
- 652. `ichiran/custom:ward-p`  — fn, dict-custom.lisp:274
- 653. `ichiran/custom:xml-entry`  — struct, dict-custom.lisp:63  *[skip — XML reader out of scope per project decision (HANDOFF Resolved 2026-05-03); content slot holds a DOM document that cannot be constructed without an XML reader]*
- 654. `ichiran/custom:xml-entry-p`  — fn, dict-custom.lisp:61
- 655. `ichiran/dict:*aux-verbs*`  — global, dict-grammar.lisp:1072
- 656. `ichiran/dict:*conj-description*`  — global, dict-load.lisp:0
- 657. `ichiran/dict:*conj-rules*`  — global, dict-load.lisp:0
- 658. `ichiran/dict:*do-not-conjugate-seq*`  — global, dict-load.lisp:305
- 659. `ichiran/dict:*easy-hints-seqs*`  — global, dict-split.lisp:904
- 660. `ichiran/dict:*hints-checked*`  — global, dict-split.lisp:947
- 661. `ichiran/dict:*honorifics*`  — global, dict-grammar.lisp:1156
- 662. `ichiran/dict:*jmdict-data*`  — global, settings.lisp:12
- 663. `ichiran/dict:*jmdict-path*`  — global, settings.lisp:10
- 664. `ichiran/dict:*kana-hint-map*`  — global, dict-split.lisp:832
- 665. `ichiran/dict:*noun-particles*`  — global, dict-grammar.lisp:801
- 666. `ichiran/dict:*pos-by-index*`  — global, dict-load.lisp:0
- 667. `ichiran/dict:*pos-index*`  — global, dict-load.lisp:0
- 668. `ichiran/dict:find-conj`  — fn, dict-errata.lisp:1
- 669. `ichiran/dict:add-conj`  — fn, dict-errata.lisp:15
- 670. `ichiran/dict:root-diff`  — fn, dict-errata.lisp:95
- 671. `ichiran/dict:root-diff-fn`  — fn, dict-errata.lisp:104
- 672. `ichiran/dict:add-conj-reading`  — fn, dict-errata.lisp:109
- 673. `ichiran/dict:add-reading`  — fn, dict-errata.lisp:35
- 674. `ichiran/dict:add-deha-ja-readings`  — fn, dict-errata.lisp:171
- 675. `ichiran/dict:add-sense-prop`  — fn, dict-errata.lisp:140
- 676. `ichiran/dict:set-reading`  — gf, dict-load.lisp:0
- 677. `ichiran/dict:reset-readings`  — fn, dict-errata.lisp:70
- 678. `ichiran/dict:delete-reading`  — fn, dict-errata.lisp:76
- 679. `ichiran/dict:set-common`  — fn, dict-errata.lisp:166
- 680. `ichiran/dict:set-primary-nokanji`  — fn, dict-errata.lisp:224
- 681. `ichiran/dict:add-errata-apr19`  — fn, dict-errata.lisp:847
- 682. `ichiran/dict:add-new-sense*`  — fn, dict-errata.lisp:153
- 683. `ichiran/dict:add-errata-apr20`  — fn, dict-errata.lisp:932
- 684. `ichiran/dict:do-readings`  — macro, dict-errata.lisp:246
- 685. `ichiran/dict:add-primary-nokanji`  — fn, dict-errata.lisp:251
- 686. `ichiran/dict:delete-sense-prop`  — fn, dict-errata.lisp:136
- 687. `ichiran/dict:add-errata-aug18`  — fn, dict-errata.lisp:803
- 688. `ichiran/dict:add-gloss`  — fn, dict-errata.lisp:156
- 689. `ichiran/dict:add-errata-counters`  — fn, dict-errata.lisp:1159
- 690. `ichiran/dict:add-errata-dec23`  — fn, dict-errata.lisp:1028
- 691. `ichiran/dict:add-errata-feb17`  — fn, dict-errata.lisp:608
- 692. `ichiran/dict:add-errata-jan18`  — fn, dict-errata.lisp:697
- 693. `ichiran/dict:add-errata-jan19`  — fn, dict-errata.lisp:823
- 694. `ichiran/dict:add-errata-jan20`  — fn, dict-errata.lisp:867
- 695. `ichiran/dict:replace-reading`  — fn, dict-errata.lisp:49
- 696. `ichiran/dict:add-errata-jan21`  — fn, dict-errata.lisp:979
- 697. `ichiran/dict:add-errata-jan22`  — fn, dict-errata.lisp:1017
- 698. `ichiran/dict:replace-reading-conj`  — fn, dict-errata.lisp:60
- 699. `ichiran/dict:add-errata-jan25`  — fn, dict-errata.lisp:1055
- 700. `ichiran/dict:add-errata-jan26`  — fn, dict-errata.lisp:1077
- 701. `ichiran/dict:rearrange-readings`  — fn, dict-errata.lisp:229
- 702. `ichiran/dict:rearrange-readings-conj`  — fn, dict-errata.lisp:241
- 703. `ichiran/dict:add-errata-jul20`  — fn, dict-errata.lisp:961
- 704. `ichiran/dict:add-errata-mar18`  — fn, dict-errata.lisp:764
- 705. `ichiran/dict:add-errata-may21`  — fn, dict-errata.lisp:1006
- 706. `ichiran/dict:delete-conjugation`  — fn, dict-errata.lisp:198
- 707. `ichiran/dict:add-gozaimasu-conjs`  — fn, dict-errata.lisp:263
- 708. `ichiran/dict:conjugate-da`  — fn, dict-errata.lisp:281
- 709. `ichiran/dict:delete-senses`  — fn, dict-errata.lisp:129
- 710. `ichiran/dict:remove-hiragana-nokanji`  — fn, dict-errata.lisp:217
- 711. `ichiran/dict:add-errata`  — fn, dict-errata.lisp:289
- 712. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146
- 713. `ichiran/dict:true-kana`  — gf, dict.lisp:0
- 714. `ichiran/dict:true-kanji`  — gf, dict.lisp:0
- 715. `ichiran/kanji:reading`  — dao, kanji.lisp:42  *[ported]*
- 716. `ichiran/kanji:get-reading-alternatives`  — fn, kanji.lisp:216
- 717. `ichiran/kanji:*reading-cache*`  — global, kanji.lisp:199
- 718. `ichiran/kanji:kanji`  — dao, kanji.lisp:10  *[ported]*
- 719. `ichiran/kanji:get-readings-cache`  — fn, kanji.lisp:199
- 720. `ichiran/kanji:get-normal-readings`  — fn, kanji.lisp:231
- 721. `ichiran/kanji:make-rmap`  — fn, kanji.lisp:273
- 722. `ichiran/kanji:match-readings*`  — fn, kanji.lisp:241
- 723. `ichiran/kanji:match-readings`  — fn, kanji.lisp:292
- 724. `ichiran/dict:check-easy-hints`  — fn, dict-split.lisp:950
- 725. `ichiran/dict:conj-data-p`  — fn, dict.lisp:325
- 726. `ichiran/dict:conj-data-seq`  — fn, dict.lisp:325
- 727. `ichiran/dict:conj-prop-json`  — fn, dict.lisp:283
- 728. `ichiran/dict:find-words-seqs`  — fn, dict.lisp:520
- 729. `ichiran/dict:get-original-text-once`  — fn, dict.lisp:369
- 730. `ichiran/dict:match-kana-kanji`  — fn, dict.lisp:1507
- 731. `ichiran/dict:match-sense-restrictions`  — fn, dict.lisp:1515
- 732. `ichiran/dict:split-pos`  — fn, dict.lisp:1535
- 733. `ichiran/dict:get-senses-json`  — fn, dict.lisp:1537
- 734. **CYCLE (2 symbols — port together)**
+ 552. `ichiran:romanize-list`  — fn, romanize.lisp:205
+ 553. `ichiran:romanize-word`  — fn, romanize.lisp:217
+ 554. `ichiran:romanize-word-info`  — fn, romanize.lisp:248
+ 555. `ichiran:romanize`  — fn, romanize.lisp:257
+ 556. `ichiran:romanize*`  — fn, romanize.lisp:273
+ 557. `ichiran/cli:main`  — fn, cli.lisp:48
+ 558. `ichiran/conn:*debug*`  — global, conn.lisp:20  *[skip — Debug-flag global gating dp. Replaced by the tracing crate's filter level.]*
+ 559. `ichiran/conn:def-conn-var`  — macro, conn.lisp:41  *[skip — Macro registering a global into the per-connection variable rebinding list. The cross-DB rebinding pattern is gone — each Ctx owns its caches directly.]*
+ 560. `ichiran/conn:defcache`  — macro, conn.lisp:135  *[skip — Macro registering a cache + defining init-cache method. Rust shape has no registry; each cache is a typed Ctx field with hand-written accessor.]*
+ 561. `ichiran/conn:dp`  — fn, conn.lisp:149  *[skip — Debug-printer wrapper around *debug*. Replaced by the tracing crate's emit + filter level.]*
+ 562. `ichiran/conn:let-db`  — macro, conn.lisp:32  *[skip — Rebinds *connection* for a dynamic scope. Multi-DB usage in Rust is Ctx::from_url(other); no scope-binding macro.]*
+ 563. `ichiran/conn:load-settings`  — fn, conn.lisp:76  *[skip — Loads settings.lisp and overrides connection from env. No counterpart in Rust — config comes from env (or layered config-crate sources) via Ctx::from_env.]*
+ 564. `ichiran/conn:with-db`  — macro, conn.lisp:46  *[skip — Rebinds *connection* and re-derives per-conn-var cache for a dynamic scope. Replaced by per-Ctx ownership of pool and caches; multi-DB = construct another Ctx.]*
+ 565. `ichiran/conn:with-log`  — macro, conn.lisp:86  *[skip — Wraps cl-postgres:*query-log* to a stream for the body. Replaced by sqlx + tracing query logging.]*
+ 566. `ichiran/custom:*municipality-types*`  — global, dict-custom.lisp:97
+ 567. `ichiran/custom:*municipality-types-description*`  — global, dict-custom.lisp:107
+ 568. `ichiran/custom:*municipality-types-order*`  — global, dict-custom.lisp:118
+ 569. `ichiran/custom:*silent-p*`  — global, dict-custom.lisp:5
+ 570. `ichiran/custom:as-xml-simple`  — fn, dict-custom.lisp:225
+ 571. `ichiran/custom:municipality`  — struct, dict-custom.lisp:140  *[ported]*
+ 572. `ichiran/custom:municipality-definition`  — fn, dict-custom.lisp:142
+ 573. `ichiran/custom:municipality-reading`  — fn, dict-custom.lisp:142
+ 574. `ichiran/custom:municipality-text`  — fn, dict-custom.lisp:142
+ 575. `ichiran/custom:ward`  — struct, dict-custom.lisp:269  *[ported]*
+ 576. `ichiran/custom:ward-definition`  — fn, dict-custom.lisp:274
+ 577. `ichiran/custom:ward-reading`  — fn, dict-custom.lisp:274
+ 578. `ichiran/custom:ward-text`  — fn, dict-custom.lisp:274
+ 579. `ichiran/custom:as-xml`  — gf, dict-custom.lisp:0
+ 580. `ichiran/custom:copy-municipality`  — fn, dict-custom.lisp:142
+ 581. `ichiran/custom:copy-ward`  — fn, dict-custom.lisp:274
+ 582. `ichiran/custom:xml-entry`  — struct, dict-custom.lisp:63  *[skip — XML reader out of scope per project decision (HANDOFF Resolved 2026-05-03); content slot holds a DOM document that cannot be constructed without an XML reader]*
+ 583. `ichiran/custom:copy-xml-entry`  — fn, dict-custom.lisp:61
+ 584. `ichiran/custom:custom-source`  — class, dict-custom.lisp:54
+ 585. `ichiran/custom:csv-loader`  — class, dict-custom.lisp:82
+ 586. `ichiran/custom:municipality-csv`  — class, dict-custom.lisp:93
+ 587. `ichiran/custom:source-path`  — fn, dict-custom.lisp:318
+ 588. `ichiran/custom:ward-csv`  — class, dict-custom.lisp:266
+ 589. `ichiran/custom:xml-loader`  — class, dict-custom.lisp:59
+ 590. `ichiran/custom:get-custom-data`  — fn, dict-custom.lisp:322
+ 591. `ichiran/custom:municipality-prefecture`  — fn, dict-custom.lisp:142
+ 592. `ichiran/custom:municipality-type`  — fn, dict-custom.lisp:142
+ 593. `ichiran/custom:ward-city`  — fn, dict-custom.lisp:274
+ 594. `ichiran/custom:get-words`  — gf, dict-custom.lisp:0
+ 595. `ichiran/dict:*pos-with-conj-rules*`  — global, dict-load.lisp:307
+ 596. `ichiran/dict:*do-not-conjugate*`  — global, dict-load.lisp:303
+ 597. `ichiran/dict:conjugation-rule`  — struct, dict-load.lisp:262  *[ported]*
+ 598. `ichiran/dict:cr-euphk`  — fn, dict-load.lisp:260
+ 599. `ichiran/dict:cr-euphr`  — fn, dict-load.lisp:260
+ 600. `ichiran/dict:cr-okuri`  — fn, dict-load.lisp:260
+ 601. `ichiran/dict:cr-stem`  — fn, dict-load.lisp:260
+ 602. `ichiran/dict:construct-conjugation`  — fn, dict-load.lisp:281
+ 603. `ichiran/dict:cr-conj`  — fn, dict-load.lisp:260
+ 604. `ichiran/dict:cr-fml`  — fn, dict-load.lisp:260
+ 605. `ichiran/dict:cr-neg`  — fn, dict-load.lisp:260
+ 606. `ichiran/dict:cr-onum`  — fn, dict-load.lisp:260
+ 607. `ichiran/dict:copy-conjugation-rule`  — fn, dict-load.lisp:260
+ 608. `ichiran/dict:load-pos-by-index`  — fn, dict-load.lisp:251
+ 609. `ichiran/dict:get-pos`  — fn, dict-load.lisp:251
+ 610. `ichiran/dict:load-pos-index`  — fn, dict-load.lisp:247
+ 611. `ichiran/dict:get-pos-index`  — fn, dict-load.lisp:247
+ 612. `ichiran/dict:make-conjugation-rule`  — fn, dict-load.lisp:260
+ 613. `ichiran/dict:errata-conj-rules-hook`  — fn, dict-errata.lisp:1329
+ 614. `ichiran/dict:load-conj-rules`  — fn, dict-load.lisp:265
+ 615. `ichiran/dict:get-conj-rules`  — fn, dict-load.lisp:265
+ 616. `ichiran/dict:conjugate-entry-inner`  — fn, dict-load.lisp:314
+ 617. `ichiran/dict:get-all-readings`  — fn, dict-errata.lisp:257
+ 618. `ichiran/dict:*secondary-conjugation-types-from*`  — global, dict-load.lisp:312
+ 619. `ichiran/dict:insert-conjugation`  — fn, dict-load.lisp:375
+ 620. `ichiran/dict:next-seq`  — fn, dict-load.lisp:110
+ 621. `ichiran/dict:conjugate-entry-outer`  — fn, dict-load.lisp:342
+ 622. `ichiran/dict:do-node-list-ord`  — macro, dict-load.lisp:26
+ 623. `ichiran/dict:node-text`  — fn, dict-load.lisp:14
+ 624. `ichiran/dict:restricted-readings`  — dao, dict.lisp:221  *[ported]*
+ 625. `ichiran/dict:insert-readings`  — fn, dict-load.lisp:32
+ 626. `ichiran/dict:insert-sense-traits`  — fn, dict-load.lisp:66
+ 627. `ichiran/dict:insert-senses`  — fn, dict-load.lisp:71
+ 628. `ichiran/dict:*secondary-conjugation-types*`  — global, dict-load.lisp:314
+ 629. `ichiran/dict:load-secondary-conjugations`  — fn, dict-load.lisp:457
+ 630. `ichiran/dict:load-entry`  — fn, dict-load.lisp:113
+ 631. `ichiran/custom:insert-entry`  — gf, dict-custom.lisp:0
+ 632. `ichiran/custom:normalize-geo`  — fn, dict-custom.lisp:176
+ 633. `ichiran/dict:get-candidates`  — fn, dict.lisp:1904
+ 634. `ichiran/dict:get-glosses`  — fn, dict.lisp:1892
+ 635. `ichiran/dict:match-glosses`  — fn, dict.lisp:1921
+ 636. `ichiran/custom:test-entry`  — gf, dict-custom.lisp:0
+ 637. `ichiran/dict:sense-exists-p`  — fn, dict-load.lisp:80
+ 638. `ichiran/dict:add-new-sense`  — fn, dict-load.lisp:91
+ 639. `ichiran/custom:update-entry`  — gf, dict-custom.lisp:0
+ 640. `ichiran/custom:update-entry-gloss`  — gf, dict-custom.lisp:0
+ 641. `ichiran/custom:xml-entry-content`  — fn, dict-custom.lisp:61
+ 642. `ichiran/custom:xml-entry-seq`  — fn, dict-custom.lisp:61
+ 643. `ichiran/custom:insert`  — gf, dict-custom.lisp:0
+ 644. `ichiran/custom:make-ward`  — fn, dict-custom.lisp:274
+ 645. `ichiran/custom:make-xml-entry`  — fn, dict-custom.lisp:61
+ 646. `ichiran/custom:make-municipality`  — fn, dict-custom.lisp:142
+ 647. `ichiran/custom:municipality-short`  — fn, dict-custom.lisp:123
+ 648. `ichiran:*hepburn-simple*`  — global, romanize.lisp:146
+ 649. `ichiran:romanize-word-geo`  — fn, romanize.lisp:232
+ 650. `ichiran/custom:romanize-municipality`  — fn, dict-custom.lisp:133
+ 651. `ichiran/custom:process-entry`  — gf, dict-custom.lisp:0
+ 652. `ichiran/custom:slurp`  — gf, dict-custom.lisp:0
+ 653. `ichiran/custom:load-custom-data`  — fn, dict-custom.lisp:329
+ 654. `ichiran/custom:municipality-p`  — fn, dict-custom.lisp:142
+ 655. `ichiran/custom:ward-p`  — fn, dict-custom.lisp:274
+ 656. `ichiran/custom:xml-entry-p`  — fn, dict-custom.lisp:61
+ 657. `ichiran/dict:*aux-verbs*`  — global, dict-grammar.lisp:1072
+ 658. `ichiran/dict:*conj-description*`  — global, dict-load.lisp:0
+ 659. `ichiran/dict:*conj-rules*`  — global, dict-load.lisp:0
+ 660. `ichiran/dict:*do-not-conjugate-seq*`  — global, dict-load.lisp:305
+ 661. `ichiran/dict:*easy-hints-seqs*`  — global, dict-split.lisp:904
+ 662. `ichiran/dict:*hints-checked*`  — global, dict-split.lisp:947
+ 663. `ichiran/dict:*honorifics*`  — global, dict-grammar.lisp:1156
+ 664. `ichiran/dict:*jmdict-data*`  — global, settings.lisp:12
+ 665. `ichiran/dict:*jmdict-path*`  — global, settings.lisp:10
+ 666. `ichiran/dict:*kana-hint-map*`  — global, dict-split.lisp:832
+ 667. `ichiran/dict:*noun-particles*`  — global, dict-grammar.lisp:801
+ 668. `ichiran/dict:*pos-by-index*`  — global, dict-load.lisp:0
+ 669. `ichiran/dict:*pos-index*`  — global, dict-load.lisp:0
+ 670. `ichiran/dict:find-conj`  — fn, dict-errata.lisp:1
+ 671. `ichiran/dict:add-conj`  — fn, dict-errata.lisp:15
+ 672. `ichiran/dict:root-diff`  — fn, dict-errata.lisp:95
+ 673. `ichiran/dict:root-diff-fn`  — fn, dict-errata.lisp:104
+ 674. `ichiran/dict:add-conj-reading`  — fn, dict-errata.lisp:109
+ 675. `ichiran/dict:add-reading`  — fn, dict-errata.lisp:35
+ 676. `ichiran/dict:add-deha-ja-readings`  — fn, dict-errata.lisp:171
+ 677. `ichiran/dict:add-sense-prop`  — fn, dict-errata.lisp:140
+ 678. `ichiran/dict:set-reading`  — gf, dict-load.lisp:0
+ 679. `ichiran/dict:reset-readings`  — fn, dict-errata.lisp:70
+ 680. `ichiran/dict:delete-reading`  — fn, dict-errata.lisp:76
+ 681. `ichiran/dict:set-common`  — fn, dict-errata.lisp:166
+ 682. `ichiran/dict:set-primary-nokanji`  — fn, dict-errata.lisp:224
+ 683. `ichiran/dict:add-errata-apr19`  — fn, dict-errata.lisp:847
+ 684. `ichiran/dict:add-new-sense*`  — fn, dict-errata.lisp:153
+ 685. `ichiran/dict:add-errata-apr20`  — fn, dict-errata.lisp:932
+ 686. `ichiran/dict:do-readings`  — macro, dict-errata.lisp:246
+ 687. `ichiran/dict:add-primary-nokanji`  — fn, dict-errata.lisp:251
+ 688. `ichiran/dict:delete-sense-prop`  — fn, dict-errata.lisp:136
+ 689. `ichiran/dict:add-errata-aug18`  — fn, dict-errata.lisp:803
+ 690. `ichiran/dict:add-gloss`  — fn, dict-errata.lisp:156
+ 691. `ichiran/dict:add-errata-counters`  — fn, dict-errata.lisp:1159
+ 692. `ichiran/dict:add-errata-dec23`  — fn, dict-errata.lisp:1028
+ 693. `ichiran/dict:add-errata-feb17`  — fn, dict-errata.lisp:608
+ 694. `ichiran/dict:add-errata-jan18`  — fn, dict-errata.lisp:697
+ 695. `ichiran/dict:add-errata-jan19`  — fn, dict-errata.lisp:823
+ 696. `ichiran/dict:add-errata-jan20`  — fn, dict-errata.lisp:867
+ 697. `ichiran/dict:replace-reading`  — fn, dict-errata.lisp:49
+ 698. `ichiran/dict:add-errata-jan21`  — fn, dict-errata.lisp:979
+ 699. `ichiran/dict:add-errata-jan22`  — fn, dict-errata.lisp:1017
+ 700. `ichiran/dict:replace-reading-conj`  — fn, dict-errata.lisp:60
+ 701. `ichiran/dict:add-errata-jan25`  — fn, dict-errata.lisp:1055
+ 702. `ichiran/dict:add-errata-jan26`  — fn, dict-errata.lisp:1077
+ 703. `ichiran/dict:rearrange-readings`  — fn, dict-errata.lisp:229
+ 704. `ichiran/dict:rearrange-readings-conj`  — fn, dict-errata.lisp:241
+ 705. `ichiran/dict:add-errata-jul20`  — fn, dict-errata.lisp:961
+ 706. `ichiran/dict:add-errata-mar18`  — fn, dict-errata.lisp:764
+ 707. `ichiran/dict:add-errata-may21`  — fn, dict-errata.lisp:1006
+ 708. `ichiran/dict:delete-conjugation`  — fn, dict-errata.lisp:198
+ 709. `ichiran/dict:add-gozaimasu-conjs`  — fn, dict-errata.lisp:263
+ 710. `ichiran/dict:conjugate-da`  — fn, dict-errata.lisp:281
+ 711. `ichiran/dict:delete-senses`  — fn, dict-errata.lisp:129
+ 712. `ichiran/dict:remove-hiragana-nokanji`  — fn, dict-errata.lisp:217
+ 713. `ichiran/dict:add-errata`  — fn, dict-errata.lisp:289
+ 714. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146
+ 715. `ichiran/dict:true-kana`  — gf, dict.lisp:0
+ 716. `ichiran/dict:true-kanji`  — gf, dict.lisp:0
+ 717. `ichiran/kanji:reading`  — dao, kanji.lisp:42  *[ported]*
+ 718. `ichiran/kanji:get-reading-alternatives`  — fn, kanji.lisp:216
+ 719. `ichiran/kanji:*reading-cache*`  — global, kanji.lisp:199
+ 720. `ichiran/kanji:kanji`  — dao, kanji.lisp:10  *[ported]*
+ 721. `ichiran/kanji:get-readings-cache`  — fn, kanji.lisp:199
+ 722. `ichiran/kanji:get-normal-readings`  — fn, kanji.lisp:231
+ 723. `ichiran/kanji:make-rmap`  — fn, kanji.lisp:273
+ 724. `ichiran/kanji:match-readings*`  — fn, kanji.lisp:241
+ 725. `ichiran/kanji:match-readings`  — fn, kanji.lisp:292
+ 726. `ichiran/dict:check-easy-hints`  — fn, dict-split.lisp:950
+ 727. `ichiran/dict:conj-data-p`  — fn, dict.lisp:325
+ 728. `ichiran/dict:conj-data-seq`  — fn, dict.lisp:325
+ 729. `ichiran/dict:conj-prop-json`  — fn, dict.lisp:283
+ 730. `ichiran/dict:find-words-seqs`  — fn, dict.lisp:520
+ 731. `ichiran/dict:get-original-text-once`  — fn, dict.lisp:369
+ 732. `ichiran/dict:match-kana-kanji`  — fn, dict.lisp:1507
+ 733. `ichiran/dict:match-sense-restrictions`  — fn, dict.lisp:1515
+ 734. `ichiran/dict:split-pos`  — fn, dict.lisp:1535
+ 735. `ichiran/dict:get-senses-json`  — fn, dict.lisp:1537
+ 736. **CYCLE (2 symbols — port together)**
         - `ichiran/dict:conj-info-json`  — fn, dict.lisp:1698
         - `ichiran/dict:conj-info-json*`  — fn, dict.lisp:1665
- 735. `ichiran/dict:conjugate-word`  — fn, dict-load.lisp:294
- 736. `ichiran/dict:conjugation-rule`  — struct, dict-load.lisp:262  *[ported]*
- 737. `ichiran/dict:conjugation-rule-p`  — fn, dict-load.lisp:260
- 738. `ichiran/dict:copy-conj-data`  — fn, dict.lisp:325
- 739. `ichiran/dict:copy-synergy`  — fn, dict-grammar.lisp:727
- 740. `ichiran/dict:copy-top-array-item`  — fn, dict.lisp:1138
- 741. `ichiran/dict:cr-pos`  — fn, dict-load.lisp:260
- 742. `ichiran/dict:csv-hash`  — macro, dict-load.lisp:201
- 743. `ichiran/dict:defsuffix`  — macro, dict-grammar.lisp:342
- 744. `ichiran/dict:def-abbr-suffix`  — macro, dict-grammar.lisp:557
- 745. `ichiran/dict:defsplit`  — macro, dict-split.lisp:5
- 746. `ichiran/dict:def-simple-split`  — macro, dict-split.lisp:11
- 747. `ichiran/dict:def-de-split`  — macro, dict-split.lisp:81
- 748. `ichiran/dict:def-do-split`  — macro, dict-split.lisp:181
- 749. `ichiran/dict:defhint`  — macro, dict-split.lisp:892
- 750. `ichiran/dict:insert-hints`  — fn, dict-split.lisp:875
- 751. `ichiran/dict:translate-hint-position`  — fn, dict-split.lisp:930
- 752. `ichiran/dict:translate-hints`  — fn, dict-split.lisp:942
- 753. `ichiran/dict:def-easy-hint`  — macro, dict-split.lisp:955
- 754. `ichiran/dict:defpenalty`  — macro, dict-grammar.lisp:981
- 755. `ichiran/dict:def-generic-penalty`  — macro, dict-grammar.lisp:984
- 756. `ichiran/dict:defsynergy`  — macro, dict-grammar.lisp:738
- 757. `ichiran/dict:def-generic-synergy`  — macro, dict-grammar.lisp:739
- 758. `ichiran/dict:def-reader-for-json`  — macro, dict.lisp:1289
- 759. `ichiran/dict:defsegfilter`  — macro, dict-grammar.lisp:1043
- 760. `ichiran/dict:def-segfilter-must-follow`  — macro, dict-grammar.lisp:1049
- 761. `ichiran/dict:def-shi-split`  — macro, dict-split.lisp:191
- 762. `ichiran/dict:def-simple-hint`  — macro, dict-split.lisp:901
- 763. `ichiran/dict:def-simple-suffix`  — macro, dict-grammar.lisp:345
- 764. `ichiran/dict:def-special-counter`  — macro, dict-counters.lisp:361
- 765. `ichiran/dict:def-toori-split`  — macro, dict-split.lisp:143
- 766. `ichiran/dict:delete-duplicate-props`  — fn, dict.lisp:295
- 767. `ichiran/dict:drop-extras`  — fn, dict-load.lisp:194
- 768. `ichiran/dict:entry-digest`  — fn, dict.lisp:64
- 769. `ichiran/dict:entry-info-long`  — fn, dict.lisp:1601
- 770. `ichiran/dict:exists-reading`  — fn, dict.lisp:1847
- 771. `ichiran/dict:filter-is-pos`  — macro, dict-grammar.lisp:772
- 772. `ichiran/dict:find-word-kana-pattern`  — fn, dict.lisp:1877
- 773. `ichiran/dict:find-kanji-for-pattern`  — fn, dict.lisp:1882
- 774. `ichiran/dict:find-word-info`  — fn, dict.lisp:1850
- 775. `ichiran/dict:word-info-reading`  — fn, dict.lisp:1445
- 776. `ichiran/dict:word-info-gloss-json`  — fn, dict.lisp:1784
- 777. `ichiran/dict:find-word-info-json`  — fn, dict.lisp:1872
- 778. `ichiran/dict:fix-entities`  — fn, dict-load.lisp:159
- 779. `ichiran/dict:get-kanji-words`  — fn, dict.lisp:1836
- 780. `ichiran/dict:init-tables`  — fn, dict-load.lisp:3
- 781. `ichiran/dict:length-multiplier`  — fn, dict.lisp:681
- 782. `ichiran/dict:load-best-readings`  — fn, dict-load.lisp:530
- 783. `ichiran/dict:load-conjugations`  — fn, dict-load.lisp:445
- 784. `ichiran/dict:recalc-entry-stats-all`  — fn, dict.lisp:59
- 785. `ichiran/dict:load-extras`  — fn, dict-load.lisp:183
- 786. `ichiran/dict:load-jmdict`  — fn, dict-load.lisp:168
- 787. `ichiran/dict:recalc-entry-stats`  — fn, dict.lisp:53
- 788. `ichiran/dict:segment-list-p`  — fn, dict.lisp:1038
- 789. `ichiran/dict:segment-p`  — fn, dict.lisp:674
- 790. `ichiran/dict:segment-top`  — fn, dict.lisp:674
- 791. `ichiran/dict:word-info-json`  — fn, dict.lisp:1262
- 792. `ichiran/dict:simple-word-info`  — fn, dict.lisp:1282
- 793. `ichiran/dict:split-kigatsuku`  — fn, dict-split.lisp:298
- 794. `ichiran/dict:substring-index`  — fn, dict.lisp:1132
- 795. `ichiran/dict:suffix-sou-base`  — macro, dict-grammar.lisp:445
- 796. `ichiran/dict:synergy-connector`  — fn, dict-grammar.lisp:727
- 797. `ichiran/dict:synergy-description`  — fn, dict-grammar.lisp:727
- 798. `ichiran/dict:synergy-end`  — fn, dict-grammar.lisp:727
- 799. `ichiran/dict:synergy-p`  — fn, dict-grammar.lisp:727
- 800. `ichiran/dict:synergy-start`  — fn, dict-grammar.lisp:727
- 801. `ichiran/dict:top-array-item`  — struct, dict.lisp:1138
+ 737. `ichiran/dict:conjugate-word`  — fn, dict-load.lisp:294
+ 738. `ichiran/dict:conjugation-rule-p`  — fn, dict-load.lisp:260
+ 739. `ichiran/dict:copy-conj-data`  — fn, dict.lisp:325
+ 740. `ichiran/dict:copy-synergy`  — fn, dict-grammar.lisp:727
+ 741. `ichiran/dict:copy-top-array-item`  — fn, dict.lisp:1138
+ 742. `ichiran/dict:cr-pos`  — fn, dict-load.lisp:260
+ 743. `ichiran/dict:csv-hash`  — macro, dict-load.lisp:201
+ 744. `ichiran/dict:defsuffix`  — macro, dict-grammar.lisp:342
+ 745. `ichiran/dict:def-abbr-suffix`  — macro, dict-grammar.lisp:557
+ 746. `ichiran/dict:defsplit`  — macro, dict-split.lisp:5
+ 747. `ichiran/dict:def-simple-split`  — macro, dict-split.lisp:11
+ 748. `ichiran/dict:def-de-split`  — macro, dict-split.lisp:81
+ 749. `ichiran/dict:def-do-split`  — macro, dict-split.lisp:181
+ 750. `ichiran/dict:defhint`  — macro, dict-split.lisp:892
+ 751. `ichiran/dict:insert-hints`  — fn, dict-split.lisp:875
+ 752. `ichiran/dict:translate-hint-position`  — fn, dict-split.lisp:930
+ 753. `ichiran/dict:translate-hints`  — fn, dict-split.lisp:942
+ 754. `ichiran/dict:def-easy-hint`  — macro, dict-split.lisp:955
+ 755. `ichiran/dict:defpenalty`  — macro, dict-grammar.lisp:981
+ 756. `ichiran/dict:def-generic-penalty`  — macro, dict-grammar.lisp:984
+ 757. `ichiran/dict:defsynergy`  — macro, dict-grammar.lisp:738
+ 758. `ichiran/dict:def-generic-synergy`  — macro, dict-grammar.lisp:739
+ 759. `ichiran/dict:def-reader-for-json`  — macro, dict.lisp:1289
+ 760. `ichiran/dict:defsegfilter`  — macro, dict-grammar.lisp:1043
+ 761. `ichiran/dict:def-segfilter-must-follow`  — macro, dict-grammar.lisp:1049
+ 762. `ichiran/dict:def-shi-split`  — macro, dict-split.lisp:191
+ 763. `ichiran/dict:def-simple-hint`  — macro, dict-split.lisp:901
+ 764. `ichiran/dict:def-simple-suffix`  — macro, dict-grammar.lisp:345
+ 765. `ichiran/dict:def-special-counter`  — macro, dict-counters.lisp:361
+ 766. `ichiran/dict:def-toori-split`  — macro, dict-split.lisp:143
+ 767. `ichiran/dict:delete-duplicate-props`  — fn, dict.lisp:295
+ 768. `ichiran/dict:drop-extras`  — fn, dict-load.lisp:194
+ 769. `ichiran/dict:entry-digest`  — fn, dict.lisp:64
+ 770. `ichiran/dict:entry-info-long`  — fn, dict.lisp:1601
+ 771. `ichiran/dict:exists-reading`  — fn, dict.lisp:1847
+ 772. `ichiran/dict:filter-is-pos`  — macro, dict-grammar.lisp:772
+ 773. `ichiran/dict:find-word-kana-pattern`  — fn, dict.lisp:1877
+ 774. `ichiran/dict:find-kanji-for-pattern`  — fn, dict.lisp:1882
+ 775. `ichiran/dict:find-word-info`  — fn, dict.lisp:1850
+ 776. `ichiran/dict:word-info-reading`  — fn, dict.lisp:1445
+ 777. `ichiran/dict:word-info-gloss-json`  — fn, dict.lisp:1784
+ 778. `ichiran/dict:find-word-info-json`  — fn, dict.lisp:1872
+ 779. `ichiran/dict:fix-entities`  — fn, dict-load.lisp:159
+ 780. `ichiran/dict:get-kanji-words`  — fn, dict.lisp:1836
+ 781. `ichiran/dict:init-tables`  — fn, dict-load.lisp:3
+ 782. `ichiran/dict:length-multiplier`  — fn, dict.lisp:681
+ 783. `ichiran/dict:load-best-readings`  — fn, dict-load.lisp:530
+ 784. `ichiran/dict:load-conjugations`  — fn, dict-load.lisp:445
+ 785. `ichiran/dict:recalc-entry-stats-all`  — fn, dict.lisp:59
+ 786. `ichiran/dict:load-extras`  — fn, dict-load.lisp:183
+ 787. `ichiran/dict:load-jmdict`  — fn, dict-load.lisp:168
+ 788. `ichiran/dict:recalc-entry-stats`  — fn, dict.lisp:53
+ 789. `ichiran/dict:segment-list-p`  — fn, dict.lisp:1038
+ 790. `ichiran/dict:segment-p`  — fn, dict.lisp:674
+ 791. `ichiran/dict:segment-top`  — fn, dict.lisp:674
+ 792. `ichiran/dict:word-info-json`  — fn, dict.lisp:1262
+ 793. `ichiran/dict:simple-word-info`  — fn, dict.lisp:1282
+ 794. `ichiran/dict:split-kigatsuku`  — fn, dict-split.lisp:298
+ 795. `ichiran/dict:substring-index`  — fn, dict.lisp:1132
+ 796. `ichiran/dict:suffix-sou-base`  — macro, dict-grammar.lisp:445
+ 797. `ichiran/dict:synergy-connector`  — fn, dict-grammar.lisp:727
+ 798. `ichiran/dict:synergy-description`  — fn, dict-grammar.lisp:727
+ 799. `ichiran/dict:synergy-end`  — fn, dict-grammar.lisp:727
+ 800. `ichiran/dict:synergy-p`  — fn, dict-grammar.lisp:727
+ 801. `ichiran/dict:synergy-start`  — fn, dict-grammar.lisp:727
  802. `ichiran/dict:top-array-item-p`  — fn, dict.lisp:1138
  803. `ichiran/dict:word-info-from-text`  — fn, dict.lisp:1382
  804. `ichiran/dict:word-info-rec-find`  — fn, dict.lisp:1409
@@ -907,26 +907,26 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  836. `ichiran:*romaji-kana*`  — global, deromanize.lisp:0
  837. `ichiran:has-successors`  — fn, deromanize.lisp:11
  838. `ichiran:*romaji-kana-next*`  — global, deromanize.lisp:21
- 839. `ichiran:make-kana-representation`  — fn, deromanize.lisp:21
- 840. `ichiran:possible-long-vowel-p`  — fn, deromanize.lisp:30
- 841. `ichiran:rmi-kana`  — fn, deromanize.lisp:3
- 842. `ichiran:rmi-next`  — fn, deromanize.lisp:3
- 843. `ichiran:rmi-text`  — fn, deromanize.lisp:3
- 844. `ichiran:apply-rmap-item`  — fn, deromanize.lisp:35
- 845. `ichiran:kr-branch`  — fn, deromanize.lisp:21
- 846. `ichiran:kr-canonical`  — fn, deromanize.lisp:21
- 847. `ichiran:kr-pattern`  — fn, deromanize.lisp:21
- 848. `ichiran:kr-rest`  — fn, deromanize.lisp:21
- 849. `ichiran:join-branches`  — fn, deromanize.lisp:54
- 850. `ichiran:kr-concat`  — fn, deromanize.lisp:23
- 851. `ichiran:make-rmap-item`  — fn, deromanize.lisp:3
- 852. `ichiran:load-romaji-kana`  — fn, deromanize.lisp:5
- 853. `ichiran:get-romaji-kana`  — fn, deromanize.lisp:5
- 854. `ichiran:romaji-next`  — fn, deromanize.lisp:46
- 855. `ichiran:branches-next`  — fn, deromanize.lisp:69
- 856. `ichiran:copy-kana-representation`  — fn, deromanize.lisp:21
- 857. `ichiran:copy-rmap-item`  — fn, deromanize.lisp:3
- 858. `ichiran:kana-representation`  — struct, deromanize.lisp:23  *[ported]*
+ 839. `ichiran:kana-representation`  — struct, deromanize.lisp:23  *[ported]*
+ 840. `ichiran:make-kana-representation`  — fn, deromanize.lisp:21
+ 841. `ichiran:possible-long-vowel-p`  — fn, deromanize.lisp:30
+ 842. `ichiran:rmi-kana`  — fn, deromanize.lisp:3
+ 843. `ichiran:rmi-next`  — fn, deromanize.lisp:3
+ 844. `ichiran:rmi-text`  — fn, deromanize.lisp:3
+ 845. `ichiran:apply-rmap-item`  — fn, deromanize.lisp:35
+ 846. `ichiran:kr-branch`  — fn, deromanize.lisp:21
+ 847. `ichiran:kr-canonical`  — fn, deromanize.lisp:21
+ 848. `ichiran:kr-pattern`  — fn, deromanize.lisp:21
+ 849. `ichiran:kr-rest`  — fn, deromanize.lisp:21
+ 850. `ichiran:join-branches`  — fn, deromanize.lisp:54
+ 851. `ichiran:kr-concat`  — fn, deromanize.lisp:23
+ 852. `ichiran:make-rmap-item`  — fn, deromanize.lisp:3
+ 853. `ichiran:load-romaji-kana`  — fn, deromanize.lisp:5
+ 854. `ichiran:get-romaji-kana`  — fn, deromanize.lisp:5
+ 855. `ichiran:romaji-next`  — fn, deromanize.lisp:46
+ 856. `ichiran:branches-next`  — fn, deromanize.lisp:69
+ 857. `ichiran:copy-kana-representation`  — fn, deromanize.lisp:21
+ 858. `ichiran:copy-rmap-item`  — fn, deromanize.lisp:3
  859. `ichiran:kana-representation-p`  — fn, deromanize.lisp:21
  860. `ichiran:rmap-item-p`  — fn, deromanize.lisp:3
  861. `ichiran:romaji-kana`  — fn, deromanize.lisp:84
