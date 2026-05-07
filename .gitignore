@@ -22,7 +22,11 @@ __pycache__/
 /corpus/
 
 # Working scratchpad — local notes, not authoritative
+HANDOFF.md
 reverse/scripts/HANDOFF.md
+
+# Per-user agent harness state
+.claude/
 
 # Local config (per-machine database URL etc.)
 kaniran.toml

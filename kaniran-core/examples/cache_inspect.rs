@@ -21,6 +21,8 @@ async fn main() {
         ctx.counter_cache.iter().map(|(k, v)| (k, v.len())).collect();
     top.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
 
+    let suffix_cache_total: usize = ctx.suffix_cache.values().map(|v| v.len()).sum();
+
     println!("no-conj-data    count={}", ctx.no_conj_data.len());
     println!("is-arch         count={}", ctx.is_arch.len());
     println!("special-counters count={}", special_counters().len());
@@ -29,6 +31,12 @@ async fn main() {
         ctx.counter_cache.len(),
         total_args
     );
+    println!(
+        "suffix-cache    keys={} total-pairs={}",
+        ctx.suffix_cache.len(),
+        suffix_cache_total
+    );
+    println!("suffix-class    count={}", ctx.suffix_class.len());
 
     println!("----");
     println!("counter-cache top 20 by args-count:");

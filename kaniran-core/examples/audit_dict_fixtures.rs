@@ -35,8 +35,11 @@ use kaniran_core::dict::find_word_conj_of::find_word_conj_of;
 use kaniran_core::dict::find_word_seq::{find_word_seq, WordSeqRows};
 use kaniran_core::dict::get_conj_data::{get_conj_data, FromOrConjIds};
 use kaniran_core::dict::get_kana_form::get_kana_form;
+use kaniran_core::dict::get_kana_forms::get_kana_forms;
+use kaniran_core::dict::get_kana_forms_star_::get_kana_forms_star_;
 use kaniran_core::dict::kana_text_dao::KanaText;
 use kaniran_core::dict::kanji_text_dao::KanjiText;
+use kaniran_core::dict::simple_text_class::WordConjugations;
 use kaniran_core::kani::sexp::{self, Sexp};
 
 const MISMATCH_PRINT_LIMIT: usize = 5;
@@ -105,7 +108,14 @@ fn parse_dao_plist(s: &Sexp) -> Result<DaoRow, String> {
                     .to_string(),
             ),
             "ORD"  => ord  = Some(parse_int(v)?),
-            other => return Err(format!("unknown plist key: :{}", other)),
+            // Other column slots and the inherited SIMPLE-TEXT
+            // session-only slots are projected by the post-2026-05-06
+            // projector (CONJUGATIONS, HINTEDP, COMMON, COMMON-TAGS,
+            // CONJUGATE-P, NOKANJI, BEST-KANA / BEST-KANJI). The lite
+            // DaoRow comparison only needs the four columns above; drop
+            // the rest silently so older audit handlers keep passing
+            // against re-captured parquets.
+            _ => {}
         }
     }
     Ok(DaoRow {
@@ -387,6 +397,172 @@ async fn audit_get_conj_data(
 }
 
 
+// --- get-kana-forms / get-kana-forms* DAO + conjugations comparison -----
+
+#[derive(Debug, PartialEq, Eq)]
+struct KanaTextWithConj {
+    id: i32,
+    seq: i32,
+    text: String,
+    ord: i32,
+    conjugations: Option<WordConjCmp>,
+}
+
+/// Audit-only echo of [`WordConjugations`] tolerant of NIL / :ROOT /
+/// (id ...) shapes coming out of the projected plist.
+#[derive(Debug, PartialEq, Eq, Clone)]
+enum WordConjCmp {
+    Root,
+    Ids(Vec<i32>),
+}
+
+fn parse_conjugations(s: &Sexp) -> Result<Option<WordConjCmp>, String> {
+    if s.is_nil() { return Ok(None); }
+    if s.as_keyword() == Some("ROOT") { return Ok(Some(WordConjCmp::Root)); }
+    if s.is_list() {
+        let elems = list_elems(s)?;
+        let ids: Vec<i32> = elems.iter().map(|e| parse_int(e)).collect::<Result<_, _>>()?;
+        return Ok(Some(WordConjCmp::Ids(ids)));
+    }
+    Err(format!("conjugations: expected NIL/:ROOT/(int...), got {}", s))
+}
+
+fn parse_kana_text_plist(s: &Sexp) -> Result<KanaTextWithConj, String> {
+    let elems = list_elems(s)?;
+    if elems.len() % 2 != 0 {
+        return Err(format!("kana-text plist odd length: {}", s));
+    }
+    let mut id = None;
+    let mut seq = None;
+    let mut text = None;
+    let mut ord = None;
+    let mut conjugations = None;
+    let mut conjugations_seen = false;
+    let mut class_ok = false;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("kana-text key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" => {
+                if v.as_keyword() != Some("KANA-TEXT") {
+                    return Err(format!(":CLASS not :KANA-TEXT: {}", v));
+                }
+                class_ok = true;
+            }
+            "ID"   => id   = Some(parse_int(v)?),
+            "SEQ"  => seq  = Some(parse_int(v)?),
+            "TEXT" => text = Some(v.as_str().ok_or(":TEXT not string")?.to_string()),
+            "ORD"  => ord  = Some(parse_int(v)?),
+            "CONJUGATIONS" => {
+                conjugations = parse_conjugations(v)?;
+                conjugations_seen = true;
+            }
+            // Other column slots and HINTEDP are projected but not
+            // load-bearing for these audits — drop them.
+            "COMMON" | "COMMON-TAGS" | "CONJUGATE-P" | "NOKANJI"
+                | "BEST-KANJI" | "HINTEDP" => {}
+            other => return Err(format!("unknown kana-text key: :{}", other)),
+        }
+    }
+    if !class_ok { return Err(":CLASS missing on kana-text".into()); }
+    if !conjugations_seen {
+        return Err("captured kana-text missing :CONJUGATIONS — re-extract under projector patch".into());
+    }
+    Ok(KanaTextWithConj {
+        id: id.ok_or(":ID missing")?,
+        seq: seq.ok_or(":SEQ missing")?,
+        text: text.ok_or(":TEXT missing")?,
+        ord: ord.ok_or(":ORD missing")?,
+        conjugations,
+    })
+}
+
+fn project_kana_text_with_conj(rows: &[KanaText]) -> Vec<KanaTextWithConj> {
+    rows.iter()
+        .map(|r| KanaTextWithConj {
+            id: r.id,
+            seq: r.seq,
+            text: r.text.clone(),
+            ord: r.ord,
+            conjugations: r.state.conjugations.as_ref().map(|c| match c {
+                WordConjugations::Root => WordConjCmp::Root,
+                WordConjugations::Ids(v) => WordConjCmp::Ids(v.clone()),
+            }),
+        })
+        .collect()
+}
+
+fn compare_kana_text_with_conj(
+    mut actual: Vec<KanaTextWithConj>, expected: &Sexp,
+) -> Result<(), String> {
+    let exp_elems = if expected.is_nil() { Vec::new() } else { list_elems(expected)? };
+    let mut expected_rows: Vec<KanaTextWithConj> = exp_elems.iter()
+        .map(|e| parse_kana_text_plist(e))
+        .collect::<Result<_, _>>()?;
+    if actual.len() != expected_rows.len() {
+        return Err(format!(
+            "row count: rust={} lisp={}\n  rust ids: {:?}\n  lisp ids: {:?}",
+            actual.len(), expected_rows.len(),
+            actual.iter().map(|r| r.id).collect::<Vec<_>>(),
+            expected_rows.iter().map(|r| r.id).collect::<Vec<_>>(),
+        ));
+    }
+    actual.sort_by_key(|r| r.id);
+    expected_rows.sort_by_key(|r| r.id);
+    // Ids inside WordConjCmp::Ids may differ in element order across
+    // runs (loop collect order over conj-data list — postmodern's
+    // implicit ORDER BY isn't stable across the .103 capture vs the
+    // local replay). Compare as a multiset.
+    for (i, (a, e)) in actual.iter().zip(&expected_rows).enumerate() {
+        if a.id != e.id || a.seq != e.seq || a.text != e.text || a.ord != e.ord {
+            return Err(format!("row {}: rust={:?} lisp={:?}", i, a, e));
+        }
+        let conj_eq = match (&a.conjugations, &e.conjugations) {
+            (None, None) => true,
+            (Some(WordConjCmp::Root), Some(WordConjCmp::Root)) => true,
+            (Some(WordConjCmp::Ids(av)), Some(WordConjCmp::Ids(ev))) => {
+                let mut a_sorted = av.clone();
+                let mut e_sorted = ev.clone();
+                a_sorted.sort();
+                e_sorted.sort();
+                a_sorted == e_sorted
+            }
+            _ => false,
+        };
+        if !conj_eq {
+            return Err(format!(
+                "row {} (id={}) conjugations: rust={:?} lisp={:?}",
+                i, a.id, a.conjugations, e.conjugations,
+            ));
+        }
+    }
+    Ok(())
+}
+
+async fn audit_get_kana_forms_star(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 1 { return Err(format!("get-kana-forms* wants 1 arg, got {}", argv.len())); }
+    let seq = parse_int(argv[0])?;
+    let actual = get_kana_forms_star_(ctx, seq).await
+        .map_err(|e| format!("get_kana_forms_star query: {}", e))?;
+    compare_kana_text_with_conj(project_kana_text_with_conj(&actual), expect_one(expected)?)
+}
+
+async fn audit_get_kana_forms(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 1 { return Err(format!("get-kana-forms wants 1 arg, got {}", argv.len())); }
+    let seq = parse_int(argv[0])?;
+    let actual = get_kana_forms(ctx, seq).await
+        .map_err(|e| format!("get_kana_forms query: {}", e))?;
+    compare_kana_text_with_conj(project_kana_text_with_conj(&actual), expect_one(expected)?)
+}
+
+
 async fn audit_get_kana_form(
     ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
 ) -> Result<(), String> {
@@ -517,6 +693,11 @@ async fn audit_file(
         }
     };
 
+    if SYNC_HARNESS_FQNS.contains(&fqn.as_str()) {
+        println!("[{}/{}] {} → {}  SKIP (handled by audit_fixtures)", idx, total, path.display(), fqn);
+        return;
+    }
+
     // Pre-count rows so progress lines have a denominator + ETA.
     let total_rows = match count_parquet_rows(path) {
         Ok(n) => n,
@@ -623,6 +804,19 @@ async fn audit_file(
     if n_fail == 0 { totals.fns_clean += 1; } else { totals.fns_with_failures += 1; }
 }
 
+/// FQNs deliberately handled by the sync harness (`audit_fixtures`) —
+/// the async dispatcher recognises them so a mixed parquet directory
+/// doesn't drown the report in spurious failures. Run both binaries
+/// over the same dir for full coverage.
+const SYNC_HARNESS_FQNS: &[&str] = &[
+    "ICHIRAN/DICT::SKIP-BY-CONJ-DATA",
+    "ICHIRAN/DICT::GET-KANA-FORMS-CONJ-DATA-FILTER",
+    "ICHIRAN/DICT::TEST-CONJ-PROP",
+    "ICHIRAN/DICT::CONJ-DATA-PROP",
+    "ICHIRAN/DICT::MAKE-CONJ-DATA",
+    "ICHIRAN/DICT::NO-CONJ-DATA",
+];
+
 async fn audit_one(
     fqn: &str, args_str: &str, result_str: &str, ctx: &KaniranContext,
 ) -> Result<(), String> {
@@ -632,7 +826,12 @@ async fn audit_one(
         "ICHIRAN/DICT::FIND-WORD-SEQ"     => audit_find_word_seq(ctx, &args, &expected).await,
         "ICHIRAN/DICT::FIND-WORD-CONJ-OF" => audit_find_word_conj_of(ctx, &args, &expected).await,
         "ICHIRAN/DICT::GET-KANA-FORM"     => audit_get_kana_form(ctx, &args, &expected).await,
+        "ICHIRAN/DICT::GET-KANA-FORMS"    => audit_get_kana_forms(ctx, &args, &expected).await,
+        "ICHIRAN/DICT::GET-KANA-FORMS*"   => audit_get_kana_forms_star(ctx, &args, &expected).await,
         "ICHIRAN/DICT::GET-CONJ-DATA"     => audit_get_conj_data(ctx, &args, &expected).await,
+        other if SYNC_HARNESS_FQNS.contains(&other) => {
+            Err(format!("__SYNC_HARNESS__:{}", other))
+        }
         other => Err(format!("no handler for FQN: {}", other)),
     }
 }

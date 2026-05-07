@@ -21,12 +21,15 @@ Usage:
     # Install hooks once on the pool (one FQN per line in fqns.txt):
     python3 fetch_extractor.py install fqns.txt --api http://host:9100
 
-    # Run the fetch:
-    python3 fetch_extractor.py fetch tatoeba_jpn.tsv corpus/ \\
+    # Run the fetch (input defaults to ../corpus/tatoeba_sentences.txt):
+    python3 fetch_extractor.py fetch corpus/extracted \\
         --api http://host:9100 --workers 18 [--limit 250000] [--skip 0]
 
-The TSV is parsed Tatoeba-style (tab-split, sentence in column 3 if
-present, otherwise the whole line).
+    # Override the corpus:
+    python3 fetch_extractor.py fetch corpus/extracted --input other.tsv ...
+
+The input is parsed Tatoeba-style (tab-split, sentence in column 3 if
+present, otherwise the whole line — also handles plain one-sentence-per-line).
 """
 
 import argparse
@@ -43,6 +46,10 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 DEFAULT_API = "http://localhost:9100"
+DEFAULT_CORPUS = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..", "corpus", "tatoeba_sentences.txt",
+)
 HTTP_TIMEOUT = 120
 MAX_RETRIES = 5
 BACKOFF_BASE = 2
@@ -393,7 +400,10 @@ def main():
     sub.add_parser("clear", help="clear capture buffers on the pool")
 
     p_fetch = sub.add_parser("fetch", help="drive corpus through pool, write parquet")
-    p_fetch.add_argument("input", help="input TSV (sentence in col 3, or whole line)")
+    p_fetch.add_argument(
+        "--input", default=DEFAULT_CORPUS,
+        help=f"input TSV/text (sentence in col 3, or whole line). Default: {DEFAULT_CORPUS}",
+    )
     p_fetch.add_argument("output", help="output dir for per-FQN parquet files")
     p_fetch.add_argument("--workers", type=int, default=4)
     p_fetch.add_argument("--skip", type=int, default=0)

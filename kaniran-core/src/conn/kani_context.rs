@@ -19,6 +19,9 @@ use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;
 use crate::dict::_star_counter_cache_star_::{build_counter_cache, CounterCache};
 use crate::dict::_star_is_arch_cache_star_::build_is_arch;
 use crate::dict::_star_no_conj_data_star_::build_no_conj_data;
+use crate::dict::_star_suffix_cache_star_::SuffixCache;
+use crate::dict::_star_suffix_class_star_::SuffixClass;
+use crate::dict::init_suffixes_thread::build_suffix_caches;
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -45,6 +48,12 @@ pub struct KaniranContext {
     /// Upstream `*counter-cache*` (`dict-counters.lisp:221`). See
     /// [`crate::dict::_star_counter_cache_star_`].
     pub counter_cache: CounterCache,
+    /// Upstream `*suffix-cache*` (`dict-grammar.lisp:5`). See
+    /// [`crate::dict::_star_suffix_cache_star_`].
+    pub suffix_cache: SuffixCache,
+    /// Upstream `*suffix-class*` (`dict-grammar.lisp:6`). See
+    /// [`crate::dict::_star_suffix_class_star_`].
+    pub suffix_class: SuffixClass,
 }
 
 impl KaniranContext {
@@ -60,15 +69,21 @@ impl KaniranContext {
             })?;
         let no_conj_data = build_no_conj_data(&pool).await?;
         let is_arch = build_is_arch(&pool).await?;
-        // counter_cache's populator calls get_counter_readings(&ctx) — needs
-        // the partial context first, then swap the populated map in.
+        // counter_cache + suffix_cache populators call DB-touching fns
+        // that take &KaniranContext — build a partial ctx first, then
+        // swap the populated maps in.
         let mut ctx = Self {
             pool,
             no_conj_data,
             is_arch,
             counter_cache: CounterCache::new(),
+            suffix_cache: SuffixCache::new(),
+            suffix_class: SuffixClass::new(),
         };
         ctx.counter_cache = build_counter_cache(&ctx).await?;
+        let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;
+        ctx.suffix_cache = suffix_cache;
+        ctx.suffix_class = suffix_class;
         Ok(Arc::new(ctx))
     }
 

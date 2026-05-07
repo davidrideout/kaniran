@@ -2,10 +2,13 @@
 
 Pooled SBCL workers + FastAPI + parquet writer for harvesting
 `(args, result)` fixtures from live ichiran on a remote host. Drives a
-sentence corpus (Tatoeba or similar) through a hardcoded entry-point
-sweep and writes one parquet file per traced FQN — used by the Rust
-port at `kaniran-core/` to verify each ported function against the
-behavior of the original Lisp.
+sentence corpus through a hardcoded entry-point sweep and writes one
+parquet file per traced FQN — used by the Rust port at `kaniran-core/`
+to verify each ported function against the behavior of the original
+Lisp.
+
+The default corpus is `../corpus/tatoeba_sentences.txt` (~248K Japanese
+sentences from the Tatoeba project). Override with `--input <path>`.
 
 Inspired by — and structurally a variant of — `../ichiran-worker`.
 Differences from that project:
@@ -54,7 +57,7 @@ client (fetch_extractor.py)
 | `ichiran_worker_pool.py` | Generic SBCL subprocess pool. `execute(op, ...)` for round-robin requests; `broadcast(op, ...)` for setup ops that mutate every worker's state. |
 | `wait_healthy.py` | Polls `/health` with timeout. |
 | `deploy_server.sh` | scp + ssh wrapper that ships the lisp/python files to `$REMOTE_HOST`, kills any old uvicorn+SBCL workers, relaunches via `ssh -n -f`, then waits for the pool to go green. |
-| `fetch_extractor.py` | The driver. Three subcommands: `install`, `clear`, `fetch <tsv> <out_dir>`. The `fetch` flow streams sentences through a bounded async queue, fans to N HTTP workers, partitions captures by FQN, writes per-FQN parquet. |
+| `fetch_extractor.py` | The driver. Three subcommands: `install`, `clear`, `fetch <out_dir> [--input <path>]`. The `fetch` flow streams sentences through a bounded async queue, fans to N HTTP workers, partitions captures by FQN, writes per-FQN parquet. Default corpus is `../corpus/tatoeba_sentences.txt`. |
 
 ## Boot + run sequence
 
@@ -71,10 +74,15 @@ REMOTE_HOME=/home/david \
 python3 fetch_extractor.py --api http://192.168.1.103:9100 \
     install fqns.txt
 
-# 3. Drive the corpus.
+# 3. Drive the corpus (input defaults to ../corpus/tatoeba_sentences.txt).
 python3 fetch_extractor.py --api http://192.168.1.103:9100 \
-    fetch /path/to/tatoeba_jpn.tsv ../corpus/ \
+    fetch ../corpus/extracted \
     --workers 8 --limit 10000
+
+# Override the corpus when needed:
+python3 fetch_extractor.py --api http://192.168.1.103:9100 \
+    fetch ../corpus/extracted --input /path/to/other.tsv \
+    --workers 8
 ```
 
 After step 3, `../corpus/characters/normalize.parquet` (and one parquet

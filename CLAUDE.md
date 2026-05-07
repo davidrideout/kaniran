@@ -91,7 +91,12 @@ The driver entrypoint is `(ichiran/test:run-all-tests)`.
 - **Don't edit upstream `*.lisp` files at the repo root.** They're checked in for reference / introspection input. Treat as read-only.
 - **`PORT_PLAN.md` is the source of truth for transliteration order.** Regenerate (don't hand-edit) via `query.py plan --out reverse/scripts/PORT_PLAN.md`. It's deterministic across runs (Tarjan + sorted set iteration); re-running on the same CSVs produces a byte-identical file.
 - **Mark progress in `symbols.csv`'s `status` column** (`pending` → `ported`, `wip`, `skip`, etc.). `query.py mark` does this round-trip-safely. Pair `--status skip` (or any off-the-books status) with `--reason "..."` — the reason lands in the CSV's `reason` column and surfaces in the `PORT_PLAN.md` badge.
-- **Re-running `build_graph.py` resets `status` to `pending` and `reason` to empty for every row** (it overwrites the CSV). Commit before regenerating, or back up.
+- **Track the fixture-replay workstream in `extracted` / `audited` columns** alongside the main status:
+  - `query.py extracted <fqn>... --corpus tatoeba` (or `init-suffixes`, etc.) tags fns whose parquet fixtures have been captured.
+  - `query.py audited <fqn>... --pass P --total T` tags pass-rate from the canonical tatoeba → parquet → audit_fixtures/audit_dict_fixtures pipeline. **Reserved for that pipeline only** — non-tatoeba captures (init-suffixes, one-shot probes, synthetic corpora) get `extracted` but `audited` stays empty by design. The command refuses if the row's `extracted` value isn't `tatoeba`.
+  - Populator ports verified via cache-cardinality cross-check (`cache_inspect`) leave both columns empty — they're a different verification path.
+  - Both columns render as extra `*[extracted: …]*` / `*[audited P/T]*` badges in `PORT_PLAN.md` next to the main status badge.
+- **Re-running `build_graph.py` resets `status` to `pending` and `reason` to empty for every row** (it overwrites the CSV); `extracted` and `audited` survive the rebuild because they reflect on-disk parquet artifacts. Commit before regenerating if you have un-committed status/reason marks.
 - **Use `query.py` over hand-grepping the md files.** The dependency analysis is non-trivial (cycles, unresolved external refs) and the script handles it correctly.
 
 ## Tracer / sniffer
@@ -133,6 +138,10 @@ python3 reverse/scripts/query.py dependents <fqn> [--deep]
 # mark progress (round-trip safe — just rewrites symbols.csv)
 python3 reverse/scripts/query.py mark <fqn>... --status ported
 
+# tag fixture-replay workstream state (orthogonal to the main status)
+python3 reverse/scripts/query.py extracted <fqn>... --corpus tatoeba
+python3 reverse/scripts/query.py audited   <fqn>... --pass P --total T  # tatoeba pipeline only
+
 # stats
 python3 reverse/scripts/query.py stats
 
@@ -154,7 +163,7 @@ The committed artifact is **`reverse/scripts/divergences.md`** — sorted by FQN
 
 - ❌ "There are 102 cycles in the graph." (Naive layer-walk artifact; Tarjan finds **2** real SCCs covering 4 symbols.)
 - ❌ "Macros are untransliterable." (Most of the 36 macro leaves dissolve into Rust data tables or idioms; only ~6 need real thought.)
-- ❌ "build_graph.py preserves status or reason across runs." (It rewrites the file, resetting both. Commit first or re-mark via `query.py mark --reason ...`.)
+- ❌ "build_graph.py preserves status or reason across runs." (It rewrites the file, resetting both. Commit first or re-mark via `query.py mark --reason ...`. The `extracted` and `audited` columns DO survive — they reflect on-disk parquets / audit-binary results that don't reset just because the introspector reran.)
 - ❌ "Plan ordering shifts between runs." (Fixed earlier — Tarjan uses sorted set iteration; output is byte-identical.)
 - ❌ "The Rust crate is TBD." (It exists at `kaniran-core/` with a working naming convention and fixture-replay infra. Bootstrapped, not populated.)
 - ❌ "Globals get loaded from the database at startup." (Verified false — every defparameter/defvar/defconstant initializer is in-memory only. Only `*reading-cache*` interacts with Postgres, and it does so lazily inside the function `get-readings-cache`.)

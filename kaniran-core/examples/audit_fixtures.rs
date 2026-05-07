@@ -37,7 +37,9 @@ use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::conj_prop_dao::ConjProp;
 use kaniran_core::dict::kani_conj_form::{ConjForm, FormToken};
 use kaniran_core::dict::make_conj_data::make_conj_data;
+use kaniran_core::dict::get_kana_forms_conj_data_filter::get_kana_forms_conj_data_filter;
 use kaniran_core::dict::no_conj_data::no_conj_data;
+use kaniran_core::dict::skip_by_conj_data::skip_by_conj_data;
 use kaniran_core::dict::test_conj_prop::test_conj_prop;
 use kaniran_core::kani::sexp::{self, Sexp};
 
@@ -72,6 +74,8 @@ fn handlers() -> BTreeMap<&'static str, Handler> {
     m.insert("ICHIRAN/DICT::MAKE-CONJ-DATA",                 audit_make_conj_data);
     m.insert("ICHIRAN/DICT::CONJ-DATA-PROP",                 audit_conj_data_prop);
     m.insert("ICHIRAN/DICT::TEST-CONJ-PROP",                 audit_test_conj_prop);
+    m.insert("ICHIRAN/DICT::SKIP-BY-CONJ-DATA",              audit_skip_by_conj_data);
+    m.insert("ICHIRAN/DICT::GET-KANA-FORMS-CONJ-DATA-FILTER",audit_get_kana_forms_conj_data_filter);
     m
 }
 
@@ -563,6 +567,60 @@ fn audit_test_conj_prop(args: &Sexp, expected: &Sexp) -> Result<(), String> {
     };
     if actual == exp { Ok(()) } else {
         Err(format!("\n  rust: {}\n  lisp: {}", actual, exp))
+    }
+}
+
+fn audit_skip_by_conj_data(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 1 {
+        return Err(format!("skip-by-conj-data wants 1 arg, got {}", argv.len()));
+    }
+    // Empty list / NIL means an empty conj-data input, not an absent argument.
+    let cd_list: Vec<ConjData> = if argv[0].is_nil() {
+        Vec::new()
+    } else {
+        list_elems(argv[0])?
+            .into_iter()
+            .map(parse_conj_data_plist)
+            .collect::<Result<_, _>>()?
+    };
+    let actual = skip_by_conj_data(&cd_list);
+    let inner = expect_one(expected)?;
+    let exp = if inner.is_t() { true } else if inner.is_nil() { false } else {
+        return Err(format!("skip-by-conj-data expected[0] not T/NIL: {}", inner));
+    };
+    if actual == exp { Ok(()) } else {
+        Err(format!("\n  rust: {}\n  lisp: {}", actual, exp))
+    }
+}
+
+fn audit_get_kana_forms_conj_data_filter(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 1 {
+        return Err(format!("get-kana-forms-conj-data-filter wants 1 arg, got {}", argv.len()));
+    }
+    let cd_list: Vec<ConjData> = if argv[0].is_nil() {
+        Vec::new()
+    } else {
+        list_elems(argv[0])?
+            .into_iter()
+            .map(parse_conj_data_plist)
+            .collect::<Result<_, _>>()?
+    };
+    let actual = get_kana_forms_conj_data_filter(&cd_list);
+    let inner = expect_one(expected)?;
+    let exp: Vec<i32> = if inner.is_nil() {
+        Vec::new()
+    } else {
+        list_elems(inner)?
+            .into_iter()
+            .map(|s| s.as_i64()
+                .map(|i| i as i32)
+                .ok_or_else(|| format!("conj-id not int: {}", s)))
+            .collect::<Result<_, _>>()?
+    };
+    if actual == exp { Ok(()) } else {
+        Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
     }
 }
 

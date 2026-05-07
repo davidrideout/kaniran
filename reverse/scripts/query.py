@@ -77,7 +77,13 @@ def resolve_fqn(token: str, syms: dict[str, dict]) -> str:
 def fmt(sym: dict) -> str:
     reason = sym.get("reason", "")
     suffix = f" — {reason}" if reason else ""
-    return f"{sym['fqn']:<55} {sym['kind']:<5} {sym['file']}:{sym['line']}  [{sym['status']}{suffix}]"
+    tags = _workstream_tags(sym, sep=" ")
+    if tags:
+        tags = f"  {tags}"
+    return (
+        f"{sym['fqn']:<55} {sym['kind']:<5} {sym['file']}:{sym['line']}  "
+        f"[{sym['status']}{suffix}]{tags}"
+    )
 
 
 def _badge(sym: dict) -> str:
@@ -87,6 +93,20 @@ def _badge(sym: dict) -> str:
     if reason:
         return f"  *[{sym['status']} — {reason}]*"
     return f"  *[{sym['status']}]*"
+
+
+def _workstream_tags(sym: dict, sep: str = "") -> str:
+    """Render the `extracted` / `audited` parallel-workstream columns
+    as inline badges. Empty string when neither is set, so the caller
+    can append unconditionally without worrying about trailing space."""
+    parts: list[str] = []
+    extracted = sym.get("extracted", "") or ""
+    audited = sym.get("audited", "") or ""
+    if extracted:
+        parts.append(f"*[extracted: {extracted}]*")
+    if audited:
+        parts.append(f"*[audited {audited}]*")
+    return sep.join(parts) if sep else "  ".join(parts)
 
 
 def cmd_leaves(args, syms, callees, callers):
@@ -185,23 +205,77 @@ def cmd_layers(args, syms, callees, callers):
             print(f"  {fmt(syms[f])}")
 
 
+SYMBOL_FIELDS = [
+    "fqn", "name", "package", "file", "line", "kind",
+    "status", "reason", "extracted", "audited",
+]
+
+
+def _write_symbols(syms: dict[str, dict]) -> None:
+    """Round-trip-safe write of `syms` back to symbols.csv. Ensures the
+    full field set is present on every row so older CSVs from before the
+    `extracted`/`audited` split don't drop columns."""
+    with SYMBOLS_CSV.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=SYMBOL_FIELDS)
+        w.writeheader()
+        for r in sorted(syms.values(), key=lambda r: r["fqn"]):
+            for field in SYMBOL_FIELDS:
+                r.setdefault(field, "")
+            w.writerow(r)
+
+
 def cmd_mark(args, syms, callees, callers):
     targets = [resolve_fqn(t, syms) for t in args.fqns]
     for t in targets:
         syms[t]["status"] = args.status
         if args.reason is not None:
             syms[t]["reason"] = args.reason
-    fields = ["fqn", "name", "package", "file", "line", "kind", "status", "reason"]
-    with SYMBOLS_CSV.open("w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=fields)
-        w.writeheader()
-        for r in sorted(syms.values(), key=lambda r: r["fqn"]):
-            # Preserve existing reason for rows not touched; ensure column
-            # exists for old CSVs that pre-date the reason field.
-            r.setdefault("reason", "")
-            w.writerow(r)
+    _write_symbols(syms)
     detail = f" with reason {args.reason!r}" if args.reason is not None else ""
     print(f"marked {len(targets)} symbol(s) as {args.status}{detail}", file=sys.stderr)
+
+
+def cmd_extracted(args, syms, callees, callers):
+    targets = [resolve_fqn(t, syms) for t in args.fqns]
+    if args.reset:
+        new_value = ""
+    else:
+        if not args.corpus:
+            sys.exit("--corpus required (e.g. tatoeba, init-suffixes); pass --reset to clear")
+        new_value = args.corpus
+    for t in targets:
+        syms[t]["extracted"] = new_value
+    _write_symbols(syms)
+    label = "cleared" if args.reset else f"tagged as extracted={new_value!r}"
+    print(f"{len(targets)} symbol(s) {label}", file=sys.stderr)
+
+
+def cmd_audited(args, syms, callees, callers):
+    targets = [resolve_fqn(t, syms) for t in args.fqns]
+    if args.reset:
+        new_value = ""
+    else:
+        if args.pass_count is None or args.total is None:
+            sys.exit("--pass and --total required (or --reset to clear)")
+        for t in targets:
+            extracted = syms[t].get("extracted", "") or ""
+            if extracted != "tatoeba":
+                sys.exit(
+                    f"{t}: audited is reserved for the tatoeba → parquet → audit pipeline; "
+                    f"current extracted={extracted!r}. Set extracted to 'tatoeba' first, or fix the input."
+                )
+        if args.pass_count > args.total:
+            sys.exit(f"--pass ({args.pass_count}) cannot exceed --total ({args.total})")
+        if args.pass_count < args.total:
+            fail = args.total - args.pass_count
+            new_value = f"{args.pass_count}/{args.total} ({fail} fail)"
+        else:
+            new_value = f"{args.pass_count}/{args.total}"
+    for t in targets:
+        syms[t]["audited"] = new_value
+    _write_symbols(syms)
+    label = "cleared" if args.reset else f"tagged as audited={new_value!r}"
+    print(f"{len(targets)} symbol(s) {label}", file=sys.stderr)
 
 
 def cmd_stats(args, syms, callees, callers):
@@ -297,26 +371,24 @@ def cmd_plan(args, syms, callees, callers):
         out_lines.append(f"_skipped packages: {', '.join(sorted(skip))}_")
     out_lines.append("")
 
+    def render_row(s: dict) -> str:
+        badge = "" if s["status"] == "pending" else _badge(s)
+        tags = _workstream_tags(s)
+        if tags:
+            tags = f"  {tags}"
+        return f"`{s['fqn']}`  — {s['kind']}, {s['file']}:{s['line']}{badge}{tags}"
+
     for i, comp in enumerate(sccs):
         members = sorted(comp)
         if len(members) == 1:
             s = syms[members[0]]
-            badge = "" if s["status"] == "pending" else _badge(s)
-            out_lines.append(
-                f"{i+1:>4}. `{s['fqn']}`  — {s['kind']}, "
-                f"{s['file']}:{s['line']}{badge}"
-            )
+            out_lines.append(f"{i+1:>4}. {render_row(s)}")
         else:
             out_lines.append(
                 f"{i+1:>4}. **CYCLE ({len(members)} symbols — port together)**"
             )
             for fqn in members:
-                s = syms[fqn]
-                badge = "" if s["status"] == "pending" else _badge(s)
-                out_lines.append(
-                    f"        - `{s['fqn']}`  — {s['kind']}, "
-                    f"{s['file']}:{s['line']}{badge}"
-                )
+                out_lines.append(f"        - {render_row(syms[fqn])}")
 
     text = "\n".join(out_lines) + "\n"
     if args.out:
@@ -764,6 +836,30 @@ def main() -> int:
     p.add_argument("--reason", default=None,
                    help="free-form note (recommended for skip/wip). Omit to leave any existing reason untouched.")
     p.set_defaults(fn=cmd_mark)
+
+    p = sub.add_parser(
+        "extracted",
+        help="tag fns whose parquet fixtures have been captured (--corpus tatoeba/init-suffixes/...).",
+    )
+    p.add_argument("fqns", nargs="+")
+    p.add_argument("--corpus", default=None,
+                   help="extraction driver name (e.g. 'tatoeba', 'init-suffixes', 'conj-probe').")
+    p.add_argument("--reset", action="store_true", help="clear the extracted column instead of setting it")
+    p.set_defaults(fn=cmd_extracted)
+
+    p = sub.add_parser(
+        "audited",
+        help="tag fns whose tatoeba-pipeline parquet fixtures replayed cleanly (or with N failures). "
+             "Reserved for the tatoeba → parquet → audit_fixtures/audit_dict_fixtures pipeline; "
+             "non-tatoeba captures stay extracted-only.",
+    )
+    p.add_argument("fqns", nargs="+")
+    p.add_argument("--pass", dest="pass_count", type=int, default=None,
+                   help="number of rows that passed replay")
+    p.add_argument("--total", type=int, default=None,
+                   help="total rows replayed")
+    p.add_argument("--reset", action="store_true", help="clear the audited column instead of setting it")
+    p.set_defaults(fn=cmd_audited)
 
     sub.add_parser("stats").set_defaults(fn=cmd_stats)
 

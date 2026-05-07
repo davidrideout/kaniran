@@ -128,15 +128,15 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  119. `ichiran/dict:conj-data-prop`  — fn, dict.lisp:325  *[ported]*
  120. `ichiran/dict:*skip-conj-forms*`  — global, dict-errata.lisp:1310  *[ported]*
  121. `ichiran/dict:test-conj-prop`  — fn, dict-errata.lisp:1336  *[ported]*
- 122. `ichiran/dict:skip-by-conj-data`  — fn, dict-errata.lisp:1336
- 123. `ichiran/dict:get-kana-forms-conj-data-filter`  — fn, dict-grammar.lisp:10
- 124. `ichiran/dict:get-kana-forms*`  — fn, dict-grammar.lisp:17
- 125. `ichiran/dict:get-kana-forms`  — fn, dict-grammar.lisp:32
- 126. `ichiran/dict:init-suffixes-thread`  — fn, dict-grammar.lisp:169
- 127. `ichiran/dict:init-suffixes`  — fn, dict-grammar.lisp:332
- 128. `ichiran/cli:build`  — fn, cli.lisp:102
- 129. `ichiran/cli:print-romanize-info`  — fn, cli.lisp:44
- 130. `ichiran/cli:unknown-option`  — fn, cli.lisp:33
+ 122. `ichiran/dict:skip-by-conj-data`  — fn, dict-errata.lisp:1336  *[ported]*  *[extracted: tatoeba]*  *[audited 33168/33168]*
+ 123. `ichiran/dict:get-kana-forms-conj-data-filter`  — fn, dict-grammar.lisp:10  *[ported]*  *[extracted: init-suffixes]*
+ 124. `ichiran/dict:get-kana-forms*`  — fn, dict-grammar.lisp:17  *[ported]*  *[extracted: init-suffixes]*
+ 125. `ichiran/dict:get-kana-forms`  — fn, dict-grammar.lisp:32  *[ported]*  *[extracted: init-suffixes]*
+ 126. `ichiran/dict:init-suffixes-thread`  — fn, dict-grammar.lisp:169  *[ported]*
+ 127. `ichiran/dict:init-suffixes`  — fn, dict-grammar.lisp:332  *[skip — Subsumed by KaniranContext eager construction; init-suffixes-thread (wave 126) is the actual populator. Same prior-art as init-suffixes-running-p.]*
+ 128. `ichiran/cli:build`  — fn, cli.lisp:102  *[skip — CLI-only entrypoint/help glue; belongs in a future kaniran-cli crate]*
+ 129. `ichiran/cli:print-romanize-info`  — fn, cli.lisp:44  *[skip — CLI-only entrypoint/help glue; belongs in a future kaniran-cli crate]*
+ 130. `ichiran/cli:unknown-option`  — fn, cli.lisp:33  *[skip — CLI-only entrypoint/help glue; belongs in a future kaniran-cli crate]*
  131. `ichiran/conn:*is-dynamic-connection*`  — global, conn.lisp:14  *[skip — "Boolean marking 'connection came from env]*
  132. `ichiran/conn:*connection-env-var*`  — global, conn.lisp:13  *[ported]*
  133. `ichiran/conn:get-ichiran-connection-env`  — fn, conn.lisp:154  *[ported]*
@@ -145,17 +145,17 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  136. `ichiran/dict:segment-list`  — struct, dict.lisp:1038
  137. `ichiran/dict:segment-list-end`  — fn, dict.lisp:1038
  138. `ichiran/dict:segment-list-start`  — fn, dict.lisp:1038
- 139. `ichiran/dict:*disable-hints*`  — global, dict.lisp:78
- 140. `ichiran/dict:*kana-hint-space*`  — global, dict-split.lisp:814
- 141. `ichiran/dict:query-parents-kanji`  — fn, dict.lisp:400
- 142. `ichiran/dict:best-kana-conj`  — fn, dict.lisp:428
- 143. `ichiran/dict:get-digit`  — fn, dict-counters.lisp:94
+ 139. `ichiran/dict:*disable-hints*`  — global, dict.lisp:78  *[ported]*
+ 140. `ichiran/dict:*kana-hint-space*`  — global, dict-split.lisp:814  *[ported]*
+ 141. `ichiran/dict:query-parents-kanji`  — fn, dict.lisp:400  *[extracted: tatoeba]*
+ 142. `ichiran/dict:best-kana-conj`  — fn, dict.lisp:428  *[extracted: tatoeba]*
+ 143. `ichiran/dict:get-digit`  — fn, dict-counters.lisp:94  *[extracted: tatoeba]*
  144. `ichiran/numbers:*digit-to-kana*`  — global, numbers.lisp:25  *[ported]*
  145. `ichiran/numbers:*power-to-kana*`  — global, numbers.lisp:28  *[ported]*
  146. `ichiran/dict:counter-join`  — gf, dict-counters.lisp:0
  147. `ichiran/dict:*hint-map*`  — global, dict-split.lisp:850
- 148. `ichiran/dict:conj-data-from`  — fn, dict.lisp:325
- 149. `ichiran/dict:get-kanji-kana-old`  — fn, dict.lisp:115
+ 148. `ichiran/dict:conj-data-from`  — fn, dict.lisp:325  *[ported]*
+ 149. `ichiran/dict:get-kanji-kana-old`  — fn, dict.lisp:115  *[extracted: tatoeba]*
  150. `ichiran/numbers:*char-number-class*`  — global, numbers.lisp:9  *[ported]*
  151. `ichiran/numbers:*char-number-class-hash*`  — global, numbers.lisp:18  *[ported]*
  152. `ichiran/numbers:num-sandhi`  — gf, numbers.lisp:0  *[ported]*

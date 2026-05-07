@@ -9,9 +9,15 @@
 ;;; tuple by default. POSTMODERN dao-class instances and SBCL
 ;;; structures get expanded into (:CLASS NAME :slot val ...) plists
 ;;; uniformly, so adding new DAOs to the trace plan needs no
-;;; per-FQN projector glue. *OMIT-SLOTS* suppresses individual
-;;; slots — used today to drop ENTRY.CONTENT, the JMdict XML blob
-;;; that's only consumed by admin tooling.
+;;; per-FQN projector glue. For DAOs we emit column slots first
+;;; (preserving the legacy layout) followed by non-column CLOS slots
+;;; — necessary because functions like ICHIRAN/DICT::BEST-KANA-CONJ
+;;; branch on session-only slots (WORD-CONJUGATIONS, HINTEDP) inherited
+;;; from SIMPLE-TEXT, so an args projection that omits them collapses
+;;; semantically distinct inputs to identical printed args and triggers
+;;; spurious nondeterminism warnings in the writer. *OMIT-SLOTS*
+;;; suppresses individual slots — used today to drop ENTRY.CONTENT,
+;;; the JMdict XML blob that's only consumed by admin tooling.
 ;;;
 ;;; If a port needs non-default behavior (synthesized slot, dropped
 ;;; field, alternate shape) it can still install with an explicit
@@ -88,20 +94,40 @@
 
 (defmethod flatten-trace-value ((v standard-object))
   ;; DAO rows are STANDARD-OBJECTs whose CLASS-OF is a POSTMODERN:DAO-CLASS.
-  ;; The internal POSTMODERN::DAO-COLUMN-SLOTS lists the column-mapped
-  ;; slots in declaration order — postmodern itself uses it everywhere,
-  ;; so the symbol is stable across releases. Non-DAO standard-objects
-  ;; (closures, plain CLOS) fall through to the default method.
+  ;; POSTMODERN::DAO-COLUMN-SLOTS lists the column-mapped slots in
+  ;; declaration order; CLOSER-MOP:CLASS-SLOTS lists every slot on the
+  ;; class. We emit column slots first (preserving the legacy printed
+  ;; layout that earlier captures used) followed by any inherited or
+  ;; non-column CLOS slots. This is required because session-only slots
+  ;; like SIMPLE-TEXT.CONJUGATIONS / HINTEDP are read by functions such
+  ;; as BEST-KANA-CONJ and BEST-KANJI-CONJ — omitting them lets two
+  ;; behaviorally-distinct inputs project to the same args string and
+  ;; surface as spurious nondeterminism in the writer. Non-DAO
+  ;; standard-objects (closures, plain CLOS) fall through.
   (let ((cls (class-of v)))
     (if (typep cls 'postmodern:dao-class)
-        (let ((cls-name (class-name cls)))
+        (let* ((cls-name (class-name cls))
+               (column-slots (postmodern::dao-column-slots cls))
+               (column-names (mapcar #'closer-mop:slot-definition-name
+                                     column-slots))
+               (extra-slots
+                 (remove-if (lambda (s)
+                              (member (closer-mop:slot-definition-name s)
+                                      column-names))
+                            (closer-mop:class-slots cls))))
           (list* :class
                  (%class-keyword v)
-                 (loop for s in (postmodern::dao-column-slots cls)
-                       for sn = (closer-mop:slot-definition-name s)
-                       unless (%slot-omitted-p cls-name sn)
-                       collect (%slot-keyword sn)
-                       and collect (flatten-trace-value (%safe-slot v sn)))))
+                 (nconc
+                  (loop for s in column-slots
+                        for sn = (closer-mop:slot-definition-name s)
+                        unless (%slot-omitted-p cls-name sn)
+                        collect (%slot-keyword sn)
+                        and collect (flatten-trace-value (%safe-slot v sn)))
+                  (loop for s in extra-slots
+                        for sn = (closer-mop:slot-definition-name s)
+                        unless (%slot-omitted-p cls-name sn)
+                        collect (%slot-keyword sn)
+                        and collect (flatten-trace-value (%safe-slot v sn))))))
         (call-next-method))))
 
 (defun flatten-args (args)

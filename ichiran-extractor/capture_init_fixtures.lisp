@@ -4,7 +4,11 @@
 ;;; Wave 112 (get-kana-form) is the canonical case: ~25 deterministic
 ;;; calls inside load-kf, never fired by runtime romanize*. The
 ;;; corpus-driven extractor pool can't see them because the pool's own
-;;; init runs before any /install request lands.
+;;; init runs before any /install request lands. Wave 122-150 added
+;;; get-kana-forms (125), get-kana-forms* (124), and
+;;; get-kana-forms-conj-data-filter (123) — same path: every load-conjs
+;;; callsite drives one get-kana-forms call, which fans out into the
+;;; other two.
 ;;;
 ;;; Usage:
 ;;;   sbcl --core ichiran.core --noinform --non-interactive \
@@ -20,8 +24,14 @@
 (load (merge-pathnames "trace_capture.lisp" *load-pathname*))
 (load (merge-pathnames "projectors.lisp" *load-pathname*))
 
-(let ((dao-1-fn (symbol-function (find-symbol "DAO-ROW-OR-NIL" :ichi-projectors))))
-  (ichi-trace:install "ICHIRAN/DICT::GET-KANA-FORM" :result-projector dao-1-fn))
+;; Default projectors (T = use ichi-projectors:flatten-trace-value)
+;; cover DAOs and structs uniformly since the 2026-05-05 refactor of
+;; projectors.lisp; no per-FQN projector glue needed.
+(ichi-trace:install-many
+ '("ICHIRAN/DICT::GET-KANA-FORM"
+   "ICHIRAN/DICT::GET-KANA-FORMS"
+   "ICHIRAN/DICT::GET-KANA-FORMS*"
+   "ICHIRAN/DICT::GET-KANA-FORMS-CONJ-DATA-FILTER"))
 
 (handler-case
     (postmodern:with-connection ichiran/conn:*connection*

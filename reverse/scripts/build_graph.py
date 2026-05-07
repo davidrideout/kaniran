@@ -2,13 +2,35 @@
 """
 Parse the auto-generated *.md files under reverse/ into two normalized CSVs:
 
-  symbols.csv  fqn, name, package, file, line, kind, status, reason
+  symbols.csv  fqn, name, package, file, line, kind, status, reason,
+               extracted, audited
   edges.csv    caller_fqn, callee_fqn, resolved, origin
 
 The `reason` column captures *why* a symbol is off-the-books (e.g. why a
 `skip` was chosen over `pending`). Free-form text; empty for pending /
 ported rows. build_graph.py wipes both `status` and `reason` on every
 run — commit symbols.csv first or re-record via `query.py mark --reason`.
+
+The `extracted` and `audited` columns track parallel workstreams and
+survive build_graph.py rebuilds — they reflect on-disk parquet artifacts
+and audit-binary results that don't change just because the introspector
+reran:
+
+  extracted  which extraction driver produced fixtures for this fn
+             (e.g. "tatoeba", "init-suffixes", "conj-probe"). Set by
+             `query.py extracted`.
+  audited    pass-rate from the canonical
+                tatoeba → parquet → audit_fixtures / audit_dict_fixtures
+             pipeline. RESERVED for that pipeline only — captures from
+             non-tatoeba drivers (init-suffixes, synthetic probes,
+             one-shot scripts) get `extracted` but never `audited`.
+             Format "P/T" (or "P/T (F fail)" if P < T). Set by
+             `query.py audited`.
+
+Populator ports (no-conj-data, is-arch, counter-cache, suffix-cache,
+init-suffixes-thread, etc.) are verified via cache-cardinality
+cross-check (`cache_inspect`); their `extracted` / `audited` columns
+stay empty.
 
 The `origin` column on edges.csv records which extraction pass found the
 edge: `runtime` (SBCL who-calls — function-call edges only), `source`
@@ -327,6 +349,8 @@ def parse_md(path: Path) -> tuple[dict, list[str], list[str]] | None:
             "kind": kind_out,
             "status": "pending",
             "reason": "",
+            "extracted": "",
+            "audited": "",
         },
         deps,
         source_walk_deps,
@@ -468,13 +492,30 @@ def main() -> int:
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Preserve `extracted` / `audited` across rebuilds — they reflect
+    # parquet artifacts on disk + audit-binary runs that don't change
+    # when the introspector reruns. `status` and `reason` still reset
+    # per the documented behaviour at the top of this file.
+    prior_workstream: dict[str, dict[str, str]] = {}
+    if SYMBOLS_CSV.exists():
+        with SYMBOLS_CSV.open(encoding="utf-8") as fh:
+            for r in csv.DictReader(fh):
+                prior_workstream[r["fqn"]] = {
+                    "extracted": r.get("extracted", "") or "",
+                    "audited":   r.get("audited", "")   or "",
+                }
+
+    fieldnames = [
+        "fqn", "name", "package", "file", "line", "kind",
+        "status", "reason", "extracted", "audited",
+    ]
     with SYMBOLS_CSV.open("w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(
-            fh,
-            fieldnames=["fqn", "name", "package", "file", "line", "kind", "status", "reason"],
-        )
+        w = csv.DictWriter(fh, fieldnames=fieldnames)
         w.writeheader()
         for r in sorted(rows, key=lambda r: r["fqn"]):
+            prior = prior_workstream.get(r["fqn"], {})
+            r["extracted"] = prior.get("extracted", "")
+            r["audited"]   = prior.get("audited", "")
             w.writerow(r)
 
     with EDGES_CSV.open("w", newline="", encoding="utf-8") as fh:

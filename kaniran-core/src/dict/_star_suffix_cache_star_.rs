@@ -8,35 +8,29 @@
 //! (Lisp `(cons new old)` / `(list new old)` chains assembled inside
 //! `update-suffix-cache`).
 //!
+//! Populated eagerly during [`KaniranContext::from_url`] by
+//! [`super::init_suffixes_thread::build_suffix_caches`] (wave 126).
+//! Owned as a plain field on [`KaniranContext`]; accessor returns
+//! a borrowed reference for read-only callers.
+//!
 //! ## Value-list shape
 //!
 //! - `class_keyword` is the Lisp suffix class (`:teiru`, `:te`,
-//!   `:iru`, `:ha`, `:chau`, …). Carried as `String` for now — the
-//!   set is open relative to what the consumers/populator have
-//!   exposed; collapses to a closed enum once
-//!   [`init_suffixes_thread`] (wave ~169) and the
-//!   `def-simple-suffix` callsites are ported.
+//!   `:iru`, `:ha`, `:chau`, …). Carried as `String`; the closed enum
+//!   collapse waits on the `def-simple-suffix` callsite ports.
 //! - The optional kana-form row references a [`KanaText`] DAO row.
 //!   `None` corresponds to the `load-abbr` callsite shape `(list key
 //!   nil)` (abbreviated forms with no source row).
 //!
-//! ## Storage
-//!
-//! `OnceLock`-backed for now per memory `feedback_no_oncelock`. The
-//! upstream is a `def-conn-var` (per-connection-rebound global)
-//! initialised to `nil` and populated on first connection by
-//! `init-suffixes-thread`. The Rust equivalent is a per-`Inner`
-//! `OnceCell` field; migration is mechanical when `KaniranContext::Inner`
-//! lands (memory `project_kaniran_context_caches`).
-//!
-//! The registry is currently empty — the populator has not been ported.
+//! [`KaniranContext`]: crate::conn::kani_context::KaniranContext
+//! [`KaniranContext::from_url`]: crate::conn::kani_context::KaniranContext::from_url
 
+use crate::conn::kani_context::KaniranContext;
 use crate::dict::kana_text_dao::KanaText;
 use std::collections::HashMap;
-use std::sync::OnceLock;
 
-/// Borrow the per-text suffix registry.
-pub fn suffix_cache() -> &'static HashMap<String, Vec<(String, Option<KanaText>)>> {
-    static MAP: OnceLock<HashMap<String, Vec<(String, Option<KanaText>)>>> = OnceLock::new();
-    MAP.get_or_init(HashMap::new)
+pub type SuffixCache = HashMap<String, Vec<(String, Option<KanaText>)>>;
+
+pub fn suffix_cache(ctx: &KaniranContext) -> &SuffixCache {
+    &ctx.suffix_cache
 }
