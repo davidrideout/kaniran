@@ -549,36 +549,6 @@
     "ftype": "(function (t t t) *)",
     "docstring": null
   },
-  "ichiran/custom:copy-municipality": {
-    "name": "copy-municipality",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 142,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::municipality) (values ichiran/custom::municipality &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:copy-ward": {
-    "name": "copy-ward",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 274,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::ward) (values ichiran/custom::ward &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:copy-xml-entry": {
-    "name": "copy-xml-entry",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 61,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::xml-entry) (values ichiran/custom::xml-entry &optional))",
-    "docstring": null
-  },
   "ichiran/custom:get-custom-data": {
     "name": "get-custom-data",
     "package": "ichiran/custom",
@@ -629,76 +599,6 @@
     "ftype": "(function (&optional t t) (values null &optional))",
     "docstring": null
   },
-  "ichiran/custom:make-municipality": {
-    "name": "make-municipality",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 142,
-    "kind": "fn",
-    "lambda_list": "(&key ((:text #:text) nil) ((:reading #:reading) nil) ((:definition #:definition) nil) ((:type #:type) nil) ((:prefecture #:prefecture) nil))",
-    "ftype": "(function (&key (:text t) (:reading t) (:definition t) (:type t) (:prefecture t)) (values ichiran/custom::municipality &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:make-ward": {
-    "name": "make-ward",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 274,
-    "kind": "fn",
-    "lambda_list": "(&key ((:text #:text) nil) ((:reading #:reading) nil) ((:definition #:definition) nil) ((:city #:city) nil))",
-    "ftype": "(function (&key (:text t) (:reading t) (:definition t) (:city t)) (values ichiran/custom::ward &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:make-xml-entry": {
-    "name": "make-xml-entry",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 61,
-    "kind": "fn",
-    "lambda_list": "(&key ((:seq #:seq) nil) ((:content #:content) nil))",
-    "ftype": "(function (&key (:seq t) (:content t)) (values ichiran/custom::xml-entry &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:municipality-definition": {
-    "name": "municipality-definition",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 142,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::municipality) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:municipality-p": {
-    "name": "municipality-p",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 142,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel::object)",
-    "ftype": "(function (t) (values boolean &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:municipality-prefecture": {
-    "name": "municipality-prefecture",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 142,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::municipality) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:municipality-reading": {
-    "name": "municipality-reading",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 142,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::municipality) (values t &optional))",
-    "docstring": null
-  },
   "ichiran/custom:municipality-short": {
     "name": "municipality-short",
     "package": "ichiran/custom",
@@ -707,26 +607,6 @@
     "kind": "fn",
     "lambda_list": "(s-sql:text ichiran/custom::reading)",
     "ftype": "(function (t t) (values cons &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:municipality-text": {
-    "name": "municipality-text",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 142,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::municipality) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:municipality-type": {
-    "name": "municipality-type",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 142,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::municipality) (values t &optional))",
     "docstring": null
   },
   "ichiran/custom:normalize-geo": {
@@ -808,86 +688,6 @@
     "lambda_list": "(ichiran/custom::source ichiran/custom::entry ichiran/custom::seq ichiran/custom::gloss)",
     "ftype": null,
     "docstring": "Update entry gloss in database"
-  },
-  "ichiran/custom:ward-city": {
-    "name": "ward-city",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 274,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::ward) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:ward-definition": {
-    "name": "ward-definition",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 274,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::ward) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:ward-p": {
-    "name": "ward-p",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 274,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel::object)",
-    "ftype": "(function (t) (values boolean &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:ward-reading": {
-    "name": "ward-reading",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 274,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::ward) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:ward-text": {
-    "name": "ward-text",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 274,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::ward) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:xml-entry-content": {
-    "name": "xml-entry-content",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 61,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::xml-entry) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:xml-entry-p": {
-    "name": "xml-entry-p",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 61,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel::object)",
-    "ftype": "(function (t) (values boolean &optional))",
-    "docstring": null
-  },
-  "ichiran/custom:xml-entry-seq": {
-    "name": "xml-entry-seq",
-    "package": "ichiran/custom",
-    "file": "dict-custom.lisp",
-    "line": 61,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/custom::xml-entry) (values t &optional))",
-    "docstring": null
   },
   "ichiran/dict:abbr-beba": {
     "name": "abbr-beba",
@@ -1419,66 +1219,6 @@
     "ftype": "(function (t t) (values t &optional))",
     "docstring": null
   },
-  "ichiran/dict:conj-data-from": {
-    "name": "conj-data-from",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 325,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conj-data) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:conj-data-p": {
-    "name": "conj-data-p",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 325,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel::object)",
-    "ftype": "(function (t) (values boolean &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:conj-data-prop": {
-    "name": "conj-data-prop",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 325,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conj-data) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:conj-data-seq": {
-    "name": "conj-data-seq",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 325,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conj-data) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:conj-data-src-map": {
-    "name": "conj-data-src-map",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 325,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conj-data) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:conj-data-via": {
-    "name": "conj-data-via",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 325,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conj-data) (values t &optional))",
-    "docstring": null
-  },
   "ichiran/dict:conj-info-json": {
     "name": "conj-info-json",
     "package": "ichiran/dict",
@@ -1569,16 +1309,6 @@
     "ftype": "(function (t t) (values list &optional))",
     "docstring": null
   },
-  "ichiran/dict:conjugation-rule-p": {
-    "name": "conjugation-rule-p",
-    "package": "ichiran/dict",
-    "file": "dict-load.lisp",
-    "line": 260,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel::object)",
-    "ftype": "(function (t) (values boolean &optional))",
-    "docstring": null
-  },
   "ichiran/dict:construct-conjugation": {
     "name": "construct-conjugation",
     "package": "ichiran/dict",
@@ -1587,66 +1317,6 @@
     "kind": "fn",
     "lambda_list": "(ichiran/dict::word ichiran/dict::rule)",
     "ftype": "(function (t t) (values (simple-array character (*)) &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:copy-conj-data": {
-    "name": "copy-conj-data",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 325,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conj-data) (values ichiran/dict::conj-data &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:copy-conjugation-rule": {
-    "name": "copy-conjugation-rule",
-    "package": "ichiran/dict",
-    "file": "dict-load.lisp",
-    "line": 260,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conjugation-rule) (values ichiran/dict::conjugation-rule &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:copy-segment": {
-    "name": "copy-segment",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 674,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment) (values ichiran/dict::segment &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:copy-segment-list": {
-    "name": "copy-segment-list",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 1038,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment-list) (values ichiran/dict::segment-list &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:copy-synergy": {
-    "name": "copy-synergy",
-    "package": "ichiran/dict",
-    "file": "dict-grammar.lisp",
-    "line": 727,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::synergy) (values ichiran/dict::synergy &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:copy-top-array-item": {
-    "name": "copy-top-array-item",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 1138,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::top-array-item) (values ichiran/dict::top-array-item &optional))",
     "docstring": null
   },
   "ichiran/dict:counter-join": {
@@ -1658,96 +1328,6 @@
     "lambda_list": "(ichiran/dict::counter ichiran/dict::n ichiran/dict::number-kana ichiran/dict::counter-kana)",
     "ftype": null,
     "docstring": "Construct counter kana text"
-  },
-  "ichiran/dict:cr-conj": {
-    "name": "cr-conj",
-    "package": "ichiran/dict",
-    "file": "dict-load.lisp",
-    "line": 260,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conjugation-rule) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:cr-euphk": {
-    "name": "cr-euphk",
-    "package": "ichiran/dict",
-    "file": "dict-load.lisp",
-    "line": 260,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conjugation-rule) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:cr-euphr": {
-    "name": "cr-euphr",
-    "package": "ichiran/dict",
-    "file": "dict-load.lisp",
-    "line": 260,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conjugation-rule) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:cr-fml": {
-    "name": "cr-fml",
-    "package": "ichiran/dict",
-    "file": "dict-load.lisp",
-    "line": 260,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conjugation-rule) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:cr-neg": {
-    "name": "cr-neg",
-    "package": "ichiran/dict",
-    "file": "dict-load.lisp",
-    "line": 260,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conjugation-rule) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:cr-okuri": {
-    "name": "cr-okuri",
-    "package": "ichiran/dict",
-    "file": "dict-load.lisp",
-    "line": 260,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conjugation-rule) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:cr-onum": {
-    "name": "cr-onum",
-    "package": "ichiran/dict",
-    "file": "dict-load.lisp",
-    "line": 260,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conjugation-rule) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:cr-pos": {
-    "name": "cr-pos",
-    "package": "ichiran/dict",
-    "file": "dict-load.lisp",
-    "line": 260,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conjugation-rule) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:cr-stem": {
-    "name": "cr-stem",
-    "package": "ichiran/dict",
-    "file": "dict-load.lisp",
-    "line": 260,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::conjugation-rule) (values t &optional))",
-    "docstring": null
   },
   "ichiran/dict:csv-hash": {
     "name": "csv-hash",
@@ -2579,16 +2159,6 @@
     "ftype": "(function (t) *)",
     "docstring": null
   },
-  "ichiran/dict:get-kana": {
-    "name": "get-kana",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 0,
-    "kind": "gf",
-    "lambda_list": "(ichiran/dict::obj)",
-    "ftype": null,
-    "docstring": "most popular kana representation"
-  },
   "ichiran/dict:get-kana-form": {
     "name": "get-kana-form",
     "package": "ichiran/dict",
@@ -3159,46 +2729,6 @@
     "ftype": "(function (&key (:from t)) (values null &optional))",
     "docstring": null
   },
-  "ichiran/dict:make-conj-data": {
-    "name": "make-conj-data",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 325,
-    "kind": "fn",
-    "lambda_list": "(&key ((:seq #:seq) nil) ((:from #:from) nil) ((:via #:via) nil) ((:prop #:prop) nil) ((:src-map #:src-map) nil))",
-    "ftype": "(function (&key (:seq t) (:from t) (:via t) (:prop t) (:src-map t)) (values ichiran/dict::conj-data &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:make-conjugation-rule": {
-    "name": "make-conjugation-rule",
-    "package": "ichiran/dict",
-    "file": "dict-load.lisp",
-    "line": 260,
-    "kind": "fn",
-    "lambda_list": "(ichiran/dict::pos ichiran/dict::conj ichiran/dict::neg ichiran/dict::fml ichiran/dict::onum ichiran/dict::stem ichiran/dict::okuri ichiran/dict::euphr ichiran/dict::euphk)",
-    "ftype": "(function (t t t t t t t t t) (values ichiran/dict::conjugation-rule &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:make-segment": {
-    "name": "make-segment",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 674,
-    "kind": "fn",
-    "lambda_list": "(&key ((:start #:start) nil) ((:end #:end) nil) ((:word #:word) nil) ((:score #:score) nil) ((:info #:info) nil) ((:top #:top) nil) ((:text #:text) nil))",
-    "ftype": "(function (&key (:start t) (:end t) (:word t) (:score t) (:info t) (:top t) (:text t)) (values ichiran/dict::segment &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:make-segment-list": {
-    "name": "make-segment-list",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 1038,
-    "kind": "fn",
-    "lambda_list": "(&key ((:segments #:segments) nil) ((:start #:start) nil) ((:end #:end) nil) ((:top #:top) nil) ((:matches #:matches) 0))",
-    "ftype": "(function (&key (:segments t) (:start t) (:end t) (:top t) (:matches t)) (values ichiran/dict::segment-list &optional))",
-    "docstring": null
-  },
   "ichiran/dict:make-segment-list-from": {
     "name": "make-segment-list-from",
     "package": "ichiran/dict",
@@ -3217,26 +2747,6 @@
     "kind": "fn",
     "lambda_list": null,
     "ftype": "(function nil (values (and (vector character) (not simple-array)) &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:make-synergy": {
-    "name": "make-synergy",
-    "package": "ichiran/dict",
-    "file": "dict-grammar.lisp",
-    "line": 727,
-    "kind": "fn",
-    "lambda_list": "(&key ((:description #:description) nil) ((:connector #:connector) nil) ((:score #:score) nil) ((:start #:start) nil) ((:end #:end) nil))",
-    "ftype": "(function (&key (:description t) (:connector t) (:score t) (:start t) (:end t)) (values ichiran/dict::synergy &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:make-top-array-item": {
-    "name": "make-top-array-item",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 1138,
-    "kind": "fn",
-    "lambda_list": "(&key ((:score #:score) nil) ((:payload #:payload) nil))",
-    "ftype": "(function (&key (:score t) (:payload t)) (values ichiran/dict::top-array-item &optional))",
     "docstring": null
   },
   "ichiran/dict:map-word-info-kana": {
@@ -3747,146 +3257,6 @@
     "kind": "fn",
     "lambda_list": "(ichiran/dict::l ichiran/dict::r)",
     "ftype": "(function (t t) (values list &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-end": {
-    "name": "segment-end",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 674,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-info": {
-    "name": "segment-info",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 674,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-list-end": {
-    "name": "segment-list-end",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 1038,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment-list) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-list-matches": {
-    "name": "segment-list-matches",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 1038,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment-list) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-list-p": {
-    "name": "segment-list-p",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 1038,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel::object)",
-    "ftype": "(function (t) (values boolean &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-list-segments": {
-    "name": "segment-list-segments",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 1038,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment-list) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-list-start": {
-    "name": "segment-list-start",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 1038,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment-list) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-list-top": {
-    "name": "segment-list-top",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 1038,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment-list) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-p": {
-    "name": "segment-p",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 674,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel::object)",
-    "ftype": "(function (t) (values boolean &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-score": {
-    "name": "segment-score",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 674,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-start": {
-    "name": "segment-start",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 674,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-text": {
-    "name": "segment-text",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 674,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-top": {
-    "name": "segment-top",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 674,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:segment-word": {
-    "name": "segment-word",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 674,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::segment) (values t &optional))",
     "docstring": null
   },
   "ichiran/dict:select-conjs": {
@@ -6259,36 +5629,6 @@
     "ftype": "(function (t t t) (values list &optional))",
     "docstring": null
   },
-  "ichiran/dict:synergy-connector": {
-    "name": "synergy-connector",
-    "package": "ichiran/dict",
-    "file": "dict-grammar.lisp",
-    "line": 727,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::synergy) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:synergy-description": {
-    "name": "synergy-description",
-    "package": "ichiran/dict",
-    "file": "dict-grammar.lisp",
-    "line": 727,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::synergy) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:synergy-end": {
-    "name": "synergy-end",
-    "package": "ichiran/dict",
-    "file": "dict-grammar.lisp",
-    "line": 727,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::synergy) (values t &optional))",
-    "docstring": null
-  },
   "ichiran/dict:synergy-kanji-prefix": {
     "name": "synergy-kanji-prefix",
     "package": "ichiran/dict",
@@ -6379,26 +5719,6 @@
     "ftype": "(function (t t) (values list &optional))",
     "docstring": null
   },
-  "ichiran/dict:synergy-p": {
-    "name": "synergy-p",
-    "package": "ichiran/dict",
-    "file": "dict-grammar.lisp",
-    "line": 727,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel::object)",
-    "ftype": "(function (t) (values boolean &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:synergy-score": {
-    "name": "synergy-score",
-    "package": "ichiran/dict",
-    "file": "dict-grammar.lisp",
-    "line": 727,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::synergy) (values t &optional))",
-    "docstring": null
-  },
   "ichiran/dict:synergy-shicha-ikenai": {
     "name": "synergy-shicha-ikenai",
     "package": "ichiran/dict",
@@ -6427,16 +5747,6 @@
     "kind": "fn",
     "lambda_list": "(ichiran/dict::l ichiran/dict::r)",
     "ftype": "(function (t t) (values list &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:synergy-start": {
-    "name": "synergy-start",
-    "package": "ichiran/dict",
-    "file": "dict-grammar.lisp",
-    "line": 727,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::synergy) (values t &optional))",
     "docstring": null
   },
   "ichiran/dict:synergy-suffix-buri": {
@@ -6489,26 +5799,6 @@
     "ftype": "(function (t t) (values list &optional))",
     "docstring": null
   },
-  "ichiran/dict:tai-payload": {
-    "name": "tai-payload",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 1138,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::top-array-item) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:tai-score": {
-    "name": "tai-score",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 1138,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran/dict::top-array-item) (values t &optional))",
-    "docstring": null
-  },
   "ichiran/dict:te-check": {
     "name": "te-check",
     "package": "ichiran/dict",
@@ -6537,16 +5827,6 @@
     "kind": "fn",
     "lambda_list": "(ichiran/dict::prop ichiran/dict::forms)",
     "ftype": "(function (t t) (values boolean &optional))",
-    "docstring": null
-  },
-  "ichiran/dict:top-array-item-p": {
-    "name": "top-array-item-p",
-    "package": "ichiran/dict",
-    "file": "dict.lisp",
-    "line": 1138,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel::object)",
-    "ftype": "(function (t) (values boolean &optional))",
     "docstring": null
   },
   "ichiran/dict:translate-hint-position": {
@@ -7249,26 +6529,6 @@
     "ftype": "(function (t) (values sequence &optional))",
     "docstring": null
   },
-  "ichiran:copy-kana-representation": {
-    "name": "copy-kana-representation",
-    "package": "ichiran",
-    "file": "deromanize.lisp",
-    "line": 21,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran::kana-representation) (values ichiran::kana-representation &optional))",
-    "docstring": null
-  },
-  "ichiran:copy-rmap-item": {
-    "name": "copy-rmap-item",
-    "package": "ichiran",
-    "file": "deromanize.lisp",
-    "line": 3,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran::rmap-item) (values ichiran::rmap-item &optional))",
-    "docstring": null
-  },
   "ichiran:get-character-classes": {
     "name": "get-character-classes",
     "package": "ichiran",
@@ -7319,36 +6579,6 @@
     "ftype": "(function (t) (values simple-string &optional))",
     "docstring": null
   },
-  "ichiran:kana-representation-p": {
-    "name": "kana-representation-p",
-    "package": "ichiran",
-    "file": "deromanize.lisp",
-    "line": 21,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel::object)",
-    "ftype": "(function (t) (values boolean &optional))",
-    "docstring": null
-  },
-  "ichiran:kr-branch": {
-    "name": "kr-branch",
-    "package": "ichiran",
-    "file": "deromanize.lisp",
-    "line": 21,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran::kana-representation) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran:kr-canonical": {
-    "name": "kr-canonical",
-    "package": "ichiran",
-    "file": "deromanize.lisp",
-    "line": 21,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran::kana-representation) (values t &optional))",
-    "docstring": null
-  },
   "ichiran:kr-concat": {
     "name": "kr-concat",
     "package": "ichiran",
@@ -7357,26 +6587,6 @@
     "kind": "fn",
     "lambda_list": "(ichiran::kr1 ichiran::kr2)",
     "ftype": "(function (t t) (values ichiran::kana-representation &optional))",
-    "docstring": null
-  },
-  "ichiran:kr-pattern": {
-    "name": "kr-pattern",
-    "package": "ichiran",
-    "file": "deromanize.lisp",
-    "line": 21,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran::kana-representation) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran:kr-rest": {
-    "name": "kr-rest",
-    "package": "ichiran",
-    "file": "deromanize.lisp",
-    "line": 21,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran::kana-representation) (values t &optional))",
     "docstring": null
   },
   "ichiran:leftmost-atom": {
@@ -7397,26 +6607,6 @@
     "kind": "fn",
     "lambda_list": null,
     "ftype": "(function nil (values null &optional))",
-    "docstring": null
-  },
-  "ichiran:make-kana-representation": {
-    "name": "make-kana-representation",
-    "package": "ichiran",
-    "file": "deromanize.lisp",
-    "line": 21,
-    "kind": "fn",
-    "lambda_list": "(&key ((:canonical #:canonical) \"\") ((:pattern #:pattern) \"\") ((:rest #:rest) \"\") ((:branch #:branch) 0))",
-    "ftype": "(function (&key (:canonical t) (:pattern t) (:rest t) (:branch t)) (values ichiran::kana-representation &optional))",
-    "docstring": null
-  },
-  "ichiran:make-rmap-item": {
-    "name": "make-rmap-item",
-    "package": "ichiran",
-    "file": "deromanize.lisp",
-    "line": 3,
-    "kind": "fn",
-    "lambda_list": "(&key ((:text #:text) nil) ((:kana #:kana) nil) ((:next #:next) nil))",
-    "ftype": "(function (&key (:text t) (:kana t) (:next t)) (values ichiran::rmap-item &optional))",
     "docstring": null
   },
   "ichiran:possible-long-vowel-p": {
@@ -7488,46 +6678,6 @@
     "lambda_list": "(method ichiran::word)",
     "ftype": null,
     "docstring": "Romanize words that are exceptions, return nil otherwise"
-  },
-  "ichiran:rmap-item-p": {
-    "name": "rmap-item-p",
-    "package": "ichiran",
-    "file": "deromanize.lisp",
-    "line": 3,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel::object)",
-    "ftype": "(function (t) (values boolean &optional))",
-    "docstring": null
-  },
-  "ichiran:rmi-kana": {
-    "name": "rmi-kana",
-    "package": "ichiran",
-    "file": "deromanize.lisp",
-    "line": 3,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran::rmap-item) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran:rmi-next": {
-    "name": "rmi-next",
-    "package": "ichiran",
-    "file": "deromanize.lisp",
-    "line": 3,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran::rmap-item) (values t &optional))",
-    "docstring": null
-  },
-  "ichiran:rmi-text": {
-    "name": "rmi-text",
-    "package": "ichiran",
-    "file": "deromanize.lisp",
-    "line": 3,
-    "kind": "fn",
-    "lambda_list": "(sb-kernel:instance)",
-    "ftype": "(function (ichiran::rmap-item) (values t &optional))",
-    "docstring": null
   },
   "ichiran:romaji-kana": {
     "name": "romaji-kana",

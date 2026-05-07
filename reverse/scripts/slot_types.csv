@@ -1,0 +1,8 @@
+struct_fqn,slot,target_fqn,note
+ichiran/dict:conj-data,prop,ichiran/dict:conj-prop,Option<ConjProp> via (make-conj-data ... :prop prop ...) at dict.lisp:364 where prop is from (select-dao 'conj-prop ...)
+ichiran/dict:segment-list,segments,ichiran/dict:segment,Vec<Segment> via (make-segment-list :segments (cull-segments sl) ...) at dict.lisp:1128
+ichiran/dict:segment-list,top,ichiran/dict:top-array,Option<TopArray> via (setf (segment-list-top ...) (make-instance 'top-array ...)) at dict.lisp:1197
+ichiran/dict:segment,top,ichiran/dict:top-array,Option<TopArray>; same shape as segment-list.top — used by the find-best-path scoring loop
+ichiran/dict:top-array,array,ichiran/dict:top-array-item,Vec<TopArrayItem> — Lisp slot is array-of-t but every register-item callsite stores top-array-items (dict.lisp:1151); Rust storage is typed
+ichiran/dict:top-array-item,payload,ichiran/dict:segment-list,Heterogeneous path list — register-item stores (segment-list | synergy) elements at dict.lisp:1151; the segment-list branch is the one fill-segment-path filters on (typep ... 'segment-list) at dict.lisp:1398
+ichiran/dict:top-array-item,payload,ichiran/dict:synergy,Same payload list also carries Synergy instances — get-seg-splits (dict.lisp:1175) calls get-penalties / get-synergies, both of which return (make-synergy ...) per the def-generic-penalty / defsynergy macro expansion at dict-grammar.lisp:981

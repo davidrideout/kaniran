@@ -96,7 +96,8 @@ The driver entrypoint is `(ichiran/test:run-all-tests)`.
   - `query.py audited <fqn>... --pass P --total T` tags pass-rate from the canonical tatoeba → parquet → audit_fixtures/audit_dict_fixtures pipeline. **Reserved for that pipeline only** — non-tatoeba captures (init-suffixes, one-shot probes, synthetic corpora) get `extracted` but `audited` stays empty by design. The command refuses if the row's `extracted` value isn't `tatoeba`.
   - Populator ports verified via cache-cardinality cross-check (`cache_inspect`) leave both columns empty — they're a different verification path.
   - Both columns render as extra `*[extracted: …]*` / `*[audited P/T]*` badges in `PORT_PLAN.md` next to the main status badge.
-- **Re-running `build_graph.py` resets `status` to `pending` and `reason` to empty for every row** (it overwrites the CSV); `extracted` and `audited` survive the rebuild because they reflect on-disk parquet artifacts. Commit before regenerating if you have un-committed status/reason marks.
+- **`build_graph.py` preserves all four state columns** (`status`, `reason`, `extracted`, `audited`) across rebuilds — none of them are introspector output. A symbol that disappears between runs loses its state (no row to hold it); a new symbol starts blank.
+- **Slot-type edges are hand-curated in `reverse/scripts/slot_types.csv`** to repair the introspector's blindspot for `t`-typed defstruct/defclass slots. Each row asserts `STRUCT.SLOT` holds `TARGET`, and emits a `STRUCT → TARGET` edge with origin `slot-type`. `build_graph.py` validates that the struct, slot, and target all exist and aborts on any typo. Add a row when you discover an unported type held in a slot — without it, the topo sort can rank the holder before the held type.
 - **Use `query.py` over hand-grepping the md files.** The dependency analysis is non-trivial (cycles, unresolved external refs) and the script handles it correctly.
 
 ## Tracer / sniffer
@@ -161,12 +162,13 @@ The committed artifact is **`reverse/scripts/divergences.md`** — sorted by FQN
 
 ## Things you might think are true but aren't
 
-- ❌ "There are 102 cycles in the graph." (Naive layer-walk artifact; Tarjan finds **2** real SCCs covering 4 symbols.)
+- ❌ "There are N cycles in the graph." (Tarjan finds the real SCCs — current count and member size are in the `# Port plan — …` header at the top of `PORT_PLAN.md`. Most are tiny; a handful are real type-recursion clusters surfaced by `slot_types.csv`.)
 - ❌ "Macros are untransliterable." (Most of the 36 macro leaves dissolve into Rust data tables or idioms; only ~6 need real thought.)
-- ❌ "build_graph.py preserves status or reason across runs." (It rewrites the file, resetting both. Commit first or re-mark via `query.py mark --reason ...`. The `extracted` and `audited` columns DO survive — they reflect on-disk parquets / audit-binary results that don't reset just because the introspector reran.)
+- ❌ "build_graph.py resets status / reason on every run." (It used to. Now it preserves all four state columns — `status`, `reason`, `extracted`, `audited` — across rebuilds. A symbol that disappears between runs loses its state; new symbols start with the parse_md defaults.)
 - ❌ "Plan ordering shifts between runs." (Fixed earlier — Tarjan uses sorted set iteration; output is byte-identical.)
 - ❌ "The Rust crate is TBD." (It exists at `kaniran-core/` with a working naming convention and fixture-replay infra. Bootstrapped, not populated.)
 - ❌ "Globals get loaded from the database at startup." (Verified false — every defparameter/defvar/defconstant initializer is in-memory only. Only `*reading-cache*` interacts with Postgres, and it does so lazily inside the function `get-readings-cache`.)
 - ❌ "We need to build a separate `trace_capture.lisp`." (It already exists at `ichiran-extractor/trace_capture.lisp`.)
 - ❌ "`reverse/` only covers functions." (Now covers 6 kinds — fn/macro/gf + struct/class/dao/global, plus 1 hand-written deftype and 1 define-condition.)
 - ❌ "kaniran is a port — adapt as needed." (No. Transliteration. Same shapes, same outputs, no improvements.)
+- ❌ "The introspector knows what each defstruct slot holds." (Slot types are `t` in CL; the introspector reports them as such. `reverse/scripts/slot_types.csv` is the hand-curated repair: each row asserts `STRUCT.SLOT → TARGET` and `build_graph.py` emits the corresponding `slot-type` edge so the topo sort treats holders as depending on what they hold. Add a row when you discover a missing one.)
