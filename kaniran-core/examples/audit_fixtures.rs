@@ -35,6 +35,7 @@ use kaniran_core::characters::to_normal_char::{to_normal_char, NormalizationCont
 use kaniran_core::dict::conj_data_prop::conj_data_prop;
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::conj_prop_dao::ConjProp;
+use kaniran_core::dict::get_digit::get_digit;
 use kaniran_core::dict::kani_conj_form::{ConjForm, FormToken};
 use kaniran_core::dict::make_conj_data::make_conj_data;
 use kaniran_core::dict::get_kana_forms_conj_data_filter::get_kana_forms_conj_data_filter;
@@ -76,6 +77,7 @@ fn handlers() -> BTreeMap<&'static str, Handler> {
     m.insert("ICHIRAN/DICT::TEST-CONJ-PROP",                 audit_test_conj_prop);
     m.insert("ICHIRAN/DICT::SKIP-BY-CONJ-DATA",              audit_skip_by_conj_data);
     m.insert("ICHIRAN/DICT::GET-KANA-FORMS-CONJ-DATA-FILTER",audit_get_kana_forms_conj_data_filter);
+    m.insert("ICHIRAN/DICT::GET-DIGIT",                      audit_get_digit);
     m
 }
 
@@ -273,6 +275,21 @@ fn audit_split_by_regex(args: &Sexp, expected: &Sexp) -> Result<(), String> {
         list_elems(inner)?.iter()
             .map(|v| v.as_str().map(String::from).ok_or_else(|| format!("token not string: {}", v)))
             .collect::<Result<_, _>>()?
+    };
+    if actual == exp { Ok(()) } else {
+        Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
+    }
+}
+
+fn audit_get_digit(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    let n = argv[0].as_i64().ok_or("arg 0 not int")?;
+    let actual = get_digit(n);
+    let exp_first = expect_one(expected)?;
+    let exp = if exp_first.is_nil() {
+        None
+    } else {
+        Some(exp_first.as_i64().ok_or("expected[0] not int/nil")?)
     };
     if actual == exp { Ok(()) } else {
         Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))

@@ -149,7 +149,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  140. `ichiran/dict:*kana-hint-space*`  — global, dict-split.lisp:814  *[ported]*
  141. `ichiran/dict:query-parents-kanji`  — fn, dict.lisp:400  *[extracted: tatoeba]*
  142. `ichiran/dict:best-kana-conj`  — fn, dict.lisp:428  *[extracted: tatoeba]*
- 143. `ichiran/dict:get-digit`  — fn, dict-counters.lisp:94  *[extracted: tatoeba]*
+ 143. `ichiran/dict:get-digit`  — fn, dict-counters.lisp:94  *[ported]*  *[extracted: tatoeba]*  *[audited 193/193]*
  144. `ichiran/numbers:*digit-to-kana*`  — global, numbers.lisp:25  *[ported]*
  145. `ichiran/numbers:*power-to-kana*`  — global, numbers.lisp:28  *[ported]*
  146. `ichiran/dict:counter-join`  — gf, dict-counters.lisp:0
@@ -165,10 +165,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  156. `ichiran/numbers:number-to-kanji`  — fn, numbers.lisp:35  *[ported]*
  157. `ichiran/numbers:number-to-kana`  — fn, numbers.lisp:125  *[ported]*
  158. **CYCLE (7 symbols — port together)**
-        - `ichiran/dict:compound-text`  — class, dict.lisp:608
+        - `ichiran/dict:compound-text`  — class, dict.lisp:608  *[ported]*
         - `ichiran/dict:get-hint`  — fn, dict-split.lisp:968
         - `ichiran/dict:get-kana`  — gf, dict.lisp:0
-        - `ichiran/dict:proxy-text`  — class, dict.lisp:550
+        - `ichiran/dict:proxy-text`  — class, dict.lisp:550  *[ported]*
         - `ichiran/dict:score-base`  — gf, dict.lisp:0
         - `ichiran/dict:true-text`  — gf, dict.lisp:0
         - `ichiran/dict:word-conj-data`  — gf, dict.lisp:0
