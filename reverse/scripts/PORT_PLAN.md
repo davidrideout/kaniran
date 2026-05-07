@@ -564,7 +564,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  497. `ichiran/dict:join-substring-words`  — fn, dict.lisp:1113
  498. `ichiran/dict:dict-segment`  — fn, dict.lisp:1451
  499. `ichiran/dict:simple-segment`  — fn, dict.lisp:1456
- 500. `ichiran/dict:gloss`  — dao, dict.lisp:178
+ 500. `ichiran/dict:gloss`  — dao, dict.lisp:178  *[ported]*
  501. `ichiran/dict:get-senses-raw`  — fn, dict.lisp:1458
  502. `ichiran/dict:get-senses`  — fn, dict.lisp:1487
  503. `ichiran/dict:get-senses-str`  — fn, dict.lisp:1495
@@ -687,7 +687,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  618. `ichiran/dict:conjugate-entry-outer`  — fn, dict-load.lisp:342
  619. `ichiran/dict:do-node-list-ord`  — macro, dict-load.lisp:26
  620. `ichiran/dict:node-text`  — fn, dict-load.lisp:14
- 621. `ichiran/dict:restricted-readings`  — dao, dict.lisp:221
+ 621. `ichiran/dict:restricted-readings`  — dao, dict.lisp:221  *[ported]*
  622. `ichiran/dict:insert-readings`  — fn, dict-load.lisp:32
  623. `ichiran/dict:insert-sense-traits`  — fn, dict-load.lisp:66
  624. `ichiran/dict:insert-senses`  — fn, dict-load.lisp:71
@@ -781,10 +781,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  712. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146
  713. `ichiran/dict:true-kana`  — gf, dict.lisp:0
  714. `ichiran/dict:true-kanji`  — gf, dict.lisp:0
- 715. `ichiran/kanji:reading`  — dao, kanji.lisp:42
+ 715. `ichiran/kanji:reading`  — dao, kanji.lisp:42  *[ported]*
  716. `ichiran/kanji:get-reading-alternatives`  — fn, kanji.lisp:216
  717. `ichiran/kanji:*reading-cache*`  — global, kanji.lisp:199
- 718. `ichiran/kanji:kanji`  — dao, kanji.lisp:10
+ 718. `ichiran/kanji:kanji`  — dao, kanji.lisp:10  *[ported]*
  719. `ichiran/kanji:get-readings-cache`  — fn, kanji.lisp:199
  720. `ichiran/kanji:get-normal-readings`  — fn, kanji.lisp:231
  721. `ichiran/kanji:make-rmap`  — fn, kanji.lisp:273
@@ -880,8 +880,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  809. `ichiran/kanji:get-original-reading`  — fn, kanji.lisp:308
  810. `ichiran/kanji:get-reading-stats`  — fn, kanji.lisp:399
  811. `ichiran/kanji:get-readings`  — fn, kanji.lisp:211
- 812. `ichiran/kanji:meaning`  — dao, kanji.lisp:83
- 813. `ichiran/kanji:okurigana`  — dao, kanji.lisp:67
+ 812. `ichiran/kanji:meaning`  — dao, kanji.lisp:83  *[ported]*
+ 813. `ichiran/kanji:okurigana`  — dao, kanji.lisp:67  *[ported]*
  814. `ichiran/kanji:init-tables`  — fn, kanji.lisp:98
  815. `ichiran:*hepburn-basic*`  — global, romanize.lisp:144
  816. `ichiran/kanji:reading-info-json`  — fn, kanji.lisp:354

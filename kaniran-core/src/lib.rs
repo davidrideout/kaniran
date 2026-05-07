@@ -13,5 +13,6 @@ pub mod characters;
 pub mod conn;
 pub mod core;
 pub mod dict;
+pub mod kanji;
 pub mod maintenance;
 pub mod numbers;
