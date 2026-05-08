@@ -47,3 +47,4 @@ Declared ftype: `(function
 - `ichiran/dict:sense-prop`
 - `ichiran/dict:seq`
 - `ichiran/dict:tag`
+- `ichiran/dict:text`

@@ -25,3 +25,4 @@ Declared ftype: `(function nil (values null &optional))`
 - `ichiran/dict:sense-prop`
 - `ichiran/dict:seq`
 - `ichiran/dict:tag`
+- `ichiran/dict:text`

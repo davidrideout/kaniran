@@ -16,6 +16,7 @@ Declared ftype: `(function nil (values null &optional))`
 
 - `ichiran/characters:test-word`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 
 ## Source-walked references
 
@@ -25,3 +26,4 @@ Declared ftype: `(function nil (values null &optional))`
 - `ichiran/dict:nokanji`
 - `ichiran/dict:primary-nokanji`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

@@ -23,3 +23,4 @@ Declared ftype: `(function (t t) *)`
 - `ichiran/dict:kana-text`
 - `ichiran/dict:kanji-text`
 - `ichiran/dict:reading`
+- `ichiran/dict:text`

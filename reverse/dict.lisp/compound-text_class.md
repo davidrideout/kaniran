@@ -27,4 +27,5 @@
 - `ichiran/dict:primary`
 - `ichiran/dict:score-base`
 - `ichiran/dict:score-mod`
+- `ichiran/dict:text`
 - `ichiran/dict:words`

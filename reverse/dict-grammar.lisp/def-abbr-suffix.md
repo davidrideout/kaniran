@@ -28,3 +28,4 @@ _(none detected)_
 - `ichiran/dict:get-kana`
 - `ichiran/dict:proxy-text`
 - `ichiran/dict:simple-text`
+- `ichiran/dict:text`

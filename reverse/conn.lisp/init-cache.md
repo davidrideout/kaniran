@@ -29,6 +29,7 @@ _(none detected)_
 - `ichiran/characters:test-word`
 - `ichiran/dict:get-counter-readings`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 
 ### method ((EQL :IS-ARCH))
 

@@ -28,4 +28,5 @@ Declared ftype: `(function (t) *)`
 - `ichiran/dict:make-segment`
 - `ichiran/dict:make-segment-list`
 - `ichiran/dict:segment-list`
+- `ichiran/dict:text`
 - `ichiran/dict:word-info-from-segment-list`

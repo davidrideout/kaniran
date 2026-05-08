@@ -22,6 +22,7 @@ Declared ftype: `(function (t t) (values null &optional))`
 
 - `ichiran/characters:as-hiragana`
 - `ichiran/dict:node-text`
+- `ichiran/dict:text`
 - `ichiran/kanji:id`
 - `ichiran/kanji:kanji-id`
 - `ichiran/kanji:okurigana`

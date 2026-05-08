@@ -34,3 +34,4 @@ Declared ftype: `(function (t &optional t t) (values list &optional))`
 - `ichiran/dict:select-conjs`
 - `ichiran/dict:seq`
 - `ichiran/dict:seq-via`
+- `ichiran/dict:text`

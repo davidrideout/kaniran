@@ -20,4 +20,5 @@ _(none detected)_
 
 - `ichiran/dict:kana-text`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 - `ichiran/dict:word-conjugations`

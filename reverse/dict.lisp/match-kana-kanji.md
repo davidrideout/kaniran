@@ -16,8 +16,10 @@ Declared ftype: `(function (t t t) (values t &optional))`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:nokanji`
+- `ichiran/dict:text`
 
 ## Source-walked references
 
 - `ichiran/dict:kana-text`
 - `ichiran/dict:nokanji`
+- `ichiran/dict:text`

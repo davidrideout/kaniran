@@ -29,4 +29,5 @@ Declared ftype: `(function (t t t &key (:normalize t) (:update-gloss t))
 - `ichiran/dict:gloss`
 - `ichiran/dict:reading`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 - `ichiran/dict:words`

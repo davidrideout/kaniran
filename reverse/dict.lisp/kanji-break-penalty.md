@@ -29,3 +29,4 @@ Declared ftype: `(function
 - `ichiran/dict:calc-score`
 - `ichiran/dict:get-suffixes`
 - `ichiran/dict:score-mod`
+- `ichiran/dict:text`

@@ -22,3 +22,4 @@ Declared ftype: `(function (t &key (:sticky t)) (values hash-table &optional))`
 - `ichiran/dict:*max-word-length*`
 - `ichiran/dict:kana-text`
 - `ichiran/dict:kanji-text`
+- `ichiran/dict:text`

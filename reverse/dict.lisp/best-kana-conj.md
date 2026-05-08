@@ -21,6 +21,7 @@ Declared ftype: `(function (t) *)`
 - `ichiran/dict:best-kana-conj`
 - `ichiran/dict:query-parents-kanji`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 - `ichiran/dict:word-conjugations`
 
 ## Source-walked references
@@ -34,4 +35,5 @@ Declared ftype: `(function (t) *)`
 - `ichiran/dict:query-parents-kanji`
 - `ichiran/dict:seq`
 - `ichiran/dict:source-text`
+- `ichiran/dict:text`
 - `ichiran/dict:word-conjugations`

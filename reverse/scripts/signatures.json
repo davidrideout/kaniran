@@ -369,6 +369,16 @@
     "ftype": "(function nil (values t &optional))",
     "docstring": null
   },
+  "ichiran/conn:cache-name": {
+    "name": "cache-name",
+    "package": "ichiran/conn",
+    "file": "conn.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
+    "docstring": null
+  },
   "ichiran/conn:def-conn-var": {
     "name": "def-conn-var",
     "package": "ichiran/conn",
@@ -648,6 +658,16 @@
     "lambda_list": "(ichiran/custom::source)",
     "ftype": null,
     "docstring": "Read custom data from the source file"
+  },
+  "ichiran/custom:source-file": {
+    "name": "source-file",
+    "package": "ichiran/custom",
+    "file": "dict-custom.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
+    "docstring": null
   },
   "ichiran/custom:source-path": {
     "name": "source-path",
@@ -1209,6 +1229,26 @@
     "ftype": "(function (t t) (values list list &optional))",
     "docstring": null
   },
+  "ichiran/dict:common": {
+    "name": "common",
+    "package": "ichiran/dict",
+    "file": "dict-counters.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
+    "docstring": null
+  },
+  "ichiran/dict:common-tags": {
+    "name": "common-tags",
+    "package": "ichiran/dict",
+    "file": "dict.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
+    "docstring": null
+  },
   "ichiran/dict:compare-common": {
     "name": "compare-common",
     "package": "ichiran/dict",
@@ -1217,6 +1257,16 @@
     "kind": "fn",
     "lambda_list": "(ichiran/dict::c1 ichiran/dict::c2)",
     "ftype": "(function (t t) (values t &optional))",
+    "docstring": null
+  },
+  "ichiran/dict:conj-id": {
+    "name": "conj-id",
+    "package": "ichiran/dict",
+    "file": "dict.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
     "docstring": null
   },
   "ichiran/dict:conj-info-json": {
@@ -1299,6 +1349,16 @@
     "ftype": "(function (t &key (:via t) (:conj-types t) (:as-posi t)) (values null &optional))",
     "docstring": null
   },
+  "ichiran/dict:conjugate-p": {
+    "name": "conjugate-p",
+    "package": "ichiran/dict",
+    "file": "dict.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
+    "docstring": null
+  },
   "ichiran/dict:conjugate-word": {
     "name": "conjugate-word",
     "package": "ichiran/dict",
@@ -1328,6 +1388,16 @@
     "lambda_list": "(ichiran/dict::counter ichiran/dict::n ichiran/dict::number-kana ichiran/dict::counter-kana)",
     "ftype": null,
     "docstring": "Construct counter kana text"
+  },
+  "ichiran/dict:counter-text": {
+    "name": "counter-text",
+    "package": "ichiran/dict",
+    "file": "dict-counters.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
+    "docstring": null
   },
   "ichiran/dict:csv-hash": {
     "name": "csv-hash",
@@ -2159,6 +2229,16 @@
     "ftype": "(function (t) *)",
     "docstring": null
   },
+  "ichiran/dict:get-kana": {
+    "name": "get-kana",
+    "package": "ichiran/dict",
+    "file": "dict.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(ichiran/dict::obj)",
+    "ftype": null,
+    "docstring": "most popular kana representation"
+  },
   "ichiran/dict:get-kana-form": {
     "name": "get-kana-form",
     "package": "ichiran/dict",
@@ -2448,6 +2528,16 @@
     "lambda_list": "(ichiran/dict::obj)",
     "ftype": null,
     "docstring": "most popular text representation (kanji or kana)"
+  },
+  "ichiran/dict:id": {
+    "name": "id",
+    "package": "ichiran/dict",
+    "file": "dict.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
+    "docstring": null
   },
   "ichiran/dict:init-suffix-hashtables": {
     "name": "init-suffix-hashtables",
@@ -2829,6 +2919,16 @@
     "ftype": "(function (t &rest t &key (:test t)) (values (or list (simple-array * (*)) sb-kernel:extended-sequence) &optional))",
     "docstring": null
   },
+  "ichiran/dict:nokanji": {
+    "name": "nokanji",
+    "package": "ichiran/dict",
+    "file": "dict-counters.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
+    "docstring": null
+  },
   "ichiran/dict:optprefix": {
     "name": "optprefix",
     "package": "ichiran/dict",
@@ -2847,6 +2947,16 @@
     "kind": "fn",
     "lambda_list": "(ichiran/dict::fn ichiran/dict::word &rest ichiran/dict::args)",
     "ftype": "(function (t t &rest t) *)",
+    "docstring": null
+  },
+  "ichiran/dict:ord": {
+    "name": "ord",
+    "package": "ichiran/dict",
+    "file": "dict-counters.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
     "docstring": null
   },
   "ichiran/dict:ordinal-str": {
@@ -3289,6 +3399,26 @@
     "ftype": "(function (t t t) (values boolean &optional))",
     "docstring": null
   },
+  "ichiran/dict:sense-id": {
+    "name": "sense-id",
+    "package": "ichiran/dict",
+    "file": "dict.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
+    "docstring": null
+  },
+  "ichiran/dict:seq": {
+    "name": "seq",
+    "package": "ichiran/dict",
+    "file": "dict-counters.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
+    "docstring": null
+  },
   "ichiran/dict:set-common": {
     "name": "set-common",
     "package": "ichiran/dict",
@@ -3367,6 +3497,16 @@
     "kind": "fn",
     "lambda_list": "(ichiran/dict::conj-data)",
     "ftype": "(function (t) (values boolean &optional))",
+    "docstring": null
+  },
+  "ichiran/dict:source": {
+    "name": "source",
+    "package": "ichiran/dict",
+    "file": "dict-counters.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
     "docstring": null
   },
   "ichiran/dict:split-1000430": {
@@ -5829,6 +5969,36 @@
     "ftype": "(function (t t) (values boolean &optional))",
     "docstring": null
   },
+  "ichiran/dict:text": {
+    "name": "text",
+    "package": "ichiran/dict",
+    "file": "dict-counters.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(condition)",
+    "ftype": null,
+    "docstring": null
+  },
+  "ichiran/dict:to-json": {
+    "name": "to-json",
+    "package": "ichiran/dict",
+    "file": "writer.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(jsown::object)",
+    "ftype": null,
+    "docstring": "Writes the given object to json in a generic way."
+  },
+  "ichiran/dict:top-array": {
+    "name": "top-array",
+    "package": "ichiran/dict",
+    "file": "dict.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
+    "docstring": null
+  },
   "ichiran/dict:translate-hint-position": {
     "name": "translate-hint-position",
     "package": "ichiran/dict",
@@ -6099,6 +6269,16 @@
     "ftype": "(function (t t) (values t &optional))",
     "docstring": null
   },
+  "ichiran/kanji:id": {
+    "name": "id",
+    "package": "ichiran/kanji",
+    "file": "kanji.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
+    "docstring": null
+  },
   "ichiran/kanji:init-tables": {
     "name": "init-tables",
     "package": "ichiran/kanji",
@@ -6107,6 +6287,16 @@
     "kind": "fn",
     "lambda_list": null,
     "ftype": "(function nil (values null &optional))",
+    "docstring": null
+  },
+  "ichiran/kanji:kanji-id": {
+    "name": "kanji-id",
+    "package": "ichiran/kanji",
+    "file": "kanji.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
     "docstring": null
   },
   "ichiran/kanji:kanji-info-json": {
@@ -6247,6 +6437,16 @@
     "kind": "fn",
     "lambda_list": "(ichiran/kanji::reading ichiran/kanji::total)",
     "ftype": "(function (t t) (values t &optional))",
+    "docstring": null
+  },
+  "ichiran/kanji:stat-common": {
+    "name": "stat-common",
+    "package": "ichiran/kanji",
+    "file": "kanji.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(sb-pcl::object)",
+    "ftype": null,
     "docstring": null
   },
   "ichiran/kanji:to-json": {
@@ -6447,6 +6647,26 @@
     "kind": "fn",
     "lambda_list": "(ichiran/numbers::na &key (ichiran/numbers::start 0) (ichiran/numbers::end (length ichiran/numbers::na)))",
     "ftype": "(function (t &key (:start t) (:end t)) (values number &optional))",
+    "docstring": null
+  },
+  "ichiran/numbers:reason": {
+    "name": "reason",
+    "package": "ichiran/numbers",
+    "file": "numbers.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(condition)",
+    "ftype": null,
+    "docstring": null
+  },
+  "ichiran/numbers:text": {
+    "name": "text",
+    "package": "ichiran/numbers",
+    "file": "numbers.lisp",
+    "line": 0,
+    "kind": "gf",
+    "lambda_list": "(condition)",
+    "ftype": null,
     "docstring": null
   },
   "ichiran/test:assert-segment": {

@@ -14,6 +14,7 @@ Declared ftype: `(function (t t) (values t &optional))`
 
 ## Dependencies (ichiran symbols)
 
+- `ichiran/dict:text`
 - `ichiran/kanji:calculate-perc`
 - `ichiran/kanji:id`
 - `ichiran/kanji:prefixp`
@@ -25,6 +26,7 @@ Declared ftype: `(function (t t) (values t &optional))`
 ## Source-walked references
 
 - `ichiran/conn:*connection*`
+- `ichiran/dict:text`
 - `ichiran/kanji:calculate-perc`
 - `ichiran/kanji:id`
 - `ichiran/kanji:okurigana`

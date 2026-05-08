@@ -18,6 +18,7 @@ Declared ftype: `(function nil (values null &optional))`
 - `ichiran/cli:print-error`
 - `ichiran/cli:print-romanize-info`
 - `ichiran/conn:load-connection-from-env`
+- `ichiran/dict:to-json`
 - `ichiran:romanize`
 - `ichiran:romanize*`
 
@@ -28,5 +29,6 @@ Declared ftype: `(function nil (values null &optional))`
 - `ichiran/cli:print-romanize-info`
 - `ichiran/cli:unknown-option`
 - `ichiran/conn:load-connection-from-env`
+- `ichiran/dict:to-json`
 - `ichiran:romanize`
 - `ichiran:romanize*`

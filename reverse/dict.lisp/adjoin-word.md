@@ -62,4 +62,5 @@ _(none detected)_
 - `ichiran/dict:score-base`
 - `ichiran/dict:score-mod`
 - `ichiran/dict:simple-text`
+- `ichiran/dict:text`
 - `ichiran/dict:words`

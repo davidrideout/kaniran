@@ -19,5 +19,6 @@ Declared ftype: `(function (t) *)`
 ## Source-walked references
 
 - `ichiran/conn:*connection*`
+- `ichiran/dict:text`
 - `ichiran/kanji:kanji`
 - `ichiran/kanji:to-json`

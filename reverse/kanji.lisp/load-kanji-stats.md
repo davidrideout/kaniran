@@ -14,6 +14,7 @@ Declared ftype: `(function nil (values null &optional))`
 
 ## Dependencies (ichiran symbols)
 
+- `ichiran/dict:text`
 - `ichiran/kanji:id`
 - `ichiran/kanji:kanji-word-stats`
 - `ichiran/kanji:reading-type`
@@ -21,6 +22,7 @@ Declared ftype: `(function nil (values null &optional))`
 ## Source-walked references
 
 - `ichiran/conn:*connection*`
+- `ichiran/dict:text`
 - `ichiran/kanji:grade`
 - `ichiran/kanji:id`
 - `ichiran/kanji:kanji`

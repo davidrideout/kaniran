@@ -43,3 +43,4 @@
 - `ichiran/dict:number-value`
 - `ichiran/dict:ordinalp`
 - `ichiran/dict:source`
+- `ichiran/dict:text`

@@ -22,4 +22,5 @@ Declared ftype: `(function (t t &key (:include-type t))
 
 - `ichiran/custom:*municipality-types-description*`
 - `ichiran/custom:municipality-short`
+- `ichiran/dict:text`
 - `ichiran:romanize-word-geo`

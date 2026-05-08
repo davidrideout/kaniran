@@ -27,6 +27,7 @@
 
 ## Source-walked references
 
+- `ichiran/dict:text`
 - `ichiran/kanji:id`
 - `ichiran/kanji:kanji-id`
 - `ichiran/kanji:prefixp`

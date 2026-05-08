@@ -46,7 +46,7 @@ _(none detected)_
 
 **Dependencies:**
 
-_(none detected)_
+- `ichiran/dict:text`
 
 ### method (ICHIRAN/DICT::ENTRY)
 
@@ -57,6 +57,7 @@ _(none detected)_
 
 - `ichiran/dict:n-kanji`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 
 
 ## Source-walked references
@@ -70,4 +71,5 @@ _(none detected)_
 - `ichiran/dict:number-value`
 - `ichiran/dict:ord`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 - `ichiran/numbers:number-to-kanji`

@@ -22,3 +22,4 @@ Declared ftype: `(function (t) (values sequence &optional))`
 - `ichiran/dict:common`
 - `ichiran/dict:compare-common`
 - `ichiran/dict:kana-text`
+- `ichiran/dict:text`

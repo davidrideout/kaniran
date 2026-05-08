@@ -24,3 +24,4 @@ Declared ftype: `(function (t t t) *)`
 - `ichiran/dict:kanji-text`
 - `ichiran/dict:reset-readings`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

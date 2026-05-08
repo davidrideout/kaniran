@@ -17,9 +17,11 @@ Declared ftype: `(function (t t t t) (values null &optional))`
 
 - `ichiran/dict:reset-readings`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 
 ## Source-walked references
 
 - `ichiran/dict:conjugation`
 - `ichiran/dict:reset-readings`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

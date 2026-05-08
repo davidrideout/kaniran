@@ -21,5 +21,6 @@ Declared ftype: `(function (t t t t &key (:as t)) *)`
 
 - `ichiran/dict:reading`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 - `ichiran/dict:word-info`
 - `ichiran/dict:word-info-json`

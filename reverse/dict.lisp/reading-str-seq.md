@@ -23,3 +23,4 @@ Declared ftype: `(function (t) *)`
 - `ichiran/dict:ord`
 - `ichiran/dict:reading-str*`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

@@ -28,6 +28,7 @@ _(none detected)_
 
 - `ichiran/dict:segment-text`
 - `ichiran/dict:segment-word`
+- `ichiran/dict:text`
 
 ### method (ICHIRAN/DICT::ENTRY)
 
@@ -38,6 +39,7 @@ _(none detected)_
 
 - `ichiran/dict:n-kanji`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 
 ### method (T)
 
@@ -46,7 +48,7 @@ _(none detected)_
 
 **Dependencies:**
 
-_(none detected)_
+- `ichiran/dict:text`
 
 
 ## Source-walked references
@@ -60,3 +62,4 @@ _(none detected)_
 - `ichiran/dict:segment-text`
 - `ichiran/dict:segment-word`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

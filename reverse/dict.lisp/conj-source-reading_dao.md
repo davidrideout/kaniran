@@ -27,3 +27,4 @@
 - `ichiran/dict:conj-id`
 - `ichiran/dict:id`
 - `ichiran/dict:source-text`
+- `ichiran/dict:text`

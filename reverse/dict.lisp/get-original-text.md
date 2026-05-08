@@ -37,6 +37,7 @@ _(none detected)_
 **Dependencies:**
 
 - `ichiran/dict:get-original-text*`
+- `ichiran/dict:text`
 - `ichiran/dict:word-conj-data`
 - `ichiran/dict:word-type`
 
@@ -52,5 +53,6 @@ _(none detected)_
 - `ichiran/dict:seq`
 - `ichiran/dict:simple-text`
 - `ichiran/dict:source`
+- `ichiran/dict:text`
 - `ichiran/dict:word-conj-data`
 - `ichiran/dict:word-type`

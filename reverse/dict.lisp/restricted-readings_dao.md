@@ -27,3 +27,4 @@
 - `ichiran/dict:id`
 - `ichiran/dict:reading`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

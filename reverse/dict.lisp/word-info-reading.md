@@ -21,6 +21,7 @@ Declared ftype: `(function (t) (values t &optional))`
 
 - `ichiran/dict:kana-text`
 - `ichiran/dict:kanji-text`
+- `ichiran/dict:text`
 - `ichiran/dict:true-text`
 - `ichiran/dict:word-info`
 - `ichiran/dict:word-info-true-text`

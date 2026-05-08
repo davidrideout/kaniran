@@ -26,6 +26,7 @@ _(none detected)_
 
 **Dependencies:**
 
+- `ichiran/dict:text`
 - `ichiran/kanji:calculate-perc`
 - `ichiran/kanji:freq`
 - `ichiran/kanji:grade`
@@ -40,6 +41,7 @@ _(none detected)_
 
 ## Source-walked references
 
+- `ichiran/dict:text`
 - `ichiran/kanji:calculate-perc`
 - `ichiran/kanji:freq`
 - `ichiran/kanji:grade`

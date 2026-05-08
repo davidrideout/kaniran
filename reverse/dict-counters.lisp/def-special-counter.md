@@ -21,3 +21,4 @@ _(none detected)_
 
 - `ichiran/dict:*special-counters*`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

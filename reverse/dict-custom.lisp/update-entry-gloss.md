@@ -40,3 +40,4 @@ _(none detected)_
 - `ichiran/custom:municipality-definition`
 - `ichiran/custom:municipality-reading`
 - `ichiran/custom:municipality-text`
+- `ichiran/dict:text`

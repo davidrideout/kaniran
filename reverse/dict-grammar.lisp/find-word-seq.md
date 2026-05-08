@@ -22,3 +22,4 @@ Declared ftype: `(function (t &rest t) *)`
 - `ichiran/dict:kana-text`
 - `ichiran/dict:kanji-text`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

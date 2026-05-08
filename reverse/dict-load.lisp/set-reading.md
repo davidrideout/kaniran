@@ -29,6 +29,7 @@ _(none detected)_
 - `ichiran/dict:best-kanji`
 - `ichiran/dict:nokanji`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 
 ### method (ICHIRAN/DICT::KANJI-TEXT)
 
@@ -40,6 +41,7 @@ _(none detected)_
 - `ichiran/dict:best-kana`
 - `ichiran/dict:nokanji`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 
 
 ## Source-walked references
@@ -53,3 +55,4 @@ _(none detected)_
 - `ichiran/dict:reading`
 - `ichiran/dict:restricted-readings`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

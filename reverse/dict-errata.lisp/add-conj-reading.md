@@ -21,6 +21,7 @@ Declared ftype: `(function (t t) (values null &optional))`
 - `ichiran/dict:n-kanji`
 - `ichiran/dict:root-diff-fn`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 
 ## Source-walked references
 
@@ -40,3 +41,4 @@ Declared ftype: `(function (t t) (values null &optional))`
 - `ichiran/dict:root-diff-fn`
 - `ichiran/dict:seq`
 - `ichiran/dict:source-text`
+- `ichiran/dict:text`

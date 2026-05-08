@@ -14,10 +14,11 @@ Declared ftype: `(function (t t t) (values null &optional))`
 
 ## Dependencies (ichiran symbols)
 
-_(none detected)_
+- `ichiran/dict:text`
 
 ## Source-walked references
 
 - `ichiran/dict:id`
 - `ichiran/dict:ord`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

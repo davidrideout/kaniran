@@ -22,4 +22,5 @@ Declared ftype: `(function (t) (values t list &optional))`
 - `ichiran/dict:kana-text`
 - `ichiran/dict:kanji-text`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 - `ichiran:romanize-word`

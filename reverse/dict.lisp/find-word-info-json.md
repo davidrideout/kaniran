@@ -22,4 +22,5 @@ Declared ftype: `(function (t &key (:reading t) (:root-only t))
 
 - `ichiran/dict:find-word-info`
 - `ichiran/dict:reading`
+- `ichiran/dict:text`
 - `ichiran/dict:word-info-gloss-json`

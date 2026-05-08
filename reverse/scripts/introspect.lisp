@@ -66,6 +66,105 @@
 (defparameter *universe* (collect-universe))
 (format t ";; Universe size: ~a symbols~%" (hash-table-count *universe*))
 
+;;; --- Borrowed-gf extension ------------------------------------------------
+;;;
+;;; Some gfs called from ichiran code don't have an ichiran home package
+;;; — most importantly `text` (imported from `s-sql`) and a handful of
+;;; postmodern accessors. Ichiran extends these gfs via `:reader X`
+;;; slot options on its own classes plus explicit `(defmethod X ...)`
+;;; forms. The bare `do-symbols` over ichiran packages misses them
+;;; because their `symbol-package` is s-sql / postmodern / etc.,
+;;; leaving the call graph with a hole at every callsite.
+;;;
+;;; Fix: walk every gf in the image, and if any of its methods is
+;;; sourced inside the ichiran source tree, fold the symbol into
+;;; *universe*. The downstream pkg-prefix logic re-attributes the
+;;; printed fqn to the ichiran package that owns the specializer
+;;; class, so e.g. s-sql:text becomes ichiran/dict:text in the md /
+;;; symbols.csv.
+
+(defparameter *borrowed-gf-attribution* (make-hash-table :test 'eq)
+  "sym -> ichiran-package-name (string, downcased) for borrowed gfs
+   whose printed fqn should be re-attributed to the package owning
+   their first ichiran-class specializer.")
+
+(defun ichiran-source-pathname-p (path)
+  (and path
+       (let ((ns (namestring path)))
+         (and (search "ichiran" ns) t))))
+
+(defun gf-method-attribution-package (sym)
+  "Most-common ichiran-package among the gf's method first-specializer
+   classes. Tie-break alphabetical. Used to re-attribute borrowed gfs
+   so a multi-package gf (e.g. `text` with one method on kanji's
+   `meaning` and five on dict's word-family classes) lands in the
+   package that owns the bulk of its surface."
+  (let ((counts (make-hash-table :test 'equal))
+        (methods (handler-case
+                     (sb-mop:generic-function-methods (fdefinition sym))
+                   (error () nil))))
+    (dolist (m methods)
+      (let* ((specs (handler-case (sb-mop:method-specializers m)
+                      (error () nil)))
+             (spec0 (and specs (first specs)))
+             (cn (and spec0 (typep spec0 'class) (class-name spec0)))
+             (cpkg (and cn (symbol-package cn))))
+        (when (and cpkg (ichiran-package-p cpkg))
+          (let ((name (string-downcase (package-name cpkg))))
+            (incf (gethash name counts 0))))))
+    (let ((best nil) (best-count 0))
+      (loop for k being the hash-keys of counts
+            using (hash-value v)
+            do (when (or (> v best-count)
+                         (and (= v best-count)
+                              (or (null best) (string< k best))))
+                 (setf best k best-count v)))
+      best)))
+
+(defparameter *borrowed-gf-skip-packages*
+  '("COMMON-LISP" "SB-PCL" "SB-MOP" "SB-KERNEL" "SB-INT" "SB-SYS"
+    "SB-IMPL" "SB-EXT" "SB-C" "SB-DI" "SB-DEBUG" "SB-FORMAT")
+  "Symbol packages whose gfs are CL/SBCL system surface — even when
+   ichiran adds :after methods to (initialize-instance) or (print-object),
+   the gf itself is not part of ichiran's port surface, and its
+   `find-definition-source` points at a SBCL internal file like
+   GENERIC-FUNCTIONS.LISP that creates a spurious upper-case dir in
+   the output tree. Skip these — the ichiran methods are still
+   captured indirectly via the relevant class md's slot/initform info.")
+
+(defun cl-system-package-p (pkg)
+  (and pkg (member (package-name pkg) *borrowed-gf-skip-packages*
+                   :test #'string=)))
+
+(defun extend-universe-with-borrowed-gfs ()
+  (let ((added 0))
+    (do-all-symbols (sym)
+      (when (and (fboundp sym)
+                 (typep (fdefinition sym) 'standard-generic-function)
+                 (not (gethash sym *universe*))
+                 (let ((home (symbol-package sym)))
+                   (and home
+                        (not (ichiran-package-p home))
+                        (not (cl-system-package-p home))))
+                 (loop for m in (handler-case
+                                    (sb-mop:generic-function-methods (fdefinition sym))
+                                  (error () nil))
+                       thereis (let ((s (handler-case
+                                            (sb-introspect:find-definition-source m)
+                                          (error () nil))))
+                                 (ichiran-source-pathname-p
+                                  (and s (sb-introspect:definition-source-pathname s))))))
+        (let ((attrib (gf-method-attribution-package sym)))
+          (when attrib
+            (setf (gethash sym *universe*) t)
+            (setf (gethash sym *borrowed-gf-attribution*) attrib)
+            (incf added)))))
+    (format t ";; Extended universe with ~a borrowed gfs.~%" added)))
+
+(extend-universe-with-borrowed-gfs)
+(format t ";; Universe size after borrowed-gf extension: ~a symbols~%"
+        (hash-table-count *universe*))
+
 (defun has-any-definition-p (sym)
   "True if SYM is bound to at least one of: function, macro, generic
    function, global value, class (incl. condition / DAO / struct), or
@@ -144,11 +243,52 @@
 
 (defun safe-source-by-name (sym kind)
   (handler-case
-      (first (sb-introspect:find-definition-sources-by-name
-              sym (ecase kind
-                    (:function :function)
-                    (:generic :generic-function)
-                    (:macro :macro))))
+      (let ((primary (first (sb-introspect:find-definition-sources-by-name
+                             sym (ecase kind
+                                   (:function :function)
+                                   (:generic :generic-function)
+                                   (:macro :macro))))))
+        (cond
+          ;; Real source with a pathname — use it.
+          ((and primary (sb-introspect:definition-source-pathname primary))
+           primary)
+          ;; Implicit gf created via :reader / :writer / :accessor slot
+          ;; options: SBCL returns a non-nil DEFINITION-SOURCE for
+          ;; these but the slot is `:pathname nil` because there is no
+          ;; defgeneric form to point at. Walk to the first method and
+          ;; use ITS source so the gf still gets an md emitted with a
+          ;; real file location. Without this, multi-class implicit gfs
+          ;; like `text` (with the explicit defmethod on counter-text
+          ;; plus :reader text across the simple-text family) are
+          ;; silently invisible to symbols.csv.
+          ((eq kind :generic)
+           (let* ((attrib (gethash sym *borrowed-gf-attribution*))
+                  (methods (handler-case
+                               (sb-mop:generic-function-methods (fdefinition sym))
+                             (error () nil)))
+                  ;; For borrowed gfs, pick a method whose specializer
+                  ;; class lives in the attribution package — so the
+                  ;; resulting md file lands under that package's
+                  ;; source dir, not under whatever foreign-class
+                  ;; method happens to be first.
+                  (preferred
+                   (when attrib
+                     (find-if
+                      (lambda (m)
+                        (let* ((specs (handler-case (sb-mop:method-specializers m)
+                                        (error () nil)))
+                               (spec0 (and specs (first specs)))
+                               (cn (and spec0 (typep spec0 'class) (class-name spec0)))
+                               (cpkg (and cn (symbol-package cn))))
+                          (and cpkg
+                               (string= (string-downcase (package-name cpkg))
+                                        attrib))))
+                      methods)))
+                  (m (or preferred (first methods))))
+             (when m
+               (handler-case (sb-introspect:find-definition-source m)
+                 (error () nil)))))
+          (t primary)))
     (error () nil)))
 
 (defun src-path (src) (and src (sb-introspect:definition-source-pathname src)))
@@ -256,7 +396,11 @@
                (t (write-char c out))))))
 
 (defun pkg-prefix (sym)
-  (string-downcase (package-name (symbol-package sym))))
+  ;; Borrowed gfs (e.g. s-sql:text with ichiran-class methods)
+  ;; re-attribute to the ichiran package that owns their first
+  ;; specializer class. See extend-universe-with-borrowed-gfs.
+  (or (gethash sym *borrowed-gf-attribution*)
+      (string-downcase (package-name (symbol-package sym)))))
 
 (defun fmt-sym (sym)
   (format nil "~a:~a" (pkg-prefix sym) (string-downcase (symbol-name sym))))
@@ -369,14 +513,17 @@
       form))
 
 (defun walk-form-for-ichiran-syms (form set)
-  "Collect every ichiran-package symbol from FORM into SET (a hash-set).
-   No filtering against *universe* here — that's done on the Python side
-   so the md output preserves all observations for transparency."
+  "Collect every ichiran-relevant symbol from FORM into SET (a hash-set).
+   'Ichiran-relevant' = symbol's home package is ichiran/* OR symbol is
+   a borrowed gf we've folded into *universe* (e.g. s-sql:text with
+   ichiran-class methods). Universe membership is checked because the
+   borrowed-gf set isn't recoverable from package alone."
   (labels ((w (x)
              (cond
                ((and (symbolp x)
                      (symbol-package x)
-                     (ichiran-package-p (symbol-package x)))
+                     (or (ichiran-package-p (symbol-package x))
+                         (gethash x *universe*)))
                 (setf (gethash x set) t))
                ((consp x) (w (car x)) (w (cdr x))))))
     (w form)))

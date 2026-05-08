@@ -38,3 +38,4 @@
 - `ichiran/dict:ord`
 - `ichiran/dict:seq`
 - `ichiran/dict:simple-text`
+- `ichiran/dict:text`

@@ -45,3 +45,4 @@ Declared ftype: `(function (t &key (:conjugations t) (:text t) (:has-gloss t))
 - `ichiran/dict:seq`
 - `ichiran/dict:seq-from`
 - `ichiran/dict:seq-via`
+- `ichiran/dict:text`

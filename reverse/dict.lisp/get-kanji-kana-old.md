@@ -16,6 +16,7 @@ Declared ftype: `(function (t) *)`
 
 - `ichiran/characters:kanji-regex`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 
 ## Source-walked references
 
@@ -23,3 +24,4 @@ Declared ftype: `(function (t) *)`
 - `ichiran/dict:kana-text`
 - `ichiran/dict:ord`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

@@ -24,3 +24,4 @@ Declared ftype: `(function (&key (:seq t)) *)`
 - `ichiran/dict:sense-prop`
 - `ichiran/dict:seq`
 - `ichiran/dict:tag`
+- `ichiran/dict:text`

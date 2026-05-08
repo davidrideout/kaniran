@@ -18,6 +18,7 @@ Declared ftype: `(function nil (values t &optional))`
 - `ichiran/dict:get-kana-form`
 - `ichiran/dict:get-kana-forms`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 
 ## Source-walked references
 
@@ -30,3 +31,4 @@ Declared ftype: `(function nil (values t &optional))`
 - `ichiran/dict:get-kana-form`
 - `ichiran/dict:get-kana-forms`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

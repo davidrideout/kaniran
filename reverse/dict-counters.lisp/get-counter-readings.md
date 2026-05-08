@@ -17,6 +17,7 @@ Declared ftype: `(function nil (values hash-table &optional))`
 - `ichiran/dict:get-counter-ids`
 - `ichiran/dict:get-counter-stags`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 
 ## Source-walked references
 
@@ -29,3 +30,4 @@ Declared ftype: `(function nil (values hash-table &optional))`
 - `ichiran/dict:kanji-text`
 - `ichiran/dict:ord`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

@@ -23,3 +23,4 @@ Declared ftype: `(function (t t) (values list &optional))`
 - `ichiran/dict:conj-type`
 - `ichiran/dict:is-rareru`
 - `ichiran/dict:pos`
+- `ichiran/dict:text`

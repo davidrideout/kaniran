@@ -26,6 +26,7 @@ _(none detected)_
 - `ichiran/dict:pos`
 - `ichiran/dict:seq`
 - `ichiran/dict:simple-text`
+- `ichiran/dict:text`
 - `ichiran/dict:translate-hints`
 - `ichiran/dict:true-kana`
 - `ichiran/dict:true-kanji`

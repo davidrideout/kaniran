@@ -29,6 +29,7 @@
 
 ## Source-walked references
 
+- `ichiran/dict:text`
 - `ichiran/kanji:freq`
 - `ichiran/kanji:grade`
 - `ichiran/kanji:id`

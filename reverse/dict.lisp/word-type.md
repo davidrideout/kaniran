@@ -27,6 +27,7 @@ _(none detected)_
 **Dependencies:**
 
 - `ichiran/characters:count-char-class`
+- `ichiran/dict:text`
 
 ### method (ICHIRAN/DICT::COMPOUND-TEXT)
 
@@ -86,3 +87,4 @@ _(none detected)_
 - `ichiran/dict:primary`
 - `ichiran/dict:proxy-text`
 - `ichiran/dict:source`
+- `ichiran/dict:text`

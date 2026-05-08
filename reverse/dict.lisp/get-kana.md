@@ -124,7 +124,7 @@ _(none detected)_
 
 **Dependencies:**
 
-_(none detected)_
+- `ichiran/dict:text`
 
 ### method (ICHIRAN/DICT::KANJI-TEXT)
 
@@ -154,6 +154,7 @@ _(none detected)_
 **Dependencies:**
 
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 
 
 ## Source-walked references
@@ -182,4 +183,5 @@ _(none detected)_
 - `ichiran/dict:ord`
 - `ichiran/dict:seq`
 - `ichiran/dict:simple-text`
+- `ichiran/dict:text`
 - `ichiran/numbers:number-to-kana`

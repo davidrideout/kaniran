@@ -18,4 +18,4 @@ _(none detected)_
 
 ## Source-walked references
 
-_(none detected)_
+- `ichiran/dict:text`

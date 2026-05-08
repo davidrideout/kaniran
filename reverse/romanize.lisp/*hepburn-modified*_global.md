@@ -7,7 +7,7 @@
 ## Value
 
 ```lisp
-#<ICHIRAN::MODIFIED-HEPBURN {100537BBC3}>
+#<ICHIRAN::MODIFIED-HEPBURN {100536CF43}>
 ```
 
 _(value is not round-trippable via `read` — likely contains closures, classes, or other unreadable shapes)_

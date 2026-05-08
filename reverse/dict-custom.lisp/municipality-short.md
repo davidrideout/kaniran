@@ -19,3 +19,4 @@ _(none detected)_
 ## Source-walked references
 
 - `ichiran/custom:*municipality-types*`
+- `ichiran/dict:text`

@@ -31,3 +31,4 @@ Declared ftype: `(function (t t &key (:table t)) *)`
 - `ichiran/dict:reading`
 - `ichiran/dict:reset-readings`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

@@ -23,3 +23,4 @@ Declared ftype: `(function
 
 - `ichiran/dict:conj-info-json*`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

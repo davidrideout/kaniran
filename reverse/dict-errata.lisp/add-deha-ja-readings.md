@@ -25,3 +25,4 @@ Declared ftype: `(function nil (values null &optional))`
 - `ichiran/dict:kana-text`
 - `ichiran/dict:seq`
 - `ichiran/dict:source-text`
+- `ichiran/dict:text`

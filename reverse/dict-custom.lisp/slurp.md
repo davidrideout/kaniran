@@ -92,3 +92,4 @@ _(none detected)_
 - `ichiran/custom:ward-text`
 - `ichiran/custom:xml-loader`
 - `ichiran/dict:node-text`
+- `ichiran/dict:text`

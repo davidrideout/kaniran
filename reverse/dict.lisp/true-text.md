@@ -26,7 +26,7 @@ _(none detected)_
 
 **Dependencies:**
 
-_(none detected)_
+- `ichiran/dict:text`
 
 ### method (ICHIRAN/DICT::PROXY-TEXT)
 
@@ -43,3 +43,4 @@ _(none detected)_
 
 - `ichiran/dict:proxy-text`
 - `ichiran/dict:source`
+- `ichiran/dict:text`

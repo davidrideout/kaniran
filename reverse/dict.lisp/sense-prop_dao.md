@@ -31,3 +31,4 @@
 - `ichiran/dict:sense-id`
 - `ichiran/dict:seq`
 - `ichiran/dict:tag`
+- `ichiran/dict:text`

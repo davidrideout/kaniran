@@ -27,3 +27,4 @@
 - `ichiran/dict:id`
 - `ichiran/dict:ord`
 - `ichiran/dict:sense-id`
+- `ichiran/dict:text`

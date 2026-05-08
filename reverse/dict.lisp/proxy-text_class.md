@@ -23,3 +23,4 @@
 - `ichiran/dict:get-kana`
 - `ichiran/dict:simple-text`
 - `ichiran/dict:source`
+- `ichiran/dict:text`

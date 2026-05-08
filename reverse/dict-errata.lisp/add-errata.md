@@ -46,6 +46,7 @@ Declared ftype: `(function nil *)`
 - `ichiran/dict:set-common`
 - `ichiran/dict:set-primary-nokanji`
 - `ichiran/dict:tag`
+- `ichiran/dict:text`
 
 ## Source-walked references
 
@@ -85,3 +86,4 @@ Declared ftype: `(function nil *)`
 - `ichiran/dict:set-common`
 - `ichiran/dict:set-primary-nokanji`
 - `ichiran/dict:tag`
+- `ichiran/dict:text`

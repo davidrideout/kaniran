@@ -43,3 +43,4 @@ Declared ftype: `(function (t &key (:conj-types t) (:as-posi t))
 - `ichiran/dict:sense-prop`
 - `ichiran/dict:seq`
 - `ichiran/dict:tag`
+- `ichiran/dict:text`

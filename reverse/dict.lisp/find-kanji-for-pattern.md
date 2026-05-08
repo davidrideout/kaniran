@@ -16,9 +16,11 @@ Declared ftype: `(function (t) (values list list &optional))`
 
 - `ichiran/dict:find-word-kana-pattern`
 - `ichiran/dict:get-kanji`
+- `ichiran/dict:text`
 
 ## Source-walked references
 
 - `ichiran/conn:*connection*`
 - `ichiran/dict:find-word-kana-pattern`
 - `ichiran/dict:get-kanji`
+- `ichiran/dict:text`

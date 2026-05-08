@@ -25,3 +25,4 @@ Declared ftype: `(function (t &key (:root-only t)) *)`
 - `ichiran/dict:kana-text`
 - `ichiran/dict:kanji-text`
 - `ichiran/dict:root-p`
+- `ichiran/dict:text`

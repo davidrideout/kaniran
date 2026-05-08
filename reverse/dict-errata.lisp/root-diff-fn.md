@@ -20,3 +20,4 @@ Declared ftype: `(function (t t) (values function &optional))`
 
 - `ichiran/dict:reading`
 - `ichiran/dict:root-diff`
+- `ichiran/dict:text`

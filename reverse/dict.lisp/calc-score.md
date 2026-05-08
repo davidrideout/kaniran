@@ -121,6 +121,7 @@ Declared ftype: `(function
 - `ichiran/dict:split-info`
 - `ichiran/dict:tag`
 - `ichiran/dict:test-conj-prop`
+- `ichiran/dict:text`
 - `ichiran/dict:then`
 - `ichiran/dict:tpart`
 - `ichiran/dict:true-text`
@@ -176,6 +177,7 @@ Declared ftype: `(function
 - `ichiran/dict:skip-by-conj-data`
 - `ichiran/dict:tag`
 - `ichiran/dict:test-conj-prop`
+- `ichiran/dict:text`
 - `ichiran/dict:true-text`
 - `ichiran/dict:word-conj-data`
 - `ichiran/dict:word-conjugations`

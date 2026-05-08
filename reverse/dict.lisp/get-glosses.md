@@ -21,3 +21,4 @@ _(none detected)_
 - `ichiran/dict:gloss`
 - `ichiran/dict:sense`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

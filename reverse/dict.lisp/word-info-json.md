@@ -20,5 +20,6 @@ Declared ftype: `(function (t) (values t &optional))`
 
 - `ichiran/dict:primary`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 - `ichiran/dict:true-text`
 - `ichiran/dict:word-info`

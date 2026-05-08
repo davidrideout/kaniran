@@ -751,7 +751,17 @@ def signatures_only() -> int:
 
 
 def main() -> int:
-    md_files = sorted(REVERSE_DIR.glob("*.lisp/*.md"))
+    # Sort kind-suffixed mds (class/struct/dao/global/type/condition)
+    # before bare-name (fn/gf/macro) mds, so on FQN collision (e.g. an
+    # auto-gen `:reader X` on a class also named X — the slot reader and
+    # the class share the FQN `<pkg>:X`) the typed kind wins. The gf
+    # version is then either folded as a companion or silently
+    # dropped — the class is the canonical home for that FQN.
+    def _md_sort_key(p: Path):
+        name = p.name
+        is_typed = any(name.endswith(suf) for suf, _ in SUFFIX_KIND)
+        return (0 if is_typed else 1, name)
+    md_files = sorted(REVERSE_DIR.glob("*.lisp/*.md"), key=_md_sort_key)
     if not md_files:
         print(f"no md files under {REVERSE_DIR}", file=sys.stderr)
         return 1
@@ -807,11 +817,23 @@ def main() -> int:
     # top-array class shares the FQN `ichiran/dict:top-array` with
     # the class itself) gets skipped — the parent's own row must
     # survive.
-    companion_to_parent: dict[str, str] = {}
+    companion_claims: dict[str, set[str]] = {}
     for caller, parent_fqn in structural_pending:
         if caller == parent_fqn:
             continue
-        companion_to_parent.setdefault(caller, parent_fqn)
+        companion_claims.setdefault(caller, set()).add(parent_fqn)
+
+    # Fold a companion ONLY when exactly one class/struct/dao claims
+    # it. Multi-parent claims indicate a polymorphic gf (e.g. `text`
+    # is a `:reader` on proxy-text, compound-text, kanji-text,
+    # kana-text, conj-source-reading, restricted-readings, sense-prop,
+    # gloss — eight parents — plus an explicit defmethod override on
+    # counter-text). Polymorphic gfs are real dispatch surfaces, not
+    # bare accessors; keep them as standalone graph nodes so callers
+    # can depend on them and the Rust port has a single dispatch site.
+    companion_to_parent: dict[str, str] = {
+        c: next(iter(p)) for c, p in companion_claims.items() if len(p) == 1
+    }
 
     # Drop companion rows. Their data lives entirely in the parent's
     # md file (the slot table, the constructor / predicate / copier

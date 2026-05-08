@@ -43,6 +43,7 @@ Declared ftype: `(function (t &key (:reading t) (:root-only t))
 - `ichiran/dict:reading`
 - `ichiran/dict:segment-score`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
 - `ichiran/dict:word-info-from-segment`
 - `ichiran/dict:word-info-kana`
 - `ichiran/dict:word-info-seq`

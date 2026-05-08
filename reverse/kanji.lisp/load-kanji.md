@@ -24,6 +24,7 @@ Declared ftype: `(function (t) (values null &optional))`
 
 - `ichiran/characters:as-hiragana`
 - `ichiran/dict:node-text`
+- `ichiran/dict:text`
 - `ichiran/kanji:first-node-text`
 - `ichiran/kanji:freq`
 - `ichiran/kanji:grade`

@@ -33,3 +33,4 @@ Declared ftype: `(function (t t &key (:common t) (:conjugate-p t) (:table t))
 - `ichiran/dict:ord`
 - `ichiran/dict:reading`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

@@ -41,3 +41,4 @@ Declared ftype: `(function
 - `ichiran/dict:reading`
 - `ichiran/dict:seq`
 - `ichiran/dict:source-text`
+- `ichiran/dict:text`

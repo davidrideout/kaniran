@@ -50,3 +50,4 @@ _(none detected)_
 - `ichiran/custom:municipality-csv`
 - `ichiran/custom:municipality-short`
 - `ichiran/custom:romanize-municipality`
+- `ichiran/dict:text`

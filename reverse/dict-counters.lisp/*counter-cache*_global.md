@@ -25,3 +25,4 @@ NIL
 - `ichiran/dict:get-counter-readings`
 - `ichiran/dict:number-text`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

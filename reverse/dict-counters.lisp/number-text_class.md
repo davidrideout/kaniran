@@ -22,3 +22,4 @@
 
 - `ichiran/dict:counter-text`
 - `ichiran/dict:ordinalp`
+- `ichiran/dict:text`

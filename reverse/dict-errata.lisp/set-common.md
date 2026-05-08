@@ -20,3 +20,4 @@ _(none detected)_
 
 - `ichiran/dict:common`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`

@@ -15,6 +15,7 @@ Declared ftype: `(function (t t &rest t) (values null &optional))`
 ## Dependencies (ichiran symbols)
 
 - `ichiran/dict:ord`
+- `ichiran/dict:text`
 
 ## Source-walked references
 
@@ -24,3 +25,4 @@ Declared ftype: `(function (t t &rest t) (values null &optional))`
 - `ichiran/dict:sense`
 - `ichiran/dict:sense-id`
 - `ichiran/dict:seq`
+- `ichiran/dict:text`
