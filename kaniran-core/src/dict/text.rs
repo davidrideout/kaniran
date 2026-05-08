@@ -1,6 +1,6 @@
 //! Port of `ichiran/dict:text` — implicit generic function created
-//! by `:reader text` slot options on every simple-text family class
-//! plus compound-text, with an explicit override on counter-text at
+//! by `:reader text` slot options across multiple class hierarchies,
+//! with an explicit override on counter-text at
 //! `dict-counters.lisp:58-59`:
 //!
 //! ```lisp
@@ -21,14 +21,14 @@
 //! must allocate the concatenation; every other branch borrows
 //! from the input.
 //!
-//! Data-quality note: the upstream introspector does not emit a
-//! md file for this gf — implicit generic functions (created by
-//! `:reader X` with no explicit `(defgeneric X ...)`) are not
-//! surfaced by `sb-introspect:find-definition-sources-by-name`
-//! against `:generic-function` when no top-level defgeneric form
-//! exists. Consequence: this symbol does not appear in
-//! `symbols.csv` and is invisible to `query.py audit-signatures`,
-//! `deps`, and `plan`. Tracked separately as a graph hole.
+//! Polymorphic surface: only the word-shaped union
+//! ([`KaniWordDispatchEnum`]) reaches this dispatcher. Other types
+//! that share a `text` slot — `sense-prop`, `gloss`,
+//! `conj-source-reading`, `restricted-readings`, and the kanji-
+//! namespace DAOs `kanji` / `reading` / `okurigana` / `meaning` —
+//! are accessed at locally-known types in upstream callsites, so
+//! the Rust port reads their `text` field directly rather than
+//! routing through this gf.
 
 use std::borrow::Cow;
 

@@ -166,6 +166,27 @@ Why not a single tagged-enum `CounterText { kind: CounterKind, ... }` with one m
 
 Why not `trait + Box<dyn>`? Most literally faithful to CLOS dispatch, but costs a heap allocation and indirect call per value. Tokenization constructs tens of thousands of these per query — unacceptable. Static enum dispatch gives the same structural shape without the runtime cost.
 
+### 4.8. Ctx-injection (database / shared cache access)
+
+Lisp reaches Postgres through `postmodern:*connection*`, a dynamic special variable that `with-connection` rebinds for the active call tree. The Rust port replaces that with explicit injection: every fn that touches the database — or reads a global cache populated from the database — takes `&KaniranContext` as its first parameter.
+
+```rust
+pub async fn get_counter_ids(ctx: &KaniranContext) -> Result<Vec<i32>, sqlx::Error> { ... }
+pub fn no_conj_data(ctx: &KaniranContext, seq: i32) -> bool { ... }
+```
+
+Rules:
+
+- **First parameter, named `ctx`.** Order is `ctx, <verbatim-Lisp-args>`. Don't insert `ctx` mid-list, don't rename it.
+- **`&KaniranContext`** — borrowed, not owned, not `&mut`. The context is constructed once via `KaniranContext::from_url` returning `Arc<Self>`; downstream calls borrow.
+- **Async iff the body awaits sqlx.** A fn that only reads a populated cache field on `ctx` (e.g. `no_conj_data` reading `ctx.no_conj_data: HashSet<i32>`) stays synchronous. Touching `ctx.pool` makes it `async`.
+- **Doc-comment cites the divergence.** Canonical wording, copy verbatim and substitute the Lisp arglist:
+
+  > Diverges from the upstream lambda list `<lisp>` only by taking `&KaniranContext` for the database handle, replacing the upstream dynamic `*connection*` per [`crate::conn::kani_context`].
+
+  When ctx-injection coexists with other shape changes (a `&key` keyword collapsed per §4.4, an `&optional` dropped per §4.6), describe the full shape change — don't paste the canonical wording and leave the rest unmentioned.
+- **`audit-signatures` will flag ctx-injection as arity drift** (Rust arity is +1 against Lisp). Entries in `divergences.md` matching the form `arity N+1 ≠ Lisp N (req=N, opt=0, keys=[])` against a fn whose Rust signature starts with `ctx: &KaniranContext` are this convention. Commit them as-is; the visible drift is the audit's record that the convention applied.
+
 ---
 
 ## 5. Globals

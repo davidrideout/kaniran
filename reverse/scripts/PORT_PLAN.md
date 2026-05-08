@@ -92,7 +92,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   87. `ichiran/dict:sense-prop`  — dao, dict.lisp:197  *[ported]*
   88. `ichiran/dict:conj-source-reading`  — dao, dict.lisp:309  *[ported]*
   89. `ichiran/dict:gloss`  — dao, dict.lisp:178  *[ported]*
-  90. `ichiran/dict:text`  — gf, dict-counters.lisp:0
+  90. `ichiran/dict:text`  — gf, dict-counters.lisp:0  *[ported]*
   91. **CYCLE (4 symbols — port together)**
         - `ichiran/dict:common`  — gf, dict-counters.lisp:0
         - `ichiran/dict:counter-text`  — class, dict-counters.lisp:9  *[ported]*
@@ -112,7 +112,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  103. `ichiran/dict:*skip-counter-ids*`  — global, dict-counters.lisp:315  *[ported]*
  104. `ichiran/dict:get-counter-ids`  — fn, dict-counters.lisp:285  *[ported]*
  105. `ichiran/dict:get-counter-stags`  — fn, dict-counters.lisp:292  *[ported]*
- 106. `ichiran/dict:ord`  — gf, dict-counters.lisp:0
+ 106. `ichiran/dict:ord`  — gf, dict-counters.lisp:0  *[ported]*
  107. `ichiran/dict:get-counter-readings`  — fn, dict-counters.lisp:335  *[ported]*
  108. `ichiran/dict:no-conj-data`  — fn, dict.lisp:337  *[ported]*
  109. `ichiran/dict:*suffix-cache*`  — global, dict-grammar.lisp:0  *[wip — empty-map stub: populated by wave 127 init-suffixes via init-suffix-hashtables + load-kf + every def-simple-suffix callsite. Replace with proper init when wave 127 lands.]*
@@ -130,11 +130,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  117. `ichiran/dict:init-suffixes-running-p`  — fn, dict-grammar.lisp:165  *[skip — Loader-busy predicate over a one-shot init thread + def-conn-var cache. Rust replacement is OnceLock::get().is_some() or eager startup init; the verb has nowhere to live.]*
  118. `ichiran/dict:find-word-seq`  — fn, dict-grammar.lisp:73  *[ported]*
  119. `ichiran/dict:conj-prop`  — dao, dict.lisp:262  *[ported]*
- 120. `ichiran/dict:id`  — gf, dict.lisp:0
+ 120. `ichiran/dict:id`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; every (id X) / (conj-id X) site has a locally-known DAO type. Each Rust DAO struct exposes pub id: i32 / pub conj_id: i32 directly per CONVENTIONS §4.7.]*
  121. `ichiran/dict:find-word-conj-of`  — fn, dict-grammar.lisp:77  *[ported]*
  122. `ichiran/dict:get-kana-form`  — fn, dict-grammar.lisp:36  *[ported]*
  123. `ichiran/dict:conj-data`  — struct, dict.lisp:327  *[ported]*
- 124. `ichiran/dict:conj-id`  — gf, dict.lisp:0
+ 124. `ichiran/dict:conj-id`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; every (id X) / (conj-id X) site has a locally-known DAO type. Each Rust DAO struct exposes pub id: i32 / pub conj_id: i32 directly per CONVENTIONS §4.7.]*
  125. `ichiran/dict:get-conj-data`  — fn, dict.lisp:340  *[ported]*
  126. `ichiran/dict:*weak-conj-forms*`  — global, dict-errata.lisp:1316  *[ported]*
  127. `ichiran/dict:*skip-conj-forms*`  — global, dict-errata.lisp:1310  *[ported]*
@@ -162,7 +162,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:segment-list`  — struct, dict.lisp:1038  *[ported]*
         - `ichiran/dict:top-array`  — class, dict.lisp:1140  *[ported]*
         - `ichiran/dict:top-array-item`  — struct, dict.lisp:1138  *[ported]*
- 148. `ichiran/dict:*segment-score-cutoff*`  — global, dict.lisp:1351
+ 148. `ichiran/dict:*segment-score-cutoff*`  — global, dict.lisp:1351  *[ported]*
  149. `ichiran/dict:*disable-hints*`  — global, dict.lisp:78  *[ported]*
  150. `ichiran/dict:*kana-hint-space*`  — global, dict-split.lisp:814  *[ported]*
  151. `ichiran/dict:query-parents-kanji`  — fn, dict.lisp:400  *[extracted: tatoeba]*
