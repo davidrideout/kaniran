@@ -43,7 +43,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   40. `ichiran/characters:consecutive-char-groups`  — fn, characters.lisp:300  *[ported]*
   41. `ichiran/characters:count-char-class`  — fn, characters.lisp:194  *[ported]*
   42. `ichiran/characters:destem`  — fn, characters.lisp:340  *[ported]*
-  43. `ichiran/characters:geminate`  — fn, characters.lisp:336  *[ported]*
+  43. `ichiran/characters:geminate`  — fn, characters.lisp:336  *[ported]*  *[extracted: counter_2026_05_08]*
   44. `ichiran/characters:get-char-class`  — fn, characters.lisp:52  *[ported]*
   45. `ichiran/characters:hash-from-list`  — macro, characters.lisp:64  *[ported]*
   46. `ichiran/characters:join`  — fn, characters.lisp:371  *[ported]*
@@ -57,7 +57,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   54. `ichiran/characters:mora-length`  — fn, characters.lisp:275  *[ported]*
   55. `ichiran/characters:simplify-ngrams`  — fn, characters.lisp:230  *[ported]*
   56. `ichiran/characters:normalize`  — fn, characters.lisp:247  *[ported]*
-  57. `ichiran/characters:rendaku`  — fn, characters.lisp:320  *[ported]*
+  57. `ichiran/characters:rendaku`  — fn, characters.lisp:320  *[ported]*  *[extracted: counter_2026_05_08]*
   58. `ichiran/characters:safe-subseq`  — fn, characters.lisp:371  *[ported]*
   59. `ichiran/characters:sequential-kanji-positions`  — fn, characters.lisp:207  *[ported]*
   60. `ichiran/characters:unrendaku`  — fn, characters.lisp:308  *[ported]*
@@ -167,10 +167,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  150. `ichiran/dict:*kana-hint-space*`  — global, dict-split.lisp:814  *[ported]*
  151. `ichiran/dict:query-parents-kanji`  — fn, dict.lisp:400  *[extracted: tatoeba]*
  152. `ichiran/dict:best-kana-conj`  — fn, dict.lisp:428  *[extracted: tatoeba]*
- 153. `ichiran/dict:get-digit`  — fn, dict-counters.lisp:94  *[ported]*  *[extracted: tatoeba]*  *[audited 193/193]*
+ 153. `ichiran/dict:get-digit`  — fn, dict-counters.lisp:94  *[ported]*  *[extracted: counter_2026_05_08]*  *[audited 193/193]*
  154. `ichiran/numbers:*digit-to-kana*`  — global, numbers.lisp:25  *[ported]*
  155. `ichiran/numbers:*power-to-kana*`  — global, numbers.lisp:28  *[ported]*
- 156. `ichiran/dict:counter-join`  — gf, dict-counters.lisp:0
+ 156. `ichiran/dict:counter-join`  — gf, dict-counters.lisp:0  *[extracted: counter_2026_05_08]*
  157. `ichiran/dict:*hint-map*`  — global, dict-split.lisp:850
  158. `ichiran/dict:word-conj-data`  — gf, dict.lisp:0
  159. `ichiran/dict:get-hint`  — fn, dict-split.lisp:968
@@ -178,15 +178,15 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  161. `ichiran/numbers:*char-number-class*`  — global, numbers.lisp:9  *[ported]*
  162. `ichiran/numbers:*char-number-class-hash*`  — global, numbers.lisp:18  *[ported]*
  163. `ichiran/numbers:num-sandhi`  — gf, numbers.lisp:0  *[ported]*
- 164. `ichiran/numbers:group-to-kana`  — fn, numbers.lisp:117  *[ported]*
+ 164. `ichiran/numbers:group-to-kana`  — fn, numbers.lisp:117  *[ported]*  *[extracted: counter_2026_05_08]*
  165. `ichiran/numbers:*digit-kanji-default*`  — global, numbers.lisp:3  *[ported]*
  166. `ichiran/numbers:*power-kanji*`  — global, numbers.lisp:7  *[ported]*
- 167. `ichiran/numbers:number-to-kanji`  — fn, numbers.lisp:35  *[ported]*
- 168. `ichiran/numbers:number-to-kana`  — fn, numbers.lisp:125  *[ported]*
+ 167. `ichiran/numbers:number-to-kanji`  — fn, numbers.lisp:35  *[ported]*  *[extracted: counter_2026_05_08]*
+ 168. `ichiran/numbers:number-to-kana`  — fn, numbers.lisp:125  *[ported]*  *[extracted: counter_2026_05_08]*
  169. `ichiran/dict:get-kana`  — gf, dict.lisp:0
  170. `ichiran/dict:get-text`  — gf, dict.lisp:0
- 171. `ichiran/dict:ordinal-str`  — fn, dict-counters.lisp:38
- 172. `ichiran/dict:value-string`  — gf, dict-counters.lisp:0
+ 171. `ichiran/dict:ordinal-str`  — fn, dict-counters.lisp:38  *[extracted: counter_2026_05_08]*
+ 172. `ichiran/dict:value-string`  — gf, dict-counters.lisp:0  *[extracted: counter_2026_05_08]*
  173. `ichiran/dict:word-type`  — gf, dict.lisp:0
  174. `ichiran/dict:word-info-from-segment`  — fn, dict.lisp:1327
  175. `ichiran/dict:word-info-from-segment-list`  — fn, dict.lisp:1353
@@ -483,11 +483,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  464. `ichiran/dict:*suffix-next-end*`  — global, dict.lisp:1050
  465. `ichiran/dict:find-sticky-positions`  — fn, dict.lisp:990
  466. `ichiran/dict:find-substring-words`  — fn, dict.lisp:501
- 467. `ichiran/dict:verify`  — gf, dict-counters.lisp:0
+ 467. `ichiran/dict:verify`  — gf, dict-counters.lisp:0  *[extracted: counter_2026_05_08]*
  468. `ichiran/numbers:reason`  — gf, numbers.lisp:0
  469. `ichiran/numbers:text`  — gf, numbers.lisp:0
  470. `ichiran/numbers:not-a-number`  — condition, numbers.lisp:0  *[ported]*
- 471. `ichiran/dict:find-counter`  — fn, dict-counters.lisp:273
+ 471. `ichiran/dict:find-counter`  — fn, dict-counters.lisp:273  *[extracted: counter_2026_05_08]*
  472. `ichiran/dict:find-word`  — fn, dict.lisp:489
  473. `ichiran/dict:find-word-as-hiragana`  — fn, dict.lisp:592
  474. `ichiran/dict:adjoin-word`  — gf, dict.lisp:0
@@ -846,7 +846,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  774. `ichiran/kanji:query-kanji-json`  — macro, kanji.lisp:458
  775. `ichiran/numbers:*digit-kanji-legal*`  — global, numbers.lisp:5  *[ported]*
  776. `ichiran/numbers:parse-number*`  — fn, numbers.lisp:57  *[ported]*
- 777. `ichiran/numbers:parse-number`  — fn, numbers.lisp:77  *[ported]*
+ 777. `ichiran/numbers:parse-number`  — fn, numbers.lisp:77  *[ported]*  *[extracted: counter_2026_05_08]*
  778. `ichiran:modified-hepburn`  — class, romanize.lisp:162
  779. `ichiran:*hepburn-modified*`  — global, romanize.lisp:168
  780. `ichiran:*hepburn-passport*`  — global, romanize.lisp:149
