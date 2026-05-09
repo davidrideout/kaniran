@@ -24,9 +24,11 @@ use kaniran_core::characters::as_hiragana::as_hiragana;
 use kaniran_core::characters::as_katakana::as_katakana;
 use kaniran_core::characters::basic_split::{basic_split, SegmentKind};
 use kaniran_core::characters::char_class_type::CharClass;
+use kaniran_core::characters::geminate::geminate;
 use kaniran_core::characters::kanji_prefix::kanji_prefix;
 use kaniran_core::characters::mora_length::mora_length;
 use kaniran_core::characters::normalize::normalize;
+use kaniran_core::characters::rendaku::{rendaku, Voicing};
 use kaniran_core::characters::sequential_kanji_positions::sequential_kanji_positions;
 use kaniran_core::characters::simplify_ngrams::simplify_ngrams;
 use kaniran_core::characters::split_by_regex::split_by_regex;
@@ -43,6 +45,13 @@ use kaniran_core::dict::no_conj_data::no_conj_data;
 use kaniran_core::dict::skip_by_conj_data::skip_by_conj_data;
 use kaniran_core::dict::test_conj_prop::test_conj_prop;
 use kaniran_core::kani::sexp::{self, Sexp};
+use kaniran_core::numbers::_star_digit_kanji_default_star_::DIGIT_KANJI_DEFAULT;
+use kaniran_core::numbers::_star_power_kanji_star_::POWER_KANJI;
+use kaniran_core::numbers::group_to_kana::group_to_kana;
+use kaniran_core::numbers::kani_num_class::NumClass;
+use kaniran_core::numbers::number_to_kana::{number_to_kana, NumberToKanaOutput};
+use kaniran_core::numbers::number_to_kanji::number_to_kanji;
+use kaniran_core::numbers::parse_number::parse_number;
 
 const MISMATCH_PRINT_LIMIT: usize = 5;
 type Handler = fn(&Sexp, &Sexp) -> Result<(), String>;
@@ -78,6 +87,13 @@ fn handlers() -> BTreeMap<&'static str, Handler> {
     m.insert("ICHIRAN/DICT::SKIP-BY-CONJ-DATA",              audit_skip_by_conj_data);
     m.insert("ICHIRAN/DICT::GET-KANA-FORMS-CONJ-DATA-FILTER",audit_get_kana_forms_conj_data_filter);
     m.insert("ICHIRAN/DICT::GET-DIGIT",                      audit_get_digit);
+    m.insert("ICHIRAN/DICT:GET-DIGIT",                       audit_get_digit);
+    m.insert("ICHIRAN/CHARACTERS:GEMINATE",                  audit_geminate);
+    m.insert("ICHIRAN/CHARACTERS:RENDAKU",                   audit_rendaku);
+    m.insert("ICHIRAN/NUMBERS:PARSE-NUMBER",                 audit_parse_number);
+    m.insert("ICHIRAN/NUMBERS:NUMBER-TO-KANA",               audit_number_to_kana);
+    m.insert("ICHIRAN/NUMBERS:NUMBER-TO-KANJI",              audit_number_to_kanji);
+    m.insert("ICHIRAN/NUMBERS:GROUP-TO-KANA",                audit_group_to_kana);
     m
 }
 
@@ -294,6 +310,209 @@ fn audit_get_digit(args: &Sexp, expected: &Sexp) -> Result<(), String> {
     if actual == exp { Ok(()) } else {
         Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
     }
+}
+
+fn audit_geminate(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    // characters.lisp:336 (defun geminate (string &key fresh)) — fresh
+    // defaults nil → in-place mutation, returns the mutated string.
+    // The capture's args are just `(string)`; the Rust port mirrors
+    // the in-place semantics via &mut String.
+    let argv = list_elems(args)?;
+    let s = argv[0].as_str().ok_or("arg 0 not string")?;
+    let mut owned = s.to_string();
+    geminate(&mut owned);
+    let exp = expect_one(expected)?.as_str().ok_or("expected[0] not string")?;
+    if owned == exp { Ok(()) } else {
+        Err(format!("\n  rust: {:?}\n  lisp: {:?}", owned, exp))
+    }
+}
+
+fn audit_rendaku(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    // characters.lisp:320 (defun rendaku (string &key handakuten fresh))
+    // fresh defaults nil → in-place. handakuten=t → Voicing::Handakuten,
+    // else Voicing::Dakuten. The capture omits :FRESH (defaulted) and
+    // includes :HANDAKUTEN only when set; per CONVENTIONS §4.4 the
+    // boolean became a 2-variant enum.
+    let argv = list_elems(args)?;
+    let s = argv[0].as_str().ok_or("arg 0 not string")?;
+    let voicing = if find_bool_keyword(&argv, "HANDAKUTEN") {
+        Voicing::Handakuten
+    } else {
+        Voicing::Dakuten
+    };
+    let mut owned = s.to_string();
+    rendaku(&mut owned, voicing);
+    let exp = expect_one(expected)?.as_str().ok_or("expected[0] not string")?;
+    if owned == exp { Ok(()) } else {
+        Err(format!("\n  rust: {:?}\n  lisp: {:?}", owned, exp))
+    }
+}
+
+fn audit_parse_number(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    // numbers.lisp:77 (defun parse-number (s)) — returns u64 on
+    // success, raises NOT-A-NUMBER on invalid input. The Lisp capture
+    // wrapper converts the raise to a single-NIL result via
+    // handler-case at the trace edge; in our trace the success path
+    // captures `(<int>)`, the failure path captures `(NIL)`.
+    let argv = list_elems(args)?;
+    let s = argv[0].as_str().ok_or("arg 0 not string")?;
+    let actual = parse_number(s).ok();
+    let exp_first = expect_one(expected)?;
+    let exp = if exp_first.is_nil() {
+        None
+    } else {
+        Some(exp_first.as_i64().ok_or("expected[0] not int/nil")? as u64)
+    };
+    if actual == exp { Ok(()) } else {
+        Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
+    }
+}
+
+fn audit_number_to_kana(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    // numbers.lisp:122 (defun number-to-kana (n &key separator method))
+    // separator defaults to #\zero-width-space (8203); method defaults
+    // to 'number-to-kanji-default-style which is number-to-kanji with
+    // DIGIT_KANJI_DEFAULT + POWER_KANJI + one-sen=nil. Tracer captures
+    // characters as (:CHAR <codepoint>).
+    let argv = list_elems(args)?;
+    let n = argv[0].as_i64().ok_or("arg 0 not int")? as u64;
+    let separator = parse_char_arg(&argv, 1, "SEPARATOR")?
+        .or(Some('\u{200B}'));  // zero-width space default
+    let actual = number_to_kana(n, separator, |k| {
+        number_to_kanji(k, DIGIT_KANJI_DEFAULT, POWER_KANJI, false)
+    });
+    let exp_first = expect_one(expected)?;
+    // Capture shape is "(<string>)" for joined or "(<list-of-strings>)"
+    // for groups. In practice the Lisp callers always pass a separator,
+    // so the joined form is what we see.
+    match (&actual, exp_first.as_str()) {
+        (NumberToKanaOutput::Joined(s), Some(exp)) => {
+            if s == exp { Ok(()) } else {
+                Err(format!("\n  rust: {:?}\n  lisp: {:?}", s, exp))
+            }
+        }
+        _ => Err(format!("shape mismatch:\n  rust: {:?}\n  lisp: {}", actual, exp_first)),
+    }
+}
+
+fn audit_number_to_kanji(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    // numbers.lisp:35 (defun number-to-kanji (n &optional digits powers
+    // &key one-sen)) — digits / powers / one-sen all default. Capture
+    // typically shows `(<n>)` only when the caller relied on defaults;
+    // explicit args fill the trailing slots. Mirror the upstream
+    // defaulting in Rust by filling in DIGIT_KANJI_DEFAULT / POWER_KANJI
+    // / false when the positional slots are absent (i.e. the next arg
+    // is a keyword or end-of-list).
+    let argv = list_elems(args)?;
+    let n = argv[0].as_i64().ok_or("arg 0 not int")? as u64;
+    // Walk positional optionals from index 1; stop at the first keyword
+    // (or end of list). The slot AFTER a keyword is that keyword's
+    // value, not a positional arg.
+    let mut idx = 1usize;
+    let digits = match argv.get(idx) {
+        Some(s) if s.as_keyword().is_none() => {
+            idx += 1;
+            s.as_str().ok_or("arg 1 (digits) not string")?
+        }
+        _ => DIGIT_KANJI_DEFAULT,
+    };
+    let powers = match argv.get(idx) {
+        Some(s) if s.as_keyword().is_none() => {
+            s.as_str().ok_or("arg 2 (powers) not string")?
+        }
+        _ => POWER_KANJI,
+    };
+    // Upstream keyword is `:1sen` (digit-1 + "sen"), not `:one-sen`.
+    let one_sen = find_bool_keyword(&argv, "1SEN");
+    let actual = number_to_kanji(n, digits, powers, one_sen);
+    let exp = expect_one(expected)?.as_str().ok_or("expected[0] not string")?;
+    if actual == exp { Ok(()) } else {
+        Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
+    }
+}
+
+fn audit_group_to_kana(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    // numbers.lisp:117 (defun group-to-kana (group)) — group is a list
+    // of (CLASS . VAL) cons pairs in upstream; the projector emits each
+    // as a 2-element list `(:JD 0)` so the captured shape is
+    // `(((:JD 0) (:P 1) ...))`. Parse into Vec<(NumClass, u8)>.
+    let argv = list_elems(args)?;
+    let group_sexp = argv.first().ok_or("missing group arg")?;
+    let group_elems = list_elems(group_sexp)?;
+    let mut group: Vec<(NumClass, u8)> = Vec::with_capacity(group_elems.len());
+    for entry in group_elems {
+        let pair = list_elems(entry)?;
+        if pair.len() != 2 {
+            return Err(format!("expected 2-elem (class val) pair, got {}", entry));
+        }
+        let class_kw = pair[0].as_keyword().ok_or("class not keyword")?;
+        let class = match class_kw {
+            "JD" => NumClass::Jd,
+            "AD" => NumClass::Ad,
+            "P"  => NumClass::P,
+            other => return Err(format!("unknown class :{}", other)),
+        };
+        let val = pair[1].as_i64().ok_or("val not int")? as u8;
+        group.push((class, val));
+    }
+    // The Lisp default tables match number-to-kanji-default-style;
+    // group-to-kana doesn't take tables in upstream — they're stored
+    // in *digit-to-kana* / *power-to-kana* and consulted internally.
+    // Rust takes them as args; pass the same defaults.
+    use kaniran_core::numbers::_star_digit_to_kana_star_::DIGIT_TO_KANA;
+    use kaniran_core::numbers::_star_power_to_kana_star_::POWER_TO_KANA;
+    let actual = group_to_kana(&group, DIGIT_TO_KANA, POWER_TO_KANA);
+    let exp = expect_one(expected)?.as_str().ok_or("expected[0] not string")?;
+    if actual == exp { Ok(()) } else {
+        Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
+    }
+}
+
+/// Scan `args` for a `:KEY <truthy>` pair. Returns `true` only when the
+/// keyword is present and the following value parses as Lisp truthy
+/// (`T` symbol, anything non-NIL). Used for boolean-flag keyword args
+/// like `:HANDAKUTEN T` / `:ONE-SEN T` where the value is a symbol, not
+/// a keyword (the existing `parse_keyword_arg` requires keyword=keyword
+/// pairs).
+fn find_bool_keyword(args: &[&Sexp], key: &str) -> bool {
+    let mut i = 0;
+    while i + 1 < args.len() {
+        if let Some(k) = args[i].as_keyword() {
+            if k.eq_ignore_ascii_case(key) {
+                return !args[i + 1].is_nil();
+            }
+        }
+        i += 1;
+    }
+    false
+}
+
+/// Helper: parse `(... :KEY (:CHAR codepoint) ...)` keyword arg into Option<char>.
+fn parse_char_arg(args: &[&Sexp], start: usize, key: &str) -> Result<Option<char>, String> {
+    let mut i = start;
+    while i + 1 < args.len() {
+        if let Some(k) = args[i].as_keyword() {
+            if k.eq_ignore_ascii_case(key) {
+                if args[i + 1].is_nil() {
+                    return Ok(None);
+                }
+                if let Some(c) = args[i + 1].as_char() {
+                    return Ok(Some(c));
+                }
+                // Tagged form: (:CHAR <codepoint>)
+                let pair = list_elems(args[i + 1])?;
+                if pair.len() == 2
+                    && pair[0].as_keyword().map(|k| k.eq_ignore_ascii_case("CHAR")).unwrap_or(false)
+                {
+                    let cp = pair[1].as_i64().ok_or("CHAR codepoint not int")? as u32;
+                    return Ok(char::from_u32(cp));
+                }
+                return Err(format!("unrecognized char form for :{}: {}", key, args[i + 1]));
+            }
+        }
+        i += 1;
+    }
+    Ok(None)
 }
 
 fn audit_test_word(args: &Sexp, expected: &Sexp) -> Result<(), String> {
