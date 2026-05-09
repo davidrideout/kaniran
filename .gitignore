@@ -30,3 +30,4 @@ reverse/scripts/HANDOFF.md
 
 # Local config (per-machine database URL etc.)
 kaniran.toml
+.python-version
