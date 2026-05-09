@@ -142,24 +142,37 @@
 (defun make-recorder (fqn arg-projector result-projector)
   ;; Resolve defaults at recorder-build time. NIL means "no projection";
   ;; install passes T to mean "use the package default flatten".
+  ;;
+  ;; Re-entrance guard scope: *in-recorder* is bound only around the
+  ;; projector and safe-prin1 calls. Their internals can themselves call
+  ;; into installed fns (closer-mop slot walks, prin1 methods, etc.) and
+  ;; we don't want those to recurse into capture. The push to *captures*
+  ;; runs unconditionally — so an installed FQN called inside another
+  ;; installed FQN's body still records its own capture, matching the
+  ;; documented "inner installed callees ARE captured" contract. Earlier
+  ;; revisions wrapped the entire bookkeeping in the guard, which
+  ;; silently dropped every nested capture (e.g. VERIFY / COUNTER-JOIN /
+  ;; VALUE-STRING called inside FIND-COUNTER never made it to parquet).
   (let ((arg-fn    (cond ((eq arg-projector    t) (default-arg-projector))
                          (t arg-projector)))
         (result-fn (cond ((eq result-projector t) (default-result-projector))
                          (t result-projector))))
     (lambda (basic-def &rest args)
       (let ((results (multiple-value-list (apply basic-def args))))
-        (unless *in-recorder*
-          (let ((*in-recorder* t))
-            (let* ((projected-args    (apply-projector arg-fn    args))
-                   (projected-results (apply-projector result-fn results))
-                   (args-str   (and (not (eq projected-args    *projection-failed*))
-                                    (not (eq projected-results *projection-failed*))
-                                    (safe-prin1 projected-args)))
-                   (result-str (and args-str
-                                    (safe-prin1 projected-results))))
-              (if (and args-str result-str)
-                  (push (list fqn args-str result-str) *captures*)
-                  (incf *skipped*)))))
+        (let* ((projected-args    (let ((*in-recorder* t))
+                                    (apply-projector arg-fn args)))
+               (projected-results (let ((*in-recorder* t))
+                                    (apply-projector result-fn results)))
+               (args-str   (and (not (eq projected-args    *projection-failed*))
+                                (not (eq projected-results *projection-failed*))
+                                (let ((*in-recorder* t))
+                                  (safe-prin1 projected-args))))
+               (result-str (and args-str
+                                (let ((*in-recorder* t))
+                                  (safe-prin1 projected-results)))))
+          (if (and args-str result-str)
+              (push (list fqn args-str result-str) *captures*)
+              (incf *skipped*)))
         (values-list results)))))
 
 

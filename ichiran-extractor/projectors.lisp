@@ -102,33 +102,50 @@
   ;; like SIMPLE-TEXT.CONJUGATIONS / HINTEDP are read by functions such
   ;; as BEST-KANA-CONJ and BEST-KANJI-CONJ — omitting them lets two
   ;; behaviorally-distinct inputs project to the same args string and
-  ;; surface as spurious nondeterminism in the writer. Non-DAO
-  ;; standard-objects (closures, plain CLOS) fall through.
+  ;; surface as spurious nondeterminism in the writer.
+  ;;
+  ;; Non-DAO standard-objects (e.g. ICHIRAN/DICT::COUNTER-TEXT and its
+  ;; subclasses) get the same closer-mop slot walk — without it the
+  ;; class-of falls through to the identity method, the value fails the
+  ;; PRIMITIVE-P gate at SAFE-PRIN1 time, and the recorder records a
+  ;; skip rather than a capture. Closures and built-in non-class
+  ;; standard-objects (FUNCTION, etc.) don't have CLOS slots; they fall
+  ;; through to the next method.
   (let ((cls (class-of v)))
-    (if (typep cls 'postmodern:dao-class)
-        (let* ((cls-name (class-name cls))
-               (column-slots (postmodern::dao-column-slots cls))
-               (column-names (mapcar #'closer-mop:slot-definition-name
-                                     column-slots))
-               (extra-slots
-                 (remove-if (lambda (s)
-                              (member (closer-mop:slot-definition-name s)
-                                      column-names))
-                            (closer-mop:class-slots cls))))
-          (list* :class
-                 (%class-keyword v)
-                 (nconc
-                  (loop for s in column-slots
-                        for sn = (closer-mop:slot-definition-name s)
-                        unless (%slot-omitted-p cls-name sn)
-                        collect (%slot-keyword sn)
-                        and collect (flatten-trace-value (%safe-slot v sn)))
-                  (loop for s in extra-slots
-                        for sn = (closer-mop:slot-definition-name s)
-                        unless (%slot-omitted-p cls-name sn)
-                        collect (%slot-keyword sn)
-                        and collect (flatten-trace-value (%safe-slot v sn))))))
-        (call-next-method))))
+    (cond
+      ((typep cls 'postmodern:dao-class)
+       (let* ((cls-name (class-name cls))
+              (column-slots (postmodern::dao-column-slots cls))
+              (column-names (mapcar #'closer-mop:slot-definition-name
+                                    column-slots))
+              (extra-slots
+                (remove-if (lambda (s)
+                             (member (closer-mop:slot-definition-name s)
+                                     column-names))
+                           (closer-mop:class-slots cls))))
+         (list* :class
+                (%class-keyword v)
+                (nconc
+                 (loop for s in column-slots
+                       for sn = (closer-mop:slot-definition-name s)
+                       unless (%slot-omitted-p cls-name sn)
+                       collect (%slot-keyword sn)
+                       and collect (flatten-trace-value (%safe-slot v sn)))
+                 (loop for s in extra-slots
+                       for sn = (closer-mop:slot-definition-name s)
+                       unless (%slot-omitted-p cls-name sn)
+                       collect (%slot-keyword sn)
+                       and collect (flatten-trace-value (%safe-slot v sn)))))))
+      ((typep cls 'standard-class)
+       (let ((cls-name (class-name cls)))
+         (list* :class
+                (%class-keyword v)
+                (loop for s in (closer-mop:class-slots cls)
+                      for sn = (closer-mop:slot-definition-name s)
+                      unless (%slot-omitted-p cls-name sn)
+                      collect (%slot-keyword sn)
+                      and collect (flatten-trace-value (%safe-slot v sn))))))
+      (t (call-next-method)))))
 
 (defun flatten-args (args)
   "Walk a recorder ARGS list and project every element. Used as the
