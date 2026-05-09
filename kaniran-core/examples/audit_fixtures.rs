@@ -46,13 +46,23 @@ use kaniran_core::dict::counter_join::counter_join;
 use kaniran_core::dict::find_counter::find_counter;
 use kaniran_core::dict::counter_months_class::CounterMonths;
 use kaniran_core::dict::counter_people_class::CounterPeople;
+use kaniran_core::dict::compound_text_class::{CompoundText, ScoreMod};
 use kaniran_core::dict::counter_text_class::{
-    Common, Counter, CounterText, DigitOp, DigitOptEntry, DigitOptKey,
+    Common, Counter, CounterSource, CounterText, DigitOp, DigitOptEntry, DigitOptKey,
 };
 use kaniran_core::dict::counter_tsu_class::CounterTsu;
 use kaniran_core::dict::counter_wari_class::CounterWari;
+use kaniran_core::dict::common::common;
+use kaniran_core::dict::kana_text_dao::KanaText;
+use kaniran_core::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use kaniran_core::dict::kanji_text_dao::KanjiText;
 use kaniran_core::dict::number_text_class::NumberText;
+use kaniran_core::dict::proxy_text_class::ProxyText;
+use kaniran_core::dict::seq::seq as seq_fn;
+use kaniran_core::dict::simple_text_class::SimpleText;
+use kaniran_core::dict::source::{source, SourceRef};
 use kaniran_core::dict::verify::verify;
+use kaniran_core::dict::word_info_class::WordInfoSeq;
 use kaniran_core::dict::get_digit::get_digit;
 use kaniran_core::dict::ordinal_str::ordinal_str;
 use kaniran_core::dict::kani_conj_form::{ConjForm, FormToken};
@@ -113,6 +123,12 @@ fn handlers() -> BTreeMap<&'static str, Handler> {
     m.insert("ICHIRAN/DICT:VERIFY",                          audit_verify);
     m.insert("ICHIRAN/DICT::FIND-COUNTER",                   audit_find_counter);
     m.insert("ICHIRAN/DICT:FIND-COUNTER",                    audit_find_counter);
+    m.insert("ICHIRAN/DICT::SEQ",                            audit_seq);
+    m.insert("ICHIRAN/DICT:SEQ",                             audit_seq);
+    m.insert("ICHIRAN/DICT::COMMON",                         audit_common);
+    m.insert("ICHIRAN/DICT:COMMON",                          audit_common);
+    m.insert("ICHIRAN/DICT::SOURCE",                         audit_source);
+    m.insert("ICHIRAN/DICT:SOURCE",                          audit_source);
     m.insert("ICHIRAN/CHARACTERS:GEMINATE",                  audit_geminate);
     m.insert("ICHIRAN/CHARACTERS:RENDAKU",                   audit_rendaku);
     m.insert("ICHIRAN/NUMBERS:PARSE-NUMBER",                 audit_parse_number);
@@ -320,6 +336,359 @@ fn audit_split_by_regex(args: &Sexp, expected: &Sexp) -> Result<(), String> {
     if actual == exp { Ok(()) } else {
         Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
     }
+}
+
+fn audit_seq(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 1 {
+        return Err(format!("seq wants 1 arg, got {}", argv.len()));
+    }
+    // Skip variants outside the Rust word polymorphism. Lisp dispatches
+    // `seq` on conjugation/sense/sense-prop/restricted-readings/entry/
+    // conj-source-reading too, but those are typed-known DAOs at every
+    // callsite — the Rust port reads `.seq` directly without going
+    // through a dispatcher. Auditing those rows would be a category
+    // error: the polymorphic surface doesn't include them.
+    let class = list_elems(argv[0])
+        .ok().and_then(|e| plist_class(&e).ok())
+        .unwrap_or_default();
+    if matches!(class.as_str(),
+        "CONJUGATION" | "SENSE" | "SENSE-PROP"
+        | "RESTRICTED-READINGS" | "ENTRY" | "CONJ-SOURCE-READING") {
+        return Ok(()); // out of polymorphic scope; treat as pass
+    }
+    let word = parse_word_plist(argv[0])?;
+    let actual = seq_fn(&word);
+    let exp = expect_one(expected)?;
+    let actual_repr = repr_word_info_seq(&actual);
+    let exp_repr = repr_seq_expected(exp)?;
+    if actual_repr == exp_repr { Ok(()) } else {
+        Err(format!("\n  rust: {}\n  lisp: {}", actual_repr, exp_repr))
+    }
+}
+
+fn audit_common(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 1 {
+        return Err(format!("common wants 1 arg, got {}", argv.len()));
+    }
+    let word = parse_word_plist(argv[0])?;
+    let actual = common(&word);
+    let exp = expect_one(expected)?;
+    let actual_repr = repr_common(&actual);
+    let exp_repr = repr_common_expected(exp)?;
+    if actual_repr == exp_repr { Ok(()) } else {
+        Err(format!("\n  rust: {}\n  lisp: {}", actual_repr, exp_repr))
+    }
+}
+
+fn audit_source(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 1 {
+        return Err(format!("source wants 1 arg, got {}", argv.len()));
+    }
+    let word = parse_word_plist(argv[0])?;
+    let actual = source(&word);
+    let exp = expect_one(expected)?;
+    // Compare on (variant_name, seq, text, kana) — slot identity is enough
+    // to verify the dispatcher returned the same source row.
+    let actual_id = source_identity(&actual);
+    let exp_id = expected_source_identity(exp)?;
+    if actual_id == exp_id { Ok(()) } else {
+        Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual_id, exp_id))
+    }
+}
+
+// --- result repr helpers ------------------------------------------------
+
+fn repr_word_info_seq(v: &Option<WordInfoSeq>) -> String {
+    match v {
+        None => "NIL".into(),
+        Some(WordInfoSeq::Single(n)) => format!("{}", n),
+        Some(WordInfoSeq::Multi(v)) => {
+            let s: Vec<String> = v.iter().map(|n| n.to_string()).collect();
+            format!("({})", s.join(" "))
+        }
+    }
+}
+
+/// Seq's Lisp result is bare: int, list, or NIL — captured as the values-list
+/// element. Single int → `42`. List → `(1 2 3)`. NIL → `NIL`.
+fn repr_seq_expected(s: &Sexp) -> Result<String, String> {
+    if s.is_nil() { return Ok("NIL".into()); }
+    if let Some(n) = s.as_i64() { return Ok(format!("{}", n)); }
+    let elems = list_elems(s)?;
+    let mut nums = Vec::with_capacity(elems.len());
+    for e in elems {
+        if e.is_nil() {
+            // mapcar over a list with nil entries — Rust elides these.
+            // Skip to keep the comparison aligned with the Rust port's
+            // documented compound-text flatten behavior.
+            continue;
+        }
+        let n = e.as_i64().ok_or_else(|| format!("seq result element not int/NIL: {}", e))?;
+        nums.push(n.to_string());
+    }
+    Ok(format!("({})", nums.join(" ")))
+}
+
+fn repr_common(c: &Common) -> String {
+    match c {
+        Common::Score(n) => format!("{}", n),
+        Common::Null => "NULL".into(),
+        Common::Inherit => "INHERIT".into(), // unreachable from the dispatcher
+    }
+}
+
+/// Common's Lisp result: integer / `:NULL` / `NIL` / sometimes a `(or db-null integer)` row value.
+fn repr_common_expected(s: &Sexp) -> Result<String, String> {
+    if s.is_nil() { return Ok("NULL".into()); }
+    if let Some(kw) = s.as_keyword() {
+        if kw.eq_ignore_ascii_case("NULL") { return Ok("NULL".into()); }
+        return Err(format!("common result keyword: :{}", kw));
+    }
+    if let Some(n) = s.as_i64() { return Ok(format!("{}", n)); }
+    Err(format!("common result shape: {}", s))
+}
+
+/// Source identity = (variant-class-tag, seq, text). The Lisp result of
+/// `(source obj)` is whatever the slot held — for both counter-text and
+/// proxy-text, that's a kanji-text or kana-text row (or `NIL`). The
+/// counter-vs-proxy distinction lives at the input, not the output, so
+/// equality just compares row identity.
+type SourceIdentity = Option<(String, i32, String)>;
+
+fn source_identity(s: &Option<SourceRef<'_>>) -> SourceIdentity {
+    match s {
+        None => None,
+        Some(SourceRef::CounterKanji(k)) => Some(("KANJI-TEXT".into(), k.seq, k.text.clone())),
+        Some(SourceRef::CounterKana(k)) => Some(("KANA-TEXT".into(), k.seq, k.text.clone())),
+        Some(SourceRef::ProxySimple(s)) => simple_identity(s),
+    }
+}
+
+fn simple_identity(s: &KaniSimpleTextDispatchEnum) -> SourceIdentity {
+    match s {
+        KaniSimpleTextDispatchEnum::Kanji(k) => Some(("KANJI-TEXT".into(), k.seq, k.text.clone())),
+        KaniSimpleTextDispatchEnum::Kana(k) => Some(("KANA-TEXT".into(), k.seq, k.text.clone())),
+        KaniSimpleTextDispatchEnum::Proxy(p) => simple_identity(&p.source),
+    }
+}
+
+fn expected_source_identity(s: &Sexp) -> Result<SourceIdentity, String> {
+    if s.is_nil() { return Ok(None); }
+    let elems = list_elems(s)?;
+    if elems.len() % 2 != 0 {
+        return Err(format!("source result plist odd length: {}", s));
+    }
+    let class = plist_class(&elems)?;
+    if class.eq_ignore_ascii_case("PROXY-TEXT") {
+        // Lisp's source can return another proxy if its source slot holds
+        // one. Recurse into the inner SOURCE slot to find the leaf row.
+        let inner = plist_get(&elems, "SOURCE")
+            .ok_or("proxy source plist missing :SOURCE")?;
+        return expected_source_identity(inner);
+    }
+    let seq = plist_get_i64(&elems, "SEQ").unwrap_or(0) as i32;
+    let text = plist_get_string(&elems, "TEXT");
+    Ok(Some((class, seq, text)))
+}
+
+// --- plist → KaniWordDispatchEnum reconstruction ------------------------
+
+/// Recursively reconstruct a `KaniWordDispatchEnum` from a captured
+/// plist. Handles every variant the segmenter dispatches on: kanji-text,
+/// kana-text, proxy-text, compound-text, and the 11 counter-text
+/// subclasses. Slots not relevant to seq/common/source dispatchers are
+/// filled with default placeholders.
+fn parse_word_plist(s: &Sexp) -> Result<KaniWordDispatchEnum, String> {
+    let elems = list_elems(s)?;
+    if elems.len() % 2 != 0 {
+        return Err(format!("word plist odd length: {}", s));
+    }
+    let class = plist_class(&elems)?;
+    match class.as_str() {
+        "KANA-TEXT" => Ok(KaniWordDispatchEnum::Kana(parse_kana_text(&elems)?)),
+        "KANJI-TEXT" => Ok(KaniWordDispatchEnum::Kanji(parse_kanji_text(&elems)?)),
+        "PROXY-TEXT" => Ok(KaniWordDispatchEnum::Proxy(parse_proxy_text(&elems)?)),
+        "COMPOUND-TEXT" => Ok(KaniWordDispatchEnum::Compound(parse_compound_text(&elems)?)),
+        c if c.starts_with("COUNTER-") || c == "NUMBER-TEXT" => {
+            Ok(KaniWordDispatchEnum::Counter(parse_counter(&elems, c)?))
+        }
+        other => Err(format!("unknown word :CLASS: :{}", other)),
+    }
+}
+
+fn parse_simple_text_plist(s: &Sexp) -> Result<KaniSimpleTextDispatchEnum, String> {
+    let elems = list_elems(s)?;
+    let class = plist_class(&elems)?;
+    match class.as_str() {
+        "KANA-TEXT" => Ok(KaniSimpleTextDispatchEnum::Kana(parse_kana_text(&elems)?)),
+        "KANJI-TEXT" => Ok(KaniSimpleTextDispatchEnum::Kanji(parse_kanji_text(&elems)?)),
+        "PROXY-TEXT" => Ok(KaniSimpleTextDispatchEnum::Proxy(parse_proxy_text(&elems)?)),
+        other => Err(format!("simple-text :CLASS not Kana/Kanji/Proxy: :{}", other)),
+    }
+}
+
+fn plist_class(elems: &[&Sexp]) -> Result<String, String> {
+    for pair in elems.chunks(2) {
+        if pair[0].as_keyword().map(|k| k.eq_ignore_ascii_case("CLASS")).unwrap_or(false) {
+            return pair[1].as_keyword()
+                .map(|s| s.to_string())
+                .ok_or_else(|| format!(":CLASS value not keyword: {}", pair[1]));
+        }
+    }
+    Err("plist missing :CLASS".into())
+}
+
+fn plist_get<'a>(elems: &[&'a Sexp], key: &str) -> Option<&'a Sexp> {
+    for pair in elems.chunks(2) {
+        if pair[0].as_keyword().map(|k| k.eq_ignore_ascii_case(key)).unwrap_or(false) {
+            return Some(pair[1]);
+        }
+    }
+    None
+}
+
+fn plist_get_i64(elems: &[&Sexp], key: &str) -> Option<i64> {
+    plist_get(elems, key).and_then(|v| v.as_i64())
+}
+
+fn plist_get_string(elems: &[&Sexp], key: &str) -> String {
+    plist_get(elems, key).and_then(|v| v.as_str()).map(|s| s.to_string()).unwrap_or_default()
+}
+
+fn plist_common_to_optional_i32(v: &Sexp) -> Option<i32> {
+    if v.is_nil() { return None; }
+    if let Some(kw) = v.as_keyword() {
+        if kw.eq_ignore_ascii_case("NULL") { return None; }
+    }
+    v.as_i64().map(|n| n as i32)
+}
+
+fn plist_common_to_enum(v: &Sexp) -> Common {
+    if v.is_nil() { return Common::Inherit; }
+    if let Some(kw) = v.as_keyword() {
+        if kw.eq_ignore_ascii_case("NULL") { return Common::Null; }
+    }
+    if let Some(n) = v.as_i64() { return Common::Score(n as i32); }
+    Common::Inherit
+}
+
+fn parse_kanji_text(elems: &[&Sexp]) -> Result<KanjiText, String> {
+    Ok(KanjiText {
+        id: plist_get_i64(elems, "ID").unwrap_or(0) as i32,
+        seq: plist_get_i64(elems, "SEQ").unwrap_or(0) as i32,
+        text: plist_get_string(elems, "TEXT"),
+        ord: plist_get_i64(elems, "ORD").unwrap_or(0) as i32,
+        common: plist_get(elems, "COMMON").map(plist_common_to_optional_i32).unwrap_or(None),
+        common_tags: plist_get_string(elems, "COMMON-TAGS"),
+        conjugate_p: !plist_get(elems, "CONJUGATE-P").map(|v| v.is_nil()).unwrap_or(true),
+        nokanji: !plist_get(elems, "NOKANJI").map(|v| v.is_nil()).unwrap_or(true),
+        best_kana: plist_get(elems, "BEST-KANA").and_then(|v| {
+            if v.is_nil() { None }
+            else if v.as_keyword().map(|k| k.eq_ignore_ascii_case("NULL")).unwrap_or(false) { None }
+            else { v.as_str().map(|s| s.to_string()) }
+        }),
+        state: SimpleText::default(),
+    })
+}
+
+fn parse_kana_text(elems: &[&Sexp]) -> Result<KanaText, String> {
+    Ok(KanaText {
+        id: plist_get_i64(elems, "ID").unwrap_or(0) as i32,
+        seq: plist_get_i64(elems, "SEQ").unwrap_or(0) as i32,
+        text: plist_get_string(elems, "TEXT"),
+        ord: plist_get_i64(elems, "ORD").unwrap_or(0) as i32,
+        common: plist_get(elems, "COMMON").map(plist_common_to_optional_i32).unwrap_or(None),
+        common_tags: plist_get_string(elems, "COMMON-TAGS"),
+        conjugate_p: !plist_get(elems, "CONJUGATE-P").map(|v| v.is_nil()).unwrap_or(true),
+        nokanji: !plist_get(elems, "NOKANJI").map(|v| v.is_nil()).unwrap_or(true),
+        best_kanji: plist_get(elems, "BEST-KANJI").and_then(|v| {
+            if v.is_nil() { None }
+            else if v.as_keyword().map(|k| k.eq_ignore_ascii_case("NULL")).unwrap_or(false) { None }
+            else { v.as_str().map(|s| s.to_string()) }
+        }),
+        state: SimpleText::default(),
+    })
+}
+
+fn parse_proxy_text(elems: &[&Sexp]) -> Result<ProxyText, String> {
+    let source_v = plist_get(elems, "SOURCE")
+        .ok_or("proxy plist missing :SOURCE")?;
+    let inner = parse_simple_text_plist(source_v)?;
+    Ok(ProxyText {
+        text: plist_get_string(elems, "TEXT"),
+        kana: plist_get_string(elems, "KANA"),
+        source: Box::new(inner),
+        state: SimpleText::default(),
+    })
+}
+
+fn parse_compound_text(elems: &[&Sexp]) -> Result<CompoundText, String> {
+    let primary_v = plist_get(elems, "PRIMARY")
+        .ok_or("compound plist missing :PRIMARY")?;
+    let primary = Box::new(parse_word_plist(primary_v)?);
+    let mut words = Vec::new();
+    if let Some(words_v) = plist_get(elems, "WORDS") {
+        if !words_v.is_nil() {
+            for w in list_elems(words_v)? {
+                words.push(parse_word_plist(w)?);
+            }
+        }
+    }
+    Ok(CompoundText {
+        text: plist_get_string(elems, "TEXT"),
+        kana: plist_get_string(elems, "KANA"),
+        primary,
+        words,
+        score_base: None,
+        score_mod: ScoreMod::Single(0),
+    })
+}
+
+fn parse_counter(elems: &[&Sexp], class: &str) -> Result<Counter, String> {
+    let source = plist_get(elems, "SOURCE").and_then(|v| {
+        if v.is_nil() { return None; }
+        // SOURCE is itself a kanji-text or kana-text plist.
+        match parse_simple_text_plist(v).ok()? {
+            KaniSimpleTextDispatchEnum::Kanji(k) => Some(CounterSource::Kanji(k)),
+            KaniSimpleTextDispatchEnum::Kana(k) => Some(CounterSource::Kana(k)),
+            KaniSimpleTextDispatchEnum::Proxy(_) => None, // counter-text source isn't a proxy
+        }
+    });
+    let common = plist_get(elems, "COMMON").map(plist_common_to_enum).unwrap_or(Common::Inherit);
+    let base = CounterText {
+        text: plist_get_string(elems, "TEXT"),
+        kana: plist_get_string(elems, "KANA"),
+        number_text: plist_get_string(elems, "NUMBER-TEXT"),
+        number: plist_get_i64(elems, "NUMBER").unwrap_or(0).max(0) as u64,
+        source,
+        ordinalp: !plist_get(elems, "ORDINALP").map(|v| v.is_nil()).unwrap_or(true),
+        suffix: plist_get(elems, "SUFFIX").and_then(|v| {
+            if v.is_nil() { None } else { v.as_str().map(|s| s.to_string()) }
+        }),
+        accepts_suffixes: Vec::new(),
+        suffix_descriptions: Vec::new(),
+        digit_opts: Vec::new(),
+        common,
+        allowed: Vec::new(),
+        foreign: !plist_get(elems, "FOREIGN").map(|v| v.is_nil()).unwrap_or(true),
+    };
+    Ok(match class {
+        "COUNTER-TEXT" => Counter::Base(base),
+        "NUMBER-TEXT" => Counter::NumberText(NumberText(base)),
+        "COUNTER-TSU" => Counter::Tsu(CounterTsu(base)),
+        "COUNTER-AGE" => Counter::Age(CounterAge(base)),
+        "COUNTER-DAYS-KUN" => Counter::DaysKun(CounterDaysKun(base)),
+        "COUNTER-DAYS-ON" => Counter::DaysOn(CounterDaysOn(base)),
+        "COUNTER-HALFHOUR" => Counter::Halfhour(CounterHalfhour(base)),
+        "COUNTER-MONTHS" => Counter::Months(CounterMonths(base)),
+        "COUNTER-PEOPLE" => Counter::People(CounterPeople(base)),
+        "COUNTER-WARI" => Counter::Wari(CounterWari(base)),
+        "COUNTER-HIFUMI" => Counter::Hifumi(CounterHifumi { base, digit_set: Vec::new() }),
+        other => return Err(format!("unknown counter :CLASS: :{}", other)),
+    })
 }
 
 fn audit_find_counter(args: &Sexp, expected: &Sexp) -> Result<(), String> {

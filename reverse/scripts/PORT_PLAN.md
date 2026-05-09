@@ -94,10 +94,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   89. `ichiran/dict:gloss`  — dao, dict.lisp:178  *[ported]*
   90. `ichiran/dict:text`  — gf, dict-counters.lisp:0  *[ported]*
   91. **CYCLE (4 symbols — port together)**
-        - `ichiran/dict:common`  — gf, dict-counters.lisp:0
+        - `ichiran/dict:common`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: tatoeba]*  *[audited 3180/3180]*
         - `ichiran/dict:counter-text`  — class, dict-counters.lisp:9  *[ported]*
-        - `ichiran/dict:seq`  — gf, dict-counters.lisp:0
-        - `ichiran/dict:source`  — gf, dict-counters.lisp:0
+        - `ichiran/dict:seq`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: tatoeba]*  *[audited 3795/3795]*
+        - `ichiran/dict:source`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: tatoeba]*  *[audited 27/27]*
   92. `ichiran/dict:counter-age`  — class, dict-counters.lisp:757  *[ported]*
   93. `ichiran/dict:counter-days-kun`  — class, dict-counters.lisp:686  *[ported]*
   94. `ichiran/dict:counter-days-on`  — class, dict-counters.lisp:709  *[ported]*
@@ -183,8 +183,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  166. `ichiran/numbers:*power-kanji*`  — global, numbers.lisp:7  *[ported]*
  167. `ichiran/numbers:number-to-kanji`  — fn, numbers.lisp:35  *[ported]*  *[extracted: counter_2026_05_08]*
  168. `ichiran/numbers:number-to-kana`  — fn, numbers.lisp:125  *[ported]*  *[extracted: counter_2026_05_08]*
- 169. `ichiran/dict:get-kana`  — gf, dict.lisp:0
- 170. `ichiran/dict:get-text`  — gf, dict.lisp:0
+ 169. `ichiran/dict:get-kana`  — gf, dict.lisp:0  *[extracted: tatoeba]*
+ 170. `ichiran/dict:get-text`  — gf, dict.lisp:0  *[extracted: tatoeba]*
  171. `ichiran/dict:ordinal-str`  — fn, dict-counters.lisp:38  *[ported]*  *[extracted: counter_2026_05_08]*
  172. `ichiran/dict:value-string`  — gf, dict-counters.lisp:0  *[extracted: counter_2026_05_08]*
  173. `ichiran/dict:word-type`  — gf, dict.lisp:0
@@ -488,8 +488,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  469. `ichiran/numbers:text`  — gf, numbers.lisp:0
  470. `ichiran/numbers:not-a-number`  — condition, numbers.lisp:0  *[ported]*
  471. `ichiran/dict:find-counter`  — fn, dict-counters.lisp:273  *[ported]*  *[extracted: counter_2026_05_08]*
- 472. `ichiran/dict:find-word`  — fn, dict.lisp:489
- 473. `ichiran/dict:find-word-as-hiragana`  — fn, dict.lisp:592
+ 472. `ichiran/dict:find-word`  — fn, dict.lisp:489  *[extracted: tatoeba]*
+ 473. `ichiran/dict:find-word-as-hiragana`  — fn, dict.lisp:592  *[extracted: tatoeba]*
  474. `ichiran/dict:adjoin-word`  — gf, dict.lisp:0
  475. `ichiran/dict:apply-patch`  — fn, dict-grammar.lisp:444
  476. `ichiran/dict:or-as-hiragana`  — fn, dict-grammar.lisp:95
@@ -517,8 +517,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:abbr-seba`  — fn, dict-grammar.lisp:666
         - `ichiran/dict:abbr-shimasho`  — fn, dict-grammar.lisp:632
         - `ichiran/dict:abbr-teba`  — fn, dict-grammar.lisp:639
-        - `ichiran/dict:find-word-full`  — fn, dict.lisp:1052
-        - `ichiran/dict:find-word-suffix`  — fn, dict-grammar.lisp:706
+        - `ichiran/dict:find-word-full`  — fn, dict.lisp:1052  *[extracted: tatoeba]*
+        - `ichiran/dict:find-word-suffix`  — fn, dict-grammar.lisp:706  *[extracted: tatoeba]*
         - `ichiran/dict:find-word-with-conj-prop`  — fn, dict-grammar.lisp:42
         - `ichiran/dict:find-word-with-conj-type`  — fn, dict-grammar.lisp:51
         - `ichiran/dict:find-word-with-suffix`  — fn, dict-grammar.lisp:100

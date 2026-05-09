@@ -1,0 +1,23 @@
+# Segmenter trace — wave 91 SCC + downstream entry points.
+# Driver: ICHIRAN:ROMANIZE* per sentence (extractor_worker.lisp's
+# *entry-points*) → find-word-full → find-word + find-word-suffix +
+# find-word-as-hiragana, with get-text / get-kana / seq / common /
+# source firing per dispatch as the segmenter walks each match.
+#
+# Captured 2026-05-09 against tatoeba_sentences.txt (248K sentences).
+# Per-FQN parquets land under corpus/extracted_segmenter_2026_05_09/.
+#
+# Wave 91 SCC (already ported, validating against fixtures):
+ICHIRAN/DICT:SEQ
+ICHIRAN/DICT:COMMON
+ICHIRAN/DICT:SOURCE
+#
+# Cross-class accessors (ported / pending):
+ICHIRAN/DICT:GET-TEXT
+ICHIRAN/DICT:GET-KANA
+#
+# Segmenter entry points (pending — fixtures stage for future ports):
+ICHIRAN/DICT:FIND-WORD
+ICHIRAN/DICT:FIND-WORD-AS-HIRAGANA
+ICHIRAN/DICT:FIND-WORD-SUFFIX
+ICHIRAN/DICT:FIND-WORD-FULL
