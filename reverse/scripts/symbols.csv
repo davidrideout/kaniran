@@ -152,7 +152,7 @@ ichiran/dict:*kana-hint-map*,*kana-hint-map*,ichiran/dict,dict-split.lisp,832,gl
 ichiran/dict:*kana-hint-mod*,*kana-hint-mod*,ichiran/dict,dict-split.lisp,813,global,pending,,,
 ichiran/dict:*kana-hint-space*,*kana-hint-space*,ichiran/dict,dict-split.lisp,814,global,ported,,,
 ichiran/dict:*length-coeff-sequences*,*length-coeff-sequences*,ichiran/dict,dict.lisp,686,global,pending,,,
-ichiran/dict:*max-word-length*,*max-word-length*,ichiran/dict,dict.lisp,486,global,pending,,,
+ichiran/dict:*max-word-length*,*max-word-length*,ichiran/dict,dict.lisp,486,global,ported,,,
 ichiran/dict:*no-conj-data*,*no-conj-data*,ichiran/dict,dict.lisp,0,global,ported,,,
 ichiran/dict:*no-kanji-break*,*no-kanji-break*,ichiran/dict,dict-errata.lisp,1229,global,pending,,,
 ichiran/dict:*no-kanji-break-penalty*,*no-kanji-break-penalty*,ichiran/dict,dict-errata.lisp,1214,global,pending,,,
@@ -174,7 +174,7 @@ ichiran/dict:*skip-counter-ids*,*skip-counter-ids*,ichiran/dict,dict-counters.li
 ichiran/dict:*skip-words*,*skip-words*,ichiran/dict,dict-errata.lisp,1155,global,pending,,,
 ichiran/dict:*special-counters*,*special-counters*,ichiran/dict,dict-counters.lisp,211,global,ported,,,
 ichiran/dict:*split-map*,*split-map*,ichiran/dict,dict-split.lisp,5,global,pending,,,
-ichiran/dict:*substring-hash*,*substring-hash*,ichiran/dict,dict.lisp,487,global,pending,,,
+ichiran/dict:*substring-hash*,*substring-hash*,ichiran/dict,dict.lisp,487,global,ported,,,
 ichiran/dict:*suffix-cache*,*suffix-cache*,ichiran/dict,dict-grammar.lisp,0,global,ported,,,
 ichiran/dict:*suffix-class*,*suffix-class*,ichiran/dict,dict-grammar.lisp,0,global,ported,,,
 ichiran/dict:*suffix-description*,*suffix-description*,ichiran/dict,dict-grammar.lisp,0,global,pending,,,
@@ -323,8 +323,8 @@ ichiran/dict:find-counter,find-counter,ichiran/dict,dict-counters.lisp,273,fn,po
 ichiran/dict:find-kanji-for-pattern,find-kanji-for-pattern,ichiran/dict,dict.lisp,1882,fn,pending,,,
 ichiran/dict:find-sticky-positions,find-sticky-positions,ichiran/dict,dict.lisp,990,fn,pending,,,
 ichiran/dict:find-substring-words,find-substring-words,ichiran/dict,dict.lisp,501,fn,pending,,,
-ichiran/dict:find-word,find-word,ichiran/dict,dict.lisp,489,fn,pending,,tatoeba,
-ichiran/dict:find-word-as-hiragana,find-word-as-hiragana,ichiran/dict,dict.lisp,592,fn,pending,,tatoeba,
+ichiran/dict:find-word,find-word,ichiran/dict,dict.lisp,489,fn,ported,,tatoeba,8105/8105
+ichiran/dict:find-word-as-hiragana,find-word-as-hiragana,ichiran/dict,dict.lisp,592,fn,ported,,tatoeba,30/30
 ichiran/dict:find-word-conj-of,find-word-conj-of,ichiran/dict,dict-grammar.lisp,77,fn,ported,,,
 ichiran/dict:find-word-full,find-word-full,ichiran/dict,dict.lisp,1052,fn,pending,,tatoeba,
 ichiran/dict:find-word-info,find-word-info,ichiran/dict,dict.lisp,1850,fn,pending,,,

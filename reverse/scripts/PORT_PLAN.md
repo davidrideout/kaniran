@@ -476,9 +476,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  457. `ichiran/dict:cull-segments`  — fn, dict.lisp:1027
  458. `ichiran/dict:gen-score`  — fn, dict.lisp:985
  459. `ichiran/dict:*force-kanji-break*`  — global, dict-errata.lisp:1226
- 460. `ichiran/dict:*max-word-length*`  — global, dict.lisp:486
+ 460. `ichiran/dict:*max-word-length*`  — global, dict.lisp:486  *[ported]*
  461. `ichiran/dict:*no-kanji-break*`  — global, dict-errata.lisp:1229
- 462. `ichiran/dict:*substring-hash*`  — global, dict.lisp:487
+ 462. `ichiran/dict:*substring-hash*`  — global, dict.lisp:487  *[ported]*
  463. `ichiran/dict:*suffix-map-temp*`  — global, dict.lisp:1049
  464. `ichiran/dict:*suffix-next-end*`  — global, dict.lisp:1050
  465. `ichiran/dict:find-sticky-positions`  — fn, dict.lisp:990
@@ -488,8 +488,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  469. `ichiran/numbers:text`  — gf, numbers.lisp:0
  470. `ichiran/numbers:not-a-number`  — condition, numbers.lisp:0  *[ported]*
  471. `ichiran/dict:find-counter`  — fn, dict-counters.lisp:273  *[ported]*  *[extracted: counter_2026_05_08]*
- 472. `ichiran/dict:find-word`  — fn, dict.lisp:489  *[extracted: tatoeba]*
- 473. `ichiran/dict:find-word-as-hiragana`  — fn, dict.lisp:592  *[extracted: tatoeba]*
+ 472. `ichiran/dict:find-word`  — fn, dict.lisp:489  *[ported]*  *[extracted: tatoeba]*  *[audited 8105/8105]*
+ 473. `ichiran/dict:find-word-as-hiragana`  — fn, dict.lisp:592  *[ported]*  *[extracted: tatoeba]*  *[audited 30/30]*
  474. `ichiran/dict:adjoin-word`  — gf, dict.lisp:0
  475. `ichiran/dict:apply-patch`  — fn, dict-grammar.lisp:444
  476. `ichiran/dict:or-as-hiragana`  — fn, dict-grammar.lisp:95

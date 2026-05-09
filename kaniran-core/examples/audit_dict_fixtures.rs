@@ -31,6 +31,8 @@ const CONCURRENCY: usize = 16;
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::conj_prop_dao::ConjProp;
+use kaniran_core::dict::find_word::{find_word, FindWordRows};
+use kaniran_core::dict::find_word_as_hiragana::find_word_as_hiragana;
 use kaniran_core::dict::find_word_conj_of::find_word_conj_of;
 use kaniran_core::dict::find_word_seq::{find_word_seq, WordSeqRows};
 use kaniran_core::dict::get_conj_data::{get_conj_data, FromOrConjIds};
@@ -38,7 +40,9 @@ use kaniran_core::dict::get_kana_form::get_kana_form;
 use kaniran_core::dict::get_kana_forms::get_kana_forms;
 use kaniran_core::dict::get_kana_forms_star_::get_kana_forms_star_;
 use kaniran_core::dict::kana_text_dao::KanaText;
+use kaniran_core::dict::kani_word::KaniSimpleTextDispatchEnum;
 use kaniran_core::dict::kanji_text_dao::KanjiText;
+use kaniran_core::dict::proxy_text_class::ProxyText;
 use kaniran_core::dict::simple_text_class::WordConjugations;
 use kaniran_core::kani::sexp::{self, Sexp};
 
@@ -61,6 +65,24 @@ fn expect_one(expected: &Sexp) -> Result<&Sexp, String> {
     Ok(elems[0])
 }
 
+/// Like [`expect_one`], but tolerates a trailing secondary value at
+/// position 1 (postmodern's `query-dao` / `select-dao` returns the
+/// row list as the primary value and the row count as the secondary;
+/// `find-word` propagates both because its body is a DB call's tail
+/// position, while the cache-path's `loop collect` produces only the
+/// primary). The trailing slot is non-load-bearing for every audit
+/// that opts into this — comparison runs against the rows in
+/// position 0.
+fn expect_first_of_one_or_two(expected: &Sexp) -> Result<&Sexp, String> {
+    let elems = list_elems(expected)?;
+    if elems.is_empty() || elems.len() > 2 {
+        return Err(format!(
+            "expected 1- or 2-element list (multi-val wrap), got {}", expected,
+        ));
+    }
+    Ok(elems[0])
+}
+
 fn parse_int(s: &Sexp) -> Result<i32, String> {
     s.as_i64()
         .ok_or_else(|| format!("not an int: {}", s))
@@ -70,10 +92,17 @@ fn parse_int(s: &Sexp) -> Result<i32, String> {
 
 // --- projected DAO row + compare ---------------------------------------
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct DaoRow {
     class: String,
-    id: i32,
+    /// `None` when the captured plist had `:ID NIL`. Upstream cache-path
+    /// rows carry NIL because `kana-text` / `kanji-text` declare `id`
+    /// without `:initarg :id` (`dict.lisp:87,129`); `find-word`'s
+    /// `(apply 'make-instance recipe)` therefore leaves the slot unbound
+    /// when serving from `*substring-hash*`. The Rust port always hits
+    /// the DB and so always has an integer id; comparison treats Lisp's
+    /// NIL as a wildcard against any Rust id (see `dao_row_eq`).
+    id: Option<i32>,
     seq: i32,
     text: String,
     ord: i32,
@@ -86,7 +115,7 @@ fn parse_dao_plist(s: &Sexp) -> Result<DaoRow, String> {
         return Err(format!("plist has odd element count: {}", s));
     }
     let mut class = None;
-    let mut id = None;
+    let mut id: Option<Option<i32>> = None;
     let mut seq = None;
     let mut text = None;
     let mut ord = None;
@@ -100,7 +129,7 @@ fn parse_dao_plist(s: &Sexp) -> Result<DaoRow, String> {
                     .ok_or_else(|| format!(":CLASS value not keyword: {}", v))?
                     .to_string(),
             ),
-            "ID"   => id   = Some(parse_int(v)?),
+            "ID"   => id   = Some(if v.is_nil() { None } else { Some(parse_int(v)?) }),
             "SEQ"  => seq  = Some(parse_int(v)?),
             "TEXT" => text = Some(
                 v.as_str()
@@ -130,14 +159,14 @@ fn parse_dao_plist(s: &Sexp) -> Result<DaoRow, String> {
 fn dao_from_kana(r: &KanaText) -> DaoRow {
     DaoRow {
         class: "KANA-TEXT".into(),
-        id: r.id, seq: r.seq, text: r.text.clone(), ord: r.ord,
+        id: Some(r.id), seq: r.seq, text: r.text.clone(), ord: r.ord,
     }
 }
 
 fn dao_from_kanji(r: &KanjiText) -> DaoRow {
     DaoRow {
         class: "KANJI-TEXT".into(),
-        id: r.id, seq: r.seq, text: r.text.clone(), ord: r.ord,
+        id: Some(r.id), seq: r.seq, text: r.text.clone(), ord: r.ord,
     }
 }
 
@@ -148,11 +177,26 @@ fn project_word_seq(rows: &WordSeqRows) -> Vec<DaoRow> {
     }
 }
 
+/// `actual == expected` on the four required columns, with id treated
+/// as a wildcard whenever EITHER side is `None` (NIL on the Lisp side
+/// for cache-path rows; no Rust producer currently emits None, but
+/// symmetric is cheaper than asymmetric).
+fn dao_row_eq(a: &DaoRow, e: &DaoRow) -> bool {
+    a.class == e.class && a.seq == e.seq && a.text == e.text && a.ord == e.ord
+        && match (a.id, e.id) {
+            (Some(x), Some(y)) => x == y,
+            _ => true,
+        }
+}
+
 /// Compare projected actual rows to the captured Lisp result.
-/// Order-insensitive (sort by id) — `(union ... :key #'id)` and
-/// `select-dao` without ORDER BY both have implementation-defined
-/// ordering per the CL spec / SQL spec; comparing as multisets
-/// avoids false negatives that don't reflect a behavioral diff.
+/// Order-insensitive — `(union ... :key #'id)` and `select-dao`
+/// without ORDER BY both have implementation-defined ordering per
+/// the CL spec / SQL spec; comparing as multisets avoids false
+/// negatives that don't reflect a behavioral diff. Sort by
+/// `(seq, text, ord, class)` rather than `id` because cache-path
+/// captures (`find-word`) carry `:ID NIL` and would otherwise all
+/// collapse to a single sort key.
 fn compare_dao_lists(mut actual: Vec<DaoRow>, expected: &Sexp) -> Result<(), String> {
     let exp_elems = list_elems(expected)?;
     let mut expected_rows: Vec<DaoRow> = exp_elems.iter()
@@ -164,10 +208,11 @@ fn compare_dao_lists(mut actual: Vec<DaoRow>, expected: &Sexp) -> Result<(), Str
             actual.len(), expected_rows.len(), actual, expected_rows,
         ));
     }
-    actual.sort_by_key(|r| (r.id, r.class.clone()));
-    expected_rows.sort_by_key(|r| (r.id, r.class.clone()));
+    let key = |r: &DaoRow| (r.seq, r.text.clone(), r.ord, r.class.clone());
+    actual.sort_by_key(key);
+    expected_rows.sort_by_key(key);
     for (i, (a, e)) in actual.iter().zip(&expected_rows).enumerate() {
-        if a != e {
+        if !dao_row_eq(a, e) {
             return Err(format!("row {}: rust={:?} lisp={:?}", i, a, e));
         }
     }
@@ -203,6 +248,181 @@ async fn audit_find_word_conj_of(
     let actual = find_word_conj_of(ctx, word, &seqs).await
         .map_err(|e| format!("find_word_conj_of query: {}", e))?;
     compare_dao_lists(project_word_seq(&actual), expect_one(expected)?)
+}
+
+// --- find-word: same DaoRow shape as find-word-seq -----------------------
+
+fn project_find_word_rows(rows: &FindWordRows) -> Vec<DaoRow> {
+    match rows {
+        FindWordRows::Kana(v)  => v.iter().map(dao_from_kana).collect(),
+        FindWordRows::Kanji(v) => v.iter().map(dao_from_kanji).collect(),
+    }
+}
+
+async fn audit_find_word(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.is_empty() { return Err("find-word args empty".into()); }
+    let word = argv[0].as_str().ok_or("arg 0 not string")?;
+    let mut root_only = false;
+    let mut i = 1;
+    while i < argv.len() {
+        let key = argv[i].as_keyword()
+            .ok_or_else(|| format!("expected keyword at idx {}: {}", i, argv[i]))?;
+        if i + 1 >= argv.len() {
+            return Err(format!("keyword :{} missing value", key));
+        }
+        let v = argv[i + 1];
+        match key {
+            "ROOT-ONLY" => root_only = v.is_t(),
+            other => return Err(format!("find-word: unknown keyword :{}", other)),
+        }
+        i += 2;
+    }
+    let actual = find_word(ctx, word, root_only).await
+        .map_err(|e| format!("find_word query: {}", e))?;
+    compare_dao_lists(project_find_word_rows(&actual), expect_first_of_one_or_two(expected)?)
+}
+
+// --- find-word-as-hiragana: proxy-text rows comparison ------------------
+
+#[derive(Debug, PartialEq, Eq)]
+struct ProxyDao {
+    text: String,
+    kana: String,
+    source: DaoRow,
+}
+
+fn parse_proxy_plist(s: &Sexp) -> Result<ProxyDao, String> {
+    let elems = list_elems(s)?;
+    if elems.len() % 2 != 0 {
+        return Err(format!("proxy plist odd length: {}", s));
+    }
+    let mut text = None;
+    let mut kana = None;
+    let mut source = None;
+    let mut class_ok = false;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("proxy key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" => {
+                if v.as_keyword() != Some("PROXY-TEXT") {
+                    return Err(format!(":CLASS not :PROXY-TEXT: {}", v));
+                }
+                class_ok = true;
+            }
+            "TEXT" => text = Some(v.as_str().ok_or(":TEXT not string")?.to_string()),
+            "KANA" => kana = Some(v.as_str().ok_or(":KANA not string")?.to_string()),
+            "SOURCE" => source = Some(parse_dao_plist(v)?),
+            // Inherited simple-text runtime slots — `find-word-as-hiragana`
+            // never sets them on the freshly-built proxy (default
+            // `Default::default()`), so the projector emits them as NIL /
+            // false; nothing to assert against.
+            "CONJUGATIONS" | "HINTEDP" => {}
+            other => return Err(format!("unknown proxy key: :{}", other)),
+        }
+    }
+    if !class_ok { return Err(":CLASS missing on proxy-text".into()); }
+    Ok(ProxyDao {
+        text: text.ok_or(":TEXT missing")?,
+        kana: kana.ok_or(":KANA missing")?,
+        source: source.ok_or(":SOURCE missing")?,
+    })
+}
+
+fn dao_from_simple(s: &KaniSimpleTextDispatchEnum) -> Result<DaoRow, String> {
+    match s {
+        KaniSimpleTextDispatchEnum::Kana(k)  => Ok(dao_from_kana(k)),
+        KaniSimpleTextDispatchEnum::Kanji(k) => Ok(dao_from_kanji(k)),
+        // find-word never returns a proxy-text — its source is always
+        // a fresh kana-text or kanji-text DAO row from the table query.
+        // A nested proxy at this level would mean either the upstream
+        // semantics drifted or this audit is replaying a non-tatoeba
+        // capture; surface it instead of silently flattening.
+        KaniSimpleTextDispatchEnum::Proxy(_) =>
+            Err("unexpected nested proxy under find-word-as-hiragana".into()),
+    }
+}
+
+fn proxy_dao_from(p: &ProxyText) -> Result<ProxyDao, String> {
+    Ok(ProxyDao {
+        text: p.text.clone(),
+        kana: p.kana.clone(),
+        source: dao_from_simple(&p.source)?,
+    })
+}
+
+fn compare_proxy_lists(
+    mut actual: Vec<ProxyDao>, expected: &Sexp,
+) -> Result<(), String> {
+    let exp_elems = if expected.is_nil() { Vec::new() } else { list_elems(expected)? };
+    let mut expected_rows: Vec<ProxyDao> = exp_elems.iter()
+        .map(|e| parse_proxy_plist(e))
+        .collect::<Result<_, _>>()?;
+    if actual.len() != expected_rows.len() {
+        return Err(format!(
+            "row count: rust={} lisp={}\n  rust: {:?}\n  lisp: {:?}",
+            actual.len(), expected_rows.len(), actual, expected_rows,
+        ));
+    }
+    actual.sort_by_key(|r| (r.source.id, r.source.class.clone()));
+    expected_rows.sort_by_key(|r| (r.source.id, r.source.class.clone()));
+    for (i, (a, e)) in actual.iter().zip(&expected_rows).enumerate() {
+        if a != e {
+            return Err(format!("row {}: rust={:?} lisp={:?}", i, a, e));
+        }
+    }
+    Ok(())
+}
+
+async fn audit_find_word_as_hiragana(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.is_empty() { return Err("find-word-as-hiragana args empty".into()); }
+    let str_ = argv[0].as_str().ok_or("arg 0 not string")?;
+    let mut exclude: Vec<i32> = Vec::new();
+    let mut finder_present_non_nil = false;
+    let mut i = 1;
+    while i < argv.len() {
+        let key = argv[i].as_keyword()
+            .ok_or_else(|| format!("expected keyword at idx {}: {}", i, argv[i]))?;
+        if i + 1 >= argv.len() {
+            return Err(format!("keyword :{} missing value", key));
+        }
+        let v = argv[i + 1];
+        match key {
+            "EXCLUDE" => {
+                if !v.is_nil() {
+                    for e in list_elems(v)? {
+                        exclude.push(parse_int(e)?);
+                    }
+                }
+            }
+            // The captured fixture format is keyword=keyword: `:FINDER
+            // <value>`. Every tatoeba capture has `:FINDER NIL`
+            // (or-as-hiragana isn't on the segmenter's path), so the
+            // audit always passes `None` as the Rust finder. A non-nil
+            // value would imply a closure projection the audit harness
+            // can't replay — surface it as a divergence rather than
+            // silently coerce.
+            "FINDER" => finder_present_non_nil = !v.is_nil(),
+            other => return Err(format!("find-word-as-hiragana: unknown keyword :{}", other)),
+        }
+        i += 2;
+    }
+    if finder_present_non_nil {
+        return Err(":FINDER non-nil — audit harness has no replay strategy for closures".into());
+    }
+    let actual = find_word_as_hiragana(ctx, str_, &exclude, None).await
+        .map_err(|e| format!("find_word_as_hiragana query: {}", e))?;
+    let actual_proxies: Vec<ProxyDao> = actual.iter()
+        .map(proxy_dao_from)
+        .collect::<Result<_, _>>()?;
+    compare_proxy_lists(actual_proxies, expect_one(expected)?)
 }
 
 // --- get-conj-data: DB-backed conj-data list audit -----------------------
@@ -823,12 +1043,14 @@ async fn audit_one(
     let args = sexp::parse(args_str).map_err(|e| format!("parse args: {}", e))?;
     let expected = sexp::parse(result_str).map_err(|e| format!("parse result: {}", e))?;
     match fqn {
-        "ICHIRAN/DICT::FIND-WORD-SEQ"     => audit_find_word_seq(ctx, &args, &expected).await,
-        "ICHIRAN/DICT::FIND-WORD-CONJ-OF" => audit_find_word_conj_of(ctx, &args, &expected).await,
-        "ICHIRAN/DICT::GET-KANA-FORM"     => audit_get_kana_form(ctx, &args, &expected).await,
-        "ICHIRAN/DICT::GET-KANA-FORMS"    => audit_get_kana_forms(ctx, &args, &expected).await,
-        "ICHIRAN/DICT::GET-KANA-FORMS*"   => audit_get_kana_forms_star(ctx, &args, &expected).await,
-        "ICHIRAN/DICT::GET-CONJ-DATA"     => audit_get_conj_data(ctx, &args, &expected).await,
+        "ICHIRAN/DICT:FIND-WORD"              => audit_find_word(ctx, &args, &expected).await,
+        "ICHIRAN/DICT:FIND-WORD-AS-HIRAGANA"  => audit_find_word_as_hiragana(ctx, &args, &expected).await,
+        "ICHIRAN/DICT::FIND-WORD-SEQ"         => audit_find_word_seq(ctx, &args, &expected).await,
+        "ICHIRAN/DICT::FIND-WORD-CONJ-OF"     => audit_find_word_conj_of(ctx, &args, &expected).await,
+        "ICHIRAN/DICT::GET-KANA-FORM"         => audit_get_kana_form(ctx, &args, &expected).await,
+        "ICHIRAN/DICT::GET-KANA-FORMS"        => audit_get_kana_forms(ctx, &args, &expected).await,
+        "ICHIRAN/DICT::GET-KANA-FORMS*"       => audit_get_kana_forms_star(ctx, &args, &expected).await,
+        "ICHIRAN/DICT::GET-CONJ-DATA"         => audit_get_conj_data(ctx, &args, &expected).await,
         other if SYNC_HARNESS_FQNS.contains(&other) => {
             Err(format!("__SYNC_HARNESS__:{}", other))
         }
