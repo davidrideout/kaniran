@@ -262,7 +262,7 @@ ichiran/dict:counter-days-kun,counter-days-kun,ichiran/dict,dict-counters.lisp,6
 ichiran/dict:counter-days-on,counter-days-on,ichiran/dict,dict-counters.lisp,709,class,ported,,,
 ichiran/dict:counter-halfhour,counter-halfhour,ichiran/dict,dict-counters.lisp,391,class,ported,,,
 ichiran/dict:counter-hifumi,counter-hifumi,ichiran/dict,dict-counters.lisp,518,class,ported,,,
-ichiran/dict:counter-join,counter-join,ichiran/dict,dict-counters.lisp,0,gf,pending,,counter_2026_05_08,
+ichiran/dict:counter-join,counter-join,ichiran/dict,dict-counters.lisp,0,gf,ported,,counter_2026_05_08,
 ichiran/dict:counter-months,counter-months,ichiran/dict,dict-counters.lisp,721,class,ported,,,
 ichiran/dict:counter-people,counter-people,ichiran/dict,dict-counters.lisp,735,class,ported,,,
 ichiran/dict:counter-text,counter-text,ichiran/dict,dict-counters.lisp,9,class,ported,,,

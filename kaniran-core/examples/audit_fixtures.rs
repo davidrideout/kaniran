@@ -37,6 +37,10 @@ use kaniran_core::characters::to_normal_char::{to_normal_char, NormalizationCont
 use kaniran_core::dict::conj_data_prop::conj_data_prop;
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::conj_prop_dao::ConjProp;
+use kaniran_core::dict::counter_join::counter_join;
+use kaniran_core::dict::counter_text_class::{
+    Common, Counter, CounterText, DigitOp, DigitOptEntry, DigitOptKey,
+};
 use kaniran_core::dict::get_digit::get_digit;
 use kaniran_core::dict::kani_conj_form::{ConjForm, FormToken};
 use kaniran_core::dict::make_conj_data::make_conj_data;
@@ -88,6 +92,8 @@ fn handlers() -> BTreeMap<&'static str, Handler> {
     m.insert("ICHIRAN/DICT::GET-KANA-FORMS-CONJ-DATA-FILTER",audit_get_kana_forms_conj_data_filter);
     m.insert("ICHIRAN/DICT::GET-DIGIT",                      audit_get_digit);
     m.insert("ICHIRAN/DICT:GET-DIGIT",                       audit_get_digit);
+    m.insert("ICHIRAN/DICT::COUNTER-JOIN",                   audit_counter_join);
+    m.insert("ICHIRAN/DICT:COUNTER-JOIN",                    audit_counter_join);
     m.insert("ICHIRAN/CHARACTERS:GEMINATE",                  audit_geminate);
     m.insert("ICHIRAN/CHARACTERS:RENDAKU",                   audit_rendaku);
     m.insert("ICHIRAN/NUMBERS:PARSE-NUMBER",                 audit_parse_number);
@@ -310,6 +316,121 @@ fn audit_get_digit(args: &Sexp, expected: &Sexp) -> Result<(), String> {
     if actual == exp { Ok(()) } else {
         Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
     }
+}
+
+fn audit_counter_join(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    // dict-counters.lisp:3-7,101-201 — captured args shape is
+    // (<counter-plist> <n> <number-kana-str> <counter-kana-str>); the
+    // body only consumes counter.base().digit_opts and .foreign, so we
+    // only parse those slots from the plist and stub the rest on a
+    // Counter::Base. Variant choice doesn't affect counter-join (no
+    // per-subclass override).
+    let argv = list_elems(args)?;
+    if argv.len() != 4 {
+        return Err(format!("counter-join wants 4 args, got {}", argv.len()));
+    }
+    let (digit_opts, foreign) = parse_counter_join_slots(argv[0])?;
+    let n = argv[1].as_i64().ok_or("arg 1 (n) not int")?;
+    let number_kana = argv[2].as_str().ok_or("arg 2 (number-kana) not string")?.to_string();
+    let counter_kana = argv[3].as_str().ok_or("arg 3 (counter-kana) not string")?.to_string();
+    let counter = stub_counter(digit_opts, foreign);
+    let actual = counter_join(&counter, n, number_kana, counter_kana);
+    let exp = expect_one(expected)?.as_str().ok_or("expected[0] not string")?;
+    if actual == exp {
+        Ok(())
+    } else {
+        Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
+    }
+}
+
+fn stub_counter(digit_opts: Vec<DigitOptEntry>, foreign: bool) -> Counter {
+    Counter::Base(CounterText {
+        text: String::new(),
+        kana: String::new(),
+        number_text: "0".into(),
+        number: 0,
+        source: None,
+        ordinalp: false,
+        suffix: None,
+        accepts_suffixes: Vec::new(),
+        suffix_descriptions: Vec::new(),
+        digit_opts,
+        common: Common::Inherit,
+        allowed: Vec::new(),
+        foreign,
+    })
+}
+
+/// Walk the captured `(:KEY value :KEY value ...)` counter plist and
+/// pluck the two slots `counter-join` reads. Other keys (`:TEXT`,
+/// `:KANA`, `:SOURCE`, `:NUMBER-TEXT`, …) are ignored on purpose —
+/// reconstructing them would require porting the JMdict DAO row
+/// parsers and isn't load-bearing for this audit.
+fn parse_counter_join_slots(plist: &Sexp) -> Result<(Vec<DigitOptEntry>, bool), String> {
+    let elems = list_elems(plist)?;
+    if elems.len() % 2 != 0 {
+        return Err(format!("counter plist has odd element count: {}", plist));
+    }
+    let mut digit_opts: Vec<DigitOptEntry> = Vec::new();
+    let mut foreign = false;
+    for pair in elems.chunks(2) {
+        let k = pair[0]
+            .as_keyword()
+            .ok_or_else(|| format!("counter plist key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "DIGIT-OPTS" => {
+                if !v.is_nil() {
+                    for entry in list_elems(v)? {
+                        digit_opts.push(parse_digit_opt_entry(entry)?);
+                    }
+                }
+            }
+            "FOREIGN" => foreign = !v.is_nil(),
+            _ => {} // ignore other slots
+        }
+    }
+    Ok((digit_opts, foreign))
+}
+
+fn parse_digit_opt_entry(entry: &Sexp) -> Result<DigitOptEntry, String> {
+    let elems = list_elems(entry)
+        .map_err(|_| format!("digit-opts entry not a list: {}", entry))?;
+    if elems.is_empty() {
+        return Err(format!("digit-opts entry empty: {}", entry));
+    }
+    let key = if let Some(kw) = elems[0].as_keyword() {
+        if kw.eq_ignore_ascii_case("OFF") {
+            DigitOptKey::Off
+        } else {
+            return Err(format!("unknown digit-opts key keyword: :{}", kw));
+        }
+    } else if let Some(d) = elems[0].as_i64() {
+        DigitOptKey::Digit(d as i32)
+    } else {
+        return Err(format!("digit-opts entry car not int / :off: {}", elems[0]));
+    };
+    let mut ops: Vec<DigitOp> = Vec::with_capacity(elems.len() - 1);
+    for o in &elems[1..] {
+        ops.push(parse_digit_op(o)?);
+    }
+    Ok(DigitOptEntry { key, ops })
+}
+
+fn parse_digit_op(s: &Sexp) -> Result<DigitOp, String> {
+    if let Some(kw) = s.as_keyword() {
+        return Ok(match kw {
+            "G" => DigitOp::Geminate,
+            "R" => DigitOp::Rendaku,
+            "H" => DigitOp::Handakuten,
+            "C" => DigitOp::Counter,
+            other => return Err(format!("unknown digit-op keyword: :{}", other)),
+        });
+    }
+    if let Some(s) = s.as_str() {
+        return Ok(DigitOp::Replace(s.to_string()));
+    }
+    Err(format!("digit-op not keyword/string: {}", s))
 }
 
 fn audit_geminate(args: &Sexp, expected: &Sexp) -> Result<(), String> {

@@ -170,7 +170,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  153. `ichiran/dict:get-digit`  — fn, dict-counters.lisp:94  *[ported]*  *[extracted: counter_2026_05_08]*  *[audited 193/193]*
  154. `ichiran/numbers:*digit-to-kana*`  — global, numbers.lisp:25  *[ported]*
  155. `ichiran/numbers:*power-to-kana*`  — global, numbers.lisp:28  *[ported]*
- 156. `ichiran/dict:counter-join`  — gf, dict-counters.lisp:0  *[extracted: counter_2026_05_08]*
+ 156. `ichiran/dict:counter-join`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
  157. `ichiran/dict:*hint-map*`  — global, dict-split.lisp:850
  158. `ichiran/dict:word-conj-data`  — gf, dict.lisp:0
  159. `ichiran/dict:get-hint`  — fn, dict-split.lisp:968

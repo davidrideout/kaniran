@@ -29,6 +29,7 @@ pub mod counter_days_kun_class;
 pub mod counter_days_on_class;
 pub mod counter_halfhour_class;
 pub mod counter_hifumi_class;
+pub mod counter_join;
 pub mod counter_months_class;
 pub mod counter_people_class;
 pub mod conj_data_from;
