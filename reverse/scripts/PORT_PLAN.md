@@ -745,9 +745,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  675. `ichiran/dict:true-kanji`  — gf, dict.lisp:0
  676. `ichiran/kanji:reading`  — dao, kanji.lisp:42  *[ported]*
  677. `ichiran/kanji:get-reading-alternatives`  — fn, kanji.lisp:216  *[ported]*
- 678. `ichiran/kanji:*reading-cache*`  — global, kanji.lisp:199
+ 678. `ichiran/kanji:*reading-cache*`  — global, kanji.lisp:199  *[ported]*
  679. `ichiran/kanji:kanji`  — dao, kanji.lisp:10  *[ported]*
- 680. `ichiran/kanji:get-readings-cache`  — fn, kanji.lisp:199
+ 680. `ichiran/kanji:get-readings-cache`  — fn, kanji.lisp:199  *[ported]*
  681. `ichiran/kanji:get-normal-readings`  — fn, kanji.lisp:231
  682. `ichiran/kanji:make-rmap`  — fn, kanji.lisp:273
  683. `ichiran/kanji:match-readings*`  — fn, kanji.lisp:241

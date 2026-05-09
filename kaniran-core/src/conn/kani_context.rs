@@ -22,6 +22,7 @@ use crate::dict::_star_no_conj_data_star_::build_no_conj_data;
 use crate::dict::_star_suffix_cache_star_::SuffixCache;
 use crate::dict::_star_suffix_class_star_::SuffixClass;
 use crate::dict::init_suffixes_thread::build_suffix_caches;
+use crate::kanji::_star_reading_cache_star_::{new_reading_cache, ReadingCache};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -54,6 +55,9 @@ pub struct KaniranContext {
     /// Upstream `*suffix-class*` (`dict-grammar.lisp:6`). See
     /// [`crate::dict::_star_suffix_class_star_`].
     pub suffix_class: SuffixClass,
+    /// Upstream `*reading-cache*` (`kanji.lisp:199`). See
+    /// [`crate::kanji::_star_reading_cache_star_`].
+    pub reading_cache: ReadingCache,
 }
 
 impl KaniranContext {
@@ -79,6 +83,7 @@ impl KaniranContext {
             counter_cache: CounterCache::new(),
             suffix_cache: SuffixCache::new(),
             suffix_class: SuffixClass::new(),
+            reading_cache: new_reading_cache(),
         };
         ctx.counter_cache = build_counter_cache(&ctx).await?;
         let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;

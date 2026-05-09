@@ -5,7 +5,9 @@
 //! The XML loader and lookup helpers built on top of them land in
 //! subsequent waves.
 
+pub mod _star_reading_cache_star_;
 pub mod get_reading_alternatives;
+pub mod get_readings_cache;
 pub mod kanji_dao;
 pub mod meaning_dao;
 pub mod okurigana_dao;
