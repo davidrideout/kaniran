@@ -187,7 +187,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  170. `ichiran/dict:get-text`  — gf, dict.lisp:0  *[extracted: tatoeba]*
  171. `ichiran/dict:ordinal-str`  — fn, dict-counters.lisp:38  *[ported]*  *[extracted: counter_2026_05_08]*
  172. `ichiran/dict:value-string`  — gf, dict-counters.lisp:0  *[extracted: counter_2026_05_08]*
- 173. `ichiran/dict:word-type`  — gf, dict.lisp:0
+ 173. `ichiran/dict:word-type`  — gf, dict.lisp:0  *[ported]*
  174. `ichiran/dict:word-info-from-segment`  — fn, dict.lisp:1327
  175. `ichiran/dict:word-info-from-segment-list`  — fn, dict.lisp:1353
  176. `ichiran/dict:fill-segment-path`  — fn, dict.lisp:1390
@@ -407,7 +407,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  390. `ichiran/dict:get-suffixes`  — fn, dict-grammar.lisp:697
  391. `ichiran/dict:*length-coeff-sequences*`  — global, dict.lisp:686
  392. `ichiran/dict:length-multiplier-coeff`  — fn, dict.lisp:694
- 393. `ichiran/dict:nokanji`  — gf, dict-counters.lisp:0
+ 393. `ichiran/dict:nokanji`  — gf, dict-counters.lisp:0  *[ported]*
  394. `ichiran/dict:sense-id`  — gf, dict.lisp:0
  395. **CYCLE (2 symbols — port together)**
         - `ichiran/dict:calc-score`  — fn, dict.lisp:775
