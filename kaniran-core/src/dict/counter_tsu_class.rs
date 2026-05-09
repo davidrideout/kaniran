@@ -14,3 +14,14 @@ use crate::dict::counter_text_class::CounterText;
 
 #[derive(Debug, Clone)]
 pub struct CounterTsu(pub CounterText);
+
+impl CounterTsu {
+    /// `dict-counters.lisp:499` — `(<= 1 (number-value counter) 9)`
+    /// AND `unique`. Ignores the `allowed` slot entirely; the bare つ
+    /// counter is valid only for the kun-yomi 1..9 range and the
+    /// `get-kana` table covers exactly those values.
+    pub fn verify(&self, unique: bool) -> bool {
+        let n = self.0.number;
+        (1..=9).contains(&n) && unique
+    }
+}

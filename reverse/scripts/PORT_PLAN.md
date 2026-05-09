@@ -483,7 +483,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  464. `ichiran/dict:*suffix-next-end*`  — global, dict.lisp:1050
  465. `ichiran/dict:find-sticky-positions`  — fn, dict.lisp:990
  466. `ichiran/dict:find-substring-words`  — fn, dict.lisp:501
- 467. `ichiran/dict:verify`  — gf, dict-counters.lisp:0  *[extracted: counter_2026_05_08]*
+ 467. `ichiran/dict:verify`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
  468. `ichiran/numbers:reason`  — gf, numbers.lisp:0
  469. `ichiran/numbers:text`  — gf, numbers.lisp:0
  470. `ichiran/numbers:not-a-number`  — condition, numbers.lisp:0  *[ported]*

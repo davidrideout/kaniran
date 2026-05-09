@@ -37,10 +37,21 @@ use kaniran_core::characters::to_normal_char::{to_normal_char, NormalizationCont
 use kaniran_core::dict::conj_data_prop::conj_data_prop;
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::conj_prop_dao::ConjProp;
+use kaniran_core::dict::counter_age_class::CounterAge;
+use kaniran_core::dict::counter_days_kun_class::CounterDaysKun;
+use kaniran_core::dict::counter_days_on_class::CounterDaysOn;
+use kaniran_core::dict::counter_halfhour_class::CounterHalfhour;
+use kaniran_core::dict::counter_hifumi_class::CounterHifumi;
 use kaniran_core::dict::counter_join::counter_join;
+use kaniran_core::dict::counter_months_class::CounterMonths;
+use kaniran_core::dict::counter_people_class::CounterPeople;
 use kaniran_core::dict::counter_text_class::{
     Common, Counter, CounterText, DigitOp, DigitOptEntry, DigitOptKey,
 };
+use kaniran_core::dict::counter_tsu_class::CounterTsu;
+use kaniran_core::dict::counter_wari_class::CounterWari;
+use kaniran_core::dict::number_text_class::NumberText;
+use kaniran_core::dict::verify::verify;
 use kaniran_core::dict::get_digit::get_digit;
 use kaniran_core::dict::ordinal_str::ordinal_str;
 use kaniran_core::dict::kani_conj_form::{ConjForm, FormToken};
@@ -97,6 +108,8 @@ fn handlers() -> BTreeMap<&'static str, Handler> {
     m.insert("ICHIRAN/DICT:COUNTER-JOIN",                    audit_counter_join);
     m.insert("ICHIRAN/DICT::ORDINAL-STR",                    audit_ordinal_str);
     m.insert("ICHIRAN/DICT:ORDINAL-STR",                     audit_ordinal_str);
+    m.insert("ICHIRAN/DICT::VERIFY",                         audit_verify);
+    m.insert("ICHIRAN/DICT:VERIFY",                          audit_verify);
     m.insert("ICHIRAN/CHARACTERS:GEMINATE",                  audit_geminate);
     m.insert("ICHIRAN/CHARACTERS:RENDAKU",                   audit_rendaku);
     m.insert("ICHIRAN/NUMBERS:PARSE-NUMBER",                 audit_parse_number);
@@ -303,6 +316,113 @@ fn audit_split_by_regex(args: &Sexp, expected: &Sexp) -> Result<(), String> {
     };
     if actual == exp { Ok(()) } else {
         Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
+    }
+}
+
+fn audit_verify(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    // dict-counters.lisp:31 — `(verify counter unique)`. Captured args
+    // shape is `(<counter-plist> <unique>)`; verify only reads the
+    // counter's CLASS (variant pick), NUMBER (counter-tsu, days-on,
+    // and the default's allowed-membership check), and ALLOWED
+    // (default method). Other plist slots are reconstructable but
+    // load-bearing for nothing under verify.
+    let argv = list_elems(args)?;
+    if argv.len() != 2 {
+        return Err(format!("verify wants 2 args, got {}", argv.len()));
+    }
+    let (class, number, allowed) = parse_verify_slots(argv[0])?;
+    let unique = !argv[1].is_nil(); // T → true, NIL → false
+    let counter = stub_counter_for_verify(class, number, allowed);
+    let actual = verify(&counter, unique);
+    let exp_first = expect_one(expected)?;
+    let exp = if exp_first.is_nil() { false } else if exp_first.is_t() { true } else {
+        return Err(format!("expected[0] not T/NIL: {}", exp_first));
+    };
+    if actual == exp { Ok(()) } else {
+        Err(format!("\n  rust: {}\n  lisp: {}", actual, exp))
+    }
+}
+
+/// Walk the captured plist for the three slots `verify` reads. The
+/// plist's `:SOURCE` value is itself a plist with its own `:CLASS`
+/// keyword — pair-chunked iteration handles the nesting correctly
+/// because we never recurse into values.
+fn parse_verify_slots(plist: &Sexp) -> Result<(String, u64, Vec<i32>), String> {
+    let elems = list_elems(plist)?;
+    if elems.len() % 2 != 0 {
+        return Err(format!("counter plist has odd element count: {}", plist));
+    }
+    let mut class: Option<String> = None;
+    let mut number: u64 = 0;
+    let mut allowed: Vec<i32> = Vec::new();
+    for pair in elems.chunks(2) {
+        let k = pair[0]
+            .as_keyword()
+            .ok_or_else(|| format!("counter plist key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" => {
+                class = Some(v.as_keyword()
+                    .ok_or_else(|| format!(":CLASS value not keyword: {}", v))?
+                    .to_string());
+            }
+            "NUMBER" => {
+                let n = v.as_i64()
+                    .ok_or_else(|| format!(":NUMBER value not int: {}", v))?;
+                number = u64::try_from(n)
+                    .map_err(|_| format!(":NUMBER negative: {}", n))?;
+            }
+            "ALLOWED" => {
+                if !v.is_nil() {
+                    for e in list_elems(v)? {
+                        let n = e.as_i64()
+                            .ok_or_else(|| format!(":ALLOWED entry not int: {}", e))?;
+                        allowed.push(i32::try_from(n)
+                            .map_err(|_| format!(":ALLOWED entry overflows i32: {}", n))?);
+                    }
+                }
+            }
+            _ => {} // ignore other slots
+        }
+    }
+    let class = class.ok_or("counter plist missing :CLASS")?;
+    Ok((class, number, allowed))
+}
+
+/// Build a [`Counter`] of the right variant with only the slots
+/// `verify` reads filled in. Other slots get neutral defaults — the
+/// dispatcher and per-variant methods don't read them. CounterHifumi's
+/// `digit_set` is initialised to empty here on purpose: its `verify`
+/// chains to the default, which never reads digit_set.
+fn stub_counter_for_verify(class: String, number: u64, allowed: Vec<i32>) -> Counter {
+    let base = CounterText {
+        text: String::new(),
+        kana: String::new(),
+        number_text: number.to_string(),
+        number,
+        source: None,
+        ordinalp: false,
+        suffix: None,
+        accepts_suffixes: Vec::new(),
+        suffix_descriptions: Vec::new(),
+        digit_opts: Vec::new(),
+        common: Common::Inherit,
+        allowed,
+        foreign: false,
+    };
+    match class.as_str() {
+        "COUNTER-TEXT" => Counter::Base(base),
+        "NUMBER-TEXT" => Counter::NumberText(NumberText(base)),
+        "COUNTER-TSU" => Counter::Tsu(CounterTsu(base)),
+        "COUNTER-AGE" => Counter::Age(CounterAge(base)),
+        "COUNTER-DAYS-KUN" => Counter::DaysKun(CounterDaysKun(base)),
+        "COUNTER-DAYS-ON" => Counter::DaysOn(CounterDaysOn(base)),
+        "COUNTER-HALFHOUR" => Counter::Halfhour(CounterHalfhour(base)),
+        "COUNTER-MONTHS" => Counter::Months(CounterMonths(base)),
+        "COUNTER-PEOPLE" => Counter::People(CounterPeople(base)),
+        "COUNTER-WARI" => Counter::Wari(CounterWari(base)),
+        "COUNTER-HIFUMI" => Counter::Hifumi(CounterHifumi { base, digit_set: Vec::new() }),
+        other => panic!("unknown counter :CLASS keyword :{}", other),
     }
 }
 

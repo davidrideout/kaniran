@@ -103,6 +103,31 @@ pub struct CounterText {
 }
 
 impl CounterText {
+    /// Default `verify` method body — `dict-counters.lisp:31-36`,
+    /// the `(:method (counter unique) ...)` clause on the gf:
+    ///
+    /// ```lisp
+    /// (and (or (not (counter-allowed counter))
+    ///          (find (number-value counter) (counter-allowed counter)))
+    ///      unique)
+    /// ```
+    ///
+    /// Empty `allowed` means "any number is fine"; otherwise the
+    /// number must be a member. Subclass overrides
+    /// ([`CounterTsu::verify`], [`CounterDaysOn::verify`]) chain back
+    /// here through the dispatcher rather than calling this method
+    /// directly — except [`CounterDaysOn::verify`], which mirrors
+    /// the upstream `(call-next-method)` on the days-on method.
+    ///
+    /// [`CounterTsu::verify`]: crate::dict::counter_tsu_class::CounterTsu::verify
+    /// [`CounterDaysOn::verify`]: crate::dict::counter_days_on_class::CounterDaysOn::verify
+    pub fn verify(&self, unique: bool) -> bool {
+        let n = self.number as i64;
+        let allowed_match = self.allowed.is_empty()
+            || self.allowed.iter().any(|&a| a as i64 == n);
+        allowed_match && unique
+    }
+
     /// Build the shared base from a recipe + the user-typed
     /// `number_text`, running the `initialize-instance :after`
     /// (`dict-counters.lisp:51`) that fills the `number` slot from

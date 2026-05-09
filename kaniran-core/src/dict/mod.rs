@@ -83,5 +83,6 @@ pub mod text;
 pub mod top_array_class;
 pub mod top_array_item_struct;
 pub mod true_text;
+pub mod verify;
 pub mod word_info_class;
 pub mod process_word_info;
