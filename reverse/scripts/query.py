@@ -573,24 +573,58 @@ def parse_lisp_lambda_list(s: str | None) -> dict:
 
 PUB_FN_NAME = re.compile(r"\bpub\s+(?:async\s+)?fn\s+([A-Za-z_][A-Za-z_0-9]*)")
 
+# Matches the canonical ctx-injection first argument per CONVENTIONS §4.8 —
+# `ctx: &KaniranContext` (with optional whitespace, lifetime, or `mut`).
+# `Arc<KaniranContext>` is also accepted for the (rare) ports that need an
+# owned handle rather than a borrow.
+CTX_FIRST_ARG = re.compile(
+    r"^\s*ctx\s*:\s*"
+    r"(?:&(?:'[a-z_]+\s+)?(?:mut\s+)?KaniranContext"
+    r"|Arc\s*<\s*KaniranContext\s*>)\s*$"
+)
 
-def _rust_count_args(arglist: str) -> int:
-    """Count top-level comma-separated args in a Rust signature body. Replaces
-    `->` so the closure-return arrow doesn't perturb the depth counter."""
+
+def _split_top_level_rust_args(arglist: str) -> list[str]:
+    """Split a Rust args list on top-level commas, respecting <...>, (...), [...]
+    nesting. Replaces `->` first so closure-return arrows don't confuse the
+    depth counter (mirrors `_rust_count_args`)."""
     s = arglist.replace("->", "@@")
     s = s.strip().rstrip(",").strip()
     if not s:
-        return 0
-    n = 1
+        return []
+    parts: list[str] = []
+    cur: list[str] = []
     depth = 0
     for c in s:
         if c in "(<[":
             depth += 1
         elif c in ")>]":
             depth -= 1
-        elif c == "," and depth == 0:
-            n += 1
-    return n
+        if c == "," and depth == 0:
+            parts.append("".join(cur))
+            cur = []
+        else:
+            cur.append(c)
+    if cur:
+        parts.append("".join(cur))
+    # Restore the `->` we masked.
+    return [p.replace("@@", "->") for p in parts]
+
+
+def _rust_count_args(arglist: str) -> int:
+    """Count top-level comma-separated args in a Rust signature body."""
+    return len(_split_top_level_rust_args(arglist))
+
+
+def _first_arg_is_ctx(arglist: str) -> bool:
+    """True iff the first positional arg matches the §4.8 ctx-injection
+    convention. Uses the same top-level split as arity counting so a
+    generic-typed first arg (e.g. `x: HashMap<K, V>`) doesn't trip the
+    bare `,` regex."""
+    args = _split_top_level_rust_args(arglist)
+    if not args:
+        return False
+    return bool(CTX_FIRST_ARG.match(args[0]))
 
 
 def _skip_balanced(text: str, i: int, open_c: str, close_c: str) -> int:
@@ -639,8 +673,12 @@ def parse_rust_pub_fns(text: str) -> list[dict]:
             i += 1
         if end == -1:
             continue
-        arity = _rust_count_args(text[start:end])
-        out.append({"name": name, "arity": arity})
+        body = text[start:end]
+        out.append({
+            "name": name,
+            "arity": _rust_count_args(body),
+            "ctx_injected": _first_arg_is_ctx(body),
+        })
     return out
 
 
@@ -729,11 +767,18 @@ def _audit_sweep(syms: dict[str, dict]) -> tuple[int, int, list[tuple[str, str, 
             names = [f["name"] for f in pub_fns]
             divergences.append((fqn, rel_path, f"no `pub [async] fn {expected_name}` (found: {names})"))
             continue
-        if match_fn["arity"] != expected_arity:
+        # Per CONVENTIONS §4.8 a ctx: &KaniranContext first parameter is the
+        # codified port-wide divergence — not interesting per-fn drift. Adjust
+        # the comparison so only the *additional* shape changes (dropped
+        # keywords, &rest expansion, etc.) surface as entries.
+        effective_arity = match_fn["arity"] - (1 if match_fn["ctx_injected"] else 0)
+        if effective_arity != expected_arity:
+            ctx_note = " (ctx-injected; +1 absorbed)" if match_fn["ctx_injected"] else ""
             divergences.append(
                 (fqn, rel_path,
                  f"arity {match_fn['arity']} ≠ Lisp {expected_arity} "
-                 f"(req={info['required']}, opt={info['optional']}, keys={info['keys']})")
+                 f"(req={info['required']}, opt={info['optional']}, keys={info['keys']})"
+                 f"{ctx_note}")
             )
         extras = [f["name"] for f in pub_fns if f["name"] != expected_name]
         if extras:

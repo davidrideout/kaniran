@@ -12,9 +12,9 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 61 fn/gf
+- Checked: 62 fn/gf
 - Macros (file-existence only): 1
-- Divergences: 18
+- Divergences: 9
 
 ## Divergences
 
@@ -41,62 +41,17 @@ captured Lisp lambda list. New entries should be either:
 ### `ichiran/dict:find-word-conj-of`
 
 - file: `kaniran-core/src/dict/find_word_conj_of.rs`
-- drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[])
+- drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[]) (ctx-injected; +1 absorbed)
 
 ### `ichiran/dict:find-word-seq`
 
 - file: `kaniran-core/src/dict/find_word_seq.rs`
-- drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[])
-
-### `ichiran/dict:get-conj-data`
-
-- file: `kaniran-core/src/dict/get_conj_data.rs`
-- drift: arity 4 ≠ Lisp 3 (req=1, opt=2, keys=[])
-
-### `ichiran/dict:get-counter-ids`
-
-- file: `kaniran-core/src/dict/get_counter_ids.rs`
-- drift: arity 1 ≠ Lisp 0 (req=0, opt=0, keys=[])
-
-### `ichiran/dict:get-counter-readings`
-
-- file: `kaniran-core/src/dict/get_counter_readings.rs`
-- drift: arity 1 ≠ Lisp 0 (req=0, opt=0, keys=[])
-
-### `ichiran/dict:get-counter-stags`
-
-- file: `kaniran-core/src/dict/get_counter_stags.rs`
-- drift: arity 2 ≠ Lisp 1 (req=1, opt=0, keys=[])
-
-### `ichiran/dict:get-kana-form`
-
-- file: `kaniran-core/src/dict/get_kana_form.rs`
-- drift: arity 4 ≠ Lisp 3 (req=2, opt=0, keys=['conj'])
-
-### `ichiran/dict:get-kana-forms`
-
-- file: `kaniran-core/src/dict/get_kana_forms.rs`
-- drift: arity 2 ≠ Lisp 1 (req=1, opt=0, keys=[])
-
-### `ichiran/dict:get-kana-forms*`
-
-- file: `kaniran-core/src/dict/get_kana_forms_star_.rs`
-- drift: arity 2 ≠ Lisp 1 (req=1, opt=0, keys=[])
+- drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[]) (ctx-injected; +1 absorbed)
 
 ### `ichiran/dict:init-suffixes-thread`
 
 - file: `kaniran-core/src/dict/init_suffixes_thread.rs`
 - drift: no `pub [async] fn init_suffixes_thread` (found: ['build_suffix_caches'])
-
-### `ichiran/dict:is-arch`
-
-- file: `kaniran-core/src/dict/is_arch.rs`
-- drift: arity 2 ≠ Lisp 1 (req=1, opt=0, keys=[])
-
-### `ichiran/dict:no-conj-data`
-
-- file: `kaniran-core/src/dict/no_conj_data.rs`
-- drift: arity 2 ≠ Lisp 1 (req=1, opt=0, keys=[])
 
 ### `ichiran/numbers:group-to-kana`
 

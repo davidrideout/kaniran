@@ -43,6 +43,7 @@ use kaniran_core::dict::counter_days_on_class::CounterDaysOn;
 use kaniran_core::dict::counter_halfhour_class::CounterHalfhour;
 use kaniran_core::dict::counter_hifumi_class::CounterHifumi;
 use kaniran_core::dict::counter_join::counter_join;
+use kaniran_core::dict::find_counter::find_counter;
 use kaniran_core::dict::counter_months_class::CounterMonths;
 use kaniran_core::dict::counter_people_class::CounterPeople;
 use kaniran_core::dict::counter_text_class::{
@@ -110,6 +111,8 @@ fn handlers() -> BTreeMap<&'static str, Handler> {
     m.insert("ICHIRAN/DICT:ORDINAL-STR",                     audit_ordinal_str);
     m.insert("ICHIRAN/DICT::VERIFY",                         audit_verify);
     m.insert("ICHIRAN/DICT:VERIFY",                          audit_verify);
+    m.insert("ICHIRAN/DICT::FIND-COUNTER",                   audit_find_counter);
+    m.insert("ICHIRAN/DICT:FIND-COUNTER",                    audit_find_counter);
     m.insert("ICHIRAN/CHARACTERS:GEMINATE",                  audit_geminate);
     m.insert("ICHIRAN/CHARACTERS:RENDAKU",                   audit_rendaku);
     m.insert("ICHIRAN/NUMBERS:PARSE-NUMBER",                 audit_parse_number);
@@ -317,6 +320,118 @@ fn audit_split_by_regex(args: &Sexp, expected: &Sexp) -> Result<(), String> {
     if actual == exp { Ok(()) } else {
         Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
     }
+}
+
+fn audit_find_counter(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    // dict-counters.lisp:273 — `(find-counter number counter &key (unique t))`.
+    // Captured args shape: `(<number-str> <counter-str> :UNIQUE T)`.
+    // Expected: a values-wrapped list of counter plists, possibly NIL.
+    let argv = list_elems(args)?;
+    if argv.len() < 2 {
+        return Err(format!("find-counter wants ≥2 args, got {}", argv.len()));
+    }
+    let number = argv[0].as_str().ok_or("arg 0 (number) not string")?;
+    let counter = argv[1].as_str().ok_or("arg 1 (counter) not string")?;
+    // `:UNIQUE` value is the bare symbol `T` or `NIL` (not a keyword),
+    // so parse_keyword_arg's keyword=keyword shape doesn't fit. Pass
+    // through Option<bool> — the absent case lets find_counter apply
+    // the upstream `(unique t)` default at its boundary instead of
+    // here.
+    let unique: Option<bool> = {
+        let mut found: Option<bool> = None;
+        let mut i = 2;
+        while i + 1 < argv.len() {
+            if let Some(k) = argv[i].as_keyword() {
+                if k.eq_ignore_ascii_case("UNIQUE") {
+                    found = Some(!argv[i + 1].is_nil());
+                    break;
+                }
+            }
+            i += 1;
+        }
+        found
+    };
+
+    let ctx = audit_ctx().ok_or("find-counter needs DB context — set DATABASE_URL")?;
+    let actual = find_counter(ctx, number, counter, unique);
+    let actual_keys: Vec<(String, String, String)> = actual
+        .iter()
+        .map(|c| (
+            counter_variant_name(c).to_string(),
+            c.base().text.clone(),
+            c.base().kana.clone(),
+        ))
+        .collect();
+
+    let expected_list = expect_one(expected)?;
+    let expected_keys = parse_find_counter_expected(expected_list)?;
+
+    // Compare as multisets — sort by (text, kana, class) and equality-check.
+    let mut a = actual_keys;
+    let mut e = expected_keys;
+    a.sort();
+    e.sort();
+    if a == e { Ok(()) } else {
+        Err(format!("\n  rust ({} items): {:?}\n  lisp ({} items): {:?}",
+                    a.len(), a, e.len(), e))
+    }
+}
+
+fn counter_variant_name(c: &Counter) -> &'static str {
+    match c {
+        Counter::Base(_) => "COUNTER-TEXT",
+        Counter::NumberText(_) => "NUMBER-TEXT",
+        Counter::Tsu(_) => "COUNTER-TSU",
+        Counter::Age(_) => "COUNTER-AGE",
+        Counter::DaysKun(_) => "COUNTER-DAYS-KUN",
+        Counter::DaysOn(_) => "COUNTER-DAYS-ON",
+        Counter::Halfhour(_) => "COUNTER-HALFHOUR",
+        Counter::Hifumi(_) => "COUNTER-HIFUMI",
+        Counter::Months(_) => "COUNTER-MONTHS",
+        Counter::People(_) => "COUNTER-PEOPLE",
+        Counter::Wari(_) => "COUNTER-WARI",
+    }
+}
+
+/// Parse the captured `(<plist1> <plist2> ...)` result form into a
+/// list of (variant-class-name, text, kana) tuples. NIL → empty.
+fn parse_find_counter_expected(s: &Sexp) -> Result<Vec<(String, String, String)>, String> {
+    if s.is_nil() {
+        return Ok(Vec::new());
+    }
+    let mut out = Vec::new();
+    for entry in list_elems(s)? {
+        let elems = list_elems(entry)?;
+        if elems.len() % 2 != 0 {
+            return Err(format!("counter plist has odd element count: {}", entry));
+        }
+        let mut class: Option<String> = None;
+        let mut text: Option<String> = None;
+        let mut kana: Option<String> = None;
+        for pair in elems.chunks(2) {
+            let k = pair[0].as_keyword()
+                .ok_or_else(|| format!("counter plist key not keyword: {}", pair[0]))?;
+            let v = pair[1];
+            match k {
+                "CLASS" => class = Some(v.as_keyword()
+                    .ok_or_else(|| format!(":CLASS value not keyword: {}", v))?
+                    .to_string()),
+                "TEXT" => text = Some(v.as_str()
+                    .ok_or_else(|| format!(":TEXT value not string: {}", v))?
+                    .to_string()),
+                "KANA" => kana = Some(v.as_str()
+                    .ok_or_else(|| format!(":KANA value not string: {}", v))?
+                    .to_string()),
+                _ => {}
+            }
+        }
+        out.push((
+            class.ok_or("counter plist missing :CLASS")?,
+            text.ok_or("counter plist missing :TEXT")?,
+            kana.ok_or("counter plist missing :KANA")?,
+        ));
+    }
+    Ok(out)
 }
 
 fn audit_verify(args: &Sexp, expected: &Sexp) -> Result<(), String> {

@@ -487,7 +487,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  468. `ichiran/numbers:reason`  — gf, numbers.lisp:0
  469. `ichiran/numbers:text`  — gf, numbers.lisp:0
  470. `ichiran/numbers:not-a-number`  — condition, numbers.lisp:0  *[ported]*
- 471. `ichiran/dict:find-counter`  — fn, dict-counters.lisp:273  *[extracted: counter_2026_05_08]*
+ 471. `ichiran/dict:find-counter`  — fn, dict-counters.lisp:273  *[ported]*  *[extracted: counter_2026_05_08]*
  472. `ichiran/dict:find-word`  — fn, dict.lisp:489
  473. `ichiran/dict:find-word-as-hiragana`  — fn, dict.lisp:592
  474. `ichiran/dict:adjoin-word`  — gf, dict.lisp:0

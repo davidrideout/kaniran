@@ -43,6 +43,7 @@ pub mod counter_text_class;
 pub mod counter_tsu_class;
 pub mod counter_wari_class;
 pub mod entry_dao;
+pub mod find_counter;
 pub mod find_word_conj_of;
 pub mod find_word_seq;
 pub mod get_conj_data;
