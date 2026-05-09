@@ -18,6 +18,11 @@
 //!   for chars that SBCL would otherwise print with a Unicode name like
 //!   `#\HIRAGANA_LETTER_HA` (which would require a Unicode-name table)
 //! - datum labels `#N=value` / `#N#`
+//! - `#A((<dim>) <element-type> . "<string>")` — 1-D character arrays.
+//!   SBCL prints `simple-base-string` results (e.g. `format nil` →
+//!   `(simple-base-string N)`) in this form when `*print-readably*` is
+//!   true, so fixture rows for any port whose return passes through
+//!   `format` carry strings as `#A` literals rather than `"..."`.
 //!
 //! Anything outside this surface is a parse error with a byte offset.
 
@@ -377,9 +382,28 @@ impl<'a> Parser<'a> {
         match self.peek() {
             Some(b'(') => { self.advance_byte(); self.parse_vector() }
             Some(b'\\') => { self.advance_byte(); self.parse_char_literal() }
+            Some(b'A') | Some(b'a') => { self.advance_byte(); self.parse_array_literal() }
             Some(c) if c.is_ascii_digit() => self.parse_datum_label(),
             Some(c) => Err(self.err(format!("unexpected #{}", c as char))),
             None => Err(self.err("EOF after `#`")),
+        }
+    }
+
+    fn parse_array_literal(&mut self) -> Result<Sexp, ParseError> {
+        // `#A` already consumed. The tracer captures only one #A shape:
+        // simple-base-string `format nil` results as
+        // `((<dim>) BASE-CHAR . "<string>")`. Keep the parser strict —
+        // anything else is unexpected and worth surfacing as a parse
+        // error rather than silently coercing.
+        let body = self.parse_value()?;
+        match extract_array_string(&body) {
+            Some(s) => Ok(Sexp::String(s)),
+            None => Err(self.err(format!(
+                "unsupported #A form: only 1-D BASE-CHAR / CHARACTER \
+                 arrays whose contents are a literal string are recognised; \
+                 got #A{}",
+                body,
+            ))),
         }
     }
 
@@ -478,6 +502,23 @@ impl<'a> Parser<'a> {
             .map(|s| s.to_string())
             .map_err(|e| self.err(format!("non-UTF-8 atom: {}", e)))
     }
+}
+
+/// Recognise the `((<dim>) <element-type> . "<string>")` shape SBCL
+/// emits for 1-D character arrays under `*print-readably* t`. Returns
+/// the string content, or `None` for any other layout.
+fn extract_array_string(body: &Sexp) -> Option<String> {
+    let (rank_form, rest) = body.as_cons()?;
+    let mut rank_iter = rank_form.list_iter()?;
+    rank_iter.next()?.as_i64()?; // dim — presence-only check
+    if rank_iter.next().is_some() { return None; } // 1-D only
+    let (etype, contents) = rest.as_cons()?;
+    let etype_name = etype.as_symbol()?;
+    let upper = etype_name.to_ascii_uppercase();
+    if !matches!(upper.as_str(), "BASE-CHAR" | "CHARACTER" | "STANDARD-CHAR") {
+        return None;
+    }
+    Some(contents.as_str()?.to_string())
 }
 
 fn is_delim(b: Option<u8>) -> bool {
@@ -694,6 +735,35 @@ mod tests {
                 "error mentions the offending name: {}", err.message);
         assert!(err.message.contains(":CHAR"),
                 "error suggests the tagged-form workaround: {}", err.message);
+    }
+
+    // --- #A array literals ----------------------------------------------
+
+    #[test]
+    fn parses_array_literal_base_char_string() {
+        // ordinal-str result shape: `format nil` returns simple-base-string.
+        let v = parse_ok(r#"#A((3) BASE-CHAR . "0th")"#);
+        assert_eq!(v.as_str(), Some("0th"));
+    }
+
+    #[test]
+    fn parses_array_literal_character_string() {
+        let v = parse_ok(r#"#A((4) CHARACTER . "abcd")"#);
+        assert_eq!(v.as_str(), Some("abcd"));
+    }
+
+    #[test]
+    fn parses_array_literal_inside_list() {
+        // Captured `result` cells wrap the values list around the array.
+        let v = parse_ok(r#"(#A((3) BASE-CHAR . "1st"))"#);
+        let items: Vec<&Sexp> = v.list_iter().unwrap().collect();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].as_str(), Some("1st"));
+    }
+
+    #[test]
+    fn rejects_array_literal_non_string_content() {
+        assert!(parse(r#"#A((3) BIT . #(0 1 0))"#).is_err());
     }
 
     // --- datum labels ---------------------------------------------------

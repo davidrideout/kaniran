@@ -67,6 +67,7 @@ pub mod make_conj_data;
 pub mod no_conj_data;
 pub mod number_text_class;
 pub mod ord;
+pub mod ordinal_str;
 pub mod proxy_text_class;
 pub mod restricted_readings_dao;
 pub mod score_base;

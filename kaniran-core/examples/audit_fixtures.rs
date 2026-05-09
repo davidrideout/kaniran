@@ -42,6 +42,7 @@ use kaniran_core::dict::counter_text_class::{
     Common, Counter, CounterText, DigitOp, DigitOptEntry, DigitOptKey,
 };
 use kaniran_core::dict::get_digit::get_digit;
+use kaniran_core::dict::ordinal_str::ordinal_str;
 use kaniran_core::dict::kani_conj_form::{ConjForm, FormToken};
 use kaniran_core::dict::make_conj_data::make_conj_data;
 use kaniran_core::dict::get_kana_forms_conj_data_filter::get_kana_forms_conj_data_filter;
@@ -94,6 +95,8 @@ fn handlers() -> BTreeMap<&'static str, Handler> {
     m.insert("ICHIRAN/DICT:GET-DIGIT",                       audit_get_digit);
     m.insert("ICHIRAN/DICT::COUNTER-JOIN",                   audit_counter_join);
     m.insert("ICHIRAN/DICT:COUNTER-JOIN",                    audit_counter_join);
+    m.insert("ICHIRAN/DICT::ORDINAL-STR",                    audit_ordinal_str);
+    m.insert("ICHIRAN/DICT:ORDINAL-STR",                     audit_ordinal_str);
     m.insert("ICHIRAN/CHARACTERS:GEMINATE",                  audit_geminate);
     m.insert("ICHIRAN/CHARACTERS:RENDAKU",                   audit_rendaku);
     m.insert("ICHIRAN/NUMBERS:PARSE-NUMBER",                 audit_parse_number);
@@ -298,6 +301,19 @@ fn audit_split_by_regex(args: &Sexp, expected: &Sexp) -> Result<(), String> {
             .map(|v| v.as_str().map(String::from).ok_or_else(|| format!("token not string: {}", v)))
             .collect::<Result<_, _>>()?
     };
+    if actual == exp { Ok(()) } else {
+        Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
+    }
+}
+
+fn audit_ordinal_str(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 1 {
+        return Err(format!("ordinal-str wants 1 arg, got {}", argv.len()));
+    }
+    let n = argv[0].as_i64().ok_or("arg 0 not int")?;
+    let actual = ordinal_str(n);
+    let exp = expect_one(expected)?.as_str().ok_or("expected[0] not string")?;
     if actual == exp { Ok(()) } else {
         Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
     }

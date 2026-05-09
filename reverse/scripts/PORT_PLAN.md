@@ -185,7 +185,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  168. `ichiran/numbers:number-to-kana`  — fn, numbers.lisp:125  *[ported]*  *[extracted: counter_2026_05_08]*
  169. `ichiran/dict:get-kana`  — gf, dict.lisp:0
  170. `ichiran/dict:get-text`  — gf, dict.lisp:0
- 171. `ichiran/dict:ordinal-str`  — fn, dict-counters.lisp:38  *[extracted: counter_2026_05_08]*
+ 171. `ichiran/dict:ordinal-str`  — fn, dict-counters.lisp:38  *[ported]*  *[extracted: counter_2026_05_08]*
  172. `ichiran/dict:value-string`  — gf, dict-counters.lisp:0  *[extracted: counter_2026_05_08]*
  173. `ichiran/dict:word-type`  — gf, dict.lisp:0
  174. `ichiran/dict:word-info-from-segment`  — fn, dict.lisp:1327
