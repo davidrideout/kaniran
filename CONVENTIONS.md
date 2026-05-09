@@ -62,6 +62,36 @@ Do **not** write doc-comments that:
 - Describe internals that a reader can see in 5 lines of code.
 - Make claims about callers ("used by X", "called from the Y flow") — those rot the moment the codebase shifts.
 
+### 3.5. Block-level upstream cites inside function bodies
+
+The header cite (§3.1) anchors the file as a whole. Inside the body, **cite the upstream form** for any block whose Rust shape isn't a transparent restatement of the Lisp at the cited line. Required for:
+
+- **Idiom collapses** — an `:after` / `:around` / `:before` method inlined into a Rust ctor or wrapper, a `&key` keyword collapsed per §4.4, a `(handler-case ...)` becoming a `Result::Err` drop, a multi-value return collapsed to a tuple.
+- **Mirrored call sites** — `make-instance`, `apply`, `funcall` over a tabled fn-pointer, `defmethod` dispatch arms — cite the call site in the upstream caller, not just the receiving symbol's definition.
+- **Method dispatch arms** — when a `match` arm in a family dispatcher (§4.7) corresponds to a Lisp method override, cite the override's defmethod line.
+- **Per-class slot defaults** — a subclass ctor branch applying an `:initform` that diverges from the base; cite the subclass defclass slot line so the divergence is reviewable.
+
+Skip them when:
+- The block is a trivial slot copy already covered by the file header (`args.text.clone()`, etc.).
+- The Rust does the obvious thing the Lisp does (straight `if` / `match` over a closed enum) and the form name in the header is enough.
+
+**Format:** `// <file>.lisp:<line> (<form-name>)` — symbol/form name is mandatory because line numbers rot under upstream renumbering and the form-name lets `grep` recover the location:
+
+```rust
+// dict-counters.lisp:51 (initialize-instance :after counter-text)
+let number = parse_number(&number_text)?;
+```
+
+```rust
+match args.class {
+    // dict-counters.lisp:518 (defclass counter-hifumi) — :digit-set initarg
+    CounterClass::Hifumi => Counter::Hifumi(CounterHifumi { base, digit_set: args.digit_set.clone() }),
+    ...
+}
+```
+
+This rule applies to inline `//` comments inside function bodies, not to the module `//!` header (which §3.1 already governs). The two cites are complementary: header pins the symbol, block cites pin the shape decisions.
+
 ---
 
 ## 4. Translating Lisp shapes to Rust APIs

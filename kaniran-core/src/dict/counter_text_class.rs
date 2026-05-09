@@ -7,20 +7,36 @@
 //! `accepts_suffixes`) and `find-counter`'s filtering (`allowed`,
 //! `common`).
 //!
-//! Methods (`verify`, `value-string`, `counter-join`, the
-//! `initialize-instance :after` that parses `number_text` into the
-//! `number` slot, `text` / `get-kana` / `word-type` / etc.) are NOT
-//! ported here — they land alongside `find-counter` in a later wave.
-//! This file only mirrors the slot shape so the cache populator can
-//! land first.
+//! Construction goes through [`Counter::new`], the single dispatcher
+//! that mirrors `find-counter`'s sole `make-instance` call site
+//! (`dict-counters.lisp:278`). It branches on [`CounterArgs::class`]
+//! to wrap the shared base into the right variant — populating
+//! subclass-specific slots like [`CounterHifumi::digit_set`] in the
+//! process — and runs the `initialize-instance :after`
+//! (`dict-counters.lisp:51`) that fills the `number` slot from
+//! `(parse-number number-text)` exactly once, the way CLOS inherits
+//! the `:after` down the hierarchy. The base-only construction step
+//! [`CounterText::from_args`] is kept private so callers can't
+//! bypass the dispatcher and forget a subclass slot.
+//!
+//! Other methods (`verify`, `value-string`, `counter-join`, `text` /
+//! `get-kana` / `word-type` / etc.) are NOT ported here — they land
+//! alongside `find-counter` in a later wave.
+//!
+//! [`CounterArgs::class`]: crate::dict::kani_counter_args::CounterArgs#structfield.class
+//! [`CounterHifumi::digit_set`]: crate::dict::counter_hifumi_class::CounterHifumi#structfield.digit_set
 //!
 //! ## Family dispatch
 //!
 //! Counter dispatch follows CONVENTIONS §4.9: each subclass is a
 //! distinct type in its own file, and the [`Counter`] enum below is
-//! the dispatcher. The cache populator constructs `Counter::Base(...)`,
-//! `Counter::Tsu(...)`, etc.; per-generic dispatch methods on
-//! [`Counter`] match-and-delegate to the variant's own method.
+//! the dispatcher. The cache populator stores [`CounterArgs`]
+//! recipes (one per text key) — instances are not constructed at
+//! cache-build time; `find-counter` (when ported) calls
+//! [`Counter::new`] per query to materialize a [`Counter`] from a
+//! recipe + the user-typed `number_text`. Per-generic dispatch
+//! methods on [`Counter`] match-and-delegate to the variant's own
+//! method.
 //!
 //! When the wider word-type dispatch surface lands (the simple-text /
 //! proxy-text / compound-text / counter-text cross-family generics:
@@ -63,15 +79,18 @@ use crate::dict::counter_tsu_class::CounterTsu;
 use crate::dict::counter_wari_class::CounterWari;
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kanji_text_dao::KanjiText;
+use crate::dict::kani_counter_args::{CounterArgs, CounterClass};
 use crate::dict::kani_suffix_kind::SuffixKind;
 use crate::dict::number_text_class::NumberText;
+use crate::numbers::not_a_number_condition::NotANumber;
+use crate::numbers::parse_number::parse_number;
 
 #[derive(Debug, Clone)]
 pub struct CounterText {
     pub text: String,
     pub kana: String,
     pub number_text: String,
-    pub number: i32,
+    pub number: u64,
     pub source: Option<CounterSource>,
     pub ordinalp: bool,
     pub suffix: Option<String>,
@@ -81,6 +100,35 @@ pub struct CounterText {
     pub common: Common,
     pub allowed: Vec<i32>,
     pub foreign: bool,
+}
+
+impl CounterText {
+    /// Build the shared base from a recipe + the user-typed
+    /// `number_text`, running the `initialize-instance :after`
+    /// (`dict-counters.lisp:51`) that fills the `number` slot from
+    /// `(parse-number number-text)`. Private so all construction
+    /// flows through [`Counter::new`] — bypassing the dispatcher
+    /// would skip subclass-specific slots (e.g. `digit_set`) and
+    /// pick the wrong wrapper variant.
+    fn from_args(args: &CounterArgs, number_text: String) -> Result<Self, NotANumber> {
+        // dict-counters.lisp:51 (initialize-instance :after counter-text)
+        let number = parse_number(&number_text)?;
+        Ok(CounterText {
+            text: args.text.clone(),
+            kana: args.kana.clone(),
+            number_text,
+            number,
+            source: args.source.clone(),
+            ordinalp: args.ordinalp,
+            suffix: args.suffix.clone(),
+            accepts_suffixes: args.accepts.clone(),
+            suffix_descriptions: args.suffix_descriptions.clone(),
+            digit_opts: args.digit_opts.clone(),
+            common: args.common,
+            allowed: args.allowed.clone(),
+            foreign: args.foreign,
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -141,6 +189,80 @@ pub enum Counter {
 }
 
 impl Counter {
+    /// Mirrors `(apply 'make-instance '(,class ,@args :number-text ,number))`
+    /// in `find-counter` (`dict-counters.lisp:278`). Single entry
+    /// point: branches on [`CounterArgs::class`] to pick the wrapper
+    /// variant, populates subclass-specific slots
+    /// ([`CounterHifumi::digit_set`] from [`CounterArgs::digit_set`]),
+    /// and runs the `counter-text` `initialize-instance :after` once
+    /// via [`CounterText::from_args`] for every variant — same
+    /// property as CLOS's inherited `:after`. The upstream catches
+    /// `not-a-number` at the call site; here that surfaces as
+    /// `Err(NotANumber)` for the caller to drop.
+    ///
+    /// [`CounterArgs::class`]: crate::dict::kani_counter_args::CounterArgs#structfield.class
+    /// [`CounterArgs::digit_set`]: crate::dict::kani_counter_args::CounterArgs#structfield.digit_set
+    /// [`CounterHifumi::digit_set`]: crate::dict::counter_hifumi_class::CounterHifumi#structfield.digit_set
+    pub fn new(args: &CounterArgs, number_text: impl Into<String>) -> Result<Self, NotANumber> {
+        // dict-counters.lisp:278 (find-counter — apply make-instance over recipe)
+        let mut base = CounterText::from_args(args, number_text.into())?;
+        Ok(match args.class {
+            CounterClass::Text => Counter::Base(base),
+            CounterClass::NumberText => Counter::NumberText(NumberText(base)),
+            CounterClass::Tsu => Counter::Tsu(CounterTsu(base)),
+            CounterClass::Age => Counter::Age(CounterAge(base)),
+            CounterClass::DaysKun => {
+                // dict-counters.lisp:687 (defclass counter-days-kun — :initform allowed)
+                if base.allowed.is_empty() {
+                    base.allowed = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 14, 20, 24, 30];
+                }
+                Counter::DaysKun(CounterDaysKun(base))
+            }
+            CounterClass::DaysOn => Counter::DaysOn(CounterDaysOn(base)),
+            CounterClass::Halfhour => Counter::Halfhour(CounterHalfhour(base)),
+            CounterClass::Months => {
+                // dict-counters.lisp:722-723 (defclass counter-months — :initform allowed/digit-opts)
+                if base.allowed.is_empty() {
+                    base.allowed = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+                }
+                if base.digit_opts.is_empty() {
+                    base.digit_opts = vec![
+                        DigitOptEntry {
+                            key: DigitOptKey::Digit(4),
+                            ops: vec![DigitOp::Replace("し".to_string())],
+                        },
+                        DigitOptEntry {
+                            key: DigitOptKey::Digit(7),
+                            ops: vec![DigitOp::Replace("しち".to_string())],
+                        },
+                        DigitOptEntry {
+                            key: DigitOptKey::Digit(9),
+                            ops: vec![DigitOp::Replace("く".to_string())],
+                        },
+                    ];
+                }
+                Counter::Months(CounterMonths(base))
+            }
+            CounterClass::People => Counter::People(CounterPeople(base)),
+            CounterClass::Wari => Counter::Wari(CounterWari(base)),
+            CounterClass::Hifumi => {
+                // dict-counters.lisp:518-519 (defclass counter-hifumi) — :digit-set has no
+                // :initform; upstream make-instance without :digit-set leaves the slot
+                // unbound and any read raises UNBOUND-SLOT. Eager fail-fast here matches
+                // that contract; a recipe missing :digit-set is a populator bug, not a
+                // runtime input.
+                assert!(
+                    !args.digit_set.is_empty(),
+                    "counter-hifumi requires non-empty :digit-set (dict-counters.lisp:518)"
+                );
+                Counter::Hifumi(CounterHifumi {
+                    base,
+                    digit_set: args.digit_set.clone(),
+                })
+            }
+        })
+    }
+
     /// Borrow the shared counter-text slot data underlying this
     /// variant. Used by dispatchers and by callers that need to read
     /// inherited slots (`text`, `kana`, `number`, `source`, etc.)
@@ -160,4 +282,166 @@ impl Counter {
             Counter::Wari(c) => &c.0,
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    //! Ground truth captured via `./ichiran-repl.sh` heredoc against the
+    //! .103 ichiran install. Each test case mirrors a (number, counter)
+    //! probe call to `find-counter`; the asserted slot values are read
+    //! from the materialized counter-text instance(s) Lisp returned.
+    //!
+    //! Tests target `Counter::new`'s logic in isolation: the constructor
+    //! takes a `CounterArgs` recipe + number-text and produces a
+    //! `Counter` enum variant with the right slots populated. The
+    //! upstream `find-counter` flow (lookup recipe by text key + verify)
+    //! is not under test here — that lands with its own port.
+    use super::*;
+    use crate::dict::kani_counter_args::CounterArgs;
+
+    #[test]
+    fn base_text_arm() {
+        // dict-counters.lisp:278 — find-counter "5" "個" returns 2 COUNTER-TEXT
+        // recipes (kana=か, kana=こ); slots match per-recipe directly.
+        let args = CounterArgs::new(CounterClass::Text, "個", "か");
+        let c = Counter::new(&args, "5").unwrap();
+        let base = c.base();
+        assert!(matches!(c, Counter::Base(_)));
+        assert_eq!(base.text, "個");
+        assert_eq!(base.kana, "か");
+        assert_eq!(base.number_text, "5");
+        assert_eq!(base.number, 5);
+        assert!(!base.ordinalp);
+        assert_eq!(base.suffix, None);
+        assert!(base.allowed.is_empty());
+        assert!(base.digit_opts.is_empty());
+    }
+
+    #[test]
+    fn number_text_arm_empty_seed() {
+        // dict-counters.lisp:241 — (add-args "" 'number-text) seeds the cache
+        // with an empty key. find-counter "42" "" → NUMBER-TEXT, num=42.
+        let args = CounterArgs::new(CounterClass::NumberText, "", "");
+        let c = Counter::new(&args, "42").unwrap();
+        assert!(matches!(c, Counter::NumberText(_)));
+        assert_eq!(c.base().number, 42);
+        assert_eq!(c.base().text, "");
+        assert_eq!(c.base().kana, "");
+    }
+
+    #[test]
+    fn days_kun_initform_fills_when_recipe_omits_allowed() {
+        // dict-counters.lisp:687 (defclass counter-days-kun
+        //   ((allowed :initform '(1 2 3 4 5 6 7 8 9 10 14 20 24 30)))).
+        // Lisp probe of (find-counter "1" "日") returns COUNTER-DAYS-KUN with
+        // exactly that allowed list materialized.
+        let args = CounterArgs::new(CounterClass::DaysKun, "日", "か");
+        let c = Counter::new(&args, "1").unwrap();
+        assert!(matches!(c, Counter::DaysKun(_)));
+        assert_eq!(
+            c.base().allowed,
+            vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 14, 20, 24, 30]
+        );
+        assert_eq!(c.base().number, 1);
+    }
+
+    #[test]
+    fn days_kun_explicit_allowed_overrides_initform() {
+        // CLOS :initform fires only when no :initarg is passed. A recipe that
+        // sets :allowed wins.
+        let args = CounterArgs::new(CounterClass::DaysKun, "日", "か").allowed(vec![99]);
+        let c = Counter::new(&args, "1").unwrap();
+        assert_eq!(c.base().allowed, vec![99]);
+    }
+
+    #[test]
+    fn months_initforms_fill_when_recipe_omits() {
+        // dict-counters.lisp:721-723 (defclass counter-months
+        //   ((allowed :initform '(1..12))
+        //    (digit-opts :initform '((4 "し") (7 "しち") (9 "く"))))).
+        // Lisp probe of (find-counter "1" "月") materializes both.
+        let args = CounterArgs::new(CounterClass::Months, "月", "がつ");
+        let c = Counter::new(&args, "4").unwrap();
+        assert!(matches!(c, Counter::Months(_)));
+        let base = c.base();
+        assert_eq!(base.allowed, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+        assert_eq!(base.digit_opts.len(), 3);
+        assert_eq!(base.digit_opts[0].key, DigitOptKey::Digit(4));
+        assert_eq!(base.digit_opts[0].ops, vec![DigitOp::Replace("し".to_string())]);
+        assert_eq!(base.digit_opts[1].key, DigitOptKey::Digit(7));
+        assert_eq!(base.digit_opts[1].ops, vec![DigitOp::Replace("しち".to_string())]);
+        assert_eq!(base.digit_opts[2].key, DigitOptKey::Digit(9));
+        assert_eq!(base.digit_opts[2].ops, vec![DigitOp::Replace("く".to_string())]);
+        assert_eq!(base.number, 4);
+    }
+
+    #[test]
+    fn hifumi_propagates_digit_set_from_recipe() {
+        // dict-counters.lisp:541 — (args 'counter-hifumi "株" "かぶ" :digit-set '(1 2)).
+        // Lisp probe of (find-counter "1" "株") returns COUNTER-HIFUMI with
+        // digit-set=(1 2) populated from the :digit-set initarg.
+        let args =
+            CounterArgs::new(CounterClass::Hifumi, "株", "かぶ").digit_set(vec![1, 2]);
+        let c = Counter::new(&args, "1").unwrap();
+        match c {
+            Counter::Hifumi(h) => {
+                assert_eq!(h.digit_set, vec![1, 2]);
+                assert_eq!(h.base.number, 1);
+            }
+            other => panic!("expected Hifumi, got {:?}", other),
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "counter-hifumi requires non-empty :digit-set")]
+    fn hifumi_panics_on_empty_digit_set() {
+        // dict-counters.lisp:518-519 — :digit-set has no :initform; upstream
+        // make-instance without :digit-set leaves the slot unbound.
+        let args = CounterArgs::new(CounterClass::Hifumi, "株", "かぶ");
+        let _ = Counter::new(&args, "1");
+    }
+
+    #[test]
+    fn parse_number_failure_returns_err() {
+        // dict-counters.lisp:51 — initialize-instance :after counter-text calls
+        // parse-number on number-text; invalid input raises not-a-number,
+        // which the Rust port surfaces as Err(NotANumber).
+        let args = CounterArgs::new(CounterClass::Text, "個", "か");
+        let err = Counter::new(&args, "X").unwrap_err();
+        assert_eq!(err.text, "X");
+    }
+
+    #[test]
+    fn parse_number_handles_value_above_i32() {
+        // numbers.lisp:74 (parse-number) — returns u64; the roundtrip test in
+        // parse_number.rs covers 12_423_000_430. Pin that the value flows
+        // through Counter::new into the number slot intact.
+        let args = CounterArgs::new(CounterClass::Text, "個", "か");
+        let c = Counter::new(&args, "12423000430").unwrap();
+        assert_eq!(c.base().number, 12_423_000_430);
+    }
+
+    #[test]
+    fn ordinal_recipe_propagates_to_base() {
+        // dict-counters.lisp:233-269 — *counter-cache* ordinal pass adds
+        // <counter>目 derivatives with ordinalp=t and suffix=め (concatenated
+        // onto any pre-existing suffix). Lisp probe of (find-counter "2" "階目")
+        // returns COUNTER-TEXT with ord=T, suffix="め", digit-opts=((3 R)).
+        let args = CounterArgs::new(CounterClass::Text, "階目", "かい")
+            .ordinalp(true)
+            .suffix("め")
+            .digit_opts(vec![DigitOptEntry {
+                key: DigitOptKey::Digit(3),
+                ops: vec![DigitOp::Rendaku],
+            }]);
+        let c = Counter::new(&args, "2").unwrap();
+        let base = c.base();
+        assert!(base.ordinalp);
+        assert_eq!(base.suffix.as_deref(), Some("め"));
+        assert_eq!(base.digit_opts.len(), 1);
+        assert_eq!(base.digit_opts[0].key, DigitOptKey::Digit(3));
+        assert_eq!(base.digit_opts[0].ops, vec![DigitOp::Rendaku]);
+        assert_eq!(base.number, 2);
+    }
+
 }
