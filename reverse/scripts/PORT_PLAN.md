@@ -152,7 +152,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  139. `ichiran/conn:*connection-env-var*`  — global, conn.lisp:13  *[ported]*
  140. `ichiran/conn:get-ichiran-connection-env`  — fn, conn.lisp:154  *[ported]*
  141. `ichiran/conn:load-connection-from-env`  — fn, conn.lisp:166  *[skip — "Side-effects-on-globals semantics (set *connection*]*
- 142. `ichiran/dict:to-json`  — gf, writer.lisp:0
+ 142. `ichiran/dict:to-json`  — gf, writer.lisp:0  *[skip — jsown library gf — only ichiran-authored method is the cli.lisp one-liner that delegates to word-info-gloss-json (wave 730). JSON serialization in Rust uses serde_json; the word-info method belongs in a future kaniran-cli crate.]*
  143. `ichiran/dict:true-text`  — gf, dict.lisp:0  *[ported]*
  144. `ichiran/dict:word-info`  — class, dict.lisp:1245  *[ported]*
  145. `ichiran/dict:process-word-info`  — fn, dict.lisp:1417  *[ported]*
