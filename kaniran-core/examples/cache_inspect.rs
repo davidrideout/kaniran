@@ -59,4 +59,20 @@ async fn main() {
     for s in arch.iter().take(20) {
         println!("  {}", s);
     }
+
+    println!("----");
+    println!("suffix-cache sample (first 10 keys sorted):");
+    let mut sc_keys: Vec<&String> = ctx.suffix_cache.keys().collect();
+    sc_keys.sort();
+    for k in sc_keys.iter().take(10) {
+        let v = &ctx.suffix_cache[*k];
+        let pretty: Vec<String> = v
+            .iter()
+            .map(|(key, kf)| match kf {
+                Some(k) => format!("(:{} #<KANA-TEXT {} {}>)", key.to_uppercase(), k.id, k.text),
+                None => format!("(:{} NIL)", key.to_uppercase()),
+            })
+            .collect();
+        println!("  {} => {}", k, pretty.join(" "));
+    }
 }

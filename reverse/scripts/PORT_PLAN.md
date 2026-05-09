@@ -64,7 +64,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   61. `ichiran/characters:voice-char`  — fn, characters.lisp:91  *[ported]*
   62. `ichiran/cli:print-error`  — fn, cli.lisp:37  *[skip — "CLI-only stderr/debugger glue; Rust uses eprintln!/anyhow/panic-hook. Belongs in a future kaniran-cli crate]*
   63. `ichiran/cli:setup-debugger`  — fn, cli.lisp:95  *[skip — "CLI-only stderr/debugger glue; Rust uses eprintln!/anyhow/panic-hook. Belongs in a future kaniran-cli crate]*
-  64. `ichiran/conn:cache-name`  — gf, conn.lisp:0
+  64. `ichiran/conn:cache-name`  — gf, conn.lisp:0  *[skip — Slot reader on ichiran/conn:cache (itself skip — class-side cache registry pattern doesn't translate). No polymorphic callsites; same family as id / conj-id (CONVENTIONS §4.7).]*
   65. `ichiran/conn:cache`  — class, conn.lisp:96  *[skip — "Class with one cached value]*
   66. `ichiran/conn:all-caches`  — fn, conn.lisp:110  *[skip — Class-slot registry pattern doesn't translate. Replaced in Rust by per-cache OnceLock + DI when the DB layer lands; no 1:1 counterpart.]*
   67. `ichiran/conn:get-cache`  — fn, conn.lisp:113  *[skip — Looks up a cache instance from the class-side hash by name. Subsumed by typed-field access on Ctx; no name->instance dispatch.]*
@@ -115,8 +115,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  106. `ichiran/dict:ord`  — gf, dict-counters.lisp:0  *[ported]*
  107. `ichiran/dict:get-counter-readings`  — fn, dict-counters.lisp:335  *[ported]*
  108. `ichiran/dict:no-conj-data`  — fn, dict.lisp:337  *[ported]*
- 109. `ichiran/dict:*suffix-cache*`  — global, dict-grammar.lisp:0  *[wip — empty-map stub: populated by wave 127 init-suffixes via init-suffix-hashtables + load-kf + every def-simple-suffix callsite. Replace with proper init when wave 127 lands.]*
- 110. `ichiran/dict:*suffix-class*`  — global, dict-grammar.lisp:0  *[wip — empty-map stub: populated by wave 127 init-suffixes via init-suffix-hashtables + load-kf + every def-simple-suffix callsite. Replace with proper init when wave 127 lands.]*
+ 109. `ichiran/dict:*suffix-cache*`  — global, dict-grammar.lisp:0  *[ported]*
+ 110. `ichiran/dict:*suffix-class*`  — global, dict-grammar.lisp:0  *[ported]*
  111. **CYCLE (4 symbols — port together)**
         - `ichiran/conn:*conn-vars*`  — global, conn.lisp:39  *[skip — Registry of per-connection-rebound globals. Unneeded once each Ctx owns its caches directly.]*
         - `ichiran/dict:*counter-cache*`  — global, dict-counters.lisp:0  *[ported]*
