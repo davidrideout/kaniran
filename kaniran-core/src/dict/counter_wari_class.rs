@@ -8,11 +8,20 @@
 //! `def-special-counter` callsites:
 //! - seq 1606800 — `:text` = `"割"`, `:kana` = `"わり"`.
 //! - seq 1606950 — `:text` = `"割引"`, `:kana` = `"わりびき"`.
-//!
-//! The `value-string` override ports alongside `find-counter` in a
-//! later wave.
 
 use crate::dict::counter_text_class::CounterText;
 
 #[derive(Debug, Clone)]
 pub struct CounterWari(pub CounterText);
+
+impl CounterWari {
+    /// `value-string` override — `dict-counters.lisp:748-749`:
+    ///
+    /// ```lisp
+    /// (defmethod value-string ((counter counter-wari))
+    ///   (format nil "~a%" (* 10 (number-value counter))))
+    /// ```
+    pub fn value_string(&self) -> String {
+        format!("{}%", self.0.number * 10)
+    }
+}

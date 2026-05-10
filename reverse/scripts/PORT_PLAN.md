@@ -174,7 +174,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  157. `ichiran/dict:*hint-map*`  — global, dict-split.lisp:850
  158. `ichiran/dict:word-conj-data`  — gf, dict.lisp:0  *[ported]*  *[extracted: tatoeba]*  *[audited 125006/125006]*
  159. `ichiran/dict:get-hint`  — fn, dict-split.lisp:968
- 160. `ichiran/dict:get-kanji-kana-old`  — fn, dict.lisp:115  *[extracted: tatoeba]*
+ 160. `ichiran/dict:get-kanji-kana-old`  — fn, dict.lisp:115  *[ported]*  *[extracted: tatoeba]*  *[audited 2/2]*
  161. `ichiran/numbers:*char-number-class*`  — global, numbers.lisp:9  *[ported]*
  162. `ichiran/numbers:*char-number-class-hash*`  — global, numbers.lisp:18  *[ported]*
  163. `ichiran/numbers:num-sandhi`  — gf, numbers.lisp:0  *[ported]*
@@ -184,9 +184,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  167. `ichiran/numbers:number-to-kanji`  — fn, numbers.lisp:35  *[ported]*  *[extracted: counter_2026_05_08]*
  168. `ichiran/numbers:number-to-kana`  — fn, numbers.lisp:125  *[ported]*  *[extracted: counter_2026_05_08]*
  169. `ichiran/dict:get-kana`  — gf, dict.lisp:0  *[extracted: tatoeba]*
- 170. `ichiran/dict:get-text`  — gf, dict.lisp:0  *[extracted: tatoeba]*
+ 170. `ichiran/dict:get-text`  — gf, dict.lisp:0  *[ported]*  *[extracted: tatoeba]*  *[audited 2001/2001]*
  171. `ichiran/dict:ordinal-str`  — fn, dict-counters.lisp:38  *[ported]*  *[extracted: counter_2026_05_08]*
- 172. `ichiran/dict:value-string`  — gf, dict-counters.lisp:0  *[extracted: counter_2026_05_08]*
+ 172. `ichiran/dict:value-string`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
  173. `ichiran/dict:word-type`  — gf, dict.lisp:0  *[ported]*
  174. `ichiran/dict:word-info-from-segment`  — fn, dict.lisp:1327
  175. `ichiran/dict:word-info-from-segment-list`  — fn, dict.lisp:1353

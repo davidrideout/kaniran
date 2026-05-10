@@ -14,6 +14,7 @@
 //! generic functions that have their own symbol entries in the port
 //! plan and land in their own files when those generics are ported.
 
+use crate::conn::kani_context::KaniranContext;
 use sqlx::postgres::PgRow;
 use sqlx::{FromRow, Row};
 
@@ -37,5 +38,44 @@ impl<'r> FromRow<'r, PgRow> for Entry {
             n_kana: row.try_get("n_kana")?,
             primary_nokanji: row.try_get("primary_nokanji")?,
         })
+    }
+}
+
+impl Entry {
+    /// `get-text` override — `dict.lisp:47-49`:
+    ///
+    /// ```lisp
+    /// (defmethod get-text ((obj entry))
+    ///   (text (car (select-dao (if (> (n-kanji obj) 0) 'kanji-text 'kana-text)
+    ///                          (:and (:= 'seq (seq obj)) (:= 'ord 0))))))
+    /// ```
+    ///
+    /// Returns the `text` of the entry's headword row at `ord = 0` —
+    /// from `kanji_text` when the entry has any kanji writings,
+    /// otherwise from `kana_text`. Routed through
+    /// [`crate::dict::get_text::get_text`] only conceptually; at every
+    /// upstream callsite (`dict.lisp:67` `entry-digest`,
+    /// `dict-load.lisp:135`) the receiver is locally typed as `entry`,
+    /// so callers reach this method directly.
+    ///
+    /// Diverges from the upstream lambda list `(obj)` only by:
+    /// - taking `&KaniranContext` for the database handle, replacing
+    ///   the upstream dynamic `*connection*` per
+    ///   [`crate::conn::kani_context`];
+    /// - returning [`Option<String>`] rather than a raw string —
+    ///   upstream errors on `(text nil)` if the headword row is
+    ///   absent (data-integrity violation), which the Rust port
+    ///   surfaces as [`None`].
+    pub async fn get_text(
+        &self,
+        ctx: &KaniranContext,
+    ) -> Result<Option<String>, sqlx::Error> {
+        let table = if self.n_kanji > 0 { "kanji_text" } else { "kana_text" };
+        let sql = format!("SELECT text FROM {} WHERE seq = $1 AND ord = 0", table);
+        let row: Option<(String,)> = sqlx::query_as(&sql)
+            .bind(self.seq)
+            .fetch_optional(&ctx.pool)
+            .await?;
+        Ok(row.map(|(t,)| t))
     }
 }

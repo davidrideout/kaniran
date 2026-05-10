@@ -128,6 +128,40 @@ impl CounterText {
         allowed_match && unique
     }
 
+    /// Default `value-string` body — `dict-counters.lisp:46-49`,
+    /// the `(:method ((counter counter-text)) ...)` clause on the gf:
+    ///
+    /// ```lisp
+    /// (format nil "Value: ~a~{ ~a~}"
+    ///         (if (ordinalp counter) (ordinal-str value) value)
+    ///         (reverse (counter-suffix-descriptions counter)))
+    /// ```
+    ///
+    /// `~{ ~a~}` iterates the reversed descriptions list, prefixing
+    /// each entry with a single space — output is
+    /// `"Value: <n-or-ordinal>"` followed by zero or more
+    /// `" <desc>"`. Subclass overrides
+    /// ([`CounterHalfhour::value_string`], [`CounterMonths::value_string`],
+    /// [`CounterWari::value_string`]) replace this body entirely;
+    /// they're routed by [`crate::dict::value_string::value_string`].
+    ///
+    /// [`CounterHalfhour::value_string`]: crate::dict::counter_halfhour_class::CounterHalfhour::value_string
+    /// [`CounterMonths::value_string`]: crate::dict::counter_months_class::CounterMonths::value_string
+    /// [`CounterWari::value_string`]: crate::dict::counter_wari_class::CounterWari::value_string
+    pub fn value_string(&self) -> String {
+        let head = if self.ordinalp {
+            crate::dict::ordinal_str::ordinal_str(self.number as i64)
+        } else {
+            self.number.to_string()
+        };
+        let mut out = format!("Value: {}", head);
+        for desc in self.suffix_descriptions.iter().rev() {
+            out.push(' ');
+            out.push_str(desc);
+        }
+        out
+    }
+
     /// Build the shared base from a recipe + the user-typed
     /// `number_text`, running the `initialize-instance :after`
     /// (`dict-counters.lisp:51`) that fills the `number` slot from

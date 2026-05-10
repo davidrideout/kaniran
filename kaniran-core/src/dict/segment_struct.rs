@@ -55,6 +55,29 @@ pub struct Segment {
     pub text: Option<String>,
 }
 
+impl Segment {
+    /// `get-text` override — `dict.lisp:677-679`:
+    ///
+    /// ```lisp
+    /// (defmethod get-text ((segment segment))
+    ///   (or (segment-text segment)
+    ///       (setf (segment-text segment) (text (segment-word segment)))))
+    /// ```
+    ///
+    /// Lazy memoization: returns the cached [`Segment::text`] when
+    /// already populated, otherwise computes
+    /// `text(segment.word)` (via [`crate::dict::text::text`]),
+    /// stores it, and returns a borrow. Mirrors upstream's `setf`
+    /// — repeated calls are O(1) after the first.
+    pub fn get_text(&mut self) -> &str {
+        if self.text.is_none() {
+            let t = crate::dict::text::text(&self.word).into_owned();
+            self.text = Some(t);
+        }
+        self.text.as_deref().unwrap()
+    }
+}
+
 /// Sidecar (no Lisp FQN). Typed model of the property-list value
 /// `calc-score` returns and `gen-score` stores in [`Segment::info`]
 /// (`dict.lisp:976-980`). The Lisp slot type is `t`; the port pins

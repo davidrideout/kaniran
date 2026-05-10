@@ -358,7 +358,7 @@ ichiran/dict:get-kana-forms,get-kana-forms,ichiran/dict,dict-grammar.lisp,32,fn,
 ichiran/dict:get-kana-forms*,get-kana-forms*,ichiran/dict,dict-grammar.lisp,17,fn,ported,,init-suffixes,
 ichiran/dict:get-kana-forms-conj-data-filter,get-kana-forms-conj-data-filter,ichiran/dict,dict-grammar.lisp,10,fn,ported,,init-suffixes,
 ichiran/dict:get-kanji,get-kanji,ichiran/dict,dict.lisp,0,gf,pending,,,
-ichiran/dict:get-kanji-kana-old,get-kanji-kana-old,ichiran/dict,dict.lisp,115,fn,pending,,tatoeba,
+ichiran/dict:get-kanji-kana-old,get-kanji-kana-old,ichiran/dict,dict.lisp,115,fn,ported,,tatoeba,2/2
 ichiran/dict:get-kanji-words,get-kanji-words,ichiran/dict,dict.lisp,1836,fn,pending,,,
 ichiran/dict:get-non-arch-posi,get-non-arch-posi,ichiran/dict,dict.lisp,762,fn,pending,,,
 ichiran/dict:get-original-text,get-original-text,ichiran/dict,dict.lisp,0,gf,pending,,,
@@ -381,7 +381,7 @@ ichiran/dict:get-suffix-description,get-suffix-description,ichiran/dict,dict-gra
 ichiran/dict:get-suffix-map,get-suffix-map,ichiran/dict,dict-grammar.lisp,685,fn,pending,,,
 ichiran/dict:get-suffixes,get-suffixes,ichiran/dict,dict-grammar.lisp,697,fn,pending,,,
 ichiran/dict:get-synergies,get-synergies,ichiran/dict,dict-grammar.lisp,976,fn,pending,,,
-ichiran/dict:get-text,get-text,ichiran/dict,dict.lisp,0,gf,pending,,tatoeba,
+ichiran/dict:get-text,get-text,ichiran/dict,dict.lisp,0,gf,ported,,tatoeba,2001/2001
 ichiran/dict:gloss,gloss,ichiran/dict,dict.lisp,178,dao,ported,,,
 ichiran/dict:id,id,ichiran/dict,dict.lisp,0,gf,skip,Slot-reader gf with no polymorphic callsites; every (id X) / (conj-id X) site has a locally-known DAO type. Each Rust DAO struct exposes pub id: i32 / pub conj_id: i32 directly per CONVENTIONS §4.7.,,
 ichiran/dict:init-suffix-hashtables,init-suffix-hashtables,ichiran/dict,dict-grammar.lisp,6,fn,skip,Empty-hashtable initializer for *suffix-cache* / *suffix-class* def-conn-vars. Rust replacement is OnceLock<HashMap> populated on first read; no standalone init verb survives.,,
@@ -746,7 +746,7 @@ ichiran/dict:translate-hints,translate-hints,ichiran/dict,dict-split.lisp,942,fn
 ichiran/dict:true-kana,true-kana,ichiran/dict,dict.lisp,0,gf,pending,,,
 ichiran/dict:true-kanji,true-kanji,ichiran/dict,dict.lisp,0,gf,pending,,,
 ichiran/dict:true-text,true-text,ichiran/dict,dict.lisp,0,gf,ported,,,
-ichiran/dict:value-string,value-string,ichiran/dict,dict-counters.lisp,0,gf,pending,,counter_2026_05_08,
+ichiran/dict:value-string,value-string,ichiran/dict,dict-counters.lisp,0,gf,ported,,counter_2026_05_08,
 ichiran/dict:verify,verify,ichiran/dict,dict-counters.lisp,0,gf,ported,,counter_2026_05_08,
 ichiran/dict:word-conj-data,word-conj-data,ichiran/dict,dict.lisp,0,gf,ported,,tatoeba,125006/125006
 ichiran/dict:word-info,word-info,ichiran/dict,dict.lisp,1245,class,ported,,,
