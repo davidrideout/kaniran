@@ -21,15 +21,19 @@ Usage:
     # Install hooks once on the pool (one FQN per line in fqns.txt):
     python3 fetch_extractor.py install fqns.txt --api http://host:9100
 
-    # Run the fetch (input defaults to ../corpus/tatoeba_sentences.txt):
+    # Run the fetch (input defaults to ../corpus/diverse_250k_2026_05_09.parquet):
     python3 fetch_extractor.py fetch corpus/extracted \\
         --api http://host:9100 --workers 18 [--limit 250000] [--skip 0]
 
     # Override the corpus:
-    python3 fetch_extractor.py fetch corpus/extracted --input other.tsv ...
+    python3 fetch_extractor.py fetch corpus/extracted --input other.parquet ...
 
-The input is parsed Tatoeba-style (tab-split, sentence in column 3 if
-present, otherwise the whole line — also handles plain one-sentence-per-line).
+Input format is detected by extension:
+- .parquet: read the `text` column (schema from build_diverse_corpus.py:
+  number / source / text). Rows iterated in file order.
+- otherwise: parsed Tatoeba-style (tab-split, sentence in column 3 if
+  present, otherwise the whole line — also handles plain
+  one-sentence-per-line).
 """
 
 import argparse
@@ -48,7 +52,7 @@ import pyarrow.parquet as pq
 DEFAULT_API = "http://localhost:9100"
 DEFAULT_CORPUS = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
-    "..", "corpus", "tatoeba_sentences.txt",
+    "..", "corpus", "diverse_250k_2026_05_09.parquet",
 )
 HTTP_TIMEOUT = 120
 MAX_RETRIES = 5
@@ -117,6 +121,13 @@ async def post_json(session, url, body, timeout=HTTP_TIMEOUT):
 # --- producer ----------------------------------------------------------------
 
 def iter_sentences(input_file: str, skip: int, limit: Optional[int]):
+    if input_file.lower().endswith(".parquet"):
+        yield from _iter_parquet(input_file, skip, limit)
+    else:
+        yield from _iter_text(input_file, skip, limit)
+
+
+def _iter_text(input_file: str, skip: int, limit: Optional[int]):
     idx = 0
     seen = 0
     with open(input_file, encoding="utf-8") as f:
@@ -129,6 +140,32 @@ def iter_sentences(input_file: str, skip: int, limit: Optional[int]):
                 continue
             parts = row.split("\t")
             sentence = parts[2] if len(parts) >= 3 else row
+            idx += 1
+            yield sentence
+            if limit and idx >= limit:
+                return
+
+
+def _iter_parquet(input_file: str, skip: int, limit: Optional[int]):
+    pf = pq.ParquetFile(input_file)
+    if "text" not in pf.schema_arrow.names:
+        raise ValueError(
+            f"{input_file}: parquet missing 'text' column "
+            f"(found {pf.schema_arrow.names})"
+        )
+    idx = 0
+    seen = 0
+    for batch in pf.iter_batches(batch_size=10000, columns=["text"]):
+        for value in batch.column("text"):
+            sentence = value.as_py()
+            if not sentence:
+                continue
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+            seen += 1
+            if seen <= skip:
+                continue
             idx += 1
             yield sentence
             if limit and idx >= limit:
@@ -402,7 +439,11 @@ def main():
     p_fetch = sub.add_parser("fetch", help="drive corpus through pool, write parquet")
     p_fetch.add_argument(
         "--input", default=DEFAULT_CORPUS,
-        help=f"input TSV/text (sentence in col 3, or whole line). Default: {DEFAULT_CORPUS}",
+        help=(
+            "input corpus. .parquet (text column) or TSV/text "
+            "(sentence in col 3, or whole line). "
+            f"Default: {DEFAULT_CORPUS}"
+        ),
     )
     p_fetch.add_argument("output", help="output dir for per-FQN parquet files")
     p_fetch.add_argument("--workers", type=int, default=4)

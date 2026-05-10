@@ -259,10 +259,10 @@ def cmd_audited(args, syms, callees, callers):
             sys.exit("--pass and --total required (or --reset to clear)")
         for t in targets:
             extracted = syms[t].get("extracted", "") or ""
-            if extracted != "tatoeba":
+            if not extracted:
                 sys.exit(
-                    f"{t}: audited is reserved for the tatoeba → parquet → audit pipeline; "
-                    f"current extracted={extracted!r}. Set extracted to 'tatoeba' first, or fix the input."
+                    f"{t}: audited requires a prior extraction; current extracted is empty. "
+                    f"Run `query.py extracted {t} --corpus <tag>` first."
                 )
         if args.pass_count > args.total:
             sys.exit(f"--pass ({args.pass_count}) cannot exceed --total ({args.total})")

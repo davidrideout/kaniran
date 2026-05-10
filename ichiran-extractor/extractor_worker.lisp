@@ -225,4 +225,23 @@
   (error (e)
     (format *error-output* "warn: init-suffixes failed: ~a~%" e)))
 
+;; Boot-time tracer install. Workers come up with these FQNs already
+;; hooked so a worker crash + pool respawn does not silently drop
+;; instrumentation mid-run. Without this, install state was per-image
+;; and lost on respawn — replacements came up clean.
+(defparameter *boot-install-fqns*
+  '("ICHIRAN/DICT:GET-SPLIT"
+    "ICHIRAN/DICT:GET-SEGSPLIT"
+    "ICHIRAN/DICT:WORD-INFO-FROM-SEGMENT"
+    "ICHIRAN/DICT:QUERY-PARENTS-KANA"
+    "ICHIRAN/DICT:QUERY-PARENTS-KANJI"
+    "ICHIRAN/DICT:OPTPREFIX"
+    "ICHIRAN/DICT:GET-KANA"
+    "ICHIRAN/DICT:BEST-KANA-CONJ"))
+
+(handler-case
+    (ichi-trace:install-many *boot-install-fqns*)
+  (error (e)
+    (format *error-output* "warn: boot install-many failed: ~a~%" e)))
+
 (extractor-worker-loop)
