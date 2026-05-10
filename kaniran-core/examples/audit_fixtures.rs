@@ -10,14 +10,24 @@
 //!   cargo run --release --example audit_fixtures -- corpus/extracted/characters
 //!
 //! Reports per-FQN pass / fail / skip counts + the first N mismatches.
+//!
+//! Mixed sync/async dispatch: pure-CPU handlers (`characters/*`,
+//! `dict/get-digit`, etc.) run synchronously inside the tokio task;
+//! DB-backed handlers (`dict/find-word`, etc.) `.await` against the
+//! shared [`KaniranContext`]. Without `DATABASE_URL` set, DB handlers
+//! report a clear "no context" error and the CPU handlers still pass.
+//! Concurrency = [`CONCURRENCY`] in-flight tasks, so DB rows fan out
+//! across the connection pool instead of serializing on a single
+//! Postgres round-trip.
 
-use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
+use std::time::Instant;
 
 use arrow::array::StringArray;
 use fancy_regex::Regex as FancyRegex;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+use tokio::task::JoinSet;
 
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::characters::as_hiragana::as_hiragana;
@@ -56,11 +66,14 @@ use kaniran_core::dict::common::common;
 use kaniran_core::dict::kana_text_dao::KanaText;
 use kaniran_core::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use kaniran_core::dict::kanji_text_dao::KanjiText;
+use kaniran_core::dict::get_text::get_text;
 use kaniran_core::dict::number_text_class::NumberText;
 use kaniran_core::dict::proxy_text_class::ProxyText;
+use kaniran_core::dict::segment_struct::Segment;
 use kaniran_core::dict::seq::seq as seq_fn;
 use kaniran_core::dict::simple_text_class::SimpleText;
 use kaniran_core::dict::source::{source, SourceRef};
+use kaniran_core::dict::value_string::value_string;
 use kaniran_core::dict::verify::verify;
 use kaniran_core::dict::word_info_class::WordInfoSeq;
 use kaniran_core::dict::get_digit::get_digit;
@@ -80,62 +93,125 @@ use kaniran_core::numbers::number_to_kana::{number_to_kana, NumberToKanaOutput};
 use kaniran_core::numbers::number_to_kanji::number_to_kanji;
 use kaniran_core::numbers::parse_number::parse_number;
 
+// Async DB-backed dict imports (merged from former audit_dict_fixtures.rs).
+use kaniran_core::dict::find_word::{find_word, FindWordRows};
+use kaniran_core::dict::find_word_as_hiragana::find_word_as_hiragana;
+use kaniran_core::dict::find_word_conj_of::find_word_conj_of;
+use kaniran_core::dict::find_word_seq::{find_word_seq, WordSeqRows};
+use kaniran_core::dict::get_conj_data::{get_conj_data, FromOrConjIds};
+use kaniran_core::dict::get_kana_form::get_kana_form;
+use kaniran_core::dict::get_kana_forms::get_kana_forms;
+use kaniran_core::dict::get_kana_forms_star_::get_kana_forms_star_;
+use kaniran_core::dict::get_kanji_kana_old::get_kanji_kana_old;
+use kaniran_core::dict::simple_text_class::WordConjugations;
+use kaniran_core::dict::word_conj_data::word_conj_data;
+
 const MISMATCH_PRINT_LIMIT: usize = 5;
-type Handler = fn(&Sexp, &Sexp) -> Result<(), String>;
+const CONCURRENCY: usize = 16;
 
 /// Driver-scoped context populated in `main` when `DATABASE_URL` is
 /// set. Sync handlers that need DB-backed caches (e.g.
 /// [`audit_no_conj_data`]) read it via [`audit_ctx`]; if unset,
 /// those handlers fail with a clear "no context" message rather
 /// than silently passing on empty caches.
-static AUDIT_CTX: OnceLock<Arc<KaniranContext>> = OnceLock::new();
+static AUDIT_CTX: std::sync::OnceLock<Arc<KaniranContext>> = std::sync::OnceLock::new();
 
 fn audit_ctx() -> Option<&'static KaniranContext> {
     AUDIT_CTX.get().map(|a| &**a)
 }
 
-fn handlers() -> BTreeMap<&'static str, Handler> {
-    let mut m: BTreeMap<&'static str, Handler> = BTreeMap::new();
-    m.insert("ICHIRAN/CHARACTERS:NORMALIZE",                 audit_normalize);
-    m.insert("ICHIRAN/CHARACTERS:BASIC-SPLIT",               audit_basic_split);
-    m.insert("ICHIRAN/CHARACTERS:AS-HIRAGANA",               audit_as_hiragana);
-    m.insert("ICHIRAN/CHARACTERS:AS-KATAKANA",               audit_as_katakana);
-    m.insert("ICHIRAN/CHARACTERS:MORA-LENGTH",               audit_mora_length);
-    m.insert("ICHIRAN/CHARACTERS:KANJI-PREFIX",              audit_kanji_prefix);
-    m.insert("ICHIRAN/CHARACTERS:SEQUENTIAL-KANJI-POSITIONS",audit_sequential_kanji_positions);
-    m.insert("ICHIRAN/CHARACTERS:TO-NORMAL-CHAR",            audit_to_normal_char);
-    m.insert("ICHIRAN/CHARACTERS:SIMPLIFY-NGRAMS",           audit_simplify_ngrams);
-    m.insert("ICHIRAN/CHARACTERS:SPLIT-BY-REGEX",            audit_split_by_regex);
-    m.insert("ICHIRAN/CHARACTERS:TEST-WORD",                 audit_test_word);
-    m.insert("ICHIRAN/DICT::NO-CONJ-DATA",                   audit_no_conj_data);
-    m.insert("ICHIRAN/DICT::MAKE-CONJ-DATA",                 audit_make_conj_data);
-    m.insert("ICHIRAN/DICT::CONJ-DATA-PROP",                 audit_conj_data_prop);
-    m.insert("ICHIRAN/DICT::TEST-CONJ-PROP",                 audit_test_conj_prop);
-    m.insert("ICHIRAN/DICT::SKIP-BY-CONJ-DATA",              audit_skip_by_conj_data);
-    m.insert("ICHIRAN/DICT::GET-KANA-FORMS-CONJ-DATA-FILTER",audit_get_kana_forms_conj_data_filter);
-    m.insert("ICHIRAN/DICT::GET-DIGIT",                      audit_get_digit);
-    m.insert("ICHIRAN/DICT:GET-DIGIT",                       audit_get_digit);
-    m.insert("ICHIRAN/DICT::COUNTER-JOIN",                   audit_counter_join);
-    m.insert("ICHIRAN/DICT:COUNTER-JOIN",                    audit_counter_join);
-    m.insert("ICHIRAN/DICT::ORDINAL-STR",                    audit_ordinal_str);
-    m.insert("ICHIRAN/DICT:ORDINAL-STR",                     audit_ordinal_str);
-    m.insert("ICHIRAN/DICT::VERIFY",                         audit_verify);
-    m.insert("ICHIRAN/DICT:VERIFY",                          audit_verify);
-    m.insert("ICHIRAN/DICT::FIND-COUNTER",                   audit_find_counter);
-    m.insert("ICHIRAN/DICT:FIND-COUNTER",                    audit_find_counter);
-    m.insert("ICHIRAN/DICT::SEQ",                            audit_seq);
-    m.insert("ICHIRAN/DICT:SEQ",                             audit_seq);
-    m.insert("ICHIRAN/DICT::COMMON",                         audit_common);
-    m.insert("ICHIRAN/DICT:COMMON",                          audit_common);
-    m.insert("ICHIRAN/DICT::SOURCE",                         audit_source);
-    m.insert("ICHIRAN/DICT:SOURCE",                          audit_source);
-    m.insert("ICHIRAN/CHARACTERS:GEMINATE",                  audit_geminate);
-    m.insert("ICHIRAN/CHARACTERS:RENDAKU",                   audit_rendaku);
-    m.insert("ICHIRAN/NUMBERS:PARSE-NUMBER",                 audit_parse_number);
-    m.insert("ICHIRAN/NUMBERS:NUMBER-TO-KANA",               audit_number_to_kana);
-    m.insert("ICHIRAN/NUMBERS:NUMBER-TO-KANJI",              audit_number_to_kanji);
-    m.insert("ICHIRAN/NUMBERS:GROUP-TO-KANA",                audit_group_to_kana);
-    m
+/// Single dispatch point. Sync handlers (CPU-only) return `Result`
+/// directly; async DB handlers `.await` against the driver-scoped
+/// [`audit_ctx`]. Returns `None` if the FQN has no registered
+/// handler (audit_file logs a SKIP). Returns `Some(Err(...))` for
+/// DB handlers when no `KaniranContext` is available.
+async fn audit_one(
+    fqn: &str, args: &Sexp, expected: &Sexp,
+) -> Option<Result<(), String>> {
+    let with_ctx = |missing: &str| audit_ctx().ok_or_else(||
+        format!("{}: needs DB context — set DATABASE_URL ({})", fqn, missing));
+    Some(match fqn {
+        // --- sync (CPU-only) handlers ---
+        "ICHIRAN/CHARACTERS:NORMALIZE"                  => audit_normalize(args, expected),
+        "ICHIRAN/CHARACTERS:BASIC-SPLIT"                => audit_basic_split(args, expected),
+        "ICHIRAN/CHARACTERS:AS-HIRAGANA"                => audit_as_hiragana(args, expected),
+        "ICHIRAN/CHARACTERS:AS-KATAKANA"                => audit_as_katakana(args, expected),
+        "ICHIRAN/CHARACTERS:MORA-LENGTH"                => audit_mora_length(args, expected),
+        "ICHIRAN/CHARACTERS:KANJI-PREFIX"               => audit_kanji_prefix(args, expected),
+        "ICHIRAN/CHARACTERS:SEQUENTIAL-KANJI-POSITIONS" => audit_sequential_kanji_positions(args, expected),
+        "ICHIRAN/CHARACTERS:TO-NORMAL-CHAR"             => audit_to_normal_char(args, expected),
+        "ICHIRAN/CHARACTERS:SIMPLIFY-NGRAMS"            => audit_simplify_ngrams(args, expected),
+        "ICHIRAN/CHARACTERS:SPLIT-BY-REGEX"             => audit_split_by_regex(args, expected),
+        "ICHIRAN/CHARACTERS:TEST-WORD"                  => audit_test_word(args, expected),
+        "ICHIRAN/CHARACTERS:GEMINATE"                   => audit_geminate(args, expected),
+        "ICHIRAN/CHARACTERS:RENDAKU"                    => audit_rendaku(args, expected),
+        "ICHIRAN/NUMBERS:PARSE-NUMBER"                  => audit_parse_number(args, expected),
+        "ICHIRAN/NUMBERS:NUMBER-TO-KANA"                => audit_number_to_kana(args, expected),
+        "ICHIRAN/NUMBERS:NUMBER-TO-KANJI"               => audit_number_to_kanji(args, expected),
+        "ICHIRAN/NUMBERS:GROUP-TO-KANA"                 => audit_group_to_kana(args, expected),
+        "ICHIRAN/DICT::NO-CONJ-DATA"                    => audit_no_conj_data(args, expected),
+        "ICHIRAN/DICT::MAKE-CONJ-DATA"                  => audit_make_conj_data(args, expected),
+        "ICHIRAN/DICT::CONJ-DATA-PROP"                  => audit_conj_data_prop(args, expected),
+        "ICHIRAN/DICT::TEST-CONJ-PROP"                  => audit_test_conj_prop(args, expected),
+        "ICHIRAN/DICT::SKIP-BY-CONJ-DATA"               => audit_skip_by_conj_data(args, expected),
+        "ICHIRAN/DICT::GET-KANA-FORMS-CONJ-DATA-FILTER" => audit_get_kana_forms_conj_data_filter(args, expected),
+        "ICHIRAN/DICT::GET-DIGIT" | "ICHIRAN/DICT:GET-DIGIT"           => audit_get_digit(args, expected),
+        "ICHIRAN/DICT::COUNTER-JOIN" | "ICHIRAN/DICT:COUNTER-JOIN"     => audit_counter_join(args, expected),
+        "ICHIRAN/DICT::ORDINAL-STR" | "ICHIRAN/DICT:ORDINAL-STR"       => audit_ordinal_str(args, expected),
+        "ICHIRAN/DICT::VERIFY" | "ICHIRAN/DICT:VERIFY"                 => audit_verify(args, expected),
+        "ICHIRAN/DICT::FIND-COUNTER" | "ICHIRAN/DICT:FIND-COUNTER"     => audit_find_counter(args, expected),
+        "ICHIRAN/DICT::SEQ" | "ICHIRAN/DICT:SEQ"                       => audit_seq(args, expected),
+        "ICHIRAN/DICT::COMMON" | "ICHIRAN/DICT:COMMON"                 => audit_common(args, expected),
+        "ICHIRAN/DICT::SOURCE" | "ICHIRAN/DICT:SOURCE"                 => audit_source(args, expected),
+        "ICHIRAN/DICT::VALUE-STRING" | "ICHIRAN/DICT:VALUE-STRING"     => audit_value_string(args, expected),
+        "ICHIRAN/DICT::GET-TEXT" | "ICHIRAN/DICT:GET-TEXT"             => audit_get_text(args, expected),
+
+        // --- async DB-backed handlers ---
+        "ICHIRAN/DICT:FIND-WORD" => match with_ctx("find-word") {
+            Err(e) => Err(e),
+            Ok(ctx) => audit_find_word(ctx, args, expected).await,
+        },
+        "ICHIRAN/DICT:FIND-WORD-AS-HIRAGANA" => match with_ctx("find-word-as-hiragana") {
+            Err(e) => Err(e),
+            Ok(ctx) => audit_find_word_as_hiragana(ctx, args, expected).await,
+        },
+        "ICHIRAN/DICT::FIND-WORD-SEQ" => match with_ctx("find-word-seq") {
+            Err(e) => Err(e),
+            Ok(ctx) => audit_find_word_seq(ctx, args, expected).await,
+        },
+        "ICHIRAN/DICT::FIND-WORD-CONJ-OF" => match with_ctx("find-word-conj-of") {
+            Err(e) => Err(e),
+            Ok(ctx) => audit_find_word_conj_of(ctx, args, expected).await,
+        },
+        "ICHIRAN/DICT::GET-KANA-FORM" => match with_ctx("get-kana-form") {
+            Err(e) => Err(e),
+            Ok(ctx) => audit_get_kana_form(ctx, args, expected).await,
+        },
+        "ICHIRAN/DICT::GET-KANA-FORMS" => match with_ctx("get-kana-forms") {
+            Err(e) => Err(e),
+            Ok(ctx) => audit_get_kana_forms(ctx, args, expected).await,
+        },
+        "ICHIRAN/DICT::GET-KANA-FORMS*" => match with_ctx("get-kana-forms*") {
+            Err(e) => Err(e),
+            Ok(ctx) => audit_get_kana_forms_star(ctx, args, expected).await,
+        },
+        "ICHIRAN/DICT::GET-CONJ-DATA" => match with_ctx("get-conj-data") {
+            Err(e) => Err(e),
+            Ok(ctx) => audit_get_conj_data(ctx, args, expected).await,
+        },
+        "ICHIRAN/DICT:WORD-CONJ-DATA" => match with_ctx("word-conj-data") {
+            Err(e) => Err(e),
+            Ok(ctx) => audit_word_conj_data(ctx, args, expected).await,
+        },
+        "ICHIRAN/DICT::GET-KANJI-KANA-OLD" | "ICHIRAN/DICT:GET-KANJI-KANA-OLD" => {
+            match with_ctx("get-kanji-kana-old") {
+                Err(e) => Err(e),
+                Ok(ctx) => audit_get_kanji_kana_old(ctx, args, expected).await,
+            }
+        }
+
+        _ => return None,
+    })
 }
 
 
@@ -396,6 +472,102 @@ fn audit_source(args: &Sexp, expected: &Sexp) -> Result<(), String> {
     let exp_id = expected_source_identity(exp)?;
     if actual_id == exp_id { Ok(()) } else {
         Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual_id, exp_id))
+    }
+}
+
+fn audit_value_string(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    // dict-counters.lisp:44-49 — captured args shape is a single counter
+    // plist. parse_word_plist + variant filter produce the Counter; then
+    // patch in :SUFFIX-DESCRIPTIONS (parse_counter omits it because the
+    // counter-join audit doesn't need it, but the value-string default
+    // body reads it).
+    let argv = list_elems(args)?;
+    if argv.len() != 1 {
+        return Err(format!("value-string wants 1 arg, got {}", argv.len()));
+    }
+    let word = parse_word_plist(argv[0])?;
+    let counter = match word {
+        KaniWordDispatchEnum::Counter(c) => c,
+        other => return Err(format!("value-string expects counter plist, got {:?}", other)),
+    };
+    let plist = list_elems(argv[0])?;
+    let descs = plist_get(&plist, "SUFFIX-DESCRIPTIONS")
+        .map(parse_string_list)
+        .transpose()?
+        .unwrap_or_default();
+    let counter = patch_suffix_descriptions(counter, descs);
+    let actual = value_string(&counter);
+    let exp = expect_one(expected)?.as_str().ok_or("expected[0] not string")?;
+    if actual == exp { Ok(()) } else {
+        Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
+    }
+}
+
+/// Parse a NIL-or-`(string string ...)` plist value into a `Vec<String>`.
+fn parse_string_list(s: &Sexp) -> Result<Vec<String>, String> {
+    if s.is_nil() { return Ok(Vec::new()); }
+    list_elems(s)?
+        .into_iter()
+        .map(|e| e.as_str().map(|s| s.to_string())
+             .ok_or_else(|| format!("string-list element not string: {}", e)))
+        .collect()
+}
+
+/// Replace `suffix_descriptions` on the [`CounterText`] inside any
+/// [`Counter`] variant. value-string's default-method audit needs the
+/// slot populated; parse_counter leaves it empty because counter-join
+/// (its first audit consumer) doesn't read it.
+fn patch_suffix_descriptions(counter: Counter, descs: Vec<String>) -> Counter {
+    fn patch(c: &mut CounterText, d: Vec<String>) { c.suffix_descriptions = d; }
+    match counter {
+        Counter::Base(mut c)        => { patch(&mut c, descs); Counter::Base(c) }
+        Counter::NumberText(NumberText(mut c)) => { patch(&mut c, descs); Counter::NumberText(NumberText(c)) }
+        Counter::Age(CounterAge(mut c))        => { patch(&mut c, descs); Counter::Age(CounterAge(c)) }
+        Counter::DaysKun(CounterDaysKun(mut c))=> { patch(&mut c, descs); Counter::DaysKun(CounterDaysKun(c)) }
+        Counter::DaysOn(CounterDaysOn(mut c))  => { patch(&mut c, descs); Counter::DaysOn(CounterDaysOn(c)) }
+        Counter::Halfhour(CounterHalfhour(mut c))=> { patch(&mut c, descs); Counter::Halfhour(CounterHalfhour(c)) }
+        Counter::Months(CounterMonths(mut c))  => { patch(&mut c, descs); Counter::Months(CounterMonths(c)) }
+        Counter::People(CounterPeople(mut c))  => { patch(&mut c, descs); Counter::People(CounterPeople(c)) }
+        Counter::Tsu(CounterTsu(mut c))        => { patch(&mut c, descs); Counter::Tsu(CounterTsu(c)) }
+        Counter::Wari(CounterWari(mut c))      => { patch(&mut c, descs); Counter::Wari(CounterWari(c)) }
+        Counter::Hifumi(mut h) => { patch(&mut h.base, descs); Counter::Hifumi(h) }
+    }
+}
+
+fn audit_get_text(args: &Sexp, expected: &Sexp) -> Result<(), String> {
+    // dict.lisp:18-20 + 677-679 (segment override). Captured fixture
+    // covers two surfaces: SEGMENT (lazy memoization via Segment::get_text)
+    // and the word polymorphism (T method = text gf), which fires for
+    // KANA-TEXT / KANJI-TEXT / COMPOUND-TEXT plists. The entry method
+    // (dict.lisp:47-49) needs DB; no entry rows in this corpus.
+    let argv = list_elems(args)?;
+    if argv.len() != 1 {
+        return Err(format!("get-text wants 1 arg, got {}", argv.len()));
+    }
+    let class = list_elems(argv[0])
+        .ok().and_then(|e| plist_class(&e).ok())
+        .unwrap_or_default();
+    let exp = expect_one(expected)?.as_str().ok_or("expected[0] not string")?;
+    let actual: String = if class == "SEGMENT" {
+        let plist = list_elems(argv[0])?;
+        let word_v = plist_get(&plist, "WORD").ok_or(":WORD missing on segment")?;
+        let word = parse_word_plist(word_v)?;
+        let start = plist_get_i64(&plist, "START").unwrap_or(0).max(0) as usize;
+        let end = plist_get_i64(&plist, "END").unwrap_or(0).max(0) as usize;
+        let mut seg = Segment {
+            start, end, word,
+            score: None, info: None, top: None, text: None,
+        };
+        seg.get_text().to_string()
+    } else if class == "ENTRY" {
+        // entry method needs DB; out of scope for the sync harness.
+        return Ok(());
+    } else {
+        let word = parse_word_plist(argv[0])?;
+        get_text(&word).into_owned()
+    };
+    if actual == exp { Ok(()) } else {
+        Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
     }
 }
 
@@ -1653,13 +1825,13 @@ fn audit_basic_split(args: &Sexp, expected: &Sexp) -> Result<(), String> {
 
 // --- driver --------------------------------------------------------------
 
-fn audit_file(
-    idx: usize,
-    of: usize,
-    path: &Path,
-    h: &BTreeMap<&str, Handler>,
-    totals: &mut Totals,
-) {
+/// Audit one parquet file. Async because some handlers issue DB
+/// queries; up to [`CONCURRENCY`] rows are in flight per file via
+/// [`JoinSet`] so DB-bound batches fan out across the connection pool
+/// instead of serializing on a single Postgres round-trip. CPU-only
+/// rows still run inline in the spawned task — `audit_one` is sync
+/// for those arms, no extra runtime cost.
+async fn audit_file(idx: usize, of: usize, path: &Path, totals: &mut Totals) {
     println!("--- file {}/{} : {}", idx, of, path.display());
     let file = std::fs::File::open(path).unwrap_or_else(|e| panic!("open {:?}: {}", path, e));
     let builder = ParquetRecordBatchReaderBuilder::try_new(file)
@@ -1670,30 +1842,57 @@ fn audit_file(
         .key_value_metadata()
         .cloned()
         .unwrap_or_default();
-    let fqn = kv.iter()
-        .find(|kv| kv.key == "ichiran_extractor_fqn")
-        .and_then(|kv| kv.value.clone())
-        .unwrap_or_else(|| panic!("no ichiran_extractor_fqn in {:?}", path));
-
-    let handler = match h.get(fqn.as_str()) {
-        Some(h) => *h,
-        None => {
-            println!("  SKIP {}  (no handler registered)", fqn);
-            totals.skipped += 1;
-            return;
-        }
-    };
+    let fqn_owned: Arc<str> = Arc::from(
+        kv.iter()
+            .find(|kv| kv.key == "ichiran_extractor_fqn")
+            .and_then(|kv| kv.value.clone())
+            .unwrap_or_else(|| panic!("no ichiran_extractor_fqn in {:?}", path))
+            .as_str(),
+    );
 
     let total_rows = metadata.file_metadata().num_rows() as usize;
     let reader = builder.build().expect("build reader");
-    let mut n_pass = 0;
-    let mut n_fail = 0;
+    let mut n_pass = 0usize;
+    let mut n_fail = 0usize;
     let mut n_done = 0usize;
     let mut last_progress_at = 0usize;
     let progress_every: usize = (total_rows / 10).max(50_000).min(200_000);
     let mut first_failures: Vec<String> = Vec::new();
-    let t0 = std::time::Instant::now();
-    println!("  > {:48}  total={}", fqn, format_count(total_rows));
+    let t0 = Instant::now();
+    println!("  > {:48}  total={}", fqn_owned, format_count(total_rows));
+
+    let mut set: JoinSet<(String, Option<Result<(), String>>)> = JoinSet::new();
+    let mut skip_logged = false;
+
+    let drain_one = |
+        joined: (String, Option<Result<(), String>>),
+        n_pass: &mut usize, n_fail: &mut usize,
+        first_failures: &mut Vec<String>,
+        skip_logged: &mut bool,
+        fqn: &str,
+        totals: &mut Totals,
+    | -> bool {
+        let (args_src, res) = joined;
+        match res {
+            None => {
+                if !*skip_logged {
+                    println!("  SKIP {}  (no handler registered)", fqn);
+                    totals.skipped += 1;
+                    *skip_logged = true;
+                }
+                false
+            }
+            Some(Ok(())) => { *n_pass += 1; true }
+            Some(Err(e)) => {
+                *n_fail += 1;
+                if first_failures.len() < MISMATCH_PRINT_LIMIT {
+                    first_failures.push(format!("{}\n  args: {}\n  err:  {}",
+                        args_src, args_src, e));
+                }
+                true
+            }
+        }
+    };
 
     for batch in reader {
         let batch = batch.expect("batch");
@@ -1702,40 +1901,37 @@ fn audit_file(
         let result_col = batch.column_by_name("result").expect("result column")
             .as_any().downcast_ref::<StringArray>().expect("result is StringArray");
         for i in 0..batch.num_rows() {
-            let args_src = args_col.value(i);
-            let result_src = result_col.value(i);
-            let args = match sexp::parse(args_src) {
-                Ok(v) => v,
-                Err(e) => {
-                    n_fail += 1;
-                    if first_failures.len() < MISMATCH_PRINT_LIMIT {
-                        first_failures.push(format!("[parse-args] {}\n  args: {}", e, args_src));
-                    }
-                    continue;
-                }
-            };
-            let expected = match sexp::parse(result_src) {
-                Ok(v) => v,
-                Err(e) => {
-                    n_fail += 1;
-                    if first_failures.len() < MISMATCH_PRINT_LIMIT {
-                        first_failures.push(format!("[parse-result] {}\n  result: {}", e, result_src));
-                    }
-                    continue;
-                }
-            };
-            match handler(&args, &expected) {
-                Ok(()) => n_pass += 1,
-                Err(e) => {
-                    n_fail += 1;
-                    if first_failures.len() < MISMATCH_PRINT_LIMIT {
-                        first_failures.push(format!("{}\n  args: {}\n  err:  {}",
-                            args_src, args_src, e));
-                    }
+            // Backpressure.
+            while set.len() >= CONCURRENCY {
+                if let Some(joined) = set.join_next().await {
+                    let pair = joined.expect("join");
+                    let counted = drain_one(pair, &mut n_pass, &mut n_fail,
+                        &mut first_failures, &mut skip_logged, &fqn_owned, totals);
+                    if counted { n_done += 1; }
                 }
             }
-            n_done += 1;
-            if n_done - last_progress_at >= progress_every {
+            let args_src = args_col.value(i).to_string();
+            let result_src = result_col.value(i).to_string();
+            let fqn_clone: Arc<str> = Arc::clone(&fqn_owned);
+            set.spawn(async move {
+                let args = match sexp::parse(&args_src) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        return (args_src.clone(),
+                            Some(Err(format!("[parse-args] {}\n  args: {}", e, args_src))));
+                    }
+                };
+                let expected = match sexp::parse(&result_src) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        return (args_src.clone(),
+                            Some(Err(format!("[parse-result] {}\n  result: {}", e, result_src))));
+                    }
+                };
+                let res = audit_one(&fqn_clone, &args, &expected).await;
+                (args_src, res)
+            });
+            if n_done > 0 && n_done - last_progress_at >= progress_every {
                 last_progress_at = n_done;
                 let elapsed = t0.elapsed().as_secs_f64();
                 let rate = n_done as f64 / elapsed.max(1e-9);
@@ -1755,6 +1951,14 @@ fn audit_file(
             }
         }
     }
+    while let Some(joined) = set.join_next().await {
+        let pair = joined.expect("join");
+        let _ = drain_one(pair, &mut n_pass, &mut n_fail,
+            &mut first_failures, &mut skip_logged, &fqn_owned, totals);
+    }
+    let _ = n_done; // last pre-loop progress print already emitted
+
+    if skip_logged { return; }
 
     let elapsed = t0.elapsed().as_secs_f64();
     let total = n_pass + n_fail;
@@ -1763,7 +1967,7 @@ fn audit_file(
     let tag = if n_fail == 0 { "PASS" } else { "FAIL" };
     println!(
         "  {} {:48} pass={:>7}  fail={:>7}  ({:>6.2}%, {:>6.0} rows/s, {:>5.2}s)",
-        tag, fqn, n_pass, n_fail, pct, rate, elapsed,
+        tag, fqn_owned, n_pass, n_fail, pct, rate, elapsed,
     );
     if !first_failures.is_empty() {
         for (i, f) in first_failures.iter().enumerate() {
@@ -1819,7 +2023,9 @@ fn discover_parquets(arg: &str) -> Vec<PathBuf> {
         for entry in std::fs::read_dir(p).expect("read_dir") {
             let entry = entry.expect("dir entry");
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("parquet") {
+            if path.is_dir() {
+                out.extend(discover_parquets(path.to_str().expect("utf-8 path")));
+            } else if path.extension().and_then(|s| s.to_str()) == Some("parquet") {
                 out.push(path);
             }
         }
@@ -1828,7 +2034,8 @@ fn discover_parquets(arg: &str) -> Vec<PathBuf> {
     out
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let arg = std::env::args().nth(1)
         .unwrap_or_else(|| "corpus/extracted/characters".to_string());
     let parquets = discover_parquets(&arg);
@@ -1840,31 +2047,24 @@ fn main() {
     // Build a KaniranContext using the layered config (kaniran.toml +
     // env). `from_env` runs every cache populator before returning,
     // so the handlers see fully populated caches without further
-    // setup. Sync main borrows a tokio runtime just long enough for
-    // construction; the audit loop itself stays sync. A
-    // `MissingConnection` error means no source supplied a URL —
-    // skip the build silently and let DB-dependent handlers report
-    // "no context".
-    let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
-    rt.block_on(async {
-        match KaniranContext::from_env().await {
-            Ok(ctx) => {
-                let _ = AUDIT_CTX.set(ctx);
-            }
-            Err(kaniran_core::conn::kani_context::Error::MissingConnection(_)) => {
-                // No URL configured; handlers that need ctx will report.
-            }
-            Err(e) => eprintln!("warning: KaniranContext::from_env failed: {e}"),
+    // setup. A `MissingConnection` error means no source supplied a
+    // URL — skip the build silently and let DB-dependent handlers
+    // report "no context". CPU-only fixture sets (characters/*,
+    // numbers/*, etc.) audit fine without it.
+    match KaniranContext::from_env().await {
+        Ok(ctx) => { let _ = AUDIT_CTX.set(ctx); }
+        Err(kaniran_core::conn::kani_context::Error::MissingConnection(_)) => {
+            eprintln!("note: DATABASE_URL unset — DB-backed handlers will report \"no context\"");
         }
-    });
+        Err(e) => eprintln!("warning: KaniranContext::from_env failed: {e}"),
+    }
 
-    let h = handlers();
     let mut totals = Totals::default();
-    let t0 = std::time::Instant::now();
+    let t0 = Instant::now();
 
     println!("=== auditing {} parquet file(s) ===\n", parquets.len());
     for (i, path) in parquets.iter().enumerate() {
-        audit_file(i + 1, parquets.len(), path, &h, &mut totals);
+        audit_file(i + 1, parquets.len(), path, &mut totals).await;
         let so_far = totals.pass + totals.fail;
         let elapsed = t0.elapsed().as_secs_f64();
         let rate = so_far as f64 / elapsed.max(1e-9);
@@ -1897,5 +2097,892 @@ fn main() {
 
     if totals.fail > 0 {
         std::process::exit(1);
+    }
+}
+
+
+// ===========================================================================
+// Async DB-backed handlers (merged from former audit_dict_fixtures.rs).
+//
+// Helpers below collide on `parse_kanji_text` / `parse_kana_text` /
+// `parse_proxy_text` / `parse_compound_text` with the lenient sync
+// versions earlier in the file. The lenient versions ignore
+// `:CONJUGATIONS` (their handlers don't read `state.conjugations`);
+// the strict versions below — used by `word-conj-data` and the
+// `get-kana-form*` audits — require it as a freshness check that
+// the fixture was extracted under the post-2026-05-08 projector
+// patch. Renamed `*_strict` to coexist.
+// ===========================================================================
+
+fn expect_first_of_one_or_two(expected: &Sexp) -> Result<&Sexp, String> {
+    let elems = list_elems(expected)?;
+    if elems.is_empty() || elems.len() > 2 {
+        return Err(format!(
+            "expected 1- or 2-element list (multi-val wrap), got {}", expected,
+        ));
+    }
+    Ok(elems[0])
+}
+
+fn parse_int(s: &Sexp) -> Result<i32, String> {
+    s.as_i64()
+        .ok_or_else(|| format!("not an int: {}", s))
+        .map(|n| n as i32)
+}
+
+
+// --- projected DAO row + compare ---------------------------------------
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DaoRow {
+    class: String,
+    /// `None` when the captured plist had `:ID NIL`. Upstream cache-path
+    /// rows carry NIL because `kana-text` / `kanji-text` declare `id`
+    /// without `:initarg :id` (`dict.lisp:87,129`); `find-word`'s
+    /// `(apply 'make-instance recipe)` therefore leaves the slot unbound
+    /// when serving from `*substring-hash*`. The Rust port always hits
+    /// the DB and so always has an integer id; comparison treats Lisp's
+    /// NIL as a wildcard against any Rust id (see `dao_row_eq`).
+    id: Option<i32>,
+    seq: i32,
+    text: String,
+    ord: i32,
+}
+
+fn parse_dao_plist(s: &Sexp) -> Result<DaoRow, String> {
+    let elems = list_elems(s)?;
+    if elems.len() % 2 != 0 {
+        return Err(format!("plist has odd element count: {}", s));
+    }
+    let mut class = None;
+    let mut id: Option<Option<i32>> = None;
+    let mut seq = None;
+    let mut text = None;
+    let mut ord = None;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("plist key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" => class = Some(
+                v.as_keyword()
+                    .ok_or_else(|| format!(":CLASS value not keyword: {}", v))?
+                    .to_string(),
+            ),
+            "ID"   => id   = Some(if v.is_nil() { None } else { Some(parse_int(v)?) }),
+            "SEQ"  => seq  = Some(parse_int(v)?),
+            "TEXT" => text = Some(
+                v.as_str()
+                    .ok_or_else(|| format!(":TEXT value not string: {}", v))?
+                    .to_string(),
+            ),
+            "ORD"  => ord  = Some(parse_int(v)?),
+            _ => {}
+        }
+    }
+    Ok(DaoRow {
+        class: class.ok_or(":CLASS missing")?,
+        id:    id.ok_or(":ID missing")?,
+        seq:   seq.ok_or(":SEQ missing")?,
+        text:  text.ok_or(":TEXT missing")?,
+        ord:   ord.ok_or(":ORD missing")?,
+    })
+}
+
+fn dao_from_kana(r: &KanaText) -> DaoRow {
+    DaoRow {
+        class: "KANA-TEXT".into(),
+        id: Some(r.id), seq: r.seq, text: r.text.clone(), ord: r.ord,
+    }
+}
+
+fn dao_from_kanji(r: &KanjiText) -> DaoRow {
+    DaoRow {
+        class: "KANJI-TEXT".into(),
+        id: Some(r.id), seq: r.seq, text: r.text.clone(), ord: r.ord,
+    }
+}
+
+fn project_word_seq(rows: &WordSeqRows) -> Vec<DaoRow> {
+    match rows {
+        WordSeqRows::Kana(v)  => v.iter().map(dao_from_kana).collect(),
+        WordSeqRows::Kanji(v) => v.iter().map(dao_from_kanji).collect(),
+    }
+}
+
+fn dao_row_eq(a: &DaoRow, e: &DaoRow) -> bool {
+    a.class == e.class && a.seq == e.seq && a.text == e.text && a.ord == e.ord
+        && match (a.id, e.id) {
+            (Some(x), Some(y)) => x == y,
+            _ => true,
+        }
+}
+
+fn compare_dao_lists(mut actual: Vec<DaoRow>, expected: &Sexp) -> Result<(), String> {
+    let exp_elems = list_elems(expected)?;
+    let mut expected_rows: Vec<DaoRow> = exp_elems.iter()
+        .map(|e| parse_dao_plist(e))
+        .collect::<Result<_, _>>()?;
+    if actual.len() != expected_rows.len() {
+        return Err(format!(
+            "row count: rust={} lisp={}\n  rust: {:?}\n  lisp: {:?}",
+            actual.len(), expected_rows.len(), actual, expected_rows,
+        ));
+    }
+    let key = |r: &DaoRow| (r.seq, r.text.clone(), r.ord, r.class.clone());
+    actual.sort_by_key(key);
+    expected_rows.sort_by_key(key);
+    for (i, (a, e)) in actual.iter().zip(&expected_rows).enumerate() {
+        if !dao_row_eq(a, e) {
+            return Err(format!("row {}: rust={:?} lisp={:?}", i, a, e));
+        }
+    }
+    Ok(())
+}
+
+
+// --- per-FQN async handlers --------------------------------------------
+
+async fn audit_find_word_seq(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.is_empty() { return Err("args empty (need at least word)".into()); }
+    let word = argv[0].as_str().ok_or("arg 0 not string")?;
+    let seqs: Vec<i32> = argv[1..].iter()
+        .map(|s| parse_int(s))
+        .collect::<Result<_, _>>()?;
+    let actual = find_word_seq(ctx, word, &seqs).await
+        .map_err(|e| format!("find_word_seq query: {}", e))?;
+    compare_dao_lists(project_word_seq(&actual), expect_one(expected)?)
+}
+
+async fn audit_find_word_conj_of(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.is_empty() { return Err("args empty (need at least word)".into()); }
+    let word = argv[0].as_str().ok_or("arg 0 not string")?;
+    let seqs: Vec<i32> = argv[1..].iter()
+        .map(|s| parse_int(s))
+        .collect::<Result<_, _>>()?;
+    let actual = find_word_conj_of(ctx, word, &seqs).await
+        .map_err(|e| format!("find_word_conj_of query: {}", e))?;
+    compare_dao_lists(project_word_seq(&actual), expect_one(expected)?)
+}
+
+fn project_find_word_rows(rows: &FindWordRows) -> Vec<DaoRow> {
+    match rows {
+        FindWordRows::Kana(v)  => v.iter().map(dao_from_kana).collect(),
+        FindWordRows::Kanji(v) => v.iter().map(dao_from_kanji).collect(),
+    }
+}
+
+async fn audit_find_word(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.is_empty() { return Err("find-word args empty".into()); }
+    let word = argv[0].as_str().ok_or("arg 0 not string")?;
+    let mut root_only = false;
+    let mut i = 1;
+    while i < argv.len() {
+        let key = argv[i].as_keyword()
+            .ok_or_else(|| format!("expected keyword at idx {}: {}", i, argv[i]))?;
+        if i + 1 >= argv.len() {
+            return Err(format!("keyword :{} missing value", key));
+        }
+        let v = argv[i + 1];
+        match key {
+            "ROOT-ONLY" => root_only = v.is_t(),
+            other => return Err(format!("find-word: unknown keyword :{}", other)),
+        }
+        i += 2;
+    }
+    let actual = find_word(ctx, word, root_only).await
+        .map_err(|e| format!("find_word query: {}", e))?;
+    compare_dao_lists(project_find_word_rows(&actual), expect_first_of_one_or_two(expected)?)
+}
+
+
+// --- find-word-as-hiragana: proxy-text rows comparison ------------------
+
+#[derive(Debug, PartialEq, Eq)]
+struct ProxyDao {
+    text: String,
+    kana: String,
+    source: DaoRow,
+}
+
+fn parse_proxy_plist(s: &Sexp) -> Result<ProxyDao, String> {
+    let elems = list_elems(s)?;
+    if elems.len() % 2 != 0 {
+        return Err(format!("proxy plist odd length: {}", s));
+    }
+    let mut text = None;
+    let mut kana = None;
+    let mut source = None;
+    let mut class_ok = false;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("proxy key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" => {
+                if v.as_keyword() != Some("PROXY-TEXT") {
+                    return Err(format!(":CLASS not :PROXY-TEXT: {}", v));
+                }
+                class_ok = true;
+            }
+            "TEXT" => text = Some(v.as_str().ok_or(":TEXT not string")?.to_string()),
+            "KANA" => kana = Some(v.as_str().ok_or(":KANA not string")?.to_string()),
+            "SOURCE" => source = Some(parse_dao_plist(v)?),
+            "CONJUGATIONS" | "HINTEDP" => {}
+            other => return Err(format!("unknown proxy key: :{}", other)),
+        }
+    }
+    if !class_ok { return Err(":CLASS missing on proxy-text".into()); }
+    Ok(ProxyDao {
+        text: text.ok_or(":TEXT missing")?,
+        kana: kana.ok_or(":KANA missing")?,
+        source: source.ok_or(":SOURCE missing")?,
+    })
+}
+
+fn dao_from_simple(s: &KaniSimpleTextDispatchEnum) -> Result<DaoRow, String> {
+    match s {
+        KaniSimpleTextDispatchEnum::Kana(k)  => Ok(dao_from_kana(k)),
+        KaniSimpleTextDispatchEnum::Kanji(k) => Ok(dao_from_kanji(k)),
+        KaniSimpleTextDispatchEnum::Proxy(_) =>
+            Err("unexpected nested proxy under find-word-as-hiragana".into()),
+    }
+}
+
+fn proxy_dao_from(p: &ProxyText) -> Result<ProxyDao, String> {
+    Ok(ProxyDao {
+        text: p.text.clone(),
+        kana: p.kana.clone(),
+        source: dao_from_simple(&p.source)?,
+    })
+}
+
+fn compare_proxy_lists(
+    mut actual: Vec<ProxyDao>, expected: &Sexp,
+) -> Result<(), String> {
+    let exp_elems = if expected.is_nil() { Vec::new() } else { list_elems(expected)? };
+    let mut expected_rows: Vec<ProxyDao> = exp_elems.iter()
+        .map(|e| parse_proxy_plist(e))
+        .collect::<Result<_, _>>()?;
+    if actual.len() != expected_rows.len() {
+        return Err(format!(
+            "row count: rust={} lisp={}\n  rust: {:?}\n  lisp: {:?}",
+            actual.len(), expected_rows.len(), actual, expected_rows,
+        ));
+    }
+    actual.sort_by_key(|r| (r.source.id, r.source.class.clone()));
+    expected_rows.sort_by_key(|r| (r.source.id, r.source.class.clone()));
+    for (i, (a, e)) in actual.iter().zip(&expected_rows).enumerate() {
+        if a != e {
+            return Err(format!("row {}: rust={:?} lisp={:?}", i, a, e));
+        }
+    }
+    Ok(())
+}
+
+async fn audit_find_word_as_hiragana(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.is_empty() { return Err("find-word-as-hiragana args empty".into()); }
+    let str_ = argv[0].as_str().ok_or("arg 0 not string")?;
+    let mut exclude: Vec<i32> = Vec::new();
+    let mut finder_present_non_nil = false;
+    let mut i = 1;
+    while i < argv.len() {
+        let key = argv[i].as_keyword()
+            .ok_or_else(|| format!("expected keyword at idx {}: {}", i, argv[i]))?;
+        if i + 1 >= argv.len() {
+            return Err(format!("keyword :{} missing value", key));
+        }
+        let v = argv[i + 1];
+        match key {
+            "EXCLUDE" => {
+                if !v.is_nil() {
+                    for e in list_elems(v)? {
+                        exclude.push(parse_int(e)?);
+                    }
+                }
+            }
+            "FINDER" => finder_present_non_nil = !v.is_nil(),
+            other => return Err(format!("find-word-as-hiragana: unknown keyword :{}", other)),
+        }
+        i += 2;
+    }
+    if finder_present_non_nil {
+        return Err(":FINDER non-nil — audit harness has no replay strategy for closures".into());
+    }
+    let actual = find_word_as_hiragana(ctx, str_, &exclude, None).await
+        .map_err(|e| format!("find_word_as_hiragana query: {}", e))?;
+    let actual_proxies: Vec<ProxyDao> = actual.iter()
+        .map(proxy_dao_from)
+        .collect::<Result<_, _>>()?;
+    compare_proxy_lists(actual_proxies, expect_one(expected)?)
+}
+
+
+// --- get-conj-data: DB-backed conj-data list audit ---------------------
+//
+// `parse_bool_or_dbnull`, `parse_int_or_nil`, `parse_conj_prop_plist`,
+// and `parse_conj_data_plist` are reused from the sync helpers earlier
+// in the file (used by the `conj-data-prop` / `make-conj-data` audits).
+
+fn conj_data_eq(a: &ConjData, b: &ConjData) -> bool {
+    let prop_eq = match (&a.prop, &b.prop) {
+        (None, None) => true,
+        (Some(p), Some(q)) => conj_prop_eq(p, q),
+        _ => false,
+    };
+    let mut a_src = a.src_map.clone();
+    let mut b_src = b.src_map.clone();
+    a_src.sort();
+    b_src.sort();
+    a.seq == b.seq && a.from == b.from && a.via == b.via
+        && prop_eq && a_src == b_src
+}
+
+fn parse_from_or_conj_ids(s: &Sexp) -> Result<FromOrConjIds, String> {
+    if s.is_nil() { return Ok(FromOrConjIds::All); }
+    if s.as_keyword() == Some("ROOT") { return Ok(FromOrConjIds::Root); }
+    if let Some(n) = s.as_i64() { return Ok(FromOrConjIds::From(n as i32)); }
+    if s.is_list() {
+        let elems = list_elems(s)?;
+        let ids: Vec<i32> = elems.iter().map(|e| parse_int(e)).collect::<Result<_, _>>()?;
+        return Ok(FromOrConjIds::ConjIds(ids));
+    }
+    Err(format!("can't classify from/conj-ids: {}", s))
+}
+
+async fn audit_get_conj_data(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.is_empty() { return Err("get-conj-data needs at least seq".into()); }
+    let seq = parse_int(argv[0])?;
+    let from_or = if argv.len() >= 2 {
+        parse_from_or_conj_ids(argv[1])?
+    } else {
+        FromOrConjIds::All
+    };
+    let mut texts_owned: Vec<String> = Vec::new();
+    if argv.len() >= 3 {
+        let t = argv[2];
+        if t.is_nil() {
+        } else if let Some(s) = t.as_str() {
+            texts_owned.push(s.to_string());
+        } else if t.is_list() {
+            for e in list_elems(t)? {
+                texts_owned.push(e.as_str().ok_or("texts list elem not string")?.to_string());
+            }
+        } else {
+            return Err(format!("texts not nil/string/list: {}", t));
+        }
+    }
+    let texts: Vec<&str> = texts_owned.iter().map(String::as_str).collect();
+    let actual = get_conj_data(ctx, seq, from_or, &texts).await
+        .map_err(|e| format!("get_conj_data query: {}", e))?;
+    let inner = expect_one(expected)?;
+    let exp_elems = if inner.is_nil() { Vec::new() } else { list_elems(inner)? };
+    let mut expected_rows: Vec<ConjData> = exp_elems.iter()
+        .map(|e| parse_conj_data_plist(e))
+        .collect::<Result<_, _>>()?;
+    if actual.len() != expected_rows.len() {
+        return Err(format!("conj-data count: rust={} lisp={}", actual.len(), expected_rows.len()));
+    }
+    let mut actual_sorted = actual;
+    let key = |c: &ConjData| (
+        c.seq.unwrap_or(0), c.from.unwrap_or(0), c.via.unwrap_or(0),
+        c.prop.as_ref().map(|p| p.id).unwrap_or(0),
+    );
+    actual_sorted.sort_by_key(key);
+    expected_rows.sort_by_key(key);
+    for (i, (a, e)) in actual_sorted.iter().zip(&expected_rows).enumerate() {
+        if !conj_data_eq(a, e) {
+            return Err(format!("row {}: rust seq={:?} from={:?} via={:?} prop_id={:?}\n         lisp seq={:?} from={:?} via={:?} prop_id={:?}",
+                i, a.seq, a.from, a.via, a.prop.as_ref().map(|p| p.id),
+                e.seq, e.from, e.via, e.prop.as_ref().map(|p| p.id)));
+        }
+    }
+    Ok(())
+}
+
+
+// --- word-conj-data: build a KaniWordDispatchEnum from the args plist --
+
+/// Decode an `:ID NIL` integer-or-NIL slot to `i32`. Captured plists
+/// emit `NIL` for synthesized rows (no DB id); audit-side word_conj_data
+/// never reads the id, so we substitute 0.
+fn parse_int_or_nil_default(s: &Sexp) -> Result<i32, String> {
+    if s.is_nil() { return Ok(0); }
+    s.as_i64().map(|n| n as i32).ok_or_else(|| format!("not int/nil: {}", s))
+}
+
+fn parse_string_or_null(s: &Sexp) -> Result<Option<String>, String> {
+    if s.as_keyword() == Some("NULL") { return Ok(None); }
+    if s.is_nil() { return Ok(None); }
+    Ok(Some(s.as_str().ok_or_else(|| format!("not string/:NULL: {}", s))?.to_string()))
+}
+
+fn parse_word_to_dispatch(s: &Sexp) -> Result<KaniWordDispatchEnum, String> {
+    let elems = list_elems(s)?;
+    if elems.is_empty() {
+        return Err("empty word plist".into());
+    }
+    let mut class: Option<&str> = None;
+    for pair in elems.chunks(2) {
+        if let Some("CLASS") = pair[0].as_keyword() {
+            class = pair[1].as_keyword();
+            break;
+        }
+    }
+    let class = class.ok_or_else(|| format!(":CLASS missing on word plist: {}", s))?;
+    match class {
+        "KANJI-TEXT" => Ok(KaniWordDispatchEnum::Kanji(parse_kanji_text_strict(&elems)?)),
+        "KANA-TEXT"  => Ok(KaniWordDispatchEnum::Kana(parse_kana_text_strict(&elems)?)),
+        "PROXY-TEXT" => Ok(KaniWordDispatchEnum::Proxy(parse_proxy_text_strict(&elems)?)),
+        "COMPOUND-TEXT" => Ok(KaniWordDispatchEnum::Compound(parse_compound_text_strict(&elems)?)),
+        "COUNTER-TEXT" | "NUMBER-TEXT" | "COUNTER-TSU" | "COUNTER-HIFUMI"
+        | "COUNTER-DAYS-KUN" | "COUNTER-DAYS-ON" | "COUNTER-MONTHS"
+        | "COUNTER-PEOPLE" | "COUNTER-AGE" | "COUNTER-WARI" | "COUNTER-HALFHOUR"
+            => Ok(KaniWordDispatchEnum::Counter(stub_counter_simple())),
+        other => Err(format!("unknown :CLASS for word: {}", other)),
+    }
+}
+
+struct SimpleTextSlots {
+    seq: i32,
+    text: String,
+    conjugations: Option<WordConjugations>,
+}
+
+fn parse_simple_text_slots(elems: &[&Sexp]) -> Result<SimpleTextSlots, String> {
+    let mut seq = None;
+    let mut text = None;
+    let mut conjugations = None;
+    let mut conjugations_seen = false;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("simple-text key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" | "ID" | "ORD" | "COMMON" | "COMMON-TAGS"
+            | "CONJUGATE-P" | "NOKANJI" | "BEST-KANJI" | "BEST-KANA"
+            | "HINTEDP" => {}
+            "SEQ"  => seq = Some(parse_int(v)?),
+            "TEXT" => text = Some(v.as_str().ok_or(":TEXT not string")?.to_string()),
+            "CONJUGATIONS" => {
+                conjugations = parse_conjugations_audit(v)?;
+                conjugations_seen = true;
+            }
+            other => return Err(format!("unknown simple-text key: :{}", other)),
+        }
+    }
+    if !conjugations_seen {
+        return Err("simple-text plist missing :CONJUGATIONS — re-extract under projector patch".into());
+    }
+    Ok(SimpleTextSlots {
+        seq: seq.ok_or(":SEQ missing")?,
+        text: text.ok_or(":TEXT missing")?,
+        conjugations,
+    })
+}
+
+fn parse_conjugations_audit(s: &Sexp) -> Result<Option<WordConjugations>, String> {
+    if s.is_nil() { return Ok(None); }
+    if s.as_keyword() == Some("ROOT") { return Ok(Some(WordConjugations::Root)); }
+    if s.is_list() {
+        let elems = list_elems(s)?;
+        let ids: Vec<i32> = elems.iter().map(|e| parse_int(e)).collect::<Result<_, _>>()?;
+        return Ok(Some(WordConjugations::Ids(ids)));
+    }
+    Err(format!(":CONJUGATIONS: expected NIL/:ROOT/(int...), got {}", s))
+}
+
+fn parse_kanji_text_strict(elems: &[&Sexp]) -> Result<KanjiText, String> {
+    let s = parse_simple_text_slots(elems)?;
+    Ok(KanjiText {
+        id: 0, seq: s.seq, text: s.text, ord: 0,
+        common: None, common_tags: String::new(), conjugate_p: false,
+        nokanji: false, best_kana: None,
+        state: SimpleText { conjugations: s.conjugations, hintedp: false },
+    })
+}
+
+fn parse_kana_text_strict(elems: &[&Sexp]) -> Result<KanaText, String> {
+    let s = parse_simple_text_slots(elems)?;
+    Ok(KanaText {
+        id: 0, seq: s.seq, text: s.text, ord: 0,
+        common: None, common_tags: String::new(), conjugate_p: false,
+        nokanji: false, best_kanji: None,
+        state: SimpleText { conjugations: s.conjugations, hintedp: false },
+    })
+}
+
+fn parse_proxy_text_strict(elems: &[&Sexp]) -> Result<ProxyText, String> {
+    let mut text = None;
+    let mut kana = None;
+    let mut source = None;
+    let mut conjugations = None;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("proxy-text key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" | "HINTEDP" => {}
+            "TEXT" => text = Some(v.as_str().ok_or(":TEXT not string")?.to_string()),
+            "KANA" => kana = Some(v.as_str().ok_or(":KANA not string")?.to_string()),
+            "CONJUGATIONS" => conjugations = parse_conjugations_audit(v)?,
+            "SOURCE" => source = Some(parse_simple_text_dispatch_strict(v)?),
+            other => return Err(format!("unknown proxy-text key: :{}", other)),
+        }
+    }
+    Ok(ProxyText {
+        text: text.ok_or(":TEXT missing on proxy-text")?,
+        kana: kana.ok_or(":KANA missing on proxy-text")?,
+        source: Box::new(source.ok_or(":SOURCE missing on proxy-text")?),
+        state: SimpleText { conjugations, hintedp: false },
+    })
+}
+
+fn parse_simple_text_dispatch_strict(s: &Sexp) -> Result<KaniSimpleTextDispatchEnum, String> {
+    let elems = list_elems(s)?;
+    let mut class: Option<&str> = None;
+    for pair in elems.chunks(2) {
+        if let Some("CLASS") = pair[0].as_keyword() {
+            class = pair[1].as_keyword();
+            break;
+        }
+    }
+    match class {
+        Some("KANJI-TEXT") => Ok(KaniSimpleTextDispatchEnum::Kanji(parse_kanji_text_strict(&elems)?)),
+        Some("KANA-TEXT")  => Ok(KaniSimpleTextDispatchEnum::Kana(parse_kana_text_strict(&elems)?)),
+        Some("PROXY-TEXT") => Ok(KaniSimpleTextDispatchEnum::Proxy(parse_proxy_text_strict(&elems)?)),
+        Some(other) => Err(format!("proxy :SOURCE not simple-text: :{}", other)),
+        None => Err(format!("proxy :SOURCE missing :CLASS: {}", s)),
+    }
+}
+
+fn parse_compound_text_strict(elems: &[&Sexp]) -> Result<CompoundText, String> {
+    let mut text = None;
+    let mut kana = None;
+    let mut primary: Option<KaniWordDispatchEnum> = None;
+    let mut words: Option<Vec<KaniWordDispatchEnum>> = None;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("compound-text key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" | "SCORE-BASE" | "SCORE-MOD" => {}
+            "TEXT" => text = Some(v.as_str().ok_or(":TEXT not string")?.to_string()),
+            "KANA" => kana = Some(v.as_str().ok_or(":KANA not string")?.to_string()),
+            "PRIMARY" => primary = Some(parse_word_to_dispatch(v)?),
+            "WORDS" => {
+                let ws: Vec<KaniWordDispatchEnum> = list_elems(v)?
+                    .iter()
+                    .map(|e| parse_word_to_dispatch(e))
+                    .collect::<Result<_, _>>()?;
+                words = Some(ws);
+            }
+            other => return Err(format!("unknown compound-text key: :{}", other)),
+        }
+    }
+    let words = words.ok_or(":WORDS missing on compound-text")?;
+    if words.is_empty() {
+        return Err(":WORDS empty on compound-text".into());
+    }
+    let primary = primary.unwrap_or_else(|| words[0].clone());
+    Ok(CompoundText {
+        text: text.ok_or(":TEXT missing on compound-text")?,
+        kana: kana.ok_or(":KANA missing on compound-text")?,
+        primary: Box::new(primary),
+        words,
+        score_base: None,
+        score_mod: ScoreMod::Single(0),
+    })
+}
+
+/// Word-dispatch counter stub for handlers that don't read counter
+/// slots (`word-conj-data` returns nil for the whole counter family).
+/// Distinct from the earlier `stub_counter(digit_opts, foreign)`
+/// which the `counter-join` audit uses to populate the slots that
+/// handler actually reads.
+fn stub_counter_simple() -> Counter {
+    Counter::Base(CounterText {
+        text: String::new(),
+        kana: String::new(),
+        number_text: String::new(),
+        number: 0,
+        source: None,
+        ordinalp: false,
+        suffix: None,
+        accepts_suffixes: Vec::new(),
+        suffix_descriptions: Vec::new(),
+        digit_opts: Vec::new(),
+        common: Common::Inherit,
+        allowed: Vec::new(),
+        foreign: false,
+    })
+}
+
+#[allow(dead_code)]
+fn _audit_word_conj_data_helpers_keep(s: &Sexp) -> Result<(i32, Option<String>), String> {
+    Ok((parse_int_or_nil_default(s)?, parse_string_or_null(s)?))
+}
+
+async fn audit_word_conj_data(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 1 {
+        return Err(format!("word-conj-data wants exactly 1 arg, got {}", argv.len()));
+    }
+    let word = parse_word_to_dispatch(argv[0])?;
+    let actual = word_conj_data(ctx, &word).await
+        .map_err(|e| format!("word_conj_data query: {}", e))?;
+    let inner = expect_one(expected)?;
+    let exp_elems = if inner.is_nil() { Vec::new() } else { list_elems(inner)? };
+    let mut expected_rows: Vec<ConjData> = exp_elems.iter()
+        .map(|e| parse_conj_data_plist(e))
+        .collect::<Result<_, _>>()?;
+    if actual.len() != expected_rows.len() {
+        return Err(format!("conj-data count: rust={} lisp={}", actual.len(), expected_rows.len()));
+    }
+    let mut actual_sorted = actual;
+    let key = |c: &ConjData| (
+        c.seq.unwrap_or(0), c.from.unwrap_or(0), c.via.unwrap_or(0),
+        c.prop.as_ref().map(|p| p.id).unwrap_or(0),
+    );
+    actual_sorted.sort_by_key(key);
+    expected_rows.sort_by_key(key);
+    for (i, (a, e)) in actual_sorted.iter().zip(&expected_rows).enumerate() {
+        if !conj_data_eq(a, e) {
+            return Err(format!("row {}: rust seq={:?} from={:?} via={:?} prop_id={:?}\n         lisp seq={:?} from={:?} via={:?} prop_id={:?}",
+                i, a.seq, a.from, a.via, a.prop.as_ref().map(|p| p.id),
+                e.seq, e.from, e.via, e.prop.as_ref().map(|p| p.id)));
+        }
+    }
+    Ok(())
+}
+
+async fn audit_get_kanji_kana_old(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 1 {
+        return Err(format!("get-kanji-kana-old wants 1 arg, got {}", argv.len()));
+    }
+    let elems = list_elems(argv[0])?;
+    let mut class: Option<&str> = None;
+    for pair in elems.chunks(2) {
+        if let Some("CLASS") = pair[0].as_keyword() {
+            class = pair[1].as_keyword();
+            break;
+        }
+    }
+    if class != Some("KANJI-TEXT") {
+        return Err(format!("get-kanji-kana-old expects KANJI-TEXT, got :{:?}", class));
+    }
+    let kt = parse_kanji_text_strict(&elems)?;
+    let actual = get_kanji_kana_old(ctx, &kt).await
+        .map_err(|e| format!("get_kanji_kana_old query: {}", e))?;
+    let exp_first = expect_one(expected)?;
+    let exp = if exp_first.is_nil() {
+        None
+    } else {
+        Some(exp_first.as_str().ok_or("expected[0] not string/nil")?.to_string())
+    };
+    if actual == exp { Ok(()) } else {
+        Err(format!("\n  rust: {:?}\n  lisp: {:?}", actual, exp))
+    }
+}
+
+
+// --- get-kana-forms / get-kana-forms* DAO + conjugations comparison ----
+
+#[derive(Debug, PartialEq, Eq)]
+struct KanaTextWithConj {
+    id: i32,
+    seq: i32,
+    text: String,
+    ord: i32,
+    conjugations: Option<WordConjCmp>,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+enum WordConjCmp {
+    Root,
+    Ids(Vec<i32>),
+}
+
+fn parse_conjugations(s: &Sexp) -> Result<Option<WordConjCmp>, String> {
+    if s.is_nil() { return Ok(None); }
+    if s.as_keyword() == Some("ROOT") { return Ok(Some(WordConjCmp::Root)); }
+    if s.is_list() {
+        let elems = list_elems(s)?;
+        let ids: Vec<i32> = elems.iter().map(|e| parse_int(e)).collect::<Result<_, _>>()?;
+        return Ok(Some(WordConjCmp::Ids(ids)));
+    }
+    Err(format!("conjugations: expected NIL/:ROOT/(int...), got {}", s))
+}
+
+fn parse_kana_text_plist(s: &Sexp) -> Result<KanaTextWithConj, String> {
+    let elems = list_elems(s)?;
+    if elems.len() % 2 != 0 {
+        return Err(format!("kana-text plist odd length: {}", s));
+    }
+    let mut id = None;
+    let mut seq = None;
+    let mut text = None;
+    let mut ord = None;
+    let mut conjugations = None;
+    let mut conjugations_seen = false;
+    let mut class_ok = false;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("kana-text key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" => {
+                if v.as_keyword() != Some("KANA-TEXT") {
+                    return Err(format!(":CLASS not :KANA-TEXT: {}", v));
+                }
+                class_ok = true;
+            }
+            "ID"   => id   = Some(parse_int(v)?),
+            "SEQ"  => seq  = Some(parse_int(v)?),
+            "TEXT" => text = Some(v.as_str().ok_or(":TEXT not string")?.to_string()),
+            "ORD"  => ord  = Some(parse_int(v)?),
+            "CONJUGATIONS" => {
+                conjugations = parse_conjugations(v)?;
+                conjugations_seen = true;
+            }
+            "COMMON" | "COMMON-TAGS" | "CONJUGATE-P" | "NOKANJI"
+                | "BEST-KANJI" | "HINTEDP" => {}
+            other => return Err(format!("unknown kana-text key: :{}", other)),
+        }
+    }
+    if !class_ok { return Err(":CLASS missing on kana-text".into()); }
+    if !conjugations_seen {
+        return Err("captured kana-text missing :CONJUGATIONS — re-extract under projector patch".into());
+    }
+    Ok(KanaTextWithConj {
+        id: id.ok_or(":ID missing")?,
+        seq: seq.ok_or(":SEQ missing")?,
+        text: text.ok_or(":TEXT missing")?,
+        ord: ord.ok_or(":ORD missing")?,
+        conjugations,
+    })
+}
+
+fn project_kana_text_with_conj(rows: &[KanaText]) -> Vec<KanaTextWithConj> {
+    rows.iter()
+        .map(|r| KanaTextWithConj {
+            id: r.id,
+            seq: r.seq,
+            text: r.text.clone(),
+            ord: r.ord,
+            conjugations: r.state.conjugations.as_ref().map(|c| match c {
+                WordConjugations::Root => WordConjCmp::Root,
+                WordConjugations::Ids(v) => WordConjCmp::Ids(v.clone()),
+            }),
+        })
+        .collect()
+}
+
+fn compare_kana_text_with_conj(
+    mut actual: Vec<KanaTextWithConj>, expected: &Sexp,
+) -> Result<(), String> {
+    let exp_elems = if expected.is_nil() { Vec::new() } else { list_elems(expected)? };
+    let mut expected_rows: Vec<KanaTextWithConj> = exp_elems.iter()
+        .map(|e| parse_kana_text_plist(e))
+        .collect::<Result<_, _>>()?;
+    if actual.len() != expected_rows.len() {
+        return Err(format!(
+            "row count: rust={} lisp={}\n  rust ids: {:?}\n  lisp ids: {:?}",
+            actual.len(), expected_rows.len(),
+            actual.iter().map(|r| r.id).collect::<Vec<_>>(),
+            expected_rows.iter().map(|r| r.id).collect::<Vec<_>>(),
+        ));
+    }
+    actual.sort_by_key(|r| r.id);
+    expected_rows.sort_by_key(|r| r.id);
+    for (i, (a, e)) in actual.iter().zip(&expected_rows).enumerate() {
+        if a.id != e.id || a.seq != e.seq || a.text != e.text || a.ord != e.ord {
+            return Err(format!("row {}: rust={:?} lisp={:?}", i, a, e));
+        }
+        let conj_eq = match (&a.conjugations, &e.conjugations) {
+            (None, None) => true,
+            (Some(WordConjCmp::Root), Some(WordConjCmp::Root)) => true,
+            (Some(WordConjCmp::Ids(av)), Some(WordConjCmp::Ids(ev))) => {
+                let mut a_sorted = av.clone();
+                let mut e_sorted = ev.clone();
+                a_sorted.sort();
+                e_sorted.sort();
+                a_sorted == e_sorted
+            }
+            _ => false,
+        };
+        if !conj_eq {
+            return Err(format!(
+                "row {} (id={}) conjugations: rust={:?} lisp={:?}",
+                i, a.id, a.conjugations, e.conjugations,
+            ));
+        }
+    }
+    Ok(())
+}
+
+async fn audit_get_kana_forms_star(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 1 { return Err(format!("get-kana-forms* wants 1 arg, got {}", argv.len())); }
+    let seq = parse_int(argv[0])?;
+    let actual = get_kana_forms_star_(ctx, seq).await
+        .map_err(|e| format!("get_kana_forms_star query: {}", e))?;
+    compare_kana_text_with_conj(project_kana_text_with_conj(&actual), expect_one(expected)?)
+}
+
+async fn audit_get_kana_forms(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 1 { return Err(format!("get-kana-forms wants 1 arg, got {}", argv.len())); }
+    let seq = parse_int(argv[0])?;
+    let actual = get_kana_forms(ctx, seq).await
+        .map_err(|e| format!("get_kana_forms query: {}", e))?;
+    compare_kana_text_with_conj(project_kana_text_with_conj(&actual), expect_one(expected)?)
+}
+
+async fn audit_get_kana_form(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() < 2 { return Err("args want at least (seq text)".into()); }
+    let seq = parse_int(argv[0])?;
+    let text = argv[1].as_str().ok_or("arg 1 not string")?;
+    let actual = get_kana_form(ctx, seq, text, None).await
+        .map_err(|e| format!("get_kana_form query: {}", e))?;
+    let inner = expect_one(expected)?;
+    let actual_row = actual.as_ref().map(dao_from_kana);
+    match (actual_row, inner.is_nil()) {
+        (None, true) => Ok(()),
+        (Some(a), false) => {
+            let e = parse_dao_plist(inner)?;
+            if a == e { Ok(()) } else {
+                Err(format!("row: rust={:?} lisp={:?}", a, e))
+            }
+        }
+        (Some(a), true)  => Err(format!("rust returned row, lisp returned nil\n  rust: {:?}", a)),
+        (None,    false) => Err(format!("rust returned nil, lisp returned a row\n  lisp: {}", inner)),
     }
 }
