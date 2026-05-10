@@ -769,7 +769,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  697. `ichiran/dict:defsuffix`  — macro, dict-grammar.lisp:342
  698. `ichiran/dict:def-abbr-suffix`  — macro, dict-grammar.lisp:557
  699. `ichiran/dict:defsplit`  — macro, dict-split.lisp:5  *[skip — DSL definer; expansion only registers a per-seq fn in *split-map*. The Rust transliteration collapses *split-map* into the static split_map_dispatch match in _star_split_map_star_, and each registered fn is its own sibling split_*.rs module — nothing left to translate.]*
- 700. `ichiran/dict:def-simple-split`  — macro, dict-split.lisp:11
+ 700. `ichiran/dict:def-simple-split`  — macro, dict-split.lisp:11  *[skip — DSL definer; expansion encodes the prog* loop / per-part dispatch / offset-and-score bookkeeping that each callsite needs, but has no Rust counterpart on its own — every callsite is hand-translated as its own split_*.rs (per CONVENTIONS §4.6). 174 of those expansions land in *split-map*; the remaining 18 land in *segsplit-map* (waves 177-194).]*
  701. `ichiran/dict:def-de-split`  — macro, dict-split.lisp:81
  702. `ichiran/dict:def-do-split`  — macro, dict-split.lisp:181
  703. `ichiran/dict:defhint`  — macro, dict-split.lisp:892
