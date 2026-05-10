@@ -6,9 +6,14 @@
 //! subsequent waves.
 
 pub mod _star_reading_cache_star_;
+pub mod get_normal_readings;
 pub mod get_reading_alternatives;
 pub mod get_readings_cache;
+pub mod kani_kanji_reading;
 pub mod kanji_dao;
+pub mod make_rmap;
+pub mod match_readings;
+pub mod match_readings_star_;
 pub mod meaning_dao;
 pub mod okurigana_dao;
 pub mod reading_dao;

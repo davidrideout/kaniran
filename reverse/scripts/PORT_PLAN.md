@@ -748,10 +748,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  678. `ichiran/kanji:*reading-cache*`  — global, kanji.lisp:199  *[ported]*
  679. `ichiran/kanji:kanji`  — dao, kanji.lisp:10  *[ported]*
  680. `ichiran/kanji:get-readings-cache`  — fn, kanji.lisp:199  *[ported]*
- 681. `ichiran/kanji:get-normal-readings`  — fn, kanji.lisp:231
- 682. `ichiran/kanji:make-rmap`  — fn, kanji.lisp:273
- 683. `ichiran/kanji:match-readings*`  — fn, kanji.lisp:241
- 684. `ichiran/kanji:match-readings`  — fn, kanji.lisp:292
+ 681. `ichiran/kanji:get-normal-readings`  — fn, kanji.lisp:231  *[ported]*
+ 682. `ichiran/kanji:make-rmap`  — fn, kanji.lisp:273  *[ported]*
+ 683. `ichiran/kanji:match-readings*`  — fn, kanji.lisp:241  *[ported]*
+ 684. `ichiran/kanji:match-readings`  — fn, kanji.lisp:292  *[ported]*
  685. `ichiran/dict:check-easy-hints`  — fn, dict-split.lisp:950
  686. `ichiran/dict:common-tags`  — gf, dict.lisp:0
  687. `ichiran/dict:conj-prop-json`  — fn, dict.lisp:283
