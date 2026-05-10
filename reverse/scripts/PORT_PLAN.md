@@ -819,12 +819,12 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  747. `ichiran/dict:word-info-from-text`  — fn, dict.lisp:1382
  748. `ichiran/dict:word-info-rec-find`  — fn, dict.lisp:1409
  749. `ichiran/dict:word-readings`  — fn, dict.lisp:536
- 750. `ichiran/kanji:*kanjidic-path*`  — global, settings.lisp:16
- 751. `ichiran/kanji:calculate-perc`  — fn, kanji.lisp:349
+ 750. `ichiran/kanji:*kanjidic-path*`  — global, settings.lisp:16  *[ported]*
+ 751. `ichiran/kanji:calculate-perc`  — fn, kanji.lisp:349  *[ported]*
  752. `ichiran/kanji:first-node-text`  — fn, kanji.lisp:106
- 753. `ichiran/kanji:get-original-reading`  — fn, kanji.lisp:308
- 754. `ichiran/kanji:get-reading-stats`  — fn, kanji.lisp:399
- 755. `ichiran/kanji:get-readings`  — fn, kanji.lisp:211
+ 753. `ichiran/kanji:get-original-reading`  — fn, kanji.lisp:308  *[ported]*
+ 754. `ichiran/kanji:get-reading-stats`  — fn, kanji.lisp:399  *[ported]*
+ 755. `ichiran/kanji:get-readings`  — fn, kanji.lisp:211  *[ported]*
  756. `ichiran/kanji:meaning`  — dao, kanji.lisp:83  *[ported]*
  757. `ichiran/kanji:okurigana`  — dao, kanji.lisp:67  *[ported]*
  758. `ichiran/kanji:id`  — gf, kanji.lisp:0

@@ -12,9 +12,9 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 71 fn/gf
+- Checked: 74 fn/gf
 - Macros (file-existence only): 1
-- Divergences: 9
+- Divergences: 10
 
 ## Divergences
 
@@ -52,6 +52,11 @@ captured Lisp lambda list. New entries should be either:
 
 - file: `kaniran-core/src/dict/init_suffixes_thread.rs`
 - drift: no `pub [async] fn init_suffixes_thread` (found: ['build_suffix_caches'])
+
+### `ichiran/kanji:match-readings*`
+
+- file: `kaniran-core/src/kanji/match_readings_star_.rs`
+- drift: no `pub [async] fn match_readings_star_` (found: ['match_readings_star'])
 
 ### `ichiran/numbers:group-to-kana`
 
