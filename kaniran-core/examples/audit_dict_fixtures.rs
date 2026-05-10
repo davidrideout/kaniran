@@ -39,11 +39,14 @@ use kaniran_core::dict::get_conj_data::{get_conj_data, FromOrConjIds};
 use kaniran_core::dict::get_kana_form::get_kana_form;
 use kaniran_core::dict::get_kana_forms::get_kana_forms;
 use kaniran_core::dict::get_kana_forms_star_::get_kana_forms_star_;
+use kaniran_core::dict::compound_text_class::{CompoundText, ScoreMod};
+use kaniran_core::dict::counter_text_class::{Common, Counter, CounterText};
 use kaniran_core::dict::kana_text_dao::KanaText;
-use kaniran_core::dict::kani_word::KaniSimpleTextDispatchEnum;
+use kaniran_core::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use kaniran_core::dict::kanji_text_dao::KanjiText;
 use kaniran_core::dict::proxy_text_class::ProxyText;
-use kaniran_core::dict::simple_text_class::WordConjugations;
+use kaniran_core::dict::simple_text_class::{SimpleText, WordConjugations};
+use kaniran_core::dict::word_conj_data::word_conj_data;
 use kaniran_core::kani::sexp::{self, Sexp};
 
 const MISMATCH_PRINT_LIMIT: usize = 5;
@@ -617,6 +620,284 @@ async fn audit_get_conj_data(
 }
 
 
+// --- word-conj-data: build a KaniWordDispatchEnum from the args plist ---
+
+/// Decode an `:ID NIL` integer-or-NIL slot to `i32`. Captured plists
+/// emit `NIL` for synthesized rows (no DB id); audit-side word_conj_data
+/// never reads the id, so we substitute 0.
+fn parse_int_or_nil_default(s: &Sexp) -> Result<i32, String> {
+    if s.is_nil() { return Ok(0); }
+    s.as_i64().map(|n| n as i32).ok_or_else(|| format!("not int/nil: {}", s))
+}
+
+/// Decode a string-or-`:NULL` slot as an Option<String>. Captured plists
+/// use `:NULL` for postgres NULL columns (best-kanji / best-kana).
+fn parse_string_or_null(s: &Sexp) -> Result<Option<String>, String> {
+    if s.as_keyword() == Some("NULL") { return Ok(None); }
+    if s.is_nil() { return Ok(None); }
+    Ok(Some(s.as_str().ok_or_else(|| format!("not string/:NULL: {}", s))?.to_string()))
+}
+
+/// Reconstruct a [`KaniWordDispatchEnum`] from the projector's plist.
+/// Recurses into `:SOURCE` for proxies and `:WORDS` for compounds.
+/// Counter-family classes resolve to a stub [`Counter::Base`] — the
+/// counter-text method of `word-conj-data` returns nil regardless of
+/// the subclass, so the inner CounterText fields are filled with
+/// placeholder defaults (the dispatcher never reads them).
+fn parse_word_to_dispatch(s: &Sexp) -> Result<KaniWordDispatchEnum, String> {
+    let elems = list_elems(s)?;
+    if elems.is_empty() {
+        return Err("empty word plist".into());
+    }
+    let mut class: Option<&str> = None;
+    for pair in elems.chunks(2) {
+        if let Some("CLASS") = pair[0].as_keyword() {
+            class = pair[1].as_keyword();
+            break;
+        }
+    }
+    let class = class.ok_or_else(|| format!(":CLASS missing on word plist: {}", s))?;
+    match class {
+        "KANJI-TEXT" => Ok(KaniWordDispatchEnum::Kanji(parse_kanji_text(&elems)?)),
+        "KANA-TEXT"  => Ok(KaniWordDispatchEnum::Kana(parse_kana_text(&elems)?)),
+        "PROXY-TEXT" => Ok(KaniWordDispatchEnum::Proxy(parse_proxy_text(&elems)?)),
+        "COMPOUND-TEXT" => Ok(KaniWordDispatchEnum::Compound(parse_compound_text(&elems)?)),
+        // counter-text family (counter-text + every subclass) — all
+        // dispatch to the same `(defmethod word-conj-data ((obj counter-text)) nil)`
+        "COUNTER-TEXT" | "NUMBER-TEXT" | "COUNTER-TSU" | "COUNTER-HIFUMI"
+        | "COUNTER-DAYS-KUN" | "COUNTER-DAYS-ON" | "COUNTER-MONTHS"
+        | "COUNTER-PEOPLE" | "COUNTER-AGE" | "COUNTER-WARI" | "COUNTER-HALFHOUR"
+            => Ok(KaniWordDispatchEnum::Counter(stub_counter())),
+        other => Err(format!("unknown :CLASS for word: {}", other)),
+    }
+}
+
+/// Helper for the simple-text family. Reads the four slots word-conj-data
+/// actually consumes via the simple-text method dispatch
+/// (seq, text, conjugations) — every other slot is filled with a default
+/// since word_conj_data never reads it.
+struct SimpleTextSlots {
+    seq: i32,
+    text: String,
+    conjugations: Option<WordConjugations>,
+}
+
+fn parse_simple_text_slots(elems: &[&Sexp]) -> Result<SimpleTextSlots, String> {
+    let mut seq = None;
+    let mut text = None;
+    let mut conjugations = None;
+    let mut conjugations_seen = false;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("simple-text key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" | "ID" | "ORD" | "COMMON" | "COMMON-TAGS"
+            | "CONJUGATE-P" | "NOKANJI" | "BEST-KANJI" | "BEST-KANA"
+            | "HINTEDP" => {} // not load-bearing for word_conj_data
+            "SEQ"  => seq = Some(parse_int(v)?),
+            "TEXT" => text = Some(v.as_str().ok_or(":TEXT not string")?.to_string()),
+            "CONJUGATIONS" => {
+                conjugations = parse_conjugations_audit(v)?;
+                conjugations_seen = true;
+            }
+            other => return Err(format!("unknown simple-text key: :{}", other)),
+        }
+    }
+    if !conjugations_seen {
+        return Err("simple-text plist missing :CONJUGATIONS — re-extract under projector patch".into());
+    }
+    Ok(SimpleTextSlots {
+        seq: seq.ok_or(":SEQ missing")?,
+        text: text.ok_or(":TEXT missing")?,
+        conjugations,
+    })
+}
+
+/// Audit-local `:CONJUGATIONS` slot decoder — handles NIL, `:ROOT`, and
+/// `(int ...)`. Mirrors the value space of [`WordConjugations`].
+fn parse_conjugations_audit(s: &Sexp) -> Result<Option<WordConjugations>, String> {
+    if s.is_nil() { return Ok(None); }
+    if s.as_keyword() == Some("ROOT") { return Ok(Some(WordConjugations::Root)); }
+    if s.is_list() {
+        let elems = list_elems(s)?;
+        let ids: Vec<i32> = elems.iter().map(|e| parse_int(e)).collect::<Result<_, _>>()?;
+        return Ok(Some(WordConjugations::Ids(ids)));
+    }
+    Err(format!(":CONJUGATIONS: expected NIL/:ROOT/(int...), got {}", s))
+}
+
+fn parse_kanji_text(elems: &[&Sexp]) -> Result<KanjiText, String> {
+    let s = parse_simple_text_slots(elems)?;
+    Ok(KanjiText {
+        id: 0, seq: s.seq, text: s.text, ord: 0,
+        common: None, common_tags: String::new(), conjugate_p: false,
+        nokanji: false, best_kana: None,
+        state: SimpleText { conjugations: s.conjugations, hintedp: false },
+    })
+}
+
+fn parse_kana_text(elems: &[&Sexp]) -> Result<KanaText, String> {
+    let s = parse_simple_text_slots(elems)?;
+    Ok(KanaText {
+        id: 0, seq: s.seq, text: s.text, ord: 0,
+        common: None, common_tags: String::new(), conjugate_p: false,
+        nokanji: false, best_kanji: None,
+        state: SimpleText { conjugations: s.conjugations, hintedp: false },
+    })
+}
+
+fn parse_proxy_text(elems: &[&Sexp]) -> Result<ProxyText, String> {
+    let mut text = None;
+    let mut kana = None;
+    let mut source = None;
+    let mut conjugations = None;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("proxy-text key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" | "HINTEDP" => {}
+            "TEXT" => text = Some(v.as_str().ok_or(":TEXT not string")?.to_string()),
+            "KANA" => kana = Some(v.as_str().ok_or(":KANA not string")?.to_string()),
+            "CONJUGATIONS" => conjugations = parse_conjugations_audit(v)?,
+            "SOURCE" => source = Some(parse_simple_text_dispatch(v)?),
+            other => return Err(format!("unknown proxy-text key: :{}", other)),
+        }
+    }
+    Ok(ProxyText {
+        text: text.ok_or(":TEXT missing on proxy-text")?,
+        kana: kana.ok_or(":KANA missing on proxy-text")?,
+        source: Box::new(source.ok_or(":SOURCE missing on proxy-text")?),
+        state: SimpleText { conjugations, hintedp: false },
+    })
+}
+
+/// Build a [`KaniSimpleTextDispatchEnum`] for a proxy's `:SOURCE` slot.
+/// The source is itself one of {kanji-text, kana-text, proxy-text}.
+fn parse_simple_text_dispatch(s: &Sexp) -> Result<KaniSimpleTextDispatchEnum, String> {
+    let elems = list_elems(s)?;
+    let mut class: Option<&str> = None;
+    for pair in elems.chunks(2) {
+        if let Some("CLASS") = pair[0].as_keyword() {
+            class = pair[1].as_keyword();
+            break;
+        }
+    }
+    match class {
+        Some("KANJI-TEXT") => Ok(KaniSimpleTextDispatchEnum::Kanji(parse_kanji_text(&elems)?)),
+        Some("KANA-TEXT")  => Ok(KaniSimpleTextDispatchEnum::Kana(parse_kana_text(&elems)?)),
+        Some("PROXY-TEXT") => Ok(KaniSimpleTextDispatchEnum::Proxy(parse_proxy_text(&elems)?)),
+        Some(other) => Err(format!("proxy :SOURCE not simple-text: :{}", other)),
+        None => Err(format!("proxy :SOURCE missing :CLASS: {}", s)),
+    }
+}
+
+fn parse_compound_text(elems: &[&Sexp]) -> Result<CompoundText, String> {
+    let mut text = None;
+    let mut kana = None;
+    let mut primary: Option<KaniWordDispatchEnum> = None;
+    let mut words: Option<Vec<KaniWordDispatchEnum>> = None;
+    for pair in elems.chunks(2) {
+        let k = pair[0].as_keyword()
+            .ok_or_else(|| format!("compound-text key not keyword: {}", pair[0]))?;
+        let v = pair[1];
+        match k {
+            "CLASS" | "SCORE-BASE" | "SCORE-MOD" => {}
+            "TEXT" => text = Some(v.as_str().ok_or(":TEXT not string")?.to_string()),
+            "KANA" => kana = Some(v.as_str().ok_or(":KANA not string")?.to_string()),
+            "PRIMARY" => primary = Some(parse_word_to_dispatch(v)?),
+            "WORDS" => {
+                let ws: Vec<KaniWordDispatchEnum> = list_elems(v)?
+                    .iter()
+                    .map(|e| parse_word_to_dispatch(e))
+                    .collect::<Result<_, _>>()?;
+                words = Some(ws);
+            }
+            other => return Err(format!("unknown compound-text key: :{}", other)),
+        }
+    }
+    let words = words.ok_or(":WORDS missing on compound-text")?;
+    if words.is_empty() {
+        return Err(":WORDS empty on compound-text".into());
+    }
+    let primary = primary.unwrap_or_else(|| words[0].clone());
+    Ok(CompoundText {
+        text: text.ok_or(":TEXT missing on compound-text")?,
+        kana: kana.ok_or(":KANA missing on compound-text")?,
+        primary: Box::new(primary),
+        words,
+        score_base: None,
+        score_mod: ScoreMod::Single(0),
+    })
+}
+
+/// Build a stub [`Counter`] for the counter-text family. The
+/// counter-text method of `word-conj-data` returns nil regardless of
+/// any slot, so every field can be a placeholder.
+fn stub_counter() -> Counter {
+    Counter::Base(CounterText {
+        text: String::new(),
+        kana: String::new(),
+        number_text: String::new(),
+        number: 0,
+        source: None,
+        ordinalp: false,
+        suffix: None,
+        accepts_suffixes: Vec::new(),
+        suffix_descriptions: Vec::new(),
+        digit_opts: Vec::new(),
+        common: Common::Inherit,
+        allowed: Vec::new(),
+        foreign: false,
+    })
+}
+
+// keep `parse_int_or_nil_default` and `parse_string_or_null` available
+// as future expansion points for richer plist coverage.
+#[allow(dead_code)]
+fn _audit_word_conj_data_helpers_keep(s: &Sexp) -> Result<(i32, Option<String>), String> {
+    Ok((parse_int_or_nil_default(s)?, parse_string_or_null(s)?))
+}
+
+async fn audit_word_conj_data(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let argv = list_elems(args)?;
+    if argv.len() != 1 {
+        return Err(format!("word-conj-data wants exactly 1 arg, got {}", argv.len()));
+    }
+    let word = parse_word_to_dispatch(argv[0])?;
+
+    let actual = word_conj_data(ctx, &word).await
+        .map_err(|e| format!("word_conj_data query: {}", e))?;
+
+    let inner = expect_one(expected)?;
+    let exp_elems = if inner.is_nil() { Vec::new() } else { list_elems(inner)? };
+    let mut expected_rows: Vec<ConjData> = exp_elems.iter()
+        .map(|e| parse_conj_data_plist(e))
+        .collect::<Result<_, _>>()?;
+    if actual.len() != expected_rows.len() {
+        return Err(format!("conj-data count: rust={} lisp={}", actual.len(), expected_rows.len()));
+    }
+    let mut actual_sorted = actual;
+    let key = |c: &ConjData| (
+        c.seq.unwrap_or(0), c.from.unwrap_or(0), c.via.unwrap_or(0),
+        c.prop.as_ref().map(|p| p.id).unwrap_or(0),
+    );
+    actual_sorted.sort_by_key(key);
+    expected_rows.sort_by_key(key);
+    for (i, (a, e)) in actual_sorted.iter().zip(&expected_rows).enumerate() {
+        if !conj_data_eq(a, e) {
+            return Err(format!("row {}: rust seq={:?} from={:?} via={:?} prop_id={:?}\n         lisp seq={:?} from={:?} via={:?} prop_id={:?}",
+                i, a.seq, a.from, a.via, a.prop.as_ref().map(|p| p.id),
+                e.seq, e.from, e.via, e.prop.as_ref().map(|p| p.id)));
+        }
+    }
+    Ok(())
+}
+
+
 // --- get-kana-forms / get-kana-forms* DAO + conjugations comparison -----
 
 #[derive(Debug, PartialEq, Eq)]
@@ -1051,6 +1332,7 @@ async fn audit_one(
         "ICHIRAN/DICT::GET-KANA-FORMS"        => audit_get_kana_forms(ctx, &args, &expected).await,
         "ICHIRAN/DICT::GET-KANA-FORMS*"       => audit_get_kana_forms_star(ctx, &args, &expected).await,
         "ICHIRAN/DICT::GET-CONJ-DATA"         => audit_get_conj_data(ctx, &args, &expected).await,
+        "ICHIRAN/DICT:WORD-CONJ-DATA"         => audit_word_conj_data(ctx, &args, &expected).await,
         other if SYNC_HARNESS_FQNS.contains(&other) => {
             Err(format!("__SYNC_HARNESS__:{}", other))
         }

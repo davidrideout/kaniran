@@ -172,7 +172,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  155. `ichiran/numbers:*power-to-kana*`  — global, numbers.lisp:28  *[ported]*
  156. `ichiran/dict:counter-join`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
  157. `ichiran/dict:*hint-map*`  — global, dict-split.lisp:850
- 158. `ichiran/dict:word-conj-data`  — gf, dict.lisp:0
+ 158. `ichiran/dict:word-conj-data`  — gf, dict.lisp:0  *[ported]*  *[extracted: tatoeba]*  *[audited 125006/125006]*
  159. `ichiran/dict:get-hint`  — fn, dict-split.lisp:968
  160. `ichiran/dict:get-kanji-kana-old`  — fn, dict.lisp:115  *[extracted: tatoeba]*
  161. `ichiran/numbers:*char-number-class*`  — global, numbers.lisp:9  *[ported]*

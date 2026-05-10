@@ -748,7 +748,7 @@ ichiran/dict:true-kanji,true-kanji,ichiran/dict,dict.lisp,0,gf,pending,,,
 ichiran/dict:true-text,true-text,ichiran/dict,dict.lisp,0,gf,ported,,,
 ichiran/dict:value-string,value-string,ichiran/dict,dict-counters.lisp,0,gf,pending,,counter_2026_05_08,
 ichiran/dict:verify,verify,ichiran/dict,dict-counters.lisp,0,gf,ported,,counter_2026_05_08,
-ichiran/dict:word-conj-data,word-conj-data,ichiran/dict,dict.lisp,0,gf,pending,,,
+ichiran/dict:word-conj-data,word-conj-data,ichiran/dict,dict.lisp,0,gf,ported,,tatoeba,125006/125006
 ichiran/dict:word-info,word-info,ichiran/dict,dict.lisp,1245,class,ported,,,
 ichiran/dict:word-info-from-segment,word-info-from-segment,ichiran/dict,dict.lisp,1327,fn,pending,,,
 ichiran/dict:word-info-from-segment-list,word-info-from-segment-list,ichiran/dict,dict.lisp,1353,fn,pending,,,
