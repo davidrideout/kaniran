@@ -6,13 +6,19 @@
 //! (b) any seq joined to `seqs` via the `conjugation.from` column.
 //!
 //! The two row sets are unioned and deduplicated by `id` per SBCL's
-//! `(union list1 list2 :key #'id)` semantics: `result` starts as
-//! `list2` (the JOIN-query rows in DB order); `list1` (find-word-seq
-//! rows) is then walked left-to-right and each non-duplicate is
-//! prepended. Net effect: list1's non-duplicates appear at the head in
-//! reversed order, followed by list2 in its original order. SBCL's
-//! `union` does NOT deduplicate within `list2`, and the JOIN can emit
-//! the same `kt.*` row multiple times when a `kt.seq` carries several
+//! `(union list1 list2 :key #'id)` semantics: SBCL's union picks the
+//! longer of the two lists (list1 on length-tie), starts the result
+//! as the shorter list, then iterates the longer list and prepends
+//! each non-duplicate (cons-prepend, so the longer list ends up
+//! reversed at the head). Net shape:
+//!
+//! `(reverse <longer-list's uniques>) ++ <shorter-list>`
+//!
+//! When list1 is empty (the typical kana-text-not-in-seqs case), the
+//! JOIN result is the longer list and gets reversed wholesale —
+//! matching the captured fixture order. SBCL's `union` does NOT
+//! deduplicate within either list, and the JOIN can emit the same
+//! `kt.*` row multiple times when a `kt.seq` carries several
 //! `conjugation.from` matches; we mirror that — no implicit DISTINCT.
 //!
 //! Diverges from the upstream lambda list `(word &rest seqs)` by
@@ -69,19 +75,31 @@ pub async fn find_word_conj_of(
 }
 
 /// `(union list1 list2 :key id)` for SBCL semantics — NOT a generic
-/// set union. `list2` is preserved verbatim (including any internal
-/// duplicates); `list1` is walked left-to-right and each id not yet
-/// present is prepended to the result. Empirically verified via
-/// `(union '(1 2 3) '(4 5 6))` → `(3 2 1 4 5 6)` on SBCL 2.2.9.
+/// set union. SBCL picks the longer list (list1 wins length-tie),
+/// starts a fresh result, copies the shorter list in, then walks the
+/// longer list left-to-right `cons`-pushing each non-duplicate. The
+/// final shape is `reverse(<longer's uniques>) ++ <shorter>`.
+///
+/// Empirically verified on SBCL 2.2.9:
+/// - `(union '() '(1 2 3))`            → `(3 2 1)`
+/// - `(union '(1 2 3) '())`            → `(3 2 1)`
+/// - `(union '(1 2 3) '(4 5 6))`       → `(3 2 1 4 5 6)` (list1 wins tie)
+/// - `(union '(4) '(1 2 3))`           → `(3 2 1 4)` (list2 longer)
+/// - `(union '(1 2 3) '(2))`           → `(3 1 2)` (skip dup 2)
 fn union_by_id<T>(list1: Vec<T>, list2: Vec<T>, id: impl Fn(&T) -> i32) -> Vec<T> {
-    let mut keys: HashSet<i32> = list2.iter().map(&id).collect();
-    let mut prefix: Vec<T> = Vec::new();
-    for x in list1 {
-        if keys.insert(id(&x)) {
-            prefix.push(x);
+    let (shorter, longer) = if list1.len() >= list2.len() {
+        (list2, list1)
+    } else {
+        (list1, list2)
+    };
+    let shorter_keys: HashSet<i32> = shorter.iter().map(&id).collect();
+    let mut uniques: Vec<T> = Vec::new();
+    for elt in longer {
+        if !shorter_keys.contains(&id(&elt)) {
+            uniques.push(elt);
         }
     }
-    prefix.reverse();
-    prefix.extend(list2);
-    prefix
+    uniques.reverse();
+    uniques.extend(shorter);
+    uniques
 }

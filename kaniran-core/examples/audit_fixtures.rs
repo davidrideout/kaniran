@@ -103,6 +103,9 @@ use kaniran_core::dict::get_kana_form::get_kana_form;
 use kaniran_core::dict::get_kana_forms::get_kana_forms;
 use kaniran_core::dict::get_kana_forms_star_::get_kana_forms_star_;
 use kaniran_core::dict::get_kanji_kana_old::get_kanji_kana_old;
+use kaniran_core::dict::get_split::get_split;
+use kaniran_core::dict::get_split_star_::get_split_star_;
+use kaniran_core::dict::kani_split_part::SplitPart;
 use kaniran_core::dict::simple_text_class::WordConjugations;
 use kaniran_core::dict::word_conj_data::word_conj_data;
 
@@ -209,6 +212,14 @@ async fn audit_one(
                 Ok(ctx) => audit_get_kanji_kana_old(ctx, args, expected).await,
             }
         }
+        "ICHIRAN/DICT:GET-SPLIT" => match with_ctx("get-split") {
+            Err(e) => Err(e),
+            Ok(ctx) => audit_get_split(ctx, args, expected).await,
+        },
+        "ICHIRAN/DICT:GET-SPLIT*" => match with_ctx("get-split*") {
+            Err(e) => Err(e),
+            Ok(ctx) => audit_get_split_star(ctx, args, expected).await,
+        },
 
         _ => return None,
     })
@@ -2269,6 +2280,146 @@ async fn audit_find_word_conj_of(
     let actual = find_word_conj_of(ctx, word, &seqs).await
         .map_err(|e| format!("find_word_conj_of query: {}", e))?;
     compare_dao_lists(project_word_seq(&actual), expect_one(expected)?)
+}
+
+
+// --- get-split / get-split* --------------------------------------------
+
+fn parse_get_split_args(args: &Sexp)
+    -> Result<(KaniSimpleTextDispatchEnum, Vec<i32>), String>
+{
+    let argv = list_elems(args)?;
+    if argv.len() != 2 {
+        return Err(format!("expected 2 args (reading conj-of), got {}", argv.len()));
+    }
+    let reading = parse_simple_text_plist(argv[0])?;
+    let conj_of: Vec<i32> = if argv[1].is_nil() {
+        Vec::new()
+    } else {
+        list_elems(argv[1])?.iter()
+            .map(|s| parse_int(s))
+            .collect::<Result<_, _>>()?
+    };
+    Ok((reading, conj_of))
+}
+
+/// Compare a single Rust `SplitPart` against its captured Lisp form.
+/// Words are projected to [`DaoRow`] (re-using the find-word-seq
+/// comparison rule: NIL `:ID` is wildcard); `:SCORE` / `:PSCORE`
+/// keywords pass through their Rust enum variants.
+fn compare_split_part_word(actual: &SplitPart, expected: &Sexp) -> Result<(), String> {
+    if let Some(kw) = expected.as_keyword() {
+        return match (kw, actual) {
+            ("SCORE",  SplitPart::Score)  => Ok(()),
+            ("PSCORE", SplitPart::PScore) => Ok(()),
+            (k, _) => Err(format!("expected :{}, got {:?}", k, actual)),
+        };
+    }
+    let exp_dao = parse_dao_plist(expected)?;
+    let act_dao = match actual {
+        SplitPart::Word(KaniWordDispatchEnum::Kana(k))  => dao_from_kana(k),
+        SplitPart::Word(KaniWordDispatchEnum::Kanji(k)) => dao_from_kanji(k),
+        SplitPart::Word(other) =>
+            return Err(format!("non-simple word in parts: {:?}", other)),
+        SplitPart::Score  => return Err("expected DAO, got SplitPart::Score".into()),
+        SplitPart::PScore => return Err("expected DAO, got SplitPart::PScore".into()),
+    };
+    if !dao_row_eq(&act_dao, &exp_dao) {
+        return Err(format!("rust={:?} lisp={:?}", act_dao, exp_dao));
+    }
+    Ok(())
+}
+
+/// Same as [`compare_split_part_word`] but accepts NIL as a captured
+/// failed-lookup placeholder. get-split* preserves NILs in the parts
+/// list; get-split filters them out before returning.
+fn compare_split_part_optional(actual: &Option<SplitPart>, expected: &Sexp) -> Result<(), String> {
+    match (actual, expected.is_nil()) {
+        (None, true)  => Ok(()),
+        (None, false) => Err(format!("rust=None lisp={}", expected)),
+        (Some(_), true)  => Err(format!("rust=Some({:?}) lisp=NIL", actual)),
+        (Some(p), false) => compare_split_part_word(p, expected),
+    }
+}
+
+async fn audit_get_split(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let (reading, conj_of) = parse_get_split_args(args)?;
+    let actual = get_split(ctx, &reading, &conj_of).await
+        .map_err(|e| format!("get_split query: {}", e))?;
+    let exp_elems = list_elems(expected)?;
+    match (&actual, exp_elems.len()) {
+        (None, 1) => {
+            if !exp_elems[0].is_nil() {
+                return Err(format!("expected NIL, got {}", exp_elems[0]));
+            }
+            Ok(())
+        }
+        (Some((parts, score)), 2) => {
+            let exp_parts = list_elems(exp_elems[0])?;
+            let exp_score = parse_int(exp_elems[1])?;
+            if *score != exp_score {
+                return Err(format!("score: rust={} lisp={}", score, exp_score));
+            }
+            if parts.len() != exp_parts.len() {
+                return Err(format!(
+                    "parts count: rust={} lisp={}\n  rust: {:?}\n  lisp: {:?}",
+                    parts.len(), exp_parts.len(), parts, exp_parts,
+                ));
+            }
+            for (i, (act, exp)) in parts.iter().zip(exp_parts.iter()).enumerate() {
+                compare_split_part_word(act, exp).map_err(|e| format!("part {}: {}", i, e))?;
+            }
+            Ok(())
+        }
+        (None, n) => Err(format!(
+            "rust=None but lisp returned {}-element result: {}", n, expected,
+        )),
+        (Some(_), n) => Err(format!(
+            "rust=Some but lisp returned {}-element result: {}", n, expected,
+        )),
+    }
+}
+
+async fn audit_get_split_star(
+    ctx: &KaniranContext, args: &Sexp, expected: &Sexp,
+) -> Result<(), String> {
+    let (reading, conj_of) = parse_get_split_args(args)?;
+    let actual = get_split_star_(ctx, &reading, &conj_of).await
+        .map_err(|e| format!("get_split_star query: {}", e))?;
+    let exp_elems = list_elems(expected)?;
+    match (&actual, exp_elems.len()) {
+        (None, 1) => {
+            if !exp_elems[0].is_nil() {
+                return Err(format!("expected NIL, got {}", exp_elems[0]));
+            }
+            Ok(())
+        }
+        (Some((parts, score)), 2) => {
+            let exp_parts = list_elems(exp_elems[0])?;
+            let exp_score = parse_int(exp_elems[1])?;
+            if *score != exp_score {
+                return Err(format!("score: rust={} lisp={}", score, exp_score));
+            }
+            if parts.len() != exp_parts.len() {
+                return Err(format!(
+                    "parts count: rust={} lisp={}\n  rust: {:?}\n  lisp: {:?}",
+                    parts.len(), exp_parts.len(), parts, exp_parts,
+                ));
+            }
+            for (i, (act, exp)) in parts.iter().zip(exp_parts.iter()).enumerate() {
+                compare_split_part_optional(act, exp).map_err(|e| format!("part {}: {}", i, e))?;
+            }
+            Ok(())
+        }
+        (None, n) => Err(format!(
+            "rust=None but lisp returned {}-element result: {}", n, expected,
+        )),
+        (Some(_), n) => Err(format!(
+            "rust=Some but lisp returned {}-element result: {}", n, expected,
+        )),
+    }
 }
 
 fn project_find_word_rows(rows: &FindWordRows) -> Vec<DaoRow> {

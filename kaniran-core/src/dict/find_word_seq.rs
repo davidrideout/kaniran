@@ -24,12 +24,37 @@ use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kana_text_dao::KanaText;
+use crate::dict::kani_word::KaniWordDispatchEnum;
 use crate::dict::kanji_text_dao::KanjiText;
 
 #[derive(Debug, Clone)]
 pub enum WordSeqRows {
     Kana(Vec<KanaText>),
     Kanji(Vec<KanjiText>),
+}
+
+impl WordSeqRows {
+    /// `(car ...)` over the row vector, wrapping the row as a
+    /// [`KaniWordDispatchEnum`] for downstream dispatchers. Empty
+    /// vector yields `None`. Used by `*split-map*` entries that
+    /// resolve a part via `(car (apply find-word-seq ...))`.
+    pub(crate) fn first_word(self) -> Option<KaniWordDispatchEnum> {
+        match self {
+            Self::Kana(v) => v.into_iter().next().map(KaniWordDispatchEnum::Kana),
+            Self::Kanji(v) => v.into_iter().next().map(KaniWordDispatchEnum::Kanji),
+        }
+    }
+
+    /// First row's `seq`, used by the `("text" seq) part-seq` form
+    /// of `def-simple-split` to compute the dynamic pseq via
+    /// `(seq (car (find-word-conj-of "text" seq)))`. Empty vector
+    /// yields `None`.
+    pub(crate) fn first_seq(&self) -> Option<i32> {
+        match self {
+            Self::Kana(v) => v.first().map(|r| r.seq),
+            Self::Kanji(v) => v.first().map(|r| r.seq),
+        }
+    }
 }
 
 pub async fn find_word_seq(
