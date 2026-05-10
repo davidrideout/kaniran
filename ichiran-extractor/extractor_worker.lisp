@@ -201,6 +201,18 @@
 
                  (t (json-error (format nil "unknown op: ~a" op))))))))))))
 
+;; Switch *connection* into pooled mode so every internal
+;; (with-connection *connection* ...) callsite in ichiran reuses this
+;; worker's backend instead of churning a fresh TCP connection per
+;; call. Without this each /extract burns through ~10 ephemeral ports
+;; into TIME_WAIT and grows the pg backend count to ~2× the worker
+;; count; with it, single-threaded SBCL → pool size 1 → exactly one
+;; persistent backend per worker. Member-check guard makes the boot
+;; idempotent if the worker script gets reloaded into a live image.
+(unless (member :pooled-p ichiran/conn:*connection*)
+  (setf ichiran/conn:*connection*
+        (append ichiran/conn:*connection* '(:pooled-p t))))
+
 ;; Force suffix-cache + suffix-class to populate synchronously before
 ;; we start accepting requests. Without this, ichiran/dict:init-suffixes
 ;; would race the first /extract calls (it spawns a background loader
