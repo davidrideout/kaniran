@@ -174,11 +174,13 @@ Convert to bytes internally (via `s.char_indices()`) when calling the regex engi
 
 ### 4.6. Macros
 
-Most Lisp macros in this codebase are either (a) DSL definers that register data into existing globals (`def-simple-suffix`, `def-counter`) — the **data** is already captured in the relevant `*global*`, so the macro itself has nothing to translate; or (b) syntactic helpers (`hash-from-list`) whose call-sites are already directly ported.
+Most Lisp macros in this codebase are either (a) DSL definers that register data into existing globals (`def-simple-suffix`, `def-counter`, `defsplit`) — the **data** is already captured in the relevant `*global*` (or collapsed into a static dispatcher), so the macro itself has nothing to translate; or (b) syntactic helpers (`hash-from-list`) whose call-sites are already directly ported.
 
-For these, create the `_macro` file with a doc-only body explaining the situation and pointing at where the equivalent data/code lives. Don't try to write a Rust macro that mimics the Lisp expansion — that's almost always the wrong tool.
+**For these, mark the FQN `skip` with a reason** via `query.py mark <fqn> --status skip --reason "..."`. The reason should name where the data/code lives (the populated global, the dispatcher, the per-callsite ports). Do **not** create a doc-only `_macro` file — a no-op file is project clutter, not a port. The skip reason is the bookkeeping; it surfaces in `PORT_PLAN.md` next to the symbol.
 
-A small minority of macros (~6 per the `reverse/` analysis) genuinely encode logic that needs a Rust translation. Those go in the `_macro` file as a regular function or a `macro_rules!` block, with the doc-comment explaining why one was chosen over the other.
+A small minority of macros (~6 per the `reverse/` analysis) genuinely encode logic that needs a Rust translation. Those go in an `_macro` file as a regular function or a `macro_rules!` block, with the doc-comment explaining why one was chosen over the other. The `_macro` filename suffix is reserved for that case.
+
+Don't try to write a Rust macro that mimics a Lisp expansion just to have something to point at — almost always the wrong tool.
 
 ### 4.7. Class hierarchies
 

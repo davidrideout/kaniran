@@ -45,7 +45,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   42. `ichiran/characters:destem`  — fn, characters.lisp:340  *[ported]*
   43. `ichiran/characters:geminate`  — fn, characters.lisp:336  *[ported]*  *[extracted: counter_2026_05_08]*
   44. `ichiran/characters:get-char-class`  — fn, characters.lisp:52  *[ported]*
-  45. `ichiran/characters:hash-from-list`  — macro, characters.lisp:64  *[ported]*
+  45. `ichiran/characters:hash-from-list`  — macro, characters.lisp:64  *[skip — DSL definer; expansion is a defparameter whose value is a hashtable built from a flat plist literal. Each callsite (e.g. *dakuten-hash*) is ported as its own _star_<name>_star_.rs HashMap — no Rust counterpart to the macro itself.]*
   46. `ichiran/characters:join`  — fn, characters.lisp:371  *[ported]*
   47. `ichiran/characters:kanji-cross-match`  — fn, characters.lisp:222  *[ported]*
   48. `ichiran/characters:kanji-mask`  — fn, characters.lisp:212  *[ported]*
@@ -768,7 +768,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  696. `ichiran/dict:csv-hash`  — macro, dict-load.lisp:201
  697. `ichiran/dict:defsuffix`  — macro, dict-grammar.lisp:342
  698. `ichiran/dict:def-abbr-suffix`  — macro, dict-grammar.lisp:557
- 699. `ichiran/dict:defsplit`  — macro, dict-split.lisp:5
+ 699. `ichiran/dict:defsplit`  — macro, dict-split.lisp:5  *[skip — DSL definer; expansion only registers a per-seq fn in *split-map*. The Rust transliteration collapses *split-map* into the static split_map_dispatch match in _star_split_map_star_, and each registered fn is its own sibling split_*.rs module — nothing left to translate.]*
  700. `ichiran/dict:def-simple-split`  — macro, dict-split.lisp:11
  701. `ichiran/dict:def-de-split`  — macro, dict-split.lisp:81
  702. `ichiran/dict:def-do-split`  — macro, dict-split.lisp:181

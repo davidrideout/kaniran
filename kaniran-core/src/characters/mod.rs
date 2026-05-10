@@ -20,7 +20,6 @@ pub mod dakuten_join;
 pub mod destem;
 pub mod geminate;
 pub mod get_char_class;
-pub mod hash_from_list_macro;
 pub mod join;
 pub mod kanji_cross_match;
 pub mod kanji_mask;
