@@ -250,7 +250,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  233. `ichiran/dict:split-1855670`  — fn, dict-split.lisp:742
  234. `ichiran/dict:split-1863230`  — fn, dict-split.lisp:698
  235. `ichiran/dict:split-1881690`  — fn, dict-split.lisp:734
- 236. `ichiran/dict:optprefix`  — fn, dict-split.lisp:580
+ 236. `ichiran/dict:optprefix`  — fn, dict-split.lisp:580  *[ported]*
  237. `ichiran/dict:split-1894260`  — fn, dict-split.lisp:586
  238. `ichiran/dict:split-2002270`  — fn, dict-split.lisp:633
  239. `ichiran/dict:split-2007500`  — fn, dict-split.lisp:681

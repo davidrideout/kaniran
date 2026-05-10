@@ -75,6 +75,7 @@ pub mod make_conj_data;
 pub mod no_conj_data;
 pub mod nokanji;
 pub mod number_text_class;
+pub mod optprefix;
 pub mod ord;
 pub mod ordinal_str;
 pub mod proxy_text_class;
