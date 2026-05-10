@@ -4,379 +4,3439 @@
 //! by `defsplit` (`dict-split.lisp:7`) which is in turn invoked by
 //! every `def-simple-split` / `def-de-split` / `def-toori-split` /
 //! `def-do-split` / `def-shi-split` form. The Rust transliteration
-//! collapses the runtime hashtable into a `match` dispatcher: every
-//! split-* port is a sibling module, and [`split_map_dispatch`]
-//! forwards to the registered fn. Returning `None` for unregistered
-//! seqs preserves the `(gethash seq *split-map*)` semantics that
-//! [`super::get_split_star_::get_split_star`] depends on.
+//! collapses the runtime hashtable into a static [`SPLIT_TABLE`] of
+//! data rows. Each row is interpreted by
+//! [`super::kani_split_engine::run_split`]. Returning `None` from
+//! [`split_map_dispatch`] for unregistered seqs preserves the upstream
+//! `(gethash seq *split-map*)` semantics that
+//! [`super::get_split_star_::get_split_star_`] depends on.
+//!
+//! Diverges from CONVENTIONS §1 (one Lisp symbol per Rust file): the
+//! 174 `split-*` callsites would otherwise need 174 separate
+//! `dict/split_*.rs` files containing nothing but data rows. Putting
+//! them here keeps the data and dispatcher together and removes the
+//! file-per-callsite scaffolding that previously templated future
+//! `def-simple-split` ports into per-file copies of the same
+//! interpreter loop. `audit-signatures` will report each `split-*`
+//! FQN as `port file not found` — those entries are this convention.
 
 use crate::conn::kani_context::KaniranContext;
+use crate::dict::kani_split_engine::{
+    run_split, Finder, Len, Modify, PartSeq, Pred, ScorePush, SplitDef, Step, WordPart,
+};
 use crate::dict::kani_split_part::SplitPart;
 use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
+use crate::dict::word_type::WordType;
 
-use super::split_1000430::split_1000430;
-use super::split_1002970::split_1002970;
-use super::split_de_1004800::split_de_1004800;
-use super::split_1005600::split_1005600;
-use super::split_shi_1005700::split_shi_1005700;
-use super::split_shi_1005830::split_shi_1005830;
-use super::split_1006280::split_1006280;
-use super::split_souda::split_souda;
-use super::split_de_1006840::split_de_1006840;
-use super::split_1006880::split_1006880;
-use super::split_1008030::split_1008030;
-use super::split_nara::split_nara;
-use super::split_nitotte::split_nitotte;
-use super::split_shi_1157200::split_shi_1157200;
-use super::split_shi_1157220::split_shi_1157220;
-use super::split_shi_1157230::split_shi_1157230;
-use super::split_shi_1157240::split_shi_1157240;
-use super::split_shi_1157280::split_shi_1157280;
-use super::split_shi_1157310::split_shi_1157310;
-use super::split_de_1163700::split_de_1163700;
-use super::split_toori_1164910::split_toori_1164910;
-use super::split_de_1189420::split_de_1189420;
-use super::split_1207840::split_1207840;
-use super::split_1221530::split_1221530;
-use super::split_1221680::split_1221680;
-use super::split_kinosei::split_kinosei;
-use super::split_osoreiru::split_osoreiru;
-use super::split_de_1245390::split_de_1245390;
-use super::split_toori_1260990::split_toori_1260990;
-use super::split_de_1270210::split_de_1270210;
-use super::split_de_1272220::split_de_1272220;
-use super::split_shi_1304820::split_shi_1304820;
-use super::split_shi_1304890::split_shi_1304890;
-use super::split_shi_1304960::split_shi_1304960;
-use super::split_shi_1305110::split_shi_1305110;
-use super::split_shi_1305280::split_shi_1305280;
-use super::split_shi_1305290::split_shi_1305290;
-use super::split_de_1311360::split_de_1311360;
-use super::split_1314600::split_1314600;
-use super::split_1314770::split_1314770;
-use super::split_motteiku::split_motteiku;
-use super::split_1315860::split_1315860;
-use super::split_1322540::split_1322540;
-use super::split_1322560::split_1322560;
-use super::split_1327220::split_1327220;
-use super::split_1327230::split_1327230;
-use super::split_de_1343110::split_de_1343110;
-use super::split_1349300::split_1349300;
-use super::split_1362970::split_1362970;
-use super::split_de_1368500::split_de_1368500;
-use super::split_hitotachi::split_hitotachi;
-use super::split_toori_1368820::split_toori_1368820;
-use super::split_de_1395670::split_de_1395670;
-use super::split_kawaribae::split_kawaribae;
-use super::split_toori_1414570::split_toori_1414570;
-use super::split_de_1417790::split_de_1417790;
-use super::split_hajikidasu::split_hajikidasu;
-use super::split_toori_1424950::split_toori_1424950;
-use super::split_toori_1424960::split_toori_1424960;
-use super::split_de_1454270::split_de_1454270;
-use super::split_toori_1462720::split_toori_1462720;
-use super::split_hairikomeru::split_hairikomeru;
-use super::split_1474200::split_1474200;
-use super::split_de_1479100::split_de_1479100;
-use super::split_toori_1489800::split_toori_1489800;
-use super::split_1502500::split_1502500;
-use super::split_1508380::split_1508380;
-use super::split_de_1510140::split_de_1510140;
-use super::split_nakunaru2::split_nakunaru2;
-use super::split_de_1518550::split_de_1518550;
-use super::split_toori_1523010::split_toori_1523010;
-use super::split_gotoni::split_gotoni;
-use super::split_nakunaru::split_nakunaru;
-use super::split_de_1530610::split_de_1530610;
-use super::split_de_1531420::split_de_1531420;
-use super::split_1532270::split_1532270;
-use super::split_1538340::split_1538340;
-use super::split_toori_1550490::split_toori_1550490;
-use super::split_1551500::split_1551500;
-use super::split_1579130::split_1579130;
-use super::split_1581550::split_1581550;
-use super::split_1591050::split_1591050;
-use super::split_1591980::split_1591980;
-use super::split_shi_1594300::split_shi_1594300;
-use super::split_shi_1594310::split_shi_1594310;
-use super::split_shi_1594460::split_shi_1594460;
-use super::split_shi_1594580::split_shi_1594580;
-use super::split_de_1597400::split_de_1597400;
-use super::split_1597740::split_1597740;
-use super::split_nanimokamo::split_nanimokamo;
-use super::split_1601010::split_1601010;
-use super::split_1601080::split_1601080;
-use super::split_1602740::split_1602740;
-use super::split_1606530::split_1606530;
-use super::split_1606800::split_1606800;
-use super::split_kaasan::split_kaasan;
-use super::split_de_1611020::split_de_1611020;
-use super::split_1612640::split_1612640;
-use super::split_toori_1619440::split_toori_1619440;
-use super::split_de_1679990::split_de_1679990;
-use super::split_de_1682060::split_de_1682060;
-use super::split_osagari::split_osagari;
-use super::split_de_1736650::split_de_1736650;
-use super::split_kaisasae::split_kaisasae;
-use super::split_1774820::split_1774820;
-use super::split_toori_1808080::split_toori_1808080;
-use super::split_toori_1820790::split_toori_1820790;
-use super::split_1854750::split_1854750;
-use super::split_1855670::split_1855670;
-use super::split_1863230::split_1863230;
-use super::split_de_1865020::split_de_1865020;
-use super::split_de_1878880::split_de_1878880;
-use super::split_shinikakaru::split_shinikakaru;
-use super::split_1881690::split_1881690;
-use super::split_1894260::split_1894260;
-use super::split_hisshininatte::split_hisshininatte;
-use super::split_toiu::split_toiu;
-use super::split_kimatte::split_kimatte;
-use super::split_2002270::split_2002270;
-use super::split_2007500::split_2007500;
-use super::split_2009290::split_2009290;
-use super::split_2016840::split_2016840;
-use super::split_2026650::split_2026650;
-use super::split_desura::split_desura;
-use super::split_moushiwakenasasou::split_moushiwakenasasou;
-use super::split_2083990::split_2083990;
-use super::split_2088480::split_2088480;
-use super::split_tegakakaru::split_tegakakaru;
-use super::split_tonattara::split_tonattara;
-use super::split_tonaru::split_tonaru;
-use super::split_katawonaraberu::split_katawonaraberu;
-use super::split_nantokanaru::split_nantokanaru;
-use super::split_2109610::split_2109610;
-use super::split_de_2126220::split_de_2126220;
-use super::split_2133750::split_2133750;
-use super::split_jan::split_jan;
-use super::split_de_2136520::split_de_2136520;
-use super::split_do_2142680::split_do_2142680;
-use super::split_do_2142710::split_do_2142710;
-use super::split_kotonisuru::split_kotonisuru;
-use super::split_degozaimasu::split_degozaimasu;
-use super::split_2272780::split_2272780;
-use super::split_2276360::split_2276360;
-use super::split_2433760::split_2433760;
-use super::split_de_2513590::split_de_2513590;
-use super::split_shi_2518250::split_shi_2518250;
-use super::split_do_2523480::split_do_2523480;
-use super::split_2526850::split_2526850;
-use super::split_2529050::split_2529050;
-use super::split_hajiketobu::split_hajiketobu;
-use super::split_toiukotoda::split_toiukotoda;
-use super::split_2666360::split_2666360;
-use super::split_2668400::split_2668400;
-use super::split_de_2719270::split_de_2719270;
-use super::split_2724560::split_2724560;
-use super::split_janai::split_janai;
-use super::split_2757500::split_2757500;
-use super::split_2757540::split_2757540;
-use super::split_2762260::split_2762260;
-use super::split_de_2771850::split_de_2771850;
-use super::split_2771940::split_2771940;
-use super::split_dogatsukeru::split_dogatsukeru;
-use super::split_do_2803190::split_do_2803190;
-use super::split_de_2810720::split_de_2810720;
-use super::split_de_2810800::split_de_2810800;
-use super::split_hayaimonode::split_hayaimonode;
-use super::split_janaika::split_janaika;
-use super::split_2834051::split_2834051;
-use super::split_2834732::split_2834732;
-use super::split_2835890::split_2835890;
-use super::split_soudesu::split_soudesu;
-use super::split_2846470::split_2846470;
-use super::split_2855921::split_2855921;
-use super::split_shi_2858937::split_shi_2858937;
+fn split_2529050_first_part_len(txt: &str, _len_: usize) -> Option<usize> {
+    Some(if txt.starts_with("もの") { 2 } else { 1 })
+}
+
+fn split_hayaimonode_second_part_len(txt: &str, _len_: usize) -> Option<usize> {
+    Some(if txt.contains('物') { 1 } else { 2 })
+}
+
+fn split_hitotachi_first_part_len(txt: &str, _len_: usize) -> Option<usize> {
+    Some(if txt.chars().any(|c| c == '人') { 1 } else { 2 })
+}
+
+fn split_hitotachi_second_part_len(txt: &str, _len_: usize) -> Option<usize> {
+    Some(if txt.chars().any(|c| c == '達') { 1 } else { 2 })
+}
+
+pub static SPLIT_TABLE: &[SplitDef] = &[
+    SplitDef {
+        seq: 1000430,
+        score: -5,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1000420i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1002970,
+        score: 600,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2143350i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "知れない", seq: 1420490 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1004800,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1628530i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1005600,
+        score: -10,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "しまった", seq: 1305380 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1005700,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1156990i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1005830,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1370760i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1006280,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1157170i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1008490i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1006650,
+        score: 5,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2137720i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2089020i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1006840,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1006880i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1006880,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1006830i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1352130i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1008030,
+        score: -10,
+        steps: &[
+            Step::Push(ScorePush::Score),
+        ],
+    },
+    SplitDef {
+        seq: 1009470,
+        score: 1,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "なら", seq: 2089020 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1009600,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "取って", seq: 1326980 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1157200,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2772730i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1157220,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1195970i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1157230,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1284430i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1157240,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1600260i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1157280,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1370090i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1157310,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1405800i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1163700,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1576150i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1164910,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2821500i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1432920i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1189420,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2416780i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1207840,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "割り", seq: 1208000 },
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1384860i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1221530,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1221520i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028930i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1296400i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1221680,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1221520i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1157170i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1221750,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1221520i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1469800i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1610040i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1236680,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1236660i32]),
+                length: Len::CharPosPlus1('れ'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1465580i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1245390,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1245290i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1260990,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1260670i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1432930i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1270210,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1001640i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1272220,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1592990i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1304820,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1207610i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1304890,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1256520i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1304960,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1307550i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1305110,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1338180i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1305280,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1599390i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1305290,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1212670i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1311360,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1311350i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1314600,
+        score: -5,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1529520]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1314770,
+        score: -10,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kana),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1495740i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1315700,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "持って", seq: 1315720 },
+                length: Len::CharPosPlus1('て'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1578850i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1315860,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1315840i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2215430i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1322540,
+        score: -5,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1529520i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1322560,
+        score: -10,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kana),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1226480i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1327220,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1327190i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1465590i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1327230,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1327190i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1465610i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1343110,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1343100i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1349300,
+        score: 5,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2029110i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2826528i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1362970,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "申し", seq: 1363090 },
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1589040i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1368500,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1368490i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1368740,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1580640i32]),
+                length: Len::Compute(split_hitotachi_first_part_len),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1416220i32]),
+                length: Len::Compute(split_hitotachi_second_part_len),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1368820,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1580640i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1432930i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1395670,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1395660i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1411570,
+        score: 10,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1590770i32, 1510720i32]),
+                length: Len::CharPosPlus1('り'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "映え", seq: 1600620 },
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1414570,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2082450i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1432930i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1417790,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1417780i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1419350,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1901710i32]),
+                length: Len::CharPosPlus1('き'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1338180i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1424950,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1620400i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1432930i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1424960,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1423310i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1432930i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1454270,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1454260i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1462720,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1461140i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1432920i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1465460,
+        score: 100,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "入り", seq: 1465590 },
+                length: Len::CharPosPlus1('り'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1288790i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1474200,
+        score: -10,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kana),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028920i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1577980i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1479100,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1679020i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1489800,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1489340i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1432930i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1502500,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1502390i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1277450i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::Unrendaku,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1508380,
+        score: 10,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kana),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2083990i32]),
+                length: Len::Fixed(3),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1510140,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1680900i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1518540,
+        score: 10,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kana),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "亡く", seq: 1518450 },
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1375610i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1518550,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1529560i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1523010,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1522150i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1432930i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1524660,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1524640i32]),
+                length: Len::CharPos('に'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1529550,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "無く", seq: 1529520 },
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1375610i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1530610,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1530600i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1531420,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1531410i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1532270,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "あけまして", seq: 1202450 },
+                length: Len::Fixed(5),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1001540i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1538340,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1538330i32]),
+                length: Len::CharPos('が'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028930i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1606560i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1550490,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1550190i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1432930i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1551500,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "立ち", seq: 1597040 },
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1570220i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1579130,
+        score: -1,
+        steps: &[
+            Step::Test {
+                pred: Pred::TextEquals("ことし"),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1313580i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2086640i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1581550,
+        score: 10,
+        steps: &[
+            Step::Test {
+                pred: Pred::TextStartsWith("雪"),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1386500i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028930i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Test {
+                pred: Pred::LenGt(2),
+                score_mod: Some(-2),
+                push: Some(ScorePush::PScore),
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1529520i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1591050,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1221520i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028930i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1495740i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1591980,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1221520i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2029010i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1305990i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1594300,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1596510i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1594310,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1406680i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1594460,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1372620i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1594580,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1277100i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1597400,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1585205i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1597740,
+        score: 5,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kana),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1008030i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2081610i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1599590,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1188490i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2143350i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1601010,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "跳ね", seq: 1429620 },
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1352290i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1601080,
+        score: -5,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028920i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1310680i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1602740,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1497180i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2093780i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1606530,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "分かり", seq: 1606560 },
+                length: Len::Fixed(3),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1384830i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1606800,
+        score: 10,
+        steps: &[
+            Step::Test {
+                pred: Pred::LenEq(2),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "割り", seq: 1208000 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1609470,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1514990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1005340i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1611020,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1577100i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1612640,
+        score: 5,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1000420i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2029080i32, 2029120i32, 1005110i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1619440,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2069220i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1432930i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1679990,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2582460i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1682060,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2085340i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1693800,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2826528i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1609810i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1736650,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1611710i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1752860,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1636070i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "支え", seq: 1310090 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1774820,
+        score: -5,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kana),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1002980i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1277450i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1808080,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1604890i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1432930i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1820790,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kanji),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1250090i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1432930i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1854750,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "付いて", seq: 1495740 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1855670,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "取り留め", seq: 1707770 },
+                length: Len::CharPos('の'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1469800i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1529520i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1863230,
+        score: 15,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kana),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1576870i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1416220i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1865020,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1590150i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1878880,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2423450i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1881080,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1310720i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1207590i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1881690,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1321900i32]),
+                length: Len::CharPos('を'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2029010i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1298790i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1894260,
+        score: 50,
+        steps: &[
+            Step::Test {
+                pred: Pred::LenGt(3),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "付いて", seq: 1894260 },
+                length: Len::Fixed(3),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1577980i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::OptPrefix("い"),
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1903910,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1601890i32]),
+                length: Len::CharPos('に'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "なって", seq: 1375610 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1922760,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1008490i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1587040i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 1951150,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "決まって", seq: 1591420 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2002270,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "零れ", seq: 1557650 },
+                length: Len::CharPosPlus1('れ'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1548550i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2007500,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "落ち", seq: 1548550 },
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1557650i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2009290,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1423310i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1008460i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2016840,
+        score: -5,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "やった", seq: 1012980 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2026650,
+        score: 10,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "せよ", seq: 1157170 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2034520,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2827091i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2057340,
+        score: 300,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1363050i32]),
+                length: Len::CharPos('な'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2246510i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2083990,
+        score: 20,
+        steps: &[
+            Step::Test {
+                pred: Pred::TextEquals("ならん"),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1009470i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2139720i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2088480,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1634130i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2006580i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2089710,
+        score: 10,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1327190i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028930i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1207590i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2100770,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1008490i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "なったら", seq: 1375610 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2100900,
+        score: 10,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1008490i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1375610i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2102910,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1258950i32]),
+                length: Len::CharPos('を'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2029010i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1508390i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2104540,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1188420i32]),
+                length: Len::CharPosPlus1('か'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1375610i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2109610,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "有り", seq: 1296400 },
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1588760i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2126220,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1802920i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2133750,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1224890i32]),
+                length: Len::CharPosPlus1('く'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1001720i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2135280,
+        score: 10,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2089020i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2139720i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2136520,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2005870i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2142680,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2252690i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1290210i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2142710,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2252690i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1185200i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2215340,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1313580i32]),
+                length: Len::CharPos('に'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1157170i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2253080,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1612690i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2272780,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1221520i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028930i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1529520i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2276360,
+        score: 10,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2436480i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2086640i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2433760,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1006610i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2683060i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2513590,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2513650i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2518250,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1332760i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2523480,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2252690i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1442750i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2526850,
+        score: 10,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028990i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "しろ", seq: 1157170 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2529050,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1322990i32]),
+                length: Len::Compute(split_2529050_first_part_len),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1234250i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2610760,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "弾け", seq: 1419380 },
+                length: Len::CharPosPlus1('け'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1429700i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2612990,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1922760i32]),
+                length: Len::Fixed(3),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1313580i32]),
+                length: Len::LenMinus(4),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2089020i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2666360,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "少なくない", seq: 1348910 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2668400,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1213060i32]),
+                length: Len::CharPos('を'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2029010i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1552120i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2719270,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1445430i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2724560,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1469800i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1610040i32]),
+                length: Len::LenMinus(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2755350,
+        score: 10,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2089020i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1529520i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2757500,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1538330i32]),
+                length: Len::CharPos('の'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1469800i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1606560i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2757540,
+        score: 90,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1896380i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2728200i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2762260,
+        score: 0,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "ならんで", seq: 1508380 },
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2771850,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2563780i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2771940,
+        score: -5,
+        steps: &[
+            Step::Test {
+                pred: Pred::TextEquals("はないか"),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028920i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1529520i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028970i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2800540,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2252690i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028930i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1495740i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2803190,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2252690i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1595630i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2810720,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1004820i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2810800,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1587590i32]),
+                length: Len::LenMinus(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2815260,
+        score: 100,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1404975i32]),
+                length: Len::CharPosPlus1('い'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1502390i32]),
+                length: Len::Compute(split_hayaimonode_second_part_len),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028980i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2819990,
+        score: 20,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "じゃない", seq: 2089020 },
+                length: Len::Fixed(4),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028970i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2834051,
+        score: 15,
+        steps: &[
+            Step::Test {
+                pred: Pred::WordType(WordType::Kana),
+                score_mod: None,
+                push: None,
+            },
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1002290i32]),
+                length: Len::Fixed(3),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1416220i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2834732,
+        score: -10,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1707770i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2835890,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1385860i32]),
+                length: Len::Fixed(5),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1319060i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2837492,
+        score: 5,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2137720i32]),
+                length: Len::Fixed(2),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1628500i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2846470,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1221520i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028920i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1529520i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2855921,
+        score: 50,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "取り留め", seq: 1707770 },
+                length: Len::CharPos('も'),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[2028940i32]),
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1529520i32]),
+                length: Len::Open,
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+        ],
+    },
+    SplitDef {
+        seq: 2858937,
+        score: 30,
+        steps: &[
+            Step::Word(WordPart {
+                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                length: Len::Fixed(1),
+                finder: Finder::Seq,
+                modify: Modify::None,
+            }),
+            Step::Word(WordPart {
+                seq: PartSeq::Static(&[1406690i32]),
+                length: Len::Open,
+                finder: Finder::ConjOf,
+                modify: Modify::None,
+            }),
+        ],
+    },
+];
 
 pub async fn split_map_dispatch(
     seq: i32,
     ctx: &KaniranContext,
     reading: &KaniSimpleTextDispatchEnum,
 ) -> Option<Result<(Vec<Option<SplitPart>>, i32), sqlx::Error>> {
-    match seq {
-        1000430i32 => Some(split_1000430(ctx, reading).await),
-        1002970i32 => Some(split_1002970(ctx, reading).await),
-        1004800i32 => Some(split_de_1004800(ctx, reading).await),
-        1005600i32 => Some(split_1005600(ctx, reading).await),
-        1005700i32 => Some(split_shi_1005700(ctx, reading).await),
-        1005830i32 => Some(split_shi_1005830(ctx, reading).await),
-        1006280i32 => Some(split_1006280(ctx, reading).await),
-        1006650i32 => Some(split_souda(ctx, reading).await),
-        1006840i32 => Some(split_de_1006840(ctx, reading).await),
-        1006880i32 => Some(split_1006880(ctx, reading).await),
-        1008030i32 => Some(split_1008030(ctx, reading).await),
-        1009470i32 => Some(split_nara(ctx, reading).await),
-        1009600i32 => Some(split_nitotte(ctx, reading).await),
-        1157200i32 => Some(split_shi_1157200(ctx, reading).await),
-        1157220i32 => Some(split_shi_1157220(ctx, reading).await),
-        1157230i32 => Some(split_shi_1157230(ctx, reading).await),
-        1157240i32 => Some(split_shi_1157240(ctx, reading).await),
-        1157280i32 => Some(split_shi_1157280(ctx, reading).await),
-        1157310i32 => Some(split_shi_1157310(ctx, reading).await),
-        1163700i32 => Some(split_de_1163700(ctx, reading).await),
-        1164910i32 => Some(split_toori_1164910(ctx, reading).await),
-        1189420i32 => Some(split_de_1189420(ctx, reading).await),
-        1207840i32 => Some(split_1207840(ctx, reading).await),
-        1221530i32 => Some(split_1221530(ctx, reading).await),
-        1221680i32 => Some(split_1221680(ctx, reading).await),
-        1221750i32 => Some(split_kinosei(ctx, reading).await),
-        1236680i32 => Some(split_osoreiru(ctx, reading).await),
-        1245390i32 => Some(split_de_1245390(ctx, reading).await),
-        1260990i32 => Some(split_toori_1260990(ctx, reading).await),
-        1270210i32 => Some(split_de_1270210(ctx, reading).await),
-        1272220i32 => Some(split_de_1272220(ctx, reading).await),
-        1304820i32 => Some(split_shi_1304820(ctx, reading).await),
-        1304890i32 => Some(split_shi_1304890(ctx, reading).await),
-        1304960i32 => Some(split_shi_1304960(ctx, reading).await),
-        1305110i32 => Some(split_shi_1305110(ctx, reading).await),
-        1305280i32 => Some(split_shi_1305280(ctx, reading).await),
-        1305290i32 => Some(split_shi_1305290(ctx, reading).await),
-        1311360i32 => Some(split_de_1311360(ctx, reading).await),
-        1314600i32 => Some(split_1314600(ctx, reading).await),
-        1314770i32 => Some(split_1314770(ctx, reading).await),
-        1315700i32 => Some(split_motteiku(ctx, reading).await),
-        1315860i32 => Some(split_1315860(ctx, reading).await),
-        1322540i32 => Some(split_1322540(ctx, reading).await),
-        1322560i32 => Some(split_1322560(ctx, reading).await),
-        1327220i32 => Some(split_1327220(ctx, reading).await),
-        1327230i32 => Some(split_1327230(ctx, reading).await),
-        1343110i32 => Some(split_de_1343110(ctx, reading).await),
-        1349300i32 => Some(split_1349300(ctx, reading).await),
-        1362970i32 => Some(split_1362970(ctx, reading).await),
-        1368500i32 => Some(split_de_1368500(ctx, reading).await),
-        1368740i32 => Some(split_hitotachi(ctx, reading).await),
-        1368820i32 => Some(split_toori_1368820(ctx, reading).await),
-        1395670i32 => Some(split_de_1395670(ctx, reading).await),
-        1411570i32 => Some(split_kawaribae(ctx, reading).await),
-        1414570i32 => Some(split_toori_1414570(ctx, reading).await),
-        1417790i32 => Some(split_de_1417790(ctx, reading).await),
-        1419350i32 => Some(split_hajikidasu(ctx, reading).await),
-        1424950i32 => Some(split_toori_1424950(ctx, reading).await),
-        1424960i32 => Some(split_toori_1424960(ctx, reading).await),
-        1454270i32 => Some(split_de_1454270(ctx, reading).await),
-        1462720i32 => Some(split_toori_1462720(ctx, reading).await),
-        1465460i32 => Some(split_hairikomeru(ctx, reading).await),
-        1474200i32 => Some(split_1474200(ctx, reading).await),
-        1479100i32 => Some(split_de_1479100(ctx, reading).await),
-        1489800i32 => Some(split_toori_1489800(ctx, reading).await),
-        1502500i32 => Some(split_1502500(ctx, reading).await),
-        1508380i32 => Some(split_1508380(ctx, reading).await),
-        1510140i32 => Some(split_de_1510140(ctx, reading).await),
-        1518540i32 => Some(split_nakunaru2(ctx, reading).await),
-        1518550i32 => Some(split_de_1518550(ctx, reading).await),
-        1523010i32 => Some(split_toori_1523010(ctx, reading).await),
-        1524660i32 => Some(split_gotoni(ctx, reading).await),
-        1529550i32 => Some(split_nakunaru(ctx, reading).await),
-        1530610i32 => Some(split_de_1530610(ctx, reading).await),
-        1531420i32 => Some(split_de_1531420(ctx, reading).await),
-        1532270i32 => Some(split_1532270(ctx, reading).await),
-        1538340i32 => Some(split_1538340(ctx, reading).await),
-        1550490i32 => Some(split_toori_1550490(ctx, reading).await),
-        1551500i32 => Some(split_1551500(ctx, reading).await),
-        1579130i32 => Some(split_1579130(ctx, reading).await),
-        1581550i32 => Some(split_1581550(ctx, reading).await),
-        1591050i32 => Some(split_1591050(ctx, reading).await),
-        1591980i32 => Some(split_1591980(ctx, reading).await),
-        1594300i32 => Some(split_shi_1594300(ctx, reading).await),
-        1594310i32 => Some(split_shi_1594310(ctx, reading).await),
-        1594460i32 => Some(split_shi_1594460(ctx, reading).await),
-        1594580i32 => Some(split_shi_1594580(ctx, reading).await),
-        1597400i32 => Some(split_de_1597400(ctx, reading).await),
-        1597740i32 => Some(split_1597740(ctx, reading).await),
-        1599590i32 => Some(split_nanimokamo(ctx, reading).await),
-        1601010i32 => Some(split_1601010(ctx, reading).await),
-        1601080i32 => Some(split_1601080(ctx, reading).await),
-        1602740i32 => Some(split_1602740(ctx, reading).await),
-        1606530i32 => Some(split_1606530(ctx, reading).await),
-        1606800i32 => Some(split_1606800(ctx, reading).await),
-        1609470i32 => Some(split_kaasan(ctx, reading).await),
-        1611020i32 => Some(split_de_1611020(ctx, reading).await),
-        1612640i32 => Some(split_1612640(ctx, reading).await),
-        1619440i32 => Some(split_toori_1619440(ctx, reading).await),
-        1679990i32 => Some(split_de_1679990(ctx, reading).await),
-        1682060i32 => Some(split_de_1682060(ctx, reading).await),
-        1693800i32 => Some(split_osagari(ctx, reading).await),
-        1736650i32 => Some(split_de_1736650(ctx, reading).await),
-        1752860i32 => Some(split_kaisasae(ctx, reading).await),
-        1774820i32 => Some(split_1774820(ctx, reading).await),
-        1808080i32 => Some(split_toori_1808080(ctx, reading).await),
-        1820790i32 => Some(split_toori_1820790(ctx, reading).await),
-        1854750i32 => Some(split_1854750(ctx, reading).await),
-        1855670i32 => Some(split_1855670(ctx, reading).await),
-        1863230i32 => Some(split_1863230(ctx, reading).await),
-        1865020i32 => Some(split_de_1865020(ctx, reading).await),
-        1878880i32 => Some(split_de_1878880(ctx, reading).await),
-        1881080i32 => Some(split_shinikakaru(ctx, reading).await),
-        1881690i32 => Some(split_1881690(ctx, reading).await),
-        1894260i32 => Some(split_1894260(ctx, reading).await),
-        1903910i32 => Some(split_hisshininatte(ctx, reading).await),
-        1922760i32 => Some(split_toiu(ctx, reading).await),
-        1951150i32 => Some(split_kimatte(ctx, reading).await),
-        2002270i32 => Some(split_2002270(ctx, reading).await),
-        2007500i32 => Some(split_2007500(ctx, reading).await),
-        2009290i32 => Some(split_2009290(ctx, reading).await),
-        2016840i32 => Some(split_2016840(ctx, reading).await),
-        2026650i32 => Some(split_2026650(ctx, reading).await),
-        2034520i32 => Some(split_desura(ctx, reading).await),
-        2057340i32 => Some(split_moushiwakenasasou(ctx, reading).await),
-        2083990i32 => Some(split_2083990(ctx, reading).await),
-        2088480i32 => Some(split_2088480(ctx, reading).await),
-        2089710i32 => Some(split_tegakakaru(ctx, reading).await),
-        2100770i32 => Some(split_tonattara(ctx, reading).await),
-        2100900i32 => Some(split_tonaru(ctx, reading).await),
-        2102910i32 => Some(split_katawonaraberu(ctx, reading).await),
-        2104540i32 => Some(split_nantokanaru(ctx, reading).await),
-        2109610i32 => Some(split_2109610(ctx, reading).await),
-        2126220i32 => Some(split_de_2126220(ctx, reading).await),
-        2133750i32 => Some(split_2133750(ctx, reading).await),
-        2135280i32 => Some(split_jan(ctx, reading).await),
-        2136520i32 => Some(split_de_2136520(ctx, reading).await),
-        2142680i32 => Some(split_do_2142680(ctx, reading).await),
-        2142710i32 => Some(split_do_2142710(ctx, reading).await),
-        2215340i32 => Some(split_kotonisuru(ctx, reading).await),
-        2253080i32 => Some(split_degozaimasu(ctx, reading).await),
-        2272780i32 => Some(split_2272780(ctx, reading).await),
-        2276360i32 => Some(split_2276360(ctx, reading).await),
-        2433760i32 => Some(split_2433760(ctx, reading).await),
-        2513590i32 => Some(split_de_2513590(ctx, reading).await),
-        2518250i32 => Some(split_shi_2518250(ctx, reading).await),
-        2523480i32 => Some(split_do_2523480(ctx, reading).await),
-        2526850i32 => Some(split_2526850(ctx, reading).await),
-        2529050i32 => Some(split_2529050(ctx, reading).await),
-        2610760i32 => Some(split_hajiketobu(ctx, reading).await),
-        2612990i32 => Some(split_toiukotoda(ctx, reading).await),
-        2666360i32 => Some(split_2666360(ctx, reading).await),
-        2668400i32 => Some(split_2668400(ctx, reading).await),
-        2719270i32 => Some(split_de_2719270(ctx, reading).await),
-        2724560i32 => Some(split_2724560(ctx, reading).await),
-        2755350i32 => Some(split_janai(ctx, reading).await),
-        2757500i32 => Some(split_2757500(ctx, reading).await),
-        2757540i32 => Some(split_2757540(ctx, reading).await),
-        2762260i32 => Some(split_2762260(ctx, reading).await),
-        2771850i32 => Some(split_de_2771850(ctx, reading).await),
-        2771940i32 => Some(split_2771940(ctx, reading).await),
-        2800540i32 => Some(split_dogatsukeru(ctx, reading).await),
-        2803190i32 => Some(split_do_2803190(ctx, reading).await),
-        2810720i32 => Some(split_de_2810720(ctx, reading).await),
-        2810800i32 => Some(split_de_2810800(ctx, reading).await),
-        2815260i32 => Some(split_hayaimonode(ctx, reading).await),
-        2819990i32 => Some(split_janaika(ctx, reading).await),
-        2834051i32 => Some(split_2834051(ctx, reading).await),
-        2834732i32 => Some(split_2834732(ctx, reading).await),
-        2835890i32 => Some(split_2835890(ctx, reading).await),
-        2837492i32 => Some(split_soudesu(ctx, reading).await),
-        2846470i32 => Some(split_2846470(ctx, reading).await),
-        2855921i32 => Some(split_2855921(ctx, reading).await),
-        2858937i32 => Some(split_shi_2858937(ctx, reading).await),
-        _ => None,
-    }
+    let def = SPLIT_TABLE.iter().find(|d| d.seq == seq)?;
+    Some(run_split(def, ctx, reading).await)
 }
 
 /// Number of registered seqs — pinned so the build fails loudly if
 /// a future macro form accidentally drops out of the regenerated set.
 #[cfg(test)]
-pub(crate) const REGISTERED_COUNT: usize = 174;
+pub(crate) const REGISTERED_COUNT: usize = SPLIT_TABLE.len();
 
 #[cfg(test)]
 mod tests {

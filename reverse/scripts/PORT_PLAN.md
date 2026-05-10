@@ -210,181 +210,181 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  193. `ichiran/dict:split-tokoroga`  — fn, dict-split.lisp:771
  194. `ichiran/dict:split-tokorowo`  — fn, dict-split.lisp:771
  195. `ichiran/dict:*segsplit-map*`  — global, dict-split.lisp:704
- 196. `ichiran/dict:split-1000430`  — fn, dict-split.lisp:505  *[ported]*
- 197. `ichiran/dict:split-1002970`  — fn, dict-split.lisp:492  *[ported]*
- 198. `ichiran/dict:split-1005600`  — fn, dict-split.lisp:498  *[ported]*
- 199. `ichiran/dict:split-1006280`  — fn, dict-split.lisp:669  *[ported]*
- 200. `ichiran/dict:split-1006880`  — fn, dict-split.lisp:727  *[ported]*
- 201. `ichiran/dict:split-1008030`  — fn, dict-split.lisp:645  *[ported]*
- 202. `ichiran/dict:split-1207840`  — fn, dict-split.lisp:711  *[ported]*
- 203. `ichiran/dict:split-1221530`  — fn, dict-split.lisp:611  *[ported]*
- 204. `ichiran/dict:split-1221680`  — fn, dict-split.lisp:521  *[ported]*
- 205. `ichiran/dict:split-1314600`  — fn, dict-split.lisp:512  *[ported]*
- 206. `ichiran/dict:split-1314770`  — fn, dict-split.lisp:640  *[ported]*
- 207. `ichiran/dict:split-1315860`  — fn, dict-split.lisp:535  *[ported]*
- 208. `ichiran/dict:split-1322540`  — fn, dict-split.lisp:517  *[ported]*
- 209. `ichiran/dict:split-1322560`  — fn, dict-split.lisp:719  *[ported]*
- 210. `ichiran/dict:split-1327220`  — fn, dict-split.lisp:424  *[ported]*
- 211. `ichiran/dict:split-1327230`  — fn, dict-split.lisp:429  *[ported]*
- 212. `ichiran/dict:split-1349300`  — fn, dict-split.lisp:608  *[ported]*
- 213. `ichiran/dict:split-1362970`  — fn, dict-split.lisp:759  *[ported]*
- 214. `ichiran/dict:split-1474200`  — fn, dict-split.lisp:546  *[ported]*
- 215. `ichiran/dict:split-1502500`  — fn, dict-split.lisp:487  *[ported]*
- 216. `ichiran/dict:split-1508380`  — fn, dict-split.lisp:478  *[ported]*
- 217. `ichiran/dict:split-1532270`  — fn, dict-split.lisp:685  *[ported]*
- 218. `ichiran/dict:split-1538340`  — fn, dict-split.lisp:526  *[ported]*
- 219. `ichiran/dict:split-1551500`  — fn, dict-split.lisp:631  *[ported]*
- 220. `ichiran/dict:split-1579130`  — fn, dict-split.lisp:559  *[ported]*
- 221. `ichiran/dict:split-1581550`  — fn, dict-split.lisp:650  *[ported]*
- 222. `ichiran/dict:split-1591050`  — fn, dict-split.lisp:571  *[ported]*
- 223. `ichiran/dict:split-1591980`  — fn, dict-split.lisp:625  *[ported]*
- 224. `ichiran/dict:split-1597740`  — fn, dict-split.lisp:645  *[ported]*
- 225. `ichiran/dict:split-1601010`  — fn, dict-split.lisp:732  *[ported]*
- 226. `ichiran/dict:split-1601080`  — fn, dict-split.lisp:658  *[ported]*
- 227. `ichiran/dict:split-1602740`  — fn, dict-split.lisp:605  *[ported]*
- 228. `ichiran/dict:split-1606530`  — fn, dict-split.lisp:676  *[ported]*
- 229. `ichiran/dict:split-1606800`  — fn, dict-split.lisp:706  *[ported]*
- 230. `ichiran/dict:split-1612640`  — fn, dict-split.lisp:509  *[ported]*
- 231. `ichiran/dict:split-1774820`  — fn, dict-split.lisp:756  *[ported]*
- 232. `ichiran/dict:split-1854750`  — fn, dict-split.lisp:596  *[ported]*
- 233. `ichiran/dict:split-1855670`  — fn, dict-split.lisp:742  *[ported]*
- 234. `ichiran/dict:split-1863230`  — fn, dict-split.lisp:698  *[ported]*
- 235. `ichiran/dict:split-1881690`  — fn, dict-split.lisp:734  *[ported]*
+ 196. `ichiran/dict:split-1000430`  — fn, dict-split.lisp:505  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 197. `ichiran/dict:split-1002970`  — fn, dict-split.lisp:492  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 198. `ichiran/dict:split-1005600`  — fn, dict-split.lisp:498  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 199. `ichiran/dict:split-1006280`  — fn, dict-split.lisp:669  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 200. `ichiran/dict:split-1006880`  — fn, dict-split.lisp:727  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 201. `ichiran/dict:split-1008030`  — fn, dict-split.lisp:645  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 202. `ichiran/dict:split-1207840`  — fn, dict-split.lisp:711  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 203. `ichiran/dict:split-1221530`  — fn, dict-split.lisp:611  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 204. `ichiran/dict:split-1221680`  — fn, dict-split.lisp:521  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 205. `ichiran/dict:split-1314600`  — fn, dict-split.lisp:512  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 206. `ichiran/dict:split-1314770`  — fn, dict-split.lisp:640  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 207. `ichiran/dict:split-1315860`  — fn, dict-split.lisp:535  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 208. `ichiran/dict:split-1322540`  — fn, dict-split.lisp:517  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 209. `ichiran/dict:split-1322560`  — fn, dict-split.lisp:719  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 210. `ichiran/dict:split-1327220`  — fn, dict-split.lisp:424  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 211. `ichiran/dict:split-1327230`  — fn, dict-split.lisp:429  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 212. `ichiran/dict:split-1349300`  — fn, dict-split.lisp:608  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 213. `ichiran/dict:split-1362970`  — fn, dict-split.lisp:759  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 214. `ichiran/dict:split-1474200`  — fn, dict-split.lisp:546  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 215. `ichiran/dict:split-1502500`  — fn, dict-split.lisp:487  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 216. `ichiran/dict:split-1508380`  — fn, dict-split.lisp:478  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 217. `ichiran/dict:split-1532270`  — fn, dict-split.lisp:685  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 218. `ichiran/dict:split-1538340`  — fn, dict-split.lisp:526  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 219. `ichiran/dict:split-1551500`  — fn, dict-split.lisp:631  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 220. `ichiran/dict:split-1579130`  — fn, dict-split.lisp:559  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 221. `ichiran/dict:split-1581550`  — fn, dict-split.lisp:650  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 222. `ichiran/dict:split-1591050`  — fn, dict-split.lisp:571  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 223. `ichiran/dict:split-1591980`  — fn, dict-split.lisp:625  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 224. `ichiran/dict:split-1597740`  — fn, dict-split.lisp:645  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 225. `ichiran/dict:split-1601010`  — fn, dict-split.lisp:732  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 226. `ichiran/dict:split-1601080`  — fn, dict-split.lisp:658  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 227. `ichiran/dict:split-1602740`  — fn, dict-split.lisp:605  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 228. `ichiran/dict:split-1606530`  — fn, dict-split.lisp:676  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 229. `ichiran/dict:split-1606800`  — fn, dict-split.lisp:706  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 230. `ichiran/dict:split-1612640`  — fn, dict-split.lisp:509  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 231. `ichiran/dict:split-1774820`  — fn, dict-split.lisp:756  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 232. `ichiran/dict:split-1854750`  — fn, dict-split.lisp:596  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 233. `ichiran/dict:split-1855670`  — fn, dict-split.lisp:742  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 234. `ichiran/dict:split-1863230`  — fn, dict-split.lisp:698  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 235. `ichiran/dict:split-1881690`  — fn, dict-split.lisp:734  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
  236. `ichiran/dict:optprefix`  — fn, dict-split.lisp:580  *[ported]*
- 237. `ichiran/dict:split-1894260`  — fn, dict-split.lisp:586  *[ported]*
- 238. `ichiran/dict:split-2002270`  — fn, dict-split.lisp:633  *[ported]*
- 239. `ichiran/dict:split-2007500`  — fn, dict-split.lisp:681  *[ported]*
- 240. `ichiran/dict:split-2009290`  — fn, dict-split.lisp:483  *[ported]*
- 241. `ichiran/dict:split-2016840`  — fn, dict-split.lisp:502  *[ported]*
- 242. `ichiran/dict:split-2026650`  — fn, dict-split.lisp:601  *[ported]*
- 243. `ichiran/dict:split-2083990`  — fn, dict-split.lisp:468  *[ported]*
- 244. `ichiran/dict:split-2088480`  — fn, dict-split.lisp:438  *[ported]*
- 245. `ichiran/dict:split-2109610`  — fn, dict-split.lisp:715  *[ported]*
- 246. `ichiran/dict:split-2133750`  — fn, dict-split.lisp:691  *[ported]*
- 247. `ichiran/dict:split-2272780`  — fn, dict-split.lisp:616  *[ported]*
- 248. `ichiran/dict:split-2276360`  — fn, dict-split.lisp:554  *[ported]*
- 249. `ichiran/dict:split-2433760`  — fn, dict-split.lisp:432  *[ported]*
- 250. `ichiran/dict:split-2526850`  — fn, dict-split.lisp:597  *[ported]*
- 251. `ichiran/dict:split-2529050`  — fn, dict-split.lisp:662  *[ported]*
- 252. `ichiran/dict:split-2666360`  — fn, dict-split.lisp:446  *[ported]*
- 253. `ichiran/dict:split-2668400`  — fn, dict-split.lisp:564  *[ported]*
- 254. `ichiran/dict:split-2724560`  — fn, dict-split.lisp:442  *[ported]*
- 255. `ichiran/dict:split-2757500`  — fn, dict-split.lisp:531  *[ported]*
- 256. `ichiran/dict:split-2757540`  — fn, dict-split.lisp:673  *[ported]*
- 257. `ichiran/dict:split-2762260`  — fn, dict-split.lisp:474  *[ported]*
- 258. `ichiran/dict:split-2771940`  — fn, dict-split.lisp:457  *[ported]*
- 259. `ichiran/dict:split-2834051`  — fn, dict-split.lisp:702  *[ported]*
- 260. `ichiran/dict:split-2834732`  — fn, dict-split.lisp:740  *[ported]*
- 261. `ichiran/dict:split-2835890`  — fn, dict-split.lisp:577  *[ported]*
- 262. `ichiran/dict:split-2846470`  — fn, dict-split.lisp:621  *[ported]*
- 263. `ichiran/dict:split-2855921`  — fn, dict-split.lisp:748  *[ported]*
- 264. `ichiran/dict:split-de-1004800`  — fn, dict-split.lisp:104  *[ported]*
- 265. `ichiran/dict:split-de-1006840`  — fn, dict-split.lisp:106  *[ported]*
- 266. `ichiran/dict:split-de-1163700`  — fn, dict-split.lisp:102  *[ported]*
- 267. `ichiran/dict:split-de-1189420`  — fn, dict-split.lisp:111  *[ported]*
- 268. `ichiran/dict:split-de-1245390`  — fn, dict-split.lisp:108  *[ported]*
- 269. `ichiran/dict:split-de-1270210`  — fn, dict-split.lisp:140  *[ported]*
- 270. `ichiran/dict:split-de-1272220`  — fn, dict-split.lisp:112  *[ported]*
- 271. `ichiran/dict:split-de-1311360`  — fn, dict-split.lisp:113  *[ported]*
- 272. `ichiran/dict:split-de-1343110`  — fn, dict-split.lisp:139  *[ported]*
- 273. `ichiran/dict:split-de-1368500`  — fn, dict-split.lisp:114  *[ported]*
- 274. `ichiran/dict:split-de-1395670`  — fn, dict-split.lisp:115  *[ported]*
- 275. `ichiran/dict:split-de-1417790`  — fn, dict-split.lisp:116  *[ported]*
- 276. `ichiran/dict:split-de-1454270`  — fn, dict-split.lisp:117  *[ported]*
- 277. `ichiran/dict:split-de-1479100`  — fn, dict-split.lisp:119  *[ported]*
- 278. `ichiran/dict:split-de-1510140`  — fn, dict-split.lisp:120  *[ported]*
- 279. `ichiran/dict:split-de-1518550`  — fn, dict-split.lisp:121  *[ported]*
- 280. `ichiran/dict:split-de-1530610`  — fn, dict-split.lisp:107  *[ported]*
- 281. `ichiran/dict:split-de-1531420`  — fn, dict-split.lisp:122  *[ported]*
- 282. `ichiran/dict:split-de-1597400`  — fn, dict-split.lisp:123  *[ported]*
- 283. `ichiran/dict:split-de-1611020`  — fn, dict-split.lisp:102  *[ported]*
- 284. `ichiran/dict:split-de-1679990`  — fn, dict-split.lisp:124  *[ported]*
- 285. `ichiran/dict:split-de-1682060`  — fn, dict-split.lisp:126  *[ported]*
- 286. `ichiran/dict:split-de-1736650`  — fn, dict-split.lisp:127  *[ported]*
- 287. `ichiran/dict:split-de-1865020`  — fn, dict-split.lisp:128  *[ported]*
- 288. `ichiran/dict:split-de-1878880`  — fn, dict-split.lisp:129  *[ported]*
- 289. `ichiran/dict:split-de-2126220`  — fn, dict-split.lisp:130  *[ported]*
- 290. `ichiran/dict:split-de-2136520`  — fn, dict-split.lisp:131  *[ported]*
- 291. `ichiran/dict:split-de-2513590`  — fn, dict-split.lisp:133  *[ported]*
- 292. `ichiran/dict:split-de-2719270`  — fn, dict-split.lisp:109  *[ported]*
- 293. `ichiran/dict:split-de-2771850`  — fn, dict-split.lisp:135  *[ported]*
- 294. `ichiran/dict:split-de-2810720`  — fn, dict-split.lisp:105  *[ported]*
- 295. `ichiran/dict:split-de-2810800`  — fn, dict-split.lisp:136  *[ported]*
- 296. `ichiran/dict:split-degozaimasu`  — fn, dict-split.lisp:140  *[ported]*
- 297. `ichiran/dict:split-desura`  — fn, dict-split.lisp:382  *[ported]*
- 298. `ichiran/dict:split-do-2142680`  — fn, dict-split.lisp:190  *[ported]*
- 299. `ichiran/dict:split-do-2142710`  — fn, dict-split.lisp:189  *[ported]*
- 300. `ichiran/dict:split-do-2523480`  — fn, dict-split.lisp:190  *[ported]*
- 301. `ichiran/dict:split-do-2803190`  — fn, dict-split.lisp:189  *[ported]*
- 302. `ichiran/dict:split-dogatsukeru`  — fn, dict-split.lisp:276  *[ported]*
- 303. `ichiran/dict:split-gotoni`  — fn, dict-split.lisp:387  *[ported]*
- 304. `ichiran/dict:split-hairikomeru`  — fn, dict-split.lisp:340  *[ported]*
- 305. `ichiran/dict:split-hajiketobu`  — fn, dict-split.lisp:328  *[ported]*
- 306. `ichiran/dict:split-hajikidasu`  — fn, dict-split.lisp:368  *[ported]*
- 307. `ichiran/dict:split-hayaimonode`  — fn, dict-split.lisp:267  *[ported]*
- 308. `ichiran/dict:split-hisshininatte`  — fn, dict-split.lisp:348  *[ported]*
- 309. `ichiran/dict:split-hitotachi`  — fn, dict-split.lisp:375  *[ported]*
- 310. `ichiran/dict:split-jan`  — fn, dict-split.lisp:454  *[ported]*
- 311. `ichiran/dict:split-janai`  — fn, dict-split.lisp:449  *[ported]*
- 312. `ichiran/dict:split-janaika`  — fn, dict-split.lisp:281  *[ported]*
- 313. `ichiran/dict:split-kaasan`  — fn, dict-split.lisp:285  *[ported]*
- 314. `ichiran/dict:split-kaisasae`  — fn, dict-split.lisp:399  *[ported]*
- 315. `ichiran/dict:split-katawonaraberu`  — fn, dict-split.lisp:305  *[ported]*
- 316. `ichiran/dict:split-kawaribae`  — fn, dict-split.lisp:258  *[ported]*
- 317. `ichiran/dict:split-kimatte`  — fn, dict-split.lisp:314  *[ported]*
- 318. `ichiran/dict:split-kinosei`  — fn, dict-split.lisp:295  *[ported]*
- 319. `ichiran/dict:split-kotonisuru`  — fn, dict-split.lisp:360  *[ported]*
- 320. `ichiran/dict:split-motteiku`  — fn, dict-split.lisp:333  *[ported]*
- 321. `ichiran/dict:split-moushiwakenasasou`  — fn, dict-split.lisp:310  *[ported]*
- 322. `ichiran/dict:split-nakunaru`  — fn, dict-split.lisp:237  *[ported]*
- 323. `ichiran/dict:split-nakunaru2`  — fn, dict-split.lisp:244  *[ported]*
- 324. `ichiran/dict:split-nanimokamo`  — fn, dict-split.lisp:301  *[ported]*
- 325. `ichiran/dict:split-nantokanaru`  — fn, dict-split.lisp:323  *[ported]*
- 326. `ichiran/dict:split-nara`  — fn, dict-split.lisp:464  *[ported]*
- 327. `ichiran/dict:split-nitotte`  — fn, dict-split.lisp:354  *[ported]*
- 328. `ichiran/dict:split-osagari`  — fn, dict-split.lisp:395  *[ported]*
- 329. `ichiran/dict:split-osoreiru`  — fn, dict-split.lisp:318  *[ported]*
- 330. `ichiran/dict:split-shi-1005700`  — fn, dict-split.lisp:209  *[ported]*
- 331. `ichiran/dict:split-shi-1005830`  — fn, dict-split.lisp:210  *[ported]*
- 332. `ichiran/dict:split-shi-1157200`  — fn, dict-split.lisp:211  *[ported]*
- 333. `ichiran/dict:split-shi-1157220`  — fn, dict-split.lisp:212  *[ported]*
- 334. `ichiran/dict:split-shi-1157230`  — fn, dict-split.lisp:213  *[ported]*
- 335. `ichiran/dict:split-shi-1157240`  — fn, dict-split.lisp:232  *[ported]*
- 336. `ichiran/dict:split-shi-1157280`  — fn, dict-split.lisp:214  *[ported]*
- 337. `ichiran/dict:split-shi-1157310`  — fn, dict-split.lisp:215  *[ported]*
- 338. `ichiran/dict:split-shi-1304820`  — fn, dict-split.lisp:234  *[ported]*
- 339. `ichiran/dict:split-shi-1304890`  — fn, dict-split.lisp:216  *[ported]*
- 340. `ichiran/dict:split-shi-1304960`  — fn, dict-split.lisp:218  *[ported]*
- 341. `ichiran/dict:split-shi-1305110`  — fn, dict-split.lisp:219  *[ported]*
- 342. `ichiran/dict:split-shi-1305280`  — fn, dict-split.lisp:221  *[ported]*
- 343. `ichiran/dict:split-shi-1305290`  — fn, dict-split.lisp:223  *[ported]*
- 344. `ichiran/dict:split-shi-1594300`  — fn, dict-split.lisp:223  *[ported]*
- 345. `ichiran/dict:split-shi-1594310`  — fn, dict-split.lisp:225  *[ported]*
- 346. `ichiran/dict:split-shi-1594460`  — fn, dict-split.lisp:227  *[ported]*
- 347. `ichiran/dict:split-shi-1594580`  — fn, dict-split.lisp:228  *[ported]*
- 348. `ichiran/dict:split-shi-2518250`  — fn, dict-split.lisp:231  *[ported]*
- 349. `ichiran/dict:split-shi-2858937`  — fn, dict-split.lisp:235  *[ported]*
- 350. `ichiran/dict:split-shinikakaru`  — fn, dict-split.lisp:345  *[ported]*
- 351. `ichiran/dict:split-souda`  — fn, dict-split.lisp:290  *[ported]*
- 352. `ichiran/dict:split-soudesu`  — fn, dict-split.lisp:292  *[ported]*
- 353. `ichiran/dict:split-tegakakaru`  — fn, dict-split.lisp:249  *[ported]*
- 354. `ichiran/dict:split-toiu`  — fn, dict-split.lisp:404  *[ported]*
- 355. `ichiran/dict:split-toiukotoda`  — fn, dict-split.lisp:407  *[ported]*
- 356. `ichiran/dict:split-tonaru`  — fn, dict-split.lisp:419  *[ported]*
- 357. `ichiran/dict:split-tonattara`  — fn, dict-split.lisp:415  *[ported]*
- 358. `ichiran/dict:split-toori-1164910`  — fn, dict-split.lisp:174  *[ported]*
- 359. `ichiran/dict:split-toori-1260990`  — fn, dict-split.lisp:155  *[ported]*
- 360. `ichiran/dict:split-toori-1368820`  — fn, dict-split.lisp:171  *[ported]*
- 361. `ichiran/dict:split-toori-1414570`  — fn, dict-split.lisp:157  *[ported]*
- 362. `ichiran/dict:split-toori-1424950`  — fn, dict-split.lisp:159  *[ported]*
- 363. `ichiran/dict:split-toori-1424960`  — fn, dict-split.lisp:161  *[ported]*
- 364. `ichiran/dict:split-toori-1462720`  — fn, dict-split.lisp:179  *[ported]*
- 365. `ichiran/dict:split-toori-1489800`  — fn, dict-split.lisp:167  *[ported]*
- 366. `ichiran/dict:split-toori-1523010`  — fn, dict-split.lisp:169  *[ported]*
- 367. `ichiran/dict:split-toori-1550490`  — fn, dict-split.lisp:172  *[ported]*
- 368. `ichiran/dict:split-toori-1619440`  — fn, dict-split.lisp:173  *[ported]*
- 369. `ichiran/dict:split-toori-1808080`  — fn, dict-split.lisp:171  *[ported]*
- 370. `ichiran/dict:split-toori-1820790`  — fn, dict-split.lisp:165  *[ported]*
+ 237. `ichiran/dict:split-1894260`  — fn, dict-split.lisp:586  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 238. `ichiran/dict:split-2002270`  — fn, dict-split.lisp:633  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 239. `ichiran/dict:split-2007500`  — fn, dict-split.lisp:681  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 240. `ichiran/dict:split-2009290`  — fn, dict-split.lisp:483  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 241. `ichiran/dict:split-2016840`  — fn, dict-split.lisp:502  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 242. `ichiran/dict:split-2026650`  — fn, dict-split.lisp:601  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 243. `ichiran/dict:split-2083990`  — fn, dict-split.lisp:468  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 244. `ichiran/dict:split-2088480`  — fn, dict-split.lisp:438  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 245. `ichiran/dict:split-2109610`  — fn, dict-split.lisp:715  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 246. `ichiran/dict:split-2133750`  — fn, dict-split.lisp:691  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 247. `ichiran/dict:split-2272780`  — fn, dict-split.lisp:616  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 248. `ichiran/dict:split-2276360`  — fn, dict-split.lisp:554  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 249. `ichiran/dict:split-2433760`  — fn, dict-split.lisp:432  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 250. `ichiran/dict:split-2526850`  — fn, dict-split.lisp:597  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 251. `ichiran/dict:split-2529050`  — fn, dict-split.lisp:662  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 252. `ichiran/dict:split-2666360`  — fn, dict-split.lisp:446  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 253. `ichiran/dict:split-2668400`  — fn, dict-split.lisp:564  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 254. `ichiran/dict:split-2724560`  — fn, dict-split.lisp:442  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 255. `ichiran/dict:split-2757500`  — fn, dict-split.lisp:531  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 256. `ichiran/dict:split-2757540`  — fn, dict-split.lisp:673  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 257. `ichiran/dict:split-2762260`  — fn, dict-split.lisp:474  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 258. `ichiran/dict:split-2771940`  — fn, dict-split.lisp:457  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 259. `ichiran/dict:split-2834051`  — fn, dict-split.lisp:702  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 260. `ichiran/dict:split-2834732`  — fn, dict-split.lisp:740  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 261. `ichiran/dict:split-2835890`  — fn, dict-split.lisp:577  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 262. `ichiran/dict:split-2846470`  — fn, dict-split.lisp:621  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 263. `ichiran/dict:split-2855921`  — fn, dict-split.lisp:748  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 264. `ichiran/dict:split-de-1004800`  — fn, dict-split.lisp:104  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 265. `ichiran/dict:split-de-1006840`  — fn, dict-split.lisp:106  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 266. `ichiran/dict:split-de-1163700`  — fn, dict-split.lisp:102  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 267. `ichiran/dict:split-de-1189420`  — fn, dict-split.lisp:111  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 268. `ichiran/dict:split-de-1245390`  — fn, dict-split.lisp:108  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 269. `ichiran/dict:split-de-1270210`  — fn, dict-split.lisp:140  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 270. `ichiran/dict:split-de-1272220`  — fn, dict-split.lisp:112  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 271. `ichiran/dict:split-de-1311360`  — fn, dict-split.lisp:113  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 272. `ichiran/dict:split-de-1343110`  — fn, dict-split.lisp:139  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 273. `ichiran/dict:split-de-1368500`  — fn, dict-split.lisp:114  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 274. `ichiran/dict:split-de-1395670`  — fn, dict-split.lisp:115  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 275. `ichiran/dict:split-de-1417790`  — fn, dict-split.lisp:116  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 276. `ichiran/dict:split-de-1454270`  — fn, dict-split.lisp:117  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 277. `ichiran/dict:split-de-1479100`  — fn, dict-split.lisp:119  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 278. `ichiran/dict:split-de-1510140`  — fn, dict-split.lisp:120  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 279. `ichiran/dict:split-de-1518550`  — fn, dict-split.lisp:121  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 280. `ichiran/dict:split-de-1530610`  — fn, dict-split.lisp:107  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 281. `ichiran/dict:split-de-1531420`  — fn, dict-split.lisp:122  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 282. `ichiran/dict:split-de-1597400`  — fn, dict-split.lisp:123  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 283. `ichiran/dict:split-de-1611020`  — fn, dict-split.lisp:102  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 284. `ichiran/dict:split-de-1679990`  — fn, dict-split.lisp:124  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 285. `ichiran/dict:split-de-1682060`  — fn, dict-split.lisp:126  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 286. `ichiran/dict:split-de-1736650`  — fn, dict-split.lisp:127  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 287. `ichiran/dict:split-de-1865020`  — fn, dict-split.lisp:128  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 288. `ichiran/dict:split-de-1878880`  — fn, dict-split.lisp:129  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 289. `ichiran/dict:split-de-2126220`  — fn, dict-split.lisp:130  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 290. `ichiran/dict:split-de-2136520`  — fn, dict-split.lisp:131  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 291. `ichiran/dict:split-de-2513590`  — fn, dict-split.lisp:133  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 292. `ichiran/dict:split-de-2719270`  — fn, dict-split.lisp:109  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 293. `ichiran/dict:split-de-2771850`  — fn, dict-split.lisp:135  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 294. `ichiran/dict:split-de-2810720`  — fn, dict-split.lisp:105  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 295. `ichiran/dict:split-de-2810800`  — fn, dict-split.lisp:136  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 296. `ichiran/dict:split-degozaimasu`  — fn, dict-split.lisp:140  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 297. `ichiran/dict:split-desura`  — fn, dict-split.lisp:382  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 298. `ichiran/dict:split-do-2142680`  — fn, dict-split.lisp:190  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 299. `ichiran/dict:split-do-2142710`  — fn, dict-split.lisp:189  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 300. `ichiran/dict:split-do-2523480`  — fn, dict-split.lisp:190  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 301. `ichiran/dict:split-do-2803190`  — fn, dict-split.lisp:189  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 302. `ichiran/dict:split-dogatsukeru`  — fn, dict-split.lisp:276  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 303. `ichiran/dict:split-gotoni`  — fn, dict-split.lisp:387  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 304. `ichiran/dict:split-hairikomeru`  — fn, dict-split.lisp:340  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 305. `ichiran/dict:split-hajiketobu`  — fn, dict-split.lisp:328  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 306. `ichiran/dict:split-hajikidasu`  — fn, dict-split.lisp:368  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 307. `ichiran/dict:split-hayaimonode`  — fn, dict-split.lisp:267  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 308. `ichiran/dict:split-hisshininatte`  — fn, dict-split.lisp:348  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 309. `ichiran/dict:split-hitotachi`  — fn, dict-split.lisp:375  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 310. `ichiran/dict:split-jan`  — fn, dict-split.lisp:454  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 311. `ichiran/dict:split-janai`  — fn, dict-split.lisp:449  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 312. `ichiran/dict:split-janaika`  — fn, dict-split.lisp:281  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 313. `ichiran/dict:split-kaasan`  — fn, dict-split.lisp:285  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 314. `ichiran/dict:split-kaisasae`  — fn, dict-split.lisp:399  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 315. `ichiran/dict:split-katawonaraberu`  — fn, dict-split.lisp:305  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 316. `ichiran/dict:split-kawaribae`  — fn, dict-split.lisp:258  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 317. `ichiran/dict:split-kimatte`  — fn, dict-split.lisp:314  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 318. `ichiran/dict:split-kinosei`  — fn, dict-split.lisp:295  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 319. `ichiran/dict:split-kotonisuru`  — fn, dict-split.lisp:360  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 320. `ichiran/dict:split-motteiku`  — fn, dict-split.lisp:333  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 321. `ichiran/dict:split-moushiwakenasasou`  — fn, dict-split.lisp:310  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 322. `ichiran/dict:split-nakunaru`  — fn, dict-split.lisp:237  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 323. `ichiran/dict:split-nakunaru2`  — fn, dict-split.lisp:244  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 324. `ichiran/dict:split-nanimokamo`  — fn, dict-split.lisp:301  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 325. `ichiran/dict:split-nantokanaru`  — fn, dict-split.lisp:323  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 326. `ichiran/dict:split-nara`  — fn, dict-split.lisp:464  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 327. `ichiran/dict:split-nitotte`  — fn, dict-split.lisp:354  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 328. `ichiran/dict:split-osagari`  — fn, dict-split.lisp:395  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 329. `ichiran/dict:split-osoreiru`  — fn, dict-split.lisp:318  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 330. `ichiran/dict:split-shi-1005700`  — fn, dict-split.lisp:209  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 331. `ichiran/dict:split-shi-1005830`  — fn, dict-split.lisp:210  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 332. `ichiran/dict:split-shi-1157200`  — fn, dict-split.lisp:211  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 333. `ichiran/dict:split-shi-1157220`  — fn, dict-split.lisp:212  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 334. `ichiran/dict:split-shi-1157230`  — fn, dict-split.lisp:213  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 335. `ichiran/dict:split-shi-1157240`  — fn, dict-split.lisp:232  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 336. `ichiran/dict:split-shi-1157280`  — fn, dict-split.lisp:214  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 337. `ichiran/dict:split-shi-1157310`  — fn, dict-split.lisp:215  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 338. `ichiran/dict:split-shi-1304820`  — fn, dict-split.lisp:234  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 339. `ichiran/dict:split-shi-1304890`  — fn, dict-split.lisp:216  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 340. `ichiran/dict:split-shi-1304960`  — fn, dict-split.lisp:218  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 341. `ichiran/dict:split-shi-1305110`  — fn, dict-split.lisp:219  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 342. `ichiran/dict:split-shi-1305280`  — fn, dict-split.lisp:221  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 343. `ichiran/dict:split-shi-1305290`  — fn, dict-split.lisp:223  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 344. `ichiran/dict:split-shi-1594300`  — fn, dict-split.lisp:223  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 345. `ichiran/dict:split-shi-1594310`  — fn, dict-split.lisp:225  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 346. `ichiran/dict:split-shi-1594460`  — fn, dict-split.lisp:227  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 347. `ichiran/dict:split-shi-1594580`  — fn, dict-split.lisp:228  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 348. `ichiran/dict:split-shi-2518250`  — fn, dict-split.lisp:231  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 349. `ichiran/dict:split-shi-2858937`  — fn, dict-split.lisp:235  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 350. `ichiran/dict:split-shinikakaru`  — fn, dict-split.lisp:345  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 351. `ichiran/dict:split-souda`  — fn, dict-split.lisp:290  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 352. `ichiran/dict:split-soudesu`  — fn, dict-split.lisp:292  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 353. `ichiran/dict:split-tegakakaru`  — fn, dict-split.lisp:249  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 354. `ichiran/dict:split-toiu`  — fn, dict-split.lisp:404  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 355. `ichiran/dict:split-toiukotoda`  — fn, dict-split.lisp:407  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 356. `ichiran/dict:split-tonaru`  — fn, dict-split.lisp:419  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 357. `ichiran/dict:split-tonattara`  — fn, dict-split.lisp:415  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 358. `ichiran/dict:split-toori-1164910`  — fn, dict-split.lisp:174  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 359. `ichiran/dict:split-toori-1260990`  — fn, dict-split.lisp:155  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 360. `ichiran/dict:split-toori-1368820`  — fn, dict-split.lisp:171  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 361. `ichiran/dict:split-toori-1414570`  — fn, dict-split.lisp:157  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 362. `ichiran/dict:split-toori-1424950`  — fn, dict-split.lisp:159  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 363. `ichiran/dict:split-toori-1424960`  — fn, dict-split.lisp:161  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 364. `ichiran/dict:split-toori-1462720`  — fn, dict-split.lisp:179  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 365. `ichiran/dict:split-toori-1489800`  — fn, dict-split.lisp:167  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 366. `ichiran/dict:split-toori-1523010`  — fn, dict-split.lisp:169  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 367. `ichiran/dict:split-toori-1550490`  — fn, dict-split.lisp:172  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 368. `ichiran/dict:split-toori-1619440`  — fn, dict-split.lisp:173  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 369. `ichiran/dict:split-toori-1808080`  — fn, dict-split.lisp:171  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
+ 370. `ichiran/dict:split-toori-1820790`  — fn, dict-split.lisp:165  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
  371. `ichiran/dict:*split-map*`  — global, dict-split.lisp:5  *[ported]*
  372. `ichiran/dict:*copulae*`  — global, dict-errata.lisp:1205
  373. `ichiran/dict:*final-prt*`  — global, dict-errata.lisp:1182
