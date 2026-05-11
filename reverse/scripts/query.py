@@ -644,10 +644,12 @@ def _skip_balanced(text: str, i: int, open_c: str, close_c: str) -> int:
 def parse_rust_pub_fns(text: str) -> list[dict]:
     """Find each `pub fn` / `pub async fn` declaration and count its top-level
     arguments. Walks optional generic params (`<...>`, possibly nested) before
-    the arglist."""
+    the arglist. Captures `is_async` and the return-type string after `->`."""
     out: list[dict] = []
     for m in PUB_FN_NAME.finditer(text):
         name = m.group(1)
+        # Re-scan the matched preamble for `async` since PUB_FN_NAME drops it.
+        is_async = bool(re.match(r"\bpub\s+async\s+fn\b", m.group(0)))
         i = m.end()
         while i < len(text) and text[i].isspace():
             i += 1
@@ -674,12 +676,125 @@ def parse_rust_pub_fns(text: str) -> list[dict]:
         if end == -1:
             continue
         body = text[start:end]
+        ret_type = _parse_rust_return_type(text, end + 1)
         out.append({
             "name": name,
             "arity": _rust_count_args(body),
             "ctx_injected": _first_arg_is_ctx(body),
+            "is_async": is_async,
+            "return_type": ret_type,
         })
     return out
+
+
+def _parse_rust_return_type(text: str, i: int) -> str | None:
+    """Walk from just after the closing `)` of a `pub fn` arg list. If
+    the next non-whitespace token is `->`, capture the return type up to
+    `{`, `;`, or a top-level `where` keyword. Returns `None` when the
+    fn has no explicit return type (i.e. unit `()`)."""
+    while i < len(text) and text[i].isspace():
+        i += 1
+    if not text.startswith("->", i):
+        return None
+    i += 2
+    while i < len(text) and text[i].isspace():
+        i += 1
+    start = i
+    depth = 0
+    while i < len(text):
+        c = text[i]
+        if c in "(<[":
+            depth += 1
+        elif c in ")>]":
+            depth -= 1
+        if depth == 0:
+            if c in "{;":
+                break
+            # Top-level `where` clause closes the return type.
+            if c == "w" and text[i:i + 5] == "where" and (i + 5 >= len(text) or not text[i + 5].isalnum() and text[i + 5] != "_"):
+                break
+        i += 1
+    return text[start:i].strip().rstrip(",").strip() or None
+
+
+def analyze_rust_return_type(rt: str | None) -> dict:
+    """Decompose a Rust return-type string into the bits the audit checks.
+
+    Unwraps a single layer of `Result<...>` / `Option<...>` and reports
+    whether the inner type is a tuple, what its arity is, and whether
+    the wrapper was a `Result` / `Option`. Used to compare against Lisp
+    `(values ...)` value counts.
+
+    Returns `{"unit": bool, "is_result": bool, "is_option": bool,
+              "tuple_arity": int | None, "inner": str, "raw": str | None}`.
+    `tuple_arity = None` means the inner type is not a tuple — i.e. a
+    single value. `unit = True` when the fn has no `-> T` form.
+    """
+    if rt is None:
+        return {"unit": True, "is_result": False, "is_option": False,
+                "tuple_arity": None, "inner": "", "raw": None}
+    raw = rt
+    s = rt.strip()
+    is_result = False
+    is_option = False
+    while True:
+        m_res = re.match(r"^Result\s*<\s*", s)
+        m_opt = re.match(r"^Option\s*<\s*", s)
+        if m_res and not is_result:
+            inner_start = m_res.end()
+            close = _find_matching_angle(s, inner_start - 1)
+            if close == -1:
+                break
+            inner = s[inner_start:close]
+            # Result<T, E> — split on the top-level comma to get T.
+            ok_t = _split_top_level_rust_args(inner)
+            if not ok_t:
+                break
+            s = ok_t[0].strip()
+            is_result = True
+            continue
+        if m_opt and not is_option:
+            inner_start = m_opt.end()
+            close = _find_matching_angle(s, inner_start - 1)
+            if close == -1:
+                break
+            s = s[inner_start:close].strip()
+            is_option = True
+            continue
+        break
+    tuple_arity: int | None = None
+    if s.startswith("(") and s.endswith(")"):
+        body = s[1:-1].strip()
+        if not body:
+            tuple_arity = 0
+        else:
+            parts = _split_top_level_rust_args(body)
+            if len(parts) >= 2:
+                tuple_arity = len(parts)
+    return {"unit": False, "is_result": is_result, "is_option": is_option,
+            "tuple_arity": tuple_arity, "inner": s, "raw": raw}
+
+
+def _find_matching_angle(text: str, i: int) -> int:
+    """Find the index of the `>` matching the `<` at `text[i]`. Respects
+    `(`/`[` nesting as well so generic args containing tuples don't
+    confuse the count. Returns -1 if no match."""
+    if i >= len(text) or text[i] != "<":
+        return -1
+    depth = 1
+    i += 1
+    while i < len(text):
+        c = text[i]
+        if c == "<":
+            depth += 1
+        elif c == ">":
+            depth -= 1
+            if depth == 0:
+                return i
+        elif c in "([":
+            i = _skip_balanced(text, i, c, ")" if c == "(" else "]") - 1
+        i += 1
+    return -1
 
 
 def lambda_list_from_ftype(ftype: str | None) -> str | None:
@@ -688,6 +803,18 @@ def lambda_list_from_ftype(ftype: str | None) -> str | None:
     `(function (T1 T2 &key (:k T)) (values ...))` → `(T1 T2 &key (:k T))`.
     Returns None when the ftype is missing, malformed, or has nil args
     (`(function nil ...)` → `()`).
+    """
+    decomposed = decompose_ftype(ftype)
+    return decomposed["args"] if decomposed else None
+
+
+def decompose_ftype(ftype: str | None) -> dict | None:
+    """Split an ftype `(function ARGS RETS)` into its arg list and return form.
+
+    Returns `{"args": str, "values": str | None}` where `args` is the same
+    parseable lambda list [`lambda_list_from_ftype`] used to return, and
+    `values` is the raw `(values ...)` (or single-type) form — `None` if
+    the third slot is missing or `*` (return type unspecified).
     """
     if not ftype:
         return None
@@ -700,10 +827,63 @@ def lambda_list_from_ftype(ftype: str | None) -> str | None:
         return None
     arg_section = tokens[1]
     if arg_section.lower() == "nil":
-        return "()"
-    if not (arg_section.startswith("(") and arg_section.endswith(")")):
+        args = "()"
+    elif arg_section.startswith("(") and arg_section.endswith(")"):
+        args = arg_section
+    else:
         return None
-    return arg_section
+    values: str | None = None
+    if len(tokens) >= 3:
+        rt = tokens[2].strip()
+        if rt and rt != "*":
+            values = rt
+    return {"args": args, "values": values}
+
+
+def parse_lisp_values_form(s: str | None) -> dict:
+    """Decompose a Lisp `(values ...)` return form (or bare type) into
+    counts. Mirrors the structure of [`parse_lisp_lambda_list`] but for
+    the third element of an ftype.
+
+    Returns `{"required": N, "optional": M, "rest": bool, "raw": str,
+    "fallback": bool}`. A bare type (not a `(values ...)` form) counts
+    as 1 required value. `(values)` is 0 required.
+    """
+    if s is None:
+        return {"required": 0, "optional": 0, "rest": False, "raw": "", "fallback": True}
+    s = s.strip()
+    if not s:
+        return {"required": 0, "optional": 0, "rest": False, "raw": s, "fallback": True}
+    # Bare type — `T`, `list`, etc. — counts as a single value.
+    if not (s.startswith("(") and s.endswith(")")):
+        return {"required": 1, "optional": 0, "rest": False, "raw": s, "fallback": False}
+    body = s[1:-1].strip()
+    try:
+        tokens = _split_top_level_lisp(body)
+    except Exception:
+        return {"required": 0, "optional": 0, "rest": False, "raw": s, "fallback": True}
+    if not tokens or tokens[0].lower() != "values":
+        # Anything else inside parens — `(or null T)`, `(integer 0 *)`,
+        # etc. — is a single typed value.
+        return {"required": 1, "optional": 0, "rest": False, "raw": s, "fallback": False}
+    required = 0
+    optional = 0
+    rest = False
+    section = "required"
+    for tok in tokens[1:]:
+        low = tok.lower()
+        if low == "&optional":
+            section = "optional"; continue
+        if low == "&rest":
+            section = "rest"; rest = True; continue
+        if low == "&allow-other-keys":
+            continue
+        if section == "required":
+            required += 1
+        elif section == "optional":
+            optional += 1
+        # rest: consume silently
+    return {"required": required, "optional": optional, "rest": rest, "raw": s, "fallback": False}
 
 
 def _audit_sweep(syms: dict[str, dict]) -> tuple[int, int, list[tuple[str, str, str]]]:
@@ -750,7 +930,8 @@ def _audit_sweep(syms: dict[str, dict]) -> tuple[int, int, list[tuple[str, str, 
         if sig is None:
             divergences.append((fqn, rel_path, "no entry in signatures.json"))
             continue
-        ll = sig["lambda_list"] or lambda_list_from_ftype(sig["ftype"])
+        decomposed = decompose_ftype(sig["ftype"])
+        ll = sig["lambda_list"] or (decomposed["args"] if decomposed else None)
         info = parse_lisp_lambda_list(ll)
         if info["fallback"]:
             divergences.append(
@@ -780,6 +961,30 @@ def _audit_sweep(syms: dict[str, dict]) -> tuple[int, int, list[tuple[str, str, 
                  f"(req={info['required']}, opt={info['optional']}, keys={info['keys']})"
                  f"{ctx_note}")
             )
+        # Return-type comparison — flag when the Lisp ftype declares
+        # multiple return values via `(values T1 T2 ...)` and the Rust
+        # `pub fn` doesn't return a tuple of matching arity. Common case
+        # this catches: a multi-value upstream collapsed to a single
+        # value in the port (e.g. `(values list cons)` → `i32`).
+        if decomposed and decomposed["values"]:
+            vals = parse_lisp_values_form(decomposed["values"])
+            if not vals["fallback"] and vals["required"] >= 2:
+                ret = analyze_rust_return_type(match_fn["return_type"])
+                rust_arity = ret["tuple_arity"] if ret["tuple_arity"] is not None else (0 if ret["unit"] else 1)
+                if rust_arity < vals["required"]:
+                    wrappers = []
+                    if ret["is_result"]:
+                        wrappers.append("Result")
+                    if ret["is_option"]:
+                        wrappers.append("Option")
+                    wrap_note = f" inside {'+'.join(wrappers)}" if wrappers else ""
+                    rust_disp = "()" if ret["unit"] else (ret["raw"] or ret["inner"])
+                    divergences.append(
+                        (fqn, rel_path,
+                         f"return-arity {rust_arity}{wrap_note} ≠ Lisp "
+                         f"(values …) required={vals['required']} "
+                         f"(rust={rust_disp!r}, lisp={vals['raw']!r})")
+                    )
         extras = [f["name"] for f in pub_fns if f["name"] != expected_name]
         if extras:
             divergences.append((fqn, rel_path, f"extra `pub fn`(s) in same file: {extras}"))

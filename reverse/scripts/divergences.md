@@ -14,7 +14,7 @@ captured Lisp lambda list. New entries should be either:
 
 - Checked: 85 fn/gf
 - Macros (file-existence only): 0
-- Divergences: 10
+- Divergences: 12
 
 ## Divergences
 
@@ -22,6 +22,11 @@ captured Lisp lambda list. New entries should be either:
 
 - file: `kaniran-core/src/characters/geminate.rs`
 - drift: arity 1 ≠ Lisp 2 (req=1, opt=0, keys=['fresh'])
+
+### `ichiran/characters:get-char-class`
+
+- file: `kaniran-core/src/characters/get_char_class.rs`
+- drift: return-arity 1 inside Option ≠ Lisp (values …) required=2 (rust='Option<KanaClass>', lisp='(values t boolean &optional)')
 
 ### `ichiran/characters:join`
 
@@ -37,6 +42,11 @@ captured Lisp lambda list. New entries should be either:
 
 - file: `kaniran-core/src/characters/unrendaku.rs`
 - drift: arity 1 ≠ Lisp 2 (req=1, opt=0, keys=['fresh'])
+
+### `ichiran/characters:voice-char`
+
+- file: `kaniran-core/src/characters/voice_char.rs`
+- drift: return-arity 1 ≠ Lisp (values …) required=2 (rust='KanaClass', lisp='(values t boolean &optional)')
 
 ### `ichiran/dict:find-word-conj-of`
 
