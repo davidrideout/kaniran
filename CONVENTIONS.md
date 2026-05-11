@@ -219,6 +219,20 @@ Rules:
   When ctx-injection coexists with other shape changes (a `&key` keyword collapsed per §4.4, an `&optional` dropped per §4.6), describe the full shape change — don't paste the canonical wording and leave the rest unmentioned.
 - **`audit-signatures` will flag ctx-injection as arity drift** (Rust arity is +1 against Lisp). Entries in `divergences.md` matching the form `arity N+1 ≠ Lisp N (req=N, opt=0, keys=[])` against a fn whose Rust signature starts with `ctx: &KaniranContext` are this convention. Commit them as-is; the visible drift is the audit's record that the convention applied.
 
+### 4.9. Prefer references over clones
+
+Almost everything in this port is read-only at the callsite: captured DAO fields (`.text`, `.kana`, `.seq`), `&KaniranContext`, dictionary entries, regex matches, projector output. Default to `&T` parameters, `&str` over `String`, `&[T]` over `Vec<T>`, and return references / `Cow<'_, str>` when the caller doesn't need ownership.
+
+`.clone()` is justified only when:
+- the value must outlive its source (caching, returning from a fn, storing in a struct field),
+- ownership must cross a task boundary that requires `'static` (`tokio::spawn`, `JoinSet`); prefer borrow-friendly concurrency (`futures::stream::buffer_unordered`) to avoid the clone in the first place,
+- the operation mutates and the original is still needed downstream,
+- a sort / comparator key needs an owned value (and even then, try `cmp_by_key` with a borrowed key).
+
+`String::clone`, `Vec::clone`, and `.to_string()` are not free. Audit replay and segmenter scoring loops process millions of rows; each elided clone matters end-to-end. Cloning to silence the borrow checker is a smell — re-examine the lifetimes first.
+
+When porting a Lisp fn that takes a string, the Rust signature should be `&str`, not `String`. When porting one that returns a slot value owned by a longer-lived struct, return `&T` or `Cow<'a, T>`. The grandfather rule: if you wrote `arg.clone()` or `value.to_string()` and the borrow would have worked, delete the clone.
+
 ---
 
 ## 5. Globals
@@ -324,6 +338,7 @@ Don't edit `PORT_PLAN.md` by hand. Don't edit upstream `*.lisp` files at the rep
 - **No `unsafe` without explicit justification** in a `// SAFETY:` comment. None of the current port surface needs it.
 - **No `unwrap()` on user-controllable input.** `expect()` with a message is fine for invariants the codebase enforces (e.g. "char_class is in *char-scanners*" — the table covers every `CharClass` variant and a test asserts so). Prefer `?` for plumbing through `Option`/`Result`.
 - **No `#[allow(...)]` to silence warnings without a comment** explaining why the warning is wrong here.
+- **No single-letter variable names** outside simple iterator-chain closures. Bindings created with `let`, function parameters, and destructured tuple slots must be descriptive (`actual_id`, `expected_row`, `kanji_text`) — not `a` / `e` / `k`. The exception is one-shot closure arguments in comprehensions where the type and role are obvious from the call site (`v.iter().map(|row| row.seq)` or `vec.sort_by_key(|kt| kt.text.clone())`); even there, a meaningful name is preferred when the closure body is more than a single field access. The rule exists because audit / port code is read more than written, and `a == e` doesn't tell a reviewer which side is the Rust value and which is the captured Lisp value.
 
 ---
 

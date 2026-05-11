@@ -15,7 +15,41 @@ sqlx = { workspace = true }
 tokio = { workspace = true }
 config = { workspace = true }
 thiserror = { workspace = true }
-
-[dev-dependencies]
 parquet = "55"
 arrow = "55"
+futures = "0.3"
+
+# Per-FQN fixture-replay runners. Each lives at audit/<pkg>/<fqn>_test.rs
+# mirroring src/<pkg>/<fqn>.rs. Run manually with:
+#   cargo run --bin <fqn>_test -- --path corpus/<corpus_tag>/<fqn>.parquet
+[[bin]]
+name = "get_split_test"
+path = "audit/dict/get_split_test.rs"
+
+[[bin]]
+name = "normalize_test"
+path = "audit/characters/normalize_test.rs"
+
+[[bin]]
+name = "seq_test"
+path = "audit/dict/seq_test.rs"
+
+[[bin]]
+name = "common_test"
+path = "audit/dict/common_test.rs"
+
+[[bin]]
+name = "source_test"
+path = "audit/dict/source_test.rs"
+
+[[bin]]
+name = "get_text_test"
+path = "audit/dict/get_text_test.rs"
+
+[[bin]]
+name = "find_word_test"
+path = "audit/dict/find_word_test.rs"
+
+[[bin]]
+name = "find_word_as_hiragana_test"
+path = "audit/dict/find_word_as_hiragana_test.rs"

@@ -197,33 +197,52 @@ where
 
 /// Async flavor: same as [`run_sync`] but builds a [`KaniranContext`] via
 /// [`setup_ctx`] and passes it as the first argument to `audit_one`.
+/// Bounded concurrency. The default sqlx pool is `max_connections=10`;
+/// keep one connection in reserve for non-query work.
+const ASYNC_CONCURRENCY: usize = 8;
+
 pub async fn run_async<F>(expected_fqn: &str, audit_one: F) -> !
 where
     F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String>,
 {
+    use futures::stream::StreamExt;
+
     let path = parse_path_arg();
     let file = load_parquet(&path);
     let groups = group_by_args(file.rows);
     let total = groups.len();
 
     let ctx = setup_ctx().await;
+    let ctx_ref: &KaniranContext = &ctx;
+    let audit_one = &audit_one;
+
+    let stream = futures::stream::iter(groups.into_iter().enumerate().map(
+        |(idx, group)| async move {
+            let size = group.len();
+            let mut last_err: Option<String> = None;
+            let mut group_ok = false;
+            for row in &group {
+                match audit_one(ctx_ref, row).await {
+                    Ok(()) => { group_ok = true; break; }
+                    Err(err) => { last_err = Some(err); }
+                }
+            }
+            let outcome = if group_ok { Ok(()) } else { Err(last_err.unwrap_or_default()) };
+            (idx, size, outcome)
+        },
+    ))
+    .buffer_unordered(ASYNC_CONCURRENCY);
 
     let mut pass: usize = 0;
     let mut fail: usize = 0;
     let mut first_failures: Vec<String> = Vec::new();
     let mut progress = Progress::new(expected_fqn, total);
-    for (idx, group) in groups.iter().enumerate() {
-        let mut last_err: Option<String> = None;
-        let mut group_ok = false;
-        for row in group {
-            match audit_one(&ctx, row).await {
-                Ok(()) => { group_ok = true; break; }
-                Err(err) => { last_err = Some(err); }
-            }
-        }
-        let outcome = if group_ok { Ok(()) } else { Err(last_err.unwrap_or_default()) };
-        record_outcome(outcome, idx, group.len(), &mut pass, &mut fail, &mut first_failures);
-        progress.tick(idx + 1, pass, fail);
+    let mut done: usize = 0;
+    let mut stream = Box::pin(stream);
+    while let Some((idx, size, outcome)) = stream.next().await {
+        record_outcome(outcome, idx, size, &mut pass, &mut fail, &mut first_failures);
+        done += 1;
+        progress.tick(done, pass, fail);
     }
     report_and_exit(expected_fqn, pass, fail, &first_failures)
 }
