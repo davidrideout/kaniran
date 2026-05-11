@@ -31,6 +31,7 @@
 
 (load (merge-pathnames "trace_capture.lisp" *load-pathname*))
 (load (merge-pathnames "projectors.lisp" *load-pathname*))
+(load (merge-pathnames "projectors_json.lisp" *load-pathname*))
 
 
 ;; --- entry-point sweep -----------------------------------------------------
@@ -229,15 +230,41 @@
 ;; hooked so a worker crash + pool respawn does not silently drop
 ;; instrumentation mid-run. Without this, install state was per-image
 ;; and lost on respawn — replacements came up clean.
+;; Each entry is either a bare FQN string (uses defaults: package-level
+;; flatten projectors + :sexp encoder) or a list `(FQN &key arg-projector
+;; result-projector encoder)` passed to ICHI-TRACE:INSTALL via APPLY.
+;;
+;; All entries use the JSON projector + JSON encoder so the resulting
+;; parquet feeds straight into `kaniran-core/audit/<pkg>/<fqn>_test.rs`
+;; runners. The FQN list mirrors the union of the
+;; extracted_segmenter_2026_05_09 and extracted_splits_2026_05_09 corpora
+;; so the new extraction supersedes both legacy s-expr captures in one
+;; pass.
 (defparameter *boot-install-fqns*
-  '("ICHIRAN/DICT:GET-SPLIT"
-    "ICHIRAN/DICT:GET-SEGSPLIT"
-    "ICHIRAN/DICT:WORD-INFO-FROM-SEGMENT"
-    "ICHIRAN/DICT:QUERY-PARENTS-KANA"
-    "ICHIRAN/DICT:QUERY-PARENTS-KANJI"
-    "ICHIRAN/DICT:OPTPREFIX"
-    "ICHIRAN/DICT:GET-KANA"
-    "ICHIRAN/DICT:BEST-KANA-CONJ"))
+  (let ((arg-fn    (symbol-function (find-symbol "FLATTEN-ARGS-JSON"
+                                                  :ichi-projectors-json)))
+        (result-fn (symbol-function (find-symbol "FLATTEN-RESULTS-JSON"
+                                                  :ichi-projectors-json))))
+    (mapcar (lambda (fqn)
+              (list fqn
+                    :arg-projector arg-fn
+                    :result-projector result-fn
+                    :encoder :json))
+            '("ICHIRAN/DICT:COMMON"
+              "ICHIRAN/DICT:FIND-WORD"
+              "ICHIRAN/DICT:FIND-WORD-AS-HIRAGANA"
+              "ICHIRAN/DICT:FIND-WORD-FULL"
+              "ICHIRAN/DICT:FIND-WORD-SUFFIX"
+              "ICHIRAN/DICT:GET-KANA"
+              "ICHIRAN/DICT:GET-TEXT"
+              "ICHIRAN/DICT:SEQ"
+              "ICHIRAN/DICT:SOURCE"
+              "ICHIRAN/DICT:BEST-KANA-CONJ"
+              "ICHIRAN/DICT:GET-SEGSPLIT"
+              "ICHIRAN/DICT:GET-SPLIT"
+              "ICHIRAN/DICT:QUERY-PARENTS-KANA"
+              "ICHIRAN/DICT:QUERY-PARENTS-KANJI"
+              "ICHIRAN/DICT:WORD-INFO-FROM-SEGMENT"))))
 
 (handler-case
     (ichi-trace:install-many *boot-install-fqns*)

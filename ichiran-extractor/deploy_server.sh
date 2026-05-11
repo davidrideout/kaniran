@@ -67,6 +67,7 @@ if (( DO_DEPLOY )); then
     echo "=== [1/3] Deploy harness + driver to $REMOTE ==="
     scp "$SCRIPT_DIR/trace_capture.lisp" \
         "$SCRIPT_DIR/projectors.lisp" \
+        "$SCRIPT_DIR/projectors_json.lisp" \
         "$SCRIPT_DIR/extractor_worker.lisp" \
         "$SCRIPT_DIR/ichiran_main_pooled.py" \
         "$SCRIPT_DIR/ichiran_worker_pool.py" \

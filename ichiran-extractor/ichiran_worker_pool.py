@@ -49,8 +49,14 @@ class Worker:
         logger.info("Worker %d starting: %s", self.id, " ".join(cmd))
         self._start_time = time.monotonic()
         self.process = await asyncio.create_subprocess_exec(
-            # 10MB line limit for trace output (default 64KB is too small)
-            limit=10 * 1024 * 1024,
+            # 100MB line limit for trace output. The JSON projector inflates
+            # per-sentence response size (each capture serialises args/result
+            # as a JSON tree with `_meta` envelopes) and the response includes
+            # *every* capture from every installed FQN — dedup happens later
+            # in FqnWriter, not on the worker — so a single complex sentence
+            # can emit tens of MB. 10MB was chosen for the s-expr encoder and
+            # is too tight for JSON.
+            limit=100 * 1024 * 1024,
             *cmd,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,

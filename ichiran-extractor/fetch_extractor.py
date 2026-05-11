@@ -46,6 +46,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import aiohttp
+import orjson
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -102,16 +103,23 @@ def fqn_to_path(fqn: str) -> tuple[str, str]:
 # --- HTTP helpers ------------------------------------------------------------
 
 async def post_json(session, url, body, timeout=HTTP_TIMEOUT):
+    # Encode the request body with orjson; aiohttp's `json=body` would
+    # use stdlib json. Decode the response body with orjson too — for
+    # multi-MB /extract envelopes that's the hot loop.
+    payload = orjson.dumps(body)
+    headers = {"Content-Type": "application/json"}
     for attempt in range(MAX_RETRIES):
         try:
             async with session.post(
                 url,
-                json=body,
+                data=payload,
+                headers=headers,
                 timeout=aiohttp.ClientTimeout(total=timeout),
             ) as resp:
                 if resp.status >= 500:
                     raise RuntimeError(f"server {resp.status}")
-                return await resp.json()
+                raw = await resp.read()
+                return orjson.loads(raw)
         except Exception:
             if attempt == MAX_RETRIES - 1:
                 raise
@@ -246,9 +254,13 @@ def _maybe_log_progress(state, progress_every):
 # --- writer ------------------------------------------------------------------
 
 class FqnWriter:
-    """One ParquetWriter per FQN with dedup-by-args. Hash the args
-    string (xxhash if available, else hashlib.blake2b-64) to keep the
-    in-memory dedup set small."""
+    """One ParquetWriter per FQN. Buffers rows and flushes a row group
+    every BATCH rows. No dedup — duplicates land in the parquet and are
+    collapsed post-run with duckdb. (Earlier per-FQN dedup sets blew the
+    driver to ~22 GB anon RSS on a 250k-sentence corpus and OOM-killed
+    the process.)"""
+
+    BATCH = 4096
 
     def __init__(self, out_dir: str, fqn: str, metadata: dict):
         pkg_dir, sym_file = fqn_to_path(fqn)
@@ -258,40 +270,35 @@ class FqnWriter:
         self.metadata = {b"ichiran_extractor_fqn": fqn.encode("utf-8")}
         for k, v in metadata.items():
             self.metadata[k.encode("utf-8")] = str(v).encode("utf-8")
-        schema_with_meta = SCHEMA.with_metadata(self.metadata)
+        self.schema = SCHEMA.with_metadata(self.metadata)
         self.writer = pq.ParquetWriter(
-            self.path, schema_with_meta,
+            self.path, self.schema,
             compression="zstd", compression_level=3,
         )
-        self.seen: set[int] = set()
-        self.results: dict[int, str] = {}
+        self.args_buf: list[str] = []
+        self.results_buf: list[str] = []
         self.n_written = 0
-        self.n_dup = 0
-        self.n_conflict = 0
 
     def add(self, args: str, result: str):
-        h = hash(args)
-        if h in self.seen:
-            self.n_dup += 1
-            prior = self.results.get(h)
-            if prior is not None and prior != result:
-                self.n_conflict += 1
-                eprint(
-                    f"WARN nondeterminism in {self.path}: same args -> "
-                    f"different results.\n  args={args!r}\n  prior={prior!r}\n  new={result!r}"
-                )
-            return False
-        self.seen.add(h)
-        self.results[h] = result
+        self.args_buf.append(args)
+        self.results_buf.append(result)
+        if len(self.args_buf) >= self.BATCH:
+            self._flush()
+
+    def _flush(self):
+        if not self.args_buf:
+            return
         table = pa.table(
-            {"args": [args], "result": [result]},
-            schema=SCHEMA.with_metadata(self.metadata),
+            {"args": self.args_buf, "result": self.results_buf},
+            schema=self.schema,
         )
-        self.writer.write_table(table, row_group_size=1024)
-        self.n_written += 1
-        return True
+        self.writer.write_table(table)
+        self.n_written += len(self.args_buf)
+        self.args_buf.clear()
+        self.results_buf.clear()
 
     def close(self):
+        self._flush()
         self.writer.close()
 
 
@@ -332,11 +339,7 @@ async def writer_task(
         flush=True,
     )
     for fqn, w in sorted(writers.items()):
-        print(
-            f"  {fqn}  written={w.n_written}  dup={w.n_dup}"
-            + (f"  CONFLICT={w.n_conflict}" if w.n_conflict else ""),
-            flush=True,
-        )
+        print(f"  {fqn}  written={w.n_written}", flush=True)
 
 
 # --- subcommands -------------------------------------------------------------

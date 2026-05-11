@@ -139,24 +139,43 @@
   (let ((sym (find-symbol "FLATTEN-RESULTS" :ichi-projectors)))
     (and sym (fboundp sym) (symbol-function sym))))
 
-(defun make-recorder (fqn arg-projector result-projector)
+(defun make-recorder (fqn arg-projector result-projector encoder)
   ;; Resolve defaults at recorder-build time. NIL means "no projection";
   ;; install passes T to mean "use the package default flatten".
   ;;
+  ;; ENCODER selects the serializer applied to the projector output:
+  ;;   :sexp (default) — SAFE-PRIN1, producing Lisp source text. The
+  ;;     Rust audit side parses via the hand-rolled kani::sexp reader.
+  ;;     This is the legacy path; all FQNs use it unless overridden.
+  ;;   :json — TO-JSON-STRING from :ichi-projectors-json. Produces JSON
+  ;;     suitable for serde_json on the Rust audit side. Projectors must
+  ;;     return jsown-compatible trees (lists for arrays, (:obj (k . v)
+  ;;     ...) for objects), not the raw tagged-plist form that the
+  ;;     legacy s-expr projector produces. Pair with the JSON projector
+  ;;     package's FLATTEN-ARGS-JSON / FLATTEN-RESULTS-JSON.
+  ;;
   ;; Re-entrance guard scope: *in-recorder* is bound only around the
-  ;; projector and safe-prin1 calls. Their internals can themselves call
+  ;; projector and serializer calls. Their internals can themselves call
   ;; into installed fns (closer-mop slot walks, prin1 methods, etc.) and
   ;; we don't want those to recurse into capture. The push to *captures*
   ;; runs unconditionally — so an installed FQN called inside another
   ;; installed FQN's body still records its own capture, matching the
-  ;; documented "inner installed callees ARE captured" contract. Earlier
-  ;; revisions wrapped the entire bookkeeping in the guard, which
-  ;; silently dropped every nested capture (e.g. VERIFY / COUNTER-JOIN /
-  ;; VALUE-STRING called inside FIND-COUNTER never made it to parquet).
+  ;; documented "inner installed callees ARE captured" contract.
   (let ((arg-fn    (cond ((eq arg-projector    t) (default-arg-projector))
                          (t arg-projector)))
         (result-fn (cond ((eq result-projector t) (default-result-projector))
-                         (t result-projector))))
+                         (t result-projector)))
+        (serialize (ecase encoder
+                     (:sexp (lambda (v) (safe-prin1 v)))
+                     (:json (let ((sym (find-symbol "TO-JSON-STRING"
+                                                    :ichi-projectors-json)))
+                              (unless (and sym (fboundp sym))
+                                (error "ICHI-PROJECTORS-JSON:TO-JSON-STRING not available — \
+                                        load projectors_json.lisp before installing with :encoder :json"))
+                              (let ((encoder-fn (symbol-function sym)))
+                                (lambda (v)
+                                  (handler-case (funcall encoder-fn v)
+                                    (error () nil)))))))))
     (lambda (basic-def &rest args)
       (let ((results (multiple-value-list (apply basic-def args))))
         (let* ((projected-args    (let ((*in-recorder* t))
@@ -166,10 +185,10 @@
                (args-str   (and (not (eq projected-args    *projection-failed*))
                                 (not (eq projected-results *projection-failed*))
                                 (let ((*in-recorder* t))
-                                  (safe-prin1 projected-args))))
+                                  (funcall serialize projected-args))))
                (result-str (and args-str
                                 (let ((*in-recorder* t))
-                                  (safe-prin1 projected-results)))))
+                                  (funcall serialize projected-results)))))
           (if (and args-str result-str)
               (push (list fqn args-str result-str) *captures*)
               (incf *skipped*)))
@@ -201,22 +220,32 @@
 
 ;; --- public API ------------------------------------------------------------
 
-(defun install (fqn-string &key (arg-projector t) (result-projector t))
+(defun install (fqn-string &key (arg-projector t) (result-projector t) (encoder :sexp))
   "Install a recorder for FQN-STRING. ARG-PROJECTOR / RESULT-PROJECTOR
    each accept three values: T (default) uses the package-level
    ICHI-PROJECTORS:FLATTEN-ARGS / FLATTEN-RESULTS generic flatten;
    a function value is called as a custom projector (it receives the
    raw args list / multiple-value-list of the return); NIL disables
-   projection on that side and the raw value goes straight to
-   SAFE-PRIN1. Re-installing swaps the wrapper — the call is NOT
-   idempotent in the projector arguments."
+   projection on that side and the raw value goes straight to the
+   selected ENCODER.
+
+   ENCODER controls the serializer:
+     :SEXP (default) — SAFE-PRIN1 of the projector output (legacy).
+     :JSON           — ICHI-PROJECTORS-JSON:TO-JSON-STRING of the
+                       projector output. Projectors must return
+                       jsown-compatible trees; usually paired with
+                       :ARG-PROJECTOR ICHI-PROJECTORS-JSON:FLATTEN-ARGS-JSON
+                       and :RESULT-PROJECTOR FLATTEN-RESULTS-JSON.
+
+   Re-installing swaps the wrapper — the call is NOT idempotent in the
+   projector / encoder arguments."
   (let ((sym (resolve-symbol fqn-string)))
     (when (gethash fqn-string *installed*)
       (sb-int:unencapsulate sym 'ichi-trace))
     (sb-int:encapsulate sym 'ichi-trace
-                        (make-recorder fqn-string arg-projector result-projector))
+                        (make-recorder fqn-string arg-projector result-projector encoder))
     (setf (gethash fqn-string *installed*)
-          (list sym arg-projector result-projector))
+          (list sym arg-projector result-projector encoder))
     fqn-string))
 
 (defun install-many (specs)
