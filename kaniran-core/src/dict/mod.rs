@@ -101,6 +101,7 @@ pub mod word_conj_data;
 pub mod word_info_class;
 pub mod word_type;
 pub mod process_word_info;
+pub mod _star_segsplit_map_star_;
 pub mod _star_split_map_star_;
 pub mod get_split_star_;
 pub mod get_split;
