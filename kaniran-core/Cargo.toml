@@ -53,3 +53,7 @@ path = "audit/dict/find_word_test.rs"
 [[bin]]
 name = "find_word_as_hiragana_test"
 path = "audit/dict/find_word_as_hiragana_test.rs"
+
+[[bin]]
+name = "get_original_text_test"
+path = "audit/dict/get_original_text_test.rs"
