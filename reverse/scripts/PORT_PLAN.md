@@ -165,8 +165,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  148. `ichiran/dict:*segment-score-cutoff*`  — global, dict.lisp:1351  *[ported]*
  149. `ichiran/dict:*disable-hints*`  — global, dict.lisp:78  *[ported]*
  150. `ichiran/dict:*kana-hint-space*`  — global, dict-split.lisp:814  *[ported]*
- 151. `ichiran/dict:query-parents-kanji`  — fn, dict.lisp:400  *[extracted: tatoeba]*
- 152. `ichiran/dict:best-kana-conj`  — fn, dict.lisp:428  *[extracted: tatoeba]*
+ 151. `ichiran/dict:query-parents-kanji`  — fn, dict.lisp:400  *[ported]*  *[extracted: calc_score_2026_05_11]*  *[audited 36540/36540]*
+ 152. `ichiran/dict:best-kana-conj`  — fn, dict.lisp:428  *[ported]*  *[extracted: calc_score_2026_05_11]*  *[audited 131616/131616]*
  153. `ichiran/dict:get-digit`  — fn, dict-counters.lisp:94  *[ported]*  *[extracted: counter_2026_05_08]*  *[audited 193/193]*
  154. `ichiran/numbers:*digit-to-kana*`  — global, numbers.lisp:25  *[ported]*
  155. `ichiran/numbers:*power-to-kana*`  — global, numbers.lisp:28  *[ported]*

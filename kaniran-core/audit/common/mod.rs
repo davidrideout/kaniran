@@ -60,7 +60,7 @@ use kaniran_core::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatch
 use kaniran_core::dict::kanji_text_dao::KanjiText;
 use kaniran_core::dict::number_text_class::NumberText;
 use kaniran_core::dict::proxy_text_class::ProxyText;
-use kaniran_core::dict::simple_text_class::SimpleText;
+use kaniran_core::dict::simple_text_class::{SimpleText, WordConjugations};
 
 
 // --- captured-row envelope --------------------------------------------------
@@ -468,6 +468,12 @@ pub struct CapturedKanaText {
     pub nokanji: bool,
     #[serde(default, deserialize_with = "deserialize_optional_string")]
     pub best_kanji: Option<String>,
+    /// `simple-text.conjugations` slot — only emitted by post-2026-05-12
+    /// captures (the projector stopped omitting the slot at that point).
+    /// Older parquets default to `None`, which matches the FromRow value
+    /// for freshly-loaded DAOs.
+    #[serde(default, deserialize_with = "deserialize_conjugations")]
+    pub conjugations: Option<WordConjugations>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -488,6 +494,9 @@ pub struct CapturedKanjiText {
     pub nokanji: bool,
     #[serde(default, deserialize_with = "deserialize_optional_string")]
     pub best_kana: Option<String>,
+    /// `simple-text.conjugations` slot — see [`CapturedKanaText::conjugations`].
+    #[serde(default, deserialize_with = "deserialize_conjugations")]
+    pub conjugations: Option<WordConjugations>,
 }
 
 impl CapturedKanaText {
@@ -515,7 +524,10 @@ impl CapturedKanaText {
             conjugate_p: self.conjugate_p,
             nokanji: self.nokanji,
             best_kanji: self.best_kanji,
-            state: SimpleText::default(),
+            state: SimpleText {
+                conjugations: self.conjugations,
+                hintedp: false,
+            },
         }
     }
 }
@@ -545,7 +557,10 @@ impl CapturedKanjiText {
             conjugate_p: self.conjugate_p,
             nokanji: self.nokanji,
             best_kana: self.best_kana,
-            state: SimpleText::default(),
+            state: SimpleText {
+                conjugations: self.conjugations,
+                hintedp: false,
+            },
         }
     }
 }
@@ -777,4 +792,32 @@ where
 {
     let value = Option::<bool>::deserialize(deserializer)?;
     Ok(value.unwrap_or(false))
+}
+
+/// Project the `simple-text.conjugations` slot back into Rust. Wire
+/// shape: `null` (slot is `nil`), `":ROOT"` (the symbol `:root`), or a
+/// JSON array of integers (list of conjugation row ids).
+fn deserialize_conjugations<'de, D>(deserializer: D) -> Result<Option<WordConjugations>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = Value::deserialize(deserializer)?;
+    match value {
+        Value::Null => Ok(None),
+        Value::String(ref s) if s == ":ROOT" => Ok(Some(WordConjugations::Root)),
+        Value::Array(arr) => {
+            let mut ids = Vec::with_capacity(arr.len());
+            for v in &arr {
+                let id = v.as_i64().ok_or_else(|| {
+                    serde::de::Error::custom(format!("conj-id not int: {}", v))
+                })?;
+                ids.push(id as i32);
+            }
+            Ok(Some(WordConjugations::Ids(ids)))
+        }
+        other => Err(serde::de::Error::custom(format!(
+            "conjugations: expected null / \":ROOT\" / int-array, got {}",
+            other
+        ))),
+    }
 }

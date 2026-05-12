@@ -45,12 +45,11 @@
 
 (defparameter *omit-slots*
   '((ichiran/dict::entry ichiran/dict::content)
-    ;; SimpleText runtime state — always at FromRow defaults at all
-    ;; current get-split-style callsites. %slot-omitted-p walks the
-    ;; class-precedence-list, so the simple-text entry covers
-    ;; kana-text / kanji-text / proxy-text without per-subclass copies.
-    (ichiran/dict::simple-text ichiran/dict::conjugations
-                               ichiran/dict::hintedp))
+    ;; SimpleText.hintedp is the :around `get-kana` re-entrance flag —
+    ;; transient, not load-bearing for any audit consumer. The sibling
+    ;; `conjugations` slot IS load-bearing (best-kana-conj branches on
+    ;; it) and is now captured; only hintedp stays omitted.
+    (ichiran/dict::simple-text ichiran/dict::hintedp))
   "Per-class slot blocklist. Each entry: (CLASS-NAME SLOT-NAME ...). The
    default flatten skips listed slots when expanding object plists.
    Slot lookup walks the class-precedence-list, so listing a slot on an
