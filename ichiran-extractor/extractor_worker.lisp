@@ -264,7 +264,18 @@
               "ICHIRAN/DICT:GET-SPLIT"
               "ICHIRAN/DICT:QUERY-PARENTS-KANA"
               "ICHIRAN/DICT:QUERY-PARENTS-KANJI"
-              "ICHIRAN/DICT:WORD-INFO-FROM-SEGMENT"))))
+              "ICHIRAN/DICT:WORD-INFO-FROM-SEGMENT"
+              ;; calc-score neighborhood — wave 380/381/395 + supporting
+              ;; fns. Captures fire on every romanize pass via calc-score's
+              ;; reading-scoring path.
+              "ICHIRAN/DICT:GET-ORIGINAL-TEXT"
+              "ICHIRAN/DICT:GET-ORIGINAL-TEXT*"
+              "ICHIRAN/DICT:GET-NON-ARCH-POSI"
+              "ICHIRAN/DICT:GET-SUFFIXES"
+              "ICHIRAN/DICT:CALC-SCORE"
+              "ICHIRAN/DICT:KANJI-BREAK-PENALTY"
+              "ICHIRAN/DICT:APPLY-SCORE-MOD"
+              "ICHIRAN/DICT:PARSE-SUFFIX-VAL"))))
 
 (handler-case
     (ichi-trace:install-many *boot-install-fqns*)
