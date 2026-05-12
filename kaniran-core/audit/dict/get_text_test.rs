@@ -16,6 +16,8 @@
 #[path = "../common/mod.rs"]
 mod common;
 
+use serde_json::Value;
+
 use kaniran_core::dict::get_text::get_text;
 use kaniran_core::dict::segment_struct::Segment;
 
@@ -41,6 +43,16 @@ fn audit_one(row: &CapturedRow) -> Result<(), String> {
         let word = parse_captured_word(word_value)?;
         let start = get_usize(&row.args[0], "start");
         let end = get_usize(&row.args[0], "end");
+        // text: load-bearing for get-text's lazy-memoization short-circuit
+        // (segment_struct.rs:73). Plumb through so cached rows replay the
+        // cache hit instead of the fresh-compute branch.
+        let text = match row.args[0].get("text") {
+            None | Some(Value::Null) => None,
+            Some(Value::String(s)) => Some(s.clone()),
+            Some(other) => return Err(format!("segment.text not string/null: {}", other)),
+        };
+        // score / info / top: not read by Segment::get_text (impl only
+        // touches self.text and self.word). Leaving as None.
         let mut seg = Segment {
             start,
             end,
@@ -48,7 +60,7 @@ fn audit_one(row: &CapturedRow) -> Result<(), String> {
             score: None,
             info: None,
             top: None,
-            text: None,
+            text,
         };
         seg.get_text().to_string()
     } else {

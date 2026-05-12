@@ -85,10 +85,14 @@ pub fn load_parquet(path: &Path) -> CapturedFile {
     let builder = ParquetRecordBatchReaderBuilder::try_new(file)
         .unwrap_or_else(|err| panic!("parquet builder {:?}: {}", path, err));
 
+    let total_rows = builder.metadata().file_metadata().num_rows() as usize;
     let reader = builder.build().expect("build reader");
-    let mut rows: Vec<CapturedRow> = Vec::new();
+    let mut rows: Vec<CapturedRow> = Vec::with_capacity(total_rows);
     let mut row_seq: usize = 0;
     let mut skipped: usize = 0;
+    let start = std::time::Instant::now();
+    let mut last_tick = start;
+    eprintln!("loader: parsing {} rows from {:?}", total_rows, path);
 
     for batch in reader {
         let batch = batch.expect("batch");
@@ -126,8 +130,40 @@ pub fn load_parquet(path: &Path) -> CapturedFile {
             };
             rows.push(CapturedRow { args, result });
         }
+        let now = std::time::Instant::now();
+        if now.duration_since(last_tick).as_secs() >= 5 {
+            let elapsed = now.duration_since(start).as_secs_f64();
+            let rate = row_seq as f64 / elapsed.max(1e-6);
+            let pct = if total_rows > 0 {
+                100.0 * row_seq as f64 / total_rows as f64
+            } else {
+                0.0
+            };
+            let eta = if rate > 0.0 && total_rows > row_seq {
+                (total_rows - row_seq) as f64 / rate
+            } else {
+                0.0
+            };
+            eprintln!(
+                "loader: {}/{} rows ({:.1}%), {:.0}/s, elapsed {}, eta {}",
+                row_seq,
+                total_rows,
+                pct,
+                rate,
+                fmt_dur(elapsed as u64),
+                fmt_dur(eta as u64),
+            );
+            last_tick = now;
+        }
     }
 
+    let elapsed = start.elapsed().as_secs_f64();
+    eprintln!(
+        "loader: parsed {} rows in {} ({:.0}/s)",
+        row_seq,
+        fmt_dur(elapsed as u64),
+        row_seq as f64 / elapsed.max(1e-6),
+    );
     if skipped > 0 {
         eprintln!("loader: {} row(s) skipped (malformed JSON from extractor)", skipped);
     }
@@ -309,9 +345,13 @@ fn fmt_dur(secs: u64) -> String {
 // group. A group passes when Rust matches any of its captured results.
 fn group_by_args(rows: Vec<CapturedRow>) -> Vec<Vec<CapturedRow>> {
     use std::collections::HashMap;
+    let total = rows.len();
+    eprintln!("grouping: {} rows by args", total);
+    let start = std::time::Instant::now();
+    let mut last_tick = start;
     let mut by_args: HashMap<String, Vec<CapturedRow>> = HashMap::new();
     let mut order: Vec<String> = Vec::new();
-    for row in rows {
+    for (idx, row) in rows.into_iter().enumerate() {
         let key = serde_json::to_string(&row.args).expect("args serialize");
         match by_args.get_mut(&key) {
             Some(v) => v.push(row),
@@ -320,7 +360,38 @@ fn group_by_args(rows: Vec<CapturedRow>) -> Vec<Vec<CapturedRow>> {
                 by_args.insert(key, vec![row]);
             }
         }
+        let now = std::time::Instant::now();
+        if now.duration_since(last_tick).as_secs() >= 5 {
+            let elapsed = now.duration_since(start).as_secs_f64();
+            let done = idx + 1;
+            let rate = done as f64 / elapsed.max(1e-6);
+            let pct = 100.0 * done as f64 / total.max(1) as f64;
+            let eta = if rate > 0.0 && total > done {
+                (total - done) as f64 / rate
+            } else {
+                0.0
+            };
+            eprintln!(
+                "grouping: {}/{} rows ({:.1}%), {} unique args, {:.0}/s, elapsed {}, eta {}",
+                done,
+                total,
+                pct,
+                order.len(),
+                rate,
+                fmt_dur(elapsed as u64),
+                fmt_dur(eta as u64),
+            );
+            last_tick = now;
+        }
     }
+    let elapsed = start.elapsed().as_secs_f64();
+    eprintln!(
+        "grouping: {} rows -> {} groups in {} ({:.0}/s)",
+        total,
+        order.len(),
+        fmt_dur(elapsed as u64),
+        total as f64 / elapsed.max(1e-6),
+    );
     order.into_iter().map(|k| by_args.remove(&k).unwrap()).collect()
 }
 
