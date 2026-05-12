@@ -394,8 +394,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  377. `ichiran/dict:apply-score-mod`  — gf, dict.lisp:0
  378. `ichiran/dict:compare-common`  — fn, dict.lisp:1022
  379. `ichiran/dict:get-non-arch-posi`  — fn, dict.lisp:762
- 380. `ichiran/dict:get-original-text*`  — fn, dict.lisp:378
- 381. `ichiran/dict:get-original-text`  — gf, dict.lisp:0
+ 380. `ichiran/dict:get-original-text*`  — fn, dict.lisp:378  *[ported]*
+ 381. `ichiran/dict:get-original-text`  — gf, dict.lisp:0  *[ported]*
  382. `ichiran/dict:get-split*`  — fn, dict-split.lisp:67  *[ported]*  *[extracted: wave_158_frontier_2026_05_09]*
  383. `ichiran/dict:get-split`  — fn, dict-split.lisp:75  *[ported]*  *[extracted: splits_2026_05_09]*  *[audited 232366/232366]*
  384. `ichiran/dict:is-arch`  — fn, dict.lisp:760  *[ported]*

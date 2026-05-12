@@ -59,6 +59,8 @@ pub mod get_kana_forms;
 pub mod get_kana_forms_conj_data_filter;
 pub mod get_kana_forms_star_;
 pub mod get_kanji_kana_old;
+pub mod get_original_text;
+pub mod get_original_text_star_;
 pub mod get_text;
 pub mod gloss_dao;
 pub mod init_suffixes_thread;
