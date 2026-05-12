@@ -590,11 +590,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  522. `ichiran:join-parts`  — fn, romanize.lisp:235
  523. `ichiran/dict:simplify-reading-list`  — fn, dict.lisp:1704
  524. `ichiran/dict:map-word-info-kana`  — fn, dict.lisp:1728
- 525. `ichiran/dict:*hint-char-map*`  — global, dict-split.lisp:816
- 526. `ichiran/dict:strip-hints`  — fn, dict-split.lisp:874
- 527. `ichiran/dict:*kana-hint-mod*`  — global, dict-split.lisp:813
- 528. `ichiran/dict:*hint-simplify-map*`  — global, dict-split.lisp:818
- 529. `ichiran/dict:process-hints`  — fn, dict-split.lisp:872
+ 525. `ichiran/dict:*hint-char-map*`  — global, dict-split.lisp:816  *[ported]*
+ 526. `ichiran/dict:strip-hints`  — fn, dict-split.lisp:874  *[ported]*
+ 527. `ichiran/dict:*kana-hint-mod*`  — global, dict-split.lisp:813  *[ported]*
+ 528. `ichiran/dict:*hint-simplify-map*`  — global, dict-split.lisp:818  *[ported]*
+ 529. `ichiran/dict:process-hints`  — fn, dict-split.lisp:872  *[ported]*
  530. `ichiran:get-character-classes`  — fn, romanize.lisp:3
  531. `ichiran:r-special`  — gf, romanize.lisp:0
  532. `ichiran:process-iteration-characters`  — fn, romanize.lisp:7  *[ported]*
@@ -773,9 +773,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  701. `ichiran/dict:def-de-split`  — macro, dict-split.lisp:81
  702. `ichiran/dict:def-do-split`  — macro, dict-split.lisp:181
  703. `ichiran/dict:defhint`  — macro, dict-split.lisp:892
- 704. `ichiran/dict:insert-hints`  — fn, dict-split.lisp:875
- 705. `ichiran/dict:translate-hint-position`  — fn, dict-split.lisp:930
- 706. `ichiran/dict:translate-hints`  — fn, dict-split.lisp:942
+ 704. `ichiran/dict:insert-hints`  — fn, dict-split.lisp:875  *[ported]*
+ 705. `ichiran/dict:translate-hint-position`  — fn, dict-split.lisp:930  *[ported]*
+ 706. `ichiran/dict:translate-hints`  — fn, dict-split.lisp:942  *[ported]*
  707. `ichiran/dict:def-easy-hint`  — macro, dict-split.lisp:955
  708. `ichiran/dict:defpenalty`  — macro, dict-grammar.lisp:981
  709. `ichiran/dict:def-generic-penalty`  — macro, dict-grammar.lisp:984
