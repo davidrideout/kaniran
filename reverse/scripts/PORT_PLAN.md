@@ -386,11 +386,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  369. `ichiran/dict:split-toori-1808080`  — fn, dict-split.lisp:171  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
  370. `ichiran/dict:split-toori-1820790`  — fn, dict-split.lisp:165  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
  371. `ichiran/dict:*split-map*`  — global, dict-split.lisp:5  *[ported]*
- 372. `ichiran/dict:*copulae*`  — global, dict-errata.lisp:1205
- 373. `ichiran/dict:*final-prt*`  — global, dict-errata.lisp:1182
- 374. `ichiran/dict:*non-final-prt*`  — global, dict-errata.lisp:1209
- 375. `ichiran/dict:*semi-final-prt*`  — global, dict-errata.lisp:1196
- 376. `ichiran/dict:*skip-words*`  — global, dict-errata.lisp:1155
+ 372. `ichiran/dict:*copulae*`  — global, dict-errata.lisp:1205  *[ported]*
+ 373. `ichiran/dict:*final-prt*`  — global, dict-errata.lisp:1182  *[ported]*
+ 374. `ichiran/dict:*non-final-prt*`  — global, dict-errata.lisp:1209  *[ported]*
+ 375. `ichiran/dict:*semi-final-prt*`  — global, dict-errata.lisp:1196  *[ported]*
+ 376. `ichiran/dict:*skip-words*`  — global, dict-errata.lisp:1155  *[ported]*
  377. `ichiran/dict:apply-score-mod`  — gf, dict.lisp:0
  378. `ichiran/dict:compare-common`  — fn, dict.lisp:1022
  379. `ichiran/dict:get-non-arch-posi`  — fn, dict.lisp:762

@@ -7,6 +7,7 @@
 //! references. Further dao classes, helpers, and the populator
 //! itself land in subsequent waves.
 
+pub mod _star_copulae_star_;
 pub mod _star_counter_accepts_star_;
 pub mod _star_counter_cache_star_;
 pub mod _star_counter_foreign_star_;
@@ -14,6 +15,7 @@ pub mod _star_counter_suffixes_star_;
 #[cfg(test)]
 pub mod _star_easy_hints_seqs_star_;
 pub mod _star_extra_counter_ids_star_;
+pub mod _star_final_prt_star_;
 pub mod _star_hint_char_map_star_;
 pub mod _star_hint_map_star_;
 pub mod _star_hint_simplify_map_star_;
@@ -22,10 +24,13 @@ pub mod _star_kana_hint_mod_star_;
 pub mod _star_kana_hint_space_star_;
 pub mod _star_max_word_length_star_;
 pub mod _star_no_conj_data_star_;
+pub mod _star_non_final_prt_star_;
 pub mod _star_segment_score_cutoff_star_;
 pub mod _star_segsplit_map_star_;
+pub mod _star_semi_final_prt_star_;
 pub mod _star_skip_conj_forms_star_;
 pub mod _star_skip_counter_ids_star_;
+pub mod _star_skip_words_star_;
 pub mod _star_special_counters_star_;
 pub mod _star_split_map_star_;
 pub mod _star_substring_hash_star_;
