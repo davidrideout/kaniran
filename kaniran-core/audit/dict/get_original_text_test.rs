@@ -141,10 +141,7 @@ fn compare_kana(
         ));
     }
     actual.sort_by(|a, b| (a.seq, &a.text, a.ord, a.id).cmp(&(b.seq, &b.text, b.ord, b.id)));
-    expected.sort_by(|a, b| {
-        (a.seq, &a.text, a.ord, a.id.unwrap_or(i32::MIN))
-            .cmp(&(b.seq, &b.text, b.ord, b.id.unwrap_or(i32::MIN)))
-    });
+    expected.sort_by(|a, b| (a.seq, &a.text, a.ord, a.id).cmp(&(b.seq, &b.text, b.ord, b.id)));
     for (idx, (a, c)) in actual.iter().zip(&expected).enumerate() {
         if !c.matches(a) {
             return Err(format!("kana row {}: rust={:?} lisp={:?}", idx, a, c));
@@ -165,10 +162,7 @@ fn compare_kanji(
         ));
     }
     actual.sort_by(|a, b| (a.seq, &a.text, a.ord, a.id).cmp(&(b.seq, &b.text, b.ord, b.id)));
-    expected.sort_by(|a, b| {
-        (a.seq, &a.text, a.ord, a.id.unwrap_or(i32::MIN))
-            .cmp(&(b.seq, &b.text, b.ord, b.id.unwrap_or(i32::MIN)))
-    });
+    expected.sort_by(|a, b| (a.seq, &a.text, a.ord, a.id).cmp(&(b.seq, &b.text, b.ord, b.id)));
     for (idx, (a, c)) in actual.iter().zip(&expected).enumerate() {
         if !c.matches(a) {
             return Err(format!("kanji row {}: rust={:?} lisp={:?}", idx, a, c));

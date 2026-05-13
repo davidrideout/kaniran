@@ -241,41 +241,23 @@
 ;; so the new extraction supersedes both legacy s-expr captures in one
 ;; pass.
 (defparameter *boot-install-fqns*
-  (let ((arg-fn    (symbol-function (find-symbol "FLATTEN-ARGS-JSON"
-                                                  :ichi-projectors-json)))
-        (result-fn (symbol-function (find-symbol "FLATTEN-RESULTS-JSON"
-                                                  :ichi-projectors-json))))
+  (let ((arg-fn-hinted (symbol-function (find-symbol "FLATTEN-ARGS-JSON-WITH-HINT-STATE"
+                                                     :ichi-projectors-json)))
+        (result-fn     (symbol-function (find-symbol "FLATTEN-RESULTS-JSON"
+                                                     :ichi-projectors-json))))
+    ;; Hint-cluster extraction set (2026-05-12). All three FQNs use the
+    ;; hint-state projector — captures `*disable-hints*` value alongside
+    ;; args so audit-replay can disambiguate hint-active calls from the
+    ;; `:around`-disabled second pass. Resolves the ~5% nondeterminism
+    ;; documented for the tatoeba get-kana parquet.
     (mapcar (lambda (fqn)
               (list fqn
-                    :arg-projector arg-fn
+                    :arg-projector arg-fn-hinted
                     :result-projector result-fn
                     :encoder :json))
-            '("ICHIRAN/DICT:COMMON"
-              "ICHIRAN/DICT:FIND-WORD"
-              "ICHIRAN/DICT:FIND-WORD-AS-HIRAGANA"
-              "ICHIRAN/DICT:FIND-WORD-FULL"
-              "ICHIRAN/DICT:FIND-WORD-SUFFIX"
-              "ICHIRAN/DICT:GET-KANA"
-              "ICHIRAN/DICT:GET-TEXT"
-              "ICHIRAN/DICT:SEQ"
-              "ICHIRAN/DICT:SOURCE"
-              "ICHIRAN/DICT:BEST-KANA-CONJ"
-              "ICHIRAN/DICT:GET-SEGSPLIT"
-              "ICHIRAN/DICT:GET-SPLIT"
-              "ICHIRAN/DICT:QUERY-PARENTS-KANA"
-              "ICHIRAN/DICT:QUERY-PARENTS-KANJI"
-              "ICHIRAN/DICT:WORD-INFO-FROM-SEGMENT"
-              ;; calc-score neighborhood — wave 380/381/395 + supporting
-              ;; fns. Captures fire on every romanize pass via calc-score's
-              ;; reading-scoring path.
-              "ICHIRAN/DICT:GET-ORIGINAL-TEXT"
-              "ICHIRAN/DICT:GET-ORIGINAL-TEXT*"
-              "ICHIRAN/DICT:GET-NON-ARCH-POSI"
-              "ICHIRAN/DICT:GET-SUFFIXES"
-              "ICHIRAN/DICT:CALC-SCORE"
-              "ICHIRAN/DICT:KANJI-BREAK-PENALTY"
-              "ICHIRAN/DICT:APPLY-SCORE-MOD"
-              "ICHIRAN/DICT:PARSE-SUFFIX-VAL"))))
+            '("ICHIRAN/DICT:GET-KANA"
+              "ICHIRAN/DICT:GET-HINT"
+              "ICHIRAN/DICT:TRUE-KANA"))))
 
 (handler-case
     (ichi-trace:install-many *boot-install-fqns*)

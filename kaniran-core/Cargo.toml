@@ -77,3 +77,15 @@ path = "audit/dict/best_kanji_conj_test.rs"
 [[bin]]
 name = "get_kanji_test"
 path = "audit/dict/get_kanji_test.rs"
+
+[[bin]]
+name = "get_kana_test"
+path = "audit/dict/get_kana_test.rs"
+
+[[bin]]
+name = "true_kana_test"
+path = "audit/dict/true_kana_test.rs"
+
+[[bin]]
+name = "get_hint_test"
+path = "audit/dict/get_hint_test.rs"

@@ -13,17 +13,14 @@
 //! - **`((obj entry))`** at line 47-49 — ported on
 //!   [`Entry::get_text`] (in [`super::entry_dao`]); selects the
 //!   `kanji_text` / `kana_text` row at `ord = 0` based on `n_kanji`.
+//!   Reached only from locally-Entry-typed callsites — upstream's
+//!   `entry-digest` (`dict.lisp:67`) is the canonical one — so it
+//!   stays an inherent method and is not wired through this
+//!   dispatcher. No upstream callsite passes an entry polymorphically.
 //! - **`((segment segment))`** at line 677-679 — ported on
 //!   [`Segment::get_text`] (in [`super::segment_struct`]); lazy
 //!   memoization of `text(segment.word)` into the
 //!   [`Segment::text`] cache slot.
-//!
-//! The three Rust receivers are unrelated types in this codebase, so
-//! the upstream gf split into three distinct callable surfaces:
-//! `Entry::get_text(ctx)`, `Segment::get_text()`, and the
-//! [`get_text`] free fn for the word polymorphism. Every upstream
-//! callsite reaches the right one by virtue of the locally-known
-//! receiver type at the call point.
 //!
 //! [`KaniWordDispatchEnum`]: super::kani_word::KaniWordDispatchEnum
 //! [`Entry::get_text`]: super::entry_dao::Entry::get_text

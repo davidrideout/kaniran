@@ -45,7 +45,7 @@ use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_max_word_length_star_::MAX_WORD_LENGTH;
-use crate::dict::_star_substring_hash_star_::substring_hash_get;
+use crate::dict::_star_substring_hash_star_::{substring_hash_get, SubstringHash};
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kanji_text_dao::KanjiText;
 
@@ -59,6 +59,7 @@ pub async fn find_word(
     ctx: &KaniranContext,
     word: &str,
     root_only: bool,
+    substring_cache: Option<&SubstringHash>,
 ) -> Result<FindWordRows, sqlx::Error> {
     // Mirror upstream evaluation order — `(when (<= (length word)
     // *max-word-length*) ...)` short-circuits before `test-word`
@@ -73,7 +74,7 @@ pub async fn find_word(
         return Ok(FindWordRows::Kanji(Vec::new()));
     }
     if !root_only {
-        if let Some(rows) = substring_hash_get(word) {
+        if let Some(rows) = substring_hash_get(substring_cache, word) {
             return Ok(rows);
         }
     }

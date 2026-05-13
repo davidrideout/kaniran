@@ -9,36 +9,25 @@
 //! round-trip for keys present in the hash (root-only excluded —
 //! upstream always re-queries with the JOIN against `entry`).
 //!
-//! ## Divergence
+//! ## Rust shape — explicit parameter, not a dynamic binding
 //!
-//! The Lisp `defparameter` is dynamically rebound by `let`. Rust has no
-//! native dynamic binding, so this is modelled as a thread-local
-//! `Option` plus a scoped RAII guard ([`with_substring_hash`]). Same
-//! observable effect on a single thread (the rebinding is visible to
-//! inner calls, restored on guard drop), matching the
-//! [`super::_star_disable_hints_star_`] precedent.
+//! Rust has no native dynamic binding. An earlier port used a
+//! [`thread_local!`] + RAII guard; the binding wouldn't survive
+//! `.await` points on the multi-threaded tokio runtime (the task can
+//! resume on a different worker, dropping the binding silently). The
+//! current port threads `Option<&SubstringHash>` as an explicit
+//! parameter through [`super::find_word::find_word`] — same pattern
+//! as `&KaniranContext` replaces `*connection*` per
+//! [`crate::conn::kani_context`], and `disable_hints: bool` replaces
+//! `*disable-hints*` in the hint cluster.
 //!
-//! ## TODO: tokio task migration
-//!
-//! [`super::find_word::find_word`] is async (DB-backed). Once
-//! `find-word-full` and `find-substring-words` (waves 326 / 325) are
-//! ported — both async — a tokio multi-thread runtime can move the
-//! task between worker threads at every `.await`, dropping the
-//! thread-local binding on the receiving worker. Two safer shapes for
-//! that point:
-//!
-//! 1. Switch this module to `tokio::task_local!` so the binding
-//!    follows the task across worker threads.
-//! 2. Pass the cache as an explicit `Option<&SubstringHash>`
-//!    parameter threaded through `find-word-full` → `find-word`.
-//!
-//! Today the only reader is [`super::find_word::find_word`]; with no
-//! producer wired up yet, the thread-local resolves to `None` on
-//! every call and the cache check is a no-op. Whichever option lands
-//! later, `find_word`'s read site is a one-line update.
+//! Today no producer wires up the cache, so the only callsite passes
+//! `None` and the path is dead at runtime. The wire-up lands when
+//! wave 326 (`find-word-full`) and wave 325 (`find-substring-words`)
+//! port — both already async, both will receive `&SubstringHash` and
+//! forward it into nested `find_word` calls.
 
 use crate::dict::find_word::FindWordRows;
-use std::cell::RefCell;
 use std::collections::HashMap;
 
 /// Map from a substring of an input string to the `kana_text` /
@@ -47,33 +36,16 @@ use std::collections::HashMap;
 /// populator's kana-vs-kanji key split (`dict.lisp:511`).
 pub type SubstringHash = HashMap<String, FindWordRows>;
 
-thread_local! {
-    static SUBSTRING_HASH: RefCell<Option<SubstringHash>> = RefCell::new(None);
-}
-
-/// Read the cached rows for `key`, if any. Returns a clone so the
-/// caller doesn't borrow the thread-local across `.await` points.
-pub fn substring_hash_get(key: &str) -> Option<FindWordRows> {
-    SUBSTRING_HASH.with(|c| c.borrow().as_ref().and_then(|h| h.get(key).cloned()))
-}
-
-pub struct SubstringHashGuard {
-    prev: Option<SubstringHash>,
-}
-
-impl Drop for SubstringHashGuard {
-    fn drop(&mut self) {
-        let prev = self.prev.take();
-        SUBSTRING_HASH.with(|c| *c.borrow_mut() = prev);
-    }
-}
-
-/// Bind `*substring-hash*` to `value` for the lifetime of the
-/// returned guard. Mirrors a Lisp
-/// `(let ((*substring-hash* ...)) ...)` form.
-pub fn with_substring_hash(value: Option<SubstringHash>) -> SubstringHashGuard {
-    let prev = SUBSTRING_HASH.with(|c| c.replace(value));
-    SubstringHashGuard { prev }
+/// Look up `key` in the cache. Returns a clone so the caller doesn't
+/// borrow the cache across `.await` points. `None` covers both the
+/// "cache absent" (`None` argument) and "key not present" cases —
+/// mirroring upstream `(when *substring-hash* (gethash key
+/// *substring-hash*))` semantics.
+pub fn substring_hash_get(
+    cache: Option<&SubstringHash>,
+    key: &str,
+) -> Option<FindWordRows> {
+    cache.and_then(|h| h.get(key).cloned())
 }
 
 #[cfg(test)]
@@ -92,21 +64,23 @@ mod tests {
     }
 
     #[test]
-    fn default_is_none() {
-        assert!(substring_hash_get("foo").is_none());
+    fn absent_cache_returns_none() {
+        assert!(substring_hash_get(None, "foo").is_none());
     }
 
     #[test]
-    fn guard_rebinds_and_restores() {
+    fn present_cache_with_missing_key_returns_none() {
+        let h: SubstringHash = HashMap::new();
+        assert!(substring_hash_get(Some(&h), "foo").is_none());
+    }
+
+    #[test]
+    fn present_cache_with_hit_returns_clone() {
         let mut h: SubstringHash = HashMap::new();
         h.insert("ぁ".into(), FindWordRows::Kana(vec![kana_row(1, "ぁ")]));
-        {
-            let _g = with_substring_hash(Some(h));
-            match substring_hash_get("ぁ") {
-                Some(FindWordRows::Kana(v)) => assert_eq!(v.len(), 1),
-                other => panic!("expected Kana(1), got {:?}", other),
-            }
+        match substring_hash_get(Some(&h), "ぁ") {
+            Some(FindWordRows::Kana(v)) => assert_eq!(v.len(), 1),
+            other => panic!("expected Kana(1), got {:?}", other),
         }
-        assert!(substring_hash_get("ぁ").is_none());
     }
 }

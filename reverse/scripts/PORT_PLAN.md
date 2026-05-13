@@ -163,7 +163,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:top-array`  — class, dict.lisp:1140  *[ported]*
         - `ichiran/dict:top-array-item`  — struct, dict.lisp:1138  *[ported]*
  148. `ichiran/dict:*segment-score-cutoff*`  — global, dict.lisp:1351  *[ported]*
- 149. `ichiran/dict:*disable-hints*`  — global, dict.lisp:78  *[ported]*
+ 149. `ichiran/dict:*disable-hints*`  — global, dict.lisp:78  *[skip — CL dynamic-binding sentinel (defparameter rebound via let in get-kana :around and check-easy-hints). Rust port threads disable_hints: bool as an explicit trailing parameter on get_kana / true_kana / get_hint / hint engine fns (kani_hint_engine.rs) — same pattern as &KaniranContext replaces *connection* per §4.8. A thread-local guard would not survive .await points on the multi-thread tokio runtime (suspended futures can resume on a different worker, losing the binding). No Rust global value; the Lisp symbol corresponds to a parameter convention.]*
  150. `ichiran/dict:*kana-hint-space*`  — global, dict-split.lisp:814  *[ported]*
  151. `ichiran/dict:query-parents-kanji`  — fn, dict.lisp:400  *[ported]*  *[extracted: calc_score_2026_05_11]*  *[audited 36540/36540]*
  152. `ichiran/dict:best-kana-conj`  — fn, dict.lisp:428  *[ported]*  *[extracted: calc_score_2026_05_11]*  *[audited 131616/131616]*
@@ -171,9 +171,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  154. `ichiran/numbers:*digit-to-kana*`  — global, numbers.lisp:25  *[ported]*
  155. `ichiran/numbers:*power-to-kana*`  — global, numbers.lisp:28  *[ported]*
  156. `ichiran/dict:counter-join`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
- 157. `ichiran/dict:*hint-map*`  — global, dict-split.lisp:850
+ 157. `ichiran/dict:*hint-map*`  — global, dict-split.lisp:850  *[ported]*
  158. `ichiran/dict:word-conj-data`  — gf, dict.lisp:0  *[ported]*  *[extracted: tatoeba]*  *[audited 125006/125006]*
- 159. `ichiran/dict:get-hint`  — fn, dict-split.lisp:968
+ 159. `ichiran/dict:get-hint`  — fn, dict-split.lisp:968  *[ported]*
  160. `ichiran/dict:get-kanji-kana-old`  — fn, dict.lisp:115  *[ported]*  *[extracted: tatoeba]*  *[audited 2/2]*
  161. `ichiran/numbers:*char-number-class*`  — global, numbers.lisp:9  *[ported]*
  162. `ichiran/numbers:*char-number-class-hash*`  — global, numbers.lisp:18  *[ported]*
@@ -183,7 +183,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  166. `ichiran/numbers:*power-kanji*`  — global, numbers.lisp:7  *[ported]*
  167. `ichiran/numbers:number-to-kanji`  — fn, numbers.lisp:35  *[ported]*  *[extracted: counter_2026_05_08]*
  168. `ichiran/numbers:number-to-kana`  — fn, numbers.lisp:125  *[ported]*  *[extracted: counter_2026_05_08]*
- 169. `ichiran/dict:get-kana`  — gf, dict.lisp:0  *[extracted: tatoeba]*
+ 169. `ichiran/dict:get-kana`  — gf, dict.lisp:0  *[ported]*  *[extracted: tatoeba]*
  170. `ichiran/dict:get-text`  — gf, dict.lisp:0  *[ported]*  *[extracted: tatoeba]*  *[audited 2001/2001]*
  171. `ichiran/dict:ordinal-str`  — fn, dict-counters.lisp:38  *[ported]*  *[extracted: counter_2026_05_08]*
  172. `ichiran/dict:value-string`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
@@ -687,12 +687,12 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  617. `ichiran/dict:*conj-description*`  — global, dict-load.lisp:0
  618. `ichiran/dict:*conj-rules*`  — global, dict-load.lisp:0
  619. `ichiran/dict:*do-not-conjugate-seq*`  — global, dict-load.lisp:305
- 620. `ichiran/dict:*easy-hints-seqs*`  — global, dict-split.lisp:904
+ 620. `ichiran/dict:*easy-hints-seqs*`  — global, dict-split.lisp:904  *[ported]*
  621. `ichiran/dict:*hints-checked*`  — global, dict-split.lisp:947
  622. `ichiran/dict:*honorifics*`  — global, dict-grammar.lisp:1156
  623. `ichiran/dict:*jmdict-data*`  — global, settings.lisp:12
  624. `ichiran/dict:*jmdict-path*`  — global, settings.lisp:10
- 625. `ichiran/dict:*kana-hint-map*`  — global, dict-split.lisp:832
+ 625. `ichiran/dict:*kana-hint-map*`  — global, dict-split.lisp:832  *[skip — Dead defparameter: declared (make-hash-table) at dict-split.lisp:832 with comment ';; seq -> split function', never written or read in the upstream codebase (verified: grep returns only the declaration; REPL probe shows hash-table-count=0 after full image load). Vestigial — likely abandoned earlier kana-hint design, now superseded by *hint-map*. No populator exists to port and no consumer would observe its value, so an empty Rust HashMap with () as value would be a justification stub (feedback_no_justification_stubs.md, feedback_no_empty_cache_stubs.md). If a future upstream change starts populating it, port at that time.]*
  626. `ichiran/dict:*noun-particles*`  — global, dict-grammar.lisp:801
  627. `ichiran/dict:*pos-by-index*`  — global, dict-load.lisp:0
  628. `ichiran/dict:*pos-index*`  — global, dict-load.lisp:0
@@ -741,7 +741,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  671. `ichiran/dict:remove-hiragana-nokanji`  — fn, dict-errata.lisp:217
  672. `ichiran/dict:add-errata`  — fn, dict-errata.lisp:289
  673. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146
- 674. `ichiran/dict:true-kana`  — gf, dict.lisp:0
+ 674. `ichiran/dict:true-kana`  — gf, dict.lisp:0  *[ported]*
  675. `ichiran/dict:true-kanji`  — gf, dict.lisp:0  *[ported]*
  676. `ichiran/kanji:reading`  — dao, kanji.lisp:42  *[ported]*
  677. `ichiran/kanji:get-reading-alternatives`  — fn, kanji.lisp:216  *[ported]*
@@ -752,7 +752,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  682. `ichiran/kanji:make-rmap`  — fn, kanji.lisp:273  *[ported]*
  683. `ichiran/kanji:match-readings*`  — fn, kanji.lisp:241  *[ported]*
  684. `ichiran/kanji:match-readings`  — fn, kanji.lisp:292  *[ported]*
- 685. `ichiran/dict:check-easy-hints`  — fn, dict-split.lisp:950
+ 685. `ichiran/dict:check-easy-hints`  — fn, dict-split.lisp:950  *[ported]*
  686. `ichiran/dict:common-tags`  — gf, dict.lisp:0
  687. `ichiran/dict:conj-prop-json`  — fn, dict.lisp:283
  688. `ichiran/dict:find-words-seqs`  — fn, dict.lisp:520
@@ -772,11 +772,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  700. `ichiran/dict:def-simple-split`  — macro, dict-split.lisp:11  *[skip — DSL definer; expansion encodes the prog* loop / per-part dispatch / offset-and-score bookkeeping that each callsite needs, but has no Rust counterpart on its own — every callsite is hand-translated as its own split_*.rs (per CONVENTIONS §4.6). 174 of those expansions land in *split-map*; the remaining 18 land in *segsplit-map* (waves 177-194).]*
  701. `ichiran/dict:def-de-split`  — macro, dict-split.lisp:81
  702. `ichiran/dict:def-do-split`  — macro, dict-split.lisp:181
- 703. `ichiran/dict:defhint`  — macro, dict-split.lisp:892
+ 703. `ichiran/dict:defhint`  — macro, dict-split.lisp:892  *[skip — DSL definer (§4.6 case (a)). Each callsite is a (setf (gethash ,seq *hint-map*) ...) registration; the data is captured statically in _star_hint_map_star_.rs's SimpleHintGroup match arms and EASY_HINTS table.]*
  704. `ichiran/dict:insert-hints`  — fn, dict-split.lisp:875  *[ported]*
  705. `ichiran/dict:translate-hint-position`  — fn, dict-split.lisp:930  *[ported]*
  706. `ichiran/dict:translate-hints`  — fn, dict-split.lisp:942  *[ported]*
- 707. `ichiran/dict:def-easy-hint`  — macro, dict-split.lisp:955
+ 707. `ichiran/dict:def-easy-hint`  — macro, dict-split.lisp:955  *[skip — DSL definer (§4.6 case (a)). Expands to (push seq *easy-hints-seqs*) + (defhint (seq) ...). The shared body lives in kani_hint_engine::run_easy_hint; per-callsite data lives in _star_hint_map_star_.rs::EASY_HINTS (431 rows).]*
  708. `ichiran/dict:defpenalty`  — macro, dict-grammar.lisp:981
  709. `ichiran/dict:def-generic-penalty`  — macro, dict-grammar.lisp:984
  710. `ichiran/dict:defsynergy`  — macro, dict-grammar.lisp:738
@@ -785,7 +785,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  713. `ichiran/dict:defsegfilter`  — macro, dict-grammar.lisp:1043
  714. `ichiran/dict:def-segfilter-must-follow`  — macro, dict-grammar.lisp:1049
  715. `ichiran/dict:def-shi-split`  — macro, dict-split.lisp:191
- 716. `ichiran/dict:def-simple-hint`  — macro, dict-split.lisp:901
+ 716. `ichiran/dict:def-simple-hint`  — macro, dict-split.lisp:901  *[skip — DSL definer (§4.6 case (a)). Expands to defhint with a let* prologue + insert-hints call; bodies are inlined as match arms in _star_hint_map_star_.rs::simple_hint_dispatch (17 groups covering 234 callsites).]*
  717. `ichiran/dict:def-simple-suffix`  — macro, dict-grammar.lisp:345
  718. `ichiran/dict:def-special-counter`  — macro, dict-counters.lisp:361
  719. `ichiran/dict:def-toori-split`  — macro, dict-split.lisp:143

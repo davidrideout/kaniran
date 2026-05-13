@@ -14,3 +14,16 @@ use crate::dict::counter_text_class::CounterText;
 
 #[derive(Debug, Clone)]
 pub struct CounterPeople(pub CounterText);
+
+impl CounterPeople {
+    /// `get-kana` override — `dict-counters.lisp:737-741`. Returns
+    /// ひとり for 1, ふたり for 2, otherwise `None` to fall through
+    /// to the counter-text base primary.
+    pub fn get_kana(&self) -> Option<String> {
+        match self.0.number as i64 {
+            1 => Some("ひとり".to_string()),
+            2 => Some("ふたり".to_string()),
+            _ => None,
+        }
+    }
+}

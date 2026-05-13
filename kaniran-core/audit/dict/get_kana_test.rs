@@ -1,0 +1,77 @@
+//! Manual fixture-replay runner for `ICHIRAN/DICT:GET-KANA`.
+//! Source under test: `src/dict/get_kana.rs`.
+//!
+//! Run with:
+//!   cargo run --bin get_kana_test -- \
+//!       --path corpus/<corpus_tag>/dict/get_kana.parquet
+//!
+//! Args (post-projector): `(<word-row> {"_meta":{"context":
+//! {"disable_hints":<bool>}}})`. The trailing meta element carries
+//! the `*disable-hints*` value at capture time — the
+//! `simple-text :around` method rebinds it to `T` before recursing,
+//! so half the rows are hint-active calls and half are
+//! hint-suppressed recursive ones. The runner threads the captured
+//! value into `get_kana`'s `disable_hints: bool` parameter so the
+//! replay sees the same branch.
+//!
+//! Result: `(<kana string>)` — single value, always a string per
+//! the upstream `get-kana` contract.
+
+#[path = "../common/mod.rs"]
+mod common;
+
+use kaniran_core::dict::get_kana::get_kana;
+
+use common::{
+    describe_word, extract_disable_hints_meta, parse_captured_word, single_result, CapturedRow,
+};
+
+const EXPECTED_FQN: &str = "ICHIRAN/DICT:GET-KANA";
+
+
+async fn audit_one(
+    ctx: &kaniran_core::conn::kani_context::KaniranContext,
+    row: &CapturedRow,
+) -> Result<(), String> {
+    if row.args.len() != 2 {
+        return Err(format!(
+            "expected 2 args (word + hint-state meta), got {}",
+            row.args.len()
+        ));
+    }
+    let disable_hints = extract_disable_hints_meta(&row.args[1])
+        .ok_or_else(|| format!("missing _meta.context.disable_hints on args[1]: {}", row.args[1]))?;
+    let word = parse_captured_word(&row.args[0])?;
+
+    let actual = get_kana(ctx, &word, disable_hints)
+        .await
+        .map_err(|err| format!("get_kana: {} ({})", err, describe_word(&word)))?;
+
+    let result = single_result(&row.result)?;
+    let expected = result
+        .as_str()
+        .ok_or_else(|| format!("result[0] not string: {}", result))?;
+
+    // Upstream never returns nil for get-kana — it crashes via
+    // `(text nil)` instead. The Rust port surfaces that case as
+    // None. If the upstream returned a string (always, in captured
+    // rows) and we got None, that's a divergence.
+    let actual_str = actual.as_deref().unwrap_or("<None — upstream returned a string>");
+    if actual.as_deref() == Some(expected) {
+        Ok(())
+    } else {
+        Err(format!(
+            "input={} disable_hints={}\n  rust: {:?}\n  lisp: {:?}",
+            describe_word(&word),
+            disable_hints,
+            actual_str,
+            expected,
+        ))
+    }
+}
+
+
+#[tokio::main]
+async fn main() {
+    common::run_async(EXPECTED_FQN, audit_one).await;
+}

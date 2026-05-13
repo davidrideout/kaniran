@@ -36,7 +36,7 @@ async fn audit_one(
         .ok_or_else(|| format!("arg 0 not string: {}", row.args[0]))?;
     let root_only = walk_keywords_for_root_only(&row.args[1..])?;
 
-    let actual = find_word(ctx, word, root_only)
+    let actual = find_word(ctx, word, root_only, None)
         .await
         .map_err(|err| format!("find_word query: {}", err))?;
 
@@ -164,13 +164,11 @@ fn kanji_sort_key(a: &KanjiText, b: &KanjiText) -> std::cmp::Ordering {
 }
 
 fn captured_kana_sort_key(a: &CapturedKanaText, b: &CapturedKanaText) -> std::cmp::Ordering {
-    (a.seq, &a.text, a.ord, a.id.unwrap_or(i32::MIN))
-        .cmp(&(b.seq, &b.text, b.ord, b.id.unwrap_or(i32::MIN)))
+    (a.seq, &a.text, a.ord, a.id).cmp(&(b.seq, &b.text, b.ord, b.id))
 }
 
 fn captured_kanji_sort_key(a: &CapturedKanjiText, b: &CapturedKanjiText) -> std::cmp::Ordering {
-    (a.seq, &a.text, a.ord, a.id.unwrap_or(i32::MIN))
-        .cmp(&(b.seq, &b.text, b.ord, b.id.unwrap_or(i32::MIN)))
+    (a.seq, &a.text, a.ord, a.id).cmp(&(b.seq, &b.text, b.ord, b.id))
 }
 
 

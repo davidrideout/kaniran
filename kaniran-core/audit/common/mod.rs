@@ -52,10 +52,14 @@ use kaniran_core::dict::counter_halfhour_class::CounterHalfhour;
 use kaniran_core::dict::counter_hifumi_class::CounterHifumi;
 use kaniran_core::dict::counter_months_class::CounterMonths;
 use kaniran_core::dict::counter_people_class::CounterPeople;
-use kaniran_core::dict::counter_text_class::{Common, Counter, CounterSource, CounterText};
+use kaniran_core::dict::counter_text_class::{
+    Common, Counter, CounterSource, CounterText, DigitOp, DigitOptEntry, DigitOptKey,
+};
 use kaniran_core::dict::counter_tsu_class::CounterTsu;
 use kaniran_core::dict::counter_wari_class::CounterWari;
+use kaniran_core::dict::entry_dao::Entry;
 use kaniran_core::dict::kana_text_dao::KanaText;
+use kaniran_core::dict::kani_suffix_kind::SuffixKind;
 use kaniran_core::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use kaniran_core::dict::kanji_text_dao::KanjiText;
 use kaniran_core::dict::number_text_class::NumberText;
@@ -455,6 +459,13 @@ fn report_and_exit(fqn: &str, pass: usize, fail: usize, first_failures: &[String
 pub struct CapturedKanaText {
     #[serde(rename = "_meta")]
     _meta: serde::de::IgnoredAny,
+    /// `kana-text.id` primary key. Present as an integer when the
+    /// captured row came from the database (DAO load); present as
+    /// JSON `null` when the captured row was synthesized at runtime
+    /// (counter-text sources, proxy-text inner readings, transient
+    /// segmenter assemblies) and was never persisted. No audited
+    /// impl path reads `id`, so `None` flows through to the produced
+    /// `KanaText` as `0` without affecting outcomes.
     pub id: Option<i32>,
     pub seq: i32,
     pub text: String,
@@ -462,18 +473,26 @@ pub struct CapturedKanaText {
     #[serde(deserialize_with = "deserialize_common")]
     pub common: Option<i32>,
     pub common_tags: String,
-    #[serde(default, deserialize_with = "deserialize_null_as_false")]
+    #[serde(deserialize_with = "deserialize_null_as_false")]
     pub conjugate_p: bool,
-    #[serde(default, deserialize_with = "deserialize_null_as_false")]
+    #[serde(deserialize_with = "deserialize_null_as_false")]
     pub nokanji: bool,
-    #[serde(default, deserialize_with = "deserialize_optional_string")]
+    #[serde(deserialize_with = "deserialize_optional_string")]
     pub best_kanji: Option<String>,
-    /// `simple-text.conjugations` slot — only emitted by post-2026-05-12
-    /// captures (the projector stopped omitting the slot at that point).
-    /// Older parquets default to `None`, which matches the FromRow value
-    /// for freshly-loaded DAOs.
-    #[serde(default, deserialize_with = "deserialize_conjugations")]
+    /// `simple-text.conjugations` slot — emitted on every row since
+    /// the projector stopped omitting the slot 2026-05-12. Pre-
+    /// 2026-05-12 parquets are no longer accepted (this struct's
+    /// `deny_unknown_fields` + missing-field-is-error would reject
+    /// them); re-extract those corpora against the current projector.
+    #[serde(deserialize_with = "deserialize_conjugations")]
     pub conjugations: Option<WordConjugations>,
+    /// `simple-text.hintedp` slot. Load-bearing for the `:around
+    /// get-kana` method — proxy-text built by abbr-suffix patterns
+    /// (`dict-grammar.lisp:574`) is hintedp=T at runtime and bypasses
+    /// the hint branch. Emitted on every row since 2026-05-13; older
+    /// parquets must be re-extracted.
+    #[serde(deserialize_with = "deserialize_null_as_false")]
+    pub hintedp: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -481,6 +500,8 @@ pub struct CapturedKanaText {
 pub struct CapturedKanjiText {
     #[serde(rename = "_meta")]
     _meta: serde::de::IgnoredAny,
+    /// `kanji-text.id` PK — see [`CapturedKanaText::id`] for the
+    /// runtime-synthesized null-id case.
     pub id: Option<i32>,
     pub seq: i32,
     pub text: String,
@@ -488,20 +509,30 @@ pub struct CapturedKanjiText {
     #[serde(deserialize_with = "deserialize_common")]
     pub common: Option<i32>,
     pub common_tags: String,
-    #[serde(default, deserialize_with = "deserialize_null_as_false")]
+    #[serde(deserialize_with = "deserialize_null_as_false")]
     pub conjugate_p: bool,
-    #[serde(default, deserialize_with = "deserialize_null_as_false")]
+    #[serde(deserialize_with = "deserialize_null_as_false")]
     pub nokanji: bool,
-    #[serde(default, deserialize_with = "deserialize_optional_string")]
+    #[serde(deserialize_with = "deserialize_optional_string")]
     pub best_kana: Option<String>,
     /// `simple-text.conjugations` slot — see [`CapturedKanaText::conjugations`].
-    #[serde(default, deserialize_with = "deserialize_conjugations")]
+    #[serde(deserialize_with = "deserialize_conjugations")]
     pub conjugations: Option<WordConjugations>,
+    /// `simple-text.hintedp` slot — see [`CapturedKanaText::hintedp`].
+    #[serde(deserialize_with = "deserialize_null_as_false")]
+    pub hintedp: bool,
 }
 
 impl CapturedKanaText {
     pub fn matches(&self, actual: &KanaText) -> bool {
-        let id_ok = self.id.map_or(true, |captured_id| actual.id == captured_id);
+        // Synthesized (non-DB) rows carry `id: None`; in that case
+        // the audit doesn't compare ids (the runtime object has no
+        // meaningful id to match against). DB-loaded rows compare
+        // strictly.
+        let id_ok = match self.id {
+            Some(captured_id) => captured_id == actual.id,
+            None => true,
+        };
         id_ok
             && self.seq == actual.seq
             && self.text == actual.text
@@ -511,10 +542,16 @@ impl CapturedKanaText {
             && self.conjugate_p == actual.conjugate_p
             && self.nokanji == actual.nokanji
             && self.best_kanji == actual.best_kanji
+            && self.conjugations == actual.state.conjugations
+            && self.hintedp == actual.state.hintedp
     }
 
     pub fn into_dao(self) -> KanaText {
         KanaText {
+            // Synthesized rows have no id (upstream `make-instance`
+            // path silently drops `:id` because the slot has no
+            // `:initarg`). 0 is a sentinel; no audited code path
+            // reads it.
             id: self.id.unwrap_or(0),
             seq: self.seq,
             text: self.text,
@@ -526,7 +563,7 @@ impl CapturedKanaText {
             best_kanji: self.best_kanji,
             state: SimpleText {
                 conjugations: self.conjugations,
-                hintedp: false,
+                hintedp: self.hintedp,
             },
         }
     }
@@ -534,7 +571,11 @@ impl CapturedKanaText {
 
 impl CapturedKanjiText {
     pub fn matches(&self, actual: &KanjiText) -> bool {
-        let id_ok = self.id.map_or(true, |captured_id| actual.id == captured_id);
+        // See [`CapturedKanaText::matches`] for the None-id semantics.
+        let id_ok = match self.id {
+            Some(captured_id) => captured_id == actual.id,
+            None => true,
+        };
         id_ok
             && self.seq == actual.seq
             && self.text == actual.text
@@ -544,10 +585,13 @@ impl CapturedKanjiText {
             && self.conjugate_p == actual.conjugate_p
             && self.nokanji == actual.nokanji
             && self.best_kana == actual.best_kana
+            && self.conjugations == actual.state.conjugations
+            && self.hintedp == actual.state.hintedp
     }
 
     pub fn into_dao(self) -> KanjiText {
         KanjiText {
+            // Synthesized rows have no id; see [`CapturedKanaText::into_dao`].
             id: self.id.unwrap_or(0),
             seq: self.seq,
             text: self.text,
@@ -559,7 +603,7 @@ impl CapturedKanjiText {
             best_kana: self.best_kana,
             state: SimpleText {
                 conjugations: self.conjugations,
-                hintedp: false,
+                hintedp: self.hintedp,
             },
         }
     }
@@ -595,20 +639,27 @@ pub fn parse_captured_simple_text(value: &Value) -> Result<KaniSimpleTextDispatc
 }
 
 pub fn parse_captured_proxy_text(value: &Value) -> Result<ProxyText, String> {
-    let source_value = value
-        .get("source")
-        .ok_or_else(|| "proxy-text missing source".to_string())?;
+    let source_value = require_field(value, "source")?;
     let source = parse_captured_simple_text(source_value)?;
     Ok(ProxyText {
-        text: get_string(value, "text"),
-        kana: get_string(value, "kana"),
+        text: require_string(value, "text")?,
+        kana: require_string(value, "kana")?,
         source: Box::new(source),
-        state: SimpleText::default(),
+        state: SimpleText {
+            // proxy-text inherits both simple-text slots
+            // (`dict.lisp:550 (defclass proxy-text (simple-text))`).
+            // The projector emits both on every row; strict reads.
+            hintedp: require_bool(value, "hintedp")?,
+            conjugations: require_conjugations(value, "conjugations")?,
+        },
     })
 }
 
 /// Full word-polymorphism dispatcher: KANA-TEXT, KANJI-TEXT, PROXY-TEXT,
-/// COMPOUND-TEXT, plus the 11 counter-text subclasses.
+/// COMPOUND-TEXT, and the 11 counter-text subclasses. ENTRY is **not**
+/// in the dispatch — no upstream callsite routes an entry through
+/// polymorphic dispatch; locally-typed Entry callers invoke
+/// `Entry::get_text(ctx)` / `Entry::get_kana(ctx)` directly.
 pub fn parse_captured_word(value: &Value) -> Result<KaniWordDispatchEnum, String> {
     let class = captured_class(value)?;
     match class {
@@ -627,54 +678,105 @@ pub fn parse_captured_word(value: &Value) -> Result<KaniWordDispatchEnum, String
     }
 }
 
-fn parse_captured_compound_text(value: &Value) -> Result<CompoundText, String> {
-    let primary_value = value
-        .get("primary")
-        .ok_or_else(|| "compound-text missing primary".to_string())?;
-    let primary = Box::new(parse_captured_word(primary_value)?);
-    let mut words = Vec::new();
-    if let Some(words_value) = value.get("words") {
-        if let Some(arr) = words_value.as_array() {
-            for w in arr {
-                words.push(parse_captured_word(w)?);
-            }
-        }
-    }
-    Ok(CompoundText {
-        text: get_string(value, "text"),
-        kana: get_string(value, "kana"),
-        primary,
-        words,
-        score_base: None,
-        score_mod: ScoreMod::Single(0),
+/// Read an ENTRY-shaped capture into an [`Entry`]. Used only by
+/// runners that consume entry rows directly (none in the current
+/// audit set). The projector's `*omit-slots*` blocks `content`
+/// (JMdict XML, kilobytes per row, no audit consumer reads it);
+/// every other slot is strict-required.
+#[allow(dead_code)]
+fn parse_captured_entry(value: &Value) -> Result<Entry, String> {
+    Ok(Entry {
+        seq: require_i32(value, "seq")?,
+        // `content` is intentionally omitted by the projector;
+        // empty-string is the audit-side substitute and no consumer
+        // reads it. The omission is the single documented exception
+        // to the capture-everything rule.
+        content: String::new(),
+        root_p: require_bool(value, "root_p")?,
+        n_kanji: require_i32(value, "n_kanji")?,
+        n_kana: require_i32(value, "n_kana")?,
+        primary_nokanji: require_bool(value, "primary_nokanji")?,
     })
 }
 
+fn parse_captured_compound_text(value: &Value) -> Result<CompoundText, String> {
+    let primary_value = require_field(value, "primary")?;
+    let primary = Box::new(parse_captured_word(primary_value)?);
+    let words_value = require_field(value, "words")?;
+    let words_arr = words_value
+        .as_array()
+        .ok_or_else(|| format!("words: expected array, got {}", words_value))?;
+    let mut words = Vec::with_capacity(words_arr.len());
+    for w in words_arr {
+        words.push(parse_captured_word(w)?);
+    }
+    let score_base = match require_field(value, "score_base")? {
+        Value::Null => None,
+        v => Some(Box::new(parse_captured_word(v)?)),
+    };
+    let score_mod = parse_captured_score_mod(require_field(value, "score_mod")?)?;
+    Ok(CompoundText {
+        text: require_string(value, "text")?,
+        kana: require_string(value, "kana")?,
+        primary,
+        words,
+        score_base,
+        score_mod,
+    })
+}
+
+/// Read the `score-mod` slot. Upstream `adjoin-word` writes an
+/// integer at first adjoin (`dict.lisp:642-645`); subsequent adjoins
+/// wrap-or-cons into a list, giving a flat list of integers
+/// (`dict.lisp:648-651`). Mirror that:
+/// - JSON integer → [`ScoreMod::Single`].
+/// - JSON array of integers → [`ScoreMod::Stack`].
+/// - JSON `null` → [`ScoreMod::Single(0)`] (the `:around` method's
+///   `(or score-mod 0)` fallback at `dict.lisp:639`).
+fn parse_captured_score_mod(v: &Value) -> Result<ScoreMod, String> {
+    match v {
+        Value::Null => Ok(ScoreMod::Single(0)),
+        Value::Number(n) => {
+            let i = n.as_i64().ok_or_else(|| format!("score_mod not i64: {}", n))?;
+            Ok(ScoreMod::Single(i as i32))
+        }
+        Value::Array(arr) => {
+            let mut ids = Vec::with_capacity(arr.len());
+            for item in arr {
+                let i = item.as_i64().ok_or_else(|| format!("score_mod entry not i64: {}", item))?;
+                ids.push(i as i32);
+            }
+            Ok(ScoreMod::Stack(ids))
+        }
+        other => Err(format!("score_mod: expected int / array / null, got {}", other)),
+    }
+}
+
 fn parse_captured_counter(value: &Value, class: &str) -> Result<Counter, String> {
-    let source = match value.get("source") {
-        Some(s) if !s.is_null() => match parse_captured_simple_text(s)? {
+    let source = match require_field(value, "source")? {
+        Value::Null => None,
+        s => match parse_captured_simple_text(s)? {
             KaniSimpleTextDispatchEnum::Kanji(k) => Some(CounterSource::Kanji(k)),
             KaniSimpleTextDispatchEnum::Kana(k) => Some(CounterSource::Kana(k)),
             // counter-text source is a kanji or kana, never proxy upstream.
             KaniSimpleTextDispatchEnum::Proxy(_) => None,
         },
-        _ => None,
     };
-    let common = parse_counter_common(value.get("common"));
+    let common = parse_counter_common(require_field(value, "common")?)?;
     let base = CounterText {
-        text: get_string(value, "text"),
-        kana: get_string(value, "kana"),
-        number_text: get_string(value, "number_text"),
-        number: value.get("number").and_then(|v| v.as_u64()).unwrap_or(0),
+        text: require_string(value, "text")?,
+        kana: require_string(value, "kana")?,
+        number_text: require_string(value, "number_text")?,
+        number: require_u64(value, "number")?,
         source,
-        ordinalp: get_bool(value, "ordinalp"),
-        suffix: get_optional_string(value, "suffix"),
-        accepts_suffixes: Vec::new(),
-        suffix_descriptions: get_string_list(value, "suffix_descriptions"),
-        digit_opts: Vec::new(),
+        ordinalp: require_bool(value, "ordinalp")?,
+        suffix: require_optional_string(value, "suffix")?,
+        accepts_suffixes: parse_accepts_suffixes(require_field(value, "accepts_suffixes")?)?,
+        suffix_descriptions: require_string_list(value, "suffix_descriptions")?,
+        digit_opts: parse_digit_opts(require_field(value, "digit_opts")?)?,
         common,
-        allowed: Vec::new(),
-        foreign: get_bool(value, "foreign"),
+        allowed: require_i32_list(value, "allowed")?,
+        foreign: require_bool(value, "foreign")?,
     };
     Ok(match class {
         "COUNTER-TEXT" => Counter::Base(base),
@@ -687,17 +789,119 @@ fn parse_captured_counter(value: &Value, class: &str) -> Result<Counter, String>
         "COUNTER-MONTHS" => Counter::Months(CounterMonths(base)),
         "COUNTER-PEOPLE" => Counter::People(CounterPeople(base)),
         "COUNTER-WARI" => Counter::Wari(CounterWari(base)),
-        "COUNTER-HIFUMI" => Counter::Hifumi(CounterHifumi { base, digit_set: Vec::new() }),
+        "COUNTER-HIFUMI" => Counter::Hifumi(CounterHifumi {
+            base,
+            // Load-bearing for COUNTER-HIFUMI get-kana: keys on
+            // `(find value digit-set)`. Empty would silently push
+            // every capture into the call-next-method fallback path.
+            digit_set: require_i32_list(value, "digit_set")?,
+        }),
         other => return Err(format!("unknown counter subclass: :{}", other)),
     })
 }
 
-fn parse_counter_common(v: Option<&Value>) -> Common {
+/// Read `accepts_suffixes` — a JSON array of `:KW` keyword strings
+/// like `":KAN"`, `":CHUU"`, `":KANGO"`. The Lisp slot value comes
+/// from the populator's `:accepts` initarg
+/// (`dict-counters.lisp:256`); only Kan / Kango / Chuu are defined
+/// in the `*counter-suffixes*` registry. Unknown tags surface as
+/// an error rather than silent drop so a future upstream addition
+/// triggers a port update. `null` is the empty-list wire shape.
+fn parse_accepts_suffixes(v: &Value) -> Result<Vec<SuffixKind>, String> {
+    let arr = match v {
+        Value::Null => return Ok(Vec::new()),
+        Value::Array(arr) => arr,
+        other => return Err(format!("accepts_suffixes: expected array / null, got {}", other)),
+    };
+    arr.iter()
+        .map(|item| match item.as_str() {
+            Some(":KAN") => Ok(SuffixKind::Kan),
+            Some(":KANGO") => Ok(SuffixKind::Kango),
+            Some(":CHUU") => Ok(SuffixKind::Chuu),
+            Some(other) => Err(format!("unknown accepts tag: {}", other)),
+            None => Err(format!("accepts entry not string: {}", item)),
+        })
+        .collect()
+}
+
+/// Read `digit_opts` — a JSON array of `[<key>, <op>, <op>, ...]`
+/// inner arrays. The key head is either an integer (→
+/// [`DigitOptKey::Digit`]) or the literal `":OFF"` (→ [`DigitOptKey::Off`]);
+/// rest elements are strings (`":G"` / `":R"` / `":H"` / `":C"` →
+/// closed [`DigitOp`] variants, or any other string → a literal
+/// kana replacement via [`DigitOp::Replace`]). Mirrors the Lisp
+/// `:digit-opts '((4 "よ") (10 :g))` shape captured by the
+/// projector.
+fn parse_digit_opts(v: &Value) -> Result<Vec<DigitOptEntry>, String> {
+    let arr = match v {
+        Value::Null => return Ok(Vec::new()),
+        Value::Array(arr) => arr,
+        other => return Err(format!("digit_opts: expected array / null, got {}", other)),
+    };
+    arr.iter()
+        .map(|entry| {
+            let inner = entry
+                .as_array()
+                .ok_or_else(|| format!("digit_opts entry not array: {}", entry))?;
+            let mut iter = inner.iter();
+            let head = iter
+                .next()
+                .ok_or_else(|| "digit_opts entry empty".to_string())?;
+            let key = match head {
+                Value::String(s) if s == ":OFF" => DigitOptKey::Off,
+                Value::Number(n) => {
+                    let i = n.as_i64().ok_or_else(|| {
+                        format!("digit_opts head not int: {}", n)
+                    })?;
+                    DigitOptKey::Digit(i as i32)
+                }
+                other => {
+                    return Err(format!("digit_opts head not :OFF/int: {}", other))
+                }
+            };
+            let ops: Result<Vec<DigitOp>, String> = iter
+                .map(|op| match op {
+                    Value::String(s) => Ok(match s.as_str() {
+                        ":G" => DigitOp::Geminate,
+                        ":R" => DigitOp::Rendaku,
+                        ":H" => DigitOp::Handakuten,
+                        ":C" => DigitOp::Counter,
+                        other => DigitOp::Replace(other.to_string()),
+                    }),
+                    other => Err(format!("digit_opts op not string: {}", other)),
+                })
+                .collect();
+            Ok(DigitOptEntry { key, ops: ops? })
+        })
+        .collect()
+}
+
+/// Read a JSON array of integers; null / missing → empty Vec.
+fn get_i32_list(value: &Value, key: &str) -> Vec<i32> {
+    value
+        .get(key)
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_i64().map(|n| n as i32))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn parse_counter_common(v: &Value) -> Result<Common, String> {
     match v {
-        None | Some(Value::Null) => Common::Inherit,
-        Some(Value::String(s)) if s == ":NULL" => Common::Null,
-        Some(Value::Number(n)) => Common::Score(n.as_i64().unwrap_or(0) as i32),
-        _ => Common::Inherit,
+        // CL `nil` flattens to JSON `null` — the upstream `common`
+        // slot's default. Maps to [`Common::Inherit`].
+        Value::Null => Ok(Common::Inherit),
+        Value::String(s) if s == ":NULL" => Ok(Common::Null),
+        Value::Number(n) => {
+            let i = n
+                .as_i64()
+                .ok_or_else(|| format!("common: not i64-representable: {}", n))?;
+            Ok(Common::Score(i as i32))
+        }
+        other => Err(format!("common: expected null / number / \":NULL\", got {}", other)),
     }
 }
 
@@ -737,6 +941,123 @@ pub fn get_usize(value: &Value, key: &str) -> usize {
     value.get(key).and_then(|v| v.as_u64()).unwrap_or(0) as usize
 }
 
+
+// --- strict field readers --------------------------------------------------
+//
+// Required-field counterparts of the `get_*` helpers above. Use these in
+// `parse_captured_*` paths where the projector's contract guarantees the
+// slot is emitted on every row. Missing key, wrong JSON type, or null
+// (where null is not a valid wire value) returns a descriptive error
+// instead of silently defaulting — matching the strict-field policy on
+// `CapturedKanaText` / `CapturedKanjiText`.
+
+fn require_field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
+    value.get(key).ok_or_else(|| format!("missing field: {}", key))
+}
+
+fn require_string(value: &Value, key: &str) -> Result<String, String> {
+    match require_field(value, key)? {
+        Value::String(s) => Ok(s.clone()),
+        other => Err(format!("{}: expected string, got {}", key, other)),
+    }
+}
+
+/// CL-truthy read of a "boolean" slot. The upstream `dao-class`
+/// boolean slots (`:col-type boolean`) round-trip through select-dao
+/// as `t`/`nil` and project as JSON `true`/`null`. But slots set
+/// only at make-instance time can receive any truthy CL value —
+/// e.g. `counter-text.foreign` is bound to `(find seq *counter-foreign*)`
+/// which returns the seq integer when found, not `t`. Every reader
+/// upstream uses these slots as predicates (`(when (counter-foreign obj) ...)`),
+/// so any non-nil JSON value (number, string, true, array) collapses
+/// to `true` here. `null` and `false` are `false`.
+fn require_bool(value: &Value, key: &str) -> Result<bool, String> {
+    match require_field(value, key)? {
+        Value::Null => Ok(false),
+        Value::Bool(b) => Ok(*b),
+        _ => Ok(true),
+    }
+}
+
+fn require_i32(value: &Value, key: &str) -> Result<i32, String> {
+    match require_field(value, key)? {
+        Value::Number(n) => {
+            let i = n.as_i64().ok_or_else(|| format!("{}: not i64-representable: {}", key, n))?;
+            Ok(i as i32)
+        }
+        other => Err(format!("{}: expected number, got {}", key, other)),
+    }
+}
+
+fn require_u64(value: &Value, key: &str) -> Result<u64, String> {
+    match require_field(value, key)? {
+        Value::Number(n) => n.as_u64().ok_or_else(|| format!("{}: not u64-representable: {}", key, n)),
+        other => Err(format!("{}: expected non-negative number, got {}", key, other)),
+    }
+}
+
+fn require_i32_list(value: &Value, key: &str) -> Result<Vec<i32>, String> {
+    let arr = match require_field(value, key)? {
+        Value::Array(arr) => arr,
+        Value::Null => return Ok(Vec::new()),
+        other => return Err(format!("{}: expected array / null, got {}", key, other)),
+    };
+    arr.iter()
+        .map(|v| match v {
+            Value::Number(n) => {
+                let i = n.as_i64().ok_or_else(|| format!("{}: entry not i64-representable: {}", key, n))?;
+                Ok(i as i32)
+            }
+            other => Err(format!("{}: entry expected number, got {}", key, other)),
+        })
+        .collect()
+}
+
+fn require_string_list(value: &Value, key: &str) -> Result<Vec<String>, String> {
+    let arr = match require_field(value, key)? {
+        Value::Array(arr) => arr,
+        Value::Null => return Ok(Vec::new()),
+        other => return Err(format!("{}: expected array / null, got {}", key, other)),
+    };
+    arr.iter()
+        .map(|v| match v {
+            Value::String(s) => Ok(s.clone()),
+            other => Err(format!("{}: entry expected string, got {}", key, other)),
+        })
+        .collect()
+}
+
+fn require_optional_string(value: &Value, key: &str) -> Result<Option<String>, String> {
+    match require_field(value, key)? {
+        Value::Null => Ok(None),
+        Value::String(s) if s == ":NULL" => Ok(None),
+        Value::String(s) => Ok(Some(s.clone())),
+        other => Err(format!("{}: expected string / null / \":NULL\", got {}", key, other)),
+    }
+}
+
+/// `simple-text.conjugations` slot — same wire shape as
+/// [`deserialize_conjugations`] but for hand-written parsers
+/// (proxy-text, where slot reads are direct JSON probes).
+fn require_conjugations(value: &Value, key: &str) -> Result<Option<WordConjugations>, String> {
+    match require_field(value, key)? {
+        Value::Null => Ok(None),
+        Value::String(s) if s == ":ROOT" => Ok(Some(WordConjugations::Root)),
+        Value::String(other) => Err(format!("{}: unexpected string: {}", key, other)),
+        Value::Array(arr) => {
+            let mut ids = Vec::with_capacity(arr.len());
+            for v in arr {
+                let i = v.as_i64().ok_or_else(|| {
+                    format!("{}: conj-id entry not i64-representable: {}", key, v)
+                })?;
+                ids.push(i as i32);
+            }
+            Ok(Some(WordConjugations::Ids(ids)))
+        }
+        other => Err(format!("{}: expected null / \":ROOT\" / int-array, got {}", key, other)),
+    }
+}
+
 /// Assert that `result` carries exactly one captured value and return it.
 /// Most encapsulated fns project as a single-element `(values v)` list;
 /// this is the standard shape-check for those runners.
@@ -745,6 +1066,72 @@ pub fn single_result(result: &[Value]) -> Result<&Value, String> {
         return Err(format!("expected 1 result value, got {}", result.len()));
     }
     Ok(&result[0])
+}
+
+/// Short bisectable description of a captured word for failure
+/// messages. Format: `<CLASS> seq=<seq> text=<excerpt>` with the
+/// text excerpt truncated to ~24 chars so a divergent row in a
+/// 100K-group run can be located without re-running the parquet.
+/// Counter and compound carry no single `text` of their own so
+/// surface only class + seq; entry surfaces only class + seq for
+/// the same reason (no `text` slot upstream).
+pub fn describe_word(word: &KaniWordDispatchEnum) -> String {
+    fn excerpt(s: &str) -> String {
+        let max_chars = 24;
+        let chars: Vec<char> = s.chars().collect();
+        if chars.len() <= max_chars {
+            s.to_string()
+        } else {
+            let head: String = chars.iter().take(max_chars).collect();
+            format!("{}\u{2026}", head)
+        }
+    }
+    match word {
+        KaniWordDispatchEnum::Kana(k) => {
+            format!("KANA-TEXT seq={} text={:?}", k.seq, excerpt(&k.text))
+        }
+        KaniWordDispatchEnum::Kanji(k) => {
+            format!("KANJI-TEXT seq={} text={:?}", k.seq, excerpt(&k.text))
+        }
+        KaniWordDispatchEnum::Proxy(p) => {
+            format!("PROXY-TEXT text={:?} kana={:?}", excerpt(&p.text), excerpt(&p.kana))
+        }
+        KaniWordDispatchEnum::Compound(c) => {
+            format!("COMPOUND-TEXT text={:?} kana={:?}", excerpt(&c.text), excerpt(&c.kana))
+        }
+        KaniWordDispatchEnum::Counter(c) => {
+            let base = c.base();
+            format!("COUNTER number={} text={:?}", base.number, excerpt(&base.text))
+        }
+    }
+}
+
+/// Detect the trailing `{"_meta":{"context":{"disable_hints":<bool>}}}`
+/// element appended by `flatten-args-json-with-hint-state` (the
+/// projector wired for `GET-KANA`, `GET-HINT`, `TRUE-KANA` in
+/// `ichiran-extractor/projectors_json.lisp`). Returns the binding
+/// value when the trailing element matches the meta-context shape.
+/// Runners that consume hint-cluster parquets pass the returned
+/// value into the impl's `disable_hints: bool` parameter so the
+/// replay follows the same `:around` branch the upstream took at
+/// capture; on `None`, those runners surface a hard error (the
+/// meta element is required, never optional).
+///
+/// JSON shapes seen from the upstream projector:
+/// - `true` ← Lisp `*disable-hints* = T` (set by the `:around`
+///   method before invoking get-hint).
+/// - `null` ← Lisp `*disable-hints* = NIL` (default; the projector
+///   emits `(if disable-hints t nil)`, and `nil` flattens to JSON
+///   `null` per the general projector contract). Equivalent to
+///   `false` for the downstream impl.
+/// - `false` ← would arise if the projector ever switched to an
+///   explicit boolean encoder; tolerated for forward compatibility.
+pub fn extract_disable_hints_meta(value: &Value) -> Option<bool> {
+    match value.pointer("/_meta/context/disable_hints") {
+        Some(Value::Bool(b)) => Some(*b),
+        Some(Value::Null) => Some(false),
+        _ => None,
+    }
 }
 
 

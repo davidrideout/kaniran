@@ -52,11 +52,12 @@ impl Entry {
     ///
     /// Returns the `text` of the entry's headword row at `ord = 0` —
     /// from `kanji_text` when the entry has any kanji writings,
-    /// otherwise from `kana_text`. Routed through
-    /// [`crate::dict::get_text::get_text`] only conceptually; at every
-    /// upstream callsite (`dict.lisp:67` `entry-digest`,
-    /// `dict-load.lisp:135`) the receiver is locally typed as `entry`,
-    /// so callers reach this method directly.
+    /// otherwise from `kana_text`. Reached only from locally-typed
+    /// callsites (`dict.lisp:67` `entry-digest`, `dict-load.lisp:135`);
+    /// `entry` is not a variant of
+    /// [`crate::dict::kani_word::KaniWordDispatchEnum`] (see that
+    /// module's header) so no polymorphic `get-text` dispatch flows
+    /// here.
     ///
     /// Diverges from the upstream lambda list `(obj)` only by:
     /// - taking `&KaniranContext` for the database handle, replacing
@@ -76,6 +77,40 @@ impl Entry {
             .bind(self.seq)
             .fetch_optional(&ctx.pool)
             .await?;
+        Ok(row.map(|(t,)| t))
+    }
+
+    /// `get-kana` override — `dict.lisp:44-45`:
+    ///
+    /// ```lisp
+    /// (defmethod get-kana ((obj entry))
+    ///   (text (car (select-dao 'kana-text (:and (:= 'seq (seq obj)) (:= 'ord 0))))))
+    /// ```
+    ///
+    /// Returns the `text` of the entry's headword `kana_text` row at
+    /// `ord = 0`. Reached only from locally-typed callsites
+    /// (`entry-digest` at `dict.lisp:67` is the canonical one);
+    /// `entry` is not a variant of
+    /// [`super::kani_word::KaniWordDispatchEnum`] (see that module's
+    /// header) so no polymorphic `get-kana` dispatch flows here.
+    ///
+    /// Diverges from the upstream lambda list `(obj)` only by:
+    /// - taking `&KaniranContext` for the database handle, replacing
+    ///   the upstream dynamic `*connection*` per
+    ///   [`crate::conn::kani_context`];
+    /// - returning [`Option<String>`] rather than a raw string —
+    ///   upstream errors on `(text nil)` if the headword row is
+    ///   absent (data-integrity violation), which the Rust port
+    ///   surfaces as [`None`].
+    pub async fn get_kana(
+        &self,
+        ctx: &KaniranContext,
+    ) -> Result<Option<String>, sqlx::Error> {
+        let row: Option<(String,)> =
+            sqlx::query_as("SELECT text FROM kana_text WHERE seq = $1 AND ord = 0")
+                .bind(self.seq)
+                .fetch_optional(&ctx.pool)
+                .await?;
         Ok(row.map(|(t,)| t))
     }
 }

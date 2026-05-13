@@ -68,6 +68,7 @@
 //!   counter (kanji-text or kana-text), or [`None`] for synthesized
 //!   `number_text` rows. Modeled as enum [`CounterSource`] per §4.3.
 
+use crate::dict::_star_kana_hint_space_star_::KANA_HINT_SPACE;
 use crate::dict::counter_age_class::CounterAge;
 use crate::dict::counter_days_kun_class::CounterDaysKun;
 use crate::dict::counter_days_on_class::CounterDaysOn;
@@ -82,7 +83,11 @@ use crate::dict::kanji_text_dao::KanjiText;
 use crate::dict::kani_counter_args::{CounterArgs, CounterClass};
 use crate::dict::kani_suffix_kind::SuffixKind;
 use crate::dict::number_text_class::NumberText;
+use crate::numbers::_star_digit_kanji_default_star_::DIGIT_KANJI_DEFAULT;
+use crate::numbers::_star_power_kanji_star_::POWER_KANJI;
 use crate::numbers::not_a_number_condition::NotANumber;
+use crate::numbers::number_to_kana::{number_to_kana, NumberToKanaOutput};
+use crate::numbers::number_to_kanji::number_to_kanji;
 use crate::numbers::parse_number::parse_number;
 
 #[derive(Debug, Clone)]
@@ -160,6 +165,38 @@ impl CounterText {
             out.push_str(desc);
         }
         out
+    }
+
+    /// `get-kana` base primary — `dict-counters.lisp:64-67`:
+    ///
+    /// ```lisp
+    /// (defmethod get-kana ((obj counter-text))
+    ///   (counter-join obj n (number-to-kana n :separator *kana-hint-space*)
+    ///                 (copy-seq (counter-kana obj))))
+    /// ```
+    ///
+    /// Called by [`Counter::get_kana`] as the `call-next-method`
+    /// target for subclasses whose specialized method returns
+    /// `None`. Takes the wrapping [`Counter`] because the inner
+    /// [`crate::dict::counter_join::counter_join`] dispatches on
+    /// subclass.
+    pub fn primary_get_kana_for(counter: &Counter) -> String {
+        let base = counter.base();
+        let n = base.number;
+        let number_kana = match number_to_kana(n, Some(KANA_HINT_SPACE), |x| {
+            number_to_kanji(x, DIGIT_KANJI_DEFAULT, POWER_KANJI, false)
+        }) {
+            NumberToKanaOutput::Joined(s) => s,
+            NumberToKanaOutput::Groups(_) => unreachable!(
+                "number-to-kana with Some(separator) always returns Joined"
+            ),
+        };
+        crate::dict::counter_join::counter_join(
+            counter,
+            n as i64,
+            number_kana,
+            base.kana.clone(),
+        )
     }
 
     /// Build the shared base from a recipe + the user-typed
@@ -339,6 +376,41 @@ impl Counter {
             Counter::People(c) => &c.0,
             Counter::Tsu(c) => &c.0,
             Counter::Wari(c) => &c.0,
+        }
+    }
+
+    /// Family-level `get-kana` for the counter-text family.
+    /// Implements the `:around` suffix-append wrapper
+    /// (`dict-counters.lisp:69-71`):
+    ///
+    /// ```lisp
+    /// (defmethod get-kana :around ((obj counter-text))
+    ///   (let ((kana (call-next-method)))
+    ///     (if (counter-suffix obj) (concatenate 'string kana (counter-suffix obj)) kana)))
+    /// ```
+    ///
+    /// `call-next-method` dispatches to the subclass's specialized
+    /// `get_kana` (if any returns `Some`); on `None` it falls back
+    /// to [`CounterText::primary_get_kana_for`]. Per CONVENTIONS §4.7,
+    /// each family handles its own `:around` internally; the
+    /// top-level [`crate::dict::get_kana::get_kana`] dispatcher
+    /// just delegates here for the counter arm.
+    pub fn get_kana(&self) -> String {
+        let primary = match self {
+            Counter::Tsu(c) => c.get_kana(),
+            Counter::Hifumi(c) => c.get_kana(),
+            Counter::DaysKun(c) => c.get_kana(),
+            Counter::People(c) => c.get_kana(),
+            Counter::Age(c) => c.get_kana(),
+            Counter::NumberText(c) => Some(c.get_kana()),
+            // Counter::Base / DaysOn / Halfhour / Months / Wari —
+            // no specialized override; primary IS the base body.
+            _ => None,
+        };
+        let body = primary.unwrap_or_else(|| CounterText::primary_get_kana_for(self));
+        match &self.base().suffix {
+            Some(suf) => format!("{}{}", body, suf),
+            None => body,
         }
     }
 }

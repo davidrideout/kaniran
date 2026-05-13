@@ -14,12 +14,14 @@
 //!   — slot if truthy, else recurse on source, else 0.
 //! - **proxy-text** (`dict.lisp:577`): `(common (source obj))`.
 //! - **compound-text** (`dict.lisp:624`): `(common (primary obj))`.
-//! - **entry** (`dict.lisp:32`): SQL query computing `max(common)`
-//!   across the entry's kanji-text/kana-text rows. **Not ported here**
-//!   — entry isn't in [`KaniWordDispatchEnum`], every callsite that
-//!   has an [`super::entry_dao::Entry`] in hand is statically typed
-//!   and will need its own ctx-injected async port when the relevant
-//!   wave lands.
+//! - **entry** (`dict.lisp:160-164`): SQL query computing `max(common)`
+//!   across the entry's kanji-text/kana-text rows. **Not in this
+//!   dispatcher** — every upstream `(common ...)` callsite passes a
+//!   simple-text / counter-text / proxy-text / compound-text. The
+//!   `defmethod common ((obj entry))` exists in CLOS but no
+//!   production callsite reaches it. If a locally-typed Entry
+//!   caller materializes in the Rust port, it will get its own
+//!   `Entry::common(ctx)` async method at that point.
 //!
 //! ## Return type — [`Common`]
 //!

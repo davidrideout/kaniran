@@ -24,7 +24,15 @@
 ;;; become snake_case (`common_tags`).
 ;;;
 ;;; `*omit-slots*` is the per-class blocklist with class-precedence-list
-;;; walk so SimpleText.{conjugations, hintedp} drop from every subclass.
+;;; walk. Empty by default — every CLOS slot captures. The
+;;; `simple-text` `conjugations` AND `hintedp` slots ARE load-bearing
+;;; (audit replay surfaced both in turn):
+;;;   - `conjugations` decides best-kana-conj's :root / :all / by-id arm.
+;;;   - `hintedp` is the re-entrance flag the `:around get-kana` method
+;;;     checks; proxy-text constructed by abbr-suffix patterns
+;;;     (dict-grammar.lisp:574) is hintedp=T at runtime, and the audit
+;;;     replay was misrouting those rows through the hint branch.
+;;; Re-extract any parquet that depends on hintedp accuracy.
 ;;;
 ;;; Exposes:
 ;;;   FLATTEN-TO-JSON value      -> jsown-compatible tree
@@ -36,6 +44,7 @@
   (:use :cl)
   (:export #:flatten-to-json
            #:flatten-args-json
+           #:flatten-args-json-with-hint-state
            #:flatten-results-json
            #:encode-json
            #:to-json-string
@@ -44,16 +53,16 @@
 (in-package :ichi-projectors-json)
 
 (defparameter *omit-slots*
-  '((ichiran/dict::entry ichiran/dict::content)
-    ;; SimpleText.hintedp is the :around `get-kana` re-entrance flag —
-    ;; transient, not load-bearing for any audit consumer. The sibling
-    ;; `conjugations` slot IS load-bearing (best-kana-conj branches on
-    ;; it) and is now captured; only hintedp stays omitted.
-    (ichiran/dict::simple-text ichiran/dict::hintedp))
+  '((ichiran/dict::entry ichiran/dict::content))
   "Per-class slot blocklist. Each entry: (CLASS-NAME SLOT-NAME ...). The
    default flatten skips listed slots when expanding object plists.
    Slot lookup walks the class-precedence-list, so listing a slot on an
-   ancestor class covers all subclasses.")
+   ancestor class covers all subclasses.
+
+   `entry.content` stays omitted because it's the full JMdict XML
+   payload (kilobytes per row); audit replay doesn't need it.
+   Everything else — including `simple-text.{conjugations, hintedp}` —
+   captures by default.")
 
 (defun %slot-omitted-p (cls slot-name)
   (some (lambda (ancestor)
@@ -135,6 +144,20 @@
 
 (defun flatten-args-json (args) (mapcar #'flatten-to-json args))
 (defun flatten-results-json (results) (mapcar #'flatten-to-json results))
+
+;; Hint-aware variant — appends `*disable-hints*` value as a trailing
+;; meta-tagged entry so audit-replay can distinguish hint-active calls
+;; from `:around`-disabled ones. The dict-split.lisp:80 `:around` method
+;; binds `*disable-hints*` to T before calling `get-hint`, so capturing
+;; it here is the only way to disambiguate the ~5% output variation that
+;; the segmenter extraction documented.
+;;
+;; Trailing element shape: {"_meta":{"context":{"disable_hints":<bool>}}}
+;; — audit handlers detect it structurally and split rows by binding state.
+(defun flatten-args-json-with-hint-state (args)
+  (let ((disable-hints (symbol-value (find-symbol "*DISABLE-HINTS*" :ichiran/dict))))
+    (append (mapcar #'flatten-to-json args)
+            (list `(:obj ("_meta" . (:obj ("context" . (:obj ("disable_hints" . ,(if disable-hints t nil)))))))))))
 
 
 ;; --- JSON encoder ----------------------------------------------------------

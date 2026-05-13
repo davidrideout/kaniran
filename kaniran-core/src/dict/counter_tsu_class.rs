@@ -24,4 +24,24 @@ impl CounterTsu {
         let n = self.0.number;
         (1..=9).contains(&n) && unique
     }
+
+    /// `get-kana` override — `dict-counters.lisp:502-513`.
+    /// Closed kun-yomi table for 1..9; everything else falls
+    /// through to `call-next-method` (the counter-text base
+    /// primary). Returns `None` to signal fall-through.
+    pub fn get_kana(&self) -> Option<String> {
+        let n = self.0.number as i64;
+        Some(match n {
+            1 => "ひとつ".to_string(),
+            2 => "ふたつ".to_string(),
+            3 => "みっつ".to_string(),
+            4 => "よっつ".to_string(),
+            5 => "いつつ".to_string(),
+            6 => "むっつ".to_string(),
+            7 => "ななつ".to_string(),
+            8 => "やっつ".to_string(),
+            9 => "ここのつ".to_string(),
+            _ => return None,
+        })
+    }
 }

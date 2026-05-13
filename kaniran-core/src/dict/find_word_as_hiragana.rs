@@ -68,7 +68,11 @@ pub async fn find_word_as_hiragana(
     }
     let words = match finder {
         Some(f) => f(as_hira).await?,
-        None => find_word(ctx, &as_hira, true).await?,
+        // root_only=true, so the substring-hash short-circuit doesn't
+        // apply (find_word skips the cache check for root_only). Pass
+        // None unconditionally — there's no path where this caller
+        // holds a cache to forward.
+        None => find_word(ctx, &as_hira, true, None).await?,
     };
     let proxies = match words {
         FindWordRows::Kana(rows) => rows
