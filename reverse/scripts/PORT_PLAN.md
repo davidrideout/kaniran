@@ -188,9 +188,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  171. `ichiran/dict:ordinal-str`  — fn, dict-counters.lisp:38  *[ported]*  *[extracted: counter_2026_05_08]*
  172. `ichiran/dict:value-string`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
  173. `ichiran/dict:word-type`  — gf, dict.lisp:0  *[ported]*
- 174. `ichiran/dict:word-info-from-segment`  — fn, dict.lisp:1327
- 175. `ichiran/dict:word-info-from-segment-list`  — fn, dict.lisp:1353
- 176. `ichiran/dict:fill-segment-path`  — fn, dict.lisp:1390
+ 174. `ichiran/dict:word-info-from-segment`  — fn, dict.lisp:1327  *[ported]*
+ 175. `ichiran/dict:word-info-from-segment-list`  — fn, dict.lisp:1353  *[ported]*
+ 176. `ichiran/dict:fill-segment-path`  — fn, dict.lisp:1390  *[ported]*
  177. `ichiran/dict:split-1010105`  — fn, dict-split.lisp:771  *[skip — manual bypass — data row in SEGSPLIT_TABLE in dict/_star_segsplit_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
  178. `ichiran/dict:split-1567610`  — fn, dict-split.lisp:771  *[skip — manual bypass — data row in SEGSPLIT_TABLE in dict/_star_segsplit_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
  179. `ichiran/dict:split-1675330`  — fn, dict-split.lisp:771  *[skip — manual bypass — data row in SEGSPLIT_TABLE in dict/_star_segsplit_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*

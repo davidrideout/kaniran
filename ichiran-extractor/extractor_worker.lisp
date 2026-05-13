@@ -236,28 +236,42 @@
 ;;
 ;; All entries use the JSON projector + JSON encoder so the resulting
 ;; parquet feeds straight into `kaniran-core/audit/<pkg>/<fqn>_test.rs`
-;; runners. The FQN list mirrors the union of the
-;; extracted_segmenter_2026_05_09 and extracted_splits_2026_05_09 corpora
-;; so the new extraction supersedes both legacy s-expr captures in one
-;; pass.
+;; runners.
+
+;; Extend *omit-slots* to break the segment-list / segment `top` ->
+;; top-array -> top-array-item.payload -> segment-list cycle. Without
+;; this, installing WORD-INFO-FROM-SEGMENT-LIST or FILL-SEGMENT-PATH
+;; crashes the projector on its first /extract call (see
+;; feedback_segment_list_projector_recursion). Empirically `top` is the
+;; only cyclic slot — segments / matches / start / end serialize fine.
+(setf ichi-projectors-json:*omit-slots*
+      (append ichi-projectors-json:*omit-slots*
+              '((ichiran/dict::segment-list ichiran/dict::top)
+                (ichiran/dict::segment       ichiran/dict::top))))
+
+;; Word-info / segment-list extraction set (2026-05-13). Plain JSON
+;; projector — none of these fns read *disable-hints*.
 (defparameter *boot-install-fqns*
-  (let ((arg-fn-hinted (symbol-function (find-symbol "FLATTEN-ARGS-JSON-WITH-HINT-STATE"
-                                                     :ichi-projectors-json)))
-        (result-fn     (symbol-function (find-symbol "FLATTEN-RESULTS-JSON"
-                                                     :ichi-projectors-json))))
-    ;; Hint-cluster extraction set (2026-05-12). All three FQNs use the
-    ;; hint-state projector — captures `*disable-hints*` value alongside
-    ;; args so audit-replay can disambiguate hint-active calls from the
-    ;; `:around`-disabled second pass. Resolves the ~5% nondeterminism
-    ;; documented for the tatoeba get-kana parquet.
+  (let ((arg-fn    (symbol-function (find-symbol "FLATTEN-ARGS-JSON"
+                                                 :ichi-projectors-json)))
+        (result-fn (symbol-function (find-symbol "FLATTEN-RESULTS-JSON"
+                                                 :ichi-projectors-json))))
     (mapcar (lambda (fqn)
               (list fqn
-                    :arg-projector arg-fn-hinted
+                    :arg-projector arg-fn
                     :result-projector result-fn
                     :encoder :json))
-            '("ICHIRAN/DICT:GET-KANA"
-              "ICHIRAN/DICT:GET-HINT"
-              "ICHIRAN/DICT:TRUE-KANA"))))
+            '("ICHIRAN/DICT:WORD-INFO-FROM-SEGMENT"
+              "ICHIRAN/DICT:WORD-INFO-FROM-SEGMENT-LIST"
+              "ICHIRAN/DICT:FILL-SEGMENT-PATH"
+              "ICHIRAN/DICT:COMPARE-COMMON"
+              "ICHIRAN/DICT:MAKE-SLICE"
+              "ICHIRAN/DICT:SUBSEQ-SLICE"
+              ;; LENGTH-MULTIPLIER-COEFF is `declaim inline` at dict.lisp:692;
+              ;; both callsites (lines 928, 933) inline at compile time, so
+              ;; sb-int:encapsulate on the symbol never fires. Port via
+              ;; hand-written test pairs instead.
+              "ICHIRAN/DICT:SENSE-ID"))))
 
 (handler-case
     (ichi-trace:install-many *boot-install-fqns*)

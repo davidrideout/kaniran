@@ -53,8 +53,8 @@ fn repr_actual(v: &Option<WordInfoSeq>) -> String {
     match v {
         None => "NIL".into(),
         Some(WordInfoSeq::Single(n)) => format!("{}", n),
-        Some(WordInfoSeq::Multi(v)) => {
-            let s: Vec<String> = v.iter().map(|n| n.to_string()).collect();
+        Some(WordInfoSeq::Multi(items)) => {
+            let s: Vec<String> = items.iter().map(repr_actual).collect();
             format!("({})", s.join(" "))
         }
     }
@@ -68,19 +68,11 @@ fn repr_expected(v: &Value) -> Result<String, String> {
         return Ok(format!("{}", n));
     }
     if let Some(arr) = v.as_array() {
-        // mapcar over a list with NIL entries — Rust elides those (see
-        // src/dict/seq.rs module doc on compound-text flattening).
-        let mut nums = Vec::with_capacity(arr.len());
+        let mut parts = Vec::with_capacity(arr.len());
         for item in arr {
-            if item.is_null() {
-                continue;
-            }
-            let n = item
-                .as_i64()
-                .ok_or_else(|| format!("seq result element not int/null: {}", item))?;
-            nums.push(n.to_string());
+            parts.push(repr_expected(item)?);
         }
-        return Ok(format!("({})", nums.join(" ")));
+        return Ok(format!("({})", parts.join(" ")));
     }
     Err(format!("seq result shape: {}", v))
 }

@@ -89,3 +89,15 @@ path = "audit/dict/true_kana_test.rs"
 [[bin]]
 name = "get_hint_test"
 path = "audit/dict/get_hint_test.rs"
+
+[[bin]]
+name = "word_info_from_segment_test"
+path = "audit/dict/word_info_from_segment_test.rs"
+
+[[bin]]
+name = "word_info_from_segment_list_test"
+path = "audit/dict/word_info_from_segment_list_test.rs"
+
+[[bin]]
+name = "fill_segment_path_test"
+path = "audit/dict/fill_segment_path_test.rs"

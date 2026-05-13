@@ -1,44 +1,26 @@
-//! Port of `ichiran/dict:seq` (gf — `dict-counters.lisp:0`).
+//! Polymorphic dispatcher for the upstream `seq` gf over the
+//! [`KaniWordDispatchEnum`] union. The four arms:
 //!
-//! Returns the JMdict sequence id for a word. Most upstream classes
-//! define `seq` as an auto-generated `:reader seq` slot accessor;
-//! three classes override with non-trivial bodies:
+//! - `kana-text` / `kanji-text` — slot reader on
+//!   [`super::kana_text_dao::KanaText::seq`] /
+//!   [`super::kanji_text_dao::KanjiText::seq`].
+//! - `proxy-text` (`dict.lisp:574`): `(seq (source obj))`.
+//! - `counter-text` (`dict-counters.lisp:79`):
+//!   `(and (source obj) (seq (source obj)))`.
+//! - `compound-text` (`dict.lisp:617`): `(mapcar #'seq (words obj))`.
 //!
-//! - **counter-text** (`dict-counters.lisp:79`): `(and (source obj)
-//!   (seq (source obj)))` — defers to the underlying jmdict row when
-//!   the counter was synthesized from one, `nil` otherwise.
-//! - **proxy-text** (`dict.lisp:574`): `(seq (source obj))` —
-//!   wraps the proxied row's seq directly. Source is required upstream.
-//! - **compound-text** (`dict.lisp:617`): `(mapcar #'seq (words obj))`
-//!   — list of seqs, one per child reading.
+//! Wider gf surface (`entry`, `sense`, `sense-prop`,
+//! `restricted-readings`, `conjugation`, `conj-source-reading`) is out
+//! of scope here — those classes carry `seq` as a slot but are never
+//! dispatched through [`KaniWordDispatchEnum`] upstream; callsites
+//! hold a statically-known DAO and read `.seq` directly.
 //!
-//! Other dispatch targets (`entry`, `kana-text`, `kanji-text`, `sense`,
-//! `sense-prop`, `restricted-readings`, `conjugation`,
-//! `conj-source-reading`) are pure slot readers; their callsites in
-//! Rust hold a statically-known DAO and read `.seq` directly without
-//! routing through this dispatcher.
-//!
-//! ## Return type
-//!
-//! Single integer for the simple cases, list for compound-text. Models
-//! as `Option<WordInfoSeq>` reusing the already-existing
-//! [`WordInfoSeq`] enum from
-//! [`super::word_info_class`] — the downstream consumer
-//! ([`super::word_info_class::WordInfo::seq`]) accepts that exact
-//! shape, so the dispatcher's output flows through without conversion.
-//!
-//! ## Compound flattening — deviation from upstream
-//!
-//! Lisp's `(mapcar #'seq words)` does not flatten: a compound-text
-//! containing another compound-text would produce a nested list, and
-//! a compound-text whose word is a sourceless counter-text would emit
-//! a `nil` element. Both cases are absent in the upstream
-//! `adjoin-word` callsites (`dict.lisp:632-651`) — compounds are
-//! built from simple-texts only — so the Rust dispatcher one-level
-//! flattens and elides `None`. If a future call sites adds nested
-//! compounds the `Multi` branch would need to lift to a recursive
-//! enum, but no current consumer would observe the nested shape
-//! through [`WordInfoSeq`] anyway.
+//! Returns `Option<WordInfoSeq>` so the [`super::word_info_class::WordInfo::seq`]
+//! consumer can flow the value through without conversion.
+//! Compound-text returns `Some(Multi(Vec<Option<WordInfoSeq>>))` —
+//! each child's `seq` is preserved at its position, including `None`
+//! for sourceless counter-text children (mirroring `(mapcar #'seq …)`
+//! which puts `nil` in the list at that position).
 
 use crate::dict::counter_text_class::{Counter, CounterSource};
 use crate::dict::compound_text_class::CompoundText;
@@ -72,15 +54,11 @@ fn seq_counter(c: &Counter) -> Option<WordInfoSeq> {
     })
 }
 
-fn seq_compound(c: &CompoundText) -> Vec<i32> {
-    c.words
-        .iter()
-        .flat_map(|w| match seq(w) {
-            Some(WordInfoSeq::Single(i)) => vec![i],
-            Some(WordInfoSeq::Multi(v)) => v,
-            None => Vec::new(),
-        })
-        .collect()
+fn seq_compound(c: &CompoundText) -> Vec<Option<WordInfoSeq>> {
+    // dict.lisp:617 (defmethod seq ((obj compound-text)) (mapcar #'seq (words obj)))
+    // — mapcar preserves nil entries; `c.words.iter().map(seq)` mirrors
+    // that position-by-position.
+    c.words.iter().map(seq).collect()
 }
 
 #[cfg(test)]
@@ -184,15 +162,19 @@ mod tests {
         };
         assert_eq!(
             seq(&KaniWordDispatchEnum::Compound(c)),
-            Some(WordInfoSeq::Multi(vec![1, 2, 3])),
+            Some(WordInfoSeq::Multi(vec![
+                Some(WordInfoSeq::Single(1)),
+                Some(WordInfoSeq::Single(2)),
+                Some(WordInfoSeq::Single(3)),
+            ])),
         );
     }
 
     #[test]
-    fn compound_elides_sourceless_counter_words() {
-        // counter-text without source contributes nothing — Lisp would
-        // emit a `nil` element, but the Rust port flattens those out
-        // to keep `WordInfoSeq::Multi(Vec<i32>)` flat (see module doc).
+    fn compound_preserves_sourceless_counter_words_as_nil() {
+        // dict.lisp:617 (defmethod seq ((obj compound-text)) (mapcar #'seq (words obj)))
+        // — `mapcar` preserves position; the sourceless counter-text
+        // contributes a `nil` entry which becomes [`None`] in the Vec.
         let words = vec![
             KaniWordDispatchEnum::Kana(kana(10)),
             KaniWordDispatchEnum::Counter(counter_with_source(None)),
@@ -206,7 +188,11 @@ mod tests {
         };
         assert_eq!(
             seq(&KaniWordDispatchEnum::Compound(c)),
-            Some(WordInfoSeq::Multi(vec![10, 20])),
+            Some(WordInfoSeq::Multi(vec![
+                Some(WordInfoSeq::Single(10)),
+                None,
+                Some(WordInfoSeq::Single(20)),
+            ])),
         );
     }
 }

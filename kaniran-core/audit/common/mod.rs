@@ -64,7 +64,12 @@ use kaniran_core::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatch
 use kaniran_core::dict::kanji_text_dao::KanjiText;
 use kaniran_core::dict::number_text_class::NumberText;
 use kaniran_core::dict::proxy_text_class::ProxyText;
+use kaniran_core::dict::segment_list_struct::SegmentList;
+use kaniran_core::dict::segment_struct::Segment;
 use kaniran_core::dict::simple_text_class::{SimpleText, WordConjugations};
+use kaniran_core::dict::synergy_struct::Synergy;
+use kaniran_core::dict::top_array_item_struct::PathElement;
+use kaniran_core::dict::word_info_class::{WordInfo, WordInfoKana, WordInfoSeq, WordInfoType};
 
 
 // --- captured-row envelope --------------------------------------------------
@@ -283,6 +288,115 @@ where
         record_outcome(outcome, idx, size, &mut pass, &mut fail, &mut first_failures);
         done += 1;
         progress.tick(done, pass, fail);
+    }
+    report_and_exit(expected_fqn, pass, fail, &first_failures)
+}
+
+/// Streaming async runner: reads parquet batches lazily, parses each
+/// batch into [`CapturedRow`]s, and runs `audit_one` per row with
+/// bounded concurrency. Skips the [`group_by_args`] dedup-by-args
+/// pass — every row is treated as an independent unit, so this is
+/// suitable for deterministic functions on multi-million-row corpora
+/// where buffering the whole parquet would OOM.
+///
+/// Each captured row is checked exactly once against the produced
+/// output (no equivalence classes). For nondeterministic captures
+/// (e.g. `GET-SPLIT`), use [`run_async`] instead.
+pub async fn run_async_streaming<F>(expected_fqn: &str, audit_one: F) -> !
+where
+    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String>,
+{
+    use futures::stream::StreamExt;
+
+    let path = parse_path_arg();
+    let file = std::fs::File::open(&path)
+        .unwrap_or_else(|err| panic!("open {:?}: {}", path, err));
+    let builder = ParquetRecordBatchReaderBuilder::try_new(file)
+        .unwrap_or_else(|err| panic!("parquet builder {:?}: {}", path, err));
+    let total_rows = builder.metadata().file_metadata().num_rows() as usize;
+    eprintln!("streaming: {} rows from {:?}", total_rows, path);
+    let reader = builder.build().expect("build reader");
+
+    let ctx = setup_ctx().await;
+    let ctx_ref: &KaniranContext = &ctx;
+    let audit_one = &audit_one;
+
+    let mut pass: usize = 0;
+    let mut fail: usize = 0;
+    let mut skipped: usize = 0;
+    let mut first_failures: Vec<String> = Vec::new();
+    let mut progress = Progress::new(expected_fqn, total_rows);
+    let mut done: usize = 0;
+    let mut row_seq: usize = 0;
+
+    for batch in reader {
+        let batch = batch.expect("batch");
+        let args_col = batch
+            .column_by_name("args")
+            .expect("args column")
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .expect("args is StringArray");
+        let result_col = batch
+            .column_by_name("result")
+            .expect("result column")
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .expect("result is StringArray");
+
+        let mut rows: Vec<CapturedRow> = Vec::with_capacity(batch.num_rows());
+        for row_idx in 0..batch.num_rows() {
+            row_seq += 1;
+            let args_json = args_col.value(row_idx);
+            let result_json = result_col.value(row_idx);
+            let args: Vec<Value> = match serde_json::from_str(args_json) {
+                Ok(v) => v,
+                Err(err) => {
+                    eprintln!("skip row {}: args parse: {}", row_seq, err);
+                    skipped += 1;
+                    continue;
+                }
+            };
+            let result: Vec<Value> = match serde_json::from_str(result_json) {
+                Ok(v) => v,
+                Err(err) => {
+                    eprintln!("skip row {}: result parse: {}", row_seq, err);
+                    skipped += 1;
+                    continue;
+                }
+            };
+            rows.push(CapturedRow { args, result });
+        }
+
+        let outcomes: Vec<(usize, Result<(), String>)> = futures::stream::iter(
+            rows.iter().enumerate().map(|(local_idx, row)| async move {
+                let outcome = audit_one(ctx_ref, row).await;
+                (local_idx, outcome)
+            }),
+        )
+        .buffer_unordered(ASYNC_CONCURRENCY)
+        .collect()
+        .await;
+
+        let batch_done_start = done;
+        for (local_idx, outcome) in outcomes {
+            let global_idx = batch_done_start + local_idx;
+            match outcome {
+                Ok(()) => pass += 1,
+                Err(err) => {
+                    fail += 1;
+                    if first_failures.len() < MAX_FIRST_FAILURES {
+                        first_failures.push(format!("[row {}] {}", global_idx + 1, err));
+                    }
+                }
+            }
+        }
+        done += rows.len();
+        progress.tick(done, pass, fail);
+    }
+
+    if skipped > 0 {
+        eprintln!("loader: {} row(s) skipped (malformed JSON from extractor)", skipped);
     }
     report_and_exit(expected_fqn, pass, fail, &first_failures)
 }
@@ -1207,4 +1321,324 @@ where
             other
         ))),
     }
+}
+
+
+// --- segment / segment-list / synergy / path-element parsers ----------------
+
+/// Parse a captured SEGMENT JSON into a [`Segment`]. The projector
+/// captures every slot the segment-list / find-best-path machinery
+/// produces (`start`, `end`, `word`, `score`, `info`, `text`) plus the
+/// nested word; `top` is transient inside find-best-path and is not
+/// captured. The `info` plist is captured but the audit runners that
+/// consume segments (word_info_from_segment / fill_segment_path) do
+/// not read it, so it deserializes to [`None`] here without loss.
+pub fn parse_captured_segment(value: &Value) -> Result<Segment, String> {
+    let class = captured_class(value)?;
+    if class != "SEGMENT" {
+        return Err(format!("expected SEGMENT class, got :{}", class));
+    }
+    let start = require_i32(value, "start")? as usize;
+    let end = require_i32(value, "end")? as usize;
+    let word = parse_captured_word(require_field(value, "word")?)?;
+    let score = match require_field(value, "score")? {
+        Value::Null => None,
+        Value::Number(n) => Some(
+            n.as_i64()
+                .ok_or_else(|| format!("score not i64: {}", n))? as i32,
+        ),
+        other => return Err(format!("score: expected number / null, got {}", other)),
+    };
+    let text = match require_field(value, "text")? {
+        Value::Null => None,
+        Value::String(s) => Some(s.clone()),
+        other => return Err(format!("text: expected string / null, got {}", other)),
+    };
+    Ok(Segment {
+        start,
+        end,
+        word,
+        score,
+        info: None,
+        top: None,
+        text,
+    })
+}
+
+/// Parse a captured SEGMENT-LIST JSON into a [`SegmentList`]. As with
+/// [`parse_captured_segment`], `top` is transient and not captured;
+/// it deserializes to [`None`] without loss.
+pub fn parse_captured_segment_list(value: &Value) -> Result<SegmentList, String> {
+    let class = captured_class(value)?;
+    if class != "SEGMENT-LIST" {
+        return Err(format!("expected SEGMENT-LIST class, got :{}", class));
+    }
+    let segments_value = require_field(value, "segments")?;
+    let segments_arr = segments_value
+        .as_array()
+        .ok_or_else(|| format!("segments: expected array, got {}", segments_value))?;
+    let mut segments = Vec::with_capacity(segments_arr.len());
+    for s in segments_arr {
+        segments.push(parse_captured_segment(s)?);
+    }
+    let start = require_i32(value, "start")? as usize;
+    let end = require_i32(value, "end")? as usize;
+    let matches = require_i32(value, "matches")? as usize;
+    Ok(SegmentList {
+        segments,
+        start,
+        end,
+        top: None,
+        matches,
+    })
+}
+
+/// Parse a captured SYNERGY JSON into a [`Synergy`]. `description` and
+/// `connector` are `Option<String>` — the upstream `defstruct synergy`
+/// has no `:initform` on either slot, and the wi-path corpus contains
+/// rows where one or both are nil.
+pub fn parse_captured_synergy(value: &Value) -> Result<Synergy, String> {
+    let class = captured_class(value)?;
+    if class != "SYNERGY" {
+        return Err(format!("expected SYNERGY class, got :{}", class));
+    }
+    Ok(Synergy {
+        description: require_optional_string(value, "description")?,
+        connector: require_optional_string(value, "connector")?,
+        score: require_i32(value, "score")?,
+        start: require_i32(value, "start")? as usize,
+        end: require_i32(value, "end")? as usize,
+    })
+}
+
+/// Parse a captured path-element JSON (SEGMENT-LIST or SYNERGY) — the
+/// element type the `find-best-path` payload list carries (per
+/// `slot_types.csv` on `top-array-item.payload`).
+pub fn parse_captured_path_element(value: &Value) -> Result<PathElement, String> {
+    match captured_class(value)? {
+        "SEGMENT-LIST" => Ok(PathElement::SegmentList(parse_captured_segment_list(value)?)),
+        "SYNERGY" => Ok(PathElement::Synergy(parse_captured_synergy(value)?)),
+        other => Err(format!("unknown path-element class: :{}", other)),
+    }
+}
+
+
+/// Parse a captured `seq` JSON value into [`Option<WordInfoSeq>`].
+/// `null` → `None`; integer → `Some(Single(_))`; array → `Some(Multi(_))`
+/// where each element is recursively parsed (preserving nested arrays
+/// from compound-text children and `null` entries from sourceless-counter
+/// children).
+fn parse_captured_seq(value: &Value) -> Result<Option<WordInfoSeq>, String> {
+    match value {
+        Value::Null => Ok(None),
+        Value::Number(n) => Ok(Some(WordInfoSeq::Single(
+            n.as_i64().ok_or_else(|| format!("seq not i64: {}", n))? as i32,
+        ))),
+        Value::Array(arr) => {
+            let mut v = Vec::with_capacity(arr.len());
+            for entry in arr {
+                v.push(parse_captured_seq(entry)?);
+            }
+            Ok(Some(WordInfoSeq::Multi(v)))
+        }
+        other => Err(format!("seq: expected int / array / null, got {}", other)),
+    }
+}
+
+/// Parse a captured `kana` JSON value into [`Option<WordInfoKana>`].
+/// `null` → `None`; string → `Some(Single(_))`; array → `Some(Multi(_))`
+/// where each element is recursively parsed (preserving nested arrays
+/// and `null` entries when an upstream child has no kana).
+fn parse_captured_kana(value: &Value) -> Result<Option<WordInfoKana>, String> {
+    match value {
+        Value::Null => Ok(None),
+        Value::String(s) => Ok(Some(WordInfoKana::Single(s.clone()))),
+        Value::Array(arr) => {
+            let mut v = Vec::with_capacity(arr.len());
+            for entry in arr {
+                v.push(parse_captured_kana(entry)?);
+            }
+            Ok(Some(WordInfoKana::Multi(v)))
+        }
+        other => Err(format!("kana: expected string / array / null, got {}", other)),
+    }
+}
+
+
+// --- word-info comparator --------------------------------------------------
+
+/// Compare a Rust-produced [`WordInfo`] against a captured WORD-INFO
+/// JSON value. Returns `Ok(())` on byte-identical match across every
+/// captured slot, or `Err` with a one-line description of the first
+/// mismatching field.
+///
+/// Field shape decisions:
+/// - `kind` ← `":KANJI"` / `":KANA"` / `":GAP"` → [`WordInfoType`].
+/// - `kana` ← JSON string → [`WordInfoKana::Single`]; JSON array of
+///   strings → [`WordInfoKana::Multi`]; `null` → [`None`].
+/// - `seq` ← JSON int → [`WordInfoSeq::Single`]; JSON array of ints
+///   → [`WordInfoSeq::Multi`] (flat; matches the seq dispatcher's
+///   compound flattening); `null` → [`None`].
+/// - `conjugations` ← projector shape from [`require_conjugations`].
+/// - `primary` / `alternative` ← null → `false`, true → `true`.
+/// - `counter` ← null → [`None`]; 2-element array `[string, bool|null]`
+///   → [`Some((string, bool))`].
+/// - `components` ← null → empty Vec; array → recursive compare.
+pub fn compare_captured_word_info(actual: &WordInfo, captured: &Value) -> Result<(), String> {
+    let class = captured_class(captured)?;
+    if class != "WORD-INFO" {
+        return Err(format!("expected WORD-INFO class, got :{}", class));
+    }
+    // kind
+    let cap_kind = require_string(captured, "type")?;
+    let expected_kind = match cap_kind.as_str() {
+        ":KANJI" => WordInfoType::Kanji,
+        ":KANA" => WordInfoType::Kana,
+        ":GAP" => WordInfoType::Gap,
+        other => return Err(format!("unknown type: {}", other)),
+    };
+    if actual.kind != expected_kind {
+        return Err(format!("kind: rust={:?} lisp={:?}", actual.kind, expected_kind));
+    }
+    // text
+    let cap_text = require_string(captured, "text")?;
+    if actual.text != cap_text {
+        return Err(format!("text: rust={:?} lisp={:?}", actual.text, cap_text));
+    }
+    // true_text
+    let cap_true_text = require_optional_string(captured, "true_text")?;
+    if actual.true_text != cap_true_text {
+        return Err(format!(
+            "true_text: rust={:?} lisp={:?}",
+            actual.true_text, cap_true_text
+        ));
+    }
+    // kana
+    let cap_kana = parse_captured_kana(require_field(captured, "kana")?)?;
+    if actual.kana != cap_kana {
+        return Err(format!("kana: rust={:?} lisp={:?}", actual.kana, cap_kana));
+    }
+    // seq
+    let cap_seq = parse_captured_seq(require_field(captured, "seq")?)?;
+    if actual.seq != cap_seq {
+        return Err(format!("seq: rust={:?} lisp={:?}", actual.seq, cap_seq));
+    }
+    // conjugations
+    let cap_conj = require_conjugations(captured, "conjugations")?;
+    if actual.conjugations != cap_conj {
+        return Err(format!(
+            "conjugations: rust={:?} lisp={:?}",
+            actual.conjugations, cap_conj
+        ));
+    }
+    // score — Lisp slot can hold nil or int; null → None
+    let cap_score = match require_field(captured, "score")? {
+        Value::Null => None,
+        Value::Number(n) => Some(
+            n.as_i64().ok_or_else(|| format!("score not i64: {}", n))? as i32,
+        ),
+        other => return Err(format!("score: expected int / null, got {}", other)),
+    };
+    if actual.score != cap_score {
+        return Err(format!("score: rust={:?} lisp={:?}", actual.score, cap_score));
+    }
+    // alternative — null → false, true → true
+    let cap_alternative = match require_field(captured, "alternative")? {
+        Value::Null => false,
+        Value::Bool(b) => *b,
+        other => return Err(format!("alternative: expected bool / null, got {}", other)),
+    };
+    if actual.alternative != cap_alternative {
+        return Err(format!(
+            "alternative: rust={} lisp={}",
+            actual.alternative, cap_alternative
+        ));
+    }
+    // primary — null → false (the upstream projects `(slot-value obj 'primary)`,
+    // which is t/nil; nil flattens to JSON null).
+    let cap_primary = match require_field(captured, "primary")? {
+        Value::Null => false,
+        Value::Bool(b) => *b,
+        other => return Err(format!("primary: expected bool / null, got {}", other)),
+    };
+    if actual.primary != cap_primary {
+        return Err(format!(
+            "primary: rust={} lisp={}",
+            actual.primary, cap_primary
+        ));
+    }
+    // start / end
+    let cap_start = match require_field(captured, "start")? {
+        Value::Null => None,
+        Value::Number(n) => Some(
+            n.as_u64()
+                .ok_or_else(|| format!("start not u64: {}", n))? as usize,
+        ),
+        other => return Err(format!("start: expected int / null, got {}", other)),
+    };
+    if actual.start != cap_start {
+        return Err(format!("start: rust={:?} lisp={:?}", actual.start, cap_start));
+    }
+    let cap_end = match require_field(captured, "end")? {
+        Value::Null => None,
+        Value::Number(n) => Some(
+            n.as_u64()
+                .ok_or_else(|| format!("end not u64: {}", n))? as usize,
+        ),
+        other => return Err(format!("end: expected int / null, got {}", other)),
+    };
+    if actual.end != cap_end {
+        return Err(format!("end: rust={:?} lisp={:?}", actual.end, cap_end));
+    }
+    // counter — null, or [string, bool|null]
+    let cap_counter = match require_field(captured, "counter")? {
+        Value::Null => None,
+        Value::Array(arr) => {
+            if arr.len() != 2 {
+                return Err(format!("counter: expected 2-element array, got {} elements", arr.len()));
+            }
+            let s = arr[0]
+                .as_str()
+                .ok_or_else(|| format!("counter[0] not string: {}", arr[0]))?;
+            let ordinalp = match &arr[1] {
+                Value::Null => false,
+                Value::Bool(b) => *b,
+                other => return Err(format!("counter[1]: expected bool / null, got {}", other)),
+            };
+            Some((s.to_string(), ordinalp))
+        }
+        other => return Err(format!("counter: expected array / null, got {}", other)),
+    };
+    if actual.counter != cap_counter {
+        return Err(format!(
+            "counter: rust={:?} lisp={:?}",
+            actual.counter, cap_counter
+        ));
+    }
+    // skipped
+    let cap_skipped = require_i32(captured, "skipped")?;
+    if actual.skipped != cap_skipped {
+        return Err(format!(
+            "skipped: rust={} lisp={}",
+            actual.skipped, cap_skipped
+        ));
+    }
+    // components — null → empty; array → recurse pairwise.
+    let cap_components = match require_field(captured, "components")? {
+        Value::Null => Vec::new(),
+        Value::Array(arr) => arr.iter().collect::<Vec<_>>(),
+        other => return Err(format!("components: expected array / null, got {}", other)),
+    };
+    if actual.components.len() != cap_components.len() {
+        return Err(format!(
+            "components count: rust={} lisp={}",
+            actual.components.len(),
+            cap_components.len()
+        ));
+    }
+    for (idx, (a_child, c_child)) in actual.components.iter().zip(&cap_components).enumerate() {
+        compare_captured_word_info(a_child, c_child)
+            .map_err(|err| format!("components[{}]: {}", idx, err))?;
+    }
+    Ok(())
 }
