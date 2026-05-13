@@ -408,7 +408,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  391. `ichiran/dict:*length-coeff-sequences*`  — global, dict.lisp:686
  392. `ichiran/dict:length-multiplier-coeff`  — fn, dict.lisp:694
  393. `ichiran/dict:nokanji`  — gf, dict-counters.lisp:0  *[ported]*
- 394. `ichiran/dict:sense-id`  — gf, dict.lisp:0
+ 394. `ichiran/dict:sense-id`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  395. **CYCLE (2 symbols — port together)**
         - `ichiran/dict:calc-score`  — fn, dict.lisp:775
         - `ichiran/dict:kanji-break-penalty`  — fn, dict.lisp:702
@@ -484,7 +484,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  465. `ichiran/dict:find-sticky-positions`  — fn, dict.lisp:990
  466. `ichiran/dict:find-substring-words`  — fn, dict.lisp:501
  467. `ichiran/dict:verify`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
- 468. `ichiran/numbers:reason`  — gf, numbers.lisp:0
+ 468. `ichiran/numbers:reason`  — gf, numbers.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  469. `ichiran/numbers:text`  — gf, numbers.lisp:0
  470. `ichiran/numbers:not-a-number`  — condition, numbers.lisp:0  *[ported]*
  471. `ichiran/dict:find-counter`  — fn, dict-counters.lisp:273  *[ported]*  *[extracted: counter_2026_05_08]*
@@ -639,7 +639,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  569. `ichiran/custom:get-words`  — gf, dict-custom.lisp:0
  570. `ichiran/dict:*pos-with-conj-rules*`  — global, dict-load.lisp:307
  571. `ichiran/dict:*do-not-conjugate*`  — global, dict-load.lisp:303
- 572. `ichiran/dict:conjugate-p`  — gf, dict.lisp:0
+ 572. `ichiran/dict:conjugate-p`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  573. `ichiran/dict:conjugation-rule`  — struct, dict-load.lisp:262  *[ported]*
  574. `ichiran/dict:construct-conjugation`  — fn, dict-load.lisp:281
  575. `ichiran/dict:load-pos-by-index`  — fn, dict-load.lisp:251
@@ -753,7 +753,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  683. `ichiran/kanji:match-readings*`  — fn, kanji.lisp:241  *[ported]*
  684. `ichiran/kanji:match-readings`  — fn, kanji.lisp:292  *[ported]*
  685. `ichiran/dict:check-easy-hints`  — fn, dict-split.lisp:950  *[ported]*
- 686. `ichiran/dict:common-tags`  — gf, dict.lisp:0
+ 686. `ichiran/dict:common-tags`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  687. `ichiran/dict:conj-prop-json`  — fn, dict.lisp:283
  688. `ichiran/dict:find-words-seqs`  — fn, dict.lisp:520
  689. `ichiran/dict:get-original-text-once`  — fn, dict.lisp:369
@@ -827,10 +827,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  755. `ichiran/kanji:get-readings`  — fn, kanji.lisp:211  *[ported]*
  756. `ichiran/kanji:meaning`  — dao, kanji.lisp:83  *[ported]*
  757. `ichiran/kanji:okurigana`  — dao, kanji.lisp:67  *[ported]*
- 758. `ichiran/kanji:id`  — gf, kanji.lisp:0
+ 758. `ichiran/kanji:id`  — gf, kanji.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  759. `ichiran/kanji:init-tables`  — fn, kanji.lisp:98
- 760. `ichiran/kanji:kanji-id`  — gf, kanji.lisp:0
- 761. `ichiran/kanji:stat-common`  — gf, kanji.lisp:0
+ 760. `ichiran/kanji:kanji-id`  — gf, kanji.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
+ 761. `ichiran/kanji:stat-common`  — gf, kanji.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  762. `ichiran:*hepburn-basic*`  — global, romanize.lisp:144
  763. `ichiran/kanji:reading-info-json`  — fn, kanji.lisp:354
  764. `ichiran/kanji:to-json`  — gf, kanji.lisp:0
