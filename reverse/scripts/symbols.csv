@@ -437,7 +437,7 @@ ichiran/dict:print-conj-info,print-conj-info,ichiran/dict,dict.lisp,1649,fn,pend
 ichiran/dict:process-hints,process-hints,ichiran/dict,dict-split.lisp,872,fn,ported,,,
 ichiran/dict:process-word-info,process-word-info,ichiran/dict,dict.lisp,1417,fn,ported,,,
 ichiran/dict:proxy-text,proxy-text,ichiran/dict,dict.lisp,550,class,ported,,,
-ichiran/dict:query-parents-kana,query-parents-kana,ichiran/dict,dict.lisp,415,fn,ported,,,
+ichiran/dict:query-parents-kana,query-parents-kana,ichiran/dict,dict.lisp,415,fn,ported,,calc_score_2026_05_11,4/4
 ichiran/dict:query-parents-kanji,query-parents-kanji,ichiran/dict,dict.lisp,400,fn,ported,,calc_score_2026_05_11,36540/36540
 ichiran/dict:reading-str,reading-str,ichiran/dict,dict.lisp,0,gf,pending,,,
 ichiran/dict:reading-str*,reading-str*,ichiran/dict,dict.lisp,1580,fn,pending,,,
