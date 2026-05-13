@@ -121,3 +121,6 @@ pub mod get_split;
 pub mod kani_split_engine;
 pub mod kani_split_part;
 pub mod query_parents_kanji;
+pub mod query_parents_kana;
+pub mod best_kanji_conj;
+pub mod get_kanji;

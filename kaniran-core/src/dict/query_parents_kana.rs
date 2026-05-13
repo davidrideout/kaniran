@@ -1,0 +1,40 @@
+//! Port of `ichiran/dict:query-parents-kana` (`dict.lisp:417`).
+//!
+//! Prepared query that, for a given `seq` and surface `text`,
+//! enumerates the `(kana-text.id, conjugation.id)` pairs whose
+//! `kana-text` row is the parent reading of the `conj-source-reading`
+//! that produced `(seq, text)`. Joins three tables: a `conjugation`
+//! whose `seq` is the input `seq`, its `conj-source-reading` whose
+//! `text` is the input `text`, and the `kana-text` row matching the
+//! `(seq, text)` pair on the source side — `seq` resolves to the
+//! conjugation's `via` when set, otherwise its `from`.
+//!
+//! Mirror of [`super::query_parents_kanji::query_parents_kanji`] —
+//! same join shape, with `kana_text` substituted for `kanji_text`.
+//!
+//! Diverges from the upstream lambda list `(seq text)` only by taking
+//! `&KaniranContext` for the database handle, replacing the upstream
+//! dynamic `*connection*` per [`crate::conn::kani_context`].
+
+use crate::conn::kani_context::KaniranContext;
+
+pub async fn query_parents_kana(
+    ctx: &KaniranContext,
+    seq: i32,
+    text: &str,
+) -> Result<Vec<(i32, i32)>, sqlx::Error> {
+    let rows: Vec<(i32, i32)> = sqlx::query_as(
+        "SELECT kt.id, conj.id \
+         FROM kana_text kt, conj_source_reading csr, conjugation conj \
+         WHERE conj.seq = $1 \
+           AND conj.id = csr.conj_id \
+           AND csr.text = $2 \
+           AND kt.seq = CASE WHEN conj.via IS NOT NULL THEN conj.via ELSE conj.from END \
+           AND kt.text = csr.source_text",
+    )
+    .bind(seq)
+    .bind(text)
+    .fetch_all(&ctx.pool)
+    .await?;
+    Ok(rows)
+}

@@ -12,9 +12,9 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 94 fn/gf
+- Checked: 97 fn/gf
 - Macros (file-existence only): 0
-- Divergences: 13
+- Divergences: 14
 
 ## Divergences
 
@@ -62,6 +62,11 @@ captured Lisp lambda list. New entries should be either:
 
 - file: `kaniran-core/src/dict/init_suffixes_thread.rs`
 - drift: no `pub [async] fn init_suffixes_thread` (found: ['build_suffix_caches'])
+
+### `ichiran/dict:query-parents-kana`
+
+- file: `kaniran-core/src/dict/query_parents_kana.rs`
+- drift: arity 3 ≠ Lisp 0 (req=0, opt=0, keys=[]) (ctx-injected; +1 absorbed)
 
 ### `ichiran/dict:query-parents-kanji`
 

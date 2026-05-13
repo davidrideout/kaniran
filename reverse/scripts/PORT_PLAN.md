@@ -574,9 +574,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  506. `ichiran/dict:select-conjs`  — fn, dict.lisp:1604
  507. `ichiran/dict:select-conjs-and-props`  — fn, dict.lisp:1640
  508. `ichiran/dict:print-conj-info`  — fn, dict.lisp:1649
- 509. `ichiran/dict:query-parents-kana`  — fn, dict.lisp:415
- 510. `ichiran/dict:best-kanji-conj`  — fn, dict.lisp:457
- 511. `ichiran/dict:get-kanji`  — gf, dict.lisp:0
+ 509. `ichiran/dict:query-parents-kana`  — fn, dict.lisp:415  *[ported]*
+ 510. `ichiran/dict:best-kanji-conj`  — fn, dict.lisp:457  *[ported]*
+ 511. `ichiran/dict:get-kanji`  — gf, dict.lisp:0  *[ported]*
  512. `ichiran/dict:word-info-reading-str`  — fn, dict.lisp:1734
  513. `ichiran/dict:reading-str`  — gf, dict.lisp:0
  514. `ichiran/dict:word-info-str`  — fn, dict.lisp:1747

@@ -232,7 +232,7 @@ ichiran/dict:apply-patch,apply-patch,ichiran/dict,dict-grammar.lisp,444,fn,pendi
 ichiran/dict:apply-score-mod,apply-score-mod,ichiran/dict,dict.lisp,0,gf,pending,,,
 ichiran/dict:apply-segfilters,apply-segfilters,ichiran/dict,dict-grammar.lisp,1177,fn,pending,,,
 ichiran/dict:best-kana-conj,best-kana-conj,ichiran/dict,dict.lisp,428,fn,ported,,calc_score_2026_05_11,131616/131616
-ichiran/dict:best-kanji-conj,best-kanji-conj,ichiran/dict,dict.lisp,457,fn,pending,,,
+ichiran/dict:best-kanji-conj,best-kanji-conj,ichiran/dict,dict.lisp,457,fn,ported,,,
 ichiran/dict:calc-score,calc-score,ichiran/dict,dict.lisp,775,fn,pending,,,
 ichiran/dict:check-easy-hints,check-easy-hints,ichiran/dict,dict-split.lisp,950,fn,pending,,,
 ichiran/dict:classify,classify,ichiran/dict,dict-grammar.lisp,1046,fn,pending,,,
@@ -357,7 +357,7 @@ ichiran/dict:get-kana-form,get-kana-form,ichiran/dict,dict-grammar.lisp,36,fn,po
 ichiran/dict:get-kana-forms,get-kana-forms,ichiran/dict,dict-grammar.lisp,32,fn,ported,,init-suffixes,
 ichiran/dict:get-kana-forms*,get-kana-forms*,ichiran/dict,dict-grammar.lisp,17,fn,ported,,init-suffixes,
 ichiran/dict:get-kana-forms-conj-data-filter,get-kana-forms-conj-data-filter,ichiran/dict,dict-grammar.lisp,10,fn,ported,,init-suffixes,
-ichiran/dict:get-kanji,get-kanji,ichiran/dict,dict.lisp,0,gf,pending,,,
+ichiran/dict:get-kanji,get-kanji,ichiran/dict,dict.lisp,0,gf,ported,,,
 ichiran/dict:get-kanji-kana-old,get-kanji-kana-old,ichiran/dict,dict.lisp,115,fn,ported,,tatoeba,2/2
 ichiran/dict:get-kanji-words,get-kanji-words,ichiran/dict,dict.lisp,1836,fn,pending,,,
 ichiran/dict:get-non-arch-posi,get-non-arch-posi,ichiran/dict,dict.lisp,762,fn,pending,,,
@@ -437,7 +437,7 @@ ichiran/dict:print-conj-info,print-conj-info,ichiran/dict,dict.lisp,1649,fn,pend
 ichiran/dict:process-hints,process-hints,ichiran/dict,dict-split.lisp,872,fn,ported,,,
 ichiran/dict:process-word-info,process-word-info,ichiran/dict,dict.lisp,1417,fn,ported,,,
 ichiran/dict:proxy-text,proxy-text,ichiran/dict,dict.lisp,550,class,ported,,,
-ichiran/dict:query-parents-kana,query-parents-kana,ichiran/dict,dict.lisp,415,fn,pending,,,
+ichiran/dict:query-parents-kana,query-parents-kana,ichiran/dict,dict.lisp,415,fn,ported,,,
 ichiran/dict:query-parents-kanji,query-parents-kanji,ichiran/dict,dict.lisp,400,fn,ported,,calc_score_2026_05_11,36540/36540
 ichiran/dict:reading-str,reading-str,ichiran/dict,dict.lisp,0,gf,pending,,,
 ichiran/dict:reading-str*,reading-str*,ichiran/dict,dict.lisp,1580,fn,pending,,,

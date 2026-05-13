@@ -65,3 +65,15 @@ path = "audit/dict/query_parents_kanji_test.rs"
 [[bin]]
 name = "best_kana_conj_test"
 path = "audit/dict/best_kana_conj_test.rs"
+
+[[bin]]
+name = "query_parents_kana_test"
+path = "audit/dict/query_parents_kana_test.rs"
+
+[[bin]]
+name = "best_kanji_conj_test"
+path = "audit/dict/best_kanji_conj_test.rs"
+
+[[bin]]
+name = "get_kanji_test"
+path = "audit/dict/get_kanji_test.rs"
