@@ -742,7 +742,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  672. `ichiran/dict:add-errata`  — fn, dict-errata.lisp:289
  673. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146
  674. `ichiran/dict:true-kana`  — gf, dict.lisp:0
- 675. `ichiran/dict:true-kanji`  — gf, dict.lisp:0
+ 675. `ichiran/dict:true-kanji`  — gf, dict.lisp:0  *[ported]*
  676. `ichiran/kanji:reading`  — dao, kanji.lisp:42  *[ported]*
  677. `ichiran/kanji:get-reading-alternatives`  — fn, kanji.lisp:216  *[ported]*
  678. `ichiran/kanji:*reading-cache*`  — global, kanji.lisp:199  *[ported]*

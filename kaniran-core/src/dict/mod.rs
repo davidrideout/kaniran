@@ -107,6 +107,7 @@ pub mod value_string;
 pub mod top_array_item_struct;
 pub mod translate_hint_position;
 pub mod translate_hints;
+pub mod true_kanji;
 pub mod true_text;
 pub mod verify;
 pub mod word_conj_data;
