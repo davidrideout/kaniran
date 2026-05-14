@@ -22,6 +22,7 @@ use crate::dict::_star_no_conj_data_star_::build_no_conj_data;
 use crate::dict::_star_substring_hash_star_::SubstringHash;
 use crate::dict::_star_suffix_cache_star_::SuffixCache;
 use crate::dict::_star_suffix_class_star_::SuffixClass;
+use crate::dict::_star_suffix_map_temp_star_::SuffixMapTemp;
 use crate::dict::init_suffixes_thread::build_suffix_caches;
 use crate::kanji::_star_reading_cache_star_::{new_reading_cache, ReadingCache};
 use sqlx::postgres::{PgPool, PgPoolOptions};
@@ -83,6 +84,31 @@ pub struct KaniranContext {
     /// upstream `(defparameter … nil)` initform. Wrapped in `Arc` so
     /// the rebind clone is cheap.
     pub substring_hash: Option<Arc<SubstringHash>>,
+
+    /// Upstream `*suffix-map-temp*` (`dict.lisp:1049`) — caller-scoped
+    /// suffix-candidate cache keyed by end-position. See
+    /// [`crate::dict::_star_suffix_map_temp_star_`]. Rebound by
+    /// `join-substring-words*` (`dict.lisp:1090`), `find-word-info`
+    /// (`dict.lisp:1851`), and the `def-simple-suffix` /
+    /// `def-abbr-suffix` / `suffix-sou-base` / `suffix-garu` bodies in
+    /// `dict-grammar.lisp`. `None` outside those scopes matches the
+    /// upstream `(defvar … nil)` initform.
+    pub suffix_map_temp: Option<Arc<SuffixMapTemp>>,
+
+    /// Upstream `*suffix-next-end*` (`dict.lisp:1050`) — caller-scoped
+    /// character end-position used as the [`SuffixMapTemp`] lookup
+    /// key. See [`crate::dict::_star_suffix_next_end_star_`]. Rebound
+    /// at `dict.lisp:1091`, `dict.lisp:1852`, and `find-word-suffix`'s
+    /// recursion at `dict-grammar.lisp:706`. `None` outside those
+    /// scopes matches the upstream `(defvar … nil)` initform.
+    ///
+    /// Signed because `find-word-suffix`'s recursion subtracts
+    /// `(length suffix)` off the current binding and can pass below
+    /// zero — `usize` would panic on underflow, CL fixnums hold it
+    /// without complaint. The map lookup converts via
+    /// `usize::try_from(end).ok()` and drops negative-binding rows the
+    /// same way `gethash` does.
+    pub suffix_next_end: Option<i32>,
 }
 
 impl KaniranContext {
@@ -97,6 +123,22 @@ impl KaniranContext {
     /// with the find-word short-circuit cache populated.
     pub fn with_substring_hash(&self, h: Arc<SubstringHash>) -> Self {
         Self { substring_hash: Some(h), ..self.clone() }
+    }
+
+    /// `(let ((*suffix-map-temp* v)) …)` — return a sibling context
+    /// with the per-call-tree suffix-candidate cache set (or cleared
+    /// with `None` per the upstream `(let ((*suffix-map-temp* nil)) …)`
+    /// rebinds at `dict-grammar.lisp:442`, `:501`, `:555`).
+    pub fn with_suffix_map_temp(&self, v: Option<Arc<SuffixMapTemp>>) -> Self {
+        Self { suffix_map_temp: v, ..self.clone() }
+    }
+
+    /// `(let ((*suffix-next-end* v)) …)` — return a sibling context
+    /// with the [`SuffixMapTemp`] lookup-key end-position set (or
+    /// cleared with `None`; the `find-word-suffix` recursion at
+    /// `dict-grammar.lisp:706` decrements through `nil` propagation).
+    pub fn with_suffix_next_end(&self, v: Option<i32>) -> Self {
+        Self { suffix_next_end: v, ..self.clone() }
     }
 }
 
@@ -126,6 +168,8 @@ impl KaniranContext {
             reading_cache: Arc::new(new_reading_cache()),
             disable_hints: false,
             substring_hash: None,
+            suffix_map_temp: None,
+            suffix_next_end: None,
         };
         ctx.counter_cache = Arc::new(build_counter_cache(&ctx).await?);
         let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;

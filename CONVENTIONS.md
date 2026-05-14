@@ -258,7 +258,6 @@ Rules:
 
   > Mirrors the upstream `(let ((*disable-hints* t)) …)` at `dict.lisp:82` via [`KaniranContext::with_disable_hints`].
 
-- **Out-of-scope rebinds wait for their consumers.** Don't add a `with_*` helper + ctx field for a special whose consumer isn't ported yet — that's a helper with zero callsites, dead code by definition. Add the slot when the first rebind site lands, alongside the consumer.
 - **The `_star_<name>_star_.rs` file is doc + type only.** No live value lives there; the actual storage is on `KaniranContext`. The file holds the value type (e.g. `pub type SubstringHash = HashMap<…>`) plus a module-doc pointing at the ctx slot, mirroring how `*connection*`'s "port" is `KaniranContext::pool` with no `_star_connection_star_.rs` file at all (a defparameter with no non-trivial value type can skip the file entirely; the FQN gets marked `ported` with reason citing this section).
 
 Contrast with §4.8: §4.8 covers `*connection*` (process-wide, never rebound; a plain field on ctx is enough). §4.10 covers specials that have a meaningful `let`-rebind in upstream control flow — those need the `with_*` helper.

@@ -399,13 +399,13 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  382. `ichiran/dict:get-split*`  — fn, dict-split.lisp:67  *[ported]*  *[extracted: wave_158_frontier_2026_05_09]*
  383. `ichiran/dict:get-split`  — fn, dict-split.lisp:75  *[ported]*  *[extracted: splits_2026_05_09]*  *[audited 232366/232366]*
  384. `ichiran/dict:is-arch`  — fn, dict.lisp:760  *[ported]*
- 385. `ichiran/dict:*no-kanji-break-penalty*`  — global, dict-errata.lisp:1214
- 386. `ichiran/dict:*score-cutoff*`  — global, dict.lisp:1069
+ 385. `ichiran/dict:*no-kanji-break-penalty*`  — global, dict-errata.lisp:1214  *[ported]*
+ 386. `ichiran/dict:*score-cutoff*`  — global, dict.lisp:1069  *[ported]*
  387. `ichiran/dict:parse-suffix-val`  — fn, dict-grammar.lisp:679
  388. `ichiran/dict:make-slice`  — fn, dict.lisp:1010
  389. `ichiran/dict:subseq-slice`  — fn, dict.lisp:1013
  390. `ichiran/dict:get-suffixes`  — fn, dict-grammar.lisp:697
- 391. `ichiran/dict:*length-coeff-sequences*`  — global, dict.lisp:686
+ 391. `ichiran/dict:*length-coeff-sequences*`  — global, dict.lisp:686  *[ported]*
  392. `ichiran/dict:length-multiplier-coeff`  — fn, dict.lisp:694
  393. `ichiran/dict:nokanji`  — gf, dict-counters.lisp:0  *[ported]*
  394. `ichiran/dict:sense-id`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
@@ -414,8 +414,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:kanji-break-penalty`  — fn, dict.lisp:702
  396. `ichiran/dict:get-segsplit`  — fn, dict-split.lisp:823
  397. `ichiran/dict:expand-segment-list`  — fn, dict.lisp:1180
- 398. `ichiran/dict:*gap-penalty*`  — global, dict.lisp:1165
- 399. `ichiran/dict:gap-penalty`  — fn, dict.lisp:1169
+ 398. `ichiran/dict:*gap-penalty*`  — global, dict.lisp:1165  *[ported]*
+ 399. `ichiran/dict:gap-penalty`  — fn, dict.lisp:1169  *[ported]*
  400. `ichiran/dict:get-array`  — gf, dict.lisp:0
  401. `ichiran/dict:classify`  — fn, dict-grammar.lisp:1046
  402. `ichiran/dict:filter-in-seq-set`  — fn, dict-grammar.lisp:783
@@ -472,15 +472,15 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  453. `ichiran/dict:get-segment-score`  — gf, dict.lisp:0
  454. `ichiran/dict:register-item`  — gf, dict.lisp:0
  455. `ichiran/dict:find-best-path`  — fn, dict.lisp:1190
- 456. `ichiran/dict:*identical-word-score-cutoff*`  — global, dict.lisp:1020
+ 456. `ichiran/dict:*identical-word-score-cutoff*`  — global, dict.lisp:1020  *[ported]*
  457. `ichiran/dict:cull-segments`  — fn, dict.lisp:1027
  458. `ichiran/dict:gen-score`  — fn, dict.lisp:985
- 459. `ichiran/dict:*force-kanji-break*`  — global, dict-errata.lisp:1226
+ 459. `ichiran/dict:*force-kanji-break*`  — global, dict-errata.lisp:1226  *[ported]*
  460. `ichiran/dict:*max-word-length*`  — global, dict.lisp:486  *[ported]*
- 461. `ichiran/dict:*no-kanji-break*`  — global, dict-errata.lisp:1229
+ 461. `ichiran/dict:*no-kanji-break*`  — global, dict-errata.lisp:1229  *[ported]*
  462. `ichiran/dict:*substring-hash*`  — global, dict.lisp:487  *[ported]*
- 463. `ichiran/dict:*suffix-map-temp*`  — global, dict.lisp:1049
- 464. `ichiran/dict:*suffix-next-end*`  — global, dict.lisp:1050
+ 463. `ichiran/dict:*suffix-map-temp*`  — global, dict.lisp:1049  *[ported]*
+ 464. `ichiran/dict:*suffix-next-end*`  — global, dict.lisp:1050  *[ported]*
  465. `ichiran/dict:find-sticky-positions`  — fn, dict.lisp:990
  466. `ichiran/dict:find-substring-words`  — fn, dict.lisp:501
  467. `ichiran/dict:verify`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
