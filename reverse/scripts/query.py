@@ -11,6 +11,8 @@ Usage:
     query.py mark <fqn>... --status ported [--reason "text"]
     query.py stats
     query.py plan [--out FILE] [--skip-packages PKG,PKG] [--include-status STATUS]
+    query.py cluster <fqn>...        # group pending fns by target-reachable cluster
+    query.py cluster --auto N        #   (or auto-pick N anchors by closure size)
 
 <fqn> may be a full FQN (`ichiran:kr-branch`) or a bare name (`kr-branch`)
 when unambiguous.
@@ -396,6 +398,130 @@ def cmd_plan(args, syms, callees, callers):
         print(f"wrote {args.out} ({len(sccs)} waves, {len(nodes)} symbols)", file=sys.stderr)
     else:
         sys.stdout.write(text)
+
+
+# ─── cluster ─────────────────────────────────────────────────────────────────
+#
+# Target-reachable clusters: each target is a semantic anchor (e.g. calc-score,
+# word-info-json) and its cluster is the transitive set of pending callees that
+# gate it. Overlap is resolved by nearest-target wins (smallest cluster claims
+# the shared fn) — keeps a low-level helper attached to the most specific
+# anchor that needs it.
+#
+# `--auto N` picks N anchors automatically: rank pending fns by pending-closure
+# size descending, walk top-down, skip candidates that fall in an already-
+# claimed closure. Produces N disjoint maximal clusters covering as much of
+# pending-land as possible.
+
+def _pending_closure(start: str, callees, syms) -> set[str]:
+    """Transitive callees of `start`, restricted to status='pending' nodes
+    (start itself excluded)."""
+    seen: set[str] = set()
+    stack = [start]
+    while stack:
+        cur = stack.pop()
+        for nxt in callees.get(cur, ()):
+            if nxt in seen or nxt == start:
+                continue
+            if syms[nxt]["status"] != "pending":
+                continue
+            seen.add(nxt)
+            stack.append(nxt)
+    return seen
+
+
+def _topo_within(nodes: set[str], callees) -> list[str]:
+    """Reverse-topo order (leaves first) over the subgraph induced by `nodes`.
+    SCCs collapse to adjacent runs; sorting within each SCC by name."""
+    sub_callees = {n: {c for c in callees.get(n, ()) if c in nodes} for n in nodes}
+    sccs = _tarjan_sccs(sorted(nodes), sub_callees)
+    out: list[str] = []
+    for comp in sccs:
+        out.extend(sorted(comp))
+    return out
+
+
+def cmd_cluster(args, syms, callees, callers):
+    if args.auto is not None:
+        candidates: list[tuple[str, set[str]]] = []
+        for fqn, s in syms.items():
+            if s["status"] != "pending":
+                continue
+            cl = _pending_closure(fqn, callees, syms)
+            if cl:
+                candidates.append((fqn, cl))
+        candidates.sort(key=lambda x: (-len(x[1]), x[0]))
+        targets: list[str] = []
+        claimed_any: set[str] = set()
+        for fqn, cl in candidates:
+            if len(targets) >= args.auto:
+                break
+            if fqn in claimed_any:
+                continue
+            targets.append(fqn)
+            claimed_any.update(cl)
+            claimed_any.add(fqn)
+    else:
+        if not args.targets:
+            sys.exit("pass TARGET fqns, or --auto N for automatic picks")
+        targets = [resolve_fqn(t, syms) for t in args.targets]
+
+    closures: list[tuple[str, set[str]]] = [
+        (t, _pending_closure(t, callees, syms)) for t in targets
+    ]
+
+    # Nearest-target wins: smallest cluster claims overlap first. Pin each
+    # target to itself so it can never be claimed as a dep of another cluster
+    # (matters for overlapping targets, especially in cycles like
+    # calc-score ↔ kanji-break-penalty).
+    target_set = set(targets)
+    claimed: dict[str, str] = {t: t for t in targets}
+    for t, cl in sorted(closures, key=lambda x: (len(x[1]), x[0])):
+        for fqn in cl:
+            if fqn in target_set:
+                continue
+            claimed.setdefault(fqn, t)
+
+    by_target: dict[str, set[str]] = defaultdict(set)
+    for fqn, owner in claimed.items():
+        if fqn == owner:
+            continue  # the target itself is rendered separately
+        by_target[owner].add(fqn)
+
+    closure_size = {t: len(cl) for t, cl in closures}
+    for i, t in enumerate(targets, 1):
+        target_sym = syms[t]
+        cluster = by_target.get(t, set())
+        fanout = len(_walk(t, callers, deep=True))
+        status = target_sym["status"]
+        print(
+            f"== cluster {i}: {t}  "
+            f"(target={status}, dependents={fanout}, "
+            f"exclusive={len(cluster)}, full-closure={closure_size[t]}) =="
+        )
+        for fqn in _topo_within(cluster, callees):
+            print(f"  {fmt(syms[fqn])}")
+        if status == "pending":
+            print(f"  ► target  {fmt(target_sym)}")
+        elif cluster:
+            print(f"  (target already {status}; cluster represents pending deps "
+                  f"still missing under it)")
+        print()
+
+    all_pending = {f for f, s in syms.items() if s["status"] == "pending"}
+    covered = set(claimed) | {t for t in targets if syms[t]["status"] == "pending"}
+    orphans = all_pending - covered
+    covered_count = len(all_pending) - len(orphans)
+    print(
+        f"== summary ==  {len(targets)} clusters cover {covered_count}/{len(all_pending)} "
+        f"pending symbols; {len(orphans)} orphan(s) not reachable from any target",
+        file=sys.stderr,
+    )
+    if args.show_orphans and orphans:
+        print()
+        print(f"== orphans  ({len(orphans)}) ==")
+        for fqn in sorted(orphans):
+            print(f"  {fmt(syms[fqn])}")
 
 
 # ─── audit-signatures ────────────────────────────────────────────────────────
@@ -1131,6 +1257,22 @@ def main() -> int:
     p.add_argument("--include-status", default=None,
                    help="comma-separated statuses to include (default: all)")
     p.set_defaults(fn=cmd_plan)
+
+    p = sub.add_parser(
+        "cluster",
+        help="group pending symbols into target-reachable clusters; "
+             "pass TARGET fqns or --auto N to pick anchors automatically",
+    )
+    p.add_argument("targets", nargs="*",
+                   help="target FQNs (e.g. calc-score word-info-json); "
+                        "ignored if --auto is set")
+    p.add_argument("--auto", type=int, default=None, metavar="N",
+                   help="auto-pick N anchors by pending-closure size (disjoint, "
+                        "maximal). Overrides positional targets.")
+    p.add_argument("--show-orphans", action="store_true",
+                   help="list pending fns not reachable from any target "
+                        "(summary line always prints to stderr)")
+    p.set_defaults(fn=cmd_cluster)
 
     args = ap.parse_args()
     syms, callees, callers = load()
