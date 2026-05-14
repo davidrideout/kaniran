@@ -401,9 +401,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  384. `ichiran/dict:is-arch`  — fn, dict.lisp:760  *[ported]*
  385. `ichiran/dict:*no-kanji-break-penalty*`  — global, dict-errata.lisp:1214  *[ported]*
  386. `ichiran/dict:*score-cutoff*`  — global, dict.lisp:1069  *[ported]*
- 387. `ichiran/dict:parse-suffix-val`  — fn, dict-grammar.lisp:679
- 388. `ichiran/dict:make-slice`  — fn, dict.lisp:1010
- 389. `ichiran/dict:subseq-slice`  — fn, dict.lisp:1013
+ 387. `ichiran/dict:parse-suffix-val`  — fn, dict-grammar.lisp:679  *[ported]*
+ 388. `ichiran/dict:make-slice`  — fn, dict.lisp:1010  *[ported]*
+ 389. `ichiran/dict:subseq-slice`  — fn, dict.lisp:1013  *[ported]*
  390. `ichiran/dict:get-suffixes`  — fn, dict-grammar.lisp:697
  391. `ichiran/dict:*length-coeff-sequences*`  — global, dict.lisp:686  *[ported]*
  392. `ichiran/dict:length-multiplier-coeff`  — fn, dict.lisp:694
