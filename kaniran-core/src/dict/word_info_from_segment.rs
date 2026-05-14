@@ -46,7 +46,7 @@ pub async fn word_info_from_segment(
     let kind = word_info_type_from(word_type(word));
 
     // dict.lisp:1331 (:kana (get-kana word))
-    let kana = get_kana(ctx, word, false).await?.map(WordInfoKana::Single);
+    let kana = get_kana(ctx, word).await?.map(WordInfoKana::Single);
 
     // dict.lisp:1332 (:seq (seq word))
     let seq_value = seq(word);
@@ -117,7 +117,7 @@ async fn compound_components(
                 other, primary_seq
             ),
         };
-        let child_kana = get_kana(ctx, wrd, false)
+        let child_kana = get_kana(ctx, wrd)
             .await?
             .map(WordInfoKana::Single);
         out.push(WordInfo {
@@ -165,7 +165,7 @@ mod tests {
     }
 
     async fn first_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
-        let rows = find_word(ctx, word, false, None).await.unwrap();
+        let rows = find_word(ctx, word, false).await.unwrap();
         match rows {
             FindWordRows::Kanji(v) => v
                 .into_iter()

@@ -33,19 +33,21 @@
 //!
 //! Upstream consults the dynamically-bound
 //! [`crate::dict::_star_substring_hash_star_`] cache before issuing
-//! the SQL query. The cache is populated by `find-substring-words`
-//! and read back here for any `word` present as a key — root-only
-//! is excluded from the short-circuit because the upstream `if`
-//! routes root-only directly to the JOIN-against-`entry` branch.
-//! Today no producer wires up the cache, so the read resolves to
-//! `None` on every call and the path is dead at runtime; the wire-up
-//! lands when wave 326 (`find-word-full`) ports.
+//! the SQL query. The cache rides on the ctx as
+//! [`KaniranContext::substring_hash`]; populated by
+//! `find-substring-words` (and rebound via
+//! [`KaniranContext::with_substring_hash`] for the nested-find loop
+//! inside `find-word-full`), it's read back here for any `word`
+//! present as a key — root-only is excluded from the short-circuit
+//! because the upstream `if` routes root-only directly to the
+//! JOIN-against-`entry` branch. Today no producer wires up the
+//! cache, so the slot is `None` and the path is dead at runtime;
+//! the wire-up lands when wave 326 (`find-word-full`) ports.
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_max_word_length_star_::MAX_WORD_LENGTH;
-use crate::dict::_star_substring_hash_star_::{substring_hash_get, SubstringHash};
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kanji_text_dao::KanjiText;
 
@@ -59,7 +61,6 @@ pub async fn find_word(
     ctx: &KaniranContext,
     word: &str,
     root_only: bool,
-    substring_cache: Option<&SubstringHash>,
 ) -> Result<FindWordRows, sqlx::Error> {
     // Mirror upstream evaluation order — `(when (<= (length word)
     // *max-word-length*) ...)` short-circuits before `test-word`
@@ -73,9 +74,12 @@ pub async fn find_word(
     if word.chars().count() > MAX_WORD_LENGTH {
         return Ok(FindWordRows::Kanji(Vec::new()));
     }
+    // dict.lisp:491 — (and *substring-hash* (gethash word *substring-hash*))
     if !root_only {
-        if let Some(rows) = substring_hash_get(substring_cache, word) {
-            return Ok(rows);
+        if let Some(cache) = ctx.substring_hash.as_deref() {
+            if let Some(rows) = cache.get(word) {
+                return Ok(rows.clone());
+            }
         }
     }
     let kana = test_word(word, CharClass::Kana);

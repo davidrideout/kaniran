@@ -10,9 +10,9 @@
 //! the `*disable-hints*` value at capture time — the
 //! `simple-text :around` method rebinds it to `T` before recursing,
 //! so half the rows are hint-active calls and half are
-//! hint-suppressed recursive ones. The runner threads the captured
-//! value into `get_kana`'s `disable_hints: bool` parameter so the
-//! replay sees the same branch.
+//! hint-suppressed recursive ones. The runner rebinds the audit
+//! ctx via [`KaniranContext::with_disable_hints`] before calling
+//! `get_kana` so the replay observes the same branch.
 //!
 //! Result: `(<kana string>)` — single value, always a string per
 //! the upstream `get-kana` contract.
@@ -43,7 +43,8 @@ async fn audit_one(
         .ok_or_else(|| format!("missing _meta.context.disable_hints on args[1]: {}", row.args[1]))?;
     let word = parse_captured_word(&row.args[0])?;
 
-    let actual = get_kana(ctx, &word, disable_hints)
+    let ctx2 = ctx.with_disable_hints(disable_hints);
+    let actual = get_kana(&ctx2, &word)
         .await
         .map_err(|err| format!("get_kana: {} ({})", err, describe_word(&word)))?;
 

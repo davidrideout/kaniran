@@ -22,12 +22,6 @@
 //! - taking `&KaniranContext` for the database handle, replacing the
 //!   upstream dynamic `*connection*` per
 //!   [`crate::conn::kani_context`];
-//! - taking `disable_hints: bool` as an explicit trailing parameter,
-//!   threaded through the recursive [`get_kana`] call. Replaces the
-//!   upstream dynamic `*disable-hints*` binding (which a Rust
-//!   thread-local would lose across `.await` points on the
-//!   multi-threaded tokio runtime — see [`get_kana`] divergence
-//!   notes);
 //! - returning [`Result<Option<String>, sqlx::Error>`] — `None`
 //!   propagates from the inner [`get_kana`] when upstream would
 //!   raise via `(text nil)` (no headword kana row for entry, or no
@@ -39,11 +33,12 @@
 //! arm via [`super::best_kana_conj::best_kana_conj`].
 //!
 //! Hint-state contract: callers of `true-kana` from inside a hint
-//! body pass `disable_hints = true` (the `simple-text :around`
-//! method in [`get_kana`] does this when invoking
-//! [`super::get_hint::get_hint`]). The recursive `get_kana` call on
-//! the leaf therefore skips the hint branch and returns the bare
-//! slot value, matching upstream semantics.
+//! body operate under a ctx rebound via
+//! [`KaniranContext::with_disable_hints`]`(true)` (the
+//! `simple-text :around` method in [`get_kana`] does this when
+//! invoking [`super::get_hint::get_hint`]). The recursive `get_kana`
+//! call on the leaf reads `ctx.disable_hints = true` and skips the
+//! hint branch, matching upstream's `(let ((*disable-hints* t)) …)`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_kana::get_kana;
@@ -53,7 +48,6 @@ use crate::dict::proxy_text_class::ProxyText;
 pub async fn true_kana(
     ctx: &KaniranContext,
     obj: &KaniWordDispatchEnum,
-    disable_hints: bool,
 ) -> Result<Option<String>, sqlx::Error> {
     match obj {
         // dict.lisp:562 (:method ((obj proxy-text)) (true-kana (source obj)))
@@ -66,10 +60,10 @@ pub async fn true_kana(
                     "unwrap_proxy_chain terminates at Kanji or Kana"
                 ),
             };
-            Box::pin(get_kana(ctx, &lifted, disable_hints)).await
+            Box::pin(get_kana(ctx, &lifted)).await
         }
         // dict.lisp:561 (:method (obj) (get-kana obj))
-        other => Box::pin(get_kana(ctx, other, disable_hints)).await,
+        other => Box::pin(get_kana(ctx, other)).await,
     }
 }
 

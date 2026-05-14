@@ -19,6 +19,7 @@ use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;
 use crate::dict::_star_counter_cache_star_::{build_counter_cache, CounterCache};
 use crate::dict::_star_is_arch_cache_star_::build_is_arch;
 use crate::dict::_star_no_conj_data_star_::build_no_conj_data;
+use crate::dict::_star_substring_hash_star_::SubstringHash;
 use crate::dict::_star_suffix_cache_star_::SuffixCache;
 use crate::dict::_star_suffix_class_star_::SuffixClass;
 use crate::dict::init_suffixes_thread::build_suffix_caches;
@@ -38,26 +39,65 @@ pub enum Error {
     MissingConnection(&'static str),
 }
 
+#[derive(Clone)]
 pub struct KaniranContext {
     pub pool: PgPool,
     /// Upstream `*no-conj-data*` (`dict.lisp:329`). See
     /// [`crate::dict::_star_no_conj_data_star_`].
-    pub no_conj_data: HashSet<i32>,
+    pub no_conj_data: Arc<HashSet<i32>>,
     /// Upstream `*is-arch-cache*` (`dict.lisp:745`). See
     /// [`crate::dict::_star_is_arch_cache_star_`].
-    pub is_arch: HashSet<i32>,
+    pub is_arch: Arc<HashSet<i32>>,
     /// Upstream `*counter-cache*` (`dict-counters.lisp:221`). See
     /// [`crate::dict::_star_counter_cache_star_`].
-    pub counter_cache: CounterCache,
+    pub counter_cache: Arc<CounterCache>,
     /// Upstream `*suffix-cache*` (`dict-grammar.lisp:5`). See
     /// [`crate::dict::_star_suffix_cache_star_`].
-    pub suffix_cache: SuffixCache,
+    pub suffix_cache: Arc<SuffixCache>,
     /// Upstream `*suffix-class*` (`dict-grammar.lisp:6`). See
     /// [`crate::dict::_star_suffix_class_star_`].
-    pub suffix_class: SuffixClass,
+    pub suffix_class: Arc<SuffixClass>,
     /// Upstream `*reading-cache*` (`kanji.lisp:199`). See
     /// [`crate::kanji::_star_reading_cache_star_`].
-    pub reading_cache: ReadingCache,
+    pub reading_cache: Arc<ReadingCache>,
+
+    /// Upstream `*disable-hints*` (`dict.lisp:78`) — recursion guard
+    /// for the `simple-text :around` method on
+    /// [`crate::dict::get_kana::get_kana`]. Rebound to `true` at two
+    /// sites: `dict.lisp:82` (the `:around` body, around the call to
+    /// `get-hint`) and `dict-split.lisp:909` (`check-easy-hints`,
+    /// around the per-row `true-kana` call). Default `false` matches
+    /// the upstream `(defvar … nil)` initform.
+    ///
+    /// Lives on ctx (not as a `tokio::task_local!` or `thread_local!`)
+    /// so the binding survives crossing rayon / `tokio::spawn`
+    /// boundaries: spawned closures capture `&ctx2` by reference and
+    /// the borrow-checker enforces propagation, with no scope
+    /// snapshot/restore obligation at each parallel boundary.
+    pub disable_hints: bool,
+
+    /// Upstream `*substring-hash*` (`dict.lisp:487`) — per-call-tree
+    /// lookup cache short-circuiting [`crate::dict::find_word::find_word`].
+    /// Rebound only inside `find-word-full`'s nested-find loop
+    /// (`dict.lisp:1090-1092`); `None` outside that scope matches the
+    /// upstream `(defparameter … nil)` initform. Wrapped in `Arc` so
+    /// the rebind clone is cheap.
+    pub substring_hash: Option<Arc<SubstringHash>>,
+}
+
+impl KaniranContext {
+    /// `(let ((*disable-hints* v)) …)` — return a sibling context with
+    /// the hint-recursion guard rebound. Cheap because the cache
+    /// fields are `Arc`-shared.
+    pub fn with_disable_hints(&self, v: bool) -> Self {
+        Self { disable_hints: v, ..self.clone() }
+    }
+
+    /// `(let ((*substring-hash* h)) …)` — return a sibling context
+    /// with the find-word short-circuit cache populated.
+    pub fn with_substring_hash(&self, h: Arc<SubstringHash>) -> Self {
+        Self { substring_hash: Some(h), ..self.clone() }
+    }
 }
 
 impl KaniranContext {
@@ -71,8 +111,8 @@ impl KaniranContext {
                 eprintln!("kaniran: failed to connect to database at `{url}`: {e}");
                 Error::from(e)
             })?;
-        let no_conj_data = build_no_conj_data(&pool).await?;
-        let is_arch = build_is_arch(&pool).await?;
+        let no_conj_data = Arc::new(build_no_conj_data(&pool).await?);
+        let is_arch = Arc::new(build_is_arch(&pool).await?);
         // counter_cache + suffix_cache populators call DB-touching fns
         // that take &KaniranContext — build a partial ctx first, then
         // swap the populated maps in.
@@ -80,15 +120,17 @@ impl KaniranContext {
             pool,
             no_conj_data,
             is_arch,
-            counter_cache: CounterCache::new(),
-            suffix_cache: SuffixCache::new(),
-            suffix_class: SuffixClass::new(),
-            reading_cache: new_reading_cache(),
+            counter_cache: Arc::new(CounterCache::new()),
+            suffix_cache: Arc::new(SuffixCache::new()),
+            suffix_class: Arc::new(SuffixClass::new()),
+            reading_cache: Arc::new(new_reading_cache()),
+            disable_hints: false,
+            substring_hash: None,
         };
-        ctx.counter_cache = build_counter_cache(&ctx).await?;
+        ctx.counter_cache = Arc::new(build_counter_cache(&ctx).await?);
         let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;
-        ctx.suffix_cache = suffix_cache;
-        ctx.suffix_class = suffix_class;
+        ctx.suffix_cache = Arc::new(suffix_cache);
+        ctx.suffix_class = Arc::new(suffix_class);
         Ok(Arc::new(ctx))
     }
 

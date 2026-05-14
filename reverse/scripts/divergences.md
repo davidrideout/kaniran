@@ -14,7 +14,7 @@ captured Lisp lambda list. New entries should be either:
 
 - Checked: 105 fn/gf
 - Macros (file-existence only): 0
-- Divergences: 18
+- Divergences: 14
 
 ## Divergences
 
@@ -48,11 +48,6 @@ captured Lisp lambda list. New entries should be either:
 - file: `kaniran-core/src/characters/voice_char.rs`
 - drift: return-arity 1 ≠ Lisp (values …) required=2 (rust='KanaClass', lisp='(values t boolean &optional)')
 
-### `ichiran/dict:find-word`
-
-- file: `kaniran-core/src/dict/find_word.rs`
-- drift: arity 4 ≠ Lisp 2 (req=1, opt=0, keys=['root-only']) (ctx-injected; +1 absorbed)
-
 ### `ichiran/dict:find-word-conj-of`
 
 - file: `kaniran-core/src/dict/find_word_conj_of.rs`
@@ -61,16 +56,6 @@ captured Lisp lambda list. New entries should be either:
 ### `ichiran/dict:find-word-seq`
 
 - file: `kaniran-core/src/dict/find_word_seq.rs`
-- drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[]) (ctx-injected; +1 absorbed)
-
-### `ichiran/dict:get-hint`
-
-- file: `kaniran-core/src/dict/get_hint.rs`
-- drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[]) (ctx-injected; +1 absorbed)
-
-### `ichiran/dict:get-kana`
-
-- file: `kaniran-core/src/dict/get_kana.rs`
 - drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[]) (ctx-injected; +1 absorbed)
 
 ### `ichiran/dict:init-suffixes-thread`
@@ -87,11 +72,6 @@ captured Lisp lambda list. New entries should be either:
 
 - file: `kaniran-core/src/dict/query_parents_kanji.rs`
 - drift: arity 3 ≠ Lisp 0 (req=0, opt=0, keys=[]) (ctx-injected; +1 absorbed)
-
-### `ichiran/dict:true-kana`
-
-- file: `kaniran-core/src/dict/true_kana.rs`
-- drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[]) (ctx-injected; +1 absorbed)
 
 ### `ichiran/kanji:match-readings*`
 

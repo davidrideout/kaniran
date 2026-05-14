@@ -10,7 +10,8 @@
 //! (on the leaf for proxy-text, on `obj` otherwise) so the inner
 //! get-kana's `:around` method consults the same `disable_hints`
 //! state — the trailing meta element captures the value at entry
-//! and the runner threads it into the impl call.
+//! and the runner rebinds the audit ctx via
+//! [`KaniranContext::with_disable_hints`] before the impl call.
 //!
 //! Result: `(<kana string>)` — single value, always a string.
 
@@ -40,7 +41,8 @@ async fn audit_one(
         .ok_or_else(|| format!("missing _meta.context.disable_hints on args[1]: {}", row.args[1]))?;
     let obj = parse_captured_word(&row.args[0])?;
 
-    let actual = true_kana(ctx, &obj, disable_hints)
+    let ctx2 = ctx.with_disable_hints(disable_hints);
+    let actual = true_kana(&ctx2, &obj)
         .await
         .map_err(|err| format!("true_kana: {} ({})", err, describe_word(&obj)))?;
 

@@ -140,7 +140,7 @@ mod tests {
     }
 
     async fn one_kana_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
-        let rows = find_word(ctx, word, false, None).await.unwrap();
+        let rows = find_word(ctx, word, false).await.unwrap();
         match rows {
             FindWordRows::Kanji(v) => v
                 .into_iter()

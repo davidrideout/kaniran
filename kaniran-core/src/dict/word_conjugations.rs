@@ -190,7 +190,7 @@ mod tests {
         // surface: find_word("ねこ") rows have no conjugation
         // annotation until the find-word pipeline sets it.
         let ctx = ctx_from_env().await;
-        let rows = find_word(&ctx, "ねこ", false, None).await.unwrap();
+        let rows = find_word(&ctx, "ねこ", false).await.unwrap();
         let row = match rows {
             FindWordRows::Kana(v) => v.into_iter().next().expect("kana row for ねこ"),
             FindWordRows::Kanji(_) => panic!("expected kana rows for ねこ"),

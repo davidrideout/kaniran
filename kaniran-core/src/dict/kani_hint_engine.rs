@@ -79,22 +79,24 @@ pub fn safe_hint(kind: KaniHintKind, pos: i64) -> Option<(KaniHintKind, usize)> 
 }
 
 /// Common tail for every `def-simple-hint` body: `(insert-hints
-/// (get-kana ,reading-var) (list ,@hints-emits))`. `disable_hints`
-/// is threaded through to the inner `get_kana` call so the
-/// re-entrance guard from the outer `simple-text :around` method
-/// still applies. Box::pin breaks the static-recursion cycle
-/// through get_kana ↔ get_hint ↔ hint_map_dispatch.
+/// (get-kana ,reading-var) (list ,@hints-emits))`. The recursive
+/// `get_kana` call observes the `:around` rebind via `ctx.disable_hints`
+/// — the outer `simple-text :around` rebinds the ctx via
+/// [`crate::conn::kani_context::KaniranContext::with_disable_hints`]`(true)`
+/// before this body runs, and the rebound ctx threads down to here, so
+/// the inner `:around` skips its hint branch. `Box::pin` breaks the
+/// static-recursion cycle through get_kana ↔ get_hint ↔
+/// hint_map_dispatch.
 pub async fn finish_simple_hint(
     ctx: &KaniranContext,
     reading: &KaniWordDispatchEnum,
     hints: Vec<(KaniHintKind, usize)>,
-    disable_hints: bool,
 ) -> Result<Option<String>, sqlx::Error> {
     // get_kana returning None means upstream `(text nil)` —
     // no kana representation exists for this reading. The
     // hint body's `(insert-hints (get-kana reading) ...)`
     // would crash upstream; mirror as no-hint here.
-    let Some(kana) = Box::pin(get_kana(ctx, reading, disable_hints)).await? else {
+    let Some(kana) = Box::pin(get_kana(ctx, reading)).await? else {
         return Ok(None);
     };
     Ok(Some(insert_hints(&kana, &hints)))
@@ -108,9 +110,8 @@ pub async fn finish_simple_hint(
 pub async fn true_kana_and_len(
     ctx: &KaniranContext,
     reading: &KaniWordDispatchEnum,
-    disable_hints: bool,
 ) -> Result<Option<(String, i64)>, sqlx::Error> {
-    let Some(k) = true_kana(ctx, reading, disable_hints).await? else {
+    let Some(k) = true_kana(ctx, reading).await? else {
         return Ok(None);
     };
     let l = k.chars().count() as i64;
@@ -166,7 +167,6 @@ pub async fn run_easy_hint(
     ctx: &KaniranContext,
     hint: &EasyHint,
     reading: &KaniWordDispatchEnum,
-    disable_hints: bool,
 ) -> Result<Option<String>, sqlx::Error> {
     // dict-split.lisp:931 — (when (typep ,reading-var 'simple-text))
     match reading {
@@ -202,7 +202,7 @@ pub async fn run_easy_hint(
         .collect();
 
     // dict-split.lisp:934 — (kr = (match-readings rtext (true-kana reading)))
-    let Some(tk) = true_kana(ctx, reading, disable_hints).await? else {
+    let Some(tk) = true_kana(ctx, reading).await? else {
         return Ok(None);
     };
     let Some(kr) = match_readings(ctx, &rtext, &tk).await? else {
@@ -226,11 +226,14 @@ pub async fn run_easy_hint(
     // dict-split.lisp:936 — (insert-hints (get-kana reading) ...).
     // Box::pin breaks the static-recursion cycle through
     // get_kana → get_hint → hint_map_dispatch → run_easy_hint → get_kana.
-    // The recursion is bounded at runtime by `disable_hints = true`
-    // (the outer get_kana :around passes it before calling get_hint,
-    // so this inner get_kana skips the hint branch). None propagates
-    // from upstream's `(insert-hints nil ...)` no-kana case.
-    let Some(kana) = Box::pin(get_kana(ctx, reading, disable_hints)).await? else {
+    // The recursion is bounded at runtime by `ctx.disable_hints =
+    // true` (the outer get_kana :around rebinds the ctx via
+    // [`KaniranContext::with_disable_hints`] before calling get_hint;
+    // hint_map_dispatch threads the rebound ctx down to this fn, so
+    // the inner get_kana reads true and skips the hint branch). None
+    // propagates from upstream's `(insert-hints nil ...)` no-kana
+    // case.
+    let Some(kana) = Box::pin(get_kana(ctx, reading)).await? else {
         return Ok(None);
     };
     Ok(Some(insert_hints(&kana, &translated2)))

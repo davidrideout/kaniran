@@ -31,12 +31,15 @@
 //!   when [`super::true_kanji::true_kanji`] returned `:null`) and
 //!   `kana` strings.
 //!
-//! The upstream `(let ((*disable-hints* t)))` binding is mirrored
-//! by hardcoded `disable_hints = true` threaded into each per-row
-//! [`true_kana`] call (per the [`super::get_kana::get_kana`]
-//! divergence rationale: thread-local guards aren't soundly
-//! preserved across `.await` points on the multi-thread tokio
-//! runtime).
+//! The upstream `(let ((*disable-hints* t)))` binding wraps the
+//! entire loop body — `true-kanji`, `true-kana`, and
+//! `match-readings` are all evaluated under the same rebind. The
+//! Rust port mirrors that by rebinding the ctx once before the
+//! loop via [`KaniranContext::with_disable_hints`]`(true)` and
+//! passing `&ctx2` into all three calls (per the
+//! [`super::get_kana::get_kana`] divergence rationale: ctx-slot
+//! beats task-local because the rebind survives rayon /
+//! `tokio::spawn` boundaries the parallel pipeline introduces).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_easy_hints_seqs_star_::easy_hints_seqs;
@@ -71,17 +74,21 @@ pub async fn check_easy_hints(
     .fetch_all(&ctx.pool)
     .await?;
 
+    // dict-split.lisp:909 — (let ((*disable-hints* t))) wraps the
+    // entire loop body, covering true-kanji, true-kana, and
+    // match-readings. Rebind the ctx once before the loop so all
+    // three operations see the same binding (matches upstream
+    // scope; today true-kanji + match-readings don't reach the
+    // recursion guard so the binding is inert there, but the
+    // scope must still match for any future code path that does).
+    let ctx2 = ctx.with_disable_hints(true);
     let mut failures = Vec::new();
     for reading in readings {
         let lifted = KaniWordDispatchEnum::Kana(reading.clone());
-        // dict-split.lisp:911 — (kanji = (true-kanji reading)) — no hint
-        // dispatch reachable from true-kanji, so disable_hints state is
-        // irrelevant there.
-        let kanji = true_kanji(ctx, &lifted).await?;
-        // dict-split.lisp:909 + :912 — (let ((*disable-hints* t))) is
-        // mirrored by threading `disable_hints = true` into true_kana,
-        // which forwards it into its recursive get_kana on the leaf.
-        let kana = true_kana(ctx, &lifted, true).await?;
+        // dict-split.lisp:911 — (kanji = (true-kanji reading))
+        let kanji = true_kanji(&ctx2, &lifted).await?;
+        // dict-split.lisp:912 — (kana = (true-kana reading))
+        let kana = true_kana(&ctx2, &lifted).await?;
         // dict-split.lisp:913-914 — (match = (match-readings kanji kana))
         // (unless match collect (list reading kanji kana))
         // Both `kanji` and `kana` can be None. Upstream behavior:
@@ -94,7 +101,7 @@ pub async fn check_easy_hints(
         //   `kana` mirrors that by skipping the call and recording
         //   the misalignment.
         let match_result = match (&kanji, &kana) {
-            (Some(k), Some(ka)) => match_readings(ctx, k, ka).await?,
+            (Some(k), Some(ka)) => match_readings(&ctx2, k, ka).await?,
             _ => None,
         };
         if match_result.is_none() {

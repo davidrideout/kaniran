@@ -10,9 +10,10 @@
 //! called from the `simple-text :around` method on get-kana, which
 //! rebinds `*disable-hints*` to T before invoking get-hint — so
 //! every captured row should carry `disable_hints=true`. The runner
-//! threads the captured value into the impl so any divergence
-//! surfaces as a runtime-state difference (which would itself be a
-//! bug worth investigating).
+//! rebinds the audit ctx via
+//! [`KaniranContext::with_disable_hints`] before calling the impl
+//! so any divergence surfaces as a runtime-state difference (which
+//! would itself be a bug worth investigating).
 //!
 //! Result: `(<kana string or nil>)` — single value; `nil` ↔ `None`
 //! when no hint-fn fired or the hint-fn body returned nil.
@@ -45,7 +46,8 @@ async fn audit_one(
         .ok_or_else(|| format!("missing _meta.context.disable_hints on args[1]: {}", row.args[1]))?;
     let reading = parse_captured_word(&row.args[0])?;
 
-    let actual = get_hint(ctx, &reading, disable_hints)
+    let ctx2 = ctx.with_disable_hints(disable_hints);
+    let actual = get_hint(&ctx2, &reading)
         .await
         .map_err(|err| format!("get_hint: {} ({})", err, describe_word(&reading)))?;
 

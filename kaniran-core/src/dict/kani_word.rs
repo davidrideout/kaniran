@@ -114,15 +114,16 @@ impl KaniSimpleTextDispatchEnum {
     pub async fn get_kana(
         &self,
         ctx: &crate::conn::kani_context::KaniranContext,
-        disable_hints: bool,
     ) -> Result<Option<String>, sqlx::Error> {
         // dict.lisp:80-84 (defmethod get-kana :around ((obj simple-text)))
         // (unless (or *disable-hints* (hintedp obj))
         //    (let ((*disable-hints* t)) (get-hint obj)))
-        if !disable_hints && !self.hintedp() {
+        if !ctx.disable_hints && !self.hintedp() {
             let wrapped = self.to_word();
+            // dict.lisp:82 (let ((*disable-hints* t)) (get-hint obj))
+            let ctx2 = ctx.with_disable_hints(true);
             if let Some(hint_result) =
-                super::get_hint::get_hint(ctx, &wrapped, true).await?
+                super::get_hint::get_hint(&ctx2, &wrapped).await?
             {
                 return Ok(Some(hint_result));
             }

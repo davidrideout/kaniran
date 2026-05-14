@@ -233,6 +233,36 @@ Almost everything in this port is read-only at the callsite: captured DAO fields
 
 When porting a Lisp fn that takes a string, the Rust signature should be `&str`, not `String`. When porting one that returns a slot value owned by a longer-lived struct, return `&T` or `Cow<'a, T>`. The grandfather rule: if you wrote `arg.clone()` or `value.to_string()` and the borrow would have worked, delete the clone.
 
+### 4.10. CL dynamic specials with caller-scoped rebind → ctx slot + `with_*`
+
+Some Lisp specials aren't process-wide config — they're per-call-tree state that callers rebind via `(let ((*x* v)) …)`. Examples in ichiran: `*disable-hints*` (recursion guard around the get-kana `:around`), `*substring-hash*` (lookup cache populated by `find-word-full` for its nested-find subtree), `*suffix-map-temp*` / `*suffix-next-end*` (state threaded through suffix expansion), `*split-map*` (rebound at the splits entry).
+
+These get a **field on `KaniranContext`** plus a **`with_<name>(self, v) -> Self`** helper. Rebind sites construct a sibling ctx and pass `&ctx2` downstream:
+
+```rust
+// rebind site — mirrors `(let ((*disable-hints* t)) (get-hint obj))`
+let ctx2 = ctx.with_disable_hints(true);
+get_hint(&ctx2, &wrapped).await?
+
+// read site — mirrors `(when *disable-hints* …)`
+if !ctx.disable_hints && !self.hintedp() { … }
+```
+
+Rules:
+
+- **Don't use `tokio::task_local!` or `thread_local!`.** Both drop the binding silently at parallel-worker handoff: `thread_local!` across `.await` on multi-worker tokio, `tokio::task_local!` across `tokio::spawn`, and either across `rayon::scope` / `par_iter`. The ctx-slot pattern propagates by reference and is enforced by the borrow checker — crossing a parallel boundary requires capturing `&ctx2` into the closure, making propagation visible at the spawn site. Survives the planned async→sync (rkyv) and async→rayon migrations with no rewrite.
+- **Cache fields adjacent to the slot get `Arc<…>`.** `KaniranContext` derives `Clone` so `with_*` is a cheap field copy; the existing `HashSet`/`HashMap` cache fields are `Arc`-wrapped so the clone is one atomic increment per field, not a deep copy. New caches added to ctx follow.
+- **Default mirrors the upstream initform.** `(defvar *x* nil)` → `disable_hints: false` / `substring_hash: None` in `from_url`'s initializer. `with_*` returns to that default when callers exit the rebound scope (because the rebound `ctx2` is just a local that drops).
+- **Read at the use site, not in every signature.** The point of moving the special onto ctx is dropping it from parameter lists. Only the function that actually consults the value reads `ctx.<field>`; intermediate functions just thread `&ctx` like any other shared state.
+- **Doc-comment cites the rebind.** In the divergence block of the consulting function, name the rebind site and the upstream `let` form:
+
+  > Mirrors the upstream `(let ((*disable-hints* t)) …)` at `dict.lisp:82` via [`KaniranContext::with_disable_hints`].
+
+- **Out-of-scope rebinds wait for their consumers.** Don't add a `with_*` helper + ctx field for a special whose consumer isn't ported yet — that's a helper with zero callsites, dead code by definition. Add the slot when the first rebind site lands, alongside the consumer.
+- **The `_star_<name>_star_.rs` file is doc + type only.** No live value lives there; the actual storage is on `KaniranContext`. The file holds the value type (e.g. `pub type SubstringHash = HashMap<…>`) plus a module-doc pointing at the ctx slot, mirroring how `*connection*`'s "port" is `KaniranContext::pool` with no `_star_connection_star_.rs` file at all (a defparameter with no non-trivial value type can skip the file entirely; the FQN gets marked `ported` with reason citing this section).
+
+Contrast with §4.8: §4.8 covers `*connection*` (process-wide, never rebound; a plain field on ctx is enough). §4.10 covers specials that have a meaningful `let`-rebind in upstream control flow — those need the `with_*` helper.
+
 ---
 
 ## 5. Globals

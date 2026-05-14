@@ -20,12 +20,11 @@
 //! - taking `&KaniranContext` for the database handle (transitively,
 //!   via [`super::word_conj_data::word_conj_data`] and the hint-fn
 //!   bodies), replacing the upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
-//! - taking `disable_hints: bool` as an explicit trailing parameter,
-//!   threaded through to the hint-fn bodies' recursive `get_kana` /
-//!   `true_kana` calls. Replaces the upstream dynamic
-//!   `*disable-hints*` binding; see [`super::get_kana::get_kana`]
-//!   for the rationale.
+//!   [`crate::conn::kani_context`]. The ctx also carries the
+//!   `*disable-hints*` binding (see
+//!   [`super::get_kana::get_kana`] for the rationale); callers
+//!   invoke `get_hint` after rebinding via
+//!   [`crate::conn::kani_context::KaniranContext::with_disable_hints`]`(true)`.
 //! - returning `Result<Option<String>, sqlx::Error>` — hint-fn bodies
 //!   reach the database (via [`super::true_kana::true_kana`] and
 //!   [`super::true_kanji::true_kanji`] and
@@ -58,7 +57,6 @@ use crate::dict::word_info_class::WordInfoSeq;
 pub async fn get_hint(
     ctx: &KaniranContext,
     reading: &KaniWordDispatchEnum,
-    disable_hints: bool,
 ) -> Result<Option<String>, sqlx::Error> {
     // dict-split.lisp:939 — (gethash (seq reading) *hint-map*)
     let primary_seq = match word_seq(reading) {
@@ -76,7 +74,7 @@ pub async fn get_hint(
     // failed). The conj-of walk only fires for an UNREGISTERED
     // primary, not for a registered-but-nil-returning one.
     if let Some(s) = primary_seq {
-        match hint_map_dispatch(ctx, s, reading, disable_hints).await? {
+        match hint_map_dispatch(ctx, s, reading).await? {
             HintDispatch::Registered(result) => return Ok(result),
             HintDispatch::Unregistered => { /* fall through to conj-of walk */ }
         }
@@ -90,7 +88,7 @@ pub async fn get_hint(
     let conj_data = word_conj_data(ctx, reading).await?;
     for cd in &conj_data {
         if let Some(from_seq) = conj_data_from(cd) {
-            match hint_map_dispatch(ctx, from_seq, reading, disable_hints).await? {
+            match hint_map_dispatch(ctx, from_seq, reading).await? {
                 HintDispatch::Registered(result) => return Ok(result),
                 HintDispatch::Unregistered => continue,
             }

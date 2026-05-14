@@ -2450,7 +2450,7 @@ async fn audit_find_word(
         }
         i += 2;
     }
-    let actual = find_word(ctx, word, root_only, None).await
+    let actual = find_word(ctx, word, root_only).await
         .map_err(|e| format!("find_word query: {}", e))?;
     compare_dao_lists(project_find_word_rows(&actual), expect_first_of_one_or_two(expected)?)
 }

@@ -57,7 +57,15 @@
 //!
 //! - taking `&KaniranContext` for the database handle, replacing
 //!   the upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
+//!   [`crate::conn::kani_context`]. The same `&KaniranContext` also
+//!   carries the upstream `*disable-hints*` binding as a
+//!   [`KaniranContext::disable_hints`] field: the `:around` rebind
+//!   at `dict.lisp:82` is mirrored by
+//!   [`KaniranContext::with_disable_hints`] returning a sibling
+//!   ctx, which propagates through the borrow-checker rather than
+//!   through a `task_local!`/`thread_local!` side channel. Survives
+//!   rayon / `tokio::spawn` boundaries without a per-boundary
+//!   snapshot/restore obligation.
 //! - returning [`Result<Option<String>, sqlx::Error>`] — `None`
 //!   covers the cases where upstream would signal
 //!   `no-applicable-method` via `(text nil)`: the kanji-text path's
@@ -68,15 +76,7 @@
 //!   recoverable via `handler-case`; the Rust port surfaces the
 //!   same case as `Ok(None)` so callers can branch on it without
 //!   `catch_unwind`. Database errors propagate as the
-//!   `sqlx::Error` arm;
-//! - taking `disable_hints: bool` as an explicit trailing parameter
-//!   in place of the upstream dynamic `*disable-hints*` binding.
-//!   The Lisp `:around` method's `(let ((*disable-hints* t)) ...)`
-//!   rebinding becomes a recursive call with `disable_hints = true`;
-//!   outer callers pass `false`. Required because a thread-local
-//!   guard would not survive `.await` points on the multi-threaded
-//!   tokio runtime (suspended futures can resume on a different
-//!   worker, losing the binding).
+//!   `sqlx::Error` arm.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
@@ -84,7 +84,6 @@ use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 pub async fn get_kana(
     ctx: &KaniranContext,
     obj: &KaniWordDispatchEnum,
-    disable_hints: bool,
 ) -> Result<Option<String>, sqlx::Error> {
     match obj {
         // simple-text family handles its own `:around` internally
@@ -94,15 +93,15 @@ pub async fn get_kana(
         // `:around` and the primary `call-next-method`.
         KaniWordDispatchEnum::Kanji(k) => {
             KaniSimpleTextDispatchEnum::Kanji(k.clone())
-                .get_kana(ctx, disable_hints).await
+                .get_kana(ctx).await
         }
         KaniWordDispatchEnum::Kana(k) => {
             KaniSimpleTextDispatchEnum::Kana(k.clone())
-                .get_kana(ctx, disable_hints).await
+                .get_kana(ctx).await
         }
         KaniWordDispatchEnum::Proxy(p) => {
             KaniSimpleTextDispatchEnum::Proxy(p.clone())
-                .get_kana(ctx, disable_hints).await
+                .get_kana(ctx).await
         }
         // counter-text family handles its own `:around` (suffix
         // append) and per-subclass overrides internally — see

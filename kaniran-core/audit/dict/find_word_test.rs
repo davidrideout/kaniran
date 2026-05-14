@@ -36,7 +36,7 @@ async fn audit_one(
         .ok_or_else(|| format!("arg 0 not string: {}", row.args[0]))?;
     let root_only = walk_keywords_for_root_only(&row.args[1..])?;
 
-    let actual = find_word(ctx, word, root_only, None)
+    let actual = find_word(ctx, word, root_only)
         .await
         .map_err(|err| format!("find_word query: {}", err))?;
 
