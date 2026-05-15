@@ -490,7 +490,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  471. `ichiran/dict:find-counter`  — fn, dict-counters.lisp:273  *[ported]*  *[extracted: counter_2026_05_08]*
  472. `ichiran/dict:find-word`  — fn, dict.lisp:489  *[ported]*  *[extracted: tatoeba]*  *[audited 8105/8105]*
  473. `ichiran/dict:find-word-as-hiragana`  — fn, dict.lisp:592  *[ported]*  *[extracted: tatoeba]*  *[audited 30/30]*
- 474. `ichiran/dict:adjoin-word`  — gf, dict.lisp:0
+ 474. `ichiran/dict:adjoin-word`  — gf, dict.lisp:0  *[ported]*
  475. `ichiran/dict:apply-patch`  — fn, dict-grammar.lisp:444
  476. `ichiran/dict:or-as-hiragana`  — fn, dict-grammar.lisp:95
  477. `ichiran/dict:suffix-ra`  — fn, dict-grammar.lisp:516

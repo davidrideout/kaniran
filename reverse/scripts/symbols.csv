@@ -227,7 +227,7 @@ ichiran/dict:add-primary-nokanji,add-primary-nokanji,ichiran/dict,dict-errata.li
 ichiran/dict:add-reading,add-reading,ichiran/dict,dict-errata.lisp,35,fn,pending,,,
 ichiran/dict:add-sense,add-sense,ichiran/dict,dict-errata.lisp,146,fn,pending,,,
 ichiran/dict:add-sense-prop,add-sense-prop,ichiran/dict,dict-errata.lisp,140,fn,pending,,,
-ichiran/dict:adjoin-word,adjoin-word,ichiran/dict,dict.lisp,0,gf,pending,,,
+ichiran/dict:adjoin-word,adjoin-word,ichiran/dict,dict.lisp,0,gf,ported,,,
 ichiran/dict:apply-patch,apply-patch,ichiran/dict,dict-grammar.lisp,444,fn,pending,,,
 ichiran/dict:apply-score-mod,apply-score-mod,ichiran/dict,dict.lisp,0,gf,pending,,,
 ichiran/dict:apply-segfilters,apply-segfilters,ichiran/dict,dict-grammar.lisp,1177,fn,pending,,,

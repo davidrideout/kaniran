@@ -46,6 +46,7 @@ pub mod _star_suffix_class_star_;
 pub mod _star_suffix_map_temp_star_;
 pub mod _star_suffix_next_end_star_;
 pub mod _star_weak_conj_forms_star_;
+pub mod adjoin_word;
 pub mod best_kana_conj;
 pub mod best_kanji_conj;
 #[cfg(test)]
