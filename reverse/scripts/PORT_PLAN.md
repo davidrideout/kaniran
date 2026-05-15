@@ -558,7 +558,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  490. `ichiran/dict:get-senses-raw`  — fn, dict.lisp:1458
  491. `ichiran/dict:get-senses`  — fn, dict.lisp:1487
  492. `ichiran/dict:get-senses-str`  — fn, dict.lisp:1495
- 493. `ichiran/dict:*suffix-description*`  — global, dict-grammar.lisp:0
+ 493. `ichiran/dict:*suffix-description*`  — global, dict-grammar.lisp:0  *[ported]*
  494. `ichiran/dict:get-suffix-description`  — fn, dict-grammar.lisp:160
  495. `ichiran/dict:errata-conj-description-hook`  — fn, dict-errata.lisp:1320
  496. `ichiran/dict:load-conj-description`  — fn, dict-load.lisp:255
@@ -766,8 +766,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:conj-info-json*`  — fn, dict.lisp:1665
  695. `ichiran/dict:conjugate-word`  — fn, dict-load.lisp:294
  696. `ichiran/dict:csv-hash`  — macro, dict-load.lisp:201
- 697. `ichiran/dict:defsuffix`  — macro, dict-grammar.lisp:342
- 698. `ichiran/dict:def-abbr-suffix`  — macro, dict-grammar.lisp:557
+ 697. `ichiran/dict:defsuffix`  — macro, dict-grammar.lisp:342  *[skip — CONVENTIONS §4.6 case (a): DSL definer that registers (key . fn-name) pairs into *suffix-list*. The registry itself is the data store; per-callsite ports (suffix-tai, suffix-te, abbr-nee, …) live as standalone functions in the same Lisp file and will be transliterated alongside the CYCLE 484 unit (PORT_PLAN #484). No port file.]*
+ 698. `ichiran/dict:def-abbr-suffix`  — macro, dict-grammar.lisp:557  *[skip — CONVENTIONS §4.6 case (a): DSL definer expanding to (defsuffix ...) for abbreviated-form suffixes; populates *suffix-list* and wraps each per-callsite body which becomes a standalone function in the CYCLE 484 unit. No port file.]*
  699. `ichiran/dict:defsplit`  — macro, dict-split.lisp:5  *[skip — DSL definer; expansion only registers a per-seq fn in *split-map*. The Rust transliteration collapses *split-map* into the static split_map_dispatch match in _star_split_map_star_, and each registered fn is its own sibling split_*.rs module — nothing left to translate.]*
  700. `ichiran/dict:def-simple-split`  — macro, dict-split.lisp:11  *[skip — DSL definer; expansion encodes the prog* loop / per-part dispatch / offset-and-score bookkeeping that each callsite needs, but has no Rust counterpart on its own — every callsite is hand-translated as its own split_*.rs (per CONVENTIONS §4.6). 174 of those expansions land in *split-map*; the remaining 18 land in *segsplit-map* (waves 177-194).]*
  701. `ichiran/dict:def-de-split`  — macro, dict-split.lisp:81
@@ -786,7 +786,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  714. `ichiran/dict:def-segfilter-must-follow`  — macro, dict-grammar.lisp:1049
  715. `ichiran/dict:def-shi-split`  — macro, dict-split.lisp:191
  716. `ichiran/dict:def-simple-hint`  — macro, dict-split.lisp:901  *[skip — DSL definer (§4.6 case (a)). Expands to defhint with a let* prologue + insert-hints call; bodies are inlined as match arms in _star_hint_map_star_.rs::simple_hint_dispatch (17 groups covering 234 callsites).]*
- 717. `ichiran/dict:def-simple-suffix`  — macro, dict-grammar.lisp:345
+ 717. `ichiran/dict:def-simple-suffix`  — macro, dict-grammar.lisp:345  *[skip — CONVENTIONS §4.6 case (a): DSL definer expanding to (defsuffix ...) for stem-aware suffix entries. Per-callsite bodies become standalone functions in the CYCLE 484 unit; the macro's (key . fn-name) registration target is *suffix-list*. No port file.]*
  718. `ichiran/dict:def-special-counter`  — macro, dict-counters.lisp:361
  719. `ichiran/dict:def-toori-split`  — macro, dict-split.lisp:143
  720. `ichiran/dict:delete-duplicate-props`  — fn, dict.lisp:295

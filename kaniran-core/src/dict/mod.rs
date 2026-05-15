@@ -43,6 +43,7 @@ pub mod _star_split_map_star_;
 pub mod _star_substring_hash_star_;
 pub mod _star_suffix_cache_star_;
 pub mod _star_suffix_class_star_;
+pub mod _star_suffix_description_star_;
 pub mod _star_suffix_map_temp_star_;
 pub mod _star_suffix_next_end_star_;
 pub mod _star_weak_conj_forms_star_;
