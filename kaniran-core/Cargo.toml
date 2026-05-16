@@ -117,3 +117,7 @@ path = "audit/dict/compare_common_test.rs"
 [[bin]]
 name = "get_non_arch_posi_test"
 path = "audit/dict/get_non_arch_posi_test.rs"
+
+[[bin]]
+name = "match_unique_test"
+path = "audit/dict/match_unique_test.rs"

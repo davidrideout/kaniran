@@ -181,7 +181,7 @@ ichiran/dict:*suffix-description*,*suffix-description*,ichiran/dict,dict-grammar
 ichiran/dict:*suffix-list*,*suffix-list*,ichiran/dict,dict-grammar.lisp,329,global,pending,,,
 ichiran/dict:*suffix-map-temp*,*suffix-map-temp*,ichiran/dict,dict.lisp,1049,global,ported,,,
 ichiran/dict:*suffix-next-end*,*suffix-next-end*,ichiran/dict,dict.lisp,1050,global,ported,,,
-ichiran/dict:*suffix-unique-only*,*suffix-unique-only*,ichiran/dict,dict-grammar.lisp,330,global,pending,,,
+ichiran/dict:*suffix-unique-only*,*suffix-unique-only*,ichiran/dict,dict-grammar.lisp,330,global,ported,,,
 ichiran/dict:*synergy-list*,*synergy-list*,ichiran/dict,dict-grammar.lisp,723,global,pending,,,
 ichiran/dict:*weak-conj-forms*,*weak-conj-forms*,ichiran/dict,dict-errata.lisp,1316,global,ported,,,
 ichiran/dict:abbr-beba,abbr-beba,ichiran/dict,dict-grammar.lisp,658,fn,pending,,,
@@ -420,7 +420,7 @@ ichiran/dict:map-word-info-kana,map-word-info-kana,ichiran/dict,dict.lisp,1728,f
 ichiran/dict:match-glosses,match-glosses,ichiran/dict,dict.lisp,1921,fn,pending,,,
 ichiran/dict:match-kana-kanji,match-kana-kanji,ichiran/dict,dict.lisp,1507,fn,pending,,,
 ichiran/dict:match-sense-restrictions,match-sense-restrictions,ichiran/dict,dict.lisp,1515,fn,pending,,,
-ichiran/dict:match-unique,match-unique,ichiran/dict,dict-grammar.lisp,702,fn,pending,,,
+ichiran/dict:match-unique,match-unique,ichiran/dict,dict-grammar.lisp,702,fn,ported,,diverse_250k_2026_05_16,92593/92593
 ichiran/dict:next-seq,next-seq,ichiran/dict,dict-load.lisp,110,fn,pending,,,
 ichiran/dict:no-conj-data,no-conj-data,ichiran/dict,dict.lisp,337,fn,ported,,,
 ichiran/dict:node-text,node-text,ichiran/dict,dict-load.lisp,14,fn,pending,,,

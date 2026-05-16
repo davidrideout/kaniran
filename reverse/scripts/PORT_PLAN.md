@@ -498,8 +498,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  479. `ichiran/dict:pair-words-by-conj`  — fn, dict-grammar.lisp:56
  480. `ichiran/dict:find-word-with-pos`  — fn, dict-grammar.lisp:87
  481. `ichiran/dict:suffix-suru`  — fn, dict-grammar.lisp:441
- 482. `ichiran/dict:*suffix-unique-only*`  — global, dict-grammar.lisp:330
- 483. `ichiran/dict:match-unique`  — fn, dict-grammar.lisp:702
+ 482. `ichiran/dict:*suffix-unique-only*`  — global, dict-grammar.lisp:330  *[ported]*
+ 483. `ichiran/dict:match-unique`  — fn, dict-grammar.lisp:702  *[ported]*
  484. **CYCLE (49 symbols — port together)**
         - `ichiran/dict:*suffix-list*`  — global, dict-grammar.lisp:329
         - `ichiran/dict:abbr-beba`  — fn, dict-grammar.lisp:658
