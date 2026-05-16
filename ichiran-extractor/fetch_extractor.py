@@ -197,11 +197,17 @@ async def worker(
     api,
     state,
     progress_every,
+    error_log,
 ):
     """Pull sentences off input_queue, POST /extract, fan captures
     onto output_queue. After each sentence completes, bump the shared
     sentence counter and emit a progress line every PROGRESS_EVERY
-    sentences. asyncio is single-threaded so the counter is race-free."""
+    sentences. asyncio is single-threaded so the counter is race-free.
+
+    Bad captures (missing fn/args/result keys, or non-string values)
+    are written to error_log as JSONL and skipped — they MUST NOT
+    abort the run; ~hundreds of millions of captures per run means
+    one malformed shape would otherwise discard hours of work."""
     extract_url = f"{api.rstrip('/')}/extract"
     while True:
         sentence = await input_queue.get()
@@ -219,6 +225,13 @@ async def worker(
             continue
         captures = result.get("captures", []) if isinstance(result, dict) else []
         for cap in captures:
+            if (not isinstance(cap, dict)
+                    or not isinstance(cap.get("fn"), str)
+                    or not isinstance(cap.get("args"), str)
+                    or not isinstance(cap.get("result"), str)):
+                error_log.log_bad_capture(wid, sentence, cap)
+                state["captures_malformed"] += 1
+                continue
             await output_queue.put((cap["fn"], cap["args"], cap["result"]))
             state["captures"] += 1
         state["sentences"] += 1
@@ -244,11 +257,58 @@ def _maybe_log_progress(state, progress_every):
         pct = "  --  "
     failed = state["sentences_failed"]
     fail_str = f", failed={failed}" if failed else ""
+    bad = state["captures_malformed"]
+    bad_str = f", malformed={bad}" if bad else ""
     print(
         f"  {n:>9,}/{total:,} sentences ({pct}, {rate:>5.0f} sent/s{eta}), "
-        f"captures={cap:>10,} ({cap_rate:>6.0f}/s){fail_str}",
+        f"captures={cap:>10,} ({cap_rate:>6.0f}/s){fail_str}{bad_str}",
         flush=True,
     )
+
+
+# --- malformed-capture log ---------------------------------------------------
+
+class ErrorLog:
+    """Append-only JSONL log for malformed captures and request-level
+    failures. Lives at <output_dir>/_errors.jsonl. Each line is a JSON
+    object with at least {ts, kind, ...}. Kinds:
+        bad_capture   — cap dict was missing or non-string fn/args/result.
+                        Fields: worker, sentence, capture.
+    Sync writes (open with line buffering) — volume is low enough that
+    contention is irrelevant, and we want the partial log on the disk if
+    the driver gets SIGKILL'd."""
+
+    def __init__(self, out_dir: str):
+        self.path = os.path.join(out_dir, "_errors.jsonl")
+        self.f = open(self.path, "a", buffering=1, encoding="utf-8")
+        self.n = 0
+
+    def log_bad_capture(self, worker_id: int, sentence: str, capture):
+        rec = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "kind": "bad_capture",
+            "worker": worker_id,
+            "sentence": sentence,
+            "capture": capture,
+        }
+        try:
+            self.f.write(orjson.dumps(rec).decode("utf-8") + "\n")
+        except Exception as exc:
+            self.f.write(orjson.dumps({
+                "ts": rec["ts"],
+                "kind": "bad_capture_unserializable",
+                "worker": worker_id,
+                "sentence": sentence,
+                "capture_repr": repr(capture),
+                "error": str(exc),
+            }).decode("utf-8") + "\n")
+        self.n += 1
+
+    def close(self):
+        try:
+            self.f.close()
+        except Exception:
+            pass
 
 
 # --- writer ------------------------------------------------------------------
@@ -400,32 +460,45 @@ async def cmd_fetch(args):
         "sentences": 0,
         "sentences_failed": 0,
         "captures": 0,
+        "captures_malformed": 0,
         "total": total_sentences,
         "t0": time.time(),
     }
 
+    error_log = ErrorLog(args.output)
+    print(f"malformed captures will be logged to {error_log.path}")
+
     input_queue: asyncio.Queue = asyncio.Queue(maxsize=args.workers * 2)
     output_queue: asyncio.Queue = asyncio.Queue(maxsize=args.workers * 8)
     connector = aiohttp.TCPConnector(limit=args.workers, limit_per_host=args.workers)
-    async with aiohttp.ClientSession(connector=connector) as session:
-        prod = asyncio.create_task(
-            producer(input_queue, args.input, args.skip, args.limit, args.workers)
-        )
-        wkrs = [
-            asyncio.create_task(worker(
-                i, input_queue, output_queue, session, args.api,
-                state, args.progress_every,
-            ))
-            for i in range(args.workers)
-        ]
-        wtask = asyncio.create_task(
-            writer_task(output_queue, args.output, args.workers, metadata)
-        )
-        await prod
-        await asyncio.gather(*wkrs)
-        for _ in range(args.workers):
-            await output_queue.put(SENTINEL)
-        await wtask
+    try:
+        async with aiohttp.ClientSession(connector=connector) as session:
+            prod = asyncio.create_task(
+                producer(input_queue, args.input, args.skip, args.limit, args.workers)
+            )
+            wkrs = [
+                asyncio.create_task(worker(
+                    i, input_queue, output_queue, session, args.api,
+                    state, args.progress_every, error_log,
+                ))
+                for i in range(args.workers)
+            ]
+            wtask = asyncio.create_task(
+                writer_task(output_queue, args.output, args.workers, metadata)
+            )
+            await prod
+            await asyncio.gather(*wkrs)
+            for _ in range(args.workers):
+                await output_queue.put(SENTINEL)
+            await wtask
+    finally:
+        error_log.close()
+        if state["captures_malformed"]:
+            print(
+                f"\nmalformed captures: {state['captures_malformed']} "
+                f"(see {error_log.path})",
+                flush=True,
+            )
 
 
 def main():

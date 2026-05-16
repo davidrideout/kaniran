@@ -143,6 +143,57 @@
             raw)))
 
 
+;; --- /extract handler ------------------------------------------------------
+
+(defun handle-extract (text)
+  "Run the entry-point sweep on TEXT and emit a JSON response.
+
+   Wire-protocol robustness: ichiran's runtime path is not 100% silent —
+   isolated `format t` callsites (loaders, lookup-table warnings, etc.)
+   could leak bytes into *standard-output*, which IS the worker's pipe
+   back to the FastAPI pool. Any rogue byte before the response would
+   present in the pool as a `json.JSONDecodeError` (commonly
+   `Extra data: line 1 column 5 (char 4)` when a bare `true` slips out).
+   We rebind *standard-output* to a discarding broadcast stream around
+   the work + JSON build, then restore the real fd for the actual
+   json-ok / json-error wire write.
+
+   Heap-pressure reclaim: a single long sentence + 13 installed FQNs
+   peaks the heap at 1–2 GB (captures buffer + serialized JSON string +
+   intermediate plist tree). Without an explicit major GC between
+   sentences, fragmentation in gen3/gen6 makes contiguous-page
+   allocation fail mid-serialize → heap-exhausted abort → pool sees
+   `Worker N did not respond`. Chunk-B (2026-05-14) hit this on
+   1568/250000 sentences (0.63%)."
+  (cond
+    ((or (null text) (zerop (length text)))
+     (json-error "missing 'text'"))
+    (t
+     (let ((real-out *standard-output*))
+       (handler-case
+           (let ((payload
+                  (let ((*standard-output* (make-broadcast-stream)))
+                    (postmodern:with-connection ichiran/conn:*connection*
+                      (call-entries text)
+                      ;; Read skipped BEFORE drain — drain resets *skipped* to 0.
+                      (let* ((skipped (ichi-trace:n-skipped))
+                             (caps    (ichi-trace:drain)))
+                        (captures-to-json caps skipped))))))
+             (let ((*standard-output* real-out))
+               (json-ok payload)))
+         (error (e)
+           (let ((*standard-output* real-out))
+             (json-error (format nil "~a" e))))))
+     ;; Force a major GC between sentences. Empirically, without this the
+     ;; worker dies of "Heap exhausted" partway through a corpus run at
+     ;; ~46% of dynamic-space-size: each /extract allocates 100MB–2GB of
+     ;; transient cons cells (captures + plist tree + serialized JSON
+     ;; string), and gen3 fills with retained cells faster than minor
+     ;; GCs can compact. Cost is ~50–200ms per call. Trade-off codified
+     ;; against chunk-B 1568/250000 heap deaths (2026-05-14).
+     (sb-ext:gc :gen 2))))
+
+
 ;; --- dispatch loop ---------------------------------------------------------
 
 (defun extractor-worker-loop ()
@@ -187,18 +238,7 @@
                   (json-ok-value t))
 
                  ((string-equal op "extract")
-                  (let ((text (jsown:val-safe query "text")))
-                    (cond
-                      ((or (null text) (zerop (length text)))
-                       (json-error "missing 'text'"))
-                      (t
-                       (handler-case
-                           (postmodern:with-connection ichiran/conn:*connection*
-                             (call-entries text)
-                             (let ((caps (ichi-trace:drain))
-                                   (skipped (ichi-trace:n-skipped)))
-                               (json-ok (captures-to-json caps skipped))))
-                         (error (e) (json-error (format nil "~a" e)))))) ))
+                  (handle-extract (jsown:val-safe query "text")))
 
                  (t (json-error (format nil "unknown op: ~a" op))))))))))))
 
@@ -247,10 +287,22 @@
 (setf ichi-projectors-json:*omit-slots*
       (append ichi-projectors-json:*omit-slots*
               '((ichiran/dict::segment-list ichiran/dict::top)
-                (ichiran/dict::segment       ichiran/dict::top))))
+                (ichiran/dict::segment       ichiran/dict::top)
+                ;; Romanize methods (generic-romanization + subclasses)
+                ;; carry a kana-table slot that holds a hash-table. SBCL
+                ;; hash-tables are structure-objects, so flatten-to-json
+                ;; walks their internal slots and hits a GETHASH/EQL
+                ;; function pointer that encode-json can't serialize.
+                ;; The class name (carried in the projected `_meta.class`)
+                ;; uniquely identifies the method — the table contents
+                ;; are reconstructable from class-name alone.
+                (ichiran::generic-romanization ichiran::kana-table))))
 
-;; Word-info / segment-list extraction set (2026-05-13). Plain JSON
-;; projector — none of these fns read *disable-hints*.
+;; get-suffixes re-extract (2026-05-15). Two FQNs in the suffix-lookup
+;; pipeline: get-suffixes is the principal target (audit pending — see
+;; project_get_suffixes_audit_pending_2026_05_14); or-as-hiragana is a
+;; thin hiragana-fallback wrapper around find-word-as-hiragana that
+;; co-fires from the same suffix path.
 (defparameter *boot-install-fqns*
   (let ((arg-fn    (symbol-function (find-symbol "FLATTEN-ARGS-JSON"
                                                  :ichi-projectors-json)))
@@ -261,17 +313,8 @@
                     :arg-projector arg-fn
                     :result-projector result-fn
                     :encoder :json))
-            '("ICHIRAN/DICT:WORD-INFO-FROM-SEGMENT"
-              "ICHIRAN/DICT:WORD-INFO-FROM-SEGMENT-LIST"
-              "ICHIRAN/DICT:FILL-SEGMENT-PATH"
-              "ICHIRAN/DICT:COMPARE-COMMON"
-              "ICHIRAN/DICT:MAKE-SLICE"
-              "ICHIRAN/DICT:SUBSEQ-SLICE"
-              ;; LENGTH-MULTIPLIER-COEFF is `declaim inline` at dict.lisp:692;
-              ;; both callsites (lines 928, 933) inline at compile time, so
-              ;; sb-int:encapsulate on the symbol never fires. Port via
-              ;; hand-written test pairs instead.
-              "ICHIRAN/DICT:SENSE-ID"))))
+            '("ICHIRAN/DICT:GET-SUFFIXES"
+              "ICHIRAN/DICT:OR-AS-HIRAGANA"))))
 
 (handler-case
     (ichi-trace:install-many *boot-install-fqns*)

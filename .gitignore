@@ -24,6 +24,7 @@ __pycache__/
 # Working scratchpad — local notes, not authoritative
 HANDOFF.md
 reverse/scripts/HANDOFF.md
+docs/
 
 # Per-user agent harness state
 .claude/
