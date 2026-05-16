@@ -404,7 +404,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  387. `ichiran/dict:parse-suffix-val`  — fn, dict-grammar.lisp:679  *[ported]*
  388. `ichiran/dict:make-slice`  — fn, dict.lisp:1010  *[ported]*
  389. `ichiran/dict:subseq-slice`  — fn, dict.lisp:1013  *[ported]*
- 390. `ichiran/dict:get-suffixes`  — fn, dict-grammar.lisp:697
+ 390. `ichiran/dict:get-suffixes`  — fn, dict-grammar.lisp:697  *[ported]*
  391. `ichiran/dict:*length-coeff-sequences*`  — global, dict.lisp:686  *[ported]*
  392. `ichiran/dict:length-multiplier-coeff`  — fn, dict.lisp:694
  393. `ichiran/dict:nokanji`  — gf, dict-counters.lisp:0  *[ported]*
@@ -491,10 +491,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  472. `ichiran/dict:find-word`  — fn, dict.lisp:489  *[ported]*  *[extracted: tatoeba]*  *[audited 8105/8105]*
  473. `ichiran/dict:find-word-as-hiragana`  — fn, dict.lisp:592  *[ported]*  *[extracted: tatoeba]*  *[audited 30/30]*
  474. `ichiran/dict:adjoin-word`  — gf, dict.lisp:0  *[ported]*
- 475. `ichiran/dict:apply-patch`  — fn, dict-grammar.lisp:444
+ 475. `ichiran/dict:apply-patch`  — fn, dict-grammar.lisp:444  *[ported]*
  476. `ichiran/dict:or-as-hiragana`  — fn, dict-grammar.lisp:95
  477. `ichiran/dict:suffix-ra`  — fn, dict-grammar.lisp:516
- 478. `ichiran/dict:lex-compare`  — fn, dict-load.lisp:365
+ 478. `ichiran/dict:lex-compare`  — fn, dict-load.lisp:365  *[ported]*
  479. `ichiran/dict:pair-words-by-conj`  — fn, dict-grammar.lisp:56
  480. `ichiran/dict:find-word-with-pos`  — fn, dict-grammar.lisp:87
  481. `ichiran/dict:suffix-suru`  — fn, dict-grammar.lisp:441
@@ -595,21 +595,21 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  527. `ichiran/dict:*kana-hint-mod*`  — global, dict-split.lisp:813  *[ported]*
  528. `ichiran/dict:*hint-simplify-map*`  — global, dict-split.lisp:818  *[ported]*
  529. `ichiran/dict:process-hints`  — fn, dict-split.lisp:872  *[ported]*
- 530. `ichiran:get-character-classes`  — fn, romanize.lisp:3
- 531. `ichiran:r-special`  — gf, romanize.lisp:0
+ 530. `ichiran:get-character-classes`  — fn, romanize.lisp:3  *[extracted: diverse_250k_2026_05_14]*
+ 531. `ichiran:r-special`  — gf, romanize.lisp:0  *[extracted: diverse_250k_2026_05_14]*
  532. `ichiran:process-iteration-characters`  — fn, romanize.lisp:7  *[ported]*
- 533. `ichiran:process-modifiers`  — fn, romanize.lisp:15
+ 533. `ichiran:process-modifiers`  — fn, romanize.lisp:15  *[extracted: diverse_250k_2026_05_14]*
  534. `ichiran:*kunrei-siki-kana-table*`  — global, romanize.lisp:0
  535. `ichiran:kunrei-siki`  — class, romanize.lisp:194
- 536. `ichiran:r-simplify`  — gf, romanize.lisp:0
- 537. `ichiran:leftmost-atom`  — fn, romanize.lisp:25
- 538. `ichiran:r-base`  — gf, romanize.lisp:0
+ 536. `ichiran:r-simplify`  — gf, romanize.lisp:0  *[extracted: diverse_250k_2026_05_14]*
+ 537. `ichiran:leftmost-atom`  — fn, romanize.lisp:25  *[extracted: diverse_250k_2026_05_14]*
+ 538. `ichiran:r-base`  — gf, romanize.lisp:0  *[extracted: diverse_250k_2026_05_14]*
  539. **CYCLE (2 symbols — port together)**
-        - `ichiran:r-apply`  — gf, romanize.lisp:0
-        - `ichiran:romanize-core`  — fn, romanize.lisp:29
- 540. `ichiran:romanize-list`  — fn, romanize.lisp:205
- 541. `ichiran:romanize-word`  — fn, romanize.lisp:217
- 542. `ichiran:romanize-word-info`  — fn, romanize.lisp:248
+        - `ichiran:r-apply`  — gf, romanize.lisp:0  *[extracted: diverse_250k_2026_05_14]*
+        - `ichiran:romanize-core`  — fn, romanize.lisp:29  *[extracted: diverse_250k_2026_05_14]*
+ 540. `ichiran:romanize-list`  — fn, romanize.lisp:205  *[extracted: diverse_250k_2026_05_14]*
+ 541. `ichiran:romanize-word`  — fn, romanize.lisp:217  *[extracted: diverse_250k_2026_05_14]*
+ 542. `ichiran:romanize-word-info`  — fn, romanize.lisp:248  *[extracted: diverse_250k_2026_05_14]*
  543. `ichiran:romanize`  — fn, romanize.lisp:257
  544. `ichiran:romanize*`  — fn, romanize.lisp:273
  545. `ichiran/cli:main`  — fn, cli.lisp:48

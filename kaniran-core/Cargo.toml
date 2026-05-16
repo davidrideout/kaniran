@@ -101,3 +101,7 @@ path = "audit/dict/word_info_from_segment_list_test.rs"
 [[bin]]
 name = "fill_segment_path_test"
 path = "audit/dict/fill_segment_path_test.rs"
+
+[[bin]]
+name = "get_suffixes_dump"
+path = "audit/dict/get_suffixes_dump.rs"

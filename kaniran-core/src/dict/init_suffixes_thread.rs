@@ -42,6 +42,14 @@ struct SuffixCacheBuilder {
 }
 
 impl SuffixCacheBuilder {
+    /// Port of the labels-local `update-suffix-cache` at
+    /// `dict-grammar.lisp:172-183`. The two `b.cache.insert(…)` direct
+    /// writes in `build_suffix_caches` (the いる block at L141-153 and
+    /// the いく/く block at L168-178) bypass this helper to match the
+    /// upstream direct `(setf (gethash …))` at
+    /// `dict-grammar.lisp:210-215, 233-236` — both behaviors are
+    /// parity-preserved by mirroring the bypass, not by routing through
+    /// `update_suffix_cache`.
     fn update_suffix_cache(
         &mut self,
         text: &str,
@@ -137,6 +145,11 @@ pub async fn build_suffix_caches(
     b.load_conjs(ctx, "te", 1296400, Some("aru"), false).await?; // ある
 
     // いる (る) — direct setf with teiru / teiru+ split.
+    // Mirrors dict-grammar.lisp:210-215: upstream writes the long-form
+    // and (unconditionally for any tkf-length > 1) the short variant
+    // straight via `(setf (gethash …))`, never routing through the
+    // labels-local `update-suffix-cache` — see this file's helper
+    // doc-comment for the parity rationale.
     let iru_kfs = get_kana_forms(ctx, 1577980).await?;
     for kf in iru_kfs {
         let tkf = kf.text.clone();
@@ -164,6 +177,11 @@ pub async fn build_suffix_caches(
     b.load_conjs(ctx, "te+space", 1587290, Some("itadaku"), false).await?; // いただく
 
     // いく/く — direct setf, gated on first char being い (HIRAGANA_LETTER_I).
+    // Mirrors dict-grammar.lisp:233-236: upstream writes the long form
+    // unconditionally and the short form only `unless (gethash short …)`
+    // — i.e. first-write-wins for the short variant — bypassing
+    // `update-suffix-cache`. The `b.cache.entry(short).or_insert(val)`
+    // below pins that "only if absent" semantics.
     let iku_kfs = get_kana_forms(ctx, 1578850).await?;
     for kf in iku_kfs {
         let tkf = kf.text.clone();

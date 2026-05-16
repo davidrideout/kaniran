@@ -22,6 +22,31 @@
 //!   `None` corresponds to the `load-abbr` callsite shape `(list key
 //!   nil)` (abbreviated forms with no source row).
 //!
+//! ## Divergence: keyword-string shape
+//!
+//! Upstream stores Common Lisp keywords (`:TEIRU`, `:NEG`, `:TAI` —
+//! `:`-prefixed, SCREAMING-CASE symbol-equivalents) as the first slot
+//! of each cache tuple. The Rust port stores **lowercase, no-colon
+//! strings** (`"teiru"`, `"neg"`, `"tai"`) — the shape produced by
+//! the populator's literal `&str` arguments to `load_kf` / `load_conjs`
+//! / `load_abbr` in [`super::init_suffixes_thread`].
+//!
+//! Captured fixtures encode the upstream `:TEIRU` shape verbatim. The
+//! `get_suffixes` audit runners (`audit/dict/get_suffixes_test.rs`,
+//! `audit/dict/get_suffixes_dump.rs`) bridge by stripping the leading
+//! `:` and lowercasing the captured value before comparison. This is
+//! a runner-local adapter, **not** a runtime conversion in the port —
+//! Rust never sees `:TEIRU`-shaped strings.
+//!
+//! The choice pins the eventual enum collapse: when the
+//! `def-simple-suffix` callsites land and `class_keyword` becomes a
+//! closed enum (e.g. `enum SuffixClass { Teiru, Neg, Tai, … }`), the
+//! variants will derive from these lowercase strings, not the Lisp
+//! `:UPPER` form. If parity rules later require preserving the
+//! `:UPPER` representation through to the cache (e.g. for symbol-
+//! identity downstream comparisons), this divergence must be reverted
+//! and the audit normalization removed.
+//!
 //! [`KaniranContext`]: crate::conn::kani_context::KaniranContext
 //! [`KaniranContext::from_url`]: crate::conn::kani_context::KaniranContext::from_url
 
