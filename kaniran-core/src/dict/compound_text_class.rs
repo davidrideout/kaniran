@@ -27,10 +27,17 @@
 //!   `pair-words-by-conj` (`dict-grammar.lisp:351-367, 58-73`),
 //!   so the slot holds a word, not an integer.
 //! - `score_mod` — score modifier accumulated across adjoins. The
-//!   first `adjoin-word` writes a single integer; the second wraps
-//!   it `(list new old)`; further adjoins `(cons new old-list)`,
-//!   leaving a flat list of integers. Modeled as [`ScoreMod`] per
-//!   CONVENTIONS §4.3.
+//!   first `adjoin-word` writes a single value; the second wraps it
+//!   `(list new old)`; further adjoins `(cons new old-list)`, leaving
+//!   a flat list. Each element is either an integer (`:score-mod 5`
+//!   literal at most `def-simple-suffix` callsites) or a
+//!   `(constantly N)` closure (four upstream callsites:
+//!   `suffix-kudasai` / `suffix-sou` / `suffix-desu` / `suffix-desho`
+//!   at `dict-grammar.lisp:404, 448, 516, 532`). `apply-score-mod`
+//!   dispatches on the element type: integers compute
+//!   `score * sm * len`, closures evaluate `(funcall sm score)` which
+//!   for `(constantly N)` just returns `N` flat. Modeled as
+//!   [`ScoreMod`] per CONVENTIONS §4.3.
 //!
 //! Lisp `primary` and `words` are `t`-typed; in practice all
 //! callsites set them to `simple-text` instances (the
@@ -57,8 +64,30 @@ pub struct CompoundText {
     pub score_mod: ScoreMod,
 }
 
+/// Three variants matching the three reachable methods of
+/// `(defgeneric apply-score-mod …)` at `dict.lisp:735-742`:
+///
+/// - [`ScoreMod::Single`] — the upstream `((score-mod integer) …)`
+///   method's input shape. `apply-score-mod` computes
+///   `score * sm * len`.
+/// - [`ScoreMod::Constant`] — the upstream `((score-mod function) …)`
+///   method's only reachable input shape: `(constantly N)` from
+///   `dict-grammar.lisp:404, 448, 516, 532`. `apply-score-mod`
+///   computes `(funcall (constantly N) score)` → `N`. The Rust
+///   variant carries `N` directly because no upstream callsite ever
+///   constructs a non-`constantly` closure as `:score-mod`.
+/// - [`ScoreMod::Stack`] — the upstream `((score-mod list) …)`
+///   method's input shape, holding a flat list whose elements are
+///   either `Single` or `Constant` (built by `adjoin-word`'s
+///   cons/list growth at `dict.lisp:651`).
+///
+/// Payloads are `i64` to match SBCL's 63-bit fixnum width — `score`,
+/// `len`, every stored `score-mod` literal, and the multiplication
+/// chain in `apply-score-mod` all participate in the same numeric
+/// type, with no narrowing at the function boundary.
 #[derive(Debug, Clone)]
 pub enum ScoreMod {
-    Single(i32),
-    Stack(Vec<i32>),
+    Single(i64),
+    Constant(i64),
+    Stack(Vec<ScoreMod>),
 }

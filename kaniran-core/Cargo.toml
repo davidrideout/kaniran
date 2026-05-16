@@ -105,3 +105,15 @@ path = "audit/dict/fill_segment_path_test.rs"
 [[bin]]
 name = "get_suffixes_dump"
 path = "audit/dict/get_suffixes_dump.rs"
+
+[[bin]]
+name = "apply_score_mod_test"
+path = "audit/dict/apply_score_mod_test.rs"
+
+[[bin]]
+name = "compare_common_test"
+path = "audit/dict/compare_common_test.rs"
+
+[[bin]]
+name = "get_non_arch_posi_test"
+path = "audit/dict/get_non_arch_posi_test.rs"

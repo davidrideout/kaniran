@@ -391,9 +391,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  374. `ichiran/dict:*non-final-prt*`  — global, dict-errata.lisp:1209  *[ported]*
  375. `ichiran/dict:*semi-final-prt*`  — global, dict-errata.lisp:1196  *[ported]*
  376. `ichiran/dict:*skip-words*`  — global, dict-errata.lisp:1155  *[ported]*
- 377. `ichiran/dict:apply-score-mod`  — gf, dict.lisp:0
- 378. `ichiran/dict:compare-common`  — fn, dict.lisp:1022
- 379. `ichiran/dict:get-non-arch-posi`  — fn, dict.lisp:762
+ 377. `ichiran/dict:apply-score-mod`  — gf, dict.lisp:0  *[ported]*  *[extracted: calc_score_2026_05_11]*  *[audited 2672/2672]*
+ 378. `ichiran/dict:compare-common`  — fn, dict.lisp:1022  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*  *[audited 2002/2002]*
+ 379. `ichiran/dict:get-non-arch-posi`  — fn, dict.lisp:762  *[ported]*  *[extracted: calc_score_2026_05_11]*  *[audited 155698/155698]*
  380. `ichiran/dict:get-original-text*`  — fn, dict.lisp:378  *[ported]*
  381. `ichiran/dict:get-original-text`  — gf, dict.lisp:0  *[ported]*
  382. `ichiran/dict:get-split*`  — fn, dict-split.lisp:67  *[ported]*  *[extracted: wave_158_frontier_2026_05_09]*
@@ -406,7 +406,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  389. `ichiran/dict:subseq-slice`  — fn, dict.lisp:1013  *[ported]*
  390. `ichiran/dict:get-suffixes`  — fn, dict-grammar.lisp:697  *[ported]*
  391. `ichiran/dict:*length-coeff-sequences*`  — global, dict.lisp:686  *[ported]*
- 392. `ichiran/dict:length-multiplier-coeff`  — fn, dict.lisp:694
+ 392. `ichiran/dict:length-multiplier-coeff`  — fn, dict.lisp:694  *[ported]*
  393. `ichiran/dict:nokanji`  — gf, dict-counters.lisp:0  *[ported]*
  394. `ichiran/dict:sense-id`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  395. **CYCLE (2 symbols — port together)**

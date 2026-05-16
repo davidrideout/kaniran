@@ -229,7 +229,7 @@ ichiran/dict:add-sense,add-sense,ichiran/dict,dict-errata.lisp,146,fn,pending,,,
 ichiran/dict:add-sense-prop,add-sense-prop,ichiran/dict,dict-errata.lisp,140,fn,pending,,,
 ichiran/dict:adjoin-word,adjoin-word,ichiran/dict,dict.lisp,0,gf,ported,,,
 ichiran/dict:apply-patch,apply-patch,ichiran/dict,dict-grammar.lisp,444,fn,ported,,,
-ichiran/dict:apply-score-mod,apply-score-mod,ichiran/dict,dict.lisp,0,gf,pending,,,
+ichiran/dict:apply-score-mod,apply-score-mod,ichiran/dict,dict.lisp,0,gf,ported,,calc_score_2026_05_11,2672/2672
 ichiran/dict:apply-segfilters,apply-segfilters,ichiran/dict,dict-grammar.lisp,1177,fn,pending,,,
 ichiran/dict:best-kana-conj,best-kana-conj,ichiran/dict,dict.lisp,428,fn,ported,,calc_score_2026_05_11,131616/131616
 ichiran/dict:best-kanji-conj,best-kanji-conj,ichiran/dict,dict.lisp,457,fn,ported,,,
@@ -238,7 +238,7 @@ ichiran/dict:check-easy-hints,check-easy-hints,ichiran/dict,dict-split.lisp,950,
 ichiran/dict:classify,classify,ichiran/dict,dict-grammar.lisp,1046,fn,pending,,,
 ichiran/dict:common,common,ichiran/dict,dict-counters.lisp,0,gf,ported,,tatoeba,3180/3180
 ichiran/dict:common-tags,common-tags,ichiran/dict,dict.lisp,0,gf,skip,Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.,,
-ichiran/dict:compare-common,compare-common,ichiran/dict,dict.lisp,1022,fn,pending,,,
+ichiran/dict:compare-common,compare-common,ichiran/dict,dict.lisp,1022,fn,ported,,chunk_b_segmentation_2026_05_14,2002/2002
 ichiran/dict:compound-text,compound-text,ichiran/dict,dict.lisp,608,class,ported,,,
 ichiran/dict:conj-data,conj-data,ichiran/dict,dict.lisp,327,struct,ported,,,
 ichiran/dict:conj-id,conj-id,ichiran/dict,dict.lisp,0,gf,skip,Slot-reader gf with no polymorphic callsites; every (id X) / (conj-id X) site has a locally-known DAO type. Each Rust DAO struct exposes pub id: i32 / pub conj_id: i32 directly per CONVENTIONS §4.7.,,
@@ -360,7 +360,7 @@ ichiran/dict:get-kana-forms-conj-data-filter,get-kana-forms-conj-data-filter,ich
 ichiran/dict:get-kanji,get-kanji,ichiran/dict,dict.lisp,0,gf,ported,,,
 ichiran/dict:get-kanji-kana-old,get-kanji-kana-old,ichiran/dict,dict.lisp,115,fn,ported,,tatoeba,2/2
 ichiran/dict:get-kanji-words,get-kanji-words,ichiran/dict,dict.lisp,1836,fn,pending,,,
-ichiran/dict:get-non-arch-posi,get-non-arch-posi,ichiran/dict,dict.lisp,762,fn,pending,,,
+ichiran/dict:get-non-arch-posi,get-non-arch-posi,ichiran/dict,dict.lisp,762,fn,ported,,calc_score_2026_05_11,155698/155698
 ichiran/dict:get-original-text,get-original-text,ichiran/dict,dict.lisp,0,gf,ported,,,
 ichiran/dict:get-original-text*,get-original-text*,ichiran/dict,dict.lisp,378,fn,ported,,,
 ichiran/dict:get-original-text-once,get-original-text-once,ichiran/dict,dict.lisp,369,fn,pending,,,
@@ -402,7 +402,7 @@ ichiran/dict:kana-text,kana-text,ichiran/dict,dict.lisp,128,dao,ported,,,
 ichiran/dict:kanji-break-penalty,kanji-break-penalty,ichiran/dict,dict.lisp,702,fn,pending,,,
 ichiran/dict:kanji-text,kanji-text,ichiran/dict,dict.lisp,86,dao,ported,,,
 ichiran/dict:length-multiplier,length-multiplier,ichiran/dict,dict.lisp,681,fn,pending,,,
-ichiran/dict:length-multiplier-coeff,length-multiplier-coeff,ichiran/dict,dict.lisp,694,fn,pending,,,
+ichiran/dict:length-multiplier-coeff,length-multiplier-coeff,ichiran/dict,dict.lisp,694,fn,ported,,,
 ichiran/dict:lex-compare,lex-compare,ichiran/dict,dict-load.lisp,365,fn,ported,,,
 ichiran/dict:load-best-readings,load-best-readings,ichiran/dict,dict-load.lisp,530,fn,pending,,,
 ichiran/dict:load-conj-description,load-conj-description,ichiran/dict,dict-load.lisp,255,fn,pending,,,

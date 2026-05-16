@@ -30,9 +30,15 @@
 //! - Otherwise (the slot still holds the integer set by the
 //!   `(simple-text simple-text)` arm), wrap as `(list new old)`.
 //!
-//! Modeled here on the [`ScoreMod`] two-variant enum
+//! Modeled here on the [`ScoreMod`] three-variant enum
 //! ([`crate::dict::compound_text_class::ScoreMod`]): `Single(n)` is
-//! the post-first-adjoin shape; `Stack(v)` after two or more adjoins.
+//! the post-first-adjoin shape when the caller passed an integer
+//! literal; `Constant(n)` is the post-first-adjoin shape when the
+//! caller passed `(constantly N)` (`suffix-kudasai` / `suffix-sou` /
+//! `suffix-desu` / `suffix-desho` at `dict-grammar.lisp:404, 448, 516,
+//! 532`); `Stack(v)` after two or more adjoins, holding a flat
+//! `Vec<ScoreMod>` whose elements are themselves `Single` or
+//! `Constant` (matching the upstream's mixed-type list).
 //!
 //! ## Divergences from Lisp
 //!
@@ -53,8 +59,8 @@
 //! - taking each `&key` keyword as a positional `Option<T>` parameter
 //!   (`None` ↔ keyword absent or `nil`, matching the Lisp `(or k 0)`
 //!   default semantics — explicit `Some(0)` produces the same
-//!   resolved value as `None`, as verified on .103 for `:score-mod
-//!   nil` returning `0`);
+//!   resolved value as `None`, as verified by REPL probe of upstream
+//!   for `:score-mod nil` returning `0`);
 //! - returning [`Result<CompoundText, sqlx::Error>`]. The `Result`
 //!   wraps the `get-kana` SQL access for the kanji-text branch (only
 //!   reached when `:kana` is absent and word1 / word2 is kanji-text);
@@ -84,7 +90,7 @@ pub async fn adjoin_word(
     word2: KaniSimpleTextDispatchEnum,
     text: Option<String>,
     kana: Option<String>,
-    score_mod: Option<i32>,
+    score_mod: Option<ScoreMod>,
     score_base: Option<KaniWordDispatchEnum>,
 ) -> Result<CompoundText, sqlx::Error> {
     // dict.lisp:635-640 (defmethod adjoin-word :around (t t))
@@ -111,7 +117,11 @@ pub async fn adjoin_word(
         }
     };
     // dict.lisp:639 — (or score-mod 0).
-    let resolved_score_mod = score_mod.unwrap_or(0);
+    // `(or score-mod 0)` evaluates to 0 only when score-mod is nil;
+    // any truthy value (integer literal or `(constantly N)` closure)
+    // passes through unchanged. The Rust port collapses `None` and
+    // the integer-literal default to `ScoreMod::Single(0)`.
+    let resolved_score_mod = score_mod.unwrap_or(ScoreMod::Single(0));
 
     match word1 {
         // dict.lisp:642-645 (defmethod adjoin-word ((word1 simple-text) (word2 simple-text)))
@@ -130,7 +140,7 @@ pub async fn adjoin_word(
                 primary,
                 words: vec![word1, word2_as_word],
                 score_base: score_base.map(Box::new),
-                score_mod: ScoreMod::Single(resolved_score_mod),
+                score_mod: resolved_score_mod,
             })
         }
         // dict.lisp:647-652 (defmethod adjoin-word ((word1 compound-text) (word2 simple-text)))
@@ -142,15 +152,18 @@ pub async fn adjoin_word(
             compound.words.push(word2.to_word());
             // dict.lisp:651 — (funcall (if (listp s-score-mod) 'cons 'list)
             //                          score-mod s-score-mod).
+            // `cons` prepends onto an existing list; `list` wraps two
+            // non-list values into a fresh 2-list. Both branches end
+            // with new value at index 0 and old at index 1+.
             compound.score_mod = match compound.score_mod {
-                ScoreMod::Stack(mut stack) => {
+                ScoreMod::Stack(stack) => {
                     let mut new_stack = Vec::with_capacity(stack.len() + 1);
                     new_stack.push(resolved_score_mod);
-                    new_stack.append(&mut stack);
+                    new_stack.extend(stack);
                     ScoreMod::Stack(new_stack)
                 }
-                ScoreMod::Single(old) => {
-                    ScoreMod::Stack(vec![resolved_score_mod, old])
+                other @ (ScoreMod::Single(_) | ScoreMod::Constant(_)) => {
+                    ScoreMod::Stack(vec![resolved_score_mod, other])
                 }
             };
             // dict.lisp:647 — `&allow-other-keys` drops :score-base;
@@ -214,7 +227,7 @@ mod tests {
     // the `:around` defaulting paths fall through without touching
     // the DB. The text/kana defaulting paths are exercised in the
     // REPL probe `tests/repl_adjoin_concat_defaults` (see the
-    // `repl_*` tests below) and pinned against the .103 transcript.
+    // `repl_*` tests below) and pinned against the REPL transcript.
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -226,7 +239,7 @@ mod tests {
 
     #[tokio::test]
     async fn simple_simple_explicit_text_and_kana() {
-        // T2 in /tmp/probe_adjoin.lisp on .103:
+        // T2 from REPL probe of upstream ichiran:
         //   (adjoin-word w1 w2 :text "abc" :kana "xyz" :score-mod 7)
         //   => COMPOUND-TEXT text="abc" kana="xyz" score-mod=7
         //                    score-base=NIL words=("食べ" "たい")
@@ -239,7 +252,7 @@ mod tests {
             w2,
             Some("abc".into()),
             Some("xyz".into()),
-            Some(7),
+            Some(ScoreMod::Single(7)),
             None,
         )
         .await
@@ -253,7 +266,7 @@ mod tests {
 
     #[tokio::test]
     async fn simple_simple_primary_is_word1() {
-        // T1 in /tmp/probe_adjoin.lisp on .103:
+        // T1 from REPL probe of upstream ichiran:
         //   words=("食べ" "たい"); primary is word1.
         // Pinned: result.primary derefs to the word1 input.
         let ctx = ctx_from_env().await;
@@ -280,7 +293,7 @@ mod tests {
 
     #[tokio::test]
     async fn simple_simple_score_mod_none_defaults_to_zero() {
-        // T1 in /tmp/probe_adjoin.lisp on .103:
+        // T1 from REPL probe of upstream ichiran:
         //   (adjoin-word w1 w2)  => score-mod=0
         // T8: explicit :score-mod nil => score-mod=0
         let ctx = ctx_from_env().await;
@@ -302,7 +315,7 @@ mod tests {
 
     #[tokio::test]
     async fn simple_simple_score_base_passthrough() {
-        // T5 in /tmp/probe_adjoin.lisp on .103:
+        // T5 from REPL probe of upstream ichiran:
         //   (adjoin-word w1 w2 :score-base w1)
         //   => score-base text="食べ"
         let ctx = ctx_from_env().await;
@@ -315,7 +328,7 @@ mod tests {
             w2,
             Some("食べたい".into()),
             Some("たべたい".into()),
-            Some(0),
+            Some(ScoreMod::Single(0)),
             Some(sb),
         )
         .await
@@ -330,7 +343,7 @@ mod tests {
 
     #[tokio::test]
     async fn compound_simple_appends_words_and_updates_text_kana() {
-        // T3 in /tmp/probe_adjoin.lisp on .103:
+        // T3 from REPL probe of upstream ichiran:
         //   c3 = (adjoin-word w1 w2 :score-mod 3)  ; "食べたい" / "たべたい"
         //   c3b = (adjoin-word c3 w3 :score-mod 4) ; w3 = "ない"
         //   => c3b text="食べたいない" kana="たべたいない"
@@ -346,7 +359,7 @@ mod tests {
             w2,
             Some("食べたい".into()),
             Some("たべたい".into()),
-            Some(3),
+            Some(ScoreMod::Single(3)),
             None,
         )
         .await
@@ -358,7 +371,7 @@ mod tests {
             w3,
             Some("食べたいない".into()),
             Some("たべたいない".into()),
-            Some(4),
+            Some(ScoreMod::Single(4)),
             None,
         )
         .await
@@ -368,14 +381,18 @@ mod tests {
         assert_eq!(c3b.words.len(), 3);
         // dict.lisp:651 — first compound,simple adjoin: (list new old)
         match &c3b.score_mod {
-            ScoreMod::Stack(v) => assert_eq!(v, &vec![4, 3]),
+            ScoreMod::Stack(v) => {
+                assert_eq!(v.len(), 2);
+                assert!(matches!(v[0], ScoreMod::Single(4)));
+                assert!(matches!(v[1], ScoreMod::Single(3)));
+            }
             _ => panic!("score-mod must be Stack([4, 3]) after first compound adjoin"),
         }
     }
 
     #[tokio::test]
     async fn compound_simple_third_adjoin_grows_stack() {
-        // T4 in /tmp/probe_adjoin.lisp on .103:
+        // T4 from REPL probe of upstream ichiran:
         //   c4  = (adjoin-word w1 w2 :score-mod 1)   ; single 1
         //   c4b = (adjoin-word c4 w3 :score-mod 2)   ; (2 1)
         //   c4c = (adjoin-word c4b w4 :score-mod 5)  ; (5 2 1)
@@ -389,7 +406,7 @@ mod tests {
             w2,
             Some("食べたい".into()),
             Some("たべたい".into()),
-            Some(1),
+            Some(ScoreMod::Single(1)),
             None,
         )
         .await
@@ -401,7 +418,7 @@ mod tests {
             w3,
             Some("食べたいない".into()),
             Some("たべたいない".into()),
-            Some(2),
+            Some(ScoreMod::Single(2)),
             None,
         )
         .await
@@ -413,21 +430,26 @@ mod tests {
             w4,
             Some("食べたいないだ".into()),
             Some("たべたいないだ".into()),
-            Some(5),
+            Some(ScoreMod::Single(5)),
             None,
         )
         .await
         .unwrap();
         assert_eq!(c4c.words.len(), 4);
         match &c4c.score_mod {
-            ScoreMod::Stack(v) => assert_eq!(v, &vec![5, 2, 1]),
+            ScoreMod::Stack(v) => {
+                assert_eq!(v.len(), 3);
+                assert!(matches!(v[0], ScoreMod::Single(5)));
+                assert!(matches!(v[1], ScoreMod::Single(2)));
+                assert!(matches!(v[2], ScoreMod::Single(1)));
+            }
             _ => panic!("score-mod must be Stack([5, 2, 1]) after third adjoin"),
         }
     }
 
     #[tokio::test]
     async fn compound_simple_ignores_score_base() {
-        // T6 in /tmp/probe_adjoin.lisp on .103:
+        // T6 from REPL probe of upstream ichiran:
         //   (adjoin-word w1 w2 :score-mod 1 :score-base w1)  ; sets sb=w1
         //   (adjoin-word c6 w3 :score-mod 2 :score-base w2)  ; sb stays w1
         //   => after 2nd adjoin: score-base text="食べ"
@@ -441,7 +463,7 @@ mod tests {
             w2,
             Some("食べたい".into()),
             Some("たべたい".into()),
-            Some(1),
+            Some(ScoreMod::Single(1)),
             Some(sb_w1),
         )
         .await
@@ -455,7 +477,7 @@ mod tests {
             w3,
             Some("食べたいない".into()),
             Some("たべたいない".into()),
-            Some(2),
+            Some(ScoreMod::Single(2)),
             Some(sb_w2),
         )
         .await
@@ -468,7 +490,7 @@ mod tests {
 
     #[tokio::test]
     async fn compound_simple_primary_unchanged() {
-        // T9 in /tmp/probe_adjoin.lisp on .103:
+        // T9 from REPL probe of upstream ichiran:
         //   After (adjoin-word c9 w3 ...) the primary slot's text is
         //   still "食べ" (the original word1 from the first adjoin),
         //   not w3's "ない".
@@ -481,7 +503,7 @@ mod tests {
             w2,
             Some("食べたい".into()),
             Some("たべたい".into()),
-            Some(1),
+            Some(ScoreMod::Single(1)),
             None,
         )
         .await
@@ -493,7 +515,7 @@ mod tests {
             w3,
             Some("食べたいない".into()),
             Some("たべたいない".into()),
-            Some(2),
+            Some(ScoreMod::Single(2)),
             None,
         )
         .await
@@ -511,7 +533,7 @@ mod tests {
 
     #[tokio::test]
     async fn around_defaults_text_and_kana_to_concat() {
-        // T1 in /tmp/probe_adjoin.lisp on .103:
+        // T1 from REPL probe of upstream ichiran:
         //   w1 = 食べ kanji-text seq 10092273 (get-kana "たべ" via best-kana-conj)
         //   w2 = たい kana-text  seq 1406940
         //   (adjoin-word w1 w2)
@@ -527,5 +549,173 @@ mod tests {
         assert_eq!(result.text, "食べたい");
         assert_eq!(result.kana, "たべたい");
         assert!(matches!(result.score_mod, ScoreMod::Single(0)));
+    }
+
+    // ----- ScoreMod::Constant — (constantly N) callsites -----
+
+    #[tokio::test]
+    async fn simple_simple_constant_score_mod() {
+        // REPL probe of upstream ichiran:
+        //   (adjoin-word w1 w2 :text "ab" :kana "ab"
+        //                      :score-mod (constantly 360))
+        //   => slot = #<FUNCTION>  (functionp ✓, funcall returns 360
+        //      regardless of argument).
+        let ctx = ctx_from_env().await;
+        let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
+        let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
+        let result = adjoin_word(
+            &ctx,
+            w1,
+            w2,
+            Some("食べたい".into()),
+            Some("たべたい".into()),
+            Some(ScoreMod::Constant(360)),
+            None,
+        )
+        .await
+        .unwrap();
+        assert!(matches!(result.score_mod, ScoreMod::Constant(360)));
+    }
+
+    #[tokio::test]
+    async fn compound_simple_grows_constant_into_list() {
+        // REPL probe of upstream ichiran:
+        //   c1 = (adjoin-word w1 w2 :score-mod (constantly 360))
+        //   c2 = (adjoin-word c1 w3 :score-mod 5)
+        //   => c2 score-mod = (5 #<FUNCTION>) — Single(5) prepended
+        //      onto the Constant(360).
+        let ctx = ctx_from_env().await;
+        let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
+        let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
+        let c1 = adjoin_word(
+            &ctx,
+            w1,
+            w2,
+            Some("食べたい".into()),
+            Some("たべたい".into()),
+            Some(ScoreMod::Constant(360)),
+            None,
+        )
+        .await
+        .unwrap();
+        let w3 = KaniSimpleTextDispatchEnum::Kana(kana(2257550, "ない"));
+        let c2 = adjoin_word(
+            &ctx,
+            KaniWordDispatchEnum::Compound(c1),
+            w3,
+            Some("食べたいない".into()),
+            Some("たべたいない".into()),
+            Some(ScoreMod::Single(5)),
+            None,
+        )
+        .await
+        .unwrap();
+        match &c2.score_mod {
+            ScoreMod::Stack(v) => {
+                assert_eq!(v.len(), 2);
+                assert!(matches!(v[0], ScoreMod::Single(5)));
+                assert!(matches!(v[1], ScoreMod::Constant(360)));
+            }
+            _ => panic!("score-mod must be Stack([Single(5), Constant(360)])"),
+        }
+    }
+
+    #[tokio::test]
+    async fn compound_simple_constant_onto_constant() {
+        // REPL probe of upstream ichiran:
+        //   c1 = (adjoin-word w1 w2 :score-mod (constantly 200))
+        //   c2 = (adjoin-word c1 w3 :score-mod (constantly 300))
+        //   => c2 score-mod = (#<300> #<200>) — Constant(300) prepended
+        //      onto Constant(200).
+        let ctx = ctx_from_env().await;
+        let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
+        let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
+        let c1 = adjoin_word(
+            &ctx,
+            w1,
+            w2,
+            Some("食べたい".into()),
+            Some("たべたい".into()),
+            Some(ScoreMod::Constant(200)),
+            None,
+        )
+        .await
+        .unwrap();
+        let w3 = KaniSimpleTextDispatchEnum::Kana(kana(2257550, "ない"));
+        let c2 = adjoin_word(
+            &ctx,
+            KaniWordDispatchEnum::Compound(c1),
+            w3,
+            Some("食べたいない".into()),
+            Some("たべたいない".into()),
+            Some(ScoreMod::Constant(300)),
+            None,
+        )
+        .await
+        .unwrap();
+        match &c2.score_mod {
+            ScoreMod::Stack(v) => {
+                assert_eq!(v.len(), 2);
+                assert!(matches!(v[0], ScoreMod::Constant(300)));
+                assert!(matches!(v[1], ScoreMod::Constant(200)));
+            }
+            _ => panic!("score-mod must be Stack([Constant(300), Constant(200)])"),
+        }
+    }
+
+    #[tokio::test]
+    async fn compound_simple_third_adjoin_mixes_constants_and_integers() {
+        // REPL probe of upstream ichiran:
+        //   c1 = (adjoin-word w1 w2 :score-mod (constantly 360))
+        //   c2 = (adjoin-word c1 w3 :score-mod 5)
+        //   c3 = (adjoin-word c2 w4 :score-mod (constantly 200))
+        //   => c3 score-mod = (#<200> 5 #<360>)
+        let ctx = ctx_from_env().await;
+        let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
+        let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
+        let c1 = adjoin_word(
+            &ctx,
+            w1,
+            w2,
+            Some("食べたい".into()),
+            Some("たべたい".into()),
+            Some(ScoreMod::Constant(360)),
+            None,
+        )
+        .await
+        .unwrap();
+        let w3 = KaniSimpleTextDispatchEnum::Kana(kana(2257550, "ない"));
+        let c2 = adjoin_word(
+            &ctx,
+            KaniWordDispatchEnum::Compound(c1),
+            w3,
+            Some("食べたいない".into()),
+            Some("たべたいない".into()),
+            Some(ScoreMod::Single(5)),
+            None,
+        )
+        .await
+        .unwrap();
+        let w4 = KaniSimpleTextDispatchEnum::Kana(kana(2089020, "だ"));
+        let c3 = adjoin_word(
+            &ctx,
+            KaniWordDispatchEnum::Compound(c2),
+            w4,
+            Some("食べたいないだ".into()),
+            Some("たべたいないだ".into()),
+            Some(ScoreMod::Constant(200)),
+            None,
+        )
+        .await
+        .unwrap();
+        match &c3.score_mod {
+            ScoreMod::Stack(v) => {
+                assert_eq!(v.len(), 3);
+                assert!(matches!(v[0], ScoreMod::Constant(200)));
+                assert!(matches!(v[1], ScoreMod::Single(5)));
+                assert!(matches!(v[2], ScoreMod::Constant(360)));
+            }
+            _ => panic!("score-mod must be Stack([Constant(200), Single(5), Constant(360)])"),
+        }
     }
 }

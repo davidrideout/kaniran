@@ -839,30 +839,69 @@ fn parse_captured_compound_text(value: &Value) -> Result<CompoundText, String> {
     })
 }
 
-/// Read the `score-mod` slot. Upstream `adjoin-word` writes an
-/// integer at first adjoin (`dict.lisp:642-645`); subsequent adjoins
-/// wrap-or-cons into a list, giving a flat list of integers
-/// (`dict.lisp:648-651`). Mirror that:
+/// Read the `score-mod` slot. Upstream `adjoin-word` writes either an
+/// integer literal or a `(constantly N)` closure at first adjoin
+/// (`dict.lisp:642-645`); subsequent adjoins wrap-or-cons into a flat
+/// list whose elements are themselves either integers or
+/// `(constantly N)` closures (`dict.lisp:648-651`). Mirror that:
 /// - JSON integer → [`ScoreMod::Single`].
-/// - JSON array of integers → [`ScoreMod::Stack`].
+/// - JSON array of integers → [`ScoreMod::Stack`] of `Single`
+///   elements.
 /// - JSON `null` → [`ScoreMod::Single(0)`] (the `:around` method's
 ///   `(or score-mod 0)` fallback at `dict.lisp:639`).
+///
+/// ## Audit blackout: four suffixes are unreachable today
+///
+/// Compounds produced by `suffix-kudasai` (`dict-grammar.lisp:404`),
+/// `suffix-sou` (`dict-grammar.lisp:448`), `suffix-desu`
+/// (`dict-grammar.lisp:516`), and `suffix-desho`
+/// (`dict-grammar.lisp:532`) carry a `(constantly N)` closure in
+/// their `score-mod` slot. The JSON projector at
+/// `ichiran-extractor/projectors_json.lisp` does not yet have a clause
+/// for `function`-typed slot values, so captures of those compounds
+/// either skip (projector elides the slot) or land here as a non-numeric
+/// JSON value. The parser errors out below with `score_mod: function
+/// closures not yet representable in capture JSON …` to surface the
+/// gap loudly rather than collapsing a function to an integer.
+///
+/// Fixing this end-to-end requires:
+/// 1. Teach the projector to emit `{"kind":"constantly","value":N}`
+///    for `(functionp slot)` values — match on the closure's source
+///    form to recover the literal `N`, or fall back to
+///    `(funcall slot 0)` (which is well-defined for `constantly` and
+///    arbitrary for other closures — protect with a
+///    `(if (and (functionp slot) (constantly-form-p slot)) …)` guard
+///    once an introspection helper exists).
+/// 2. Extend the match below with an `Value::Object` arm matching
+///    `{"kind":"constantly", "value": N}` → [`ScoreMod::Constant`].
 fn parse_captured_score_mod(v: &Value) -> Result<ScoreMod, String> {
     match v {
         Value::Null => Ok(ScoreMod::Single(0)),
         Value::Number(n) => {
             let i = n.as_i64().ok_or_else(|| format!("score_mod not i64: {}", n))?;
-            Ok(ScoreMod::Single(i as i32))
+            Ok(ScoreMod::Single(i))
         }
         Value::Array(arr) => {
-            let mut ids = Vec::with_capacity(arr.len());
+            let mut items = Vec::with_capacity(arr.len());
             for item in arr {
-                let i = item.as_i64().ok_or_else(|| format!("score_mod entry not i64: {}", item))?;
-                ids.push(i as i32);
+                let i = item.as_i64().ok_or_else(|| {
+                    format!(
+                        "score_mod entry not i64 (likely a (constantly N) closure from \
+                         suffix-kudasai/sou/desu/desho — projector clause for function-\
+                         typed slots is missing; see parse_captured_score_mod doc): {}",
+                        item
+                    )
+                })?;
+                items.push(ScoreMod::Single(i));
             }
-            Ok(ScoreMod::Stack(ids))
+            Ok(ScoreMod::Stack(items))
         }
-        other => Err(format!("score_mod: expected int / array / null, got {}", other)),
+        other => Err(format!(
+            "score_mod: function closures not yet representable in capture JSON — got \
+             {} (expected int / array of int / null; see parse_captured_score_mod doc \
+             for the four-suffix audit blackout)",
+            other
+        )),
     }
 }
 
