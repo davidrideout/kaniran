@@ -472,7 +472,12 @@ async def cmd_fetch(args):
     output_queue: asyncio.Queue = asyncio.Queue(maxsize=args.workers * 8)
     connector = aiohttp.TCPConnector(limit=args.workers, limit_per_host=args.workers)
     try:
-        async with aiohttp.ClientSession(connector=connector) as session:
+        # read_bufsize default (64KB) chokes on chunked /extract responses
+        # when the install-set produces multi-MB per-sentence payloads — the
+        # HTTP parser can't find the chunk separator within one buffer and
+        # bails with "Separator is not found, and chunk exceed the limit",
+        # cascading into mass worker restart.
+        async with aiohttp.ClientSession(connector=connector, read_bufsize=16 * 1024 * 1024) as session:
             prod = asyncio.create_task(
                 producer(input_queue, args.input, args.skip, args.limit, args.workers)
             )

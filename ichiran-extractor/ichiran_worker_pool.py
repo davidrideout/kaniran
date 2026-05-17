@@ -41,6 +41,7 @@ class Worker:
         """Launch the SBCL subprocess."""
         cmd = [
             "sbcl",
+            "--dynamic-space-size", "4096",
             "--core", sbcl_core,
             "--noinform",
             "--non-interactive",
@@ -49,14 +50,16 @@ class Worker:
         logger.info("Worker %d starting: %s", self.id, " ".join(cmd))
         self._start_time = time.monotonic()
         self.process = await asyncio.create_subprocess_exec(
-            # 100MB line limit for trace output. The JSON projector inflates
+            # 1GB line limit for trace output. The JSON projector inflates
             # per-sentence response size (each capture serialises args/result
             # as a JSON tree with `_meta` envelopes) and the response includes
             # *every* capture from every installed FQN — dedup happens later
             # in FqnWriter, not on the worker — so a single complex sentence
-            # can emit tens of MB. 10MB was chosen for the s-expr encoder and
-            # is too tight for JSON.
-            limit=100 * 1024 * 1024,
+            # can emit hundreds of MB. 100MB was tight; chunk-D synergy bundles
+            # blew past it on pathological long sentences and triggered mass
+            # worker death ("Separator is not found, and chunk exceed the
+            # limit" from asyncio.StreamReader).
+            limit=1024 * 1024 * 1024,
             *cmd,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,

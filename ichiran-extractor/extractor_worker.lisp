@@ -298,11 +298,13 @@
                 ;; are reconstructable from class-name alone.
                 (ichiran::generic-romanization ichiran::kana-table))))
 
-;; get-suffixes re-extract (2026-05-15). Two FQNs in the suffix-lookup
-;; pipeline: get-suffixes is the principal target (audit pending — see
-;; project_get_suffixes_audit_pending_2026_05_14); or-as-hiragana is a
-;; thin hiragana-fallback wrapper around find-word-as-hiragana that
-;; co-fires from the same suffix path.
+;; chunk-d synergies + segfilters + penalties (2026-05-16). 38 FQNs from
+;; docs/extraction-candidates/chunk-d-synergy-segfilter-penalty.md.
+;;
+;; Batch D1 (21 FQNs) was originally a single run but the combined per-sentence
+;; payload tripped aiohttp's chunk-size limit and OOMed the wire — see
+;; chunk_d1_bulk.log for the cascade. Split into D1a / D1b. Run D1a first,
+;; then swap the install-set for D1b and redeploy.
 (defparameter *boot-install-fqns*
   (let ((arg-fn    (symbol-function (find-symbol "FLATTEN-ARGS-JSON"
                                                  :ichi-projectors-json)))
@@ -313,8 +315,30 @@
                     :arg-projector arg-fn
                     :result-projector result-fn
                     :encoder :json))
-            '("ICHIRAN/DICT:GET-SUFFIXES"
-              "ICHIRAN/DICT:OR-AS-HIRAGANA"))))
+            ;; Batch D1a: GET-SYNERGIES + 9 synergies (10 FQNs)
+            '("ICHIRAN/DICT:GET-SYNERGIES"
+              "ICHIRAN/DICT:SYNERGY-NOUN-PARTICLE"
+              "ICHIRAN/DICT:SYNERGY-NOUN-DA"
+              "ICHIRAN/DICT:SYNERGY-NO-DA"
+              "ICHIRAN/DICT:SYNERGY-SOU-NANDA"
+              "ICHIRAN/DICT:SYNERGY-NO-ADJECTIVES"
+              "ICHIRAN/DICT:SYNERGY-NA-ADJECTIVES"
+              "ICHIRAN/DICT:SYNERGY-TO-ADVERBS"
+              "ICHIRAN/DICT:SYNERGY-SUFFIX-CHU"
+              "ICHIRAN/DICT:SYNERGY-SUFFIX-TACHI")
+            ;; Batch D1b (run next; swap into the quoted list above):
+            ;;   ICHIRAN/DICT:GET-PENALTIES
+            ;;   ICHIRAN/DICT:PENALTY-SHORT
+            ;;   ICHIRAN/DICT:PENALTY-SEMI-FINAL
+            ;;   ICHIRAN/DICT:SYNERGY-SUFFIX-BURI
+            ;;   ICHIRAN/DICT:SYNERGY-SUFFIX-SEI
+            ;;   ICHIRAN/DICT:SYNERGY-O-PREFIX
+            ;;   ICHIRAN/DICT:SYNERGY-KANJI-PREFIX
+            ;;   ICHIRAN/DICT:SYNERGY-SHICHA-IKENAI
+            ;;   ICHIRAN/DICT:SYNERGY-SHIKA-NEGATIVE
+            ;;   ICHIRAN/DICT:SYNERGY-NO-TOORI
+            ;;   ICHIRAN/DICT:SYNERGY-OKI
+            )))
 
 (handler-case
     (ichi-trace:install-many *boot-install-fqns*)
