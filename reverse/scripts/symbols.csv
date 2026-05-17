@@ -334,7 +334,7 @@ ichiran/dict:find-word-seq,find-word-seq,ichiran/dict,dict-grammar.lisp,73,fn,po
 ichiran/dict:find-word-suffix,find-word-suffix,ichiran/dict,dict-grammar.lisp,706,fn,pending,,,
 ichiran/dict:find-word-with-conj-prop,find-word-with-conj-prop,ichiran/dict,dict-grammar.lisp,42,fn,pending,,,
 ichiran/dict:find-word-with-conj-type,find-word-with-conj-type,ichiran/dict,dict-grammar.lisp,51,fn,pending,,substring_2026_05_14,
-ichiran/dict:find-word-with-pos,find-word-with-pos,ichiran/dict,dict-grammar.lisp,87,fn,pending,,chunk_c_suffix_abbr_2026_05_16,
+ichiran/dict:find-word-with-pos,find-word-with-pos,ichiran/dict,dict-grammar.lisp,87,fn,ported,,chunk_c_suffix_abbr_2026_05_16,
 ichiran/dict:find-word-with-suffix,find-word-with-suffix,ichiran/dict,dict-grammar.lisp,100,fn,pending,,substring_2026_05_14,
 ichiran/dict:find-words-seqs,find-words-seqs,ichiran/dict,dict.lisp,520,fn,pending,,,
 ichiran/dict:fix-entities,fix-entities,ichiran/dict,dict-load.lisp,159,fn,pending,,,

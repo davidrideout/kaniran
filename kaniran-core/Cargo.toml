@@ -51,6 +51,10 @@ name = "find_word_test"
 path = "audit/dict/find_word_test.rs"
 
 [[bin]]
+name = "find_word_with_pos_test"
+path = "audit/dict/find_word_with_pos_test.rs"
+
+[[bin]]
 name = "find_word_as_hiragana_test"
 path = "audit/dict/find_word_as_hiragana_test.rs"
 

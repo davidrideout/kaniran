@@ -12,9 +12,9 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 121 fn/gf
+- Checked: 122 fn/gf
 - Macros (file-existence only): 0
-- Divergences: 15
+- Divergences: 16
 
 ## Divergences
 
@@ -61,6 +61,11 @@ captured Lisp lambda list. New entries should be either:
 ### `ichiran/dict:find-word-seq`
 
 - file: `kaniran-core/src/dict/find_word_seq.rs`
+- drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[]) (ctx-injected; +1 absorbed)
+
+### `ichiran/dict:find-word-with-pos`
+
+- file: `kaniran-core/src/dict/find_word_with_pos.rs`
 - drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[]) (ctx-injected; +1 absorbed)
 
 ### `ichiran/dict:init-suffixes-thread`

@@ -84,6 +84,7 @@ pub mod find_word;
 pub mod find_word_as_hiragana;
 pub mod find_word_conj_of;
 pub mod find_word_seq;
+pub mod find_word_with_pos;
 pub mod gap_penalty;
 pub mod gen_score;
 pub mod get_conj_data;

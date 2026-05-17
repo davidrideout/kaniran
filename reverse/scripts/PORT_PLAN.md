@@ -94,10 +94,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
   89. `ichiran/dict:gloss`  — dao, dict.lisp:178  *[ported]*
   90. `ichiran/dict:text`  — gf, dict-counters.lisp:0  *[ported]*
   91. **CYCLE (4 symbols — port together)**
-        - `ichiran/dict:common`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: tatoeba]*  *[audited 3180/3180]*
+        - `ichiran/dict:common`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 3180/3180]*
         - `ichiran/dict:counter-text`  — class, dict-counters.lisp:9  *[ported]*
-        - `ichiran/dict:seq`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: tatoeba]*  *[audited 3795/3795]*
-        - `ichiran/dict:source`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: tatoeba]*  *[audited 27/27]*
+        - `ichiran/dict:seq`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 3795/3795]*
+        - `ichiran/dict:source`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 27/27]*
   92. `ichiran/dict:counter-age`  — class, dict-counters.lisp:757  *[ported]*
   93. `ichiran/dict:counter-days-kun`  — class, dict-counters.lisp:686  *[ported]*
   94. `ichiran/dict:counter-days-on`  — class, dict-counters.lisp:709  *[ported]*
@@ -165,15 +165,15 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  148. `ichiran/dict:*segment-score-cutoff*`  — global, dict.lisp:1351  *[ported]*
  149. `ichiran/dict:*disable-hints*`  — global, dict.lisp:78  *[skip — CL dynamic-binding sentinel (defparameter rebound via let in get-kana :around and check-easy-hints). Rust port threads disable_hints: bool as an explicit trailing parameter on get_kana / true_kana / get_hint / hint engine fns (kani_hint_engine.rs) — same pattern as &KaniranContext replaces *connection* per §4.8. A thread-local guard would not survive .await points on the multi-thread tokio runtime (suspended futures can resume on a different worker, losing the binding). No Rust global value; the Lisp symbol corresponds to a parameter convention.]*
  150. `ichiran/dict:*kana-hint-space*`  — global, dict-split.lisp:814  *[ported]*
- 151. `ichiran/dict:query-parents-kanji`  — fn, dict.lisp:400  *[ported]*  *[extracted: calc_score_2026_05_11]*  *[audited 36540/36540]*
- 152. `ichiran/dict:best-kana-conj`  — fn, dict.lisp:428  *[ported]*  *[extracted: calc_score_2026_05_11]*  *[audited 131616/131616]*
+ 151. `ichiran/dict:query-parents-kanji`  — fn, dict.lisp:400  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 36540/36540]*
+ 152. `ichiran/dict:best-kana-conj`  — fn, dict.lisp:428  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 131616/131616]*
  153. `ichiran/dict:get-digit`  — fn, dict-counters.lisp:94  *[ported]*  *[extracted: counter_2026_05_08]*  *[audited 193/193]*
  154. `ichiran/numbers:*digit-to-kana*`  — global, numbers.lisp:25  *[ported]*
  155. `ichiran/numbers:*power-to-kana*`  — global, numbers.lisp:28  *[ported]*
  156. `ichiran/dict:counter-join`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
  157. `ichiran/dict:*hint-map*`  — global, dict-split.lisp:850  *[ported]*
  158. `ichiran/dict:word-conj-data`  — gf, dict.lisp:0  *[ported]*  *[extracted: tatoeba]*  *[audited 125006/125006]*
- 159. `ichiran/dict:get-hint`  — fn, dict-split.lisp:968  *[ported]*
+ 159. `ichiran/dict:get-hint`  — fn, dict-split.lisp:968  *[ported]*  *[extracted: hint_2026_05_13]*
  160. `ichiran/dict:get-kanji-kana-old`  — fn, dict.lisp:115  *[ported]*  *[extracted: tatoeba]*  *[audited 2/2]*
  161. `ichiran/numbers:*char-number-class*`  — global, numbers.lisp:9  *[ported]*
  162. `ichiran/numbers:*char-number-class-hash*`  — global, numbers.lisp:18  *[ported]*
@@ -183,14 +183,14 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  166. `ichiran/numbers:*power-kanji*`  — global, numbers.lisp:7  *[ported]*
  167. `ichiran/numbers:number-to-kanji`  — fn, numbers.lisp:35  *[ported]*  *[extracted: counter_2026_05_08]*
  168. `ichiran/numbers:number-to-kana`  — fn, numbers.lisp:125  *[ported]*  *[extracted: counter_2026_05_08]*
- 169. `ichiran/dict:get-kana`  — gf, dict.lisp:0  *[ported]*  *[extracted: tatoeba]*
- 170. `ichiran/dict:get-text`  — gf, dict.lisp:0  *[ported]*  *[extracted: tatoeba]*  *[audited 2001/2001]*
+ 169. `ichiran/dict:get-kana`  — gf, dict.lisp:0  *[ported]*  *[extracted: hint_2026_05_13]*
+ 170. `ichiran/dict:get-text`  — gf, dict.lisp:0  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 2001/2001]*
  171. `ichiran/dict:ordinal-str`  — fn, dict-counters.lisp:38  *[ported]*  *[extracted: counter_2026_05_08]*
  172. `ichiran/dict:value-string`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
  173. `ichiran/dict:word-type`  — gf, dict.lisp:0  *[ported]*
- 174. `ichiran/dict:word-info-from-segment`  — fn, dict.lisp:1327  *[ported]*
- 175. `ichiran/dict:word-info-from-segment-list`  — fn, dict.lisp:1353  *[ported]*
- 176. `ichiran/dict:fill-segment-path`  — fn, dict.lisp:1390  *[ported]*
+ 174. `ichiran/dict:word-info-from-segment`  — fn, dict.lisp:1327  *[ported]*  *[extracted: word_info_path_2026_05_13]*
+ 175. `ichiran/dict:word-info-from-segment-list`  — fn, dict.lisp:1353  *[ported]*  *[extracted: word_info_path_2026_05_13]*
+ 176. `ichiran/dict:fill-segment-path`  — fn, dict.lisp:1390  *[ported]*  *[extracted: word_info_path_2026_05_13]*
  177. `ichiran/dict:split-1010105`  — fn, dict-split.lisp:771  *[skip — manual bypass — data row in SEGSPLIT_TABLE in dict/_star_segsplit_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
  178. `ichiran/dict:split-1567610`  — fn, dict-split.lisp:771  *[skip — manual bypass — data row in SEGSPLIT_TABLE in dict/_star_segsplit_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
  179. `ichiran/dict:split-1675330`  — fn, dict-split.lisp:771  *[skip — manual bypass — data row in SEGSPLIT_TABLE in dict/_star_segsplit_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
@@ -393,27 +393,27 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  376. `ichiran/dict:*skip-words*`  — global, dict-errata.lisp:1155  *[ported]*
  377. `ichiran/dict:apply-score-mod`  — gf, dict.lisp:0  *[ported]*  *[extracted: calc_score_2026_05_11]*  *[audited 2672/2672]*
  378. `ichiran/dict:compare-common`  — fn, dict.lisp:1022  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*  *[audited 2002/2002]*
- 379. `ichiran/dict:get-non-arch-posi`  — fn, dict.lisp:762  *[ported]*  *[extracted: calc_score_2026_05_11]*  *[audited 155698/155698]*
- 380. `ichiran/dict:get-original-text*`  — fn, dict.lisp:378  *[ported]*
- 381. `ichiran/dict:get-original-text`  — gf, dict.lisp:0  *[ported]*
+ 379. `ichiran/dict:get-non-arch-posi`  — fn, dict.lisp:762  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*  *[audited 155698/155698]*
+ 380. `ichiran/dict:get-original-text*`  — fn, dict.lisp:378  *[ported]*  *[extracted: calc_score_2026_05_11]*
+ 381. `ichiran/dict:get-original-text`  — gf, dict.lisp:0  *[ported]*  *[extracted: calc_score_2026_05_11]*
  382. `ichiran/dict:get-split*`  — fn, dict-split.lisp:67  *[ported]*  *[extracted: wave_158_frontier_2026_05_09]*
- 383. `ichiran/dict:get-split`  — fn, dict-split.lisp:75  *[ported]*  *[extracted: splits_2026_05_09]*  *[audited 232366/232366]*
+ 383. `ichiran/dict:get-split`  — fn, dict-split.lisp:75  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 232366/232366]*
  384. `ichiran/dict:is-arch`  — fn, dict.lisp:760  *[ported]*
  385. `ichiran/dict:*no-kanji-break-penalty*`  — global, dict-errata.lisp:1214  *[ported]*
  386. `ichiran/dict:*score-cutoff*`  — global, dict.lisp:1069  *[ported]*
- 387. `ichiran/dict:parse-suffix-val`  — fn, dict-grammar.lisp:679  *[ported]*
- 388. `ichiran/dict:make-slice`  — fn, dict.lisp:1010  *[ported]*
- 389. `ichiran/dict:subseq-slice`  — fn, dict.lisp:1013  *[ported]*
- 390. `ichiran/dict:get-suffixes`  — fn, dict-grammar.lisp:697  *[ported]*
+ 387. `ichiran/dict:parse-suffix-val`  — fn, dict-grammar.lisp:679  *[ported]*  *[extracted: calc_score_2026_05_11]*
+ 388. `ichiran/dict:make-slice`  — fn, dict.lisp:1010  *[ported]*  *[extracted: word_info_path_2026_05_13]*
+ 389. `ichiran/dict:subseq-slice`  — fn, dict.lisp:1013  *[ported]*  *[extracted: word_info_path_2026_05_13]*
+ 390. `ichiran/dict:get-suffixes`  — fn, dict-grammar.lisp:697  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
  391. `ichiran/dict:*length-coeff-sequences*`  — global, dict.lisp:686  *[ported]*
  392. `ichiran/dict:length-multiplier-coeff`  — fn, dict.lisp:694  *[ported]*
  393. `ichiran/dict:nokanji`  — gf, dict-counters.lisp:0  *[ported]*
- 394. `ichiran/dict:sense-id`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
+ 394. `ichiran/dict:sense-id`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*  *[extracted: word_info_path_2026_05_13]*
  395. **CYCLE (2 symbols — port together)**
-        - `ichiran/dict:calc-score`  — fn, dict.lisp:775  *[ported]*
-        - `ichiran/dict:kanji-break-penalty`  — fn, dict.lisp:702  *[ported]*
- 396. `ichiran/dict:get-segsplit`  — fn, dict-split.lisp:823
- 397. `ichiran/dict:expand-segment-list`  — fn, dict.lisp:1180
+        - `ichiran/dict:calc-score`  — fn, dict.lisp:775  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
+        - `ichiran/dict:kanji-break-penalty`  — fn, dict.lisp:702  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
+ 396. `ichiran/dict:get-segsplit`  — fn, dict-split.lisp:823  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+ 397. `ichiran/dict:expand-segment-list`  — fn, dict.lisp:1180  *[extracted: chunk_b_segmentation_2026_05_14]*
  398. `ichiran/dict:*gap-penalty*`  — global, dict.lisp:1165  *[ported]*
  399. `ichiran/dict:gap-penalty`  — fn, dict.lisp:1169  *[ported]*
  400. `ichiran/dict:get-array`  — gf, dict.lisp:0
@@ -442,118 +442,118 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  423. `ichiran/dict:segfilter-wokarasu`  — fn, dict-grammar.lisp:1112
  424. `ichiran/dict:*segfilter-list*`  — global, dict-grammar.lisp:1024
  425. `ichiran/dict:apply-segfilters`  — fn, dict-grammar.lisp:1177
- 426. `ichiran/dict:get-seg-initial`  — fn, dict.lisp:1172
+ 426. `ichiran/dict:get-seg-initial`  — fn, dict.lisp:1172  *[extracted: chunk_b_segmentation_2026_05_14]*
  427. `ichiran/dict:penalty-semi-final`  — fn, dict-grammar.lisp:1022
  428. `ichiran/dict:filter-short-kana`  — fn, dict-grammar.lisp:1008
  429. `ichiran/dict:penalty-short`  — fn, dict-grammar.lisp:1020
  430. `ichiran/dict:*penalty-list*`  — global, dict-grammar.lisp:964
  431. `ichiran/dict:get-penalties`  — fn, dict-grammar.lisp:1030
  432. `ichiran/dict:synergy-kanji-prefix`  — fn, dict-grammar.lisp:940
- 433. `ichiran/dict:synergy-na-adjectives`  — fn, dict-grammar.lisp:892
- 434. `ichiran/dict:synergy-no-adjectives`  — fn, dict-grammar.lisp:884
- 435. `ichiran/dict:synergy-no-da`  — fn, dict-grammar.lisp:871
+ 433. `ichiran/dict:synergy-na-adjectives`  — fn, dict-grammar.lisp:892  *[extracted: chunk_d1a_synergy_2026_05_16]*
+ 434. `ichiran/dict:synergy-no-adjectives`  — fn, dict-grammar.lisp:884  *[extracted: chunk_d1a_synergy_2026_05_16]*
+ 435. `ichiran/dict:synergy-no-da`  — fn, dict-grammar.lisp:871  *[extracted: chunk_d1a_synergy_2026_05_16]*
  436. `ichiran/dict:synergy-no-toori`  — fn, dict-grammar.lisp:970
- 437. `ichiran/dict:filter-is-noun`  — fn, dict-grammar.lisp:760
- 438. `ichiran/dict:synergy-noun-da`  — fn, dict-grammar.lisp:859
- 439. `ichiran/dict:synergy-noun-particle`  — fn, dict-grammar.lisp:850
+ 437. `ichiran/dict:filter-is-noun`  — fn, dict-grammar.lisp:760  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+ 438. `ichiran/dict:synergy-noun-da`  — fn, dict-grammar.lisp:859  *[extracted: chunk_d1a_synergy_2026_05_16]*
+ 439. `ichiran/dict:synergy-noun-particle`  — fn, dict-grammar.lisp:850  *[extracted: chunk_d1a_synergy_2026_05_16]*
  440. `ichiran/dict:synergy-o-prefix`  — fn, dict-grammar.lisp:935
  441. `ichiran/dict:synergy-oki`  — fn, dict-grammar.lisp:973
  442. `ichiran/dict:synergy-shicha-ikenai`  — fn, dict-grammar.lisp:951
  443. `ichiran/dict:synergy-shika-negative`  — fn, dict-grammar.lisp:959
- 444. `ichiran/dict:synergy-sou-nanda`  — fn, dict-grammar.lisp:878
+ 444. `ichiran/dict:synergy-sou-nanda`  — fn, dict-grammar.lisp:878  *[extracted: chunk_d1a_synergy_2026_05_16]*
  445. `ichiran/dict:synergy-suffix-buri`  — fn, dict-grammar.lisp:925
- 446. `ichiran/dict:synergy-suffix-chu`  — fn, dict-grammar.lisp:914
+ 446. `ichiran/dict:synergy-suffix-chu`  — fn, dict-grammar.lisp:914  *[extracted: chunk_d1a_synergy_2026_05_16]*
  447. `ichiran/dict:synergy-suffix-sei`  — fn, dict-grammar.lisp:929
- 448. `ichiran/dict:synergy-suffix-tachi`  — fn, dict-grammar.lisp:921
- 449. `ichiran/dict:synergy-to-adverbs`  — fn, dict-grammar.lisp:902
+ 448. `ichiran/dict:synergy-suffix-tachi`  — fn, dict-grammar.lisp:921  *[extracted: chunk_d1a_synergy_2026_05_16]*
+ 449. `ichiran/dict:synergy-to-adverbs`  — fn, dict-grammar.lisp:902  *[extracted: chunk_d1a_synergy_2026_05_16]*
  450. `ichiran/dict:*synergy-list*`  — global, dict-grammar.lisp:723
- 451. `ichiran/dict:get-synergies`  — fn, dict-grammar.lisp:976
- 452. `ichiran/dict:get-seg-splits`  — fn, dict.lisp:1175
+ 451. `ichiran/dict:get-synergies`  — fn, dict-grammar.lisp:976  *[extracted: chunk_d1a_synergy_2026_05_16]*
+ 452. `ichiran/dict:get-seg-splits`  — fn, dict.lisp:1175  *[extracted: chunk_b_segmentation_2026_05_14]*
  453. `ichiran/dict:get-segment-score`  — gf, dict.lisp:0
  454. `ichiran/dict:register-item`  — gf, dict.lisp:0
- 455. `ichiran/dict:find-best-path`  — fn, dict.lisp:1190
+ 455. `ichiran/dict:find-best-path`  — fn, dict.lisp:1190  *[extracted: chunk_b_segmentation_2026_05_14]*
  456. `ichiran/dict:*identical-word-score-cutoff*`  — global, dict.lisp:1020  *[ported]*
- 457. `ichiran/dict:cull-segments`  — fn, dict.lisp:1027
- 458. `ichiran/dict:gen-score`  — fn, dict.lisp:985  *[ported]*
+ 457. `ichiran/dict:cull-segments`  — fn, dict.lisp:1027  *[extracted: chunk_b_segmentation_2026_05_14]*
+ 458. `ichiran/dict:gen-score`  — fn, dict.lisp:985  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
  459. `ichiran/dict:*force-kanji-break*`  — global, dict-errata.lisp:1226  *[ported]*
  460. `ichiran/dict:*max-word-length*`  — global, dict.lisp:486  *[ported]*
  461. `ichiran/dict:*no-kanji-break*`  — global, dict-errata.lisp:1229  *[ported]*
  462. `ichiran/dict:*substring-hash*`  — global, dict.lisp:487  *[ported]*
  463. `ichiran/dict:*suffix-map-temp*`  — global, dict.lisp:1049  *[ported]*
  464. `ichiran/dict:*suffix-next-end*`  — global, dict.lisp:1050  *[ported]*
- 465. `ichiran/dict:find-sticky-positions`  — fn, dict.lisp:990
+ 465. `ichiran/dict:find-sticky-positions`  — fn, dict.lisp:990  *[extracted: substring_2026_05_14]*
  466. `ichiran/dict:find-substring-words`  — fn, dict.lisp:501
  467. `ichiran/dict:verify`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
  468. `ichiran/numbers:reason`  — gf, numbers.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  469. `ichiran/numbers:text`  — gf, numbers.lisp:0
  470. `ichiran/numbers:not-a-number`  — condition, numbers.lisp:0  *[ported]*
  471. `ichiran/dict:find-counter`  — fn, dict-counters.lisp:273  *[ported]*  *[extracted: counter_2026_05_08]*
- 472. `ichiran/dict:find-word`  — fn, dict.lisp:489  *[ported]*  *[extracted: tatoeba]*  *[audited 8105/8105]*
- 473. `ichiran/dict:find-word-as-hiragana`  — fn, dict.lisp:592  *[ported]*  *[extracted: tatoeba]*  *[audited 30/30]*
+ 472. `ichiran/dict:find-word`  — fn, dict.lisp:489  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 8105/8105]*
+ 473. `ichiran/dict:find-word-as-hiragana`  — fn, dict.lisp:592  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 30/30]*
  474. `ichiran/dict:adjoin-word`  — gf, dict.lisp:0  *[ported]*
- 475. `ichiran/dict:apply-patch`  — fn, dict-grammar.lisp:444  *[ported]*
- 476. `ichiran/dict:or-as-hiragana`  — fn, dict-grammar.lisp:95
- 477. `ichiran/dict:suffix-ra`  — fn, dict-grammar.lisp:516
+ 475. `ichiran/dict:apply-patch`  — fn, dict-grammar.lisp:444  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+ 476. `ichiran/dict:or-as-hiragana`  — fn, dict-grammar.lisp:95  *[extracted: get_suffixes_2026_05_15]*
+ 477. `ichiran/dict:suffix-ra`  — fn, dict-grammar.lisp:516  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
  478. `ichiran/dict:lex-compare`  — fn, dict-load.lisp:365  *[ported]*
- 479. `ichiran/dict:pair-words-by-conj`  — fn, dict-grammar.lisp:56
- 480. `ichiran/dict:find-word-with-pos`  — fn, dict-grammar.lisp:87
- 481. `ichiran/dict:suffix-suru`  — fn, dict-grammar.lisp:441
+ 479. `ichiran/dict:pair-words-by-conj`  — fn, dict-grammar.lisp:56  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+ 480. `ichiran/dict:find-word-with-pos`  — fn, dict-grammar.lisp:87  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+ 481. `ichiran/dict:suffix-suru`  — fn, dict-grammar.lisp:441  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
  482. `ichiran/dict:*suffix-unique-only*`  — global, dict-grammar.lisp:330  *[ported]*
- 483. `ichiran/dict:match-unique`  — fn, dict-grammar.lisp:702  *[ported]*  *[extracted: diverse_250k_2026_05_16]*  *[audited 92593/92593]*
+ 483. `ichiran/dict:match-unique`  — fn, dict-grammar.lisp:702  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*  *[audited 92593/92593]*
  484. **CYCLE (49 symbols — port together)**
         - `ichiran/dict:*suffix-list*`  — global, dict-grammar.lisp:329
         - `ichiran/dict:abbr-beba`  — fn, dict-grammar.lisp:658
-        - `ichiran/dict:abbr-dewanai`  — fn, dict-grammar.lisp:635
-        - `ichiran/dict:abbr-geba`  — fn, dict-grammar.lisp:652
-        - `ichiran/dict:abbr-ii`  — fn, dict-grammar.lisp:677
-        - `ichiran/dict:abbr-keba`  — fn, dict-grammar.lisp:650
-        - `ichiran/dict:abbr-meba`  — fn, dict-grammar.lisp:661
-        - `ichiran/dict:abbr-n`  — fn, dict-grammar.lisp:616
-        - `ichiran/dict:abbr-nakereba`  — fn, dict-grammar.lisp:627
-        - `ichiran/dict:abbr-neba`  — fn, dict-grammar.lisp:655
-        - `ichiran/dict:abbr-nee`  — fn, dict-grammar.lisp:596
-        - `ichiran/dict:abbr-nx`  — fn, dict-grammar.lisp:605
-        - `ichiran/dict:abbr-reba`  — fn, dict-grammar.lisp:647
-        - `ichiran/dict:abbr-seba`  — fn, dict-grammar.lisp:666
-        - `ichiran/dict:abbr-shimasho`  — fn, dict-grammar.lisp:632
-        - `ichiran/dict:abbr-teba`  — fn, dict-grammar.lisp:639
-        - `ichiran/dict:find-word-full`  — fn, dict.lisp:1052  *[extracted: tatoeba]*
-        - `ichiran/dict:find-word-suffix`  — fn, dict-grammar.lisp:706  *[extracted: tatoeba]*
+        - `ichiran/dict:abbr-dewanai`  — fn, dict-grammar.lisp:635  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-geba`  — fn, dict-grammar.lisp:652  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-ii`  — fn, dict-grammar.lisp:677  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-keba`  — fn, dict-grammar.lisp:650  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-meba`  — fn, dict-grammar.lisp:661  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-n`  — fn, dict-grammar.lisp:616  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-nakereba`  — fn, dict-grammar.lisp:627  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-neba`  — fn, dict-grammar.lisp:655  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-nee`  — fn, dict-grammar.lisp:596  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-nx`  — fn, dict-grammar.lisp:605  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-reba`  — fn, dict-grammar.lisp:647  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-seba`  — fn, dict-grammar.lisp:666  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-shimasho`  — fn, dict-grammar.lisp:632  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-teba`  — fn, dict-grammar.lisp:639  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:find-word-full`  — fn, dict.lisp:1052
+        - `ichiran/dict:find-word-suffix`  — fn, dict-grammar.lisp:706
         - `ichiran/dict:find-word-with-conj-prop`  — fn, dict-grammar.lisp:42
-        - `ichiran/dict:find-word-with-conj-type`  — fn, dict-grammar.lisp:51
-        - `ichiran/dict:find-word-with-suffix`  — fn, dict-grammar.lisp:100
-        - `ichiran/dict:suffix-adv`  — fn, dict-grammar.lisp:472
-        - `ichiran/dict:suffix-chau`  — fn, dict-grammar.lisp:427
-        - `ichiran/dict:suffix-desho`  — fn, dict-grammar.lisp:541
-        - `ichiran/dict:suffix-desu`  — fn, dict-grammar.lisp:525
-        - `ichiran/dict:suffix-garu`  — fn, dict-grammar.lisp:504
-        - `ichiran/dict:suffix-iadj`  — fn, dict-grammar.lisp:500
-        - `ichiran/dict:suffix-kudasai`  — fn, dict-grammar.lisp:412
-        - `ichiran/dict:suffix-kurai`  — fn, dict-grammar.lisp:552
-        - `ichiran/dict:suffix-neg`  — fn, dict-grammar.lisp:392
-        - `ichiran/dict:suffix-rashii`  — fn, dict-grammar.lisp:520
-        - `ichiran/dict:suffix-ren`  — fn, dict-grammar.lisp:384
-        - `ichiran/dict:suffix-ren-`  — fn, dict-grammar.lisp:387
-        - `ichiran/dict:suffix-rou`  — fn, dict-grammar.lisp:470
-        - `ichiran/dict:suffix-sa`  — fn, dict-grammar.lisp:490
-        - `ichiran/dict:suffix-sou`  — fn, dict-grammar.lisp:454
-        - `ichiran/dict:suffix-sou+`  — fn, dict-grammar.lisp:468
-        - `ichiran/dict:suffix-sugiru`  — fn, dict-grammar.lisp:475
-        - `ichiran/dict:suffix-tai`  — fn, dict-grammar.lisp:379
-        - `ichiran/dict:suffix-te`  — fn, dict-grammar.lisp:401
-        - `ichiran/dict:suffix-te+space`  — fn, dict-grammar.lisp:410
-        - `ichiran/dict:suffix-te-ren`  — fn, dict-grammar.lisp:414
-        - `ichiran/dict:suffix-teii`  — fn, dict-grammar.lisp:423
-        - `ichiran/dict:suffix-teiru`  — fn, dict-grammar.lisp:405
-        - `ichiran/dict:suffix-teiru+`  — fn, dict-grammar.lisp:408
-        - `ichiran/dict:suffix-to`  — fn, dict-grammar.lisp:436
-        - `ichiran/dict:suffix-tosuru`  — fn, dict-grammar.lisp:549
-        - `ichiran/dict:te-check`  — fn, dict-grammar.lisp:395
-        - `ichiran/dict:teiru-check`  — fn, dict-grammar.lisp:404
+        - `ichiran/dict:find-word-with-conj-type`  — fn, dict-grammar.lisp:51  *[extracted: substring_2026_05_14]*
+        - `ichiran/dict:find-word-with-suffix`  — fn, dict-grammar.lisp:100  *[extracted: substring_2026_05_14]*
+        - `ichiran/dict:suffix-adv`  — fn, dict-grammar.lisp:472  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-chau`  — fn, dict-grammar.lisp:427  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-desho`  — fn, dict-grammar.lisp:541  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-desu`  — fn, dict-grammar.lisp:525  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-garu`  — fn, dict-grammar.lisp:504  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-iadj`  — fn, dict-grammar.lisp:500  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-kudasai`  — fn, dict-grammar.lisp:412  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-kurai`  — fn, dict-grammar.lisp:552  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-neg`  — fn, dict-grammar.lisp:392  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-rashii`  — fn, dict-grammar.lisp:520  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-ren`  — fn, dict-grammar.lisp:384  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-ren-`  — fn, dict-grammar.lisp:387  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-rou`  — fn, dict-grammar.lisp:470  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-sa`  — fn, dict-grammar.lisp:490  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-sou`  — fn, dict-grammar.lisp:454  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-sou+`  — fn, dict-grammar.lisp:468  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-sugiru`  — fn, dict-grammar.lisp:475  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-tai`  — fn, dict-grammar.lisp:379  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-te`  — fn, dict-grammar.lisp:401  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-te+space`  — fn, dict-grammar.lisp:410  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-te-ren`  — fn, dict-grammar.lisp:414  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-teii`  — fn, dict-grammar.lisp:423  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-teiru`  — fn, dict-grammar.lisp:405  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-teiru+`  — fn, dict-grammar.lisp:408  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-to`  — fn, dict-grammar.lisp:436  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-tosuru`  — fn, dict-grammar.lisp:549  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:te-check`  — fn, dict-grammar.lisp:395  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:teiru-check`  — fn, dict-grammar.lisp:404  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
  485. `ichiran/dict:get-suffix-map`  — fn, dict-grammar.lisp:685
- 486. `ichiran/dict:join-substring-words*`  — fn, dict.lisp:1069
- 487. `ichiran/dict:join-substring-words`  — fn, dict.lisp:1113
- 488. `ichiran/dict:dict-segment`  — fn, dict.lisp:1451
+ 486. `ichiran/dict:join-substring-words*`  — fn, dict.lisp:1069  *[extracted: substring_2026_05_14]*
+ 487. `ichiran/dict:join-substring-words`  — fn, dict.lisp:1113  *[extracted: substring_2026_05_14]*
+ 488. `ichiran/dict:dict-segment`  — fn, dict.lisp:1451  *[extracted: chunk_b_segmentation_2026_05_14]*
  489. `ichiran/dict:simple-segment`  — fn, dict.lisp:1456
  490. `ichiran/dict:get-senses-raw`  — fn, dict.lisp:1458
  491. `ichiran/dict:get-senses`  — fn, dict.lisp:1487
@@ -574,7 +574,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  506. `ichiran/dict:select-conjs`  — fn, dict.lisp:1604
  507. `ichiran/dict:select-conjs-and-props`  — fn, dict.lisp:1640
  508. `ichiran/dict:print-conj-info`  — fn, dict.lisp:1649
- 509. `ichiran/dict:query-parents-kana`  — fn, dict.lisp:415  *[ported]*  *[extracted: calc_score_2026_05_11]*  *[audited 4/4]*
+ 509. `ichiran/dict:query-parents-kana`  — fn, dict.lisp:415  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 4/4]*
  510. `ichiran/dict:best-kanji-conj`  — fn, dict.lisp:457  *[ported]*
  511. `ichiran/dict:get-kanji`  — gf, dict.lisp:0  *[ported]*
  512. `ichiran/dict:word-info-reading-str`  — fn, dict.lisp:1734
@@ -588,28 +588,28 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  520. `ichiran:*hepburn-traditional*`  — global, romanize.lisp:160
  521. `ichiran:*default-romanization-method*`  — global, romanize.lisp:203
  522. `ichiran:join-parts`  — fn, romanize.lisp:235
- 523. `ichiran/dict:simplify-reading-list`  — fn, dict.lisp:1704
+ 523. `ichiran/dict:simplify-reading-list`  — fn, dict.lisp:1704  *[extracted: chunk_b_segmentation_2026_05_14]*
  524. `ichiran/dict:map-word-info-kana`  — fn, dict.lisp:1728
  525. `ichiran/dict:*hint-char-map*`  — global, dict-split.lisp:816  *[ported]*
  526. `ichiran/dict:strip-hints`  — fn, dict-split.lisp:874  *[ported]*
  527. `ichiran/dict:*kana-hint-mod*`  — global, dict-split.lisp:813  *[ported]*
  528. `ichiran/dict:*hint-simplify-map*`  — global, dict-split.lisp:818  *[ported]*
  529. `ichiran/dict:process-hints`  — fn, dict-split.lisp:872  *[ported]*
- 530. `ichiran:get-character-classes`  — fn, romanize.lisp:3  *[extracted: diverse_250k_2026_05_14]*
- 531. `ichiran:r-special`  — gf, romanize.lisp:0  *[extracted: diverse_250k_2026_05_14]*
+ 530. `ichiran:get-character-classes`  — fn, romanize.lisp:3  *[extracted: chunk_a_romanize_2026_05_14]*
+ 531. `ichiran:r-special`  — gf, romanize.lisp:0  *[extracted: chunk_a_romanize_2026_05_14]*
  532. `ichiran:process-iteration-characters`  — fn, romanize.lisp:7  *[ported]*
- 533. `ichiran:process-modifiers`  — fn, romanize.lisp:15  *[extracted: diverse_250k_2026_05_14]*
+ 533. `ichiran:process-modifiers`  — fn, romanize.lisp:15  *[extracted: chunk_a_romanize_2026_05_14]*
  534. `ichiran:*kunrei-siki-kana-table*`  — global, romanize.lisp:0
  535. `ichiran:kunrei-siki`  — class, romanize.lisp:194
- 536. `ichiran:r-simplify`  — gf, romanize.lisp:0  *[extracted: diverse_250k_2026_05_14]*
- 537. `ichiran:leftmost-atom`  — fn, romanize.lisp:25  *[extracted: diverse_250k_2026_05_14]*
- 538. `ichiran:r-base`  — gf, romanize.lisp:0  *[extracted: diverse_250k_2026_05_14]*
+ 536. `ichiran:r-simplify`  — gf, romanize.lisp:0  *[extracted: chunk_a_romanize_2026_05_14]*
+ 537. `ichiran:leftmost-atom`  — fn, romanize.lisp:25  *[extracted: chunk_a_romanize_2026_05_14]*
+ 538. `ichiran:r-base`  — gf, romanize.lisp:0  *[extracted: chunk_a_romanize_2026_05_14]*
  539. **CYCLE (2 symbols — port together)**
-        - `ichiran:r-apply`  — gf, romanize.lisp:0  *[extracted: diverse_250k_2026_05_14]*
-        - `ichiran:romanize-core`  — fn, romanize.lisp:29  *[extracted: diverse_250k_2026_05_14]*
- 540. `ichiran:romanize-list`  — fn, romanize.lisp:205  *[extracted: diverse_250k_2026_05_14]*
- 541. `ichiran:romanize-word`  — fn, romanize.lisp:217  *[extracted: diverse_250k_2026_05_14]*
- 542. `ichiran:romanize-word-info`  — fn, romanize.lisp:248  *[extracted: diverse_250k_2026_05_14]*
+        - `ichiran:r-apply`  — gf, romanize.lisp:0  *[extracted: chunk_a_romanize_2026_05_14]*
+        - `ichiran:romanize-core`  — fn, romanize.lisp:29  *[extracted: chunk_a_romanize_2026_05_14]*
+ 540. `ichiran:romanize-list`  — fn, romanize.lisp:205  *[extracted: chunk_a_romanize_2026_05_14]*
+ 541. `ichiran:romanize-word`  — fn, romanize.lisp:217  *[extracted: chunk_a_romanize_2026_05_14]*
+ 542. `ichiran:romanize-word-info`  — fn, romanize.lisp:248  *[extracted: chunk_a_romanize_2026_05_14]*
  543. `ichiran:romanize`  — fn, romanize.lisp:257
  544. `ichiran:romanize*`  — fn, romanize.lisp:273
  545. `ichiran/cli:main`  — fn, cli.lisp:48
@@ -741,7 +741,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  671. `ichiran/dict:remove-hiragana-nokanji`  — fn, dict-errata.lisp:217
  672. `ichiran/dict:add-errata`  — fn, dict-errata.lisp:289
  673. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146
- 674. `ichiran/dict:true-kana`  — gf, dict.lisp:0  *[ported]*
+ 674. `ichiran/dict:true-kana`  — gf, dict.lisp:0  *[ported]*  *[extracted: hint_2026_05_13]*
  675. `ichiran/dict:true-kanji`  — gf, dict.lisp:0  *[ported]*
  676. `ichiran/kanji:reading`  — dao, kanji.lisp:42  *[ported]*
  677. `ichiran/kanji:get-reading-alternatives`  — fn, kanji.lisp:216  *[ported]*
