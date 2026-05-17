@@ -416,11 +416,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  397. `ichiran/dict:expand-segment-list`  — fn, dict.lisp:1180  *[extracted: chunk_b_segmentation_2026_05_14]*
  398. `ichiran/dict:*gap-penalty*`  — global, dict.lisp:1165  *[ported]*
  399. `ichiran/dict:gap-penalty`  — fn, dict.lisp:1169  *[ported]*
- 400. `ichiran/dict:get-array`  — gf, dict.lisp:0
- 401. `ichiran/dict:classify`  — fn, dict-grammar.lisp:1046
- 402. `ichiran/dict:filter-in-seq-set`  — fn, dict-grammar.lisp:783
- 403. `ichiran/dict:filter-is-conjugation`  — fn, dict-grammar.lisp:797
- 404. `ichiran/dict:make-segment-list-from`  — fn, dict-grammar.lisp:733
+ 400. `ichiran/dict:get-array`  — gf, dict.lisp:0  *[ported]*
+ 401. `ichiran/dict:classify`  — fn, dict-grammar.lisp:1046  *[ported]*
+ 402. `ichiran/dict:filter-in-seq-set`  — fn, dict-grammar.lisp:783  *[ported]*
+ 403. `ichiran/dict:filter-is-conjugation`  — fn, dict-grammar.lisp:797  *[ported]*
+ 404. `ichiran/dict:make-segment-list-from`  — fn, dict-grammar.lisp:733  *[ported]*
  405. `ichiran/dict:segfilter-aux-verb`  — fn, dict-grammar.lisp:1099
  406. `ichiran/dict:filter-is-compound-end-text`  — fn, dict-grammar.lisp:820
  407. `ichiran/dict:segfilter-badend`  — fn, dict-grammar.lisp:1114
