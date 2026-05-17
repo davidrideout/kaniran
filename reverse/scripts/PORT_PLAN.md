@@ -492,7 +492,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  473. `ichiran/dict:find-word-as-hiragana`  — fn, dict.lisp:592  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 30/30]*
  474. `ichiran/dict:adjoin-word`  — gf, dict.lisp:0  *[ported]*
  475. `ichiran/dict:apply-patch`  — fn, dict-grammar.lisp:444  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
- 476. `ichiran/dict:or-as-hiragana`  — fn, dict-grammar.lisp:95  *[extracted: get_suffixes_2026_05_15]*
+ 476. `ichiran/dict:or-as-hiragana`  — fn, dict-grammar.lisp:95  *[ported]*  *[extracted: get_suffixes_2026_05_15]*  *[audited 668845/668845]*
  477. `ichiran/dict:suffix-ra`  — fn, dict-grammar.lisp:516  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
  478. `ichiran/dict:lex-compare`  — fn, dict-load.lisp:365  *[ported]*
  479. `ichiran/dict:pair-words-by-conj`  — fn, dict-grammar.lisp:56  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*  *[audited 206/206]*

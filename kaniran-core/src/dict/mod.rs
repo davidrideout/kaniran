@@ -132,6 +132,7 @@ pub mod no_conj_data;
 pub mod nokanji;
 pub mod number_text_class;
 pub mod optprefix;
+pub mod or_as_hiragana;
 pub mod ord;
 pub mod ordinal_str;
 pub mod pair_words_by_conj;
