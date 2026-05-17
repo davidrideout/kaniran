@@ -429,7 +429,7 @@ ichiran/dict:optprefix,optprefix,ichiran/dict,dict-split.lisp,580,fn,ported,,,
 ichiran/dict:or-as-hiragana,or-as-hiragana,ichiran/dict,dict-grammar.lisp,95,fn,pending,,get_suffixes_2026_05_15,
 ichiran/dict:ord,ord,ichiran/dict,dict-counters.lisp,0,gf,ported,,,
 ichiran/dict:ordinal-str,ordinal-str,ichiran/dict,dict-counters.lisp,38,fn,ported,,counter_2026_05_08,
-ichiran/dict:pair-words-by-conj,pair-words-by-conj,ichiran/dict,dict-grammar.lisp,56,fn,pending,,chunk_c_suffix_abbr_2026_05_16,
+ichiran/dict:pair-words-by-conj,pair-words-by-conj,ichiran/dict,dict-grammar.lisp,56,fn,ported,,chunk_c_suffix_abbr_2026_05_16,206/206
 ichiran/dict:parse-suffix-val,parse-suffix-val,ichiran/dict,dict-grammar.lisp,679,fn,ported,,calc_score_2026_05_11,
 ichiran/dict:penalty-semi-final,penalty-semi-final,ichiran/dict,dict-grammar.lisp,1022,fn,pending,,,
 ichiran/dict:penalty-short,penalty-short,ichiran/dict,dict-grammar.lisp,1020,fn,pending,,,

@@ -134,6 +134,7 @@ pub mod number_text_class;
 pub mod optprefix;
 pub mod ord;
 pub mod ordinal_str;
+pub mod pair_words_by_conj;
 pub mod parse_suffix_val;
 pub mod process_hints;
 pub mod process_word_info;

@@ -137,3 +137,7 @@ path = "audit/dict/kanji_break_penalty_test.rs"
 [[bin]]
 name = "gen_score_test"
 path = "audit/dict/gen_score_test.rs"
+
+[[bin]]
+name = "pair_words_by_conj_test"
+path = "audit/dict/pair_words_by_conj_test.rs"

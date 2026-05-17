@@ -495,7 +495,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  476. `ichiran/dict:or-as-hiragana`  — fn, dict-grammar.lisp:95  *[extracted: get_suffixes_2026_05_15]*
  477. `ichiran/dict:suffix-ra`  — fn, dict-grammar.lisp:516  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
  478. `ichiran/dict:lex-compare`  — fn, dict-load.lisp:365  *[ported]*
- 479. `ichiran/dict:pair-words-by-conj`  — fn, dict-grammar.lisp:56  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+ 479. `ichiran/dict:pair-words-by-conj`  — fn, dict-grammar.lisp:56  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*  *[audited 206/206]*
  480. `ichiran/dict:find-word-with-pos`  — fn, dict-grammar.lisp:87  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
  481. `ichiran/dict:suffix-suru`  — fn, dict-grammar.lisp:441  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
  482. `ichiran/dict:*suffix-unique-only*`  — global, dict-grammar.lisp:330  *[ported]*
