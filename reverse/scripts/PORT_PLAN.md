@@ -410,8 +410,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  393. `ichiran/dict:nokanji`  — gf, dict-counters.lisp:0  *[ported]*
  394. `ichiran/dict:sense-id`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  395. **CYCLE (2 symbols — port together)**
-        - `ichiran/dict:calc-score`  — fn, dict.lisp:775
-        - `ichiran/dict:kanji-break-penalty`  — fn, dict.lisp:702
+        - `ichiran/dict:calc-score`  — fn, dict.lisp:775  *[ported]*
+        - `ichiran/dict:kanji-break-penalty`  — fn, dict.lisp:702  *[ported]*
  396. `ichiran/dict:get-segsplit`  — fn, dict-split.lisp:823
  397. `ichiran/dict:expand-segment-list`  — fn, dict.lisp:1180
  398. `ichiran/dict:*gap-penalty*`  — global, dict.lisp:1165  *[ported]*
@@ -474,7 +474,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  455. `ichiran/dict:find-best-path`  — fn, dict.lisp:1190
  456. `ichiran/dict:*identical-word-score-cutoff*`  — global, dict.lisp:1020  *[ported]*
  457. `ichiran/dict:cull-segments`  — fn, dict.lisp:1027
- 458. `ichiran/dict:gen-score`  — fn, dict.lisp:985
+ 458. `ichiran/dict:gen-score`  — fn, dict.lisp:985  *[ported]*
  459. `ichiran/dict:*force-kanji-break*`  — global, dict-errata.lisp:1226  *[ported]*
  460. `ichiran/dict:*max-word-length*`  — global, dict.lisp:486  *[ported]*
  461. `ichiran/dict:*no-kanji-break*`  — global, dict-errata.lisp:1229  *[ported]*
@@ -499,7 +499,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  480. `ichiran/dict:find-word-with-pos`  — fn, dict-grammar.lisp:87
  481. `ichiran/dict:suffix-suru`  — fn, dict-grammar.lisp:441
  482. `ichiran/dict:*suffix-unique-only*`  — global, dict-grammar.lisp:330  *[ported]*
- 483. `ichiran/dict:match-unique`  — fn, dict-grammar.lisp:702  *[ported]*
+ 483. `ichiran/dict:match-unique`  — fn, dict-grammar.lisp:702  *[ported]*  *[extracted: diverse_250k_2026_05_16]*  *[audited 92593/92593]*
  484. **CYCLE (49 symbols — port together)**
         - `ichiran/dict:*suffix-list*`  — global, dict-grammar.lisp:329
         - `ichiran/dict:abbr-beba`  — fn, dict-grammar.lisp:658

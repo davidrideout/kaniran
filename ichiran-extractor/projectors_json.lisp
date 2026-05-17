@@ -1,5 +1,53 @@
 ;;; projectors_json.lisp — JSON projector + encoder for the trace recorder.
 ;;;
+;;; ============================================================================
+;;; !!!!!!!!!!!!!!!!!!!!!!!!!!!!! KNOWN BUG !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+;;; ============================================================================
+;;;   BOOLEAN DAO SLOTS COLLIDE WITH GENERIC LISP NIL ON THE JSON WIRE.
+;;;
+;;;   Postmodern decodes a PG `false` column into Lisp `nil`. This file's
+;;;   `flatten-to-json` walks DAO instances slot-by-slot and feeds each
+;;;   value to the generic `flatten-to-json` dispatch, which has the
+;;;   universal rule `nil -> JSON null` (L94-99). Net result: PG `false`
+;;;   and absence-of-value both arrive on the Rust audit side as JSON
+;;;   `null`, indistinguishable from each other.
+;;;
+;;;   Affected DAO slots (all currently captured):
+;;;     entry.root-p           :col-type boolean
+;;;     entry.primary-nokanji  :col-type boolean
+;;;     kana/kanji-text.conjugate-p  :col-type boolean
+;;;     kana/kanji-text.nokanji      :col-type boolean
+;;;     conj-prop.neg          :col-type (or db-null boolean)
+;;;     conj-prop.fml          :col-type (or db-null boolean)
+;;;
+;;;   Current state on the audit side: `audit/common/mod.rs:parse_opt_bool`
+;;;   asymmetrically maps JSON `null` -> `Some(false)` as a workaround.
+;;;   This hides real Rust-side `Some(false)` vs `None` bugs on neg/fml
+;;;   and is documented in memory: `feedback_projector_boolean_emission_bug`.
+;;;
+;;;   FIX (for the next agent):
+;;;     1. In `flatten-to-json` (the `standard-object` arm, around L120),
+;;;        when iterating `dao-column-slots`, introspect each slot's
+;;;        col-type via postmodern's slot metadata. For `boolean` or
+;;;        `(or db-null boolean)`, emit Lisp `nil` as a new sentinel
+;;;        (e.g. `:JSON-FALSE`) instead of letting it fall through to
+;;;        the generic nil -> JSON null rule. `:null` keeps emitting
+;;;        `":NULL"` as today.
+;;;     2. Add one arm to `encode-json` (L182) that emits the sentinel
+;;;        as JSON `false`.
+;;;     3. Deploy to .103 (`deploy_server.sh`).
+;;;     4. Re-extract every parquet that captures DAO rows: chunk_b,
+;;;        chunk_c, calc_score_2026_05_11, splits, segmenter, hint,
+;;;        counter corpora. (Every existing parquet is contaminated.)
+;;;     5. Drop the `null -> Some(false)` arm from
+;;;        `audit/common/mod.rs:parse_opt_bool` and rerun all affected
+;;;        audits to confirm clean.
+;;;
+;;;   Cheapest validation path: do steps 1-3, re-extract chunk_b only,
+;;;   delete the workaround, run calc_score / gen_score / kbp audits.
+;;;   If clean, schedule the wider re-extraction.
+;;; ============================================================================
+;;;
 ;;; Sibling to projectors.lisp. Same role: walks an arbitrary Lisp value
 ;;; produced by the recorder and returns a primitive-printable
 ;;; equivalent. Differs in encoding: produces a JSON string that the
@@ -118,6 +166,12 @@
                                  (flatten-to-json (%safe-slot v sn)))))))
 
 (defmethod flatten-to-json ((v standard-object))
+  ;; !!! KNOWN BUG — see top-of-file banner !!!
+  ;; PG `false` in a :col-type boolean / (or db-null boolean) slot rides
+  ;; through here as Lisp `nil` and gets emitted as JSON null by the
+  ;; generic `(flatten-to-json nil)` rule (L94-99). Fix is to introspect
+  ;; the slot's col-type on the way out and emit a `:JSON-FALSE` sentinel
+  ;; for boolean-typed slots. Pending; do not paper over on the audit side.
   (let ((cls (class-of v)))
     (cond
       ((typep cls 'postmodern:dao-class)

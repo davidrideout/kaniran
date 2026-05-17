@@ -45,6 +45,8 @@ use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::compound_text_class::{CompoundText, ScoreMod};
+use kaniran_core::dict::conj_data_struct::ConjData;
+use kaniran_core::dict::conj_prop_dao::ConjProp;
 use kaniran_core::dict::counter_age_class::CounterAge;
 use kaniran_core::dict::counter_days_kun_class::CounterDaysKun;
 use kaniran_core::dict::counter_days_on_class::CounterDaysOn;
@@ -65,7 +67,7 @@ use kaniran_core::dict::kanji_text_dao::KanjiText;
 use kaniran_core::dict::number_text_class::NumberText;
 use kaniran_core::dict::proxy_text_class::ProxyText;
 use kaniran_core::dict::segment_list_struct::SegmentList;
-use kaniran_core::dict::segment_struct::Segment;
+use kaniran_core::dict::segment_struct::{KaniScoreInfo, KaniSplitInfo, Segment};
 use kaniran_core::dict::simple_text_class::{SimpleText, WordConjugations};
 use kaniran_core::dict::synergy_struct::Synergy;
 use kaniran_core::dict::top_array_item_struct::PathElement;
@@ -1680,4 +1682,243 @@ pub fn compare_captured_word_info(actual: &WordInfo, captured: &Value) -> Result
             .map_err(|err| format!("components[{}]: {}", idx, err))?;
     }
     Ok(())
+}
+
+
+// --- shared score-/conj-data parsers ---------------------------------------
+//
+// These were previously duplicated across
+// `audit/dict/calc_score_test.rs`, `gen_score_test.rs`, and
+// `kanji_break_penalty_test.rs`. Consolidating here keeps the
+// projector-bug workaround on `parse_opt_bool` in one place and prevents
+// drift between three slightly-different copies.
+
+/// Truncate a JSON value's `Display` form for use inside error messages.
+/// Keeps the first 200 Unicode scalar values and appends `…` past that.
+pub fn short_plist(v: &Value) -> String {
+    let s = v.to_string();
+    let max_chars = 200;
+    if s.chars().count() <= max_chars {
+        s
+    } else {
+        let head: String = s.chars().take(max_chars).collect();
+        format!("{}…", head)
+    }
+}
+
+pub fn parse_string_list(v: &Value, field: &str) -> Result<Vec<String>, String> {
+    match v {
+        Value::Null => Ok(Vec::new()),
+        Value::Array(arr) => arr
+            .iter()
+            .map(|item| {
+                item.as_str()
+                    .map(|s| s.to_string())
+                    .ok_or_else(|| format!("{}: entry not string: {}", field, item))
+            })
+            .collect(),
+        other => Err(format!("{}: expected array/null, got {}", field, other)),
+    }
+}
+
+pub fn parse_int_list(v: &Value, field: &str) -> Result<Vec<i32>, String> {
+    match v {
+        Value::Null => Ok(Vec::new()),
+        Value::Array(arr) => arr
+            .iter()
+            .map(|item| {
+                item.as_i64()
+                    .map(|n| n as i32)
+                    .ok_or_else(|| format!("{}: entry not int: {}", field, item))
+            })
+            .collect(),
+        other => Err(format!("{}: expected array/null, got {}", field, other)),
+    }
+}
+
+pub fn parse_opt_i32(v: &Value, field: &str) -> Result<Option<i32>, String> {
+    match v {
+        Value::Null => Ok(None),
+        Value::String(s) if s == ":NULL" => Ok(None),
+        Value::Number(n) => Ok(Some(
+            n.as_i64()
+                .ok_or_else(|| format!("{}: not i64: {}", field, n))? as i32,
+        )),
+        other => Err(format!("{}: expected int/null, got {}", field, other)),
+    }
+}
+
+/// Workaround for a **capture-side bug** in
+/// `ichiran-extractor/projectors_json.lisp`:
+///
+/// The projector emits Lisp `nil` as JSON `null` universally (no
+/// awareness of `:col-type boolean` vs `(or db-null boolean)` slot
+/// metadata). So PG `false` — decoded by postmodern as Lisp `nil` —
+/// arrives on the audit side as JSON `null`, indistinguishable from a
+/// generic absent value. PG `NULL` does survive intact as Lisp `:null`
+/// → JSON `":NULL"`.
+///
+/// Mapping below:
+/// - JSON `null` → `Some(false)` (assumed PG `false`; lossy)
+/// - JSON `":NULL"` → `None`
+/// - JSON `true` / `false` → `Some(_)`
+///
+/// Cost: the audit cannot distinguish a genuine `Some(false)` from
+/// `None` Rust-side mismatch on `neg` / `fml`. The projector needs to
+/// special-case DAO slots typed as boolean and emit JSON `false` for
+/// Lisp `nil`; see `feedback_projector_boolean_emission_bug` in
+/// memory. Until that lands and the affected parquets are re-extracted,
+/// this asymmetric mapping is the only way to keep the audit clean
+/// (without it ~582K rows fail across calc-score + gen-score).
+pub fn parse_opt_bool(v: &Value, field: &str) -> Result<Option<bool>, String> {
+    match v {
+        Value::Null => Ok(Some(false)),
+        Value::String(s) if s == ":NULL" => Ok(None),
+        Value::Bool(b) => Ok(Some(*b)),
+        other => Err(format!("{}: expected bool/null/\":NULL\", got {}", field, other)),
+    }
+}
+
+pub fn parse_conj_prop(value: &Value) -> Result<ConjProp, String> {
+    let class = captured_class(value)?;
+    if class != "CONJ-PROP" {
+        return Err(format!("expected CONJ-PROP, got :{}", class));
+    }
+    Ok(ConjProp {
+        id: value.get("id").and_then(|v| v.as_i64()).unwrap_or(0) as i32,
+        conj_id: value.get("conj_id").and_then(|v| v.as_i64()).unwrap_or(0) as i32,
+        conj_type: value.get("conj_type").and_then(|v| v.as_i64()).unwrap_or(0) as i32,
+        pos: value.get("pos").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        neg: parse_opt_bool(value.get("neg").unwrap_or(&Value::Null), "neg")?,
+        fml: parse_opt_bool(value.get("fml").unwrap_or(&Value::Null), "fml")?,
+    })
+}
+
+pub fn parse_conj_data(value: &Value) -> Result<ConjData, String> {
+    let class = captured_class(value)?;
+    if class != "CONJ-DATA" {
+        return Err(format!("expected CONJ-DATA, got :{}", class));
+    }
+    let seq = parse_opt_i32(value.get("seq").unwrap_or(&Value::Null), "conj-data.seq")?;
+    let from = parse_opt_i32(value.get("from").unwrap_or(&Value::Null), "conj-data.from")?;
+    let via = parse_opt_i32(value.get("via").unwrap_or(&Value::Null), "conj-data.via")?;
+    let prop = match value.get("prop").unwrap_or(&Value::Null) {
+        Value::Null => None,
+        prop_val => Some(parse_conj_prop(prop_val)?),
+    };
+    let src_map: Vec<(String, String)> = match value.get("src_map").unwrap_or(&Value::Null) {
+        Value::Null => Vec::new(),
+        Value::Array(arr) => arr
+            .iter()
+            .map(|pair| {
+                let pa = pair
+                    .as_array()
+                    .ok_or_else(|| format!("src_map entry not array: {}", pair))?;
+                if pa.len() != 2 {
+                    return Err(format!("src_map pair not 2-elem: {}", pair));
+                }
+                let a = pa[0]
+                    .as_str()
+                    .ok_or_else(|| format!("src_map[0] not string: {}", pa[0]))?
+                    .to_string();
+                let b = pa[1]
+                    .as_str()
+                    .ok_or_else(|| format!("src_map[1] not string: {}", pa[1]))?
+                    .to_string();
+                Ok((a, b))
+            })
+            .collect::<Result<_, _>>()?,
+        other => return Err(format!("src_map: expected array/null, got {}", other)),
+    };
+    Ok(ConjData { seq, from, via, prop, src_map })
+}
+
+pub fn parse_conj_list(v: &Value) -> Result<Vec<ConjData>, String> {
+    match v {
+        Value::Null => Ok(Vec::new()),
+        Value::Array(arr) => arr.iter().map(parse_conj_data).collect(),
+        other => Err(format!("conj: expected array/null, got {}", other)),
+    }
+}
+
+/// Parses the four-element `(:SCORE-INFO …)` tuple at
+/// `dict.lisp:976-980`: `(prop-score kanji-break use-length-bonus
+/// split-info)`. `split-info` accepts the three upstream shapes —
+/// `nil` → [`KaniSplitInfo::None`], integer → [`KaniSplitInfo::Score`],
+/// `(score-mod . part-scores)` array → [`KaniSplitInfo::Parts`].
+pub fn parse_score_info(v: &Value) -> Result<KaniScoreInfo, String> {
+    let arr = v
+        .as_array()
+        .ok_or_else(|| format!("score-info: expected array, got {}", v))?;
+    if arr.len() != 4 {
+        return Err(format!("score-info: expected 4-tuple, got {}", arr.len()));
+    }
+    let prop_score = arr[0]
+        .as_i64()
+        .ok_or_else(|| format!("score-info[0] not int: {}", arr[0]))? as i32;
+    let kanji_break: Vec<usize> = match &arr[1] {
+        Value::Null => Vec::new(),
+        Value::Array(arr) => arr
+            .iter()
+            .map(|item| {
+                item.as_u64()
+                    .map(|n| n as usize)
+                    .ok_or_else(|| format!("score-info[1] entry not uint: {}", item))
+            })
+            .collect::<Result<_, _>>()?,
+        other => return Err(format!("score-info[1]: expected array/null, got {}", other)),
+    };
+    let use_length_bonus = arr[2]
+        .as_i64()
+        .ok_or_else(|| format!("score-info[2] not int: {}", arr[2]))? as i32;
+    let split_info = match &arr[3] {
+        Value::Null => KaniSplitInfo::None,
+        Value::Number(n) => KaniSplitInfo::Score(
+            n.as_i64()
+                .ok_or_else(|| format!("score-info[3] not i64: {}", n))? as i32,
+        ),
+        Value::Array(parts) => {
+            if parts.is_empty() {
+                return Err("score-info[3]: empty Parts array".into());
+            }
+            let score_mod = parts[0]
+                .as_i64()
+                .ok_or_else(|| format!("score-info[3][0] not int: {}", parts[0]))?
+                as i32;
+            let part_scores: Vec<i32> = parts[1..]
+                .iter()
+                .map(|item| {
+                    item.as_i64()
+                        .map(|n| n as i32)
+                        .ok_or_else(|| format!("score-info[3] part not int: {}", item))
+                })
+                .collect::<Result<_, _>>()?;
+            KaniSplitInfo::Parts { score_mod, part_scores }
+        }
+        other => return Err(format!("score-info[3]: unexpected: {}", other)),
+    };
+    Ok(KaniScoreInfo { prop_score, kanji_break, use_length_bonus, split_info })
+}
+
+/// Parses the `(:KPCL …)` 4-tuple. Upstream stores the raw truthy
+/// values from `(or kanji-p katakana-p)` / `(and common-p pronoun-p)` /
+/// `(intersection seq-set *copulae*)` etc., not always `t` — any
+/// non-nil JSON value collapses to `true` here to match the Lisp
+/// predicate semantics every downstream consumer applies.
+pub fn parse_kpcl(v: &Value) -> Result<(bool, bool, bool, bool), String> {
+    let arr = v
+        .as_array()
+        .ok_or_else(|| format!("kpcl: expected array, got {}", v))?;
+    if arr.len() != 4 {
+        return Err(format!("kpcl: expected 4-tuple, got {}", arr.len()));
+    }
+    let mut bools = [false; 4];
+    for (i, entry) in arr.iter().enumerate() {
+        bools[i] = match entry {
+            Value::Null => false,
+            Value::Bool(b) => *b,
+            _ => true,
+        };
+    }
+    Ok((bools[0], bools[1], bools[2], bools[3]))
 }

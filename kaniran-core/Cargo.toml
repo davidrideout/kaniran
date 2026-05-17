@@ -121,3 +121,15 @@ path = "audit/dict/get_non_arch_posi_test.rs"
 [[bin]]
 name = "match_unique_test"
 path = "audit/dict/match_unique_test.rs"
+
+[[bin]]
+name = "calc_score_test"
+path = "audit/dict/calc_score_test.rs"
+
+[[bin]]
+name = "kanji_break_penalty_test"
+path = "audit/dict/kanji_break_penalty_test.rs"
+
+[[bin]]
+name = "gen_score_test"
+path = "audit/dict/gen_score_test.rs"
