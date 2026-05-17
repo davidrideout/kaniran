@@ -421,11 +421,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  402. `ichiran/dict:filter-in-seq-set`  — fn, dict-grammar.lisp:783  *[ported]*
  403. `ichiran/dict:filter-is-conjugation`  — fn, dict-grammar.lisp:797  *[ported]*
  404. `ichiran/dict:make-segment-list-from`  — fn, dict-grammar.lisp:733  *[ported]*
- 405. `ichiran/dict:segfilter-aux-verb`  — fn, dict-grammar.lisp:1099
- 406. `ichiran/dict:filter-is-compound-end-text`  — fn, dict-grammar.lisp:820
- 407. `ichiran/dict:segfilter-badend`  — fn, dict-grammar.lisp:1114
- 408. `ichiran/dict:segfilter-dashi`  — fn, dict-grammar.lisp:1167
- 409. `ichiran/dict:segfilter-dekiru`  — fn, dict-grammar.lisp:1175
+ 405. `ichiran/dict:segfilter-aux-verb`  — fn, dict-grammar.lisp:1099  *[ported]*
+ 406. `ichiran/dict:filter-is-compound-end-text`  — fn, dict-grammar.lisp:820  *[ported]*
+ 407. `ichiran/dict:segfilter-badend`  — fn, dict-grammar.lisp:1114  *[ported]*
+ 408. `ichiran/dict:segfilter-dashi`  — fn, dict-grammar.lisp:1167  *[ported]*
+ 409. `ichiran/dict:segfilter-dekiru`  — fn, dict-grammar.lisp:1175  *[ported]*
  410. `ichiran/dict:segfilter-honorific`  — fn, dict-grammar.lisp:1177
  411. `ichiran/dict:filter-is-compound-end`  — fn, dict-grammar.lisp:806
  412. `ichiran/dict:segfilter-janai`  — fn, dict-grammar.lisp:1146
@@ -683,7 +683,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  613. `ichiran/custom:source-file`  — gf, dict-custom.lisp:0
  614. `ichiran/custom:slurp`  — gf, dict-custom.lisp:0
  615. `ichiran/custom:load-custom-data`  — fn, dict-custom.lisp:329
- 616. `ichiran/dict:*aux-verbs*`  — global, dict-grammar.lisp:1072
+ 616. `ichiran/dict:*aux-verbs*`  — global, dict-grammar.lisp:1072  *[ported]*
  617. `ichiran/dict:*conj-description*`  — global, dict-load.lisp:0
  618. `ichiran/dict:*conj-rules*`  — global, dict-load.lisp:0
  619. `ichiran/dict:*do-not-conjugate-seq*`  — global, dict-load.lisp:305

@@ -7,6 +7,7 @@
 //! references. Further dao classes, helpers, and the populator
 //! itself land in subsequent waves.
 
+pub mod _star_aux_verbs_star_;
 pub mod _star_copulae_star_;
 pub mod _star_counter_accepts_star_;
 pub mod _star_counter_cache_star_;
@@ -81,6 +82,7 @@ pub mod counter_wari_class;
 pub mod entry_dao;
 pub mod fill_segment_path;
 pub mod filter_in_seq_set;
+pub mod filter_is_compound_end_text;
 pub mod filter_is_conjugation;
 pub mod find_counter;
 pub mod find_word;
@@ -149,6 +151,10 @@ pub mod query_parents_kana;
 pub mod query_parents_kanji;
 pub mod restricted_readings_dao;
 pub mod score_base;
+pub mod segfilter_aux_verb;
+pub mod segfilter_badend;
+pub mod segfilter_dashi;
+pub mod segfilter_dekiru;
 pub mod segment_list_struct;
 pub mod segment_struct;
 pub mod sense_dao;

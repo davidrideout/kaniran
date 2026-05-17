@@ -12,9 +12,9 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 124 fn/gf
+- Checked: 134 fn/gf
 - Macros (file-existence only): 0
-- Divergences: 17
+- Divergences: 19
 
 ## Divergences
 
@@ -52,6 +52,16 @@ captured Lisp lambda list. New entries should be either:
 
 - file: `kaniran-core/src/dict/compare_common.rs`
 - drift: extra `pub fn`(s) in same file: ['is_truthy']
+
+### `ichiran/dict:filter-in-seq-set`
+
+- file: `kaniran-core/src/dict/filter_in_seq_set.rs`
+- drift: arity 1 ≠ Lisp 0 (req=0, opt=0, keys=[])
+
+### `ichiran/dict:filter-is-compound-end-text`
+
+- file: `kaniran-core/src/dict/filter_is_compound_end_text.rs`
+- drift: arity 1 ≠ Lisp 0 (req=0, opt=0, keys=[])
 
 ### `ichiran/dict:find-word-conj-of`
 
