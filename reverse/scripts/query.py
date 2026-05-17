@@ -153,20 +153,54 @@ def _walk(start: str, edges: dict[str, set[str]], deep: bool) -> set[str]:
     return seen
 
 
+def _filter_by_status(fqns, syms, args) -> tuple[set[str], int, int]:
+    """Apply --no-skip / --no-ported filters. Returns (kept_fqns, n_skip_dropped, n_ported_dropped)."""
+    n_skip = n_ported = 0
+    kept: set[str] = set()
+    for f in fqns:
+        st = syms[f]["status"]
+        if getattr(args, "no_skip", False) and st == "skip":
+            n_skip += 1
+            continue
+        if getattr(args, "no_ported", False) and st == "ported":
+            n_ported += 1
+            continue
+        kept.add(f)
+    return kept, n_skip, n_ported
+
+
 def cmd_dependents(args, syms, callees, callers):
     target = resolve_fqn(args.fqn, syms)
     fqns = _walk(target, callers, args.deep)
-    for f in sorted(fqns):
+    kept, n_skip, n_ported = _filter_by_status(fqns, syms, args)
+    for f in sorted(kept):
         print(fmt(syms[f]))
-    print(f"\n{len(fqns)} dependent(s) of {target}", file=sys.stderr)
+    suffix = ""
+    drops = []
+    if n_skip:
+        drops.append(f"{n_skip} skip")
+    if n_ported:
+        drops.append(f"{n_ported} ported")
+    if drops:
+        suffix = f" [hid {', '.join(drops)}]"
+    print(f"\n{len(kept)} dependent(s) of {target}{suffix}", file=sys.stderr)
 
 
 def cmd_deps(args, syms, callees, callers):
     target = resolve_fqn(args.fqn, syms)
     fqns = _walk(target, callees, args.deep)
-    for f in sorted(fqns):
+    kept, n_skip, n_ported = _filter_by_status(fqns, syms, args)
+    for f in sorted(kept):
         print(fmt(syms[f]))
-    print(f"\n{len(fqns)} dependenc{'ies' if len(fqns)!=1 else 'y'} of {target}", file=sys.stderr)
+    suffix = ""
+    drops = []
+    if n_skip:
+        drops.append(f"{n_skip} skip")
+    if n_ported:
+        drops.append(f"{n_ported} ported")
+    if drops:
+        suffix = f" [hid {', '.join(drops)}]"
+    print(f"\n{len(kept)} dependenc{'ies' if len(kept)!=1 else 'y'} of {target}{suffix}", file=sys.stderr)
 
 
 def cmd_layers(args, syms, callees, callers):
@@ -1197,11 +1231,19 @@ def main() -> int:
     p = sub.add_parser("dependents")
     p.add_argument("fqn")
     p.add_argument("--deep", action="store_true", help="transitive closure")
+    p.add_argument("--no-skip", action="store_true",
+                   help="hide rows with status=skip")
+    p.add_argument("--no-ported", action="store_true",
+                   help="hide rows with status=ported")
     p.set_defaults(fn=cmd_dependents)
 
     p = sub.add_parser("deps")
     p.add_argument("fqn")
     p.add_argument("--deep", action="store_true", help="transitive closure")
+    p.add_argument("--no-skip", action="store_true",
+                   help="hide rows with status=skip")
+    p.add_argument("--no-ported", action="store_true",
+                   help="hide rows with status=ported")
     p.set_defaults(fn=cmd_deps)
 
     sub.add_parser("layers").set_defaults(fn=cmd_layers)
