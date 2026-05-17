@@ -1,71 +1,39 @@
 //! Port of `ichiran/dict:*segsplit-map*` (`dict-split.lisp:704`).
 //!
-//! Hashtable mapping JMdict seq → segment-split function, registered
-//! upstream by 18 `def-simple-split` callsites inside the
-//! `(let ((*split-map* *segsplit-map*)) ...)` block at
-//! `dict-split.lisp:706-782`. The let-binding redirects the
-//! `defsplit` macro's `setf (gethash ,seq *split-map*) ',name` target
-//! from `*split-map*` to `*segsplit-map*` at expansion-eval time, so
-//! the same macro that populates `*split-map*` (174 callsites) lands
-//! these 18 callsites here instead.
+//! 18 `def-simple-split` callsites registered inside
+//! `(let ((*split-map* *segsplit-map*)) ...)` at
+//! `dict-split.lisp:706-782` — the let-binding redirects `defsplit`'s
+//! `(setf (gethash ,seq *split-map*) ...)` target. Collapsed to a
+//! static [`SEGSPLIT_TABLE`] of data rows, mirroring
+//! [`super::_star_split_map_star_`]; both tables are dispatched via
+//! [`super::_star_split_map_star_::split_map_dispatch`] keyed off
+//! [`crate::conn::kani_context::KaniranContext::split_map`].
 //!
-//! The Rust transliteration collapses the runtime hashtable into a
-//! static [`SEGSPLIT_TABLE`] of data rows, mirroring the convention
-//! established by [`super::_star_split_map_star_`]. Each row is
-//! interpreted by [`super::kani_split_engine::run_split`].
+//! Diverges from `*split-map*`: each callsite here passes a **list**
+//! as the macro's `score` arg (e.g. `'(-10 :root (1))` at
+//! `dict-split.lisp:711`, `'(20 :primary 1 :connector "")` at `:732`).
+//! Upstream `get-segsplit` destructures it as
+//! `(score &key (primary 0) (connector " ") root)` at
+//! `dict-split.lisp:790`. The port stores the destructured slots
+//! alongside the [`SplitDef`] on [`SegSplitDef`]; the integer score
+//! lives on `SplitDef.score`. `get-segsplit` recovers the keyword
+//! attrs via a direct [`SEGSPLIT_TABLE`] walk.
 //!
-//! ## Divergence from `*split-map*`: the score-var carries keyword attrs
-//!
-//! The 18 `def-simple-split` callsites here pass a **list** as the
-//! `score` argument — e.g. `'(-10 :root (1))` (`dict-split.lisp:711`),
-//! `'(20 :primary 1 :connector "")` (`:732`), `'(-10 :connector "")`
-//! (`:736`), `'(10 :primary 1)` (`:765`). The macro binds this list
-//! verbatim to the `prog*`'s `score-var` and returns it unchanged via
-//! `(values (nreverse parts) score-var)` (`dict-split.lisp:67`). The
-//! consumer [`get-segsplit`](https://github.com/tshatrov/ichiran)
-//! (`dict-split.lisp:784`, FQN `ichiran/dict:get-segsplit`, port wave
-//! 396) then `destructuring-bind`s `(score &key (primary 0)
-//! (connector " ") root)` out of it.
-//!
-//! In Rust, [`SplitDef::score`] is a plain `i32` and the engine
-//! ([`run_split`](super::kani_split_engine::run_split)) does not carry
-//! the keyword payload through its prog\*-equivalent loop (the
-//! upstream prog\* doesn't either — it just passes the list through
-//! inert). The four destructured slots are stored alongside the
-//! `SplitDef` on [`SegSplitDef`] and re-attached by
-//! [`segsplit_map_dispatch`] into [`SegSplitAttrs`] on return,
-//! preserving the upstream "funcall yields `(values parts attrs)`"
-//! shape (`dict-split.lisp:72`, `:80`) without widening
-//! `SplitDef.score` to support segsplit-only forms.
-//!
-//! Diverges from CONVENTIONS §1 (one Lisp symbol per Rust file): the
-//! 18 `split-*` callsites that register here (wave 177-194) are not
-//! given their own files — they collapse to data rows in
-//! [`SEGSPLIT_TABLE`], same rationale as [`super::_star_split_map_star_`]
-//! cites for its 174 callsites. `audit-signatures` reports each
-//! `split-*` FQN as `port file not found` — those entries are this
-//! convention.
+//! Diverges from CONVENTIONS §1: the 18 `split-*` callsites collapse
+//! to data rows here rather than per-file ports, same rationale as
+//! [`super::_star_split_map_star_`].
 
-use crate::conn::kani_context::KaniranContext;
 use crate::dict::kani_split_engine::{
-    run_split, Finder, Len, Modify, PartSeq, Pred, SplitDef, Step, WordPart,
+    Finder, Len, Modify, PartSeq, Pred, SplitDef, Step, WordPart,
 };
-use crate::dict::kani_split_part::SplitPart;
-use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
-/// Mirror of `(destructuring-bind (score &key (primary 0) (connector " ") root) attrs ...)`
-/// at `dict-split.lisp:790`. Defaults reproduce the `&key` defaults at
-/// that callsite for forms whose score-list omits a keyword.
-pub struct SegSplitAttrs {
-    pub score: i32,
-    pub primary: usize,
-    pub connector: &'static str,
-    pub root: &'static [usize],
-}
-
-/// One registered segsplit callsite. Wraps [`SplitDef`] (consumed by
-/// [`run_split`]) with the keyword attrs that ride alongside the score
-/// in the upstream score-form.
+/// One registered segsplit callsite. Wraps [`SplitDef`] (run by
+/// [`super::kani_split_engine::run_split`] via
+/// [`super::_star_split_map_star_::split_map_dispatch`] when
+/// [`crate::dict::_star_split_map_star_::SplitMapKind::SegSplit`] is
+/// active) with the keyword attrs destructured at
+/// `dict-split.lisp:790`. Defaults reproduce the `&key` defaults of
+/// that destructure for forms whose score-list omits a keyword.
 pub struct SegSplitDef {
     pub split: SplitDef,
     pub primary: usize,
@@ -528,33 +496,6 @@ pub static SEGSPLIT_TABLE: &[SegSplitDef] = &[
         root: &[],
     },
 ];
-
-/// Mirror of `(funcall split-fn reading)` at `dict-split.lisp:72`/`:74`
-/// with `*split-map*` let-bound to `*segsplit-map*` (the redirection
-/// at `dict-split.lisp:786` inside `get-segsplit`). Returns `None` for
-/// unregistered seqs to preserve the upstream `(gethash seq
-/// *segsplit-map*)` semantics. The keyword attrs travel back to the
-/// caller bundled as [`SegSplitAttrs`], reproducing the
-/// `destructuring-bind (score &key primary connector root) attrs`
-/// shape at `dict-split.lisp:790`.
-pub async fn segsplit_map_dispatch(
-    seq: i32,
-    ctx: &KaniranContext,
-    reading: &KaniSimpleTextDispatchEnum,
-) -> Option<Result<(Vec<Option<SplitPart>>, SegSplitAttrs), sqlx::Error>> {
-    let def = SEGSPLIT_TABLE.iter().find(|d| d.split.seq == seq)?;
-    Some(run_split(&def.split, ctx, reading).await.map(|(parts, score)| {
-        (
-            parts,
-            SegSplitAttrs {
-                score,
-                primary: def.primary,
-                connector: def.connector,
-                root: def.root,
-            },
-        )
-    }))
-}
 
 #[cfg(test)]
 pub(crate) const REGISTERED_COUNT: usize = SEGSPLIT_TABLE.len();

@@ -19,6 +19,7 @@ use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;
 use crate::dict::_star_counter_cache_star_::{build_counter_cache, CounterCache};
 use crate::dict::_star_is_arch_cache_star_::build_is_arch;
 use crate::dict::_star_no_conj_data_star_::build_no_conj_data;
+use crate::dict::_star_split_map_star_::SplitMapKind;
 use crate::dict::_star_substring_hash_star_::SubstringHash;
 use crate::dict::_star_suffix_cache_star_::SuffixCache;
 use crate::dict::_star_suffix_class_star_::SuffixClass;
@@ -109,6 +110,11 @@ pub struct KaniranContext {
     /// `usize::try_from(end).ok()` and drops negative-binding rows the
     /// same way `gethash` does.
     pub suffix_next_end: Option<i32>,
+
+    /// Upstream `*split-map*` (`dict-split.lisp:5`) — selector for the
+    /// active split-table binding. Rebound at `dict-split.lisp:786`
+    /// inside `get-segsplit`.
+    pub split_map: SplitMapKind,
 }
 
 impl KaniranContext {
@@ -140,6 +146,11 @@ impl KaniranContext {
     pub fn with_suffix_next_end(&self, v: Option<i32>) -> Self {
         Self { suffix_next_end: v, ..self.clone() }
     }
+
+    /// `(let ((*split-map* *segsplit-map*)) …)` (`dict-split.lisp:786`).
+    pub fn with_segsplit_map(&self) -> Self {
+        Self { split_map: SplitMapKind::SegSplit, ..self.clone() }
+    }
 }
 
 impl KaniranContext {
@@ -170,6 +181,7 @@ impl KaniranContext {
             substring_hash: None,
             suffix_map_temp: None,
             suffix_next_end: None,
+            split_map: SplitMapKind::Default,
         };
         ctx.counter_cache = Arc::new(build_counter_cache(&ctx).await?);
         let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;

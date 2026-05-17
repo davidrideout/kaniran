@@ -146,6 +146,7 @@ pub mod segment_struct;
 pub mod sense_dao;
 pub mod sense_prop_dao;
 pub mod seq;
+pub mod set_word_conjugations;
 pub mod simple_text_class;
 pub mod skip_by_conj_data;
 pub mod source;

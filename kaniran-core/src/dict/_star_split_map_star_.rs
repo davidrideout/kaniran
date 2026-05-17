@@ -19,14 +19,32 @@
 //! `def-simple-split` ports into per-file copies of the same
 //! interpreter loop. `audit-signatures` will report each `split-*`
 //! FQN as `port file not found` — those entries are this convention.
+//!
+//! Rebound to `*segsplit-map*` inside `get-segsplit`
+//! (`dict-split.lisp:786`). Selector lives on
+//! [`crate::conn::kani_context::KaniranContext::split_map`]; rebind
+//! helper is `with_segsplit_map`.
 
 use crate::conn::kani_context::KaniranContext;
+use crate::dict::_star_segsplit_map_star_::SEGSPLIT_TABLE;
 use crate::dict::kani_split_engine::{
     run_split, Finder, Len, Modify, PartSeq, Pred, ScorePush, SplitDef, Step, WordPart,
 };
 use crate::dict::kani_split_part::SplitPart;
 use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 use crate::dict::word_type::WordType;
+
+/// Selector for the active `*split-map*` binding. Diverges from
+/// upstream "any hashtable" value space — closed to the two tables
+/// upstream actually binds (`*split-map*` itself or `*segsplit-map*`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SplitMapKind {
+    /// `*split-map*` (`dict-split.lisp:5`) — [`SPLIT_TABLE`].
+    Default,
+    /// `*segsplit-map*` (`dict-split.lisp:704`) —
+    /// [`super::_star_segsplit_map_star_::SEGSPLIT_TABLE`].
+    SegSplit,
+}
 
 fn split_2529050_first_part_len(txt: &str, _len_: usize) -> Option<usize> {
     Some(if txt.starts_with("もの") { 2 } else { 1 })
@@ -3429,8 +3447,16 @@ pub async fn split_map_dispatch(
     ctx: &KaniranContext,
     reading: &KaniSimpleTextDispatchEnum,
 ) -> Option<Result<(Vec<Option<SplitPart>>, i32), sqlx::Error>> {
-    let def = SPLIT_TABLE.iter().find(|d| d.seq == seq)?;
-    Some(run_split(def, ctx, reading).await)
+    match ctx.split_map {
+        SplitMapKind::Default => {
+            let def = SPLIT_TABLE.iter().find(|d| d.seq == seq)?;
+            Some(run_split(def, ctx, reading).await)
+        }
+        SplitMapKind::SegSplit => {
+            let def = SEGSPLIT_TABLE.iter().find(|d| d.split.seq == seq)?;
+            Some(run_split(&def.split, ctx, reading).await)
+        }
+    }
 }
 
 /// Number of registered seqs — pinned so the build fails loudly if
