@@ -431,15 +431,15 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  412. `ichiran/dict:segfilter-janai`  — fn, dict-grammar.lisp:1146  *[ported]*
  413. `ichiran/dict:segfilter-mononi`  — fn, dict-grammar.lisp:1177  *[ported]*
  414. `ichiran/dict:filter-in-seq-set-simple`  — fn, dict-grammar.lisp:787  *[ported]*
- 415. `ichiran/dict:segfilter-n`  — fn, dict-grammar.lisp:1106
- 416. `ichiran/dict:segfilter-nohayamete`  — fn, dict-grammar.lisp:1151
- 417. `ichiran/dict:segfilter-roku`  — fn, dict-grammar.lisp:1129
- 418. `ichiran/dict:segfilter-sae`  — fn, dict-grammar.lisp:1141
- 419. `ichiran/dict:segfilter-sukiyoki`  — fn, dict-grammar.lisp:1119
- 420. `ichiran/dict:segfilter-toomou`  — fn, dict-grammar.lisp:1156
- 421. `ichiran/dict:segfilter-totte`  — fn, dict-grammar.lisp:1165
- 422. `ichiran/dict:segfilter-tsu-iru`  — fn, dict-grammar.lisp:1101
- 423. `ichiran/dict:segfilter-wokarasu`  — fn, dict-grammar.lisp:1112
+ 415. `ichiran/dict:segfilter-n`  — fn, dict-grammar.lisp:1106  *[ported]*
+ 416. `ichiran/dict:segfilter-nohayamete`  — fn, dict-grammar.lisp:1151  *[ported]*
+ 417. `ichiran/dict:segfilter-roku`  — fn, dict-grammar.lisp:1129  *[ported]*
+ 418. `ichiran/dict:segfilter-sae`  — fn, dict-grammar.lisp:1141  *[ported]*
+ 419. `ichiran/dict:segfilter-sukiyoki`  — fn, dict-grammar.lisp:1119  *[ported]*
+ 420. `ichiran/dict:segfilter-toomou`  — fn, dict-grammar.lisp:1156  *[ported]*
+ 421. `ichiran/dict:segfilter-totte`  — fn, dict-grammar.lisp:1165  *[ported]*
+ 422. `ichiran/dict:segfilter-tsu-iru`  — fn, dict-grammar.lisp:1101  *[ported]*
+ 423. `ichiran/dict:segfilter-wokarasu`  — fn, dict-grammar.lisp:1112  *[ported]*
  424. `ichiran/dict:*segfilter-list*`  — global, dict-grammar.lisp:1024
  425. `ichiran/dict:apply-segfilters`  — fn, dict-grammar.lisp:1177
  426. `ichiran/dict:get-seg-initial`  — fn, dict.lisp:1172  *[extracted: chunk_b_segmentation_2026_05_14]*
@@ -449,25 +449,25 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  430. `ichiran/dict:*penalty-list*`  — global, dict-grammar.lisp:964
  431. `ichiran/dict:get-penalties`  — fn, dict-grammar.lisp:1030
  432. `ichiran/dict:synergy-kanji-prefix`  — fn, dict-grammar.lisp:940
- 433. `ichiran/dict:synergy-na-adjectives`  — fn, dict-grammar.lisp:892  *[extracted: chunk_d1a_synergy_2026_05_16]*
- 434. `ichiran/dict:synergy-no-adjectives`  — fn, dict-grammar.lisp:884  *[extracted: chunk_d1a_synergy_2026_05_16]*
- 435. `ichiran/dict:synergy-no-da`  — fn, dict-grammar.lisp:871  *[extracted: chunk_d1a_synergy_2026_05_16]*
+ 433. `ichiran/dict:synergy-na-adjectives`  — fn, dict-grammar.lisp:892
+ 434. `ichiran/dict:synergy-no-adjectives`  — fn, dict-grammar.lisp:884
+ 435. `ichiran/dict:synergy-no-da`  — fn, dict-grammar.lisp:871
  436. `ichiran/dict:synergy-no-toori`  — fn, dict-grammar.lisp:970
  437. `ichiran/dict:filter-is-noun`  — fn, dict-grammar.lisp:760  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
- 438. `ichiran/dict:synergy-noun-da`  — fn, dict-grammar.lisp:859  *[extracted: chunk_d1a_synergy_2026_05_16]*
- 439. `ichiran/dict:synergy-noun-particle`  — fn, dict-grammar.lisp:850  *[extracted: chunk_d1a_synergy_2026_05_16]*
+ 438. `ichiran/dict:synergy-noun-da`  — fn, dict-grammar.lisp:859
+ 439. `ichiran/dict:synergy-noun-particle`  — fn, dict-grammar.lisp:850
  440. `ichiran/dict:synergy-o-prefix`  — fn, dict-grammar.lisp:935
  441. `ichiran/dict:synergy-oki`  — fn, dict-grammar.lisp:973
  442. `ichiran/dict:synergy-shicha-ikenai`  — fn, dict-grammar.lisp:951
  443. `ichiran/dict:synergy-shika-negative`  — fn, dict-grammar.lisp:959
- 444. `ichiran/dict:synergy-sou-nanda`  — fn, dict-grammar.lisp:878  *[extracted: chunk_d1a_synergy_2026_05_16]*
+ 444. `ichiran/dict:synergy-sou-nanda`  — fn, dict-grammar.lisp:878
  445. `ichiran/dict:synergy-suffix-buri`  — fn, dict-grammar.lisp:925
- 446. `ichiran/dict:synergy-suffix-chu`  — fn, dict-grammar.lisp:914  *[extracted: chunk_d1a_synergy_2026_05_16]*
+ 446. `ichiran/dict:synergy-suffix-chu`  — fn, dict-grammar.lisp:914
  447. `ichiran/dict:synergy-suffix-sei`  — fn, dict-grammar.lisp:929
- 448. `ichiran/dict:synergy-suffix-tachi`  — fn, dict-grammar.lisp:921  *[extracted: chunk_d1a_synergy_2026_05_16]*
- 449. `ichiran/dict:synergy-to-adverbs`  — fn, dict-grammar.lisp:902  *[extracted: chunk_d1a_synergy_2026_05_16]*
+ 448. `ichiran/dict:synergy-suffix-tachi`  — fn, dict-grammar.lisp:921
+ 449. `ichiran/dict:synergy-to-adverbs`  — fn, dict-grammar.lisp:902
  450. `ichiran/dict:*synergy-list*`  — global, dict-grammar.lisp:723
- 451. `ichiran/dict:get-synergies`  — fn, dict-grammar.lisp:976  *[extracted: chunk_d1a_synergy_2026_05_16]*
+ 451. `ichiran/dict:get-synergies`  — fn, dict-grammar.lisp:976
  452. `ichiran/dict:get-seg-splits`  — fn, dict.lisp:1175  *[extracted: chunk_b_segmentation_2026_05_14]*
  453. `ichiran/dict:get-segment-score`  — gf, dict.lisp:0  *[ported]*
  454. `ichiran/dict:register-item`  — gf, dict.lisp:0

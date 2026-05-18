@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 """Drive the ichiran extractor pool over a sentence corpus and write
-per-FQN parquet fixtures under <output_dir>/<package>/<symbol>.parquet.
+per-FQN parquet fixture chunks under
+<output_dir>/<package>/<symbol>_NNNNNN.parquet.
 
 Pipeline:
-    producer    streams sentences into a bounded asyncio.Queue
+    producer    streams (idx, sentence) tuples into a bounded asyncio.Queue
     workers     N coroutines, each calls POST /extract per sentence,
-                pushes (fn, args, result) tuples downstream
-    writer      single task; per-FQN dedup-by-args + per-FQN parquet
-                writer kept open for the whole run
+                pushes (fn, idx, args, result) tuples downstream
+    writer      single task; per-FQN buffer that flushes a self-contained
+                chunk file (one row group, footer closed) every BATCH rows
 
-Schema per parquet file:
+Crash safety: each chunk's footer is flushed on the close that follows
+its single row-group write, so a SIGKILL only loses the in-progress
+per-FQN buffer (≤BATCH rows). Earlier chunks are recoverable.
+
+Schema per chunk file:
+    idx    : int64    (absolute 0-indexed row in the source corpus)
     args   : utf8     (Lisp source text of the args list)
     result : utf8     (Lisp source text of the multiple-value-list result)
 Arrow file metadata embeds run provenance:
@@ -30,16 +36,23 @@ Usage:
 
 Input format is detected by extension:
 - .parquet: read the `text` column (schema from build_diverse_corpus.py:
-  number / source / text). Rows iterated in file order.
+  number / source / text). Rows iterated in file order; `idx` is the
+  absolute 0-indexed row number in the source parquet (independent of
+  --skip), so re-running with --skip N resumes seamlessly.
 - otherwise: parsed Tatoeba-style (tab-split, sentence in column 3 if
   present, otherwise the whole line — also handles plain
-  one-sentence-per-line).
+  one-sentence-per-line). `idx` is the absolute 0-indexed line number.
+
+Resume: chunk_idx is initialised from `max(existing chunks)+1` per FQN
+at writer-open time, so a re-run targeting the same output dir appends
+rather than colliding. Dedup is expected to drop the `idx` column.
 """
 
 import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -61,9 +74,13 @@ BACKOFF_BASE = 2
 SENTINEL = None  # poison pill
 
 SCHEMA = pa.schema([
+    pa.field("idx", pa.int64()),
     pa.field("args", pa.string()),
     pa.field("result", pa.string()),
 ])
+
+# <sym>_NNNNNN.parquet — N width is fixed at 6 (1M chunks * 4096 = 4B rows).
+CHUNK_RE = re.compile(r"_(\d{6})\.parquet$")
 
 
 def eprint(*args, **kwargs):
@@ -136,21 +153,21 @@ def iter_sentences(input_file: str, skip: int, limit: Optional[int]):
 
 
 def _iter_text(input_file: str, skip: int, limit: Optional[int]):
-    idx = 0
-    seen = 0
+    # idx is the absolute 0-indexed row in the source file (counts blank
+    # lines too), so resume via --skip aligns 1:1 with captured idx values.
+    yielded = 0
     with open(input_file, encoding="utf-8") as f:
-        for row in f:
-            row = row.strip()
-            if not row:
+        for row_idx, raw in enumerate(f):
+            if row_idx < skip:
                 continue
-            seen += 1
-            if seen <= skip:
+            row = raw.strip()
+            if not row:
                 continue
             parts = row.split("\t")
             sentence = parts[2] if len(parts) >= 3 else row
-            idx += 1
-            yield sentence
-            if limit and idx >= limit:
+            yield (row_idx, sentence)
+            yielded += 1
+            if limit and yielded >= limit:
                 return
 
 
@@ -161,28 +178,29 @@ def _iter_parquet(input_file: str, skip: int, limit: Optional[int]):
             f"{input_file}: parquet missing 'text' column "
             f"(found {pf.schema_arrow.names})"
         )
-    idx = 0
-    seen = 0
+    # idx tracks the absolute 0-indexed row in the source parquet so it
+    # survives --skip / --limit unchanged.
+    row_idx = 0
+    yielded = 0
     for batch in pf.iter_batches(batch_size=10000, columns=["text"]):
         for value in batch.column("text"):
+            if row_idx < skip:
+                row_idx += 1
+                continue
             sentence = value.as_py()
-            if not sentence:
-                continue
-            sentence = sentence.strip()
-            if not sentence:
-                continue
-            seen += 1
-            if seen <= skip:
-                continue
-            idx += 1
-            yield sentence
-            if limit and idx >= limit:
-                return
+            if sentence:
+                sentence = sentence.strip()
+            if sentence:
+                yield (row_idx, sentence)
+                yielded += 1
+                if limit and yielded >= limit:
+                    return
+            row_idx += 1
 
 
 async def producer(input_queue, input_file, skip, limit, n_workers):
-    for sentence in iter_sentences(input_file, skip, limit):
-        await input_queue.put(sentence)
+    for item in iter_sentences(input_file, skip, limit):
+        await input_queue.put(item)
     for _ in range(n_workers):
         await input_queue.put(SENTINEL)
 
@@ -210,10 +228,11 @@ async def worker(
     one malformed shape would otherwise discard hours of work."""
     extract_url = f"{api.rstrip('/')}/extract"
     while True:
-        sentence = await input_queue.get()
-        if sentence is SENTINEL:
+        item = await input_queue.get()
+        if item is SENTINEL:
             input_queue.task_done()
             break
+        sentence_idx, sentence = item
         try:
             result = await post_json(session, extract_url, {"text": sentence})
         except Exception as exc:
@@ -232,7 +251,7 @@ async def worker(
                 error_log.log_bad_capture(wid, sentence, cap)
                 state["captures_malformed"] += 1
                 continue
-            await output_queue.put((cap["fn"], cap["args"], cap["result"]))
+            await output_queue.put((cap["fn"], sentence_idx, cap["args"], cap["result"]))
             state["captures"] += 1
         state["sentences"] += 1
         input_queue.task_done()
@@ -314,32 +333,38 @@ class ErrorLog:
 # --- writer ------------------------------------------------------------------
 
 class FqnWriter:
-    """One ParquetWriter per FQN. Buffers rows and flushes a row group
-    every BATCH rows. No dedup — duplicates land in the parquet and are
-    collapsed post-run with duckdb. (Earlier per-FQN dedup sets blew the
-    driver to ~22 GB anon RSS on a 250k-sentence corpus and OOM-killed
-    the process.)"""
+    """One self-contained chunk file per BATCH rows. Each flush opens a
+    fresh ParquetWriter, writes a single row group, closes it (so the
+    footer is on disk), and increments the chunk counter. A SIGKILL only
+    loses the in-memory buffer (≤BATCH rows); every prior chunk is
+    independently readable. No dedup — duplicates land in the chunk files
+    and are collapsed post-run with duckdb. (Earlier per-FQN dedup sets
+    blew the driver to ~22 GB anon RSS on a 250k-sentence corpus and
+    OOM-killed the process.)"""
 
     BATCH = 4096
 
     def __init__(self, out_dir: str, fqn: str, metadata: dict):
         pkg_dir, sym_file = fqn_to_path(fqn)
-        os.makedirs(os.path.join(out_dir, pkg_dir), exist_ok=True)
-        self.path = os.path.join(out_dir, pkg_dir, f"{sym_file}.parquet")
+        self.dir = os.path.join(out_dir, pkg_dir)
+        os.makedirs(self.dir, exist_ok=True)
+        self.sym_file = sym_file
         # arrow file-level KV metadata is bytes-keyed.
         self.metadata = {b"ichiran_extractor_fqn": fqn.encode("utf-8")}
         for k, v in metadata.items():
             self.metadata[k.encode("utf-8")] = str(v).encode("utf-8")
         self.schema = SCHEMA.with_metadata(self.metadata)
-        self.writer = pq.ParquetWriter(
-            self.path, self.schema,
-            compression="zstd", compression_level=3,
-        )
+        self.idx_buf: list[int] = []
         self.args_buf: list[str] = []
         self.results_buf: list[str] = []
         self.n_written = 0
+        # Resume: continue chunk numbering after any pre-existing chunks
+        # in the output dir (no collisions when --output points at a
+        # partial run). Initialised lazily on the first arrival.
+        self.chunk_idx = _max_chunk_idx(self.dir, sym_file)
 
-    def add(self, args: str, result: str):
+    def add(self, idx: int, args: str, result: str):
+        self.idx_buf.append(idx)
         self.args_buf.append(args)
         self.results_buf.append(result)
         if len(self.args_buf) >= self.BATCH:
@@ -348,18 +373,48 @@ class FqnWriter:
     def _flush(self):
         if not self.args_buf:
             return
+        self.chunk_idx += 1
+        path = os.path.join(
+            self.dir, f"{self.sym_file}_{self.chunk_idx:06d}.parquet"
+        )
         table = pa.table(
-            {"args": self.args_buf, "result": self.results_buf},
+            {"idx": self.idx_buf,
+             "args": self.args_buf,
+             "result": self.results_buf},
             schema=self.schema,
         )
-        self.writer.write_table(table)
+        # Context-manager close() flushes the footer immediately, so the
+        # chunk is durable on disk before we return.
+        with pq.ParquetWriter(
+            path, self.schema,
+            compression="zstd", compression_level=3,
+        ) as w:
+            w.write_table(table)
         self.n_written += len(self.args_buf)
+        self.idx_buf.clear()
         self.args_buf.clear()
         self.results_buf.clear()
 
     def close(self):
         self._flush()
-        self.writer.close()
+
+
+def _max_chunk_idx(directory: str, sym_file: str) -> int:
+    """Highest existing chunk index for <sym_file>_NNNNNN.parquet in dir,
+    or 0 if none. Used to make chunk numbering append-safe across re-runs."""
+    if not os.path.isdir(directory):
+        return 0
+    prefix = f"{sym_file}_"
+    best = 0
+    for fn in os.listdir(directory):
+        if not fn.startswith(prefix):
+            continue
+        m = CHUNK_RE.search(fn)
+        if m:
+            n = int(m.group(1))
+            if n > best:
+                best = n
+    return best
 
 
 async def writer_task(
@@ -381,12 +436,12 @@ async def writer_task(
                 if workers_done >= n_workers:
                     break
                 continue
-            fqn, args, result = item
+            fqn, idx, args, result = item
             w = writers.get(fqn)
             if w is None:
                 w = FqnWriter(out_dir, fqn, metadata)
                 writers[fqn] = w
-            w.add(args, result)
+            w.add(idx, args, result)
             n_captures += 1
             output_queue.task_done()
     finally:

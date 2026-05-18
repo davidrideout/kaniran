@@ -12,9 +12,9 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 136 fn/gf
+- Checked: 150 fn/gf
 - Macros (file-existence only): 0
-- Divergences: 19
+- Divergences: 21
 
 ## Divergences
 
@@ -56,6 +56,16 @@ captured Lisp lambda list. New entries should be either:
 ### `ichiran/dict:filter-in-seq-set`
 
 - file: `kaniran-core/src/dict/filter_in_seq_set.rs`
+- drift: arity 1 ≠ Lisp 0 (req=0, opt=0, keys=[])
+
+### `ichiran/dict:filter-in-seq-set-simple`
+
+- file: `kaniran-core/src/dict/filter_in_seq_set_simple.rs`
+- drift: arity 1 ≠ Lisp 0 (req=0, opt=0, keys=[])
+
+### `ichiran/dict:filter-is-compound-end`
+
+- file: `kaniran-core/src/dict/filter_is_compound_end.rs`
 - drift: arity 1 ≠ Lisp 0 (req=0, opt=0, keys=[])
 
 ### `ichiran/dict:filter-is-compound-end-text`
