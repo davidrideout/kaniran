@@ -442,10 +442,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  423. `ichiran/dict:segfilter-wokarasu`  — fn, dict-grammar.lisp:1112  *[ported]*
  424. `ichiran/dict:*segfilter-list*`  — global, dict-grammar.lisp:1024  *[ported]*
  425. `ichiran/dict:apply-segfilters`  — fn, dict-grammar.lisp:1177  *[ported]*
- 426. `ichiran/dict:get-seg-initial`  — fn, dict.lisp:1172  *[extracted: chunk_b_segmentation_2026_05_14]*
- 427. `ichiran/dict:penalty-semi-final`  — fn, dict-grammar.lisp:1022
- 428. `ichiran/dict:filter-short-kana`  — fn, dict-grammar.lisp:1008
- 429. `ichiran/dict:penalty-short`  — fn, dict-grammar.lisp:1020
+ 426. `ichiran/dict:get-seg-initial`  — fn, dict.lisp:1172  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
+ 427. `ichiran/dict:penalty-semi-final`  — fn, dict-grammar.lisp:1022  *[ported]*
+ 428. `ichiran/dict:filter-short-kana`  — fn, dict-grammar.lisp:1008  *[ported]*
+ 429. `ichiran/dict:penalty-short`  — fn, dict-grammar.lisp:1020  *[ported]*
  430. `ichiran/dict:*penalty-list*`  — global, dict-grammar.lisp:964
  431. `ichiran/dict:get-penalties`  — fn, dict-grammar.lisp:1030
  432. `ichiran/dict:synergy-kanji-prefix`  — fn, dict-grammar.lisp:940
