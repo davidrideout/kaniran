@@ -469,7 +469,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  450. `ichiran/dict:*synergy-list*`  — global, dict-grammar.lisp:723
  451. `ichiran/dict:get-synergies`  — fn, dict-grammar.lisp:976  *[extracted: chunk_d1a_synergy_2026_05_16]*
  452. `ichiran/dict:get-seg-splits`  — fn, dict.lisp:1175  *[extracted: chunk_b_segmentation_2026_05_14]*
- 453. `ichiran/dict:get-segment-score`  — gf, dict.lisp:0
+ 453. `ichiran/dict:get-segment-score`  — gf, dict.lisp:0  *[ported]*
  454. `ichiran/dict:register-item`  — gf, dict.lisp:0
  455. `ichiran/dict:find-best-path`  — fn, dict.lisp:1190  *[extracted: chunk_b_segmentation_2026_05_14]*
  456. `ichiran/dict:*identical-word-score-cutoff*`  — global, dict.lisp:1020  *[ported]*
@@ -482,10 +482,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  463. `ichiran/dict:*suffix-map-temp*`  — global, dict.lisp:1049  *[ported]*
  464. `ichiran/dict:*suffix-next-end*`  — global, dict.lisp:1050  *[ported]*
  465. `ichiran/dict:find-sticky-positions`  — fn, dict.lisp:990  *[extracted: substring_2026_05_14]*
- 466. `ichiran/dict:find-substring-words`  — fn, dict.lisp:501
+ 466. `ichiran/dict:find-substring-words`  — fn, dict.lisp:501  *[ported]*
  467. `ichiran/dict:verify`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
  468. `ichiran/numbers:reason`  — gf, numbers.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
- 469. `ichiran/numbers:text`  — gf, numbers.lisp:0
+ 469. `ichiran/numbers:text`  — gf, numbers.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  470. `ichiran/numbers:not-a-number`  — condition, numbers.lisp:0  *[ported]*
  471. `ichiran/dict:find-counter`  — fn, dict-counters.lisp:273  *[ported]*  *[extracted: counter_2026_05_08]*
  472. `ichiran/dict:find-word`  — fn, dict.lisp:489  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 8105/8105]*
