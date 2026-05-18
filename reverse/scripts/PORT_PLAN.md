@@ -621,10 +621,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  551. `ichiran/conn:load-settings`  — fn, conn.lisp:76  *[skip — Loads settings.lisp and overrides connection from env. No counterpart in Rust — config comes from env (or layered config-crate sources) via Ctx::from_env.]*
  552. `ichiran/conn:with-db`  — macro, conn.lisp:46  *[skip — Rebinds *connection* and re-derives per-conn-var cache for a dynamic scope. Replaced by per-Ctx ownership of pool and caches; multi-DB = construct another Ctx.]*
  553. `ichiran/conn:with-log`  — macro, conn.lisp:86  *[skip — Wraps cl-postgres:*query-log* to a stream for the body. Replaced by sqlx + tracing query logging.]*
- 554. `ichiran/custom:*municipality-types*`  — global, dict-custom.lisp:97
- 555. `ichiran/custom:*municipality-types-description*`  — global, dict-custom.lisp:107
- 556. `ichiran/custom:*municipality-types-order*`  — global, dict-custom.lisp:118
- 557. `ichiran/custom:*silent-p*`  — global, dict-custom.lisp:5
+ 554. `ichiran/custom:*municipality-types*`  — global, dict-custom.lisp:97  *[ported]*
+ 555. `ichiran/custom:*municipality-types-description*`  — global, dict-custom.lisp:107  *[ported]*
+ 556. `ichiran/custom:*municipality-types-order*`  — global, dict-custom.lisp:118  *[ported]*
+ 557. `ichiran/custom:*silent-p*`  — global, dict-custom.lisp:5  *[skip — stdout verbosity flag for load-custom-data progress prints; Rust port uses log/tracing levels instead of a global dynamic var]*
  558. `ichiran/custom:as-xml-simple`  — fn, dict-custom.lisp:225
  559. `ichiran/custom:municipality`  — struct, dict-custom.lisp:140  *[ported]*
  560. `ichiran/custom:ward`  — struct, dict-custom.lisp:269  *[ported]*
@@ -637,8 +637,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  567. `ichiran/custom:xml-loader`  — class, dict-custom.lisp:59
  568. `ichiran/custom:get-custom-data`  — fn, dict-custom.lisp:322
  569. `ichiran/custom:get-words`  — gf, dict-custom.lisp:0
- 570. `ichiran/dict:*pos-with-conj-rules*`  — global, dict-load.lisp:307
- 571. `ichiran/dict:*do-not-conjugate*`  — global, dict-load.lisp:303
+ 570. `ichiran/dict:*pos-with-conj-rules*`  — global, dict-load.lisp:307  *[ported]*
+ 571. `ichiran/dict:*do-not-conjugate*`  — global, dict-load.lisp:303  *[ported]*
  572. `ichiran/dict:conjugate-p`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  573. `ichiran/dict:conjugation-rule`  — struct, dict-load.lisp:262  *[ported]*
  574. `ichiran/dict:construct-conjugation`  — fn, dict-load.lisp:281
@@ -651,7 +651,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  581. `ichiran/dict:get-conj-rules`  — fn, dict-load.lisp:265
  582. `ichiran/dict:conjugate-entry-inner`  — fn, dict-load.lisp:314
  583. `ichiran/dict:get-all-readings`  — fn, dict-errata.lisp:257
- 584. `ichiran/dict:*secondary-conjugation-types-from*`  — global, dict-load.lisp:312
+ 584. `ichiran/dict:*secondary-conjugation-types-from*`  — global, dict-load.lisp:312  *[ported]*
  585. `ichiran/dict:insert-conjugation`  — fn, dict-load.lisp:375
  586. `ichiran/dict:next-seq`  — fn, dict-load.lisp:110
  587. `ichiran/dict:conjugate-entry-outer`  — fn, dict-load.lisp:342
@@ -660,7 +660,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  590. `ichiran/dict:insert-readings`  — fn, dict-load.lisp:32
  591. `ichiran/dict:insert-sense-traits`  — fn, dict-load.lisp:66
  592. `ichiran/dict:insert-senses`  — fn, dict-load.lisp:71
- 593. `ichiran/dict:*secondary-conjugation-types*`  — global, dict-load.lisp:314
+ 593. `ichiran/dict:*secondary-conjugation-types*`  — global, dict-load.lisp:314  *[ported]*
  594. `ichiran/dict:load-secondary-conjugations`  — fn, dict-load.lisp:457
  595. `ichiran/dict:load-entry`  — fn, dict-load.lisp:113
  596. `ichiran/custom:insert-entry`  — gf, dict-custom.lisp:0
@@ -686,14 +686,14 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  616. `ichiran/dict:*aux-verbs*`  — global, dict-grammar.lisp:1072  *[ported]*
  617. `ichiran/dict:*conj-description*`  — global, dict-load.lisp:0
  618. `ichiran/dict:*conj-rules*`  — global, dict-load.lisp:0
- 619. `ichiran/dict:*do-not-conjugate-seq*`  — global, dict-load.lisp:305
+ 619. `ichiran/dict:*do-not-conjugate-seq*`  — global, dict-load.lisp:305  *[ported]*
  620. `ichiran/dict:*easy-hints-seqs*`  — global, dict-split.lisp:904  *[ported]*
- 621. `ichiran/dict:*hints-checked*`  — global, dict-split.lisp:947
- 622. `ichiran/dict:*honorifics*`  — global, dict-grammar.lisp:1156
+ 621. `ichiran/dict:*hints-checked*`  — global, dict-split.lisp:947  *[ported]*
+ 622. `ichiran/dict:*honorifics*`  — global, dict-grammar.lisp:1156  *[ported]*
  623. `ichiran/dict:*jmdict-data*`  — global, settings.lisp:12
  624. `ichiran/dict:*jmdict-path*`  — global, settings.lisp:10
  625. `ichiran/dict:*kana-hint-map*`  — global, dict-split.lisp:832  *[skip — Dead defparameter: declared (make-hash-table) at dict-split.lisp:832 with comment ';; seq -> split function', never written or read in the upstream codebase (verified: grep returns only the declaration; REPL probe shows hash-table-count=0 after full image load). Vestigial — likely abandoned earlier kana-hint design, now superseded by *hint-map*. No populator exists to port and no consumer would observe its value, so an empty Rust HashMap with () as value would be a justification stub (feedback_no_justification_stubs.md, feedback_no_empty_cache_stubs.md). If a future upstream change starts populating it, port at that time.]*
- 626. `ichiran/dict:*noun-particles*`  — global, dict-grammar.lisp:801
+ 626. `ichiran/dict:*noun-particles*`  — global, dict-grammar.lisp:801  *[ported]*
  627. `ichiran/dict:*pos-by-index*`  — global, dict-load.lisp:0
  628. `ichiran/dict:*pos-index*`  — global, dict-load.lisp:0
  629. `ichiran/dict:find-conj`  — fn, dict-errata.lisp:1

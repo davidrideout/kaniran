@@ -6,5 +6,8 @@
 //! loader land later — XML ingest is out of scope per the resolved
 //! decision (see `reverse/scripts/HANDOFF.md`).
 
+pub mod _star_municipality_types_description_star_;
+pub mod _star_municipality_types_order_star_;
+pub mod _star_municipality_types_star_;
 pub mod municipality_struct;
 pub mod ward_struct;
