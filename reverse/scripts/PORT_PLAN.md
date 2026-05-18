@@ -426,11 +426,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  407. `ichiran/dict:segfilter-badend`  — fn, dict-grammar.lisp:1114  *[ported]*
  408. `ichiran/dict:segfilter-dashi`  — fn, dict-grammar.lisp:1167  *[ported]*
  409. `ichiran/dict:segfilter-dekiru`  — fn, dict-grammar.lisp:1175  *[ported]*
- 410. `ichiran/dict:segfilter-honorific`  — fn, dict-grammar.lisp:1177
- 411. `ichiran/dict:filter-is-compound-end`  — fn, dict-grammar.lisp:806
- 412. `ichiran/dict:segfilter-janai`  — fn, dict-grammar.lisp:1146
- 413. `ichiran/dict:segfilter-mononi`  — fn, dict-grammar.lisp:1177
- 414. `ichiran/dict:filter-in-seq-set-simple`  — fn, dict-grammar.lisp:787
+ 410. `ichiran/dict:segfilter-honorific`  — fn, dict-grammar.lisp:1177  *[ported]*
+ 411. `ichiran/dict:filter-is-compound-end`  — fn, dict-grammar.lisp:806  *[ported]*
+ 412. `ichiran/dict:segfilter-janai`  — fn, dict-grammar.lisp:1146  *[ported]*
+ 413. `ichiran/dict:segfilter-mononi`  — fn, dict-grammar.lisp:1177  *[ported]*
+ 414. `ichiran/dict:filter-in-seq-set-simple`  — fn, dict-grammar.lisp:787  *[ported]*
  415. `ichiran/dict:segfilter-n`  — fn, dict-grammar.lisp:1106
  416. `ichiran/dict:segfilter-nohayamete`  — fn, dict-grammar.lisp:1151
  417. `ichiran/dict:segfilter-roku`  — fn, dict-grammar.lisp:1129
