@@ -440,8 +440,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  421. `ichiran/dict:segfilter-totte`  — fn, dict-grammar.lisp:1165  *[ported]*
  422. `ichiran/dict:segfilter-tsu-iru`  — fn, dict-grammar.lisp:1101  *[ported]*
  423. `ichiran/dict:segfilter-wokarasu`  — fn, dict-grammar.lisp:1112  *[ported]*
- 424. `ichiran/dict:*segfilter-list*`  — global, dict-grammar.lisp:1024
- 425. `ichiran/dict:apply-segfilters`  — fn, dict-grammar.lisp:1177
+ 424. `ichiran/dict:*segfilter-list*`  — global, dict-grammar.lisp:1024  *[ported]*
+ 425. `ichiran/dict:apply-segfilters`  — fn, dict-grammar.lisp:1177  *[ported]*
  426. `ichiran/dict:get-seg-initial`  — fn, dict.lisp:1172  *[extracted: chunk_b_segmentation_2026_05_14]*
  427. `ichiran/dict:penalty-semi-final`  — fn, dict-grammar.lisp:1022
  428. `ichiran/dict:filter-short-kana`  — fn, dict-grammar.lisp:1008
