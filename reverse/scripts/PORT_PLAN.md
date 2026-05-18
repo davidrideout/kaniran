@@ -580,7 +580,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  512. `ichiran/dict:word-info-reading-str`  — fn, dict.lisp:1734
  513. `ichiran/dict:reading-str`  — gf, dict.lisp:0
  514. `ichiran/dict:word-info-str`  — fn, dict.lisp:1747
- 515. `ichiran:*hepburn-kana-table*`  — global, romanize.lisp:0
+ 515. `ichiran:*hepburn-kana-table*`  — global, romanize.lisp:0  *[ported]*
  516. `ichiran:generic-romanization`  — class, romanize.lisp:62
  517. `ichiran:generic-hepburn`  — class, romanize.lisp:103
  518. `ichiran:simplified-hepburn`  — class, romanize.lisp:136
@@ -599,7 +599,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  531. `ichiran:r-special`  — gf, romanize.lisp:0  *[extracted: chunk_a_romanize_2026_05_14]*
  532. `ichiran:process-iteration-characters`  — fn, romanize.lisp:7  *[ported]*
  533. `ichiran:process-modifiers`  — fn, romanize.lisp:15  *[extracted: chunk_a_romanize_2026_05_14]*
- 534. `ichiran:*kunrei-siki-kana-table*`  — global, romanize.lisp:0
+ 534. `ichiran:*kunrei-siki-kana-table*`  — global, romanize.lisp:0  *[ported]*
  535. `ichiran:kunrei-siki`  — class, romanize.lisp:194
  536. `ichiran:r-simplify`  — gf, romanize.lisp:0  *[extracted: chunk_a_romanize_2026_05_14]*
  537. `ichiran:leftmost-atom`  — fn, romanize.lisp:25  *[extracted: chunk_a_romanize_2026_05_14]*
@@ -690,8 +690,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  620. `ichiran/dict:*easy-hints-seqs*`  — global, dict-split.lisp:904  *[ported]*
  621. `ichiran/dict:*hints-checked*`  — global, dict-split.lisp:947  *[ported]*
  622. `ichiran/dict:*honorifics*`  — global, dict-grammar.lisp:1156  *[ported]*
- 623. `ichiran/dict:*jmdict-data*`  — global, settings.lisp:12
- 624. `ichiran/dict:*jmdict-path*`  — global, settings.lisp:10
+ 623. `ichiran/dict:*jmdict-data*`  — global, settings.lisp:12  *[skip — filesystem path config; handled by kaniran.toml + env-layered config infra (get_ichiran_connection_env), not a Rust global]*
+ 624. `ichiran/dict:*jmdict-path*`  — global, settings.lisp:10  *[skip — filesystem path config; handled by kaniran.toml + env-layered config infra (get_ichiran_connection_env), not a Rust global]*
  625. `ichiran/dict:*kana-hint-map*`  — global, dict-split.lisp:832  *[skip — Dead defparameter: declared (make-hash-table) at dict-split.lisp:832 with comment ';; seq -> split function', never written or read in the upstream codebase (verified: grep returns only the declaration; REPL probe shows hash-table-count=0 after full image load). Vestigial — likely abandoned earlier kana-hint design, now superseded by *hint-map*. No populator exists to port and no consumer would observe its value, so an empty Rust HashMap with () as value would be a justification stub (feedback_no_justification_stubs.md, feedback_no_empty_cache_stubs.md). If a future upstream change starts populating it, port at that time.]*
  626. `ichiran/dict:*noun-particles*`  — global, dict-grammar.lisp:801  *[ported]*
  627. `ichiran/dict:*pos-by-index*`  — global, dict-load.lisp:0
