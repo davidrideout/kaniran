@@ -446,8 +446,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  427. `ichiran/dict:penalty-semi-final`  — fn, dict-grammar.lisp:1022  *[ported]*
  428. `ichiran/dict:filter-short-kana`  — fn, dict-grammar.lisp:1008  *[ported]*
  429. `ichiran/dict:penalty-short`  — fn, dict-grammar.lisp:1020  *[ported]*
- 430. `ichiran/dict:*penalty-list*`  — global, dict-grammar.lisp:964
- 431. `ichiran/dict:get-penalties`  — fn, dict-grammar.lisp:1030
+ 430. `ichiran/dict:*penalty-list*`  — global, dict-grammar.lisp:964  *[ported]*
+ 431. `ichiran/dict:get-penalties`  — fn, dict-grammar.lisp:1030  *[ported]*
  432. `ichiran/dict:synergy-kanji-prefix`  — fn, dict-grammar.lisp:940
  433. `ichiran/dict:synergy-na-adjectives`  — fn, dict-grammar.lisp:892
  434. `ichiran/dict:synergy-no-adjectives`  — fn, dict-grammar.lisp:884
