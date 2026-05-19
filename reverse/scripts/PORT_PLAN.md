@@ -453,11 +453,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  434. `ichiran/dict:synergy-no-adjectives`  — fn, dict-grammar.lisp:884  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
  435. `ichiran/dict:synergy-no-da`  — fn, dict-grammar.lisp:871  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
  436. `ichiran/dict:synergy-no-toori`  — fn, dict-grammar.lisp:970  *[ported]*
- 437. `ichiran/dict:filter-is-noun`  — fn, dict-grammar.lisp:760  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
- 438. `ichiran/dict:synergy-noun-da`  — fn, dict-grammar.lisp:859  *[extracted: chunk_d1a_synergy_2026_05_17]*
- 439. `ichiran/dict:synergy-noun-particle`  — fn, dict-grammar.lisp:850  *[extracted: chunk_d1a_synergy_2026_05_17]*
- 440. `ichiran/dict:synergy-o-prefix`  — fn, dict-grammar.lisp:935
- 441. `ichiran/dict:synergy-oki`  — fn, dict-grammar.lisp:973
+ 437. `ichiran/dict:filter-is-noun`  — fn, dict-grammar.lisp:760  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+ 438. `ichiran/dict:synergy-noun-da`  — fn, dict-grammar.lisp:859  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
+ 439. `ichiran/dict:synergy-noun-particle`  — fn, dict-grammar.lisp:850  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
+ 440. `ichiran/dict:synergy-o-prefix`  — fn, dict-grammar.lisp:935  *[ported]*
+ 441. `ichiran/dict:synergy-oki`  — fn, dict-grammar.lisp:973  *[ported]*
  442. `ichiran/dict:synergy-shicha-ikenai`  — fn, dict-grammar.lisp:951
  443. `ichiran/dict:synergy-shika-negative`  — fn, dict-grammar.lisp:959
  444. `ichiran/dict:synergy-sou-nanda`  — fn, dict-grammar.lisp:878  *[extracted: chunk_d1a_synergy_2026_05_17]*

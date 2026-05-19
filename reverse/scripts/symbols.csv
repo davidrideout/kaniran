@@ -313,7 +313,7 @@ ichiran/dict:filter-in-seq-set-simple,filter-in-seq-set-simple,ichiran/dict,dict
 ichiran/dict:filter-is-compound-end,filter-is-compound-end,ichiran/dict,dict-grammar.lisp,806,fn,ported,,,
 ichiran/dict:filter-is-compound-end-text,filter-is-compound-end-text,ichiran/dict,dict-grammar.lisp,820,fn,ported,,,
 ichiran/dict:filter-is-conjugation,filter-is-conjugation,ichiran/dict,dict-grammar.lisp,797,fn,ported,,,
-ichiran/dict:filter-is-noun,filter-is-noun,ichiran/dict,dict-grammar.lisp,760,fn,pending,,chunk_c_suffix_abbr_2026_05_16,
+ichiran/dict:filter-is-noun,filter-is-noun,ichiran/dict,dict-grammar.lisp,760,fn,ported,,chunk_c_suffix_abbr_2026_05_16,1229022/1229022
 ichiran/dict:filter-is-pos,filter-is-pos,ichiran/dict,dict-grammar.lisp,772,macro,pending,,,
 ichiran/dict:filter-props,filter-props,ichiran/dict,dict.lisp,1627,fn,pending,,,
 ichiran/dict:filter-short-kana,filter-short-kana,ichiran/dict,dict-grammar.lisp,1008,fn,ported,,,
@@ -722,10 +722,10 @@ ichiran/dict:synergy-na-adjectives,synergy-na-adjectives,ichiran/dict,dict-gramm
 ichiran/dict:synergy-no-adjectives,synergy-no-adjectives,ichiran/dict,dict-grammar.lisp,884,fn,ported,,chunk_d1a_synergy_2026_05_17,
 ichiran/dict:synergy-no-da,synergy-no-da,ichiran/dict,dict-grammar.lisp,871,fn,ported,,chunk_d1a_synergy_2026_05_17,
 ichiran/dict:synergy-no-toori,synergy-no-toori,ichiran/dict,dict-grammar.lisp,970,fn,ported,,,
-ichiran/dict:synergy-noun-da,synergy-noun-da,ichiran/dict,dict-grammar.lisp,859,fn,pending,,chunk_d1a_synergy_2026_05_17,
-ichiran/dict:synergy-noun-particle,synergy-noun-particle,ichiran/dict,dict-grammar.lisp,850,fn,pending,,chunk_d1a_synergy_2026_05_17,
-ichiran/dict:synergy-o-prefix,synergy-o-prefix,ichiran/dict,dict-grammar.lisp,935,fn,pending,,,
-ichiran/dict:synergy-oki,synergy-oki,ichiran/dict,dict-grammar.lisp,973,fn,pending,,,
+ichiran/dict:synergy-noun-da,synergy-noun-da,ichiran/dict,dict-grammar.lisp,859,fn,ported,,chunk_d1a_synergy_2026_05_17,65833770/65833770
+ichiran/dict:synergy-noun-particle,synergy-noun-particle,ichiran/dict,dict-grammar.lisp,850,fn,ported,,chunk_d1a_synergy_2026_05_17,
+ichiran/dict:synergy-o-prefix,synergy-o-prefix,ichiran/dict,dict-grammar.lisp,935,fn,ported,,,
+ichiran/dict:synergy-oki,synergy-oki,ichiran/dict,dict-grammar.lisp,973,fn,ported,,,
 ichiran/dict:synergy-shicha-ikenai,synergy-shicha-ikenai,ichiran/dict,dict-grammar.lisp,951,fn,pending,,,
 ichiran/dict:synergy-shika-negative,synergy-shika-negative,ichiran/dict,dict-grammar.lisp,959,fn,pending,,,
 ichiran/dict:synergy-sou-nanda,synergy-sou-nanda,ichiran/dict,dict-grammar.lisp,878,fn,pending,,chunk_d1a_synergy_2026_05_17,

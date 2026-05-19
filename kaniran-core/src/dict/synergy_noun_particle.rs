@@ -1,0 +1,185 @@
+//! Port of `ichiran/dict:synergy-noun-particle` (`dict-grammar.lisp:827`).
+//!
+//! ```lisp
+//! (def-generic-synergy synergy-noun-particle (l r)
+//!   #'filter-is-noun
+//!  (apply #'filter-in-seq-set *noun-particles*)
+//!   :description "noun+prt"
+//!   :score (+ 10 (* 4 (- (segment-list-end r) (segment-list-start r))))
+//!   :connector " ")
+//! ```
+//!
+//! The score is the only piece that varies: `10 + 4 * (r.end - r.start)`,
+//! so a particle that occupies more characters scores higher.
+//!
+//! Divergences from Lisp:
+//! - `(apply #'filter-in-seq-set *noun-particles*)` becomes a direct
+//!   call with the global's slice cloned into a `Vec` — Rust's
+//!   `filter_in_seq_set` takes `Vec<i32>` (see its file doc).
+//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
+//!   moves to the `*synergy-list*` port (separate wave).
+
+use super::_star_noun_particles_star_::NOUN_PARTICLES;
+use super::filter_in_seq_set::filter_in_seq_set;
+use super::filter_is_noun::filter_is_noun;
+use super::make_segment_list_from::make_segment_list_from;
+use super::segment_list_struct::SegmentList;
+use super::synergy_struct::Synergy;
+
+pub fn synergy_noun_particle(
+    l: &SegmentList,
+    r: &SegmentList,
+) -> Vec<(SegmentList, Synergy, SegmentList)> {
+    let start = l.end;
+    let end = r.start;
+    // dict-grammar.lisp:731-746 (def-generic-synergy expansion)
+    if start != end {
+        return vec![];
+    }
+    let test_right = filter_in_seq_set(NOUN_PARTICLES.to_vec());
+    let left: Vec<_> = l.segments.iter().filter(|s| filter_is_noun(s)).cloned().collect();
+    let right: Vec<_> = r.segments.iter().filter(|s| test_right(s)).cloned().collect();
+    if left.is_empty() || right.is_empty() {
+        return vec![];
+    }
+    // dict-grammar.lisp:831 (:score (+ 10 (* 4 (- end start))))
+    let span = r.end - r.start;
+    let score = 10 + 4 * (span as i32);
+    let syn = Synergy {
+        description: Some("noun+prt".to_string()),
+        connector: Some(" ".to_string()),
+        score,
+        start,
+        end,
+    };
+    vec![(
+        make_segment_list_from(r, right),
+        syn,
+        make_segment_list_from(l, left),
+    )]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dict::conj_data_struct::ConjData;
+    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::simple_text_class::SimpleText;
+
+    fn dummy_word() -> KaniWordDispatchEnum {
+        KaniWordDispatchEnum::Kana(KanaText {
+            id: 0,
+            seq: 0,
+            text: String::new(),
+            ord: 0,
+            common: None,
+            common_tags: String::new(),
+            conjugate_p: false,
+            nokanji: false,
+            best_kanji: None,
+            state: SimpleText::default(),
+        })
+    }
+
+    fn seg(
+        kpcl: (bool, bool, bool, bool),
+        posi: Vec<&str>,
+        seq_set: Vec<i32>,
+    ) -> Segment {
+        Segment {
+            start: 0,
+            end: 1,
+            word: dummy_word(),
+            score: None,
+            info: Some(KaniSegmentInfo {
+                posi: posi.into_iter().map(String::from).collect(),
+                seq_set,
+                conj: vec![] as Vec<ConjData>,
+                common: None,
+                score_info: KaniScoreInfo {
+                    prop_score: 0,
+                    kanji_break: vec![],
+                    use_length_bonus: 0,
+                    split_info: KaniSplitInfo::None,
+                },
+                kpcl,
+            }),
+            top: None,
+            text: None,
+        }
+    }
+
+    fn sl(start: usize, end: usize, segments: Vec<Segment>) -> SegmentList {
+        SegmentList {
+            segments,
+            start,
+            end,
+            top: None,
+            matches: 0,
+        }
+    }
+
+    // REPL probes (/tmp/probe_437_441.lisp on .103, 2026-05-18).
+
+    #[test]
+    fn positive_len1() {
+        // noun-particle/positive-len1: l noun, r seq 2028920 (は), r.end-r.start=1.
+        // SYNERGY desc="noun+prt" conn=" " score=14 start=1 end=1.
+        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = sl(1, 2, vec![seg((false, false, false, false), vec![], vec![2028920])]);
+        let got = synergy_noun_particle(&l, &r);
+        assert_eq!(got.len(), 1);
+        let (right_sl, syn, left_sl) = &got[0];
+        assert_eq!(right_sl.start, 1);
+        assert_eq!(right_sl.end, 2);
+        assert_eq!(right_sl.segments.len(), 1);
+        assert_eq!(syn.description.as_deref(), Some("noun+prt"));
+        assert_eq!(syn.connector.as_deref(), Some(" "));
+        assert_eq!(syn.score, 14);
+        assert_eq!(syn.start, 1);
+        assert_eq!(syn.end, 1);
+        assert_eq!(left_sl.start, 0);
+        assert_eq!(left_sl.end, 1);
+        assert_eq!(left_sl.segments.len(), 1);
+    }
+
+    #[test]
+    fn positive_len2() {
+        // noun-particle/positive-len2: r seq 2215430 (には), span=2 -> score=18.
+        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = sl(1, 3, vec![seg((false, false, false, false), vec![], vec![2215430])]);
+        let got = synergy_noun_particle(&l, &r);
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].1.score, 18);
+        assert_eq!(got[0].1.start, 1);
+        assert_eq!(got[0].1.end, 1);
+    }
+
+    #[test]
+    fn positive_len4() {
+        // noun-particle/positive-len4: r seq 1009600 (にとって), span=4 -> score=26.
+        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = sl(1, 5, vec![seg((false, false, false, false), vec![], vec![1009600])]);
+        let got = synergy_noun_particle(&l, &r);
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].1.score, 26);
+    }
+
+    #[test]
+    fn not_adjacent_empty() {
+        // noun-particle/not-adjacent: NIL.
+        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = sl(5, 6, vec![seg((false, false, false, false), vec![], vec![2028920])]);
+        assert!(synergy_noun_particle(&l, &r).is_empty());
+    }
+
+    #[test]
+    fn right_misses_empty() {
+        // noun-particle/right-misses: NIL.
+        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = sl(1, 2, vec![seg((false, false, false, false), vec![], vec![9999999])]);
+        assert!(synergy_noun_particle(&l, &r).is_empty());
+    }
+}

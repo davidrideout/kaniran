@@ -157,3 +157,15 @@ path = "audit/dict/get_seg_initial_test.rs"
 [[bin]]
 name = "expand_segment_list_test"
 path = "audit/dict/expand_segment_list_test.rs"
+
+[[bin]]
+name = "filter_is_noun_test"
+path = "audit/dict/filter_is_noun_test.rs"
+
+[[bin]]
+name = "synergy_noun_da_test"
+path = "audit/dict/synergy_noun_da_test.rs"
+
+[[bin]]
+name = "synergy_noun_particle_test"
+path = "audit/dict/synergy_noun_particle_test.rs"
