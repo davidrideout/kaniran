@@ -448,11 +448,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  429. `ichiran/dict:penalty-short`  — fn, dict-grammar.lisp:1020  *[ported]*
  430. `ichiran/dict:*penalty-list*`  — global, dict-grammar.lisp:964  *[ported]*
  431. `ichiran/dict:get-penalties`  — fn, dict-grammar.lisp:1030  *[ported]*
- 432. `ichiran/dict:synergy-kanji-prefix`  — fn, dict-grammar.lisp:940
- 433. `ichiran/dict:synergy-na-adjectives`  — fn, dict-grammar.lisp:892
- 434. `ichiran/dict:synergy-no-adjectives`  — fn, dict-grammar.lisp:884
- 435. `ichiran/dict:synergy-no-da`  — fn, dict-grammar.lisp:871
- 436. `ichiran/dict:synergy-no-toori`  — fn, dict-grammar.lisp:970
+ 432. `ichiran/dict:synergy-kanji-prefix`  — fn, dict-grammar.lisp:940  *[ported]*
+ 433. `ichiran/dict:synergy-na-adjectives`  — fn, dict-grammar.lisp:892  *[ported]*
+ 434. `ichiran/dict:synergy-no-adjectives`  — fn, dict-grammar.lisp:884  *[ported]*
+ 435. `ichiran/dict:synergy-no-da`  — fn, dict-grammar.lisp:871  *[ported]*
+ 436. `ichiran/dict:synergy-no-toori`  — fn, dict-grammar.lisp:970  *[ported]*
  437. `ichiran/dict:filter-is-noun`  — fn, dict-grammar.lisp:760  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
  438. `ichiran/dict:synergy-noun-da`  — fn, dict-grammar.lisp:859
  439. `ichiran/dict:synergy-noun-particle`  — fn, dict-grammar.lisp:850
