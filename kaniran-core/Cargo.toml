@@ -139,6 +139,10 @@ name = "gen_score_test"
 path = "audit/dict/gen_score_test.rs"
 
 [[bin]]
+name = "get_segsplit_test"
+path = "audit/dict/get_segsplit_test.rs"
+
+[[bin]]
 name = "pair_words_by_conj_test"
 path = "audit/dict/pair_words_by_conj_test.rs"
 

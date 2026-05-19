@@ -123,6 +123,7 @@ pub mod get_kanji;
 pub mod get_kanji_kana_old;
 pub mod get_seg_initial;
 pub mod get_segment_score;
+pub mod get_segsplit;
 pub mod get_non_arch_posi;
 pub mod get_original_text;
 pub mod get_original_text_star_;
