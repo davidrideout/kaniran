@@ -88,6 +88,10 @@ pub struct CapturedRow {
 #[derive(Debug)]
 pub struct CapturedFile {
     pub rows: Vec<CapturedRow>,
+    /// Rows the loader could not parse (malformed JSON from the
+    /// extractor). Propagated so the runner can surface them as a
+    /// non-zero exit instead of silently dropping coverage.
+    pub skipped: usize,
 }
 
 pub fn load_parquet(path: &Path) -> CapturedFile {
@@ -178,7 +182,7 @@ pub fn load_parquet(path: &Path) -> CapturedFile {
     if skipped > 0 {
         eprintln!("loader: {} row(s) skipped (malformed JSON from extractor)", skipped);
     }
-    CapturedFile { rows }
+    CapturedFile { rows, skipped }
 }
 
 
@@ -227,6 +231,7 @@ where
 {
     let path = parse_path_arg();
     let file = load_parquet(&path);
+    let skipped = file.skipped;
     let groups = group_by_args(file.rows);
     let total = groups.len();
 
@@ -239,7 +244,7 @@ where
         record_outcome(outcome, idx, group.len(), &mut pass, &mut fail, &mut first_failures);
         progress.tick(idx + 1, pass, fail);
     }
-    report_and_exit(expected_fqn, pass, fail, &first_failures)
+    report_and_exit(expected_fqn, pass, fail, skipped, &first_failures)
 }
 
 /// Async flavor: same as [`run_sync`] but builds a [`KaniranContext`] via
@@ -256,6 +261,7 @@ where
 
     let path = parse_path_arg();
     let file = load_parquet(&path);
+    let skipped = file.skipped;
     let groups = group_by_args(file.rows);
     let total = groups.len();
 
@@ -291,7 +297,7 @@ where
         done += 1;
         progress.tick(done, pass, fail);
     }
-    report_and_exit(expected_fqn, pass, fail, &first_failures)
+    report_and_exit(expected_fqn, pass, fail, skipped, &first_failures)
 }
 
 /// Streaming async runner: reads parquet batches lazily, parses each
@@ -400,7 +406,7 @@ where
     if skipped > 0 {
         eprintln!("loader: {} row(s) skipped (malformed JSON from extractor)", skipped);
     }
-    report_and_exit(expected_fqn, pass, fail, &first_failures)
+    report_and_exit(expected_fqn, pass, fail, skipped, &first_failures)
 }
 
 struct Progress {
@@ -553,18 +559,28 @@ fn record_outcome(
     }
 }
 
-fn report_and_exit(fqn: &str, pass: usize, fail: usize, first_failures: &[String]) -> ! {
+fn report_and_exit(
+    fqn: &str,
+    pass: usize,
+    fail: usize,
+    skipped: usize,
+    first_failures: &[String],
+) -> ! {
     println!(
-        "{} : pass={}, fail={}, total={}",
+        "{} : pass={}, fail={}, skipped={}, total={}",
         fqn,
         pass,
         fail,
-        pass + fail
+        skipped,
+        pass + fail + skipped,
     );
     for failure in first_failures {
         println!("  {}", failure);
     }
-    std::process::exit(if fail == 0 { 0 } else { 1 });
+    // Skipped rows are uncovered fixtures — surface them as a non-zero
+    // exit so a malformed-JSON regression in the extractor can't print
+    // a "clean pass" on the audit side.
+    std::process::exit(if fail == 0 && skipped == 0 { 0 } else { 1 });
 }
 
 

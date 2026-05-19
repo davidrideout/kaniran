@@ -145,3 +145,7 @@ path = "audit/dict/pair_words_by_conj_test.rs"
 [[bin]]
 name = "or_as_hiragana_test"
 path = "audit/dict/or_as_hiragana_test.rs"
+
+[[bin]]
+name = "get_seg_initial_test"
+path = "audit/dict/get_seg_initial_test.rs"
