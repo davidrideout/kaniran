@@ -15,9 +15,13 @@
 //! Divergences from Lisp:
 //! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
 //!   moves to the `*synergy-list*` port (separate wave).
-//! - The right-side `lambda` is inlined; `some` returns truthy on the
-//!   first conj-data whose `prop.neg` is `t`. Rust mirrors with
-//!   `iter().any(...)` returning `bool` per CONVENTIONS §4.1.
+//! - The right-side `lambda` is inlined; `some` returns the first
+//!   non-nil result from `(conj-neg (conj-data-prop cdata))`. Per
+//!   `parse_opt_bool` in `audit/common/mod.rs`, Rust `Some(false)`
+//!   mirrors Lisp `nil`, `None` mirrors Lisp `:NULL`, `Some(true)`
+//!   mirrors Lisp `t`. Only Lisp `nil` is falsy — `:NULL` (DB-NULL
+//!   keyword) is truthy in CL — so the predicate accepts any neg
+//!   value other than `Some(false)`.
 
 use super::conj_data_prop::conj_data_prop;
 use super::filter_in_seq_set::filter_in_seq_set;
@@ -31,9 +35,11 @@ fn right_filter(segment: &Segment) -> bool {
         Some(info) => info,
         None => return false,
     };
+    // dict-grammar.lisp:937 (`(some (lambda (cdata) (conj-neg (conj-data-prop cdata))) ...)`)
+    // Lisp truthy = non-nil; only Some(false) (Lisp nil) rejects.
     info.conj
         .iter()
-        .any(|cd| conj_data_prop(cd).and_then(|p| p.neg).unwrap_or(false))
+        .any(|cd| conj_data_prop(cd).is_some_and(|p| p.neg != Some(false)))
 }
 
 pub fn synergy_shika_negative(
@@ -151,11 +157,19 @@ mod tests {
         }
     }
 
-    // REPL probes (/tmp/probe_442_448.lisp on .103, 2026-05-18).
+    // REPL probes:
+    // - /tmp/probe_442_448.lisp on .103, 2026-05-18: t / nil cases.
+    // - /tmp/probe_shika_null.lisp on .103: :NULL case (DB-null neg
+    //   keyword is truthy in CL, so synergy fires).
+    //
+    // Rust ↔ Lisp neg mapping (parse_opt_bool, audit/common/mod.rs:1789):
+    //   Some(true)  ↔ Lisp t      → FIRE
+    //   Some(false) ↔ Lisp nil    → reject
+    //   None        ↔ Lisp :NULL  → FIRE (:NULL is a truthy keyword)
 
     #[test]
-    fn positive() {
-        // shika-negative/positive: RIGHT-SL start=2 end=5 segs=1,
+    fn positive_neg_t() {
+        // shika-negative/positive (neg=t): RIGHT-SL start=2 end=5 segs=1,
         // SYN desc="shika+neg" conn=" " score=50 start=2 end=2,
         // LEFT-SL start=0 end=2 segs=1.
         let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
@@ -177,10 +191,26 @@ mod tests {
     }
 
     #[test]
-    fn right_no_neg_empty() {
-        // shika-negative/right-no-neg: NIL.
+    fn positive_neg_null() {
+        // shika-negative/neg=:NULL ALONE -- expect FIRE (REPL
+        // /tmp/probe_shika_null.lisp: COUNT=1 desc="shika+neg"
+        // score=50). :NULL keyword is truthy in CL, so `some` returns
+        // truthy and the filter accepts.
         let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
         let r = sl(2, 5, vec![seg(2, 5, vec![], vec![cdata(None)])]);
+        let got = synergy_shika_negative(&l, &r);
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].1.description.as_deref(), Some("shika+neg"));
+        assert_eq!(got[0].1.score, 50);
+    }
+
+    #[test]
+    fn right_neg_nil_empty() {
+        // shika-negative/neg=NIL ALONE -- expect NIL (REPL
+        // /tmp/probe_shika_null.lisp). Lisp nil is the sole falsy
+        // value, so `some` returns nil and the filter rejects.
+        let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
+        let r = sl(2, 5, vec![seg(2, 5, vec![], vec![cdata(Some(false))])]);
         assert!(synergy_shika_negative(&l, &r).is_empty());
     }
 
@@ -209,8 +239,37 @@ mod tests {
     }
 
     #[test]
-    fn multi_conj_mixed_positive() {
+    fn multi_conj_nil_plus_nil_empty() {
+        // shika-negative/neg=NIL+NIL -- expect NIL (REPL probe).
+        let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
+        let r = sl(
+            2,
+            5,
+            vec![seg(2, 5, vec![], vec![cdata(Some(false)), cdata(Some(false))])],
+        );
+        assert!(synergy_shika_negative(&l, &r).is_empty());
+    }
+
+    #[test]
+    fn multi_conj_nil_plus_null_fires() {
+        // shika-negative/neg=NIL+:NULL -- expect FIRE (REPL probe).
+        // The :NULL cdata's truthy neg-value satisfies `some`.
+        let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
+        let r = sl(
+            2,
+            5,
+            vec![seg(2, 5, vec![], vec![cdata(Some(false)), cdata(None)])],
+        );
+        let got = synergy_shika_negative(&l, &r);
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].1.score, 50);
+    }
+
+    #[test]
+    fn multi_conj_nil_plus_t_fires() {
         // shika-negative/multi-conj-mixed: RIGHT-SL segs=1, LEFT-SL segs=1.
+        // Mirrors the original probe_442_448 test but with the
+        // corrected nil mapping (Some(false), not None).
         let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
         let r = sl(
             2,
@@ -219,7 +278,7 @@ mod tests {
                 2,
                 5,
                 vec![],
-                vec![cdata(None), cdata(Some(true))],
+                vec![cdata(Some(false)), cdata(Some(true))],
             )],
         );
         let got = synergy_shika_negative(&l, &r);

@@ -163,6 +163,10 @@ name = "filter_is_noun_test"
 path = "audit/dict/filter_is_noun_test.rs"
 
 [[bin]]
+name = "get_synergies_test"
+path = "audit/dict/get_synergies_test.rs"
+
+[[bin]]
 name = "synergy_noun_da_test"
 path = "audit/dict/synergy_noun_da_test.rs"
 

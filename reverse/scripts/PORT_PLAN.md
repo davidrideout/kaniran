@@ -465,9 +465,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  446. `ichiran/dict:synergy-suffix-chu`  — fn, dict-grammar.lisp:914  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
  447. `ichiran/dict:synergy-suffix-sei`  — fn, dict-grammar.lisp:929  *[ported]*
  448. `ichiran/dict:synergy-suffix-tachi`  — fn, dict-grammar.lisp:921  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
- 449. `ichiran/dict:synergy-to-adverbs`  — fn, dict-grammar.lisp:902  *[extracted: chunk_d1a_synergy_2026_05_17]*
- 450. `ichiran/dict:*synergy-list*`  — global, dict-grammar.lisp:723
- 451. `ichiran/dict:get-synergies`  — fn, dict-grammar.lisp:976  *[extracted: chunk_d1a_synergy_2026_05_17]*
+ 449. `ichiran/dict:synergy-to-adverbs`  — fn, dict-grammar.lisp:902  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
+ 450. `ichiran/dict:*synergy-list*`  — global, dict-grammar.lisp:723  *[ported]*
+ 451. `ichiran/dict:get-synergies`  — fn, dict-grammar.lisp:976  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*  *[audited 65833770/65833770]*
  452. `ichiran/dict:get-seg-splits`  — fn, dict.lisp:1175  *[extracted: chunk_b_segmentation_2026_05_14]*
  453. `ichiran/dict:get-segment-score`  — gf, dict.lisp:0  *[ported]*
  454. `ichiran/dict:register-item`  — gf, dict.lisp:0
