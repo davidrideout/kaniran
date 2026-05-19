@@ -1826,23 +1826,7 @@ pub fn parse_conj_data(value: &Value) -> Result<ConjData, String> {
         Value::Null => Vec::new(),
         Value::Array(arr) => arr
             .iter()
-            .map(|pair| {
-                let pa = pair
-                    .as_array()
-                    .ok_or_else(|| format!("src_map entry not array: {}", pair))?;
-                if pa.len() != 2 {
-                    return Err(format!("src_map pair not 2-elem: {}", pair));
-                }
-                let a = pa[0]
-                    .as_str()
-                    .ok_or_else(|| format!("src_map[0] not string: {}", pa[0]))?
-                    .to_string();
-                let b = pa[1]
-                    .as_str()
-                    .ok_or_else(|| format!("src_map[1] not string: {}", pa[1]))?
-                    .to_string();
-                Ok((a, b))
-            })
+            .map(parse_src_map_pair)
             .collect::<Result<_, _>>()?,
         other => return Err(format!("src_map: expected array/null, got {}", other)),
     };
@@ -1854,6 +1838,58 @@ pub fn parse_conj_list(v: &Value) -> Result<Vec<ConjData>, String> {
         Value::Null => Ok(Vec::new()),
         Value::Array(arr) => arr.iter().map(parse_conj_data).collect(),
         other => Err(format!("conj: expected array/null, got {}", other)),
+    }
+}
+
+/// Parse a `conj-data.src-map` entry. Two shapes appear in the wild:
+///
+/// 1. Proper 2-element list `("text", "source-text")` → JSON array
+///    `["text", "source-text"]` (the common case — `get-conj-data` builds
+///    these from `select 'text 'source-text :from 'conj-source-reading`,
+///    `dict.lisp:357-360`).
+/// 2. Cons cell `("text" . "source-text")` → JSON
+///    `{"_meta": {"cons": [a, b]}}` (rare — observed on 26 / 73.9M rows
+///    of the chunk-B `get_seg_splits` parquet; entries are typically
+///    `(0 . 0)` zero-padding). The projector emits cons cells this way
+///    because they have no list terminator; see
+///    `kaniran-core/audit/common/mod.rs:33` for the convention.
+///
+/// Both shapes deserialize to `(String, String)`. Non-string car/cdr
+/// (integers in the `(0 . 0)` form) are stringified via `to_string` so
+/// the audit can compare downstream — `get-seg-splits` does not consult
+/// `src_map`, so the stringification is lossless for that runner.
+fn parse_src_map_pair(pair: &Value) -> Result<(String, String), String> {
+    if let Some(cons) = pair.get("_meta").and_then(|m| m.get("cons")) {
+        let cons_arr = cons
+            .as_array()
+            .ok_or_else(|| format!("src_map cons not array: {}", cons))?;
+        if cons_arr.len() != 2 {
+            return Err(format!("src_map cons not 2-elem: {}", cons));
+        }
+        return Ok((stringify_scalar(&cons_arr[0]), stringify_scalar(&cons_arr[1])));
+    }
+    let pa = pair
+        .as_array()
+        .ok_or_else(|| format!("src_map entry not array: {}", pair))?;
+    if pa.len() != 2 {
+        return Err(format!("src_map pair not 2-elem: {}", pair));
+    }
+    let a = pa[0]
+        .as_str()
+        .ok_or_else(|| format!("src_map[0] not string: {}", pa[0]))?
+        .to_string();
+    let b = pa[1]
+        .as_str()
+        .ok_or_else(|| format!("src_map[1] not string: {}", pa[1]))?
+        .to_string();
+    Ok((a, b))
+}
+
+fn stringify_scalar(v: &Value) -> String {
+    match v {
+        Value::String(s) => s.clone(),
+        Value::Null => "NIL".to_string(),
+        other => other.to_string(),
     }
 }
 

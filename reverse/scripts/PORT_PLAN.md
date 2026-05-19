@@ -468,9 +468,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  449. `ichiran/dict:synergy-to-adverbs`  — fn, dict-grammar.lisp:902  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
  450. `ichiran/dict:*synergy-list*`  — global, dict-grammar.lisp:723  *[ported]*
  451. `ichiran/dict:get-synergies`  — fn, dict-grammar.lisp:976  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*  *[audited 65833770/65833770]*
- 452. `ichiran/dict:get-seg-splits`  — fn, dict.lisp:1175  *[extracted: chunk_b_segmentation_2026_05_14]*
+ 452. `ichiran/dict:get-seg-splits`  — fn, dict.lisp:1175  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
  453. `ichiran/dict:get-segment-score`  — gf, dict.lisp:0  *[ported]*
- 454. `ichiran/dict:register-item`  — gf, dict.lisp:0
+ 454. `ichiran/dict:register-item`  — gf, dict.lisp:0  *[ported]*
  455. `ichiran/dict:find-best-path`  — fn, dict.lisp:1190  *[extracted: chunk_b_segmentation_2026_05_14]*
  456. `ichiran/dict:*identical-word-score-cutoff*`  — global, dict.lisp:1020  *[ported]*
  457. `ichiran/dict:cull-segments`  — fn, dict.lisp:1027  *[extracted: chunk_b_segmentation_2026_05_14]*
@@ -519,7 +519,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:abbr-teba`  — fn, dict-grammar.lisp:639  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:find-word-full`  — fn, dict.lisp:1052
         - `ichiran/dict:find-word-suffix`  — fn, dict-grammar.lisp:706
-        - `ichiran/dict:find-word-with-conj-prop`  — fn, dict-grammar.lisp:42
+        - `ichiran/dict:find-word-with-conj-prop`  — fn, dict-grammar.lisp:42  *[skip — Second argument is a predicate closure (lambda (cdata) ...) supplied by suffix-DSL callers — structurally unreplayable: the function value has no canonical text form. Closures fail trace_capture.lisp primitive-p; every call lands in *skipped*. Verified 13/13 calls skipped per 5-sentence probe. Audit at caller boundary instead if needed.]*
         - `ichiran/dict:find-word-with-conj-type`  — fn, dict-grammar.lisp:51  *[extracted: substring_2026_05_14]*
         - `ichiran/dict:find-word-with-suffix`  — fn, dict-grammar.lisp:100  *[extracted: substring_2026_05_14]*
         - `ichiran/dict:suffix-adv`  — fn, dict-grammar.lisp:472  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
@@ -587,7 +587,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  519. `ichiran:traditional-hepburn`  — class, romanize.lisp:152
  520. `ichiran:*hepburn-traditional*`  — global, romanize.lisp:160
  521. `ichiran:*default-romanization-method*`  — global, romanize.lisp:203
- 522. `ichiran:join-parts`  — fn, romanize.lisp:235
+ 522. `ichiran:join-parts`  — fn, romanize.lisp:235  *[skip — Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.]*
  523. `ichiran/dict:simplify-reading-list`  — fn, dict.lisp:1704  *[extracted: chunk_b_segmentation_2026_05_14]*
  524. `ichiran/dict:map-word-info-kana`  — fn, dict.lisp:1728
  525. `ichiran/dict:*hint-char-map*`  — global, dict-split.lisp:816  *[ported]*
@@ -755,9 +755,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  685. `ichiran/dict:check-easy-hints`  — fn, dict-split.lisp:950  *[ported]*
  686. `ichiran/dict:common-tags`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  687. `ichiran/dict:conj-prop-json`  — fn, dict.lisp:283
- 688. `ichiran/dict:find-words-seqs`  — fn, dict.lisp:520
+ 688. `ichiran/dict:find-words-seqs`  — fn, dict.lisp:520  *[skip — Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.]*
  689. `ichiran/dict:get-original-text-once`  — fn, dict.lisp:369
- 690. `ichiran/dict:match-kana-kanji`  — fn, dict.lisp:1507
+ 690. `ichiran/dict:match-kana-kanji`  — fn, dict.lisp:1507  *[skip — Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.]*
  691. `ichiran/dict:match-sense-restrictions`  — fn, dict.lisp:1515
  692. `ichiran/dict:split-pos`  — fn, dict.lisp:1535
  693. `ichiran/dict:get-senses-json`  — fn, dict.lisp:1537
@@ -795,9 +795,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  723. `ichiran/dict:entry-info-long`  — fn, dict.lisp:1601
  724. `ichiran/dict:exists-reading`  — fn, dict.lisp:1847
  725. `ichiran/dict:filter-is-pos`  — macro, dict-grammar.lisp:772
- 726. `ichiran/dict:find-word-kana-pattern`  — fn, dict.lisp:1877
+ 726. `ichiran/dict:find-word-kana-pattern`  — fn, dict.lisp:1877  *[skip — Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.]*
  727. `ichiran/dict:find-kanji-for-pattern`  — fn, dict.lisp:1882
- 728. `ichiran/dict:find-word-info`  — fn, dict.lisp:1850
+ 728. `ichiran/dict:find-word-info`  — fn, dict.lisp:1850  *[skip — Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.]*
  729. `ichiran/dict:word-info-reading`  — fn, dict.lisp:1445
  730. `ichiran/dict:word-info-gloss-json`  — fn, dict.lisp:1784
  731. `ichiran/dict:find-word-info-json`  — fn, dict.lisp:1872
@@ -858,11 +858,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  786. `ichiran:kana-representation`  — struct, deromanize.lisp:23  *[ported]*
  787. `ichiran:possible-long-vowel-p`  — fn, deromanize.lisp:30
  788. `ichiran:apply-rmap-item`  — fn, deromanize.lisp:35
- 789. `ichiran:join-branches`  — fn, deromanize.lisp:54
+ 789. `ichiran:join-branches`  — fn, deromanize.lisp:54  *[skip — deromanize.lisp — romaji-input inverse path. Not reached by romanize* (forward Japanese-text driver). Needs romaji corpus to extract.]*
  790. `ichiran:kr-concat`  — fn, deromanize.lisp:23
  791. `ichiran:load-romaji-kana`  — fn, deromanize.lisp:5
- 792. `ichiran:get-romaji-kana`  — fn, deromanize.lisp:5
+ 792. `ichiran:get-romaji-kana`  — fn, deromanize.lisp:5  *[skip — deromanize.lisp — romaji-input inverse path. Not reached by romanize* (forward Japanese-text driver). Needs romaji corpus to extract.]*
  793. `ichiran:romaji-next`  — fn, deromanize.lisp:46
- 794. `ichiran:branches-next`  — fn, deromanize.lisp:69
+ 794. `ichiran:branches-next`  — fn, deromanize.lisp:69  *[skip — deromanize.lisp — romaji-input inverse path. Not reached by romanize* (forward Japanese-text driver). Needs romaji corpus to extract.]*
  795. `ichiran:romaji-kana`  — fn, deromanize.lisp:84
  796. `ichiran:romaji-suggest`  — fn, deromanize.lisp:95
