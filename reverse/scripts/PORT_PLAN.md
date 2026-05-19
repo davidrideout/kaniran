@@ -413,7 +413,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:calc-score`  — fn, dict.lisp:775  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
         - `ichiran/dict:kanji-break-penalty`  — fn, dict.lisp:702  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
  396. `ichiran/dict:get-segsplit`  — fn, dict-split.lisp:823  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*  *[audited 1555663/1555663]*
- 397. `ichiran/dict:expand-segment-list`  — fn, dict.lisp:1180  *[extracted: chunk_b_segmentation_2026_05_14]*
+ 397. `ichiran/dict:expand-segment-list`  — fn, dict.lisp:1180  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*  *[audited 1293225/1293225]*
  398. `ichiran/dict:*gap-penalty*`  — global, dict.lisp:1165  *[ported]*
  399. `ichiran/dict:gap-penalty`  — fn, dict.lisp:1169  *[ported]*
  400. `ichiran/dict:get-array`  — gf, dict.lisp:0  *[ported]*

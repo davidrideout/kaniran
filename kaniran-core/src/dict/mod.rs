@@ -91,6 +91,7 @@ pub mod counter_text_class;
 pub mod counter_tsu_class;
 pub mod counter_wari_class;
 pub mod entry_dao;
+pub mod expand_segment_list;
 pub mod fill_segment_path;
 pub mod filter_in_seq_set;
 pub mod filter_in_seq_set_simple;

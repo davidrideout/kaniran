@@ -306,7 +306,7 @@ ichiran/dict:entry-info-short,entry-info-short,ichiran/dict,dict.lisp,1595,fn,pe
 ichiran/dict:errata-conj-description-hook,errata-conj-description-hook,ichiran/dict,dict-errata.lisp,1320,fn,pending,,,
 ichiran/dict:errata-conj-rules-hook,errata-conj-rules-hook,ichiran/dict,dict-errata.lisp,1329,fn,pending,,,
 ichiran/dict:exists-reading,exists-reading,ichiran/dict,dict.lisp,1847,fn,pending,,,
-ichiran/dict:expand-segment-list,expand-segment-list,ichiran/dict,dict.lisp,1180,fn,pending,,chunk_b_segmentation_2026_05_14,
+ichiran/dict:expand-segment-list,expand-segment-list,ichiran/dict,dict.lisp,1180,fn,ported,,chunk_b_segmentation_2026_05_14,1293225/1293225
 ichiran/dict:fill-segment-path,fill-segment-path,ichiran/dict,dict.lisp,1390,fn,ported,,word_info_path_2026_05_13,
 ichiran/dict:filter-in-seq-set,filter-in-seq-set,ichiran/dict,dict-grammar.lisp,783,fn,ported,,,
 ichiran/dict:filter-in-seq-set-simple,filter-in-seq-set-simple,ichiran/dict,dict-grammar.lisp,787,fn,ported,,,
