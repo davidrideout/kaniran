@@ -269,7 +269,7 @@ ichiran/dict:counter-text,counter-text,ichiran/dict,dict-counters.lisp,9,class,p
 ichiran/dict:counter-tsu,counter-tsu,ichiran/dict,dict-counters.lisp,497,class,ported,,,
 ichiran/dict:counter-wari,counter-wari,ichiran/dict,dict-counters.lisp,746,class,ported,,,
 ichiran/dict:csv-hash,csv-hash,ichiran/dict,dict-load.lisp,201,macro,pending,,,
-ichiran/dict:cull-segments,cull-segments,ichiran/dict,dict.lisp,1027,fn,pending,,chunk_b_segmentation_2026_05_14,
+ichiran/dict:cull-segments,cull-segments,ichiran/dict,dict.lisp,1027,fn,ported,,chunk_b_segmentation_2026_05_14,
 ichiran/dict:def-abbr-suffix,def-abbr-suffix,ichiran/dict,dict-grammar.lisp,557,macro,skip,CONVENTIONS §4.6 case (a): DSL definer expanding to (defsuffix ...) for abbreviated-form suffixes; populates *suffix-list* and wraps each per-callsite body which becomes a standalone function in the CYCLE 484 unit. No port file.,,
 ichiran/dict:def-de-split,def-de-split,ichiran/dict,dict-split.lisp,81,macro,pending,,,
 ichiran/dict:def-do-split,def-do-split,ichiran/dict,dict-split.lisp,181,macro,pending,,,

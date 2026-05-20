@@ -91,6 +91,7 @@ pub mod counter_people_class;
 pub mod counter_text_class;
 pub mod counter_tsu_class;
 pub mod counter_wari_class;
+pub mod cull_segments;
 pub mod entry_dao;
 pub mod expand_segment_list;
 pub mod fill_segment_path;

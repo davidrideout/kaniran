@@ -473,7 +473,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  454. `ichiran/dict:register-item`  — gf, dict.lisp:0  *[ported]*
  455. `ichiran/dict:find-best-path`  — fn, dict.lisp:1190  *[extracted: chunk_b_segmentation_2026_05_14]*
  456. `ichiran/dict:*identical-word-score-cutoff*`  — global, dict.lisp:1020  *[ported]*
- 457. `ichiran/dict:cull-segments`  — fn, dict.lisp:1027  *[extracted: chunk_b_segmentation_2026_05_14]*
+ 457. `ichiran/dict:cull-segments`  — fn, dict.lisp:1027  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
  458. `ichiran/dict:gen-score`  — fn, dict.lisp:985  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
  459. `ichiran/dict:*force-kanji-break*`  — global, dict-errata.lisp:1226  *[ported]*
  460. `ichiran/dict:*max-word-length*`  — global, dict.lisp:486  *[ported]*
@@ -587,7 +587,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  519. `ichiran:traditional-hepburn`  — class, romanize.lisp:152
  520. `ichiran:*hepburn-traditional*`  — global, romanize.lisp:160
  521. `ichiran:*default-romanization-method*`  — global, romanize.lisp:203
- 522. `ichiran:join-parts`  — fn, romanize.lisp:235  *[skip — Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.]*
+ 522. `ichiran:join-parts`  — fn, romanize.lisp:235
  523. `ichiran/dict:simplify-reading-list`  — fn, dict.lisp:1704  *[extracted: chunk_b_segmentation_2026_05_14]*
  524. `ichiran/dict:map-word-info-kana`  — fn, dict.lisp:1728
  525. `ichiran/dict:*hint-char-map*`  — global, dict-split.lisp:816  *[ported]*
@@ -755,9 +755,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  685. `ichiran/dict:check-easy-hints`  — fn, dict-split.lisp:950  *[ported]*
  686. `ichiran/dict:common-tags`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  687. `ichiran/dict:conj-prop-json`  — fn, dict.lisp:283
- 688. `ichiran/dict:find-words-seqs`  — fn, dict.lisp:520  *[skip — Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.]*
+ 688. `ichiran/dict:find-words-seqs`  — fn, dict.lisp:520
  689. `ichiran/dict:get-original-text-once`  — fn, dict.lisp:369
- 690. `ichiran/dict:match-kana-kanji`  — fn, dict.lisp:1507  *[skip — Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.]*
+ 690. `ichiran/dict:match-kana-kanji`  — fn, dict.lisp:1507
  691. `ichiran/dict:match-sense-restrictions`  — fn, dict.lisp:1515
  692. `ichiran/dict:split-pos`  — fn, dict.lisp:1535
  693. `ichiran/dict:get-senses-json`  — fn, dict.lisp:1537
@@ -797,7 +797,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  725. `ichiran/dict:filter-is-pos`  — macro, dict-grammar.lisp:772
  726. `ichiran/dict:find-word-kana-pattern`  — fn, dict.lisp:1877  *[skip — Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.]*
  727. `ichiran/dict:find-kanji-for-pattern`  — fn, dict.lisp:1882
- 728. `ichiran/dict:find-word-info`  — fn, dict.lisp:1850  *[skip — Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.]*
+ 728. `ichiran/dict:find-word-info`  — fn, dict.lisp:1850
  729. `ichiran/dict:word-info-reading`  — fn, dict.lisp:1445
  730. `ichiran/dict:word-info-gloss-json`  — fn, dict.lisp:1784
  731. `ichiran/dict:find-word-info-json`  — fn, dict.lisp:1872

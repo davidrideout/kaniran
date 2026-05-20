@@ -119,6 +119,10 @@ name = "compare_common_test"
 path = "audit/dict/compare_common_test.rs"
 
 [[bin]]
+name = "cull_segments_test"
+path = "audit/dict/cull_segments_test.rs"
+
+[[bin]]
 name = "get_non_arch_posi_test"
 path = "audit/dict/get_non_arch_posi_test.rs"
 

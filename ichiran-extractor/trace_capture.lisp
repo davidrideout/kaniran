@@ -177,21 +177,27 @@
                                   (handler-case (funcall encoder-fn v)
                                     (error () nil)))))))))
     (lambda (basic-def &rest args)
-      (let ((results (multiple-value-list (apply basic-def args))))
-        (let* ((projected-args    (let ((*in-recorder* t))
-                                    (apply-projector arg-fn args)))
-               (projected-results (let ((*in-recorder* t))
-                                    (apply-projector result-fn results)))
-               (args-str   (and (not (eq projected-args    *projection-failed*))
-                                (not (eq projected-results *projection-failed*))
-                                (let ((*in-recorder* t))
-                                  (funcall serialize projected-args))))
-               (result-str (and args-str
-                                (let ((*in-recorder* t))
-                                  (funcall serialize projected-results)))))
-          (if (and args-str result-str)
-              (push (list fqn args-str result-str) *captures*)
-              (incf *skipped*)))
+      ;; Project args BEFORE the call so destructive mutation inside
+      ;; basic-def (e.g. CL stable-sort re-chaining cons cells) cannot
+      ;; reach the projected tree. Serialization stays post-call —
+      ;; projected-args is already a fresh plist by then, immune to
+      ;; later mutation. Results projection / serialization remain
+      ;; post-call.
+      (let* ((projected-args (let ((*in-recorder* t))
+                               (apply-projector arg-fn args)))
+             (results        (multiple-value-list (apply basic-def args)))
+             (projected-results (let ((*in-recorder* t))
+                                  (apply-projector result-fn results)))
+             (args-str   (and (not (eq projected-args    *projection-failed*))
+                              (not (eq projected-results *projection-failed*))
+                              (let ((*in-recorder* t))
+                                (funcall serialize projected-args))))
+             (result-str (and args-str
+                              (let ((*in-recorder* t))
+                                (funcall serialize projected-results)))))
+        (if (and args-str result-str)
+            (push (list fqn args-str result-str) *captures*)
+            (incf *skipped*))
         (values-list results)))))
 
 
