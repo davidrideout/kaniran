@@ -8,6 +8,8 @@
 //!   :allow-first t)
 //! ```
 
+use std::sync::Arc;
+
 use super::classify::classify;
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::make_segment_list_from::make_segment_list_from;
@@ -17,15 +19,15 @@ const NANDATO_SEQ: i32 = 2837117;
 const OMOU_IU_SEQS: &[i32] = &[1589350, 1587040];
 
 pub fn segfilter_toomou(
-    seg_left: Option<&SegmentList>,
-    seg_right: &SegmentList,
-) -> Vec<(Option<SegmentList>, SegmentList)> {
+    seg_left: Option<&Arc<SegmentList>>,
+    seg_right: &Arc<SegmentList>,
+) -> Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> {
     let filter_right = filter_in_seq_set(OMOU_IU_SEQS.to_vec());
     let (sat_r, con_r) = classify(filter_right, &seg_right.segments);
 
     // Cond clause 1: (or (not sat-r) (and allow-first (not l)))
     if sat_r.is_empty() || seg_left.is_none() {
-        return vec![(seg_left.cloned(), seg_right.clone())];
+        return vec![(seg_left.cloned(), Arc::clone(seg_right))];
     }
 
     // Cond clause 2: (or (not l) (/= l.end r.start)) — (not l) absorbed above.
@@ -34,7 +36,7 @@ pub fn segfilter_toomou(
         return if con_r.is_empty() {
             Vec::new()
         } else {
-            vec![(Some(l.clone()), make_segment_list_from(seg_right, con_r))]
+            vec![(Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r)))]
         };
     }
 
@@ -43,20 +45,20 @@ pub fn segfilter_toomou(
     let (sat_l, con_l) = classify(|s| !inner(s), &l.segments);
 
     if con_l.is_empty() {
-        return vec![(Some(l.clone()), seg_right.clone())];
+        return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
     }
 
-    let mut result: Vec<(Option<SegmentList>, SegmentList)> = Vec::new();
+    let mut result: Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> = Vec::new();
     if !con_r.is_empty() {
-        result.push((Some(l.clone()), make_segment_list_from(seg_right, con_r)));
+        result.push((Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r))));
     }
     if !sat_l.is_empty() {
         // dict-grammar.lisp:1064 (push) — prepend the satisfies pair.
         result.insert(
             0,
             (
-                Some(make_segment_list_from(l, sat_l)),
-                make_segment_list_from(seg_right, sat_r),
+                Some(Arc::new(make_segment_list_from(l, sat_l))),
+                Arc::new(make_segment_list_from(seg_right, sat_r)),
             ),
         );
     }
@@ -115,7 +117,7 @@ mod tests {
     #[test]
     fn tm_a_l_nil_r_omou_pass_through() {
         // TM-A l=NIL r=omou cnt=1 — allow-first
-        let r = sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1589350]))]);
+        let r = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1589350]))]));
         let result = segfilter_toomou(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -124,7 +126,7 @@ mod tests {
     #[test]
     fn tm_b_l_nil_r_no_match() {
         // TM-B l=NIL r=no-match cnt=1 — clause-1
-        let r = sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
+        let r = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]));
         let result = segfilter_toomou(None, &r);
         assert_eq!(result.len(), 1);
     }
@@ -132,8 +134,8 @@ mod tests {
     #[test]
     fn tm_c_l_not_nandato_r_omou() {
         // TM-C l-not-nandato r-omou cnt=1
-        let l = sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
-        let r = sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1589350]))]);
+        let l = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]));
+        let r = Arc::new(sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1589350]))]));
         let result = segfilter_toomou(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -142,8 +144,8 @@ mod tests {
     #[test]
     fn tm_d_l_nandato_r_omou_empty() {
         // TM-D l-nandato r-omou cnt=0
-        let l = sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2837117]))]);
-        let r = sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1589350]))]);
+        let l = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2837117]))]));
+        let r = Arc::new(sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1589350]))]));
         let result = segfilter_toomou(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -151,15 +153,15 @@ mod tests {
     #[test]
     fn tm_e_l_mixed_r_omou() {
         // TM-E l-mixed r-omou cnt=1 — sat-l push (con-r empty)
-        let l = sl(
+        let l = Arc::new(sl(
             0,
             1,
             vec![
                 seg(0, 1, info_with_seq_set(vec![2837117])),
                 seg(0, 1, info_with_seq_set(vec![999])),
             ],
-        );
-        let r = sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1589350]))]);
+        ));
+        let r = Arc::new(sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1589350]))]));
         let result = segfilter_toomou(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);

@@ -21,6 +21,8 @@
 //!   exists for it (`_star_weak_conj_forms_star_.rs` references the
 //!   bare literal). Inlined as `54` with the same comment annotation.
 
+use std::sync::Arc;
+
 use super::classify::classify;
 use super::filter_is_conjugation::filter_is_conjugation;
 use super::make_segment_list_from::make_segment_list_from;
@@ -30,9 +32,9 @@ use super::text::text;
 const SUKI_SUFFIX: &str = "好き";
 
 pub fn segfilter_sukiyoki(
-    seg_left: Option<&SegmentList>,
-    seg_right: &SegmentList,
-) -> Vec<(Option<SegmentList>, SegmentList)> {
+    seg_left: Option<&Arc<SegmentList>>,
+    seg_right: &Arc<SegmentList>,
+) -> Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> {
     // dict-grammar.lisp:1103 (lambda) — and conj-type=54 ends-with "好き".
     let conj_filter = filter_is_conjugation(54); // +conj-adjective-literary+
     let (sat_r, con_r) = classify(
@@ -43,7 +45,7 @@ pub fn segfilter_sukiyoki(
     // Cond clause 1: (or (not sat-r) (and allow-first (not l)))
     // allow-first = nil here, so just (not sat-r).
     if sat_r.is_empty() {
-        return vec![(seg_left.cloned(), seg_right.clone())];
+        return vec![(seg_left.cloned(), Arc::clone(seg_right))];
     }
 
     // Cond clause 2: (or (not l) (/= l.end r.start)).
@@ -52,14 +54,14 @@ pub fn segfilter_sukiyoki(
             return if con_r.is_empty() {
                 Vec::new()
             } else {
-                vec![(None, make_segment_list_from(seg_right, con_r))]
+                vec![(None, Arc::new(make_segment_list_from(seg_right, con_r)))]
             };
         }
         Some(l) if l.end != seg_right.start => {
             return if con_r.is_empty() {
                 Vec::new()
             } else {
-                vec![(Some(l.clone()), make_segment_list_from(seg_right, con_r))]
+                vec![(Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r)))]
             };
         }
         Some(l) => l,
@@ -70,12 +72,12 @@ pub fn segfilter_sukiyoki(
     let (sat_l, con_l) = classify(|_| false, &l.segments);
 
     if con_l.is_empty() {
-        return vec![(Some(l.clone()), seg_right.clone())];
+        return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
     }
 
-    let mut result: Vec<(Option<SegmentList>, SegmentList)> = Vec::new();
+    let mut result: Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> = Vec::new();
     if !con_r.is_empty() {
-        result.push((Some(l.clone()), make_segment_list_from(seg_right, con_r)));
+        result.push((Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r))));
     }
     if !sat_l.is_empty() {
         // dict-grammar.lisp:1064 (push) — prepend the satisfies pair.
@@ -84,8 +86,8 @@ pub fn segfilter_sukiyoki(
         result.insert(
             0,
             (
-                Some(make_segment_list_from(l, sat_l)),
-                make_segment_list_from(seg_right, sat_r),
+                Some(Arc::new(make_segment_list_from(l, sat_l))),
+                Arc::new(make_segment_list_from(seg_right, sat_r)),
             ),
         );
     }
@@ -172,11 +174,11 @@ mod tests {
     fn sk_a_l_nil_r_suki_conj54_empty() {
         // SK-A l=NIL r=suki-conj54 cnt=0
         // no allow-first; sat-r full, l=NIL → clause-2 (not l)=T, con-r empty → ()
-        let r = sl(
+        let r = Arc::new(sl(
             0,
             1,
             vec![seg(0, 1, "好き", 100, Some(info(vec![100], vec![cdata_54()])))],
-        );
+        ));
         let result = segfilter_sukiyoki(None, &r);
         assert!(result.is_empty());
     }
@@ -185,14 +187,14 @@ mod tests {
     fn sk_b_l_nil_r_mixed() {
         // SK-B l=NIL r=mixed cnt=1
         // clause-2 (not l)=T, con-r non-empty → (NIL, mslf r con-r)
-        let r = sl(
+        let r = Arc::new(sl(
             0,
             1,
             vec![
                 seg(0, 1, "好き", 100, Some(info(vec![100], vec![cdata_54()]))),
                 seg(0, 1, "abc", 999, Some(info(vec![999], vec![]))),
             ],
-        );
+        ));
         let result = segfilter_sukiyoki(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -209,7 +211,7 @@ mod tests {
     #[test]
     fn sk_c_l_nil_r_no_match() {
         // SK-C l=NIL r=no-match cnt=1 — clause-1
-        let r = sl(0, 1, vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))]);
+        let r = Arc::new(sl(0, 1, vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))]));
         let result = segfilter_sukiyoki(None, &r);
         assert_eq!(result.len(), 1);
     }
@@ -219,12 +221,12 @@ mod tests {
         // SK-D l-simple r-suki cnt=0
         // sat-l empty (constantly nil), con-l full; sat-r full, con-r empty
         // → no base, no sat-l push (sat-l empty) → empty
-        let l = sl(0, 1, vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))]);
-        let r = sl(
+        let l = Arc::new(sl(0, 1, vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))]));
+        let r = Arc::new(sl(
             1,
             2,
             vec![seg(1, 2, "好き", 100, Some(info(vec![100], vec![cdata_54()])))],
-        );
+        ));
         let result = segfilter_sukiyoki(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -233,15 +235,15 @@ mod tests {
     fn sk_e_l_simple_r_mixed_base_only() {
         // SK-E l-simple r-mixed cnt=1
         // sat-l empty, con-l full; sat-r=suki, con-r=other → base pair only
-        let l = sl(0, 1, vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))]);
-        let r = sl(
+        let l = Arc::new(sl(0, 1, vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))]));
+        let r = Arc::new(sl(
             1,
             2,
             vec![
                 seg(1, 2, "好き", 100, Some(info(vec![100], vec![cdata_54()]))),
                 seg(1, 2, "abc", 999, Some(info(vec![999], vec![]))),
             ],
-        );
+        ));
         let result = segfilter_sukiyoki(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -255,12 +257,12 @@ mod tests {
     #[test]
     fn sk_f_gap_r_suki_empty() {
         // SK-F gap r-suki cnt=0 — clause-2 (l.end != r.start) with con-r empty → ()
-        let l = sl(0, 1, vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))]);
-        let r = sl(
+        let l = Arc::new(sl(0, 1, vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))]));
+        let r = Arc::new(sl(
             2,
             3,
             vec![seg(2, 3, "好き", 100, Some(info(vec![100], vec![cdata_54()])))],
-        );
+        ));
         let result = segfilter_sukiyoki(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -268,7 +270,7 @@ mod tests {
     #[test]
     fn sk_g_l_nil_r_suki_no_conj_pass_through() {
         // SK-G l=NIL r=suki-no-conj cnt=1 — filter-right requires conj-54; without it sat-r empty
-        let r = sl(0, 1, vec![seg(0, 1, "好き", 100, Some(info(vec![100], vec![])))]);
+        let r = Arc::new(sl(0, 1, vec![seg(0, 1, "好き", 100, Some(info(vec![100], vec![])))]));
         let result = segfilter_sukiyoki(None, &r);
         assert_eq!(result.len(), 1);
     }
@@ -276,11 +278,11 @@ mod tests {
     #[test]
     fn sk_h_l_nil_r_conj54_not_suki_pass_through() {
         // SK-H l=NIL r=conj54-not-suki cnt=1 — text doesn't end with 好き → sat-r empty
-        let r = sl(
+        let r = Arc::new(sl(
             0,
             1,
             vec![seg(0, 1, "abc", 100, Some(info(vec![100], vec![cdata_54()])))],
-        );
+        ));
         let result = segfilter_sukiyoki(None, &r);
         assert_eq!(result.len(), 1);
     }

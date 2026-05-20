@@ -12,10 +12,15 @@
 //!   `defparameter`. Per CONVENTIONS §4.6 the `defsegfilter` macro is
 //!   marked `skip` (DSL definer); its only effect was the
 //!   accumulation captured here.
-//! - Each filter is a Rust `fn` pointer with the shared signature
-//!   `fn(Option<&SegmentList>, &SegmentList) -> Vec<(Option<SegmentList>, SegmentList)>`.
+//! - Each filter is a Rust `fn` pointer that threads
+//!   `Arc<SegmentList>` so the pass-through paths inside
+//!   [`apply_segfilters`] reduce to refcount bumps; the Lisp
+//!   `(list seg-left seg-right)` is also pointer-shared. Modify
+//!   paths allocate a fresh `Arc<SegmentList>`.
 //!
 //! [`apply_segfilters`]: super::apply_segfilters::apply_segfilters
+
+use std::sync::Arc;
 
 use super::segfilter_aux_verb::segfilter_aux_verb;
 use super::segfilter_badend::segfilter_badend;
@@ -35,8 +40,10 @@ use super::segfilter_tsu_iru::segfilter_tsu_iru;
 use super::segfilter_wokarasu::segfilter_wokarasu;
 use super::segment_list_struct::SegmentList;
 
-pub type SegFilter =
-    fn(Option<&SegmentList>, &SegmentList) -> Vec<(Option<SegmentList>, SegmentList)>;
+pub type SegFilter = fn(
+    Option<&Arc<SegmentList>>,
+    &Arc<SegmentList>,
+) -> Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)>;
 
 pub static SEGFILTER_LIST: &[SegFilter] = &[
     segfilter_mononi,

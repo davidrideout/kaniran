@@ -10,6 +10,8 @@
 //! filter is **not** wrapped in `complement` — `sat-l` here means
 //! "matches を", and `con-l` means "does not".
 
+use std::sync::Arc;
+
 use super::classify::classify;
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::make_segment_list_from::make_segment_list_from;
@@ -19,16 +21,16 @@ const WO_SEQ: i32 = 2029010;
 const KARASU_SEQS: &[i32] = &[2087020];
 
 pub fn segfilter_wokarasu(
-    seg_left: Option<&SegmentList>,
-    seg_right: &SegmentList,
-) -> Vec<(Option<SegmentList>, SegmentList)> {
+    seg_left: Option<&Arc<SegmentList>>,
+    seg_right: &Arc<SegmentList>,
+) -> Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> {
     let filter_right = filter_in_seq_set(KARASU_SEQS.to_vec());
     let (sat_r, con_r) = classify(filter_right, &seg_right.segments);
 
     // Cond clause 1: (or (not sat-r) (and allow-first (not l)))
     // allow-first = nil here, so just (not sat-r).
     if sat_r.is_empty() {
-        return vec![(seg_left.cloned(), seg_right.clone())];
+        return vec![(seg_left.cloned(), Arc::clone(seg_right))];
     }
 
     // Cond clause 2: (or (not l) (/= l.end r.start)).
@@ -37,14 +39,14 @@ pub fn segfilter_wokarasu(
             return if con_r.is_empty() {
                 Vec::new()
             } else {
-                vec![(None, make_segment_list_from(seg_right, con_r))]
+                vec![(None, Arc::new(make_segment_list_from(seg_right, con_r)))]
             };
         }
         Some(l) if l.end != seg_right.start => {
             return if con_r.is_empty() {
                 Vec::new()
             } else {
-                vec![(Some(l.clone()), make_segment_list_from(seg_right, con_r))]
+                vec![(Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r)))]
             };
         }
         Some(l) => l,
@@ -56,20 +58,20 @@ pub fn segfilter_wokarasu(
     let (sat_l, con_l) = classify(filter_left, &l.segments);
 
     if con_l.is_empty() {
-        return vec![(Some(l.clone()), seg_right.clone())];
+        return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
     }
 
-    let mut result: Vec<(Option<SegmentList>, SegmentList)> = Vec::new();
+    let mut result: Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> = Vec::new();
     if !con_r.is_empty() {
-        result.push((Some(l.clone()), make_segment_list_from(seg_right, con_r)));
+        result.push((Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r))));
     }
     if !sat_l.is_empty() {
         // dict-grammar.lisp:1064 (push) — prepend the satisfies pair.
         result.insert(
             0,
             (
-                Some(make_segment_list_from(l, sat_l)),
-                make_segment_list_from(seg_right, sat_r),
+                Some(Arc::new(make_segment_list_from(l, sat_l))),
+                Arc::new(make_segment_list_from(seg_right, sat_r)),
             ),
         );
     }
@@ -128,7 +130,7 @@ mod tests {
     #[test]
     fn w_a_l_nil_r_karasu_empty() {
         // W-A l=NIL r=karasu cnt=0 — no allow-first, clause-2 (not l)=T, con-r empty → ()
-        let r = sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2087020]))]);
+        let r = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2087020]))]));
         let result = segfilter_wokarasu(None, &r);
         assert!(result.is_empty());
     }
@@ -136,14 +138,14 @@ mod tests {
     #[test]
     fn w_b_l_nil_r_mixed() {
         // W-B l=NIL r=mixed cnt=1 — clause-2 (not l)=T, con-r non-empty
-        let r = sl(
+        let r = Arc::new(sl(
             0,
             1,
             vec![
                 seg(0, 1, info_with_seq_set(vec![2087020])),
                 seg(0, 1, info_with_seq_set(vec![999])),
             ],
-        );
+        ));
         let result = segfilter_wokarasu(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -157,7 +159,7 @@ mod tests {
     #[test]
     fn w_c_l_nil_r_no_match() {
         // W-C l=NIL r=no-match cnt=1 — clause-1
-        let r = sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
+        let r = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]));
         let result = segfilter_wokarasu(None, &r);
         assert_eq!(result.len(), 1);
     }
@@ -165,8 +167,8 @@ mod tests {
     #[test]
     fn w_d_l_wo_r_karasu_pass_through() {
         // W-D l-wo r-karasu cnt=1 — sat-l full, con-l empty → (l, r)
-        let l = sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2029010]))]);
-        let r = sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![2087020]))]);
+        let l = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2029010]))]));
+        let r = Arc::new(sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![2087020]))]));
         let result = segfilter_wokarasu(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -175,8 +177,8 @@ mod tests {
     #[test]
     fn w_e_l_not_wo_r_karasu_empty() {
         // W-E l-not-wo r-karasu cnt=0 — sat-l empty, con-l full; con-r empty → ()
-        let l = sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
-        let r = sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![2087020]))]);
+        let l = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]));
+        let r = Arc::new(sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![2087020]))]));
         let result = segfilter_wokarasu(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -186,22 +188,22 @@ mod tests {
         // W-F l-mixed (wo + other) r-mixed (karasu + other) cnt=2
         //   [0] sat-l × sat-r: L=(wo, 1 seg) × R=(karasu, 1 seg)
         //   [1] l unchanged × con-r: L=(2 segs) × R=(other, 1 seg seq=888)
-        let l = sl(
+        let l = Arc::new(sl(
             0,
             1,
             vec![
                 seg(0, 1, info_with_seq_set(vec![2029010])),
                 seg(0, 1, info_with_seq_set(vec![999])),
             ],
-        );
-        let r = sl(
+        ));
+        let r = Arc::new(sl(
             1,
             2,
             vec![
                 seg(1, 2, info_with_seq_set(vec![2087020])),
                 seg(1, 2, info_with_seq_set(vec![888])),
             ],
-        );
+        ));
         let result = segfilter_wokarasu(Some(&l), &r);
         assert_eq!(result.len(), 2);
 
@@ -229,15 +231,15 @@ mod tests {
     #[test]
     fn w_g_gap_r_mixed() {
         // W-G gap (l.end=1, r.start=2) r-mixed cnt=1 — clause-2 with con-r non-empty
-        let l = sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2029010]))]);
-        let r = sl(
+        let l = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2029010]))]));
+        let r = Arc::new(sl(
             2,
             3,
             vec![
                 seg(2, 3, info_with_seq_set(vec![2087020])),
                 seg(2, 3, info_with_seq_set(vec![888])),
             ],
-        );
+        ));
         let result = segfilter_wokarasu(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -250,8 +252,8 @@ mod tests {
     #[test]
     fn w_h_gap_r_all_karasu_empty() {
         // W-H gap r-all-karasu cnt=0 — clause-2 with con-r empty → ()
-        let l = sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2029010]))]);
-        let r = sl(2, 3, vec![seg(2, 3, info_with_seq_set(vec![2087020]))]);
+        let l = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2029010]))]));
+        let r = Arc::new(sl(2, 3, vec![seg(2, 3, info_with_seq_set(vec![2087020]))]));
         let result = segfilter_wokarasu(Some(&l), &r);
         assert!(result.is_empty());
     }

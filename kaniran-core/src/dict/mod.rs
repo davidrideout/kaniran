@@ -102,6 +102,7 @@ pub mod filter_is_compound_end_text;
 pub mod filter_is_conjugation;
 pub mod filter_is_noun;
 pub mod filter_short_kana;
+pub mod find_best_path;
 pub mod find_counter;
 pub mod find_substring_words;
 pub mod find_word;

@@ -10,6 +10,8 @@
 //! inlined per §4.6. `seg-left` is nil-able (`dict.lisp:1172` passes
 //! nil); `seg-right` is always non-nil.
 
+use std::sync::Arc;
+
 use super::_star_aux_verbs_star_::AUX_VERBS;
 use super::classify::classify;
 use super::filter_in_seq_set::filter_in_seq_set;
@@ -18,9 +20,9 @@ use super::make_segment_list_from::make_segment_list_from;
 use super::segment_list_struct::SegmentList;
 
 pub fn segfilter_aux_verb(
-    seg_left: Option<&SegmentList>,
-    seg_right: &SegmentList,
-) -> Vec<(Option<SegmentList>, SegmentList)> {
+    seg_left: Option<&Arc<SegmentList>>,
+    seg_right: &Arc<SegmentList>,
+) -> Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> {
     // dict-grammar.lisp:1043 (def-segfilter-must-follow expansion)
     // — classify right by filter-right first.
     let filter_right = filter_in_seq_set(AUX_VERBS.to_vec());
@@ -29,7 +31,7 @@ pub fn segfilter_aux_verb(
     // Cond clause 1: (or (not sat-r) (and allow-first (not l))).
     // allow-first = nil here, so just (not sat-r).
     if sat_r.is_empty() {
-        return vec![(seg_left.cloned(), seg_right.clone())];
+        return vec![(seg_left.cloned(), Arc::clone(seg_right))];
     }
 
     // Cond clause 2: (or (not l) (/= l.end r.start)).
@@ -38,14 +40,17 @@ pub fn segfilter_aux_verb(
             return if con_r.is_empty() {
                 Vec::new()
             } else {
-                vec![(None, make_segment_list_from(seg_right, con_r))]
+                vec![(None, Arc::new(make_segment_list_from(seg_right, con_r)))]
             };
         }
         Some(l) if l.end != seg_right.start => {
             return if con_r.is_empty() {
                 Vec::new()
             } else {
-                vec![(Some(l.clone()), make_segment_list_from(seg_right, con_r))]
+                vec![(
+                    Some(Arc::clone(l)),
+                    Arc::new(make_segment_list_from(seg_right, con_r)),
+                )]
             };
         }
         Some(l) => l,
@@ -56,23 +61,26 @@ pub fn segfilter_aux_verb(
     let (sat_l, con_l) = classify(filter_left, &l.segments);
 
     if con_l.is_empty() {
-        return vec![(Some(l.clone()), seg_right.clone())];
+        return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
     }
 
-    let mut result: Vec<(Option<SegmentList>, SegmentList)> = Vec::new();
+    let mut result: Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> = Vec::new();
     if !con_r.is_empty() {
         // Base pair carries the ORIGINAL left segment-list unchanged,
         // mirroring the Lisp `(list ,segment-list-left
         // (make-segment-list-from ,segment-list-right ,contradicts-right))`.
-        result.push((Some(l.clone()), make_segment_list_from(seg_right, con_r)));
+        result.push((
+            Some(Arc::clone(l)),
+            Arc::new(make_segment_list_from(seg_right, con_r)),
+        ));
     }
     if !sat_l.is_empty() {
         // dict-grammar.lisp:1064 (push) — prepend the satisfies pair.
         result.insert(
             0,
             (
-                Some(make_segment_list_from(l, sat_l)),
-                make_segment_list_from(seg_right, sat_r),
+                Some(Arc::new(make_segment_list_from(l, sat_l))),
+                Arc::new(make_segment_list_from(seg_right, sat_r)),
             ),
         );
     }
@@ -181,7 +189,7 @@ mod tests {
     #[test]
     fn a_l_nil_r_no_match() {
         // A l=NIL r=no-match -> {(L=NIL R=[r unchanged 1 seg seq=999])}
-        let r = sl(0, 2, vec![seg(0, 2, info_with_seq_set(vec![999]))]);
+        let r = Arc::new(sl(0, 2, vec![seg(0, 2, info_with_seq_set(vec![999]))]));
         let result = segfilter_aux_verb(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -192,7 +200,7 @@ mod tests {
     #[test]
     fn b_l_nil_r_all_match() {
         // B l=NIL r=all-match -> {} (empty — sat-r is full, con-r is empty)
-        let r = sl(0, 2, vec![seg(0, 2, info_with_seq_set(vec![1342560]))]);
+        let r = Arc::new(sl(0, 2, vec![seg(0, 2, info_with_seq_set(vec![1342560]))]));
         let result = segfilter_aux_verb(None, &r);
         assert!(result.is_empty());
     }
@@ -200,14 +208,14 @@ mod tests {
     #[test]
     fn c_l_nil_r_mixed() {
         // C l=NIL r=mixed -> {(L=NIL R=[1-seg seq=999])}
-        let r = sl(
+        let r = Arc::new(sl(
             0,
             2,
             vec![
                 seg(0, 2, info_with_seq_set(vec![1342560])),
                 seg(0, 2, info_with_seq_set(vec![999])),
             ],
-        );
+        ));
         let result = segfilter_aux_verb(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -218,15 +226,15 @@ mod tests {
     #[test]
     fn d_l_adj_gap_r_mixed() {
         // D l=adj-gap (l.end != r.start), r=mixed -> {(L=l unchanged, R=r-reduced-to-non-aux 1 seg)}
-        let l = sl(0, 1, vec![seg(0, 1, info_with_conj(vec![]))]);
-        let r = sl(
+        let l = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_conj(vec![]))]));
+        let r = Arc::new(sl(
             2,
             4,
             vec![
                 seg(2, 4, info_with_seq_set(vec![1342560])),
                 seg(2, 4, info_with_seq_set(vec![999])),
             ],
-        );
+        ));
         let result = segfilter_aux_verb(Some(&l), &r);
         assert_eq!(result.len(), 1);
         let (lp, rp) = &result[0];
@@ -239,15 +247,15 @@ mod tests {
     #[test]
     fn e_l_no_sat_r_mixed() {
         // E l-no-sat (cd missing conj-type=13), r=mixed -> {(L=l unchanged 1 seg, R=r-reduced 1 seg)}
-        let l = sl(0, 2, vec![seg(0, 2, info_with_conj(vec![]))]);
-        let r = sl(
+        let l = Arc::new(sl(0, 2, vec![seg(0, 2, info_with_conj(vec![]))]));
+        let r = Arc::new(sl(
             2,
             4,
             vec![
                 seg(2, 4, info_with_seq_set(vec![1342560])),
                 seg(2, 4, info_with_seq_set(vec![999])),
             ],
-        );
+        ));
         let result = segfilter_aux_verb(Some(&l), &r);
         assert_eq!(result.len(), 1);
         let (lp, rp) = &result[0];
@@ -261,22 +269,22 @@ mod tests {
         // F l-mixed (conj13 + conj3) r-mixed -> two splits:
         //   1st: (L=mslf(l, sat_l)=1 seg, R=mslf(r, sat_r)=1 seg seq=1342560)
         //   2nd: (L=l unchanged 2 segs, R=mslf(r, con_r)=1 seg seq=999)
-        let l = sl(
+        let l = Arc::new(sl(
             0,
             2,
             vec![
                 seg(0, 2, info_with_conj(vec![cdata(13)])),
                 seg(0, 2, info_with_conj(vec![cdata(3)])),
             ],
-        );
-        let r = sl(
+        ));
+        let r = Arc::new(sl(
             2,
             4,
             vec![
                 seg(2, 4, info_with_seq_set(vec![1342560])),
                 seg(2, 4, info_with_seq_set(vec![999])),
             ],
-        );
+        ));
         let result = segfilter_aux_verb(Some(&l), &r);
         assert_eq!(result.len(), 2);
 
@@ -298,8 +306,8 @@ mod tests {
     #[test]
     fn g_l_all_sat_r_all_sat() {
         // G l-all-sat r-all-sat -> {(L=l unchanged, R=r unchanged)} (con-l empty path)
-        let l = sl(0, 2, vec![seg(0, 2, info_with_conj(vec![cdata(13)]))]);
-        let r = sl(2, 4, vec![seg(2, 4, info_with_seq_set(vec![1342560]))]);
+        let l = Arc::new(sl(0, 2, vec![seg(0, 2, info_with_conj(vec![cdata(13)]))]));
+        let r = Arc::new(sl(2, 4, vec![seg(2, 4, info_with_seq_set(vec![1342560]))]));
         let result = segfilter_aux_verb(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -309,8 +317,8 @@ mod tests {
     #[test]
     fn i_l_all_sat_r_no_match() {
         // I l-all-sat r-no-match -> {(L=l unchanged, R=r unchanged)} (clause-1 path, sat-r empty)
-        let l = sl(0, 2, vec![seg(0, 2, info_with_conj(vec![cdata(13)]))]);
-        let r = sl(2, 4, vec![seg(2, 4, info_with_seq_set(vec![999]))]);
+        let l = Arc::new(sl(0, 2, vec![seg(0, 2, info_with_conj(vec![cdata(13)]))]));
+        let r = Arc::new(sl(2, 4, vec![seg(2, 4, info_with_seq_set(vec![999]))]));
         let result = segfilter_aux_verb(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -324,15 +332,15 @@ mod tests {
     #[test]
     fn j_l_mixed_r_all_sat() {
         // J l-mixed r-all-sat -> {(L=mslf(l, sat_l), R=mslf(r, sat_r))}  (con-r empty; no base pair)
-        let l = sl(
+        let l = Arc::new(sl(
             0,
             2,
             vec![
                 seg(0, 2, info_with_conj(vec![cdata(13)])),
                 seg(0, 2, info_with_conj(vec![cdata(3)])),
             ],
-        );
-        let r = sl(2, 4, vec![seg(2, 4, info_with_seq_set(vec![1342560]))]);
+        ));
+        let r = Arc::new(sl(2, 4, vec![seg(2, 4, info_with_seq_set(vec![1342560]))]));
         let result = segfilter_aux_verb(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);

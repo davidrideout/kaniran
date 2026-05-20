@@ -6,12 +6,19 @@
 //! those candidates becomes the input to the next filter.
 //!
 //! Divergences from Lisp:
-//! - `seg-left` is [`Option<&SegmentList>`] at the boundary —
-//!   matching every segfilter's signature — and stored owned as
-//!   `Option<SegmentList>` inside the rolling `splits` Vec. The Lisp
-//!   threads `nil` through the same slot.
+//! - `seg-left` is [`Option<&SegmentList>`] at the public boundary —
+//!   matching the call sites — and the rolling `splits` Vec stores
+//!   `(Option<Arc<SegmentList>>, Arc<SegmentList>)` so the 16
+//!   pass-through filter clones reduce to refcount bumps. The Lisp
+//!   `(list seg-left seg-right)` is itself pointer-shared. The return
+//!   shape is unchanged: `Arc::unwrap_or_clone` collapses each pair
+//!   back to owned `SegmentList`s on the way out (cheap when refcount
+//!   is 1, which is typical because each split lands in exactly one
+//!   downstream pair).
 //!
 //! [`SEGFILTER_LIST`]: super::_star_segfilter_list_star_::SEGFILTER_LIST
+
+use std::sync::Arc;
 
 use super::_star_segfilter_list_star_::SEGFILTER_LIST;
 use super::segment_list_struct::SegmentList;
@@ -21,18 +28,23 @@ pub fn apply_segfilters(
     seg_right: &SegmentList,
 ) -> Vec<(Option<SegmentList>, SegmentList)> {
     // dict-grammar.lisp:1171 (`with splits = (list (list seg-left seg-right))`)
-    let mut splits: Vec<(Option<SegmentList>, SegmentList)> =
-        vec![(seg_left.cloned(), seg_right.clone())];
+    let mut splits: Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> = vec![(
+        seg_left.cloned().map(Arc::new),
+        Arc::new(seg_right.clone()),
+    )];
     for segfilter in SEGFILTER_LIST {
         // dict-grammar.lisp:1173-1175 (inner loop nconc-ing each
         // filter's output across the current splits)
-        let mut next: Vec<(Option<SegmentList>, SegmentList)> = Vec::new();
+        let mut next: Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> = Vec::new();
         for (left, right) in &splits {
             next.extend(segfilter(left.as_ref(), right));
         }
         splits = next;
     }
     splits
+        .into_iter()
+        .map(|(left, right)| (left.map(Arc::unwrap_or_clone), Arc::unwrap_or_clone(right)))
+        .collect()
 }
 
 #[cfg(test)]

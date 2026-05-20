@@ -6,6 +6,8 @@
 //!   (filter-is-compound-end-text "ちゃい" "いか" "とか" "とき" "い"))
 //! ```
 
+use std::sync::Arc;
+
 use super::classify::classify;
 use super::filter_is_compound_end_text::filter_is_compound_end_text;
 use super::make_segment_list_from::make_segment_list_from;
@@ -22,16 +24,16 @@ fn badend_texts() -> Vec<String> {
 }
 
 pub fn segfilter_badend(
-    seg_left: Option<&SegmentList>,
-    seg_right: &SegmentList,
-) -> Vec<(Option<SegmentList>, SegmentList)> {
+    seg_left: Option<&Arc<SegmentList>>,
+    seg_right: &Arc<SegmentList>,
+) -> Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> {
     let filter_right = filter_is_compound_end_text(badend_texts());
     let (sat_r, con_r) = classify(filter_right, &seg_right.segments);
 
     // Cond clause 1: (or (not sat-r) (and allow-first (not l))).
     // allow-first = nil here, so just (not sat-r).
     if sat_r.is_empty() {
-        return vec![(seg_left.cloned(), seg_right.clone())];
+        return vec![(seg_left.cloned(), Arc::clone(seg_right))];
     }
 
     // Cond clause 2: (or (not l) (/= l.end r.start)).
@@ -40,14 +42,14 @@ pub fn segfilter_badend(
             return if con_r.is_empty() {
                 Vec::new()
             } else {
-                vec![(None, make_segment_list_from(seg_right, con_r))]
+                vec![(None, Arc::new(make_segment_list_from(seg_right, con_r)))]
             };
         }
         Some(l) if l.end != seg_right.start => {
             return if con_r.is_empty() {
                 Vec::new()
             } else {
-                vec![(Some(l.clone()), make_segment_list_from(seg_right, con_r))]
+                vec![(Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r)))]
             };
         }
         Some(l) => l,
@@ -63,12 +65,12 @@ pub fn segfilter_badend(
     if con_l.is_empty() {
         // Reachable only if l.segments is empty — rare but possible at
         // upstream call sites that don't filter empty seglists.
-        return vec![(Some(l.clone()), seg_right.clone())];
+        return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
     }
 
-    let mut result: Vec<(Option<SegmentList>, SegmentList)> = Vec::new();
+    let mut result: Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> = Vec::new();
     if !con_r.is_empty() {
-        result.push((Some(l.clone()), make_segment_list_from(seg_right, con_r)));
+        result.push((Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r))));
     }
     if !sat_l.is_empty() {
         // Unreachable for this segfilter — filter-left = (constantly
@@ -77,8 +79,8 @@ pub fn segfilter_badend(
         result.insert(
             0,
             (
-                Some(make_segment_list_from(l, sat_l)),
-                make_segment_list_from(seg_right, sat_r),
+                Some(Arc::new(make_segment_list_from(l, sat_l))),
+                Arc::new(make_segment_list_from(seg_right, sat_r)),
             ),
         );
     }
@@ -154,7 +156,7 @@ mod tests {
     fn ba_a_l_nil_r_all_match_returns_empty() {
         // Ba-A l=NIL r=all-match -> {} (allow-first=nil, con-r empty)
         let seg_chai = seg(1, 2, compound(&["ちゃい"]));
-        let r = sl(1, 2, vec![seg_chai]);
+        let r = Arc::new(sl(1, 2, vec![seg_chai]));
         let result = segfilter_badend(None, &r);
         assert!(result.is_empty());
     }
@@ -164,7 +166,7 @@ mod tests {
         // Ba-B l=NIL r=mixed -> {(L=NIL R=[1 seg = non-matching])}
         let seg_chai = seg(1, 2, compound(&["ちゃい"]));
         let seg_x = seg(1, 2, compound(&["x"]));
-        let r = sl(1, 2, vec![seg_chai, seg_x]);
+        let r = Arc::new(sl(1, 2, vec![seg_chai, seg_x]));
         let result = segfilter_badend(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -175,7 +177,7 @@ mod tests {
     fn ba_c_l_nil_r_no_match() {
         // Ba-C l=NIL r=no-match -> {(L=NIL R=r unchanged)} (clause-1)
         let seg_x = seg(1, 2, compound(&["x"]));
-        let r = sl(1, 2, vec![seg_x]);
+        let r = Arc::new(sl(1, 2, vec![seg_x]));
         let result = segfilter_badend(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -189,8 +191,8 @@ mod tests {
         let seg_simp = seg(0, 1, KaniWordDispatchEnum::Kana(kana("い", 9995)));
         let seg_chai = seg(1, 3, compound(&["ちゃい"]));
         let seg_x = seg(1, 3, compound(&["x"]));
-        let l = sl(0, 1, vec![seg_simp]);
-        let r = sl(1, 3, vec![seg_chai, seg_x]);
+        let l = Arc::new(sl(0, 1, vec![seg_simp]));
+        let r = Arc::new(sl(1, 3, vec![seg_chai, seg_x]));
         let result = segfilter_badend(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -202,8 +204,8 @@ mod tests {
         // Ba-E l-adj r=all-match -> {} (sat-l empty + con-r empty → both branches contribute nothing)
         let seg_simp = seg(0, 1, KaniWordDispatchEnum::Kana(kana("い", 9995)));
         let seg_chai = seg(1, 3, compound(&["ちゃい"]));
-        let l = sl(0, 1, vec![seg_simp]);
-        let r = sl(1, 3, vec![seg_chai]);
+        let l = Arc::new(sl(0, 1, vec![seg_simp]));
+        let r = Arc::new(sl(1, 3, vec![seg_chai]));
         let result = segfilter_badend(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -215,8 +217,8 @@ mod tests {
         let seg_simp = seg(0, 1, KaniWordDispatchEnum::Kana(kana("い", 9995)));
         let seg_chai = seg(2, 4, compound(&["ちゃい"]));
         let seg_x = seg(2, 4, compound(&["x"]));
-        let l = sl(0, 1, vec![seg_simp]);
-        let r = sl(2, 4, vec![seg_chai, seg_x]);
+        let l = Arc::new(sl(0, 1, vec![seg_simp]));
+        let r = Arc::new(sl(2, 4, vec![seg_chai, seg_x]));
         let result = segfilter_badend(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -228,8 +230,8 @@ mod tests {
         // Ba-G l-adj r=no-match -> {(L=l unchanged, R=r unchanged)} (clause-1)
         let seg_simp = seg(0, 1, KaniWordDispatchEnum::Kana(kana("い", 9995)));
         let seg_x = seg(1, 3, compound(&["x"]));
-        let l = sl(0, 1, vec![seg_simp]);
-        let r = sl(1, 3, vec![seg_x]);
+        let l = Arc::new(sl(0, 1, vec![seg_simp]));
+        let r = Arc::new(sl(1, 3, vec![seg_x]));
         let result = segfilter_badend(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);

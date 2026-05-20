@@ -26,9 +26,18 @@ use super::segment_list_struct::SegmentList;
 use super::segment_struct::Segment;
 
 pub fn make_segment_list_from(old_segment_list: &SegmentList, segments: Vec<Segment>) -> SegmentList {
-    let mut new_segment_list = old_segment_list.clone();
-    new_segment_list.segments = segments;
-    new_segment_list
+    // Lisp `copy-segment-list` is a shallow defstruct copy that then
+    // gets its segments slot overwritten — the old segments are
+    // immediately discarded. Constructing the new struct directly
+    // avoids the Rust `Clone` deep-copying the old segments only for
+    // them to be replaced on the next line.
+    SegmentList {
+        segments,
+        start: old_segment_list.start,
+        end: old_segment_list.end,
+        top: old_segment_list.top.clone(),
+        matches: old_segment_list.matches,
+    }
 }
 
 #[cfg(test)]

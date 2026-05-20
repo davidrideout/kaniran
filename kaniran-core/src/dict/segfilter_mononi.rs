@@ -7,6 +7,8 @@
 //!                            :allow-first t)
 //! ```
 
+use std::sync::Arc;
+
 use super::classify::classify;
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::make_segment_list_from::make_segment_list_from;
@@ -16,15 +18,15 @@ const MO_SEQ: i32 = 2028940;
 const MONONI_SEQS: &[i32] = &[1009980];
 
 pub fn segfilter_mononi(
-    seg_left: Option<&SegmentList>,
-    seg_right: &SegmentList,
-) -> Vec<(Option<SegmentList>, SegmentList)> {
+    seg_left: Option<&Arc<SegmentList>>,
+    seg_right: &Arc<SegmentList>,
+) -> Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> {
     let filter_right = filter_in_seq_set(MONONI_SEQS.to_vec());
     let (sat_r, con_r) = classify(filter_right, &seg_right.segments);
 
     // Cond clause 1: (or (not sat-r) (and allow-first (not l)))
     if sat_r.is_empty() || seg_left.is_none() {
-        return vec![(seg_left.cloned(), seg_right.clone())];
+        return vec![(seg_left.cloned(), Arc::clone(seg_right))];
     }
 
     // Cond clause 2: (or (not l) (/= l.end r.start)) — (not l) absorbed above.
@@ -33,7 +35,7 @@ pub fn segfilter_mononi(
         return if con_r.is_empty() {
             Vec::new()
         } else {
-            vec![(Some(l.clone()), make_segment_list_from(seg_right, con_r))]
+            vec![(Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r)))]
         };
     }
 
@@ -43,20 +45,20 @@ pub fn segfilter_mononi(
     let (sat_l, con_l) = classify(|s| !inner(s), &l.segments);
 
     if con_l.is_empty() {
-        return vec![(Some(l.clone()), seg_right.clone())];
+        return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
     }
 
-    let mut result: Vec<(Option<SegmentList>, SegmentList)> = Vec::new();
+    let mut result: Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> = Vec::new();
     if !con_r.is_empty() {
-        result.push((Some(l.clone()), make_segment_list_from(seg_right, con_r)));
+        result.push((Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r))));
     }
     if !sat_l.is_empty() {
         // dict-grammar.lisp:1064 (push) — prepend the satisfies pair.
         result.insert(
             0,
             (
-                Some(make_segment_list_from(l, sat_l)),
-                make_segment_list_from(seg_right, sat_r),
+                Some(Arc::new(make_segment_list_from(l, sat_l))),
+                Arc::new(make_segment_list_from(seg_right, sat_r)),
             ),
         );
     }
@@ -130,7 +132,7 @@ mod tests {
     fn m_a_l_nil_r_mononi_pass_through() {
         // M-A l=NIL r=mononi cnt=1
         // allow-first → clause-1 → (list (list nil r))
-        let r = sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![1009980])))]);
+        let r = Arc::new(sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![1009980])))]));
         let result = segfilter_mononi(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -141,8 +143,8 @@ mod tests {
     fn m_b_l_not_mo_r_mononi() {
         // M-B l-not-mo r-mononi cnt=1 l-segs=1
         // sat-l full (not mo), con-l empty → (list (list l r))
-        let l = sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![999])))]);
-        let r = sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))]);
+        let l = Arc::new(sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![999])))]));
+        let r = Arc::new(sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))]));
         let result = segfilter_mononi(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -152,8 +154,8 @@ mod tests {
     fn m_c_l_mo_r_mononi_empty() {
         // M-C l-mo r-mononi => NIL
         // sat-l empty, con-l full, sat-r full, con-r empty → empty result
-        let l = sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![2028940])))]);
-        let r = sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))]);
+        let l = Arc::new(sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![2028940])))]));
+        let r = Arc::new(sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))]));
         let result = segfilter_mononi(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -163,15 +165,15 @@ mod tests {
         // M-D l-mixed-mo r-mononi cnt=1 l-segs=1 l0-info=(999)
         // sat-l = non-mo, con-l = mo, sat-r full, con-r empty
         // → base skipped; sat-l push → 1 pair (mslf l sat-l, mslf r sat-r)
-        let l = sl(
+        let l = Arc::new(sl(
             0,
             1,
             vec![
                 seg(0, 1, Some(info_with_seq_set(vec![2028940]))),
                 seg(0, 1, Some(info_with_seq_set(vec![999]))),
             ],
-        );
-        let r = sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))]);
+        ));
+        let r = Arc::new(sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))]));
         let result = segfilter_mononi(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);

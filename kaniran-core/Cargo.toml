@@ -18,6 +18,7 @@ thiserror = { workspace = true }
 parquet = "55"
 arrow = "55"
 futures = "0.3"
+pprof = { version = "0.13", features = ["flamegraph"] }
 
 # Per-FQN fixture-replay runners. Each lives at audit/<pkg>/<fqn>_test.rs
 # mirroring src/<pkg>/<fqn>.rs. Run manually with:
@@ -165,6 +166,10 @@ path = "audit/dict/get_seg_splits_test.rs"
 [[bin]]
 name = "expand_segment_list_test"
 path = "audit/dict/expand_segment_list_test.rs"
+
+[[bin]]
+name = "find_best_path_test"
+path = "audit/dict/find_best_path_test.rs"
 
 [[bin]]
 name = "filter_is_noun_test"
