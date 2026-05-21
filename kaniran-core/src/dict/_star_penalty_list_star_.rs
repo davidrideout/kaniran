@@ -17,11 +17,11 @@
 //!
 //! [`get_penalties`]: super::get_penalties::get_penalties
 
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 use super::penalty_semi_final::penalty_semi_final;
 use super::penalty_short::penalty_short;
-use super::segment_list_struct::SegmentList;
 use super::synergy_struct::Synergy;
 
-pub type Penalty = fn(&SegmentList, &SegmentList) -> Option<Synergy>;
+pub type Penalty = fn(&KaniLiteSegmentList, &KaniLiteSegmentList) -> Option<Synergy>;
 
 pub static PENALTY_LIST: &[Penalty] = &[penalty_semi_final, penalty_short];

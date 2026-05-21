@@ -19,17 +19,19 @@
 //! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
 //!   moves to the `*synergy-list*` port (separate wave).
 
+use std::sync::Arc;
+
 use super::_star_noun_particles_star_::NOUN_PARTICLES;
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::filter_is_noun::filter_is_noun;
-use super::make_segment_list_from::make_segment_list_from;
-use super::segment_list_struct::SegmentList;
+use super::kani_lite_segment::KaniLiteSegment;
+use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 use super::synergy_struct::Synergy;
 
 pub fn synergy_noun_particle(
-    l: &SegmentList,
-    r: &SegmentList,
-) -> Vec<(SegmentList, Synergy, SegmentList)> {
+    l: &KaniLiteSegmentList,
+    r: &KaniLiteSegmentList,
+) -> Vec<(Arc<KaniLiteSegmentList>, Synergy, Arc<KaniLiteSegmentList>)> {
     let start = l.end;
     let end = r.start;
     // dict-grammar.lisp:731-746 (def-generic-synergy expansion)
@@ -37,8 +39,10 @@ pub fn synergy_noun_particle(
         return vec![];
     }
     let test_right = filter_in_seq_set(NOUN_PARTICLES.to_vec());
-    let left: Vec<_> = l.segments.iter().filter(|s| filter_is_noun(s)).cloned().collect();
-    let right: Vec<_> = r.segments.iter().filter(|s| test_right(s)).cloned().collect();
+    let left: Vec<Arc<KaniLiteSegment>> =
+        l.segments.iter().filter(|s| filter_is_noun(s)).cloned().collect();
+    let right: Vec<Arc<KaniLiteSegment>> =
+        r.segments.iter().filter(|s| test_right(s)).cloned().collect();
     if left.is_empty() || right.is_empty() {
         return vec![];
     }
@@ -53,9 +57,9 @@ pub fn synergy_noun_particle(
         end,
     };
     vec![(
-        make_segment_list_from(r, right),
+        Arc::new(make_kani_lite_segment_list_from(r, right)),
         syn,
-        make_segment_list_from(l, left),
+        Arc::new(make_kani_lite_segment_list_from(l, left)),
     )]
 }
 
@@ -65,6 +69,7 @@ mod tests {
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
 
@@ -111,14 +116,14 @@ mod tests {
         }
     }
 
-    fn sl(start: usize, end: usize, segments: Vec<Segment>) -> SegmentList {
-        SegmentList {
+    fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
+        KaniLiteSegmentList::from_segment_list(&SegmentList {
             segments,
             start,
             end,
             top: None,
             matches: 0,
-        }
+        })
     }
 
     // REPL probes (/tmp/probe_437_441.lisp on .103, 2026-05-18).
@@ -127,8 +132,8 @@ mod tests {
     fn positive_len1() {
         // noun-particle/positive-len1: l noun, r seq 2028920 (は), r.end-r.start=1.
         // SYNERGY desc="noun+prt" conn=" " score=14 start=1 end=1.
-        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
-        let r = sl(1, 2, vec![seg((false, false, false, false), vec![], vec![2028920])]);
+        let l = lite_sl_owned(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = lite_sl_owned(1, 2, vec![seg((false, false, false, false), vec![], vec![2028920])]);
         let got = synergy_noun_particle(&l, &r);
         assert_eq!(got.len(), 1);
         let (right_sl, syn, left_sl) = &got[0];
@@ -148,8 +153,8 @@ mod tests {
     #[test]
     fn positive_len2() {
         // noun-particle/positive-len2: r seq 2215430 (には), span=2 -> score=18.
-        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
-        let r = sl(1, 3, vec![seg((false, false, false, false), vec![], vec![2215430])]);
+        let l = lite_sl_owned(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = lite_sl_owned(1, 3, vec![seg((false, false, false, false), vec![], vec![2215430])]);
         let got = synergy_noun_particle(&l, &r);
         assert_eq!(got.len(), 1);
         assert_eq!(got[0].1.score, 18);
@@ -160,8 +165,8 @@ mod tests {
     #[test]
     fn positive_len4() {
         // noun-particle/positive-len4: r seq 1009600 (にとって), span=4 -> score=26.
-        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
-        let r = sl(1, 5, vec![seg((false, false, false, false), vec![], vec![1009600])]);
+        let l = lite_sl_owned(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = lite_sl_owned(1, 5, vec![seg((false, false, false, false), vec![], vec![1009600])]);
         let got = synergy_noun_particle(&l, &r);
         assert_eq!(got.len(), 1);
         assert_eq!(got[0].1.score, 26);
@@ -170,16 +175,16 @@ mod tests {
     #[test]
     fn not_adjacent_empty() {
         // noun-particle/not-adjacent: NIL.
-        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
-        let r = sl(5, 6, vec![seg((false, false, false, false), vec![], vec![2028920])]);
+        let l = lite_sl_owned(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = lite_sl_owned(5, 6, vec![seg((false, false, false, false), vec![], vec![2028920])]);
         assert!(synergy_noun_particle(&l, &r).is_empty());
     }
 
     #[test]
     fn right_misses_empty() {
         // noun-particle/right-misses: NIL.
-        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
-        let r = sl(1, 2, vec![seg((false, false, false, false), vec![], vec![9999999])]);
+        let l = lite_sl_owned(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = lite_sl_owned(1, 2, vec![seg((false, false, false, false), vec![], vec![9999999])]);
         assert!(synergy_noun_particle(&l, &r).is_empty());
     }
 }

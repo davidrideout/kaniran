@@ -26,10 +26,14 @@
 #[path = "../common/mod.rs"]
 mod common;
 
+use std::sync::Arc;
+
 use serde_json::Value;
 
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::get_seg_splits::get_seg_splits;
+use kaniran_core::dict::kani_lite_segment_list::KaniLiteSegmentList;
+use kaniran_core::dict::kani_lite_top_array_item::KaniLitePathElement;
 use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
 use kaniran_core::dict::segment_list_struct::SegmentList;
 use kaniran_core::dict::segment_struct::{
@@ -60,7 +64,25 @@ async fn audit_one(
     let seg_right = parse_segment_list_full(&row.args[1])
         .map_err(|err| format!("arg 1 (seg-right): {}", err))?;
 
-    let actual = get_seg_splits(&seg_left, &seg_right);
+    let lite_left = Arc::new(KaniLiteSegmentList::from_segment_list(&seg_left));
+    let lite_right = Arc::new(KaniLiteSegmentList::from_segment_list(&seg_right));
+    let lite_result = get_seg_splits(&lite_left, &lite_right);
+    // Materialize lite path elements back to full PathElement so the
+    // existing captured-shape comparators still apply (parquet predates
+    // the lite refactor).
+    let actual: Vec<Vec<PathElement>> = lite_result
+        .into_iter()
+        .map(|path| {
+            path.into_iter()
+                .map(|elem| match elem {
+                    KaniLitePathElement::SegmentList(lite) => {
+                        PathElement::SegmentList(lite.to_segment_list())
+                    }
+                    KaniLitePathElement::Synergy(s) => PathElement::Synergy(s),
+                })
+                .collect()
+        })
+        .collect();
 
     let expected_value = single_result(&row.result)?;
     let expected_outer: &[Value] = match expected_value {

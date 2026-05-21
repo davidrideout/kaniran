@@ -25,10 +25,13 @@
 #[path = "../common/mod.rs"]
 mod common;
 
+use std::sync::Arc;
+
 use serde_json::Value;
 
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::get_seg_initial::get_seg_initial;
+use kaniran_core::dict::kani_lite_segment_list::KaniLiteSegmentList;
 use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
 use kaniran_core::dict::segment_list_struct::SegmentList;
 use kaniran_core::dict::segment_struct::{
@@ -103,7 +106,13 @@ async fn audit_one(
         matches,
     };
 
-    let actual = get_seg_initial(&segment_list);
+    let lite_input = Arc::new(KaniLiteSegmentList::from_segment_list(&segment_list));
+    let lite_actual = get_seg_initial(&lite_input);
+    // Materialize lite results back to full SegmentList for the existing
+    // captured-shape comparators (parquet was captured before the lite
+    // refactor and still mirrors the full-Segment slot set).
+    let actual: Vec<SegmentList> =
+        lite_actual.iter().map(|sl| sl.to_segment_list()).collect();
 
     let expected_value = single_result(&row.result)?;
     let expected_arr: &[Value] = match expected_value {

@@ -12,31 +12,30 @@
 //! ```
 //!
 //! Divergences from Lisp:
-//! - Each individual synergy fn returns `Vec<(SegmentList, Synergy,
-//!   SegmentList)>`; here each tuple is wrapped into a
-//!   [`Vec<PathElement>`] so the result mirrors the Lisp shape "list
-//!   of 3-element paths" and matches the variant set
-//!   [`get_penalties`] uses (CONVENTIONS §4.3).
+//! - Each individual synergy fn returns `Vec<(Arc<KaniLiteSegmentList>,
+//!   Synergy, Arc<KaniLiteSegmentList>)>`; here each tuple is wrapped
+//!   into a `Vec<KaniLitePathElement>` matching the path-payload
+//!   variant set (CONVENTIONS §4.3).
 //!
 //! [`SYNERGY_LIST`]: super::_star_synergy_list_star_::SYNERGY_LIST
 //! [`get_penalties`]: super::get_penalties::get_penalties
 
 use super::_star_synergy_list_star_::SYNERGY_LIST;
-use super::segment_list_struct::SegmentList;
-use super::top_array_item_struct::PathElement;
+use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani_lite_top_array_item::KaniLitePathElement;
 
 pub fn get_synergies(
-    segment_list_left: &SegmentList,
-    segment_list_right: &SegmentList,
-) -> Vec<Vec<PathElement>> {
+    segment_list_left: &KaniLiteSegmentList,
+    segment_list_right: &KaniLiteSegmentList,
+) -> Vec<Vec<KaniLitePathElement>> {
     let mut out = vec![];
     for synergy_fn in SYNERGY_LIST {
         // dict-grammar.lisp:958-959 (`nconc (funcall fn l r)`)
         for (right_sl, syn, left_sl) in synergy_fn(segment_list_left, segment_list_right) {
             out.push(vec![
-                PathElement::SegmentList(right_sl),
-                PathElement::Synergy(syn),
-                PathElement::SegmentList(left_sl),
+                KaniLitePathElement::SegmentList(right_sl),
+                KaniLitePathElement::Synergy(syn),
+                KaniLitePathElement::SegmentList(left_sl),
             ]);
         }
     }
@@ -49,6 +48,7 @@ mod tests {
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
 
@@ -67,11 +67,7 @@ mod tests {
         })
     }
 
-    fn seg(
-        kpcl: (bool, bool, bool, bool),
-        posi: Vec<&str>,
-        seq_set: Vec<i32>,
-    ) -> Segment {
+    fn seg(kpcl: (bool, bool, bool, bool), posi: Vec<&str>, seq_set: Vec<i32>) -> Segment {
         Segment {
             start: 0,
             end: 1,
@@ -95,26 +91,26 @@ mod tests {
         }
     }
 
-    fn sl(start: usize, end: usize, segments: Vec<Segment>) -> SegmentList {
-        SegmentList {
+    fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
+        KaniLiteSegmentList::from_segment_list(&SegmentList {
             segments,
             start,
             end,
             top: None,
             matches: 0,
-        }
+        })
     }
 
-    fn unwrap_synergy(path: &[PathElement]) -> &crate::dict::synergy_struct::Synergy {
+    fn unwrap_synergy(path: &[KaniLitePathElement]) -> &crate::dict::synergy_struct::Synergy {
         match &path[1] {
-            PathElement::Synergy(s) => s,
+            KaniLitePathElement::Synergy(s) => s,
             other => panic!("expected Synergy at [1], got {:?}", other),
         }
     }
 
-    fn unwrap_sl(elem: &PathElement) -> &SegmentList {
+    fn unwrap_sl(elem: &KaniLitePathElement) -> &KaniLiteSegmentList {
         match elem {
-            PathElement::SegmentList(sl) => sl,
+            KaniLitePathElement::SegmentList(sl) => sl,
             other => panic!("expected SegmentList, got {:?}", other),
         }
     }
@@ -123,19 +119,15 @@ mod tests {
 
     #[test]
     fn a_none_fire() {
-        // get-syn/A-none: disjoint posi + seq-set, no synergy fires.
-        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["zzz"], vec![9999])]);
-        let r = sl(1, 2, vec![seg((false, false, false, false), vec!["zzz"], vec![8888])]);
+        let l = lite_sl(0, 1, vec![seg((true, false, false, false), vec!["zzz"], vec![9999])]);
+        let r = lite_sl(1, 2, vec![seg((false, false, false, false), vec!["zzz"], vec![8888])]);
         assert!(get_synergies(&l, &r).is_empty());
     }
 
     #[test]
     fn b_only_no_adjectives() {
-        // get-syn/B-one-fn: l adj-no k=T, r seq 1469800 -> only
-        // synergy-no-adjectives fires. count=1, desc="no-adjective",
-        // score=15, start=1, end=1.
-        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["adj-no"], vec![])]);
-        let r = sl(1, 2, vec![seg((false, false, false, false), vec![], vec![1469800])]);
+        let l = lite_sl(0, 1, vec![seg((true, false, false, false), vec!["adj-no"], vec![])]);
+        let r = lite_sl(1, 2, vec![seg((false, false, false, false), vec![], vec![1469800])]);
         let got = get_synergies(&l, &r);
         assert_eq!(got.len(), 1);
         let syn = unwrap_synergy(&got[0]);
@@ -152,10 +144,8 @@ mod tests {
 
     #[test]
     fn c_only_to_adverbs() {
-        // get-syn/C-only-to-adv: l adv-to k=T span=2, r seq 1008490 ->
-        // synergy-to-adverbs fires. desc="to-adverb", score=30.
-        let l = sl(0, 2, vec![seg((true, false, false, false), vec!["adv-to"], vec![])]);
-        let r = sl(2, 3, vec![seg((false, false, false, false), vec![], vec![1008490])]);
+        let l = lite_sl(0, 2, vec![seg((true, false, false, false), vec!["adv-to"], vec![])]);
+        let r = lite_sl(2, 3, vec![seg((false, false, false, false), vec![], vec![1008490])]);
         let got = get_synergies(&l, &r);
         assert_eq!(got.len(), 1);
         let syn = unwrap_synergy(&got[0]);
@@ -167,10 +157,8 @@ mod tests {
 
     #[test]
     fn d_noun_da_only() {
-        // get-syn/D-noun-da-only: l n k=T, r seq 2089020 (だ, not in
-        // noun-particles) -> only synergy-noun-da fires. score=10.
-        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
-        let r = sl(1, 2, vec![seg((false, false, false, false), vec![], vec![2089020])]);
+        let l = lite_sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = lite_sl(1, 2, vec![seg((false, false, false, false), vec![], vec![2089020])]);
         let got = get_synergies(&l, &r);
         assert_eq!(got.len(), 1);
         let syn = unwrap_synergy(&got[0]);
@@ -180,10 +168,8 @@ mod tests {
 
     #[test]
     fn e_noun_particle_only() {
-        // get-syn/E-noun-particle-only: l n k=T, r seq 2028920 (は) ->
-        // synergy-noun-particle fires. desc="noun+prt", score=14.
-        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
-        let r = sl(1, 2, vec![seg((false, false, false, false), vec![], vec![2028920])]);
+        let l = lite_sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = lite_sl(1, 2, vec![seg((false, false, false, false), vec![], vec![2028920])]);
         let got = get_synergies(&l, &r);
         assert_eq!(got.len(), 1);
         let syn = unwrap_synergy(&got[0]);
@@ -193,17 +179,12 @@ mod tests {
 
     #[test]
     fn f_two_synergies_order_mirrors_synergy_list() {
-        // get-syn/F-two-synergies: l adj-no k=T seq-set=(1469800), r
-        // has two segs — seq 1469800 (matches no-adjectives) and seq
-        // 2089020 (matches no-da). Both fire; order in result mirrors
-        // SYNERGY_LIST traversal: no-adjectives is index 12, no-da is
-        // index 14 -> no-adjectives appears first.
-        let l = sl(
+        let l = lite_sl(
             0,
             1,
             vec![seg((true, false, false, false), vec!["adj-no"], vec![1469800])],
         );
-        let r = sl(
+        let r = lite_sl(
             1,
             2,
             vec![
@@ -223,9 +204,8 @@ mod tests {
 
     #[test]
     fn g_non_adjacent() {
-        // get-syn/G-non-adjacent: l.end /= r.start -> no synergy fires.
-        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["adj-no"], vec![])]);
-        let r = sl(5, 6, vec![seg((false, false, false, false), vec![], vec![1469800])]);
+        let l = lite_sl(0, 1, vec![seg((true, false, false, false), vec!["adj-no"], vec![])]);
+        let r = lite_sl(5, 6, vec![seg((false, false, false, false), vec![], vec![1469800])]);
         assert!(get_synergies(&l, &r).is_empty());
     }
 }

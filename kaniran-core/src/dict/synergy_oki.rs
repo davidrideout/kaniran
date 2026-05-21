@@ -10,8 +10,8 @@
 //!
 //! Divergences from Lisp:
 //! - The `filter-is-pos` macro expansion (`dict-grammar.lisp:757-764`)
-//!   is inlined as a closure on `Segment`'s `kpcl` tuple and `posi`
-//!   list per CONVENTIONS §4.6. The `kpcl-test` body is `t`
+//!   is inlined as a closure on the lite [`KaniLiteSegment::pos`] bit
+//!   field per CONVENTIONS §4.6. The `kpcl-test` body is `t`
 //!   (unconditional), so the closure only checks the posi membership.
 //! - The macro call omits `:description`, so the slot is `nil` —
 //!   mapped to [`None`] per [`Synergy::description`]
@@ -21,16 +21,17 @@
 //!
 //! [`Synergy::description`]: super::synergy_struct::Synergy#structfield.description
 
+use std::sync::Arc;
+
 use super::filter_in_seq_set::filter_in_seq_set;
-use super::make_segment_list_from::make_segment_list_from;
-use super::segment_list_struct::SegmentList;
-use super::segment_struct::Segment;
+use super::kani_lite_segment::{KaniLiteSegment, POS_CTR};
+use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 use super::synergy_struct::Synergy;
 
 pub fn synergy_oki(
-    l: &SegmentList,
-    r: &SegmentList,
-) -> Vec<(SegmentList, Synergy, SegmentList)> {
+    l: &KaniLiteSegmentList,
+    r: &KaniLiteSegmentList,
+) -> Vec<(Arc<KaniLiteSegmentList>, Synergy, Arc<KaniLiteSegmentList>)> {
     let start = l.end;
     let end = r.start;
     // dict-grammar.lisp:731-746 (def-generic-synergy expansion)
@@ -38,16 +39,12 @@ pub fn synergy_oki(
         return vec![];
     }
     // dict-grammar.lisp:757-764 (filter-is-pos macro expansion)
-    let test_left = |seg: &Segment| -> bool {
-        let info = match &seg.info {
-            Some(info) => info,
-            None => return false,
-        };
-        info.posi.iter().any(|x| x == "ctr")
-    };
+    let test_left = |seg: &Arc<KaniLiteSegment>| -> bool { (seg.pos & POS_CTR) != 0 };
     let test_right = filter_in_seq_set(vec![2854117, 2084550]);
-    let left: Vec<_> = l.segments.iter().filter(|s| test_left(s)).cloned().collect();
-    let right: Vec<_> = r.segments.iter().filter(|s| test_right(s)).cloned().collect();
+    let left: Vec<Arc<KaniLiteSegment>> =
+        l.segments.iter().filter(|s| test_left(s)).cloned().collect();
+    let right: Vec<Arc<KaniLiteSegment>> =
+        r.segments.iter().filter(|s| test_right(s)).cloned().collect();
     if left.is_empty() || right.is_empty() {
         return vec![];
     }
@@ -59,9 +56,9 @@ pub fn synergy_oki(
         end,
     };
     vec![(
-        make_segment_list_from(r, right),
+        Arc::new(make_kani_lite_segment_list_from(r, right)),
         syn,
-        make_segment_list_from(l, left),
+        Arc::new(make_kani_lite_segment_list_from(l, left)),
     )]
 }
 
@@ -71,7 +68,8 @@ mod tests {
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo};
+    use crate::dict::segment_list_struct::SegmentList;
+    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -117,14 +115,14 @@ mod tests {
         }
     }
 
-    fn sl(start: usize, end: usize, segments: Vec<Segment>) -> SegmentList {
-        SegmentList {
+    fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
+        KaniLiteSegmentList::from_segment_list(&SegmentList {
             segments,
             start,
             end,
             top: None,
             matches: 0,
-        }
+        })
     }
 
     // REPL probes (/tmp/probe_437_441.lisp on .103, 2026-05-18).
@@ -134,8 +132,8 @@ mod tests {
         // oki/positive-2854117: l posi=("ctr") kpcl all nil, r seq 2854117.
         // RIGHT-SL start=1 end=3 segs=1, SYNERGY desc=NIL conn=""
         // score=20 start=1 end=1, LEFT-SL start=0 end=1 segs=1.
-        let l = sl(0, 1, vec![seg((false, false, false, false), vec!["ctr"], vec![])]);
-        let r = sl(1, 3, vec![seg((false, false, false, false), vec![], vec![2854117])]);
+        let l = lite_sl_owned(0, 1, vec![seg((false, false, false, false), vec!["ctr"], vec![])]);
+        let r = lite_sl_owned(1, 3, vec![seg((false, false, false, false), vec![], vec![2854117])]);
         let got = synergy_oki(&l, &r);
         assert_eq!(got.len(), 1);
         let (right_sl, syn, left_sl) = &got[0];
@@ -155,8 +153,8 @@ mod tests {
     #[test]
     fn positive_2084550() {
         // oki/positive-2084550: r matches second seq in the set.
-        let l = sl(0, 1, vec![seg((false, false, false, false), vec!["ctr"], vec![])]);
-        let r = sl(1, 3, vec![seg((false, false, false, false), vec![], vec![2084550])]);
+        let l = lite_sl_owned(0, 1, vec![seg((false, false, false, false), vec!["ctr"], vec![])]);
+        let r = lite_sl_owned(1, 3, vec![seg((false, false, false, false), vec![], vec![2084550])]);
         let got = synergy_oki(&l, &r);
         assert_eq!(got.len(), 1);
         assert_eq!(got[0].1.score, 20);
@@ -165,24 +163,24 @@ mod tests {
     #[test]
     fn neg_no_ctr_posi() {
         // oki/neg-no-ctr-posi: l posi=("n"), not "ctr" — NIL.
-        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
-        let r = sl(1, 3, vec![seg((false, false, false, false), vec![], vec![2854117])]);
+        let l = lite_sl_owned(0, 1, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = lite_sl_owned(1, 3, vec![seg((false, false, false, false), vec![], vec![2854117])]);
         assert!(synergy_oki(&l, &r).is_empty());
     }
 
     #[test]
     fn neg_right_miss() {
         // oki/neg-right-miss: r seq doesn't match either — NIL.
-        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["ctr"], vec![])]);
-        let r = sl(1, 3, vec![seg((false, false, false, false), vec![], vec![9999999])]);
+        let l = lite_sl_owned(0, 1, vec![seg((true, false, false, false), vec!["ctr"], vec![])]);
+        let r = lite_sl_owned(1, 3, vec![seg((false, false, false, false), vec![], vec![9999999])]);
         assert!(synergy_oki(&l, &r).is_empty());
     }
 
     #[test]
     fn neg_not_adjacent() {
         // oki/neg-not-adjacent: l.end != r.start — NIL.
-        let l = sl(0, 1, vec![seg((false, false, false, false), vec!["ctr"], vec![])]);
-        let r = sl(5, 7, vec![seg((false, false, false, false), vec![], vec![2854117])]);
+        let l = lite_sl_owned(0, 1, vec![seg((false, false, false, false), vec!["ctr"], vec![])]);
+        let r = lite_sl_owned(5, 7, vec![seg((false, false, false, false), vec![], vec![2854117])]);
         assert!(synergy_oki(&l, &r).is_empty());
     }
 }

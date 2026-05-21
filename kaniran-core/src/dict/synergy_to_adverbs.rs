@@ -11,23 +11,25 @@
 //!
 //! Divergences from Lisp:
 //! - The `filter-is-pos` macro expansion (`dict-grammar.lisp:757-764`)
-//!   is inlined as a closure on `Segment`'s `kpcl` tuple and `posi`
-//!   list per CONVENTIONS §4.6. The kpcl-test here is `(or k l p)`
-//!   (note: bare `p` without `c`, unlike the sibling `synergy-no-
-//!   adjectives` / `synergy-na-adjectives` ports).
+//!   is inlined as a closure on the lite [`KaniLiteSegment::kpcl`] /
+//!   [`KaniLiteSegment::pos`] bit fields per CONVENTIONS §4.6. The
+//!   kpcl-test here is `(or k l p)` (note: bare `p` without `c`,
+//!   unlike the sibling `synergy-no-adjectives` / `synergy-na-
+//!   adjectives` ports).
 //! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
 //!   moves to the `*synergy-list*` port (separate wave).
 
+use std::sync::Arc;
+
 use super::filter_in_seq_set::filter_in_seq_set;
-use super::make_segment_list_from::make_segment_list_from;
-use super::segment_list_struct::SegmentList;
-use super::segment_struct::Segment;
+use super::kani_lite_segment::{KaniLiteSegment, KPCL_K, KPCL_L, KPCL_P, POS_ADV_TO};
+use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 use super::synergy_struct::Synergy;
 
 pub fn synergy_to_adverbs(
-    l: &SegmentList,
-    r: &SegmentList,
-) -> Vec<(SegmentList, Synergy, SegmentList)> {
+    l: &KaniLiteSegmentList,
+    r: &KaniLiteSegmentList,
+) -> Vec<(Arc<KaniLiteSegmentList>, Synergy, Arc<KaniLiteSegmentList>)> {
     let start = l.end;
     let end = r.start;
     // dict-grammar.lisp:731-746 (def-generic-synergy expansion)
@@ -35,17 +37,14 @@ pub fn synergy_to_adverbs(
         return vec![];
     }
     // dict-grammar.lisp:757-764 (filter-is-pos macro expansion)
-    let test_left = |seg: &Segment| -> bool {
-        let info = match &seg.info {
-            Some(info) => info,
-            None => return false,
-        };
-        let (k, p, _c, lv) = info.kpcl;
-        (k || lv || p) && info.posi.iter().any(|x| x == "adv-to")
+    let test_left = |seg: &Arc<KaniLiteSegment>| -> bool {
+        (seg.kpcl & (KPCL_K | KPCL_L | KPCL_P)) != 0 && (seg.pos & POS_ADV_TO) != 0
     };
     let test_right = filter_in_seq_set(vec![1008490]);
-    let left: Vec<_> = l.segments.iter().filter(|s| test_left(s)).cloned().collect();
-    let right: Vec<_> = r.segments.iter().filter(|s| test_right(s)).cloned().collect();
+    let left: Vec<Arc<KaniLiteSegment>> =
+        l.segments.iter().filter(|s| test_left(s)).cloned().collect();
+    let right: Vec<Arc<KaniLiteSegment>> =
+        r.segments.iter().filter(|s| test_right(s)).cloned().collect();
     if left.is_empty() || right.is_empty() {
         return vec![];
     }
@@ -60,9 +59,9 @@ pub fn synergy_to_adverbs(
         end,
     };
     vec![(
-        make_segment_list_from(r, right),
+        Arc::new(make_kani_lite_segment_list_from(r, right)),
         syn,
-        make_segment_list_from(l, left),
+        Arc::new(make_kani_lite_segment_list_from(l, left)),
     )]
 }
 
@@ -72,7 +71,8 @@ mod tests {
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo};
+    use crate::dict::segment_list_struct::SegmentList;
+    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -118,14 +118,14 @@ mod tests {
         }
     }
 
-    fn sl(start: usize, end: usize, segments: Vec<Segment>) -> SegmentList {
-        SegmentList {
+    fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
+        KaniLiteSegmentList::from_segment_list(&SegmentList {
             segments,
             start,
             end,
             top: None,
             matches: 0,
-        }
+        })
     }
 
     // REPL probes (/tmp/probe_449_451.lisp on .103, 2026-05-18).
@@ -135,8 +135,8 @@ mod tests {
         // to-adv/positive-k: l adv-to k=T span=2 -> score = 10 + 10*2 = 30.
         // RIGHT-SL start=2 end=3 segs=1, SYNERGY desc="to-adverb"
         // conn=" " score=30 start=2 end=2, LEFT-SL start=0 end=2 segs=1.
-        let l = sl(0, 2, vec![seg((true, false, false, false), vec!["adv-to"], vec![])]);
-        let r = sl(2, 3, vec![seg((false, false, false, false), vec![], vec![1008490])]);
+        let l = lite_sl_owned(0, 2, vec![seg((true, false, false, false), vec!["adv-to"], vec![])]);
+        let r = lite_sl_owned(2, 3, vec![seg((false, false, false, false), vec![], vec![1008490])]);
         let got = synergy_to_adverbs(&l, &r);
         assert_eq!(got.len(), 1);
         let (right_sl, syn, left_sl) = &got[0];
@@ -156,8 +156,8 @@ mod tests {
     #[test]
     fn positive_l_span1() {
         // to-adv/positive-l: l=T span=1 -> score = 20.
-        let l = sl(0, 1, vec![seg((false, false, false, true), vec!["adv-to"], vec![])]);
-        let r = sl(1, 2, vec![seg((false, false, false, false), vec![], vec![1008490])]);
+        let l = lite_sl_owned(0, 1, vec![seg((false, false, false, true), vec!["adv-to"], vec![])]);
+        let r = lite_sl_owned(1, 2, vec![seg((false, false, false, false), vec![], vec![1008490])]);
         let got = synergy_to_adverbs(&l, &r);
         assert_eq!(got.len(), 1);
         assert_eq!(got[0].1.score, 20);
@@ -170,8 +170,8 @@ mod tests {
         // to-adv/positive-p-alone: p=T c=NIL span=3 -> score = 40. Bare
         // `p` is the divergence vs synergy-no-adjectives / synergy-na-
         // adjectives whose kpcl-test is `(or k l (and p c))`.
-        let l = sl(0, 3, vec![seg((false, true, false, false), vec!["adv-to"], vec![])]);
-        let r = sl(3, 4, vec![seg((false, false, false, false), vec![], vec![1008490])]);
+        let l = lite_sl_owned(0, 3, vec![seg((false, true, false, false), vec!["adv-to"], vec![])]);
+        let r = lite_sl_owned(3, 4, vec![seg((false, false, false, false), vec![], vec![1008490])]);
         let got = synergy_to_adverbs(&l, &r);
         assert_eq!(got.len(), 1);
         assert_eq!(got[0].1.score, 40);
@@ -182,8 +182,8 @@ mod tests {
     #[test]
     fn positive_p_and_c_span4() {
         // to-adv/positive-p-and-c: p=T c=T span=4 -> score = 50.
-        let l = sl(0, 4, vec![seg((false, true, true, false), vec!["adv-to"], vec![])]);
-        let r = sl(4, 5, vec![seg((false, false, false, false), vec![], vec![1008490])]);
+        let l = lite_sl_owned(0, 4, vec![seg((false, true, true, false), vec!["adv-to"], vec![])]);
+        let r = lite_sl_owned(4, 5, vec![seg((false, false, false, false), vec![], vec![1008490])]);
         let got = synergy_to_adverbs(&l, &r);
         assert_eq!(got.len(), 1);
         assert_eq!(got[0].1.score, 50);
@@ -194,8 +194,8 @@ mod tests {
     #[test]
     fn positive_k_span1() {
         // to-adv/positive-span1: k=T span=1 -> score = 20.
-        let l = sl(0, 1, vec![seg((true, false, false, false), vec!["adv-to"], vec![])]);
-        let r = sl(1, 2, vec![seg((false, false, false, false), vec![], vec![1008490])]);
+        let l = lite_sl_owned(0, 1, vec![seg((true, false, false, false), vec!["adv-to"], vec![])]);
+        let r = lite_sl_owned(1, 2, vec![seg((false, false, false, false), vec![], vec![1008490])]);
         let got = synergy_to_adverbs(&l, &r);
         assert_eq!(got.len(), 1);
         assert_eq!(got[0].1.score, 20);
@@ -204,8 +204,8 @@ mod tests {
     #[test]
     fn neg_kpcl_all_nil() {
         // to-adv/neg-kpcl-all-nil: NIL.
-        let l = sl(0, 2, vec![seg((false, false, false, false), vec!["adv-to"], vec![])]);
-        let r = sl(2, 3, vec![seg((false, false, false, false), vec![], vec![1008490])]);
+        let l = lite_sl_owned(0, 2, vec![seg((false, false, false, false), vec!["adv-to"], vec![])]);
+        let r = lite_sl_owned(2, 3, vec![seg((false, false, false, false), vec![], vec![1008490])]);
         assert!(synergy_to_adverbs(&l, &r).is_empty());
     }
 
@@ -213,40 +213,40 @@ mod tests {
     fn neg_c_alone() {
         // to-adv/neg-c-alone: c=T only (no k, no l, no p) — kpcl-test is
         // `(or k l p)` so bare c does not pass.
-        let l = sl(0, 2, vec![seg((false, false, true, false), vec!["adv-to"], vec![])]);
-        let r = sl(2, 3, vec![seg((false, false, false, false), vec![], vec![1008490])]);
+        let l = lite_sl_owned(0, 2, vec![seg((false, false, true, false), vec!["adv-to"], vec![])]);
+        let r = lite_sl_owned(2, 3, vec![seg((false, false, false, false), vec![], vec![1008490])]);
         assert!(synergy_to_adverbs(&l, &r).is_empty());
     }
 
     #[test]
     fn neg_wrong_posi() {
         // to-adv/neg-wrong-posi: posi=("n"), not adv-to -> NIL.
-        let l = sl(0, 2, vec![seg((true, false, false, false), vec!["n"], vec![])]);
-        let r = sl(2, 3, vec![seg((false, false, false, false), vec![], vec![1008490])]);
+        let l = lite_sl_owned(0, 2, vec![seg((true, false, false, false), vec!["n"], vec![])]);
+        let r = lite_sl_owned(2, 3, vec![seg((false, false, false, false), vec![], vec![1008490])]);
         assert!(synergy_to_adverbs(&l, &r).is_empty());
     }
 
     #[test]
     fn neg_wrong_right_seq() {
         // to-adv/neg-wrong-right: r seq not 1008490.
-        let l = sl(0, 2, vec![seg((true, false, false, false), vec!["adv-to"], vec![])]);
-        let r = sl(2, 3, vec![seg((false, false, false, false), vec![], vec![9999])]);
+        let l = lite_sl_owned(0, 2, vec![seg((true, false, false, false), vec!["adv-to"], vec![])]);
+        let r = lite_sl_owned(2, 3, vec![seg((false, false, false, false), vec![], vec![9999])]);
         assert!(synergy_to_adverbs(&l, &r).is_empty());
     }
 
     #[test]
     fn neg_non_adjacent() {
         // to-adv/neg-non-adjacent: l.end /= r.start.
-        let l = sl(0, 2, vec![seg((true, false, false, false), vec!["adv-to"], vec![])]);
-        let r = sl(5, 6, vec![seg((false, false, false, false), vec![], vec![1008490])]);
+        let l = lite_sl_owned(0, 2, vec![seg((true, false, false, false), vec!["adv-to"], vec![])]);
+        let r = lite_sl_owned(5, 6, vec![seg((false, false, false, false), vec![], vec![1008490])]);
         assert!(synergy_to_adverbs(&l, &r).is_empty());
     }
 
     #[test]
     fn neg_empty_left() {
         // to-adv/neg-empty-left: l segs empty.
-        let l = sl(0, 2, vec![]);
-        let r = sl(2, 3, vec![seg((false, false, false, false), vec![], vec![1008490])]);
+        let l = lite_sl_owned(0, 2, vec![]);
+        let r = lite_sl_owned(2, 3, vec![seg((false, false, false, false), vec![], vec![1008490])]);
         assert!(synergy_to_adverbs(&l, &r).is_empty());
     }
 }

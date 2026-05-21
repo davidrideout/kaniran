@@ -16,36 +16,20 @@
 //! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
 //!   moves to the `*synergy-list*` port (separate wave).
 //! - The right-side `lambda` is inlined; `some` returns the first
-//!   non-nil result from `(conj-neg (conj-data-prop cdata))`. Per
-//!   `parse_opt_bool` in `audit/common/mod.rs`, Rust `Some(false)`
-//!   mirrors Lisp `nil`, `None` mirrors Lisp `:NULL`, `Some(true)`
-//!   mirrors Lisp `t`. Only Lisp `nil` is falsy — `:NULL` (DB-NULL
-//!   keyword) is truthy in CL — so the predicate accepts any neg
-//!   value other than `Some(false)`.
+//!   non-nil result from `(conj-neg (conj-data-prop cdata))`. The lite
+//!   layer precomputes this as [`KaniLiteSegment::conj_has_neg`].
 
-use super::conj_data_prop::conj_data_prop;
+use std::sync::Arc;
+
 use super::filter_in_seq_set::filter_in_seq_set;
-use super::make_segment_list_from::make_segment_list_from;
-use super::segment_list_struct::SegmentList;
-use super::segment_struct::Segment;
+use super::kani_lite_segment::KaniLiteSegment;
+use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 use super::synergy_struct::Synergy;
 
-fn right_filter(segment: &Segment) -> bool {
-    let info = match &segment.info {
-        Some(info) => info,
-        None => return false,
-    };
-    // dict-grammar.lisp:937 (`(some (lambda (cdata) (conj-neg (conj-data-prop cdata))) ...)`)
-    // Lisp truthy = non-nil; only Some(false) (Lisp nil) rejects.
-    info.conj
-        .iter()
-        .any(|cd| conj_data_prop(cd).is_some_and(|p| p.neg != Some(false)))
-}
-
 pub fn synergy_shika_negative(
-    l: &SegmentList,
-    r: &SegmentList,
-) -> Vec<(SegmentList, Synergy, SegmentList)> {
+    l: &KaniLiteSegmentList,
+    r: &KaniLiteSegmentList,
+) -> Vec<(Arc<KaniLiteSegmentList>, Synergy, Arc<KaniLiteSegmentList>)> {
     let start = l.end;
     let end = r.start;
     // dict-grammar.lisp:731-746 (def-generic-synergy expansion)
@@ -53,8 +37,10 @@ pub fn synergy_shika_negative(
         return vec![];
     }
     let test_left = filter_in_seq_set(vec![1005460]);
-    let left: Vec<_> = l.segments.iter().filter(|s| test_left(s)).cloned().collect();
-    let right: Vec<_> = r.segments.iter().filter(|s| right_filter(s)).cloned().collect();
+    let left: Vec<Arc<KaniLiteSegment>> =
+        l.segments.iter().filter(|s| test_left(s)).cloned().collect();
+    let right: Vec<Arc<KaniLiteSegment>> =
+        r.segments.iter().filter(|s| s.conj_has_neg).cloned().collect();
     if left.is_empty() || right.is_empty() {
         return vec![];
     }
@@ -66,9 +52,9 @@ pub fn synergy_shika_negative(
         end,
     };
     vec![(
-        make_segment_list_from(r, right),
+        Arc::new(make_kani_lite_segment_list_from(r, right)),
         syn,
-        make_segment_list_from(l, left),
+        Arc::new(make_kani_lite_segment_list_from(l, left)),
     )]
 }
 
@@ -79,7 +65,8 @@ mod tests {
     use crate::dict::conj_prop_dao::ConjProp;
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo};
+    use crate::dict::segment_list_struct::SegmentList;
+    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -147,14 +134,14 @@ mod tests {
         }
     }
 
-    fn sl(start: usize, end: usize, segments: Vec<Segment>) -> SegmentList {
-        SegmentList {
+    fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
+        KaniLiteSegmentList::from_segment_list(&SegmentList {
             segments,
             start,
             end,
             top: None,
             matches: 0,
-        }
+        })
     }
 
     // REPL probes:
@@ -172,8 +159,8 @@ mod tests {
         // shika-negative/positive (neg=t): RIGHT-SL start=2 end=5 segs=1,
         // SYN desc="shika+neg" conn=" " score=50 start=2 end=2,
         // LEFT-SL start=0 end=2 segs=1.
-        let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
-        let r = sl(2, 5, vec![seg(2, 5, vec![], vec![cdata(Some(true))])]);
+        let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
+        let r = lite_sl_owned(2, 5, vec![seg(2, 5, vec![], vec![cdata(Some(true))])]);
         let got = synergy_shika_negative(&l, &r);
         assert_eq!(got.len(), 1);
         let (right_sl, syn, left_sl) = &got[0];
@@ -196,8 +183,8 @@ mod tests {
         // /tmp/probe_shika_null.lisp: COUNT=1 desc="shika+neg"
         // score=50). :NULL keyword is truthy in CL, so `some` returns
         // truthy and the filter accepts.
-        let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
-        let r = sl(2, 5, vec![seg(2, 5, vec![], vec![cdata(None)])]);
+        let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
+        let r = lite_sl_owned(2, 5, vec![seg(2, 5, vec![], vec![cdata(None)])]);
         let got = synergy_shika_negative(&l, &r);
         assert_eq!(got.len(), 1);
         assert_eq!(got[0].1.description.as_deref(), Some("shika+neg"));
@@ -209,40 +196,40 @@ mod tests {
         // shika-negative/neg=NIL ALONE -- expect NIL (REPL
         // /tmp/probe_shika_null.lisp). Lisp nil is the sole falsy
         // value, so `some` returns nil and the filter rejects.
-        let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
-        let r = sl(2, 5, vec![seg(2, 5, vec![], vec![cdata(Some(false))])]);
+        let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
+        let r = lite_sl_owned(2, 5, vec![seg(2, 5, vec![], vec![cdata(Some(false))])]);
         assert!(synergy_shika_negative(&l, &r).is_empty());
     }
 
     #[test]
     fn right_empty_conj_empty() {
         // shika-negative/right-empty-conj: NIL.
-        let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
-        let r = sl(2, 5, vec![seg(2, 5, vec![], vec![])]);
+        let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
+        let r = lite_sl_owned(2, 5, vec![seg(2, 5, vec![], vec![])]);
         assert!(synergy_shika_negative(&l, &r).is_empty());
     }
 
     #[test]
     fn left_miss_empty() {
         // shika-negative/left-miss: NIL.
-        let l = sl(0, 2, vec![seg(0, 2, vec![99], vec![])]);
-        let r = sl(2, 5, vec![seg(2, 5, vec![], vec![cdata(Some(true))])]);
+        let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![99], vec![])]);
+        let r = lite_sl_owned(2, 5, vec![seg(2, 5, vec![], vec![cdata(Some(true))])]);
         assert!(synergy_shika_negative(&l, &r).is_empty());
     }
 
     #[test]
     fn not_adjacent_empty() {
         // shika-negative/not-adjacent: NIL.
-        let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
-        let r = sl(4, 7, vec![seg(4, 7, vec![], vec![cdata(Some(true))])]);
+        let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
+        let r = lite_sl_owned(4, 7, vec![seg(4, 7, vec![], vec![cdata(Some(true))])]);
         assert!(synergy_shika_negative(&l, &r).is_empty());
     }
 
     #[test]
     fn multi_conj_nil_plus_nil_empty() {
         // shika-negative/neg=NIL+NIL -- expect NIL (REPL probe).
-        let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
-        let r = sl(
+        let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
+        let r = lite_sl_owned(
             2,
             5,
             vec![seg(2, 5, vec![], vec![cdata(Some(false)), cdata(Some(false))])],
@@ -254,8 +241,8 @@ mod tests {
     fn multi_conj_nil_plus_null_fires() {
         // shika-negative/neg=NIL+:NULL -- expect FIRE (REPL probe).
         // The :NULL cdata's truthy neg-value satisfies `some`.
-        let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
-        let r = sl(
+        let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
+        let r = lite_sl_owned(
             2,
             5,
             vec![seg(2, 5, vec![], vec![cdata(Some(false)), cdata(None)])],
@@ -270,8 +257,8 @@ mod tests {
         // shika-negative/multi-conj-mixed: RIGHT-SL segs=1, LEFT-SL segs=1.
         // Mirrors the original probe_442_448 test but with the
         // corrected nil mapping (Some(false), not None).
-        let l = sl(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
-        let r = sl(
+        let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
+        let r = lite_sl_owned(
             2,
             5,
             vec![seg(

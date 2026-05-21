@@ -13,12 +13,17 @@
 //! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
 //!   moves to the `*synergy-list*` port (separate wave).
 
+use std::sync::Arc;
+
 use super::filter_in_seq_set::filter_in_seq_set;
-use super::make_segment_list_from::make_segment_list_from;
-use super::segment_list_struct::SegmentList;
+use super::kani_lite_segment::KaniLiteSegment;
+use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 use super::synergy_struct::Synergy;
 
-pub fn synergy_no_da(l: &SegmentList, r: &SegmentList) -> Vec<(SegmentList, Synergy, SegmentList)> {
+pub fn synergy_no_da(
+    l: &KaniLiteSegmentList,
+    r: &KaniLiteSegmentList,
+) -> Vec<(Arc<KaniLiteSegmentList>, Synergy, Arc<KaniLiteSegmentList>)> {
     let start = l.end;
     let end = r.start;
     // dict-grammar.lisp:731-746 (def-generic-synergy expansion)
@@ -27,8 +32,10 @@ pub fn synergy_no_da(l: &SegmentList, r: &SegmentList) -> Vec<(SegmentList, Syne
     }
     let test_left = filter_in_seq_set(vec![1469800, 2139720]);
     let test_right = filter_in_seq_set(vec![2089020, 1007370, 1928670]);
-    let left: Vec<_> = l.segments.iter().filter(|s| test_left(s)).cloned().collect();
-    let right: Vec<_> = r.segments.iter().filter(|s| test_right(s)).cloned().collect();
+    let left: Vec<Arc<KaniLiteSegment>> =
+        l.segments.iter().filter(|s| test_left(s)).cloned().collect();
+    let right: Vec<Arc<KaniLiteSegment>> =
+        r.segments.iter().filter(|s| test_right(s)).cloned().collect();
     if left.is_empty() || right.is_empty() {
         return vec![];
     }
@@ -40,9 +47,9 @@ pub fn synergy_no_da(l: &SegmentList, r: &SegmentList) -> Vec<(SegmentList, Syne
         end,
     };
     vec![(
-        make_segment_list_from(r, right),
+        Arc::new(make_kani_lite_segment_list_from(r, right)),
         syn,
-        make_segment_list_from(l, left),
+        Arc::new(make_kani_lite_segment_list_from(l, left)),
     )]
 }
 
@@ -52,6 +59,7 @@ mod tests {
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
 
@@ -94,14 +102,14 @@ mod tests {
         }
     }
 
-    fn sl(start: usize, end: usize, segments: Vec<Segment>) -> SegmentList {
-        SegmentList {
+    fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
+        KaniLiteSegmentList::from_segment_list(&SegmentList {
             segments,
             start,
             end,
             top: None,
             matches: 0,
-        }
+        })
     }
 
     // REPL probes (/tmp/probe_synergies.lisp on .103, 2026-05-18).
@@ -111,8 +119,8 @@ mod tests {
         // no-da/positive-1: l ends at 2, r starts at 2.
         // RIGHT-SL start=2 end=3 segs=1, SYNERGY desc="no da/desu"
         // conn=" " score=15 start=2 end=2, LEFT-SL start=0 end=2 segs=1
-        let l = sl(0, 2, vec![seg_with_seqs(vec![1469800, 999])]);
-        let r = sl(2, 3, vec![seg_with_seqs(vec![2089020])]);
+        let l = lite_sl_owned(0, 2, vec![seg_with_seqs(vec![1469800, 999])]);
+        let r = lite_sl_owned(2, 3, vec![seg_with_seqs(vec![2089020])]);
         let got = synergy_no_da(&l, &r);
         assert_eq!(got.len(), 1);
         let (right_sl, syn, left_sl) = &got[0];
@@ -132,8 +140,8 @@ mod tests {
     #[test]
     fn positive_2139720_1928670() {
         // no-da/positive-2.
-        let l = sl(0, 1, vec![seg_with_seqs(vec![2139720])]);
-        let r = sl(1, 2, vec![seg_with_seqs(vec![1928670])]);
+        let l = lite_sl_owned(0, 1, vec![seg_with_seqs(vec![2139720])]);
+        let r = lite_sl_owned(1, 2, vec![seg_with_seqs(vec![1928670])]);
         let got = synergy_no_da(&l, &r);
         assert_eq!(got.len(), 1);
         assert_eq!(got[0].1.score, 15);
@@ -144,32 +152,32 @@ mod tests {
     #[test]
     fn not_adjacent_empty() {
         // no-da/not-adjacent: NIL
-        let l = sl(0, 1, vec![seg_with_seqs(vec![1469800])]);
-        let r = sl(5, 6, vec![seg_with_seqs(vec![2089020])]);
+        let l = lite_sl_owned(0, 1, vec![seg_with_seqs(vec![1469800])]);
+        let r = lite_sl_owned(5, 6, vec![seg_with_seqs(vec![2089020])]);
         assert!(synergy_no_da(&l, &r).is_empty());
     }
 
     #[test]
     fn left_misses_empty() {
         // no-da/left-misses: NIL
-        let l = sl(0, 1, vec![seg_with_seqs(vec![9999999])]);
-        let r = sl(1, 2, vec![seg_with_seqs(vec![2089020])]);
+        let l = lite_sl_owned(0, 1, vec![seg_with_seqs(vec![9999999])]);
+        let r = lite_sl_owned(1, 2, vec![seg_with_seqs(vec![2089020])]);
         assert!(synergy_no_da(&l, &r).is_empty());
     }
 
     #[test]
     fn right_misses_empty() {
         // no-da/right-misses: NIL
-        let l = sl(0, 1, vec![seg_with_seqs(vec![1469800])]);
-        let r = sl(1, 2, vec![seg_with_seqs(vec![9999999])]);
+        let l = lite_sl_owned(0, 1, vec![seg_with_seqs(vec![1469800])]);
+        let r = lite_sl_owned(1, 2, vec![seg_with_seqs(vec![9999999])]);
         assert!(synergy_no_da(&l, &r).is_empty());
     }
 
     #[test]
     fn empty_left_segments() {
         // no-da/empty-left: NIL
-        let l = sl(0, 1, vec![]);
-        let r = sl(1, 2, vec![seg_with_seqs(vec![2089020])]);
+        let l = lite_sl_owned(0, 1, vec![]);
+        let r = lite_sl_owned(1, 2, vec![seg_with_seqs(vec![2089020])]);
         assert!(synergy_no_da(&l, &r).is_empty());
     }
 }

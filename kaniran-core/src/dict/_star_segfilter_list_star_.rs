@@ -38,12 +38,12 @@ use super::segfilter_toomou::segfilter_toomou;
 use super::segfilter_totte::segfilter_totte;
 use super::segfilter_tsu_iru::segfilter_tsu_iru;
 use super::segfilter_wokarasu::segfilter_wokarasu;
-use super::segment_list_struct::SegmentList;
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 
 pub type SegFilter = fn(
-    Option<&Arc<SegmentList>>,
-    &Arc<SegmentList>,
-) -> Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)>;
+    Option<&Arc<KaniLiteSegmentList>>,
+    &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>;
 
 pub static SEGFILTER_LIST: &[SegFilter] = &[
     segfilter_mononi,

@@ -11,28 +11,26 @@
 //! - The lambda's `(get-text segment)` upstream goes through the
 //!   `((segment))` method (`dict.lisp:677-679`) which lazily caches
 //!   the result back into `segment-text`. The Rust port reads through
-//!   [`super::text::text`] directly: filter closures take `&Segment`
-//!   so the cache write path isn't reachable. Functionally identical
-//!   — text() is the default delegate of the cache path.
+//!   the lite-precomputed [`super::kani_lite_segment::KaniLiteSegment::text`]
+//!   directly. Functionally identical — text() is the default delegate
+//!   of the cache path.
 
 use std::sync::Arc;
 
 use super::classify::classify;
 use super::filter_is_compound_end::filter_is_compound_end;
-use super::make_segment_list_from::make_segment_list_from;
-use super::segment_list_struct::SegmentList;
-use super::text::text;
+use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 
 const SAE_SEQ: i32 = 2029120;
 const E_CHAR: char = 'え';
 
 pub fn segfilter_sae(
-    seg_left: Option<&Arc<SegmentList>>,
-    seg_right: &Arc<SegmentList>,
-) -> Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> {
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
     // dict-grammar.lisp:1119 (lambda) — (starts-with #\え (get-text segment)).
     let (sat_r, con_r) = classify(
-        |s| text(&s.word).starts_with(E_CHAR),
+        |s| s.text.starts_with(E_CHAR),
         &seg_right.segments,
     );
 
@@ -47,7 +45,7 @@ pub fn segfilter_sae(
         return if con_r.is_empty() {
             Vec::new()
         } else {
-            vec![(Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r)))]
+            vec![(Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)))]
         };
     }
 
@@ -60,17 +58,17 @@ pub fn segfilter_sae(
         return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
     }
 
-    let mut result: Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> = Vec::new();
+    let mut result: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> = Vec::new();
     if !con_r.is_empty() {
-        result.push((Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r))));
+        result.push((Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r))));
     }
     if !sat_l.is_empty() {
         // dict-grammar.lisp:1064 (push) — prepend the satisfies pair.
         result.insert(
             0,
             (
-                Some(Arc::new(make_segment_list_from(l, sat_l))),
-                Arc::new(make_segment_list_from(seg_right, sat_r)),
+                Some(Arc::new(make_kani_lite_segment_list_from(l, sat_l))),
+                Arc::new(make_kani_lite_segment_list_from(seg_right, sat_r)),
             ),
         );
     }
@@ -83,6 +81,7 @@ mod tests {
     use crate::dict::compound_text_class::{CompoundText, ScoreMod};
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
 
@@ -154,8 +153,14 @@ mod tests {
         }
     }
 
-    fn sl(start: usize, end: usize, segments: Vec<Segment>) -> SegmentList {
-        SegmentList { segments, start, end, top: None, matches: 0 }
+    fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
+        Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
+            segments,
+            start,
+            end,
+            top: None,
+            matches: 0,
+        }))
     }
 
     // REPL probes from `/tmp/probe_415_423.lisp` (this session).
@@ -163,7 +168,7 @@ mod tests {
     #[test]
     fn s_a_l_nil_r_e_pass_through() {
         // S-A l=NIL r=e cnt=1 — allow-first pass-through
-        let r = Arc::new(sl(0, 1, vec![simple_seg(0, 1, "える", 100, None)]));
+        let r = lite_sl(0, 1, vec![simple_seg(0, 1, "える", 100, None)]);
         let result = segfilter_sae(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -172,7 +177,7 @@ mod tests {
     #[test]
     fn s_b_l_nil_r_not_e() {
         // S-B l=NIL r=not-e cnt=1 — clause-1
-        let r = Arc::new(sl(0, 1, vec![simple_seg(0, 1, "abc", 100, None)]));
+        let r = lite_sl(0, 1, vec![simple_seg(0, 1, "abc", 100, None)]);
         let result = segfilter_sae(None, &r);
         assert_eq!(result.len(), 1);
     }
@@ -180,8 +185,8 @@ mod tests {
     #[test]
     fn s_c_l_simple_r_e() {
         // S-C l-simple r-e cnt=1 — sat-l full, con-l empty → (l, r)
-        let l = Arc::new(sl(0, 1, vec![simple_seg(0, 1, "abc", 999, Some(info_with_seq_set(vec![999])))]));
-        let r = Arc::new(sl(1, 2, vec![simple_seg(1, 2, "える", 100, None)]));
+        let l = lite_sl(0, 1, vec![simple_seg(0, 1, "abc", 999, Some(info_with_seq_set(vec![999])))]);
+        let r = lite_sl(1, 2, vec![simple_seg(1, 2, "える", 100, None)]);
         let result = segfilter_sae(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -190,8 +195,8 @@ mod tests {
     #[test]
     fn s_d_l_compound_end_sae_r_e_empty() {
         // S-D l-comp-end-2029120 r-e cnt=0
-        let l = Arc::new(sl(0, 2, vec![compound_ending_seg(0, 2, 2029120)]));
-        let r = Arc::new(sl(2, 3, vec![simple_seg(2, 3, "える", 100, None)]));
+        let l = lite_sl(0, 2, vec![compound_ending_seg(0, 2, 2029120)]);
+        let r = lite_sl(2, 3, vec![simple_seg(2, 3, "える", 100, None)]);
         let result = segfilter_sae(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -200,19 +205,19 @@ mod tests {
     fn s_e_l_mixed_r_e_sat_push() {
         // S-E l-mixed (compound-end-sae + simple) r-e cnt=1
         // sat-l=simple, con-l=compound; con-r empty → sat-l push only
-        let l = Arc::new(sl(
+        let l = lite_sl(
             0,
             2,
             vec![
                 compound_ending_seg(0, 2, 2029120),
                 simple_seg(0, 2, "abc", 999, Some(info_with_seq_set(vec![999]))),
             ],
-        ));
-        let r = Arc::new(sl(2, 3, vec![simple_seg(2, 3, "える", 100, None)]));
+        );
+        let r = lite_sl(2, 3, vec![simple_seg(2, 3, "える", 100, None)]);
         let result = segfilter_sae(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
-        match &result[0].0.as_ref().unwrap().segments[0].word {
+        match &result[0].0.as_ref().unwrap().segments[0].source.word {
             KaniWordDispatchEnum::Kana(k) => {
                 assert_eq!(k.text, "abc");
                 assert_eq!(k.seq, 999);

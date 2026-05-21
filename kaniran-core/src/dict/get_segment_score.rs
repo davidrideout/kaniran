@@ -29,6 +29,7 @@
 //! Rust port (slot is non-optional), so the synergy arm always yields
 //! [`Some`].
 
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 use super::segment_list_struct::SegmentList;
 use super::segment_struct::Segment;
 use super::synergy_struct::Synergy;
@@ -37,6 +38,7 @@ use super::synergy_struct::Synergy;
 pub enum KaniSegmentScoreArg<'a> {
     Segment(&'a Segment),
     SegmentList(&'a SegmentList),
+    KaniLiteSegmentList(&'a KaniLiteSegmentList),
     Synergy(&'a Synergy),
 }
 
@@ -46,6 +48,13 @@ pub fn get_segment_score(seg: &KaniSegmentScoreArg) -> Option<i32> {
         KaniSegmentScoreArg::Segment(s) => s.score,
         // dict.lisp:1044-1046 (:method ((seg-list segment-list)))
         KaniSegmentScoreArg::SegmentList(sl) => match sl.segments.first() {
+            Some(first) => first.score,
+            None => Some(0),
+        },
+        // Same shape as SegmentList arm, but reads the precomputed
+        // `score` off the lite segment instead of dereffing into
+        // `info` / `Segment.score`.
+        KaniSegmentScoreArg::KaniLiteSegmentList(sl) => match sl.segments.first() {
             Some(first) => first.score,
             None => Some(0),
         },

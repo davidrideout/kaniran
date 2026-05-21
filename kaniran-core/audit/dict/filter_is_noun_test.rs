@@ -25,11 +25,14 @@
 #[path = "../common/mod.rs"]
 mod common;
 
+use std::sync::Arc;
+
 use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::filter_is_noun::filter_is_noun;
+use kaniran_core::dict::kani_lite_segment::KaniLiteSegment;
 use kaniran_core::dict::segment_struct::{
     KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment,
 };
@@ -51,7 +54,8 @@ async fn audit_one(_ctx: &KaniranContext, row: &CapturedRow) -> Result<(), Strin
     let segment = parse_segment_full(&row.args[0])
         .map_err(|err| format!("arg 0 (segment): {}", err))?;
 
-    let actual = filter_is_noun(&segment);
+    let lite = Arc::new(KaniLiteSegment::from_segment(Arc::new(segment)));
+    let actual = filter_is_noun(&lite);
 
     let expected_value = single_result(&row.result)?;
     let expected_bool = !expected_value.is_null();

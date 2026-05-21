@@ -752,5 +752,10 @@ async fn main() {
         eprintln!("wrote flamegraph: {}", prof_path);
         return;
     }
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+    common::run_async_streaming_with_post_hook(
+        EXPECTED_FQN,
+        audit_one,
+        kaniran_core::dict::kani_lite_segment::assert_field_coverage,
+    )
+    .await;
 }

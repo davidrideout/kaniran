@@ -37,6 +37,7 @@ use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::conj_data_struct::ConjData;
+use kaniran_core::dict::kani_lite_segment_list::KaniLiteSegmentList;
 use kaniran_core::dict::segment_list_struct::SegmentList;
 use kaniran_core::dict::segment_struct::{
     KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment,
@@ -63,7 +64,16 @@ async fn audit_one(_ctx: &KaniranContext, row: &CapturedRow) -> Result<(), Strin
     let right = parse_segment_list_full(&row.args[1])
         .map_err(|err| format!("arg 1 (right segment-list): {}", err))?;
 
-    let actual = synergy_noun_da(&left, &right);
+    let lite_left = KaniLiteSegmentList::from_segment_list(&left);
+    let lite_right = KaniLiteSegmentList::from_segment_list(&right);
+    let lite_result = synergy_noun_da(&lite_left, &lite_right);
+    // Materialize lite tuples back to full SegmentList tuples for the
+    // existing captured-shape comparators (parquet predates the lite
+    // refactor).
+    let actual: Vec<(SegmentList, Synergy, SegmentList)> = lite_result
+        .into_iter()
+        .map(|(rl, syn, ll)| (rl.to_segment_list(), syn, ll.to_segment_list()))
+        .collect();
 
     let expected_value = single_result(&row.result)?;
     let expected_arr: &[Value] = match expected_value {

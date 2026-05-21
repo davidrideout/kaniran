@@ -17,7 +17,9 @@
 //!
 //! [`get_synergies`]: super::get_synergies::get_synergies
 
-use super::segment_list_struct::SegmentList;
+use std::sync::Arc;
+
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 use super::synergy_kanji_prefix::synergy_kanji_prefix;
 use super::synergy_na_adjectives::synergy_na_adjectives;
 use super::synergy_no_adjectives::synergy_no_adjectives;
@@ -37,8 +39,10 @@ use super::synergy_suffix_sei::synergy_suffix_sei;
 use super::synergy_suffix_tachi::synergy_suffix_tachi;
 use super::synergy_to_adverbs::synergy_to_adverbs;
 
-pub type SynergyFn =
-    fn(&SegmentList, &SegmentList) -> Vec<(SegmentList, Synergy, SegmentList)>;
+pub type SynergyFn = fn(
+    &KaniLiteSegmentList,
+    &KaniLiteSegmentList,
+) -> Vec<(Arc<KaniLiteSegmentList>, Synergy, Arc<KaniLiteSegmentList>)>;
 
 pub static SYNERGY_LIST: &[SynergyFn] = &[
     synergy_oki,

@@ -14,16 +14,18 @@
 //! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
 //!   moves to the `*synergy-list*` port (separate wave).
 
+use std::sync::Arc;
+
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::filter_is_noun::filter_is_noun;
-use super::make_segment_list_from::make_segment_list_from;
-use super::segment_list_struct::SegmentList;
+use super::kani_lite_segment::KaniLiteSegment;
+use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 use super::synergy_struct::Synergy;
 
 pub fn synergy_suffix_sei(
-    l: &SegmentList,
-    r: &SegmentList,
-) -> Vec<(SegmentList, Synergy, SegmentList)> {
+    l: &KaniLiteSegmentList,
+    r: &KaniLiteSegmentList,
+) -> Vec<(Arc<KaniLiteSegmentList>, Synergy, Arc<KaniLiteSegmentList>)> {
     let start = l.end;
     let end = r.start;
     // dict-grammar.lisp:731-746 (def-generic-synergy expansion)
@@ -31,8 +33,10 @@ pub fn synergy_suffix_sei(
         return vec![];
     }
     let test_right = filter_in_seq_set(vec![1375260]);
-    let left: Vec<_> = l.segments.iter().filter(|s| filter_is_noun(s)).cloned().collect();
-    let right: Vec<_> = r.segments.iter().filter(|s| test_right(s)).cloned().collect();
+    let left: Vec<Arc<KaniLiteSegment>> =
+        l.segments.iter().filter(|s| filter_is_noun(s)).cloned().collect();
+    let right: Vec<Arc<KaniLiteSegment>> =
+        r.segments.iter().filter(|s| test_right(s)).cloned().collect();
     if left.is_empty() || right.is_empty() {
         return vec![];
     }
@@ -44,9 +48,9 @@ pub fn synergy_suffix_sei(
         end,
     };
     vec![(
-        make_segment_list_from(r, right),
+        Arc::new(make_kani_lite_segment_list_from(r, right)),
         syn,
-        make_segment_list_from(l, left),
+        Arc::new(make_kani_lite_segment_list_from(l, left)),
     )]
 }
 
@@ -56,6 +60,7 @@ mod tests {
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
 
@@ -104,14 +109,14 @@ mod tests {
         }
     }
 
-    fn sl(start: usize, end: usize, segments: Vec<Segment>) -> SegmentList {
-        SegmentList {
+    fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
+        KaniLiteSegmentList::from_segment_list(&SegmentList {
             segments,
             start,
             end,
             top: None,
             matches: 0,
-        }
+        })
     }
 
     // REPL probes (/tmp/probe_442_448.lisp on .103, 2026-05-18).
@@ -121,12 +126,12 @@ mod tests {
         // suffix-sei/positive: RIGHT-SL start=2 end=3 segs=1,
         // SYN desc="suffix-sei" conn="" score=12 start=2 end=2,
         // LEFT-SL start=0 end=2 segs=1.
-        let l = sl(
+        let l = lite_sl_owned(
             0,
             2,
             vec![seg(0, 2, (true, false, false, false), vec!["n"], vec![])],
         );
-        let r = sl(
+        let r = lite_sl_owned(
             2,
             3,
             vec![seg(2, 3, (false, false, false, false), vec![], vec![1375260])],
@@ -150,12 +155,12 @@ mod tests {
     #[test]
     fn left_not_noun_empty() {
         // suffix-sei/left-not-noun: NIL.
-        let l = sl(
+        let l = lite_sl_owned(
             0,
             2,
             vec![seg(0, 2, (true, false, false, false), vec!["v5k"], vec![])],
         );
-        let r = sl(
+        let r = lite_sl_owned(
             2,
             3,
             vec![seg(2, 3, (false, false, false, false), vec![], vec![1375260])],
@@ -166,12 +171,12 @@ mod tests {
     #[test]
     fn right_miss_empty() {
         // suffix-sei/right-miss: NIL.
-        let l = sl(
+        let l = lite_sl_owned(
             0,
             2,
             vec![seg(0, 2, (true, false, false, false), vec!["n"], vec![])],
         );
-        let r = sl(
+        let r = lite_sl_owned(
             2,
             3,
             vec![seg(2, 3, (false, false, false, false), vec![], vec![99])],
@@ -182,12 +187,12 @@ mod tests {
     #[test]
     fn not_adjacent_empty() {
         // suffix-sei/not-adjacent: NIL.
-        let l = sl(
+        let l = lite_sl_owned(
             0,
             2,
             vec![seg(0, 2, (true, false, false, false), vec!["n"], vec![])],
         );
-        let r = sl(
+        let r = lite_sl_owned(
             4,
             5,
             vec![seg(4, 5, (false, false, false, false), vec![], vec![1375260])],

@@ -409,6 +409,115 @@ where
     report_and_exit(expected_fqn, pass, fail, skipped, &first_failures)
 }
 
+/// Variant of [`run_async_streaming`] that runs `post_hook` after the
+/// streaming loop completes but before the process exits. Used by
+/// [`find_best_path_test`] to assert lite-field coverage of the
+/// corpus once every row has been replayed.
+pub async fn run_async_streaming_with_post_hook<F, H>(
+    expected_fqn: &str,
+    audit_one: F,
+    post_hook: H,
+) -> !
+where
+    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String>,
+    H: FnOnce(),
+{
+    use futures::stream::StreamExt;
+
+    let path = parse_path_arg();
+    let file = std::fs::File::open(&path)
+        .unwrap_or_else(|err| panic!("open {:?}: {}", path, err));
+    let builder = ParquetRecordBatchReaderBuilder::try_new(file)
+        .unwrap_or_else(|err| panic!("parquet builder {:?}: {}", path, err));
+    let total_rows = builder.metadata().file_metadata().num_rows() as usize;
+    eprintln!("streaming: {} rows from {:?}", total_rows, path);
+    let reader = builder.build().expect("build reader");
+
+    let ctx = setup_ctx().await;
+    let ctx_ref: &KaniranContext = &ctx;
+    let audit_one = &audit_one;
+
+    let mut pass: usize = 0;
+    let mut fail: usize = 0;
+    let mut skipped: usize = 0;
+    let mut first_failures: Vec<String> = Vec::new();
+    let mut progress = Progress::new(expected_fqn, total_rows);
+    let mut done: usize = 0;
+    let mut row_seq: usize = 0;
+
+    for batch in reader {
+        let batch = batch.expect("batch");
+        let args_col = batch
+            .column_by_name("args")
+            .expect("args column")
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .expect("args is StringArray");
+        let result_col = batch
+            .column_by_name("result")
+            .expect("result column")
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .expect("result is StringArray");
+
+        let mut rows: Vec<CapturedRow> = Vec::with_capacity(batch.num_rows());
+        for row_idx in 0..batch.num_rows() {
+            row_seq += 1;
+            let args_json = args_col.value(row_idx);
+            let result_json = result_col.value(row_idx);
+            let args: Vec<Value> = match serde_json::from_str(args_json) {
+                Ok(v) => v,
+                Err(err) => {
+                    eprintln!("skip row {}: args parse: {}", row_seq, err);
+                    skipped += 1;
+                    continue;
+                }
+            };
+            let result: Vec<Value> = match serde_json::from_str(result_json) {
+                Ok(v) => v,
+                Err(err) => {
+                    eprintln!("skip row {}: result parse: {}", row_seq, err);
+                    skipped += 1;
+                    continue;
+                }
+            };
+            rows.push(CapturedRow { args, result });
+        }
+
+        let outcomes: Vec<(usize, Result<(), String>)> = futures::stream::iter(
+            rows.iter().enumerate().map(|(local_idx, row)| async move {
+                let outcome = audit_one(ctx_ref, row).await;
+                (local_idx, outcome)
+            }),
+        )
+        .buffer_unordered(ASYNC_CONCURRENCY)
+        .collect()
+        .await;
+
+        let batch_done_start = done;
+        for (local_idx, outcome) in outcomes {
+            let global_idx = batch_done_start + local_idx;
+            match outcome {
+                Ok(()) => pass += 1,
+                Err(err) => {
+                    fail += 1;
+                    if first_failures.len() < MAX_FIRST_FAILURES {
+                        first_failures.push(format!("[row {}] {}", global_idx + 1, err));
+                    }
+                }
+            }
+        }
+        done += rows.len();
+        progress.tick(done, pass, fail);
+    }
+
+    if skipped > 0 {
+        eprintln!("loader: {} row(s) skipped (malformed JSON from extractor)", skipped);
+    }
+    post_hook();
+    report_and_exit(expected_fqn, pass, fail, skipped, &first_failures)
+}
+
 struct Progress {
     fqn: String,
     total: usize,

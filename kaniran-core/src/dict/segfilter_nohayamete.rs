@@ -11,16 +11,15 @@ use std::sync::Arc;
 
 use super::classify::classify;
 use super::filter_in_seq_set::filter_in_seq_set;
-use super::make_segment_list_from::make_segment_list_from;
-use super::segment_list_struct::SegmentList;
+use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 
 const NO_SEQ: i32 = 1469800;
 const HAYAMETE_SEQS: &[i32] = &[1601080];
 
 pub fn segfilter_nohayamete(
-    seg_left: Option<&Arc<SegmentList>>,
-    seg_right: &Arc<SegmentList>,
-) -> Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> {
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
     let filter_right = filter_in_seq_set(HAYAMETE_SEQS.to_vec());
     let (sat_r, con_r) = classify(filter_right, &seg_right.segments);
 
@@ -35,7 +34,7 @@ pub fn segfilter_nohayamete(
         return if con_r.is_empty() {
             Vec::new()
         } else {
-            vec![(Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r)))]
+            vec![(Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)))]
         };
     }
 
@@ -47,17 +46,17 @@ pub fn segfilter_nohayamete(
         return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
     }
 
-    let mut result: Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> = Vec::new();
+    let mut result: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> = Vec::new();
     if !con_r.is_empty() {
-        result.push((Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r))));
+        result.push((Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r))));
     }
     if !sat_l.is_empty() {
         // dict-grammar.lisp:1064 (push) — prepend the satisfies pair.
         result.insert(
             0,
             (
-                Some(Arc::new(make_segment_list_from(l, sat_l))),
-                Arc::new(make_segment_list_from(seg_right, sat_r)),
+                Some(Arc::new(make_kani_lite_segment_list_from(l, sat_l))),
+                Arc::new(make_kani_lite_segment_list_from(seg_right, sat_r)),
             ),
         );
     }
@@ -69,6 +68,7 @@ mod tests {
     use super::*;
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
 
@@ -115,8 +115,14 @@ mod tests {
         }
     }
 
-    fn sl(start: usize, end: usize, segments: Vec<Segment>) -> SegmentList {
-        SegmentList { segments, start, end, top: None, matches: 0 }
+    fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
+        Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
+            segments,
+            start,
+            end,
+            top: None,
+            matches: 0,
+        }))
     }
 
     // REPL probes from `/tmp/probe_415_423.lisp` (this session).
@@ -124,7 +130,7 @@ mod tests {
     #[test]
     fn nh_a_l_nil_r_match() {
         // NH-A l=NIL r=match cnt=1 — pass-through (allow-first)
-        let r = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1601080]))]));
+        let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1601080]))]);
         let result = segfilter_nohayamete(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -133,7 +139,7 @@ mod tests {
     #[test]
     fn nh_b_l_nil_r_no_match() {
         // NH-B l=NIL r=no-match cnt=1 — clause-1
-        let r = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]));
+        let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
         let result = segfilter_nohayamete(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -142,8 +148,8 @@ mod tests {
     #[test]
     fn nh_c_l_not_no_r_hayamete() {
         // NH-C l-not-no r-hayamete cnt=1
-        let l = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]));
-        let r = Arc::new(sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1601080]))]));
+        let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
+        let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1601080]))]);
         let result = segfilter_nohayamete(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -152,8 +158,8 @@ mod tests {
     #[test]
     fn nh_d_l_is_no_r_hayamete_empty() {
         // NH-D l-is-no r-hayamete cnt=0
-        let l = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1469800]))]));
-        let r = Arc::new(sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1601080]))]));
+        let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1469800]))]);
+        let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1601080]))]);
         let result = segfilter_nohayamete(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -161,43 +167,37 @@ mod tests {
     #[test]
     fn nh_e_l_mixed_r_hayamete() {
         // NH-E l-mixed r-hayamete cnt=1 — sat-l push (con-r empty)
-        let l = Arc::new(sl(
+        let l = lite_sl(
             0,
             1,
             vec![
                 seg(0, 1, info_with_seq_set(vec![1469800])),
                 seg(0, 1, info_with_seq_set(vec![999])),
             ],
-        ));
-        let r = Arc::new(sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1601080]))]));
+        );
+        let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1601080]))]);
         let result = segfilter_nohayamete(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
-        assert_eq!(
-            result[0].0.as_ref().unwrap().segments[0].info.as_ref().unwrap().seq_set,
-            vec![999]
-        );
+        assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![999]);
         assert_eq!(result[0].1.segments.len(), 1);
     }
 
     #[test]
     fn nh_f_gap_r_mixed() {
         // NH-F gap r-mixed cnt=1 — clause-2 with con-r non-empty
-        let l = Arc::new(sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]));
-        let r = Arc::new(sl(
+        let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
+        let r = lite_sl(
             2,
             3,
             vec![
                 seg(2, 3, info_with_seq_set(vec![1601080])),
                 seg(2, 3, info_with_seq_set(vec![999])),
             ],
-        ));
+        );
         let result = segfilter_nohayamete(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
-        assert_eq!(
-            result[0].1.segments[0].info.as_ref().unwrap().seq_set,
-            vec![999]
-        );
+        assert_eq!(result[0].1.segments[0].seq_set, vec![999]);
     }
 }

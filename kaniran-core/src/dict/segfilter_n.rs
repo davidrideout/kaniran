@@ -13,15 +13,14 @@ use super::_star_noun_particles_star_::NOUN_PARTICLES;
 use super::classify::classify;
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::filter_in_seq_set_simple::filter_in_seq_set_simple;
-use super::make_segment_list_from::make_segment_list_from;
-use super::segment_list_struct::SegmentList;
+use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 
 const N_SEQS: &[i32] = &[2139720, 2849370, 2849387];
 
 pub fn segfilter_n(
-    seg_left: Option<&Arc<SegmentList>>,
-    seg_right: &Arc<SegmentList>,
-) -> Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> {
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
     let filter_right = filter_in_seq_set(N_SEQS.to_vec());
     let (sat_r, con_r) = classify(filter_right, &seg_right.segments);
 
@@ -36,7 +35,7 @@ pub fn segfilter_n(
         return if con_r.is_empty() {
             Vec::new()
         } else {
-            vec![(Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r)))]
+            vec![(Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)))]
         };
     }
 
@@ -49,17 +48,17 @@ pub fn segfilter_n(
         return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
     }
 
-    let mut result: Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> = Vec::new();
+    let mut result: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> = Vec::new();
     if !con_r.is_empty() {
-        result.push((Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r))));
+        result.push((Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r))));
     }
     if !sat_l.is_empty() {
         // dict-grammar.lisp:1064 (push) — prepend the satisfies pair.
         result.insert(
             0,
             (
-                Some(Arc::new(make_segment_list_from(l, sat_l))),
-                Arc::new(make_segment_list_from(seg_right, sat_r)),
+                Some(Arc::new(make_kani_lite_segment_list_from(l, sat_l))),
+                Arc::new(make_kani_lite_segment_list_from(seg_right, sat_r)),
             ),
         );
     }
@@ -72,6 +71,7 @@ mod tests {
     use crate::dict::compound_text_class::{CompoundText, ScoreMod};
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
 
@@ -128,8 +128,14 @@ mod tests {
         Segment { start, end, word, score: None, info: Some(info), top: None, text: None }
     }
 
-    fn sl(start: usize, end: usize, segments: Vec<Segment>) -> SegmentList {
-        SegmentList { segments, start, end, top: None, matches: 0 }
+    fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
+        Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
+            segments,
+            start,
+            end,
+            top: None,
+            matches: 0,
+        }))
     }
 
     // REPL probes from `/tmp/probe_415_423.lisp` (this session).
@@ -137,7 +143,7 @@ mod tests {
     #[test]
     fn n_a_l_nil_r_all_n_pass_through() {
         // N-A l=NIL r=all-n cnt=1 → pass-through (allow-first)
-        let r = Arc::new(sl(0, 1, vec![seg(0, 1, simple_word(2139720), info_with_seq_set(vec![2139720]))]));
+        let r = lite_sl(0, 1, vec![seg(0, 1, simple_word(2139720), info_with_seq_set(vec![2139720]))]);
         let result = segfilter_n(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -147,7 +153,7 @@ mod tests {
     #[test]
     fn n_b_l_nil_r_no_match() {
         // N-B l=NIL r=no-match cnt=1 → clause-1
-        let r = Arc::new(sl(0, 1, vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))]));
+        let r = lite_sl(0, 1, vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))]);
         let result = segfilter_n(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -156,14 +162,14 @@ mod tests {
     #[test]
     fn n_c_l_nil_r_mixed_pass_through() {
         // N-C l=NIL r=mixed cnt=1 → pass-through (allow-first); both segs preserved
-        let r = Arc::new(sl(
+        let r = lite_sl(
             0,
             1,
             vec![
                 seg(0, 1, simple_word(2139720), info_with_seq_set(vec![2139720])),
                 seg(0, 1, simple_word(999), info_with_seq_set(vec![999])),
             ],
-        ));
+        );
         let result = segfilter_n(None, &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1.segments.len(), 2);
@@ -172,8 +178,8 @@ mod tests {
     #[test]
     fn n_d_l_not_noun_r_n() {
         // N-D l-not-noun r-n cnt=1; sat-l full, con-l empty → (l, r)
-        let l = Arc::new(sl(0, 1, vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))]));
-        let r = Arc::new(sl(1, 2, vec![seg(1, 2, simple_word(2139720), info_with_seq_set(vec![2139720]))]));
+        let l = lite_sl(0, 1, vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))]);
+        let r = lite_sl(1, 2, vec![seg(1, 2, simple_word(2139720), info_with_seq_set(vec![2139720]))]);
         let result = segfilter_n(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -183,8 +189,8 @@ mod tests {
     fn n_e_l_is_noun_r_n_empty() {
         // N-E l-is-noun (simple 2028920=は, in *noun-particles*) r-all-n cnt=0
         let l =
-            Arc::new(sl(0, 1, vec![seg(0, 1, simple_word(2028920), info_with_seq_set(vec![2028920]))]));
-        let r = Arc::new(sl(1, 2, vec![seg(1, 2, simple_word(2139720), info_with_seq_set(vec![2139720]))]));
+            lite_sl(0, 1, vec![seg(0, 1, simple_word(2028920), info_with_seq_set(vec![2028920]))]);
+        let r = lite_sl(1, 2, vec![seg(1, 2, simple_word(2139720), info_with_seq_set(vec![2139720]))]);
         let result = segfilter_n(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -193,27 +199,21 @@ mod tests {
     fn n_f_l_is_noun_r_mixed() {
         // N-F l-is-noun r-mixed cnt=1 — base pair (l unchanged, mslf r con-r)
         let l =
-            Arc::new(sl(0, 1, vec![seg(0, 1, simple_word(2028920), info_with_seq_set(vec![2028920]))]));
-        let r = Arc::new(sl(
+            lite_sl(0, 1, vec![seg(0, 1, simple_word(2028920), info_with_seq_set(vec![2028920]))]);
+        let r = lite_sl(
             1,
             2,
             vec![
                 seg(1, 2, simple_word(2139720), info_with_seq_set(vec![2139720])),
                 seg(1, 2, simple_word(999), info_with_seq_set(vec![999])),
             ],
-        ));
+        );
         let result = segfilter_n(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
-        assert_eq!(
-            result[0].0.as_ref().unwrap().segments[0].info.as_ref().unwrap().seq_set,
-            vec![2028920]
-        );
+        assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![2028920]);
         assert_eq!(result[0].1.segments.len(), 1);
-        assert_eq!(
-            result[0].1.segments[0].info.as_ref().unwrap().seq_set,
-            vec![999]
-        );
+        assert_eq!(result[0].1.segments[0].seq_set, vec![999]);
     }
 
     #[test]
@@ -221,51 +221,45 @@ mod tests {
         // N-G l-mixed (noun + not-noun) r-all-n cnt=1
         // sat-l = not-noun, con-l = noun; sat-r full, con-r empty
         // → sat-l push only → (mslf l sat-l, mslf r sat-r)
-        let l = Arc::new(sl(
+        let l = lite_sl(
             0,
             1,
             vec![
                 seg(0, 1, simple_word(2028920), info_with_seq_set(vec![2028920])),
                 seg(0, 1, simple_word(999), info_with_seq_set(vec![999])),
             ],
-        ));
-        let r = Arc::new(sl(1, 2, vec![seg(1, 2, simple_word(2139720), info_with_seq_set(vec![2139720]))]));
+        );
+        let r = lite_sl(1, 2, vec![seg(1, 2, simple_word(2139720), info_with_seq_set(vec![2139720]))]);
         let result = segfilter_n(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
-        assert_eq!(
-            result[0].0.as_ref().unwrap().segments[0].info.as_ref().unwrap().seq_set,
-            vec![999]
-        );
+        assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![999]);
         assert_eq!(result[0].1.segments.len(), 1);
     }
 
     #[test]
     fn n_h_gap_r_mixed() {
         // N-H gap r-mixed cnt=1 — clause-2 with con-r non-empty
-        let l = Arc::new(sl(0, 1, vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))]));
-        let r = Arc::new(sl(
+        let l = lite_sl(0, 1, vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))]);
+        let r = lite_sl(
             2,
             3,
             vec![
                 seg(2, 3, simple_word(2139720), info_with_seq_set(vec![2139720])),
                 seg(2, 3, simple_word(999), info_with_seq_set(vec![999])),
             ],
-        ));
+        );
         let result = segfilter_n(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
-        assert_eq!(
-            result[0].1.segments[0].info.as_ref().unwrap().seq_set,
-            vec![999]
-        );
+        assert_eq!(result[0].1.segments[0].seq_set, vec![999]);
     }
 
     #[test]
     fn n_i_gap_r_all_n_empty() {
         // N-I gap r-all-n cnt=0 — clause-2 with con-r empty
-        let l = Arc::new(sl(0, 1, vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))]));
-        let r = Arc::new(sl(2, 3, vec![seg(2, 3, simple_word(2139720), info_with_seq_set(vec![2139720]))]));
+        let l = lite_sl(0, 1, vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))]);
+        let r = lite_sl(2, 3, vec![seg(2, 3, simple_word(2139720), info_with_seq_set(vec![2139720]))]);
         let result = segfilter_n(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -284,8 +278,8 @@ mod tests {
             top: None,
             text: None,
         };
-        let l = Arc::new(sl(0, 2, vec![lseg]));
-        let r = Arc::new(sl(2, 3, vec![seg(2, 3, simple_word(2139720), info_with_seq_set(vec![2139720]))]));
+        let l = lite_sl(0, 2, vec![lseg]);
+        let r = lite_sl(2, 3, vec![seg(2, 3, simple_word(2139720), info_with_seq_set(vec![2139720]))]);
         let result = segfilter_n(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);

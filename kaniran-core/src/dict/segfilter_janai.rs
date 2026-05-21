@@ -12,16 +12,15 @@ use std::sync::Arc;
 use super::classify::classify;
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::filter_is_compound_end::filter_is_compound_end;
-use super::make_segment_list_from::make_segment_list_from;
-use super::segment_list_struct::SegmentList;
+use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 
 const HA_SEQ: i32 = 2028920;
 const JANAI_SEQS: &[i32] = &[1529520, 1296400, 2139720];
 
 pub fn segfilter_janai(
-    seg_left: Option<&Arc<SegmentList>>,
-    seg_right: &Arc<SegmentList>,
-) -> Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> {
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
     let filter_right = filter_in_seq_set(JANAI_SEQS.to_vec());
     let (sat_r, con_r) = classify(filter_right, &seg_right.segments);
 
@@ -36,7 +35,7 @@ pub fn segfilter_janai(
         return if con_r.is_empty() {
             Vec::new()
         } else {
-            vec![(Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r)))]
+            vec![(Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)))]
         };
     }
 
@@ -49,17 +48,17 @@ pub fn segfilter_janai(
         return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
     }
 
-    let mut result: Vec<(Option<Arc<SegmentList>>, Arc<SegmentList>)> = Vec::new();
+    let mut result: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> = Vec::new();
     if !con_r.is_empty() {
-        result.push((Some(Arc::clone(l)), Arc::new(make_segment_list_from(seg_right, con_r))));
+        result.push((Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r))));
     }
     if !sat_l.is_empty() {
         // dict-grammar.lisp:1064 (push) — prepend the satisfies pair.
         result.insert(
             0,
             (
-                Some(Arc::new(make_segment_list_from(l, sat_l))),
-                Arc::new(make_segment_list_from(seg_right, sat_r)),
+                Some(Arc::new(make_kani_lite_segment_list_from(l, sat_l))),
+                Arc::new(make_kani_lite_segment_list_from(seg_right, sat_r)),
             ),
         );
     }
@@ -72,6 +71,7 @@ mod tests {
     use crate::dict::compound_text_class::{CompoundText, ScoreMod};
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
 
@@ -143,14 +143,14 @@ mod tests {
         }
     }
 
-    fn sl(start: usize, end: usize, segments: Vec<Segment>) -> SegmentList {
-        SegmentList {
+    fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
+        Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
             segments,
             start,
             end,
             top: None,
             matches: 0,
-        }
+        }))
     }
 
     // REPL probes from `/tmp/probe_410_414.lisp` (this session).
@@ -159,11 +159,11 @@ mod tests {
     fn j_a_l_nil_r_janai_pass_through() {
         // J-A l=NIL r=janai cnt=1 r-segs=1
         // allow-first → (list (list nil r))
-        let r = Arc::new(sl(
+        let r = lite_sl(
             0,
             1,
             vec![seg(0, 1, simple_word(1529520), Some(info_with_seq_set(vec![1529520])))],
-        ));
+        );
         let result = segfilter_janai(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -175,16 +175,16 @@ mod tests {
         // J-B l-simple r-janai cnt=1 l-segs=1
         // simple-l → (filter-is-compound-end 2028920) returns NIL → complement → T
         // sat-l full, con-l empty → (list (list l r))
-        let l = Arc::new(sl(
+        let l = lite_sl(
             0,
             1,
             vec![seg(0, 1, simple_word(999), Some(info_with_seq_set(vec![999])))],
-        ));
-        let r = Arc::new(sl(
+        );
+        let r = lite_sl(
             1,
             2,
             vec![seg(1, 2, simple_word(1529520), Some(info_with_seq_set(vec![1529520])))],
-        ));
+        );
         let result = segfilter_janai(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -195,7 +195,7 @@ mod tests {
         // J-C l-compound-end-wa r-janai => NIL
         // compound ending in 2028920 → filter-is-compound-end T → complement NIL
         // sat-l empty, con-l full; sat-r full, con-r empty → empty result
-        let l = Arc::new(sl(
+        let l = lite_sl(
             0,
             2,
             vec![seg(
@@ -204,12 +204,12 @@ mod tests {
                 compound_word_ending_in(2028920),
                 Some(info_with_seq_set(vec![2028920])),
             )],
-        ));
-        let r = Arc::new(sl(
+        );
+        let r = lite_sl(
             2,
             3,
             vec![seg(2, 3, simple_word(1529520), Some(info_with_seq_set(vec![1529520])))],
-        ));
+        );
         let result = segfilter_janai(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -219,7 +219,7 @@ mod tests {
         // J-D l-mixed-comp r-janai cnt=1 l-segs=1 l0-info=(999)
         // sat-l = simple (not compound-end-ha), con-l = compound-end-ha
         // sat-r full, con-r empty → base skipped; sat-l push → 1 pair
-        let l = Arc::new(sl(
+        let l = lite_sl(
             0,
             2,
             vec![
@@ -231,23 +231,16 @@ mod tests {
                 ),
                 seg(0, 2, simple_word(999), Some(info_with_seq_set(vec![999]))),
             ],
-        ));
-        let r = Arc::new(sl(
+        );
+        let r = lite_sl(
             2,
             3,
             vec![seg(2, 3, simple_word(1529520), Some(info_with_seq_set(vec![1529520])))],
-        ));
+        );
         let result = segfilter_janai(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
-        assert_eq!(
-            result[0].0.as_ref().unwrap().segments[0]
-                .info
-                .as_ref()
-                .unwrap()
-                .seq_set,
-            vec![999]
-        );
+        assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![999]);
     }
 
     #[test]
@@ -255,26 +248,23 @@ mod tests {
         // J-E gap janai-mixed cnt=1 r-segs=1 r-info=(999)
         // clause-2 (l.end=1 != r.start=2) with con-r non-empty
         // → (list (list l (mslf r con-r)))
-        let l = Arc::new(sl(
+        let l = lite_sl(
             0,
             1,
             vec![seg(0, 1, simple_word(999), Some(info_with_seq_set(vec![999])))],
-        ));
-        let r = Arc::new(sl(
+        );
+        let r = lite_sl(
             2,
             3,
             vec![
                 seg(2, 3, simple_word(1296400), Some(info_with_seq_set(vec![1296400]))),
                 seg(2, 3, simple_word(999), Some(info_with_seq_set(vec![999]))),
             ],
-        ));
+        );
         let result = segfilter_janai(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
-        assert_eq!(
-            result[0].1.segments[0].info.as_ref().unwrap().seq_set,
-            vec![999]
-        );
+        assert_eq!(result[0].1.segments[0].seq_set, vec![999]);
     }
 }
