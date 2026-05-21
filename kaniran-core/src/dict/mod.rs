@@ -211,6 +211,8 @@ pub mod skip_by_conj_data;
 pub mod source;
 pub mod strip_hints;
 pub mod subseq_slice;
+pub mod suffix_ra;
+pub mod suffix_suru;
 pub mod synergy_kanji_prefix;
 pub mod synergy_na_adjectives;
 pub mod synergy_no_adjectives;

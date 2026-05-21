@@ -493,11 +493,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  474. `ichiran/dict:adjoin-word`  — gf, dict.lisp:0  *[ported]*
  475. `ichiran/dict:apply-patch`  — fn, dict-grammar.lisp:444  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
  476. `ichiran/dict:or-as-hiragana`  — fn, dict-grammar.lisp:95  *[ported]*  *[extracted: get_suffixes_2026_05_15]*  *[audited 668845/668845]*
- 477. `ichiran/dict:suffix-ra`  — fn, dict-grammar.lisp:516  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+ 477. `ichiran/dict:suffix-ra`  — fn, dict-grammar.lisp:516  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*  *[audited 525343/525343]*
  478. `ichiran/dict:lex-compare`  — fn, dict-load.lisp:365  *[ported]*
  479. `ichiran/dict:pair-words-by-conj`  — fn, dict-grammar.lisp:56  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*  *[audited 206/206]*
  480. `ichiran/dict:find-word-with-pos`  — fn, dict-grammar.lisp:87  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
- 481. `ichiran/dict:suffix-suru`  — fn, dict-grammar.lisp:441  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+ 481. `ichiran/dict:suffix-suru`  — fn, dict-grammar.lisp:441  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*  *[audited 3096023/3096023]*
  482. `ichiran/dict:*suffix-unique-only*`  — global, dict-grammar.lisp:330  *[ported]*
  483. `ichiran/dict:match-unique`  — fn, dict-grammar.lisp:702  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*  *[audited 92593/92593]*
  484. **CYCLE (49 symbols — port together)**
