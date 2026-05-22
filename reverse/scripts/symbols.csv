@@ -371,10 +371,10 @@ ichiran/dict:get-seg-initial,get-seg-initial,ichiran/dict,dict.lisp,1172,fn,port
 ichiran/dict:get-seg-splits,get-seg-splits,ichiran/dict,dict.lisp,1175,fn,ported,,chunk_b_segmentation_2026_05_14,
 ichiran/dict:get-segment-score,get-segment-score,ichiran/dict,dict.lisp,0,gf,ported,,,
 ichiran/dict:get-segsplit,get-segsplit,ichiran/dict,dict-split.lisp,823,fn,ported,,chunk_c_suffix_abbr_2026_05_16,1555663/1555663
-ichiran/dict:get-senses,get-senses,ichiran/dict,dict.lisp,1487,fn,pending,,,
+ichiran/dict:get-senses,get-senses,ichiran/dict,dict.lisp,1487,fn,ported,,,
 ichiran/dict:get-senses-json,get-senses-json,ichiran/dict,dict.lisp,1537,fn,pending,,,
 ichiran/dict:get-senses-raw,get-senses-raw,ichiran/dict,dict.lisp,1458,fn,ported,,,
-ichiran/dict:get-senses-str,get-senses-str,ichiran/dict,dict.lisp,1495,fn,pending,,,
+ichiran/dict:get-senses-str,get-senses-str,ichiran/dict,dict.lisp,1495,fn,ported,,,
 ichiran/dict:get-split,get-split,ichiran/dict,dict-split.lisp,75,fn,ported,,15fqn_combined_2026_05_11,232366/232366
 ichiran/dict:get-split*,get-split*,ichiran/dict,dict-split.lisp,67,fn,ported,,wave_158_frontier_2026_05_09,
 ichiran/dict:get-suffix-description,get-suffix-description,ichiran/dict,dict-grammar.lisp,160,fn,pending,,,
