@@ -481,7 +481,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  462. `ichiran/dict:*substring-hash*`  — global, dict.lisp:487  *[ported]*
  463. `ichiran/dict:*suffix-map-temp*`  — global, dict.lisp:1049  *[ported]*
  464. `ichiran/dict:*suffix-next-end*`  — global, dict.lisp:1050  *[ported]*
- 465. `ichiran/dict:find-sticky-positions`  — fn, dict.lisp:990  *[extracted: substring_2026_05_14]*
+ 465. `ichiran/dict:find-sticky-positions`  — fn, dict.lisp:990  *[ported]*  *[extracted: substring_2026_05_14]*  *[audited 647083/647083]*
  466. `ichiran/dict:find-substring-words`  — fn, dict.lisp:501  *[ported]*
  467. `ichiran/dict:verify`  — gf, dict-counters.lisp:0  *[ported]*  *[extracted: counter_2026_05_08]*
  468. `ichiran/numbers:reason`  — gf, numbers.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*

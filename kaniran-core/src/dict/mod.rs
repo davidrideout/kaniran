@@ -104,6 +104,7 @@ pub mod filter_is_noun;
 pub mod filter_short_kana;
 pub mod find_best_path;
 pub mod find_counter;
+pub mod find_sticky_positions;
 pub mod find_substring_words;
 pub mod find_word;
 pub mod find_word_as_hiragana;

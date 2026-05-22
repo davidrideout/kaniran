@@ -321,7 +321,7 @@ ichiran/dict:find-best-path,find-best-path,ichiran/dict,dict.lisp,1190,fn,ported
 ichiran/dict:find-conj,find-conj,ichiran/dict,dict-errata.lisp,1,fn,pending,,,
 ichiran/dict:find-counter,find-counter,ichiran/dict,dict-counters.lisp,273,fn,ported,,counter_2026_05_08,
 ichiran/dict:find-kanji-for-pattern,find-kanji-for-pattern,ichiran/dict,dict.lisp,1882,fn,pending,,,
-ichiran/dict:find-sticky-positions,find-sticky-positions,ichiran/dict,dict.lisp,990,fn,pending,,substring_2026_05_14,
+ichiran/dict:find-sticky-positions,find-sticky-positions,ichiran/dict,dict.lisp,990,fn,ported,,substring_2026_05_14,647083/647083
 ichiran/dict:find-substring-words,find-substring-words,ichiran/dict,dict.lisp,501,fn,ported,,,
 ichiran/dict:find-word,find-word,ichiran/dict,dict.lisp,489,fn,ported,,15fqn_combined_2026_05_11,8105/8105
 ichiran/dict:find-word-as-hiragana,find-word-as-hiragana,ichiran/dict,dict.lisp,592,fn,ported,,15fqn_combined_2026_05_11,30/30

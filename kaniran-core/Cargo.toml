@@ -194,3 +194,7 @@ path = "audit/dict/synergy_noun_da_test.rs"
 [[bin]]
 name = "synergy_noun_particle_test"
 path = "audit/dict/synergy_noun_particle_test.rs"
+
+[[bin]]
+name = "find_sticky_positions_test"
+path = "audit/dict/find_sticky_positions_test.rs"
