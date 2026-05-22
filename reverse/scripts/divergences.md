@@ -12,9 +12,9 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 185 fn/gf
+- Checked: 192 fn/gf
 - Macros (file-existence only): 0
-- Divergences: 21
+- Divergences: 23
 
 ## Divergences
 
@@ -83,9 +83,19 @@ captured Lisp lambda list. New entries should be either:
 - file: `kaniran-core/src/dict/find_word_seq.rs`
 - drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[]) (ctx-injected; +1 absorbed)
 
+### `ichiran/dict:find-word-with-conj-type`
+
+- file: `kaniran-core/src/dict/find_word_with_conj_type.rs`
+- drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[]) (ctx-injected; +1 absorbed)
+
 ### `ichiran/dict:find-word-with-pos`
 
 - file: `kaniran-core/src/dict/find_word_with_pos.rs`
+- drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[]) (ctx-injected; +1 absorbed)
+
+### `ichiran/dict:find-word-with-suffix`
+
+- file: `kaniran-core/src/dict/find_word_with_suffix.rs`
 - drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[]) (ctx-injected; +1 absorbed)
 
 ### `ichiran/dict:init-suffixes-thread`

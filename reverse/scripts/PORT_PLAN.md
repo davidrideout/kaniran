@@ -501,7 +501,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  482. `ichiran/dict:*suffix-unique-only*`  — global, dict-grammar.lisp:330  *[ported]*
  483. `ichiran/dict:match-unique`  — fn, dict-grammar.lisp:702  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*  *[audited 92593/92593]*
  484. **CYCLE (49 symbols — port together)**
-        - `ichiran/dict:*suffix-list*`  — global, dict-grammar.lisp:329
+        - `ichiran/dict:*suffix-list*`  — global, dict-grammar.lisp:329  *[ported]*
         - `ichiran/dict:abbr-beba`  — fn, dict-grammar.lisp:658
         - `ichiran/dict:abbr-dewanai`  — fn, dict-grammar.lisp:635  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:abbr-geba`  — fn, dict-grammar.lisp:652  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
@@ -517,11 +517,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:abbr-seba`  — fn, dict-grammar.lisp:666  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:abbr-shimasho`  — fn, dict-grammar.lisp:632  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:abbr-teba`  — fn, dict-grammar.lisp:639  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:find-word-full`  — fn, dict.lisp:1052
-        - `ichiran/dict:find-word-suffix`  — fn, dict-grammar.lisp:706
-        - `ichiran/dict:find-word-with-conj-prop`  — fn, dict-grammar.lisp:42  *[skip — Second argument is a predicate closure (lambda (cdata) ...) supplied by suffix-DSL callers — structurally unreplayable: the function value has no canonical text form. Closures fail trace_capture.lisp primitive-p; every call lands in *skipped*. Verified 13/13 calls skipped per 5-sentence probe. Audit at caller boundary instead if needed.]*
-        - `ichiran/dict:find-word-with-conj-type`  — fn, dict-grammar.lisp:51  *[extracted: substring_2026_05_14]*
-        - `ichiran/dict:find-word-with-suffix`  — fn, dict-grammar.lisp:100  *[extracted: substring_2026_05_14]*
+        - `ichiran/dict:find-word-full`  — fn, dict.lisp:1052  *[ported]*
+        - `ichiran/dict:find-word-suffix`  — fn, dict-grammar.lisp:706  *[ported]*
+        - `ichiran/dict:find-word-with-conj-prop`  — fn, dict-grammar.lisp:42  *[ported]*
+        - `ichiran/dict:find-word-with-conj-type`  — fn, dict-grammar.lisp:51  *[ported]*  *[extracted: substring_2026_05_14]*
+        - `ichiran/dict:find-word-with-suffix`  — fn, dict-grammar.lisp:100  *[ported]*  *[extracted: substring_2026_05_14]*
         - `ichiran/dict:suffix-adv`  — fn, dict-grammar.lisp:472  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-chau`  — fn, dict-grammar.lisp:427  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-desho`  — fn, dict-grammar.lisp:541  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
@@ -548,8 +548,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:suffix-teiru+`  — fn, dict-grammar.lisp:408  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-to`  — fn, dict-grammar.lisp:436  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-tosuru`  — fn, dict-grammar.lisp:549  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:te-check`  — fn, dict-grammar.lisp:395  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:teiru-check`  — fn, dict-grammar.lisp:404  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:te-check`  — fn, dict-grammar.lisp:395  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:teiru-check`  — fn, dict-grammar.lisp:404  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
  485. `ichiran/dict:get-suffix-map`  — fn, dict-grammar.lisp:685
  486. `ichiran/dict:join-substring-words*`  — fn, dict.lisp:1069  *[extracted: substring_2026_05_14]*
  487. `ichiran/dict:join-substring-words`  — fn, dict.lisp:1113  *[extracted: substring_2026_05_14]*
