@@ -555,7 +555,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  487. `ichiran/dict:join-substring-words`  — fn, dict.lisp:1113  *[extracted: substring_2026_05_14]*
  488. `ichiran/dict:dict-segment`  — fn, dict.lisp:1451  *[extracted: chunk_b_segmentation_2026_05_14]*
  489. `ichiran/dict:simple-segment`  — fn, dict.lisp:1456
- 490. `ichiran/dict:get-senses-raw`  — fn, dict.lisp:1458
+ 490. `ichiran/dict:get-senses-raw`  — fn, dict.lisp:1458  *[ported]*
  491. `ichiran/dict:get-senses`  — fn, dict.lisp:1487
  492. `ichiran/dict:get-senses-str`  — fn, dict.lisp:1495
  493. `ichiran/dict:*suffix-description*`  — global, dict-grammar.lisp:0  *[ported]*
