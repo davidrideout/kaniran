@@ -174,13 +174,21 @@ Convert to bytes internally (via `s.char_indices()`) when calling the regex engi
 
 ### 4.6. Macros
 
-Most Lisp macros in this codebase are either (a) DSL definers that register data into existing globals (`def-simple-suffix`, `def-counter`, `defsplit`) — the **data** is already captured in the relevant `*global*` (or collapsed into a static dispatcher), so the macro itself has nothing to translate; or (b) syntactic helpers (`hash-from-list`) whose call-sites are already directly ported.
+Lisp macros in this codebase fall into three buckets:
 
-**For these, mark the FQN `skip` with a reason** via `query.py mark <fqn> --status skip --reason "..."`. The reason should name where the data/code lives (the populated global, the dispatcher, the per-callsite ports). Do **not** create a doc-only `_macro` file — a no-op file is project clutter, not a port. The skip reason is the bookkeeping; it surfaces in `PORT_PLAN.md` next to the symbol.
+**(a) Pure DSL definers** — register data into existing globals and emit nothing else of substance (`def-counter`, `defsplit` rows that compile to a static dispatcher entry only). The **data** is captured in the relevant `*global*` (or the dispatcher), so the macro itself has nothing to translate. **Mark `skip`** via `query.py mark <fqn> --status skip --reason "..."` naming where the data lives. Do **not** create a doc-only `_macro` file.
 
-A small minority of macros (~6 per the `reverse/` analysis) genuinely encode logic that needs a Rust translation. Those go in an `_macro` file as a regular function or a `macro_rules!` block, with the doc-comment explaining why one was chosen over the other. The `_macro` filename suffix is reserved for that case.
+**(b) Syntactic helpers** — `hash-from-list` and similar, whose call-sites are already directly ported. Same prescription: mark `skip` with reason.
 
-Don't try to write a Rust macro that mimics a Lisp expansion just to have something to point at — almost always the wrong tool.
+**(c) Code-emitting DSL definers** — register data **and** expand into a non-trivial function body that's identical across every callsite up to a fixed set of parameters. `def-simple-suffix` is the worked example: it pushes `(key . fn-name)` into `*suffix-list*` (data) **and** emits the per-pw mapcar tail that builds the compound (text/kana/score/words) — that loop is the same at every callsite, parameterized by `:stem` / `:score` / `:connector` and the body's primary-word producer.
+
+For (c): port the macro's expansion shape into a single helper in the `_macro` file (e.g. `def_simple_suffix_macro.rs`). The per-callsite suffix ports stay one-per-file (§1) but their bodies collapse to two steps — compute primary words, then `def_simple_suffix_body(ctx, primary_words, root, suffix, kf, &SimpleSuffixOpts { stem, score, connector, patch })`. The helper carries the macro citation (`dict-grammar.lisp:340-368`) and a single doc-comment; per-callsite ports cite the upstream `def-simple-suffix` callsite line.
+
+**Repeating macro expansions per port is banned.** The macro definition is itself the abstraction — hand-duplicating its emitted body 30+ times across the suffix family (or the counter family, or the split family) is the opposite of a transliteration. §9's "wait for a third before extracting" rule **does not apply** to macro-derived bodies: the macro is the third, fourth, and Nth.
+
+A small minority of macros (~6 per the `reverse/` analysis) genuinely encode logic with no data-registration side. Those go in an `_macro` file as a regular function or a `macro_rules!` block, with the doc-comment explaining why one was chosen over the other. The `_macro` filename suffix is reserved for cases (c) and these.
+
+Don't try to write a Rust macro that mimics a Lisp expansion just to have something to point at — almost always the wrong tool. A plain function with a parameter struct is what (c) wants.
 
 ### 4.7. Class hierarchies
 
@@ -362,7 +370,7 @@ Don't edit `PORT_PLAN.md` by hand. Don't edit upstream `*.lisp` files at the rep
 - **No upstream `*.lisp` edits.** They're checked in for introspection input. Read-only.
 - **No hand-editing `PORT_PLAN.md` or `symbols.csv`** — use `query.py mark` / `query.py plan`.
 - **No backwards-compat shims, deprecated aliases, or `// removed` comments.** This is a fresh port; delete cleanly.
-- **No speculative abstractions.** If two ports share five lines, write five lines twice. Wait for a third before extracting.
+- **No speculative abstractions** — for regular code. If two regular ports share five lines, write five lines twice; wait for a third before extracting. **Exception:** macro-derived bodies (§4.6 case (c)) are factored from the start. The Lisp macro is itself the abstraction; the Rust port mirrors that factoring with a single helper in the `_macro` file, not by hand-duplicating the expansion at every callsite. The "wait for a third" rule does not apply because the macro definition already is the abstraction across all its callsites.
 - **No mocked dependencies in tests** — when tests need state (e.g. compiled regexes, hash tables), use the real ones via `OnceLock`. The tracer / fixture-replay infra in `kani/` exists for the cases where real Lisp results are needed.
 - **No `unsafe` without explicit justification** in a `// SAFETY:` comment. None of the current port surface needs it.
 - **No `unwrap()` on user-controllable input.** `expect()` with a message is fine for invariants the codebase enforces (e.g. "char_class is in *char-scanners*" — the table covers every `CharClass` variant and a test asserts so). Prefer `?` for plumbing through `Option`/`Result`.

@@ -5,65 +5,48 @@
 //!   (find-word-with-pos root "vs"))
 //! ```
 //!
-//! Macro expands via `def-simple-suffix` (`dict-grammar.lisp:340-368`)
-//! + `defsuffix` (`dict-grammar.lisp:332-336`) into a 3-arg fn that
-//! `mapcar`s [`adjoin_word`] over the body's primary words.
+//! Mapcar tail delegated to [`def_simple_suffix_body`] per CONVENTIONS
+//! §4.6 case (c).
 //!
 //! Divergences from `(root sv suf)`:
 //! - `suf` typed `&KanaText` (the suffix-cache `kf` is always a
-//!   kana-text under `(load-conjs :suru …)`), wrapped at the
-//!   `adjoin_word` callsite.
-//! - The macro's `(when (listp pw) …)` `score-base` branch is dead
-//!   here (`find-word-with-pos` returns bare rows) and omitted.
+//!   kana-text under `(load-conjs :suru …)`).
 
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::adjoin_word::adjoin_word;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::def_simple_suffix_macro::{
+    def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
+};
 use crate::dict::find_word_with_pos::{find_word_with_pos, WordWithPosRows};
-use crate::dict::get_kana::get_kana;
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani_word::KaniWordDispatchEnum;
 
 pub async fn suffix_suru(
     ctx: &KaniranContext,
     root: &str,
-    sv: &str,
-    suf: &KanaText,
+    suffix: &str,
+    kf: &KanaText,
 ) -> Result<Vec<CompoundText>, sqlx::Error> {
     // dict-grammar.lisp:433 — (find-word-with-pos root "vs")
-    let primary_words: Vec<KaniWordDispatchEnum> =
-        match find_word_with_pos(ctx, root, &["vs"]).await? {
-            WordWithPosRows::Kana(rows) => rows
-                .into_iter()
-                .map(KaniWordDispatchEnum::Kana)
-                .collect(),
-            WordWithPosRows::Kanji(rows) => rows
-                .into_iter()
-                .map(KaniWordDispatchEnum::Kanji)
-                .collect(),
-        };
+    let primary_words: Vec<PrimaryWord> = match find_word_with_pos(ctx, root, &["vs"]).await? {
+        WordWithPosRows::Kana(rows) => rows
+            .into_iter()
+            .map(|r| PrimaryWord::from(KaniWordDispatchEnum::Kana(r)))
+            .collect(),
+        WordWithPosRows::Kanji(rows) => rows
+            .into_iter()
+            .map(|r| PrimaryWord::from(KaniWordDispatchEnum::Kanji(r)))
+            .collect(),
+    };
 
-    let mut out = Vec::with_capacity(primary_words.len());
-    for pw in primary_words {
-        // dict-grammar.lisp:357 ((destem k 0) leaves k unchanged; nil → "")
-        let pw_kana = get_kana(ctx, &pw).await?.unwrap_or_default();
-        let text = format!("{}{}", root, sv);
-        // dict-grammar.lisp:364 (:connector " ")
-        let kana = format!("{}{}{}", pw_kana, " ", sv);
-        let compound = adjoin_word(
-            ctx,
-            pw,
-            KaniSimpleTextDispatchEnum::Kana(suf.clone()),
-            Some(text),
-            Some(kana),
-            // dict-grammar.lisp:366 — :score-mod 5
-            Some(ScoreMod::Single(5)),
-            None,
-        )
-        .await?;
-        out.push(compound);
-    }
-    Ok(out)
+    // dict-grammar.lisp:432 — (:connector " " :score 5), :stem 0 default.
+    let opts = DefSimpleSuffixOpts {
+        stem: 0,
+        score: ScoreMod::Single(5),
+        connector: " ",
+        patch: None,
+    };
+    def_simple_suffix_body(ctx, primary_words, root, suffix, kf, &opts).await
 }
 
 #[cfg(test)]
@@ -133,9 +116,10 @@ mod tests {
     }
 
     /// REPL T3: `(suffix-suru "ジョギング" "し" kf-suru)` → 1 COMPOUND
-    /// text="ジョギングし" kana="ジョギング し" — exercises the
-    /// kana-text dispatch arm of `find-word-with-pos` (pure-katakana
-    /// input).
+    /// text="ジョギングし" kana="ジョギング し" score-mod=5
+    /// score-base=NIL primary=KANA-TEXT (ジョギング seq 1066360),
+    /// words=(primary kf). Exercises the kana-text dispatch arm of
+    /// `find-word-with-pos` (pure-katakana input).
     #[tokio::test]
     async fn t3_katakana_root_kana_text_arm() {
         let ctx = ctx().await;
@@ -147,12 +131,22 @@ mod tests {
         let c = &result[0];
         assert_eq!(c.text, "ジョギングし");
         assert_eq!(c.kana, "ジョギング し");
+        assert!(matches!(c.score_mod, ScoreMod::Single(5)));
+        assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
                 assert_eq!(k.text, "ジョギング");
                 assert_eq!(k.seq, 1066360);
             }
             other => panic!("expected Kana primary, got {:?}", other),
+        }
+        assert_eq!(c.words.len(), 2);
+        match &c.words[1] {
+            KaniWordDispatchEnum::Kana(k) => {
+                assert_eq!(k.seq, kf.seq);
+                assert_eq!(k.text, kf.text);
+            }
+            other => panic!("expected Kana word2 (kf), got {:?}", other),
         }
     }
 

@@ -11,9 +11,11 @@
 //! `(def-abbr-suffix ...)` forms, each appending one
 //! `(cons keyword fn-name)` pair via `(pushnew (cons ,key ',name)
 //! *suffix-list*)`. The full Lisp table has 43 entries; this port
-//! currently carries 2 — `suru` → [`suffix_suru`] and `ra` →
-//! [`suffix_ra`] — and grows row-by-row as the remaining suffix bodies
-//! port from the CYCLE-484 unit.
+//! currently carries 6 — `suru` → [`suffix_suru`], `ra` →
+//! [`suffix_ra`], `tai` → [`suffix_tai`], `ren` → [`suffix_ren`],
+//! `ren-` → [`suffix_ren_`], `neg` → [`suffix_neg`] — and grows
+//! row-by-row as the remaining suffix bodies port from the CYCLE-484
+//! unit.
 //!
 //! Consumed by `find-word-suffix` (`dict-grammar.lisp:695-707`):
 //! `(cdr (assoc keyword *suffix-list*))` returns the function (or
@@ -59,8 +61,12 @@ use std::pin::Pin;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::CompoundText;
 use crate::dict::kana_text_dao::KanaText;
+use crate::dict::suffix_neg::suffix_neg;
 use crate::dict::suffix_ra::suffix_ra;
+use crate::dict::suffix_ren::suffix_ren;
+use crate::dict::suffix_ren_::suffix_ren_;
 use crate::dict::suffix_suru::suffix_suru;
+use crate::dict::suffix_tai::suffix_tai;
 
 /// Dispatch signature for one entry in [`SUFFIX_LIST`]. Mirrors the
 /// `(funcall suffix-fn root suf kf)` shape at
@@ -106,7 +112,67 @@ fn suffix_ra_dispatch<'a>(
     })
 }
 
-/// Partial port of `*suffix-list*`: 2 of 43 upstream entries. Keys are
+/// dict-grammar.lisp:370 (def-simple-suffix suffix-tai :tai …)
+fn suffix_tai_dispatch<'a>(
+    ctx: &'a KaniranContext,
+    root: &'a str,
+    suffix: &'a str,
+    kf: Option<&'a KanaText>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<CompoundText>, sqlx::Error>> + Send + 'a>> {
+    Box::pin(async move {
+        let kf = kf.expect(
+            "suffix-list :tai dispatch: kf is nil; cache invariant (load-conjs :tai) broken",
+        );
+        suffix_tai(ctx, root, suffix, kf).await
+    })
+}
+
+/// dict-grammar.lisp:374 (def-simple-suffix suffix-ren :ren …)
+fn suffix_ren_dispatch<'a>(
+    ctx: &'a KaniranContext,
+    root: &'a str,
+    suffix: &'a str,
+    kf: Option<&'a KanaText>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<CompoundText>, sqlx::Error>> + Send + 'a>> {
+    Box::pin(async move {
+        let kf = kf.expect(
+            "suffix-list :ren dispatch: kf is nil; cache invariant (load-kf :ren) broken",
+        );
+        suffix_ren(ctx, root, suffix, kf).await
+    })
+}
+
+/// dict-grammar.lisp:378 (def-simple-suffix suffix-ren- :ren- …)
+fn suffix_ren_minus_dispatch<'a>(
+    ctx: &'a KaniranContext,
+    root: &'a str,
+    suffix: &'a str,
+    kf: Option<&'a KanaText>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<CompoundText>, sqlx::Error>> + Send + 'a>> {
+    Box::pin(async move {
+        let kf = kf.expect(
+            "suffix-list :ren- dispatch: kf is nil; cache invariant (load-conjs :ren-) broken",
+        );
+        suffix_ren_(ctx, root, suffix, kf).await
+    })
+}
+
+/// dict-grammar.lisp:381 (def-simple-suffix suffix-neg :neg …)
+fn suffix_neg_dispatch<'a>(
+    ctx: &'a KaniranContext,
+    root: &'a str,
+    suffix: &'a str,
+    kf: Option<&'a KanaText>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<CompoundText>, sqlx::Error>> + Send + 'a>> {
+    Box::pin(async move {
+        let kf = kf.expect(
+            "suffix-list :neg dispatch: kf is nil; cache invariant (load-kf :neg) broken",
+        );
+        suffix_neg(ctx, root, suffix, kf).await
+    })
+}
+
+/// Partial port of `*suffix-list*`: 6 of 43 upstream entries. Keys are
 /// the lowercase keyword strings already used by the suffix cache
 /// (`super::_star_suffix_cache_star_`). Linear scan via
 /// [`lookup_suffix_fn`] mirrors the upstream `(assoc keyword
@@ -114,6 +180,10 @@ fn suffix_ra_dispatch<'a>(
 pub static SUFFIX_LIST: &[(&str, SuffixFn)] = &[
     ("suru", suffix_suru_dispatch),
     ("ra", suffix_ra_dispatch),
+    ("tai", suffix_tai_dispatch),
+    ("ren", suffix_ren_dispatch),
+    ("ren-", suffix_ren_minus_dispatch),
+    ("neg", suffix_neg_dispatch),
 ];
 
 /// `(cdr (assoc keyword *suffix-list*))` — returns the dispatch fn for
@@ -128,16 +198,20 @@ pub fn lookup_suffix_fn(keyword: &str) -> Option<SuffixFn> {
 mod tests {
     use super::*;
 
-    /// Both currently-registered entries are reachable through the
+    /// All currently-registered entries are reachable through the
     /// `lookup_suffix_fn` linear scan.
     #[test]
     fn registered_keys_resolve() {
         assert!(lookup_suffix_fn("suru").is_some());
         assert!(lookup_suffix_fn("ra").is_some());
+        assert!(lookup_suffix_fn("tai").is_some());
+        assert!(lookup_suffix_fn("ren").is_some());
+        assert!(lookup_suffix_fn("ren-").is_some());
+        assert!(lookup_suffix_fn("neg").is_some());
     }
 
     /// REPL: `(cdr (assoc :teiru *suffix-list*))` does return a symbol
-    /// in upstream (43 entries), but the Rust port has only 2 rows —
+    /// in upstream (43 entries), but the Rust port has only 6 rows —
     /// every other key is absent until the remaining suffix-fn bodies
     /// land. Pin the absence so a future row addition is visible as a
     /// test edit rather than a silent change.
@@ -145,13 +219,13 @@ mod tests {
     fn unregistered_keys_return_none() {
         assert!(lookup_suffix_fn("teiru").is_none());
         assert!(lookup_suffix_fn("te").is_none());
-        assert!(lookup_suffix_fn("tai").is_none());
+        assert!(lookup_suffix_fn("chau").is_none());
         assert!(lookup_suffix_fn("").is_none());
         assert!(lookup_suffix_fn("unknown").is_none());
     }
 
     #[test]
     fn entry_count_matches_partial_population() {
-        assert_eq!(SUFFIX_LIST.len(), 2);
+        assert_eq!(SUFFIX_LIST.len(), 6);
     }
 }

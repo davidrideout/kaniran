@@ -502,7 +502,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  483. `ichiran/dict:match-unique`  — fn, dict-grammar.lisp:702  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*  *[audited 92593/92593]*
  484. **CYCLE (49 symbols — port together)**
         - `ichiran/dict:*suffix-list*`  — global, dict-grammar.lisp:329  *[ported]*
-        - `ichiran/dict:abbr-beba`  — fn, dict-grammar.lisp:658
+        - `ichiran/dict:abbr-beba`  — fn, dict-grammar.lisp:658  *[extracted: find_word_layer_2026_05_21]*
         - `ichiran/dict:abbr-dewanai`  — fn, dict-grammar.lisp:635  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:abbr-geba`  — fn, dict-grammar.lisp:652  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:abbr-ii`  — fn, dict-grammar.lisp:677  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
@@ -517,11 +517,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:abbr-seba`  — fn, dict-grammar.lisp:666  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:abbr-shimasho`  — fn, dict-grammar.lisp:632  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:abbr-teba`  — fn, dict-grammar.lisp:639  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:find-word-full`  — fn, dict.lisp:1052  *[ported]*
-        - `ichiran/dict:find-word-suffix`  — fn, dict-grammar.lisp:706  *[ported]*
+        - `ichiran/dict:find-word-full`  — fn, dict.lisp:1052  *[ported]*  *[extracted: find_word_layer_2026_05_21]*
+        - `ichiran/dict:find-word-suffix`  — fn, dict-grammar.lisp:706  *[ported]*  *[extracted: find_word_layer_2026_05_21]*
         - `ichiran/dict:find-word-with-conj-prop`  — fn, dict-grammar.lisp:42  *[ported]*
-        - `ichiran/dict:find-word-with-conj-type`  — fn, dict-grammar.lisp:51  *[ported]*  *[extracted: substring_2026_05_14]*
-        - `ichiran/dict:find-word-with-suffix`  — fn, dict-grammar.lisp:100  *[ported]*  *[extracted: substring_2026_05_14]*
+        - `ichiran/dict:find-word-with-conj-type`  — fn, dict-grammar.lisp:51  *[ported]*  *[extracted: find_word_layer_2026_05_21]*
+        - `ichiran/dict:find-word-with-suffix`  — fn, dict-grammar.lisp:100  *[ported]*  *[extracted: find_word_layer_2026_05_21]*
         - `ichiran/dict:suffix-adv`  — fn, dict-grammar.lisp:472  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-chau`  — fn, dict-grammar.lisp:427  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-desho`  — fn, dict-grammar.lisp:541  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
@@ -530,16 +530,16 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:suffix-iadj`  — fn, dict-grammar.lisp:500  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-kudasai`  — fn, dict-grammar.lisp:412  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-kurai`  — fn, dict-grammar.lisp:552  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-neg`  — fn, dict-grammar.lisp:392  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-neg`  — fn, dict-grammar.lisp:392  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-rashii`  — fn, dict-grammar.lisp:520  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-ren`  — fn, dict-grammar.lisp:384  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-ren-`  — fn, dict-grammar.lisp:387  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-ren`  — fn, dict-grammar.lisp:384  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-ren-`  — fn, dict-grammar.lisp:387  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-rou`  — fn, dict-grammar.lisp:470  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-sa`  — fn, dict-grammar.lisp:490  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-sou`  — fn, dict-grammar.lisp:454  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-sou+`  — fn, dict-grammar.lisp:468  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-sugiru`  — fn, dict-grammar.lisp:475  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-tai`  — fn, dict-grammar.lisp:379  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-tai`  — fn, dict-grammar.lisp:379  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-te`  — fn, dict-grammar.lisp:401  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-te+space`  — fn, dict-grammar.lisp:410  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-te-ren`  — fn, dict-grammar.lisp:414  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
@@ -786,7 +786,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  714. `ichiran/dict:def-segfilter-must-follow`  — macro, dict-grammar.lisp:1049
  715. `ichiran/dict:def-shi-split`  — macro, dict-split.lisp:191
  716. `ichiran/dict:def-simple-hint`  — macro, dict-split.lisp:901  *[skip — DSL definer (§4.6 case (a)). Expands to defhint with a let* prologue + insert-hints call; bodies are inlined as match arms in _star_hint_map_star_.rs::simple_hint_dispatch (17 groups covering 234 callsites).]*
- 717. `ichiran/dict:def-simple-suffix`  — macro, dict-grammar.lisp:345  *[skip — CONVENTIONS §4.6 case (a): DSL definer expanding to (defsuffix ...) for stem-aware suffix entries. Per-callsite bodies become standalone functions in the CYCLE 484 unit; the macro's (key . fn-name) registration target is *suffix-list*. No port file.]*
+ 717. `ichiran/dict:def-simple-suffix`  — macro, dict-grammar.lisp:345  *[ported — CONVENTIONS §4.6 case (a): DSL definer expanding to (defsuffix ...) for stem-aware suffix entries. Per-callsite bodies become standalone functions in the CYCLE 484 unit; the macro's (key . fn-name) registration target is *suffix-list*. No port file.]*
  718. `ichiran/dict:def-special-counter`  — macro, dict-counters.lisp:361
  719. `ichiran/dict:def-toori-split`  — macro, dict-split.lisp:143
  720. `ichiran/dict:delete-duplicate-props`  — fn, dict.lisp:295
