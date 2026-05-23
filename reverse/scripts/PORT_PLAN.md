@@ -522,19 +522,19 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:find-word-with-conj-prop`  — fn, dict-grammar.lisp:42  *[ported]*
         - `ichiran/dict:find-word-with-conj-type`  — fn, dict-grammar.lisp:51  *[ported]*  *[extracted: find_word_layer_2026_05_21]*
         - `ichiran/dict:find-word-with-suffix`  — fn, dict-grammar.lisp:100  *[ported]*  *[extracted: find_word_layer_2026_05_21]*
-        - `ichiran/dict:suffix-adv`  — fn, dict-grammar.lisp:472  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-adv`  — fn, dict-grammar.lisp:472  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-chau`  — fn, dict-grammar.lisp:427  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-desho`  — fn, dict-grammar.lisp:541  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-desu`  — fn, dict-grammar.lisp:525  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-garu`  — fn, dict-grammar.lisp:504  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-iadj`  — fn, dict-grammar.lisp:500  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-iadj`  — fn, dict-grammar.lisp:500  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-kudasai`  — fn, dict-grammar.lisp:412  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-kurai`  — fn, dict-grammar.lisp:552  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-kurai`  — fn, dict-grammar.lisp:552  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-neg`  — fn, dict-grammar.lisp:392  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-rashii`  — fn, dict-grammar.lisp:520  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-ren`  — fn, dict-grammar.lisp:384  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-ren-`  — fn, dict-grammar.lisp:387  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-rou`  — fn, dict-grammar.lisp:470  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-rou`  — fn, dict-grammar.lisp:470  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-sa`  — fn, dict-grammar.lisp:490  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-sou`  — fn, dict-grammar.lisp:454  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-sou+`  — fn, dict-grammar.lisp:468  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
@@ -547,7 +547,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:suffix-teiru`  — fn, dict-grammar.lisp:405  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-teiru+`  — fn, dict-grammar.lisp:408  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-to`  — fn, dict-grammar.lisp:436  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-tosuru`  — fn, dict-grammar.lisp:549  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-tosuru`  — fn, dict-grammar.lisp:549  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:te-check`  — fn, dict-grammar.lisp:395  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:teiru-check`  — fn, dict-grammar.lisp:404  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
  485. `ichiran/dict:get-suffix-map`  — fn, dict-grammar.lisp:685
