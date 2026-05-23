@@ -378,7 +378,7 @@ ichiran/dict:get-senses-str,get-senses-str,ichiran/dict,dict.lisp,1495,fn,ported
 ichiran/dict:get-split,get-split,ichiran/dict,dict-split.lisp,75,fn,ported,,15fqn_combined_2026_05_11,232366/232366
 ichiran/dict:get-split*,get-split*,ichiran/dict,dict-split.lisp,67,fn,ported,,wave_158_frontier_2026_05_09,
 ichiran/dict:get-suffix-description,get-suffix-description,ichiran/dict,dict-grammar.lisp,160,fn,pending,,,
-ichiran/dict:get-suffix-map,get-suffix-map,ichiran/dict,dict-grammar.lisp,685,fn,pending,,,
+ichiran/dict:get-suffix-map,get-suffix-map,ichiran/dict,dict-grammar.lisp,685,fn,ported,,,
 ichiran/dict:get-suffixes,get-suffixes,ichiran/dict,dict-grammar.lisp,697,fn,ported,,chunk_c_suffix_abbr_2026_05_16,
 ichiran/dict:get-synergies,get-synergies,ichiran/dict,dict-grammar.lisp,976,fn,ported,,chunk_d1a_synergy_2026_05_17,65833770/65833770
 ichiran/dict:get-text,get-text,ichiran/dict,dict.lisp,0,gf,ported,,15fqn_combined_2026_05_11,2001/2001

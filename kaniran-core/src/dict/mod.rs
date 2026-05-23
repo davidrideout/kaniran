@@ -166,6 +166,7 @@ pub mod get_original_text_star_;
 pub mod get_penalties;
 pub mod get_split;
 pub mod get_split_star_;
+pub mod get_suffix_map;
 pub mod get_suffixes;
 pub mod get_synergies;
 pub mod get_text;
