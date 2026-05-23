@@ -518,7 +518,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:abbr-shimasho`  — fn, dict-grammar.lisp:632  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:abbr-teba`  — fn, dict-grammar.lisp:639  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:find-word-full`  — fn, dict.lisp:1052  *[ported]*  *[extracted: find_word_layer_2026_05_21]*
-        - `ichiran/dict:find-word-suffix`  — fn, dict-grammar.lisp:706  *[ported]*  *[extracted: find_word_layer_2026_05_21]*
+        - `ichiran/dict:find-word-suffix`  — fn, dict-grammar.lisp:706  *[ported]*  *[extracted: find_word_layer_2026_05_21]*  *[audited 177909502/177910861 (1359 fail)]*
         - `ichiran/dict:find-word-with-conj-prop`  — fn, dict-grammar.lisp:42  *[ported]*
         - `ichiran/dict:find-word-with-conj-type`  — fn, dict-grammar.lisp:51  *[ported]*  *[extracted: find_word_layer_2026_05_21]*
         - `ichiran/dict:find-word-with-suffix`  — fn, dict-grammar.lisp:100  *[ported]*  *[extracted: find_word_layer_2026_05_21]*

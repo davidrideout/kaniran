@@ -331,7 +331,7 @@ ichiran/dict:find-word-info,find-word-info,ichiran/dict,dict.lisp,1850,fn,pendin
 ichiran/dict:find-word-info-json,find-word-info-json,ichiran/dict,dict.lisp,1872,fn,pending,,,
 ichiran/dict:find-word-kana-pattern,find-word-kana-pattern,ichiran/dict,dict.lisp,1877,fn,skip,Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.,,
 ichiran/dict:find-word-seq,find-word-seq,ichiran/dict,dict-grammar.lisp,73,fn,ported,,,
-ichiran/dict:find-word-suffix,find-word-suffix,ichiran/dict,dict-grammar.lisp,706,fn,ported,,find_word_layer_2026_05_21,
+ichiran/dict:find-word-suffix,find-word-suffix,ichiran/dict,dict-grammar.lisp,706,fn,ported,,find_word_layer_2026_05_21,177909502/177910861 (1359 fail)
 ichiran/dict:find-word-with-conj-prop,find-word-with-conj-prop,ichiran/dict,dict-grammar.lisp,42,fn,ported,,,
 ichiran/dict:find-word-with-conj-type,find-word-with-conj-type,ichiran/dict,dict-grammar.lisp,51,fn,ported,,find_word_layer_2026_05_21,
 ichiran/dict:find-word-with-pos,find-word-with-pos,ichiran/dict,dict-grammar.lisp,87,fn,ported,,chunk_c_suffix_abbr_2026_05_16,

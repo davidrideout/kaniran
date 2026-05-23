@@ -38,8 +38,42 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use arrow::array::StringArray;
+use arrow::array::{Array, Int64Array, ListArray, StringArray};
+use arrow::record_batch::RecordBatch;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+
+/// Read the `idxs` (list<int64>) column at `row_idx` if present —
+/// `ARRAY_AGG(idx ORDER BY idx)` from the dedup script. Returns empty
+/// when the parquet pre-dates the idxs-preserving dedup.
+fn extract_idxs(batch: &RecordBatch, row_idx: usize) -> Vec<i64> {
+    let Some(col) = batch.column_by_name("idxs") else {
+        return Vec::new();
+    };
+    let list = col.as_any().downcast_ref::<ListArray>().expect("idxs is ListArray");
+    if list.is_null(row_idx) {
+        return Vec::new();
+    }
+    let inner = list.value(row_idx);
+    let int = inner
+        .as_any()
+        .downcast_ref::<Int64Array>()
+        .expect("idxs inner is Int64Array");
+    (0..int.len()).map(|i| int.value(i)).collect()
+}
+
+/// Format `idxs` for a failure log line. Includes first 3 idxs plus a
+/// "+N more" suffix; empty string when the parquet has no idxs column.
+fn fmt_idxs(idxs: &[i64]) -> String {
+    if idxs.is_empty() {
+        return String::new();
+    }
+    let head: Vec<String> = idxs.iter().take(3).map(|i| i.to_string()).collect();
+    if idxs.len() > 3 {
+        format!(" idxs=[{}, +{} more]", head.join(", "), idxs.len() - 3)
+    } else {
+        format!(" idxs=[{}]", head.join(", "))
+    }
+}
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -80,6 +114,10 @@ use kaniran_core::dict::word_info_class::{WordInfo, WordInfoKana, WordInfoSeq, W
 pub struct CapturedRow {
     pub args: Vec<Value>,
     pub result: Vec<Value>,
+    /// Source-sentence idxs in the input corpus that produced this
+    /// `(args, result)` after dedup's `ARRAY_AGG(idx ORDER BY idx)`.
+    /// Empty when the parquet pre-dates the idxs-preserving dedup.
+    pub idxs: Vec<i64>,
 }
 
 /// Loaded parquet content: one [`CapturedRow`] per row. The FQN the
@@ -143,7 +181,7 @@ pub fn load_parquet(path: &Path) -> CapturedFile {
                     continue;
                 }
             };
-            rows.push(CapturedRow { args, result });
+            rows.push(CapturedRow { args, result, idxs: extract_idxs(&batch, row_idx) });
         }
         let now = std::time::Instant::now();
         if now.duration_since(last_tick).as_secs() >= 5 {
@@ -249,9 +287,9 @@ where
 
 /// Async flavor: same as [`run_sync`] but builds a [`KaniranContext`] via
 /// [`setup_ctx`] and passes it as the first argument to `audit_one`.
-/// Bounded concurrency. The default sqlx pool is `max_connections=10`;
-/// keep one connection in reserve for non-query work.
-const ASYNC_CONCURRENCY: usize = 8;
+/// Bounded concurrency. Pool is sized at `max_connections=100` in
+/// `KaniranContext::from_url`; keep headroom for non-query work.
+const ASYNC_CONCURRENCY: usize = 50;
 
 pub async fn run_async<F>(expected_fqn: &str, audit_one: F) -> !
 where
@@ -373,7 +411,7 @@ where
                     continue;
                 }
             };
-            rows.push(CapturedRow { args, result });
+            rows.push(CapturedRow { args, result, idxs: extract_idxs(&batch, row_idx) });
         }
 
         let outcomes: Vec<(usize, Result<(), String>)> = futures::stream::iter(
@@ -389,12 +427,19 @@ where
         let batch_done_start = done;
         for (local_idx, outcome) in outcomes {
             let global_idx = batch_done_start + local_idx;
+            let idxs_str = fmt_idxs(&rows[local_idx].idxs);
             match outcome {
                 Ok(()) => pass += 1,
                 Err(err) => {
                     fail += 1;
+                    eprintln!("FAIL [row {}{}] {}", global_idx + 1, idxs_str, err);
                     if first_failures.len() < MAX_FIRST_FAILURES {
-                        first_failures.push(format!("[row {}] {}", global_idx + 1, err));
+                        first_failures.push(format!(
+                            "[row {}{}] {}",
+                            global_idx + 1,
+                            idxs_str,
+                            err
+                        ));
                     }
                 }
             }
@@ -481,7 +526,7 @@ where
                     continue;
                 }
             };
-            rows.push(CapturedRow { args, result });
+            rows.push(CapturedRow { args, result, idxs: extract_idxs(&batch, row_idx) });
         }
 
         let outcomes: Vec<(usize, Result<(), String>)> = futures::stream::iter(
@@ -1038,8 +1083,19 @@ fn parse_captured_counter(value: &Value, class: &str) -> Result<Counter, String>
         s => match parse_captured_simple_text(s)? {
             KaniSimpleTextDispatchEnum::Kanji(k) => Some(CounterSource::Kanji(k)),
             KaniSimpleTextDispatchEnum::Kana(k) => Some(CounterSource::Kana(k)),
-            // counter-text source is a kanji or kana, never proxy upstream.
-            KaniSimpleTextDispatchEnum::Proxy(_) => None,
+            // counter-text :source is loaded from JMdict at populator
+            // time (dict-counters.lisp:253 / :367-376) so it is always a
+            // kanji-text or kana-text upstream. A PROXY-TEXT here would
+            // mean the projector or populator path drifted; fail loud
+            // rather than silently dropping to None (CounterSource has
+            // no Proxy arm by design).
+            KaniSimpleTextDispatchEnum::Proxy(_) => {
+                return Err(
+                    "counter-text source is PROXY-TEXT; upstream invariant says \
+                     :source is always kana/kanji (dict-counters.lisp:253)"
+                        .into(),
+                )
+            }
         },
     };
     let common = parse_counter_common(require_field(value, "common")?)?;

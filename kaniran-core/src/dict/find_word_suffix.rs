@@ -38,18 +38,16 @@
 //! - **`matches: &[KaniWordDispatchEnum]`** instead of a `&key`
 //!   keyword. Empty slice mirrors the upstream `nil` default (no
 //!   match-unique gate).
-//! - **Return is `Vec<CompoundText>`.** Every reachable suffix-fn
-//!   produces compounds via [`adjoin_word`]; the find-word-full
-//!   caller wraps them in [`KaniWordDispatchEnum::Compound`].
+//! - **Return is `Vec<KaniWordDispatchEnum>`.** Upstream is a
+//!   `(list of (or compound-text proxy-text))`: `def-simple-suffix`
+//!   bodies emit compound-text via [`adjoin_word`], `def-abbr-suffix`
+//!   bodies emit proxy-text from the `etypecase` simple-text arm at
+//!   `dict-grammar.lisp:565-577`. The polymorphic enum carries both
+//!   without a lossy collapse; find-word-full just `.extend`s the
+//!   result without rewrapping.
 //! - **Character-length offsets** per CONVENTIONS §4.5 — the
 //!   `*suffix-next-end*` rebind arithmetic uses character positions,
 //!   not bytes.
-//! - **Partial `*suffix-list*` table.** Only `suru` and `ra` are
-//!   registered today; rows for other keywords from
-//!   [`super::get_suffixes`] / [`super::get_suffix_map`] silently
-//!   skip via `lookup_suffix_fn` returning `None`. Matches the
-//!   upstream `(when suffix-fn …)` gate when a defsuffix body is not
-//!   yet loaded.
 //!
 //! ## suffix-class for the match-unique gate
 //!
@@ -75,7 +73,6 @@
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_suffix_class_star_::suffix_class;
 use crate::dict::_star_suffix_list_star_::lookup_suffix_fn;
-use crate::dict::compound_text_class::CompoundText;
 use crate::dict::get_suffixes::get_suffixes;
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kani_word::KaniWordDispatchEnum;
@@ -86,7 +83,7 @@ pub async fn find_word_suffix(
     ctx: &KaniranContext,
     word: &str,
     matches: &[KaniWordDispatchEnum],
-) -> Result<Vec<CompoundText>, sqlx::Error> {
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
     let word_len = word.chars().count();
 
     // dict-grammar.lisp:696-698 (with suffixes = (if *suffix-map-temp* …))
@@ -121,7 +118,7 @@ pub async fn find_word_suffix(
     };
 
     let class_map = suffix_class(ctx);
-    let mut out: Vec<CompoundText> = Vec::new();
+    let mut out: Vec<KaniWordDispatchEnum> = Vec::new();
 
     // dict-grammar.lisp:700 (for (suffix keyword kf) in suffixes)
     for (suffix, keyword, kf) in suffix_triples {
@@ -180,18 +177,18 @@ mod tests {
     }
 
     /// REPL: `(find-word-suffix "勉強する")` upstream returns 1
-    /// compound via the SURU branch (TEIRU keyword also matches "る"
-    /// at the deepest start but suffix-teiru on root="勉強す" fails
-    /// te-check). The port's `*suffix-list*` registers `suru`, so we
-    /// see 1 compound here too. (`teiru` is absent but would have
-    /// produced 0 anyway.)
+    /// compound via the SURU branch (TEIRU also reaches "る" but
+    /// suffix-teiru on root="勉強す" fails its te-check).
     #[tokio::test]
     async fn t1_benkyou_suru() {
         let ctx = ctx().await;
         let r = find_word_suffix(&ctx, "勉強する", &[]).await.unwrap();
         assert_eq!(r.len(), 1);
-        assert_eq!(r[0].text, "勉強する");
-        assert_eq!(r[0].kana, "べんきょう する");
+        let KaniWordDispatchEnum::Compound(c) = &r[0] else {
+            panic!("expected Compound, got {:?}", r[0]);
+        };
+        assert_eq!(c.text, "勉強する");
+        assert_eq!(c.kana, "べんきょう する");
     }
 
     /// REPL: `(find-word-suffix "区別し")` → 1 compound (SURU branch
@@ -211,20 +208,27 @@ mod tests {
         let ctx = ctx().await;
         let r = find_word_suffix(&ctx, "私ら", &[]).await.unwrap();
         assert_eq!(r.len(), 13);
-        for c in &r {
+        for w in &r {
+            let KaniWordDispatchEnum::Compound(c) = w else {
+                panic!("expected Compound, got {:?}", w);
+            };
             assert_eq!(c.text, "私ら");
         }
     }
 
-    /// REPL: `(find-word-suffix "食べてる")` upstream returns 1 (TEIRU
-    /// fires); port's `*suffix-list*` does NOT register `teiru`, so
-    /// the row is silently dropped and we observe 0. Pin the
-    /// partial-table behavior.
+    /// REPL: `(find-word-suffix "食べてる")` upstream returns 1 via
+    /// the TEIRU branch (suffix-teiru's te-check passes on root
+    /// "食べて"). The dispatch table now wires `teiru`, so we mirror
+    /// upstream and pin the 1-compound outcome.
     #[tokio::test]
-    async fn t4_unregistered_keyword_drops_silently() {
+    async fn t4_teiru_fires() {
         let ctx = ctx().await;
         let r = find_word_suffix(&ctx, "食べてる", &[]).await.unwrap();
-        assert!(r.is_empty());
+        assert_eq!(r.len(), 1);
+        let KaniWordDispatchEnum::Compound(c) = &r[0] else {
+            panic!("expected Compound, got {:?}", r[0]);
+        };
+        assert_eq!(c.text, "食べてる");
     }
 
     /// REPL: `(find-word-suffix "ら")` → NIL. Word length equals

@@ -108,12 +108,12 @@ pub async fn find_word_full(
     let mut out: Vec<KaniWordDispatchEnum> = simple_words.clone();
 
     // dict.lisp:1055 (find-word-suffix word :matches simple-words)
-    let suffix_compounds = find_word_suffix(ctx, word, &simple_words).await?;
-    out.extend(
-        suffix_compounds
-            .into_iter()
-            .map(KaniWordDispatchEnum::Compound),
-    );
+    // find_word_suffix returns Vec<KaniWordDispatchEnum> directly —
+    // it carries both Compound (def-simple-suffix output) and Proxy
+    // (def-abbr-suffix output) variants per the etypecase at
+    // dict-grammar.lisp:565-577.
+    let suffix_words = find_word_suffix(ctx, word, &simple_words).await?;
+    out.extend(suffix_words);
 
     // dict.lisp:1056-1057 (when as-hiragana (find-word-as-hiragana …))
     if as_hiragana {
@@ -167,6 +167,7 @@ pub async fn find_word_full(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dict::compound_text_class::ScoreMod;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -230,16 +231,37 @@ mod tests {
         assert_eq!(c.kana, "われわれら");
     }
 
-    /// `(find-word-full "食べてる")` upstream returns 1 via suffix-
-    /// teiru; the port's `*suffix-list*` doesn't yet register `teiru`,
-    /// so the row drops and we observe 0 results. Pins the partial-
-    /// table behavior — the assertion changes when the teiru row
-    /// lands. (Upstream divergence: 1 vs Rust 0.)
+    /// REPL: `(find-word-full "食べてる")` → 1 COMPOUND-TEXT
+    /// text="食べてる" kana="たべてる" via `suffix-teiru`. primary =
+    /// KANJI-TEXT 食べて (seq=10092233), words = (primary, KANA-TEXT
+    /// いる seq=1577980), score_mod=3, score_base=nil.
     #[tokio::test]
-    async fn t5_unregistered_suffix_keyword_drops_silently() {
+    async fn t5_teiru_suffix_compound() {
         let ctx = ctx().await;
         let r = find_word_full(&ctx, "食べてる", false, None).await.unwrap();
-        assert!(r.is_empty(), "expected 0 (teiru not in *suffix-list*), got {}", r.len());
+        assert_eq!(r.len(), 1);
+        let KaniWordDispatchEnum::Compound(c) = &r[0] else {
+            panic!("expected Compound, got {:?}", r[0]);
+        };
+        assert_eq!(c.text, "食べてる");
+        assert_eq!(c.kana, "たべてる");
+        assert!(matches!(c.score_mod, ScoreMod::Single(3)));
+        assert!(c.score_base.is_none());
+        let KaniWordDispatchEnum::Kanji(primary) = &*c.primary else {
+            panic!("expected Kanji primary, got {:?}", c.primary);
+        };
+        assert_eq!(primary.seq, 10092233);
+        assert_eq!(primary.text, "食べて");
+        assert_eq!(c.words.len(), 2);
+        let KaniWordDispatchEnum::Kanji(w0) = &c.words[0] else {
+            panic!("expected Kanji words[0]");
+        };
+        assert_eq!(w0.seq, 10092233);
+        let KaniWordDispatchEnum::Kana(w1) = &c.words[1] else {
+            panic!("expected Kana words[1]");
+        };
+        assert_eq!(w1.seq, 1577980);
+        assert_eq!(w1.text, "いる");
     }
 
     /// REPL: `(find-word-full "xyzabc")` → NIL. No simple-text, no

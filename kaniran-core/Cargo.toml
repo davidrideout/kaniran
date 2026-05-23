@@ -60,6 +60,14 @@ name = "find_word_as_hiragana_test"
 path = "audit/dict/find_word_as_hiragana_test.rs"
 
 [[bin]]
+name = "find_word_full_test"
+path = "audit/dict/find_word_full_test.rs"
+
+[[bin]]
+name = "find_word_suffix_test"
+path = "audit/dict/find_word_suffix_test.rs"
+
+[[bin]]
 name = "get_original_text_test"
 path = "audit/dict/get_original_text_test.rs"
 
@@ -162,6 +170,10 @@ path = "audit/dict/suffix_suru_test.rs"
 [[bin]]
 name = "suffix_ra_test"
 path = "audit/dict/suffix_ra_test.rs"
+
+[[bin]]
+name = "suffix_rashii_test"
+path = "audit/dict/suffix_rashii_test.rs"
 
 [[bin]]
 name = "get_seg_initial_test"
