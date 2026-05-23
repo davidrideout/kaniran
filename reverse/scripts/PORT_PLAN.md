@@ -524,21 +524,21 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:find-word-with-suffix`  — fn, dict-grammar.lisp:100  *[ported]*  *[extracted: find_word_layer_2026_05_21]*
         - `ichiran/dict:suffix-adv`  — fn, dict-grammar.lisp:472  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-chau`  — fn, dict-grammar.lisp:427  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-desho`  — fn, dict-grammar.lisp:541  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-desu`  — fn, dict-grammar.lisp:525  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-garu`  — fn, dict-grammar.lisp:504  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-desho`  — fn, dict-grammar.lisp:541  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-desu`  — fn, dict-grammar.lisp:525  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-garu`  — fn, dict-grammar.lisp:504  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-iadj`  — fn, dict-grammar.lisp:500  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-kudasai`  — fn, dict-grammar.lisp:412  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-kurai`  — fn, dict-grammar.lisp:552  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-neg`  — fn, dict-grammar.lisp:392  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-rashii`  — fn, dict-grammar.lisp:520  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-rashii`  — fn, dict-grammar.lisp:520  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-ren`  — fn, dict-grammar.lisp:384  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-ren-`  — fn, dict-grammar.lisp:387  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-rou`  — fn, dict-grammar.lisp:470  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-sa`  — fn, dict-grammar.lisp:490  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-sou`  — fn, dict-grammar.lisp:454  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-sou+`  — fn, dict-grammar.lisp:468  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-sugiru`  — fn, dict-grammar.lisp:475  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-sou`  — fn, dict-grammar.lisp:454  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-sou+`  — fn, dict-grammar.lisp:468  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-sugiru`  — fn, dict-grammar.lisp:475  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-tai`  — fn, dict-grammar.lisp:379  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-te`  — fn, dict-grammar.lisp:401  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-te+space`  — fn, dict-grammar.lisp:410  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
@@ -815,7 +815,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  743. `ichiran/dict:simple-word-info`  — fn, dict.lisp:1282
  744. `ichiran/dict:split-kigatsuku`  — fn, dict-split.lisp:298
  745. `ichiran/dict:substring-index`  — fn, dict.lisp:1132
- 746. `ichiran/dict:suffix-sou-base`  — macro, dict-grammar.lisp:445
+ 746. `ichiran/dict:suffix-sou-base`  — macro, dict-grammar.lisp:445  *[ported]*
  747. `ichiran/dict:word-info-from-text`  — fn, dict.lisp:1382
  748. `ichiran/dict:word-info-rec-find`  — fn, dict.lisp:1409
  749. `ichiran/dict:word-readings`  — fn, dict.lisp:536
