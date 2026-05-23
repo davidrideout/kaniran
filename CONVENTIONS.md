@@ -61,6 +61,7 @@ Do **not** write doc-comments that:
 - Restate the function name (`/// Compute mora length` for `pub fn mora_length`).
 - Describe internals that a reader can see in 5 lines of code.
 - Make claims about callers ("used by X", "called from the Y flow") — those rot the moment the codebase shifts.
+- **Reference CONVENTIONS itself** (`per CONVENTIONS §4.6 case (c)`, `mirrors §4.8 ctx-injection`, `see §4.4 enum collapse`). The convention rule is followed mechanically and is not load-bearing context for a future reader; if you find yourself citing a CONVENTIONS section in a port file's `//!` or inline comment, delete the citation. The shape itself is the documentation.
 
 ### 3.5. Block-level upstream cites inside function bodies
 

@@ -11,11 +11,14 @@
 //! `(def-abbr-suffix ...)` forms, each appending one
 //! `(cons keyword fn-name)` pair via `(pushnew (cons ,key ',name)
 //! *suffix-list*)`. The full Lisp table has 43 entries; this port
-//! currently carries 6 — `suru` → [`suffix_suru`], `ra` →
+//! currently carries 13 — `suru` → [`suffix_suru`], `ra` →
 //! [`suffix_ra`], `tai` → [`suffix_tai`], `ren` → [`suffix_ren`],
-//! `ren-` → [`suffix_ren_`], `neg` → [`suffix_neg`] — and grows
-//! row-by-row as the remaining suffix bodies port from the CYCLE-484
-//! unit.
+//! `ren-` → [`suffix_ren_`], `neg` → [`suffix_neg`], `te` →
+//! [`suffix_te`], `teiru` → [`suffix_teiru`], `teiru+` →
+//! [`suffix_teiru_plus_`], `te+space` → [`suffix_te_plus_space`],
+//! `kudasai` → [`suffix_kudasai`], `teren` → [`suffix_te_ren`],
+//! `teii` → [`suffix_teii`] — and grows row-by-row as the remaining
+//! suffix bodies port from the CYCLE-484 unit.
 //!
 //! Consumed by `find-word-suffix` (`dict-grammar.lisp:695-707`):
 //! `(cdr (assoc keyword *suffix-list*))` returns the function (or
@@ -61,12 +64,19 @@ use std::pin::Pin;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::CompoundText;
 use crate::dict::kana_text_dao::KanaText;
+use crate::dict::suffix_kudasai::suffix_kudasai;
 use crate::dict::suffix_neg::suffix_neg;
 use crate::dict::suffix_ra::suffix_ra;
 use crate::dict::suffix_ren::suffix_ren;
 use crate::dict::suffix_ren_::suffix_ren_;
 use crate::dict::suffix_suru::suffix_suru;
 use crate::dict::suffix_tai::suffix_tai;
+use crate::dict::suffix_te::suffix_te;
+use crate::dict::suffix_te_plus_space::suffix_te_plus_space;
+use crate::dict::suffix_te_ren::suffix_te_ren;
+use crate::dict::suffix_teii::suffix_teii;
+use crate::dict::suffix_teiru::suffix_teiru;
+use crate::dict::suffix_teiru_plus_::suffix_teiru_plus_;
 
 /// Dispatch signature for one entry in [`SUFFIX_LIST`]. Mirrors the
 /// `(funcall suffix-fn root suf kf)` shape at
@@ -172,7 +182,112 @@ fn suffix_neg_dispatch<'a>(
     })
 }
 
-/// Partial port of `*suffix-list*`: 6 of 43 upstream entries. Keys are
+/// dict-grammar.lisp:389 (def-simple-suffix suffix-te :te …)
+fn suffix_te_dispatch<'a>(
+    ctx: &'a KaniranContext,
+    root: &'a str,
+    suffix: &'a str,
+    kf: Option<&'a KanaText>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<CompoundText>, sqlx::Error>> + Send + 'a>> {
+    Box::pin(async move {
+        let kf = kf.expect(
+            "suffix-list :te dispatch: kf is nil; cache invariant (load-conjs :te / load-kf :te) broken",
+        );
+        suffix_te(ctx, root, suffix, kf).await
+    })
+}
+
+/// dict-grammar.lisp:395 (def-simple-suffix suffix-teiru :teiru …)
+fn suffix_teiru_dispatch<'a>(
+    ctx: &'a KaniranContext,
+    root: &'a str,
+    suffix: &'a str,
+    kf: Option<&'a KanaText>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<CompoundText>, sqlx::Error>> + Send + 'a>> {
+    Box::pin(async move {
+        let kf = kf.expect(
+            "suffix-list :teiru dispatch: kf is nil; cache invariant (いる(る) loop) broken",
+        );
+        suffix_teiru(ctx, root, suffix, kf).await
+    })
+}
+
+/// dict-grammar.lisp:398 (def-simple-suffix suffix-teiru+ :teiru+ …)
+fn suffix_teiru_plus_dispatch<'a>(
+    ctx: &'a KaniranContext,
+    root: &'a str,
+    suffix: &'a str,
+    kf: Option<&'a KanaText>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<CompoundText>, sqlx::Error>> + Send + 'a>> {
+    Box::pin(async move {
+        let kf = kf.expect(
+            "suffix-list :teiru+ dispatch: kf is nil; cache invariant (いる(る) loop) broken",
+        );
+        suffix_teiru_plus_(ctx, root, suffix, kf).await
+    })
+}
+
+/// dict-grammar.lisp:401 (def-simple-suffix suffix-te+space :te+space …)
+fn suffix_te_plus_space_dispatch<'a>(
+    ctx: &'a KaniranContext,
+    root: &'a str,
+    suffix: &'a str,
+    kf: Option<&'a KanaText>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<CompoundText>, sqlx::Error>> + Send + 'a>> {
+    Box::pin(async move {
+        let kf = kf.expect(
+            "suffix-list :te+space dispatch: kf is nil; cache invariant (load-conjs :te+space) broken",
+        );
+        suffix_te_plus_space(ctx, root, suffix, kf).await
+    })
+}
+
+/// dict-grammar.lisp:404 (def-simple-suffix suffix-kudasai :kudasai …)
+fn suffix_kudasai_dispatch<'a>(
+    ctx: &'a KaniranContext,
+    root: &'a str,
+    suffix: &'a str,
+    kf: Option<&'a KanaText>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<CompoundText>, sqlx::Error>> + Send + 'a>> {
+    Box::pin(async move {
+        let kf = kf.expect(
+            "suffix-list :kudasai dispatch: kf is nil; cache invariant (load-kf :kudasai) broken",
+        );
+        suffix_kudasai(ctx, root, suffix, kf).await
+    })
+}
+
+/// dict-grammar.lisp:407 (def-simple-suffix suffix-te-ren :teren …)
+fn suffix_te_ren_dispatch<'a>(
+    ctx: &'a KaniranContext,
+    root: &'a str,
+    suffix: &'a str,
+    kf: Option<&'a KanaText>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<CompoundText>, sqlx::Error>> + Send + 'a>> {
+    Box::pin(async move {
+        let kf = kf.expect(
+            "suffix-list :teren dispatch: kf is nil; cache invariant (load-conjs :teren) broken",
+        );
+        suffix_te_ren(ctx, root, suffix, kf).await
+    })
+}
+
+/// dict-grammar.lisp:414 (def-simple-suffix suffix-teii :teii …)
+fn suffix_teii_dispatch<'a>(
+    ctx: &'a KaniranContext,
+    root: &'a str,
+    suffix: &'a str,
+    kf: Option<&'a KanaText>,
+) -> Pin<Box<dyn Future<Output = Result<Vec<CompoundText>, sqlx::Error>> + Send + 'a>> {
+    Box::pin(async move {
+        let kf = kf.expect(
+            "suffix-list :teii dispatch: kf is nil; cache invariant (load-kf :teii) broken",
+        );
+        suffix_teii(ctx, root, suffix, kf).await
+    })
+}
+
+/// Partial port of `*suffix-list*`: 13 of 43 upstream entries. Keys are
 /// the lowercase keyword strings already used by the suffix cache
 /// (`super::_star_suffix_cache_star_`). Linear scan via
 /// [`lookup_suffix_fn`] mirrors the upstream `(assoc keyword
@@ -184,6 +299,13 @@ pub static SUFFIX_LIST: &[(&str, SuffixFn)] = &[
     ("ren", suffix_ren_dispatch),
     ("ren-", suffix_ren_minus_dispatch),
     ("neg", suffix_neg_dispatch),
+    ("te", suffix_te_dispatch),
+    ("teiru", suffix_teiru_dispatch),
+    ("teiru+", suffix_teiru_plus_dispatch),
+    ("te+space", suffix_te_plus_space_dispatch),
+    ("kudasai", suffix_kudasai_dispatch),
+    ("teren", suffix_te_ren_dispatch),
+    ("teii", suffix_teii_dispatch),
 ];
 
 /// `(cdr (assoc keyword *suffix-list*))` — returns the dispatch fn for
@@ -208,17 +330,22 @@ mod tests {
         assert!(lookup_suffix_fn("ren").is_some());
         assert!(lookup_suffix_fn("ren-").is_some());
         assert!(lookup_suffix_fn("neg").is_some());
+        assert!(lookup_suffix_fn("te").is_some());
+        assert!(lookup_suffix_fn("teiru").is_some());
+        assert!(lookup_suffix_fn("teiru+").is_some());
+        assert!(lookup_suffix_fn("te+space").is_some());
+        assert!(lookup_suffix_fn("kudasai").is_some());
+        assert!(lookup_suffix_fn("teren").is_some());
+        assert!(lookup_suffix_fn("teii").is_some());
     }
 
     /// REPL: `(cdr (assoc :teiru *suffix-list*))` does return a symbol
-    /// in upstream (43 entries), but the Rust port has only 6 rows —
+    /// in upstream (43 entries), but the Rust port has only 13 rows —
     /// every other key is absent until the remaining suffix-fn bodies
     /// land. Pin the absence so a future row addition is visible as a
     /// test edit rather than a silent change.
     #[test]
     fn unregistered_keys_return_none() {
-        assert!(lookup_suffix_fn("teiru").is_none());
-        assert!(lookup_suffix_fn("te").is_none());
         assert!(lookup_suffix_fn("chau").is_none());
         assert!(lookup_suffix_fn("").is_none());
         assert!(lookup_suffix_fn("unknown").is_none());
@@ -226,6 +353,6 @@ mod tests {
 
     #[test]
     fn entry_count_matches_partial_population() {
-        assert_eq!(SUFFIX_LIST.len(), 6);
+        assert_eq!(SUFFIX_LIST.len(), 13);
     }
 }

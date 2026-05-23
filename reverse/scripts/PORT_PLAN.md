@@ -528,7 +528,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:suffix-desu`  — fn, dict-grammar.lisp:525  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-garu`  — fn, dict-grammar.lisp:504  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-iadj`  — fn, dict-grammar.lisp:500  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-kudasai`  — fn, dict-grammar.lisp:412  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-kudasai`  — fn, dict-grammar.lisp:412  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-kurai`  — fn, dict-grammar.lisp:552  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-neg`  — fn, dict-grammar.lisp:392  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-rashii`  — fn, dict-grammar.lisp:520  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
@@ -540,12 +540,12 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:suffix-sou+`  — fn, dict-grammar.lisp:468  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-sugiru`  — fn, dict-grammar.lisp:475  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-tai`  — fn, dict-grammar.lisp:379  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-te`  — fn, dict-grammar.lisp:401  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-te+space`  — fn, dict-grammar.lisp:410  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-te-ren`  — fn, dict-grammar.lisp:414  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-teii`  — fn, dict-grammar.lisp:423  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-teiru`  — fn, dict-grammar.lisp:405  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:suffix-teiru+`  — fn, dict-grammar.lisp:408  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-te`  — fn, dict-grammar.lisp:401  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-te+space`  — fn, dict-grammar.lisp:410  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-te-ren`  — fn, dict-grammar.lisp:414  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-teii`  — fn, dict-grammar.lisp:423  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-teiru`  — fn, dict-grammar.lisp:405  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:suffix-teiru+`  — fn, dict-grammar.lisp:408  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-to`  — fn, dict-grammar.lisp:436  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:suffix-tosuru`  — fn, dict-grammar.lisp:549  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:te-check`  — fn, dict-grammar.lisp:395  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
