@@ -6,76 +6,30 @@
 //!   (apply 'filter-in-seq-set *honorifics*))
 //! ```
 //!
-//! `def-segfilter-must-follow` template (`dict-grammar.lisp:1039`)
-//! inlined per §4.6. No `:allow-first` — l=nil falls through to
-//! clause-2 of the cond.
+//! Body shared with the other `segfilter_*` callsites via
+//! [`super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body`].
+//! No `:allow-first` — l=nil falls through to clause-2 of the cond.
 
 use std::sync::Arc;
 
 use super::_star_honorifics_star_::HONORIFICS;
 use super::_star_noun_particles_star_::NOUN_PARTICLES;
-use super::classify::classify;
+use super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body;
 use super::filter_in_seq_set::filter_in_seq_set;
-use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 
 pub fn segfilter_honorific(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
 ) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    // dict-grammar.lisp:1043 (def-segfilter-must-follow expansion)
-    // — classify right by filter-right first.
-    let filter_right = filter_in_seq_set(HONORIFICS.to_vec());
-    let (sat_r, con_r) = classify(filter_right, &seg_right.segments);
-
-    // Cond clause 1: (or (not sat-r) (and allow-first (not l))).
-    // allow-first = nil here, so just (not sat-r).
-    if sat_r.is_empty() {
-        return vec![(seg_left.cloned(), Arc::clone(seg_right))];
-    }
-
-    // Cond clause 2: (or (not l) (/= l.end r.start)).
-    let l = match seg_left {
-        None => {
-            return if con_r.is_empty() {
-                Vec::new()
-            } else {
-                vec![(None, Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)))]
-            };
-        }
-        Some(l) if l.end != seg_right.start => {
-            return if con_r.is_empty() {
-                Vec::new()
-            } else {
-                vec![(Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)))]
-            };
-        }
-        Some(l) => l,
-    };
-
-    // T branch. Left filter is the complement of
-    // (apply 'filter-in-seq-set *noun-particles*).
     let inner = filter_in_seq_set(NOUN_PARTICLES.to_vec());
-    let (sat_l, con_l) = classify(|s| !inner(s), &l.segments);
-
-    if con_l.is_empty() {
-        return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
-    }
-
-    let mut result: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> = Vec::new();
-    if !con_r.is_empty() {
-        result.push((Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r))));
-    }
-    if !sat_l.is_empty() {
-        // dict-grammar.lisp:1064 (push) — prepend the satisfies pair.
-        result.insert(
-            0,
-            (
-                Some(Arc::new(make_kani_lite_segment_list_from(l, sat_l))),
-                Arc::new(make_kani_lite_segment_list_from(seg_right, sat_r)),
-            ),
-        );
-    }
-    result
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |s| !inner(s),
+        filter_in_seq_set(HONORIFICS.to_vec()),
+        false,
+    )
 }
 
 #[cfg(test)]

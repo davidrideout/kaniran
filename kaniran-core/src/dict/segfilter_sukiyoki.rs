@@ -23,10 +23,10 @@
 
 use std::sync::Arc;
 
-use super::classify::classify;
+use super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body;
 use super::filter_is_conjugation::filter_is_conjugation;
 use super::kani_lite_segment::KaniLiteSegment;
-use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 
 const SUKI_SUFFIX: &str = "好き";
 
@@ -34,63 +34,15 @@ pub fn segfilter_sukiyoki(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
 ) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    // dict-grammar.lisp:1103 (lambda) — and conj-type=54 ends-with "好き".
     let conj_filter = filter_is_conjugation(54); // +conj-adjective-literary+
-    let (sat_r, con_r) = classify(
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |_: &Arc<KaniLiteSegment>| false,
+        // dict-grammar.lisp:1103 (lambda) — and conj-type=54 ends-with "好き".
         |s| conj_filter(s) && s.text.ends_with(SUKI_SUFFIX),
-        &seg_right.segments,
-    );
-
-    // Cond clause 1: (or (not sat-r) (and allow-first (not l)))
-    // allow-first = nil here, so just (not sat-r).
-    if sat_r.is_empty() {
-        return vec![(seg_left.cloned(), Arc::clone(seg_right))];
-    }
-
-    // Cond clause 2: (or (not l) (/= l.end r.start)).
-    let l = match seg_left {
-        None => {
-            return if con_r.is_empty() {
-                Vec::new()
-            } else {
-                vec![(None, Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)))]
-            };
-        }
-        Some(l) if l.end != seg_right.start => {
-            return if con_r.is_empty() {
-                Vec::new()
-            } else {
-                vec![(Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)))]
-            };
-        }
-        Some(l) => l,
-    };
-
-    // T branch. Left filter is (constantly nil) — sat-l always empty,
-    // con-l always full.
-    let (sat_l, con_l) = classify(|_: &Arc<KaniLiteSegment>| false, &l.segments);
-
-    if con_l.is_empty() {
-        return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
-    }
-
-    let mut result: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> = Vec::new();
-    if !con_r.is_empty() {
-        result.push((Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r))));
-    }
-    if !sat_l.is_empty() {
-        // dict-grammar.lisp:1064 (push) — prepend the satisfies pair.
-        // Unreachable: filter-left = (constantly nil) ⇒ sat-l always
-        // empty. Kept for shape parity with the macro expansion.
-        result.insert(
-            0,
-            (
-                Some(Arc::new(make_kani_lite_segment_list_from(l, sat_l))),
-                Arc::new(make_kani_lite_segment_list_from(seg_right, sat_r)),
-            ),
-        );
-    }
-    result
+        false,
+    )
 }
 
 #[cfg(test)]

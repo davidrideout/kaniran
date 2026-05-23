@@ -11,10 +11,10 @@
 
 use std::sync::Arc;
 
-use super::classify::classify;
+use super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body;
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::kani_lite_segment::KaniLiteSegment;
-use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 
 const SEQ_DA: i32 = 2089020;
 const SEQ_DE: i32 = 2028980;
@@ -29,48 +29,13 @@ pub fn segfilter_dashi(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
 ) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let filter_right = filter_in_seq_set(SURU_SETE_SEQS.to_vec());
-    let (sat_r, con_r) = classify(filter_right, &seg_right.segments);
-
-    // Cond clause 1: (or (not sat-r) (and allow-first (not l)))
-    // allow-first = t, so include the (not l) disjunct.
-    if sat_r.is_empty() || seg_left.is_none() {
-        return vec![(seg_left.cloned(), Arc::clone(seg_right))];
-    }
-
-    // Cond clause 2: (or (not l) (/= l.end r.start)) — (not l) already
-    // handled above by the allow-first branch.
-    let l = seg_left.unwrap();
-    if l.end != seg_right.start {
-        return if con_r.is_empty() {
-            Vec::new()
-        } else {
-            vec![(Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)))]
-        };
-    }
-
-    // T branch.
-    let (sat_l, con_l) = classify(filter_left, &l.segments);
-
-    if con_l.is_empty() {
-        return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
-    }
-
-    let mut result: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> = Vec::new();
-    if !con_r.is_empty() {
-        result.push((Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r))));
-    }
-    if !sat_l.is_empty() {
-        // dict-grammar.lisp:1064 (push) — prepend the satisfies pair.
-        result.insert(
-            0,
-            (
-                Some(Arc::new(make_kani_lite_segment_list_from(l, sat_l))),
-                Arc::new(make_kani_lite_segment_list_from(seg_right, sat_r)),
-            ),
-        );
-    }
-    result
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        filter_left,
+        filter_in_seq_set(SURU_SETE_SEQS.to_vec()),
+        true,
+    )
 }
 
 #[cfg(test)]

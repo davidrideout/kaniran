@@ -12,9 +12,9 @@
 
 use std::sync::Arc;
 
-use super::classify::classify;
+use super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body;
 use super::filter_in_seq_set::filter_in_seq_set;
-use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 
 const WO_SEQ: i32 = 2029010;
 const KARASU_SEQS: &[i32] = &[2087020];
@@ -23,58 +23,15 @@ pub fn segfilter_wokarasu(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
 ) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let filter_right = filter_in_seq_set(KARASU_SEQS.to_vec());
-    let (sat_r, con_r) = classify(filter_right, &seg_right.segments);
-
-    // Cond clause 1: (or (not sat-r) (and allow-first (not l))).
-    // allow-first = nil here, so just (not sat-r).
-    if sat_r.is_empty() {
-        return vec![(seg_left.cloned(), Arc::clone(seg_right))];
-    }
-
-    // Cond clause 2: (or (not l) (/= l.end r.start)).
-    let l = match seg_left {
-        None => {
-            return if con_r.is_empty() {
-                Vec::new()
-            } else {
-                vec![(None, Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)))]
-            };
-        }
-        Some(l) if l.end != seg_right.start => {
-            return if con_r.is_empty() {
-                Vec::new()
-            } else {
-                vec![(Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)))]
-            };
-        }
-        Some(l) => l,
-    };
-
-    // T branch. Left filter is (filter-in-seq-set 2029010) — no
-    // complement; sat-l = matches を, con-l = does not.
-    let filter_left = filter_in_seq_set(vec![WO_SEQ]);
-    let (sat_l, con_l) = classify(filter_left, &l.segments);
-
-    if con_l.is_empty() {
-        return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
-    }
-
-    let mut result: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> = Vec::new();
-    if !con_r.is_empty() {
-        result.push((Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r))));
-    }
-    if !sat_l.is_empty() {
-        // dict-grammar.lisp:1064 (push) — prepend the satisfies pair.
-        result.insert(
-            0,
-            (
-                Some(Arc::new(make_kani_lite_segment_list_from(l, sat_l))),
-                Arc::new(make_kani_lite_segment_list_from(seg_right, sat_r)),
-            ),
-        );
-    }
-    result
+    // Left filter is (filter-in-seq-set 2029010) — no complement here
+    // unlike most segfilters; sat-l = matches を, con-l = does not.
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        filter_in_seq_set(vec![WO_SEQ]),
+        filter_in_seq_set(KARASU_SEQS.to_vec()),
+        false,
+    )
 }
 
 #[cfg(test)]

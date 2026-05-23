@@ -8,10 +8,10 @@
 
 use std::sync::Arc;
 
-use super::classify::classify;
+use super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body;
 use super::filter_is_compound_end_text::filter_is_compound_end_text;
 use super::kani_lite_segment::KaniLiteSegment;
-use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 
 fn badend_texts() -> Vec<String> {
     vec![
@@ -27,64 +27,16 @@ pub fn segfilter_badend(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
 ) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let filter_right = filter_is_compound_end_text(badend_texts());
-    let (sat_r, con_r) = classify(filter_right, &seg_right.segments);
-
-    // Cond clause 1: (or (not sat-r) (and allow-first (not l))).
-    // allow-first = nil here, so just (not sat-r).
-    if sat_r.is_empty() {
-        return vec![(seg_left.cloned(), Arc::clone(seg_right))];
-    }
-
-    // Cond clause 2: (or (not l) (/= l.end r.start)).
-    let l = match seg_left {
-        None => {
-            return if con_r.is_empty() {
-                Vec::new()
-            } else {
-                vec![(None, Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)))]
-            };
-        }
-        Some(l) if l.end != seg_right.start => {
-            return if con_r.is_empty() {
-                Vec::new()
-            } else {
-                vec![(Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)))]
-            };
-        }
-        Some(l) => l,
-    };
-
-    // T branch. Left filter (constantly nil): sat-l is always empty,
-    // con-l is always all of l's segments. con-l is therefore always
-    // non-empty when l has segments, so the inner `if con-l` is
-    // effectively a tautology here — but the macro template keeps it
-    // for the general case, so the port mirrors it.
-    let (sat_l, con_l) = classify(|_s: &Arc<KaniLiteSegment>| false, &l.segments);
-
-    if con_l.is_empty() {
-        // Reachable only if l.segments is empty — rare but possible at
-        // upstream call sites that don't filter empty seglists.
-        return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
-    }
-
-    let mut result: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> = Vec::new();
-    if !con_r.is_empty() {
-        result.push((Some(Arc::clone(l)), Arc::new(make_kani_lite_segment_list_from(seg_right, con_r))));
-    }
-    if !sat_l.is_empty() {
-        // Unreachable for this segfilter — filter-left = (constantly
-        // nil) makes sat-l empty. Kept structurally for parity with
-        // the macro template.
-        result.insert(
-            0,
-            (
-                Some(Arc::new(make_kani_lite_segment_list_from(l, sat_l))),
-                Arc::new(make_kani_lite_segment_list_from(seg_right, sat_r)),
-            ),
-        );
-    }
-    result
+    // Left filter (constantly nil) — sat-l is always empty for this
+    // segfilter so the prepended sat-pair branch in the macro
+    // expansion is unreachable in practice.
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |_: &Arc<KaniLiteSegment>| false,
+        filter_is_compound_end_text(badend_texts()),
+        false,
+    )
 }
 
 #[cfg(test)]

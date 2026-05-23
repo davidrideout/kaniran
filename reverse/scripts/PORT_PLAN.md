@@ -782,8 +782,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  710. `ichiran/dict:defsynergy`  — macro, dict-grammar.lisp:738
  711. `ichiran/dict:def-generic-synergy`  — macro, dict-grammar.lisp:739
  712. `ichiran/dict:def-reader-for-json`  — macro, dict.lisp:1289
- 713. `ichiran/dict:defsegfilter`  — macro, dict-grammar.lisp:1043
- 714. `ichiran/dict:def-segfilter-must-follow`  — macro, dict-grammar.lisp:1049
+ 713. `ichiran/dict:defsegfilter`  — macro, dict-grammar.lisp:1043  *[skip — DSL definer (§4.6 case (a)) — only effect is pushnew into *segfilter-list*, captured as the static SEGFILTER_LIST slice in dict/_star_segfilter_list_star_.rs]*
+ 714. `ichiran/dict:def-segfilter-must-follow`  — macro, dict-grammar.lisp:1049  *[ported]*
  715. `ichiran/dict:def-shi-split`  — macro, dict-split.lisp:191
  716. `ichiran/dict:def-simple-hint`  — macro, dict-split.lisp:901  *[skip — DSL definer (§4.6 case (a)). Expands to defhint with a let* prologue + insert-hints call; bodies are inlined as match arms in _star_hint_map_star_.rs::simple_hint_dispatch (17 groups covering 234 callsites).]*
  717. `ichiran/dict:def-simple-suffix`  — macro, dict-grammar.lisp:345  *[ported — CONVENTIONS §4.6 case (a): DSL definer expanding to (defsuffix ...) for stem-aware suffix entries. Per-callsite bodies become standalone functions in the CYCLE 484 unit; the macro's (key . fn-name) registration target is *suffix-list*. No port file.]*
