@@ -176,6 +176,46 @@ name = "suffix_rashii_test"
 path = "audit/dict/suffix_rashii_test.rs"
 
 [[bin]]
+name = "suffix_to_test"
+path = "audit/dict/suffix_to_test.rs"
+
+[[bin]]
+name = "suffix_te_plus_space_test"
+path = "audit/dict/suffix_te_plus_space_test.rs"
+
+[[bin]]
+name = "suffix_teiru_test"
+path = "audit/dict/suffix_teiru_test.rs"
+
+[[bin]]
+name = "suffix_neg_test"
+path = "audit/dict/suffix_neg_test.rs"
+
+[[bin]]
+name = "suffix_adv_test"
+path = "audit/dict/suffix_adv_test.rs"
+
+[[bin]]
+name = "abbr_n_test"
+path = "audit/dict/abbr_n_test.rs"
+
+[[bin]]
+name = "abbr_nx_test"
+path = "audit/dict/abbr_nx_test.rs"
+
+[[bin]]
+name = "abbr_nee_test"
+path = "audit/dict/abbr_nee_test.rs"
+
+[[bin]]
+name = "abbr_nakereba_test"
+path = "audit/dict/abbr_nakereba_test.rs"
+
+[[bin]]
+name = "abbr_dewanai_test"
+path = "audit/dict/abbr_dewanai_test.rs"
+
+[[bin]]
 name = "get_seg_initial_test"
 path = "audit/dict/get_seg_initial_test.rs"
 
@@ -210,3 +250,91 @@ path = "audit/dict/synergy_noun_particle_test.rs"
 [[bin]]
 name = "find_sticky_positions_test"
 path = "audit/dict/find_sticky_positions_test.rs"
+
+[[bin]]
+name = "suffix_chau_test"
+path = "audit/dict/suffix_chau_test.rs"
+[[bin]]
+name = "suffix_desho_test"
+path = "audit/dict/suffix_desho_test.rs"
+[[bin]]
+name = "suffix_desu_test"
+path = "audit/dict/suffix_desu_test.rs"
+[[bin]]
+name = "suffix_garu_test"
+path = "audit/dict/suffix_garu_test.rs"
+[[bin]]
+name = "suffix_iadj_test"
+path = "audit/dict/suffix_iadj_test.rs"
+[[bin]]
+name = "suffix_kudasai_test"
+path = "audit/dict/suffix_kudasai_test.rs"
+[[bin]]
+name = "suffix_kurai_test"
+path = "audit/dict/suffix_kurai_test.rs"
+[[bin]]
+name = "suffix_ren_test"
+path = "audit/dict/suffix_ren_test.rs"
+[[bin]]
+name = "suffix_ren__test"
+path = "audit/dict/suffix_ren__test.rs"
+[[bin]]
+name = "suffix_rou_test"
+path = "audit/dict/suffix_rou_test.rs"
+[[bin]]
+name = "suffix_sa_test"
+path = "audit/dict/suffix_sa_test.rs"
+[[bin]]
+name = "suffix_sou_test"
+path = "audit/dict/suffix_sou_test.rs"
+[[bin]]
+name = "suffix_sou_plus__test"
+path = "audit/dict/suffix_sou_plus__test.rs"
+[[bin]]
+name = "suffix_sugiru_test"
+path = "audit/dict/suffix_sugiru_test.rs"
+[[bin]]
+name = "suffix_tai_test"
+path = "audit/dict/suffix_tai_test.rs"
+[[bin]]
+name = "suffix_teii_test"
+path = "audit/dict/suffix_teii_test.rs"
+[[bin]]
+name = "suffix_teiru_plus__test"
+path = "audit/dict/suffix_teiru_plus__test.rs"
+[[bin]]
+name = "suffix_te_test"
+path = "audit/dict/suffix_te_test.rs"
+[[bin]]
+name = "suffix_te_ren_test"
+path = "audit/dict/suffix_te_ren_test.rs"
+[[bin]]
+name = "suffix_tosuru_test"
+path = "audit/dict/suffix_tosuru_test.rs"
+[[bin]]
+name = "abbr_geba_test"
+path = "audit/dict/abbr_geba_test.rs"
+[[bin]]
+name = "abbr_ii_test"
+path = "audit/dict/abbr_ii_test.rs"
+[[bin]]
+name = "abbr_keba_test"
+path = "audit/dict/abbr_keba_test.rs"
+[[bin]]
+name = "abbr_meba_test"
+path = "audit/dict/abbr_meba_test.rs"
+[[bin]]
+name = "abbr_neba_test"
+path = "audit/dict/abbr_neba_test.rs"
+[[bin]]
+name = "abbr_reba_test"
+path = "audit/dict/abbr_reba_test.rs"
+[[bin]]
+name = "abbr_seba_test"
+path = "audit/dict/abbr_seba_test.rs"
+[[bin]]
+name = "abbr_shimasho_test"
+path = "audit/dict/abbr_shimasho_test.rs"
+[[bin]]
+name = "abbr_teba_test"
+path = "audit/dict/abbr_teba_test.rs"

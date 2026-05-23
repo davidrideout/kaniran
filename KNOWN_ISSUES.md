@@ -1,8 +1,19 @@
 # Known issues
 
-Open divergences between the Rust transliteration and upstream ichiran
-that are mechanism-understood but not yet fixed. Each entry: scope,
-mechanism, reproduction, current disposition.
+**Scope — read before adding anything.** This document is ONLY for
+discrepancies between kaniran and upstream ichiran where the two
+snippets of code are *equivalent* and we still cannot explain why the
+outputs differ — i.e. the divergence is not in the logic. In practice
+that means database row-ordering nondeterminism (no `ORDER BY`, loader
+permutation, hash-bucket iteration) and the like.
+
+Do NOT add anything else here. No suspected bugs, no "might be a
+problem", no unverified hypotheses, no port TODOs, no ruled-out
+investigations. A real logic discrepancy is a port bug — fix it, don't
+log it here. If a discrepancy is not verified to be code-equivalent-
+but-output-divergent, it does not belong in this file.
+
+Each entry: scope, mechanism, reproduction, current disposition.
 
 Update when the underlying upstream behavior is replicated, formally
 accepted as divergence, or when audit gates are adjusted to account
