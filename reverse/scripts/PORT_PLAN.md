@@ -665,9 +665,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  595. `ichiran/dict:load-entry`  — fn, dict-load.lisp:113
  596. `ichiran/custom:insert-entry`  — gf, dict-custom.lisp:0
  597. `ichiran/custom:normalize-geo`  — fn, dict-custom.lisp:176
- 598. `ichiran/dict:get-candidates`  — fn, dict.lisp:1904
- 599. `ichiran/dict:get-glosses`  — fn, dict.lisp:1892
- 600. `ichiran/dict:match-glosses`  — fn, dict.lisp:1921
+ 598. `ichiran/dict:get-candidates`  — fn, dict.lisp:1904  *[ported]*
+ 599. `ichiran/dict:get-glosses`  — fn, dict.lisp:1892  *[ported]*
+ 600. `ichiran/dict:match-glosses`  — fn, dict.lisp:1921  *[ported]*
  601. `ichiran/custom:test-entry`  — gf, dict-custom.lisp:0
  602. `ichiran/dict:sense-exists-p`  — fn, dict-load.lisp:80
  603. `ichiran/dict:add-new-sense`  — fn, dict-load.lisp:91
