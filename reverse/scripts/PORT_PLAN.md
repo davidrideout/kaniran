@@ -502,21 +502,21 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  483. `ichiran/dict:match-unique`  — fn, dict-grammar.lisp:702  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*  *[audited 92593/92593]*
  484. **CYCLE (49 symbols — port together)**
         - `ichiran/dict:*suffix-list*`  — global, dict-grammar.lisp:329  *[ported]*
-        - `ichiran/dict:abbr-beba`  — fn, dict-grammar.lisp:658  *[extracted: find_word_layer_2026_05_21]*
-        - `ichiran/dict:abbr-dewanai`  — fn, dict-grammar.lisp:635  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:abbr-geba`  — fn, dict-grammar.lisp:652  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:abbr-ii`  — fn, dict-grammar.lisp:677  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:abbr-keba`  — fn, dict-grammar.lisp:650  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:abbr-meba`  — fn, dict-grammar.lisp:661  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:abbr-n`  — fn, dict-grammar.lisp:616  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:abbr-nakereba`  — fn, dict-grammar.lisp:627  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:abbr-neba`  — fn, dict-grammar.lisp:655  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:abbr-nee`  — fn, dict-grammar.lisp:596  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:abbr-nx`  — fn, dict-grammar.lisp:605  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:abbr-reba`  — fn, dict-grammar.lisp:647  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:abbr-seba`  — fn, dict-grammar.lisp:666  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:abbr-shimasho`  — fn, dict-grammar.lisp:632  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
-        - `ichiran/dict:abbr-teba`  — fn, dict-grammar.lisp:639  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-beba`  — fn, dict-grammar.lisp:658  *[ported]*  *[extracted: find_word_layer_2026_05_21]*
+        - `ichiran/dict:abbr-dewanai`  — fn, dict-grammar.lisp:635  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-geba`  — fn, dict-grammar.lisp:652  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-ii`  — fn, dict-grammar.lisp:677  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-keba`  — fn, dict-grammar.lisp:650  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-meba`  — fn, dict-grammar.lisp:661  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-n`  — fn, dict-grammar.lisp:616  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-nakereba`  — fn, dict-grammar.lisp:627  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-neba`  — fn, dict-grammar.lisp:655  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-nee`  — fn, dict-grammar.lisp:596  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-nx`  — fn, dict-grammar.lisp:605  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-reba`  — fn, dict-grammar.lisp:647  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-seba`  — fn, dict-grammar.lisp:666  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-shimasho`  — fn, dict-grammar.lisp:632  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
+        - `ichiran/dict:abbr-teba`  — fn, dict-grammar.lisp:639  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
         - `ichiran/dict:find-word-full`  — fn, dict.lisp:1052  *[ported]*  *[extracted: find_word_layer_2026_05_21]*
         - `ichiran/dict:find-word-suffix`  — fn, dict-grammar.lisp:706  *[ported]*  *[extracted: find_word_layer_2026_05_21]*
         - `ichiran/dict:find-word-with-conj-prop`  — fn, dict-grammar.lisp:42  *[ported]*
