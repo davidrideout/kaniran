@@ -339,7 +339,7 @@ ichiran/dict:find-word-with-suffix,find-word-with-suffix,ichiran/dict,dict-gramm
 ichiran/dict:find-words-seqs,find-words-seqs,ichiran/dict,dict.lisp,520,fn,pending,,,
 ichiran/dict:fix-entities,fix-entities,ichiran/dict,dict-load.lisp,159,fn,pending,,,
 ichiran/dict:gap-penalty,gap-penalty,ichiran/dict,dict.lisp,1169,fn,ported,,,
-ichiran/dict:gen-score,gen-score,ichiran/dict,dict.lisp,985,fn,ported,,chunk_b_segmentation_2026_05_14,
+ichiran/dict:gen-score,gen-score,ichiran/dict,dict.lisp,985,fn,ported,,chunk_b_segmentation_2026_05_14,2251107/2251107
 ichiran/dict:get-all-readings,get-all-readings,ichiran/dict,dict-errata.lisp,257,fn,pending,,,
 ichiran/dict:get-array,get-array,ichiran/dict,dict.lisp,0,gf,ported,,,
 ichiran/dict:get-candidates,get-candidates,ichiran/dict,dict.lisp,1904,fn,ported,,,

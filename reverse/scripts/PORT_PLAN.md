@@ -474,7 +474,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  455. `ichiran/dict:find-best-path`  — fn, dict.lisp:1190  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
  456. `ichiran/dict:*identical-word-score-cutoff*`  — global, dict.lisp:1020  *[ported]*
  457. `ichiran/dict:cull-segments`  — fn, dict.lisp:1027  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
- 458. `ichiran/dict:gen-score`  — fn, dict.lisp:985  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
+ 458. `ichiran/dict:gen-score`  — fn, dict.lisp:985  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*  *[audited 2251107/2251107]*
  459. `ichiran/dict:*force-kanji-break*`  — global, dict-errata.lisp:1226  *[ported]*
  460. `ichiran/dict:*max-word-length*`  — global, dict.lisp:486  *[ported]*
  461. `ichiran/dict:*no-kanji-break*`  — global, dict-errata.lisp:1229  *[ported]*
