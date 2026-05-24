@@ -641,10 +641,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  571. `ichiran/dict:*do-not-conjugate*`  — global, dict-load.lisp:303  *[ported]*
  572. `ichiran/dict:conjugate-p`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  573. `ichiran/dict:conjugation-rule`  — struct, dict-load.lisp:262  *[ported]*
- 574. `ichiran/dict:construct-conjugation`  — fn, dict-load.lisp:281
- 575. `ichiran/dict:load-pos-by-index`  — fn, dict-load.lisp:251
- 576. `ichiran/dict:get-pos`  — fn, dict-load.lisp:251
- 577. `ichiran/dict:load-pos-index`  — fn, dict-load.lisp:247
+ 574. `ichiran/dict:construct-conjugation`  — fn, dict-load.lisp:281  *[ported]*
+ 575. `ichiran/dict:load-pos-by-index`  — fn, dict-load.lisp:251  *[ported]*
+ 576. `ichiran/dict:get-pos`  — fn, dict-load.lisp:251  *[ported]*
+ 577. `ichiran/dict:load-pos-index`  — fn, dict-load.lisp:247  *[ported]*
  578. `ichiran/dict:get-pos-index`  — fn, dict-load.lisp:247
  579. `ichiran/dict:errata-conj-rules-hook`  — fn, dict-errata.lisp:1329
  580. `ichiran/dict:load-conj-rules`  — fn, dict-load.lisp:265
@@ -694,8 +694,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  624. `ichiran/dict:*jmdict-path*`  — global, settings.lisp:10  *[skip — filesystem path config; handled by kaniran.toml + env-layered config infra (get_ichiran_connection_env), not a Rust global]*
  625. `ichiran/dict:*kana-hint-map*`  — global, dict-split.lisp:832  *[skip — Dead defparameter: declared (make-hash-table) at dict-split.lisp:832 with comment ';; seq -> split function', never written or read in the upstream codebase (verified: grep returns only the declaration; REPL probe shows hash-table-count=0 after full image load). Vestigial — likely abandoned earlier kana-hint design, now superseded by *hint-map*. No populator exists to port and no consumer would observe its value, so an empty Rust HashMap with () as value would be a justification stub (feedback_no_justification_stubs.md, feedback_no_empty_cache_stubs.md). If a future upstream change starts populating it, port at that time.]*
  626. `ichiran/dict:*noun-particles*`  — global, dict-grammar.lisp:801  *[ported]*
- 627. `ichiran/dict:*pos-by-index*`  — global, dict-load.lisp:0
- 628. `ichiran/dict:*pos-index*`  — global, dict-load.lisp:0
+ 627. `ichiran/dict:*pos-by-index*`  — global, dict-load.lisp:0  *[ported]*
+ 628. `ichiran/dict:*pos-index*`  — global, dict-load.lisp:0  *[ported]*
  629. `ichiran/dict:find-conj`  — fn, dict-errata.lisp:1
  630. `ichiran/dict:add-conj`  — fn, dict-errata.lisp:15
  631. `ichiran/dict:root-diff`  — fn, dict-errata.lisp:95
