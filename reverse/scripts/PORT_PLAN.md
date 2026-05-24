@@ -564,11 +564,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  496. `ichiran/dict:load-conj-description`  — fn, dict-load.lisp:255  *[ported]*
  497. `ichiran/dict:get-conj-description`  — fn, dict-load.lisp:255  *[ported]*
  498. `ichiran/dict:conj-info-short`  — fn, dict.lisp:275  *[ported]*
- 499. `ichiran/dict:reading-str*`  — fn, dict.lisp:1580
- 500. `ichiran/dict:reading-str-seq`  — fn, dict.lisp:1584
- 501. `ichiran/dict:short-sense-str`  — fn, dict.lisp:1562
+ 499. `ichiran/dict:reading-str*`  — fn, dict.lisp:1580  *[ported]*
+ 500. `ichiran/dict:reading-str-seq`  — fn, dict.lisp:1584  *[ported]*
+ 501. `ichiran/dict:short-sense-str`  — fn, dict.lisp:1562  *[ported]*
  502. `ichiran/dict:entry-info-short`  — fn, dict.lisp:1595
- 503. `ichiran/dict:conj-type-order`  — fn, dict.lisp:1612
+ 503. `ichiran/dict:conj-type-order`  — fn, dict.lisp:1612  *[ported]*
  504. `ichiran/dict:is-rareru`  — fn, dict.lisp:1619
  505. `ichiran/dict:filter-props`  — fn, dict.lisp:1627
  506. `ichiran/dict:select-conjs`  — fn, dict.lisp:1604
