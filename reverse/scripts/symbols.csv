@@ -439,7 +439,7 @@ ichiran/dict:process-word-info,process-word-info,ichiran/dict,dict.lisp,1417,fn,
 ichiran/dict:proxy-text,proxy-text,ichiran/dict,dict.lisp,550,class,ported,,,
 ichiran/dict:query-parents-kana,query-parents-kana,ichiran/dict,dict.lisp,415,fn,ported,,15fqn_combined_2026_05_11,4/4
 ichiran/dict:query-parents-kanji,query-parents-kanji,ichiran/dict,dict.lisp,400,fn,ported,,15fqn_combined_2026_05_11,36540/36540
-ichiran/dict:reading-str,reading-str,ichiran/dict,dict.lisp,0,gf,pending,,,
+ichiran/dict:reading-str,reading-str,ichiran/dict,dict.lisp,0,gf,ported,,,
 ichiran/dict:reading-str*,reading-str*,ichiran/dict,dict.lisp,1580,fn,ported,,,
 ichiran/dict:reading-str-seq,reading-str-seq,ichiran/dict,dict.lisp,1584,fn,ported,,,
 ichiran/dict:rearrange-readings,rearrange-readings,ichiran/dict,dict-errata.lisp,229,fn,skip,"add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed",,
@@ -756,7 +756,7 @@ ichiran/dict:word-info-from-text,word-info-from-text,ichiran/dict,dict.lisp,1382
 ichiran/dict:word-info-gloss-json,word-info-gloss-json,ichiran/dict,dict.lisp,1784,fn,pending,,,
 ichiran/dict:word-info-json,word-info-json,ichiran/dict,dict.lisp,1262,fn,pending,,,
 ichiran/dict:word-info-reading,word-info-reading,ichiran/dict,dict.lisp,1445,fn,pending,,,
-ichiran/dict:word-info-reading-str,word-info-reading-str,ichiran/dict,dict.lisp,1734,fn,pending,,,
+ichiran/dict:word-info-reading-str,word-info-reading-str,ichiran/dict,dict.lisp,1734,fn,ported,,,
 ichiran/dict:word-info-rec-find,word-info-rec-find,ichiran/dict,dict.lisp,1409,fn,pending,,,
 ichiran/dict:word-info-str,word-info-str,ichiran/dict,dict.lisp,1747,fn,pending,,,
 ichiran/dict:word-readings,word-readings,ichiran/dict,dict.lisp,536,fn,pending,,,
