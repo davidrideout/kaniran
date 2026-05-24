@@ -4,6 +4,7 @@
 
 pub mod _star_default_romanization_method_star_;
 pub mod _star_hepburn_kana_table_star_;
+pub mod _star_hepburn_simple_star_;
 pub mod _star_hepburn_traditional_star_;
 pub mod _star_kunrei_siki_kana_table_star_;
 pub mod generic_hepburn_class;
@@ -26,6 +27,7 @@ pub mod rmap_item_struct;
 pub mod romanize_core;
 pub mod romanize_list;
 pub mod romanize_word;
+pub mod romanize_word_geo;
 pub mod romanize_word_info;
 pub mod simplified_hepburn_class;
 pub mod traditional_hepburn_class;

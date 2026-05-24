@@ -676,8 +676,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  606. `ichiran/custom:xml-entry`  — struct, dict-custom.lisp:63  *[skip — XML reader out of scope per project decision (HANDOFF Resolved 2026-05-03); content slot holds a DOM document that cannot be constructed without an XML reader]*
  607. `ichiran/custom:insert`  — gf, dict-custom.lisp:0  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  608. `ichiran/custom:municipality-short`  — fn, dict-custom.lisp:123  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 609. `ichiran:*hepburn-simple*`  — global, romanize.lisp:146
- 610. `ichiran:romanize-word-geo`  — fn, romanize.lisp:232
+ 609. `ichiran:*hepburn-simple*`  — global, romanize.lisp:146  *[ported]*
+ 610. `ichiran:romanize-word-geo`  — fn, romanize.lisp:232  *[ported]*
  611. `ichiran/custom:romanize-municipality`  — fn, dict-custom.lisp:133  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  612. `ichiran/custom:process-entry`  — gf, dict-custom.lisp:0  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  613. `ichiran/custom:source-file`  — gf, dict-custom.lisp:0  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
