@@ -79,8 +79,12 @@ use serde_json::Value;
 
 use kaniran_core::characters::kani_kana_class::KanaClass;
 use kaniran_core::conn::kani_context::KaniranContext;
+use kaniran_core::core::generic_hepburn_class::GenericHepburn;
+use kaniran_core::core::generic_romanization_class::RomanizationMethod;
 use kaniran_core::core::kani_cc_item::CcItem;
 use kaniran_core::core::kani_cc_tree::CcTree;
+use kaniran_core::core::kunrei_siki_class::KunreiSiki;
+use kaniran_core::core::traditional_hepburn_class::TraditionalHepburn;
 use kaniran_core::dict::compound_text_class::{CompoundText, ScoreMod};
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::conj_prop_dao::ConjProp;
@@ -2343,5 +2347,35 @@ pub fn parse_cc_atom(value: &Value) -> Result<Option<CcItem>, String> {
     match value {
         Value::Null => Ok(None),
         _ => Ok(Some(parse_cc_item(value)?)),
+    }
+}
+
+/// Reconstruct the captured romanization `method` object and invoke `f`
+/// with a borrowing [`RomanizationMethod`]; the rebuilt instance lives for
+/// the duration of `f`. The chunk-A corpus captured only the default
+/// `TRADITIONAL-HEPBURN`. Classes whose instance can't be rebuilt from the
+/// capture — simplified-hepburn (its `simplifications` are `&'static`) and
+/// the unported modified-hepburn — surface as an error rather than a silent
+/// mismatch.
+pub fn with_captured_method(
+    value: &Value,
+    f: impl FnOnce(RomanizationMethod) -> Result<(), String>,
+) -> Result<(), String> {
+    match captured_class(value)? {
+        "TRADITIONAL-HEPBURN" => {
+            let method = TraditionalHepburn::new();
+            f(RomanizationMethod::TraditionalHepburn(&method))
+        }
+        "GENERIC-HEPBURN" => {
+            let method = GenericHepburn::new();
+            f(RomanizationMethod::GenericHepburn(&method))
+        }
+        "KUNREI-SIKI" => {
+            let method = KunreiSiki::new();
+            f(RomanizationMethod::KunreiSiki(&method))
+        }
+        other => Err(format!(
+            "romanization method class not reconstructable for replay: {other}"
+        )),
     }
 }

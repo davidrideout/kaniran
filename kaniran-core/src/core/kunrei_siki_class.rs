@@ -4,8 +4,13 @@
 //! to a copy of `*kunrei-siki-kana-table*`. Adds no slots — newtype
 //! over [`GenericRomanization`].
 
+use std::sync::OnceLock;
+
+use fancy_regex::Regex;
+
 use super::_star_kunrei_siki_kana_table_star_::kunrei_siki_kana_table;
 use super::generic_romanization_class::GenericRomanization;
+use crate::characters::simplify_ngrams::simplify_ngrams;
 
 #[derive(Debug, Clone)]
 pub struct KunreiSiki(pub GenericRomanization);
@@ -17,6 +22,23 @@ impl KunreiSiki {
             kana_table: kunrei_siki_kana_table().clone(),
         })
     }
+
+    /// `r-simplify` method (`romanize.lisp:197-199`): drop the apostrophe
+    /// after `n` before a non-vowel (inlined here — kunrei-siki has no
+    /// generic-hepburn ancestor to reach via call-next), then fold long
+    /// vowels through `simplify-ngrams`.
+    pub fn r_simplify(&self, str: &str) -> String {
+        let str = n_apos_consonant().replace_all(str, "n${1}");
+        simplify_ngrams(&str, &[("oo", "ô"), ("ou", "ô"), ("uu", "û")])
+    }
+}
+
+/// `n'([^aiueoy]|$)` — same pattern generic-hepburn's `r-simplify` uses
+/// (`romanize.lisp:134`); duplicated because the call-next chain does not
+/// reach it from kunrei-siki.
+fn n_apos_consonant() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new("n'([^aiueoy]|$)").expect("n-apostrophe scanner compiles"))
 }
 
 #[cfg(test)]

@@ -5,6 +5,10 @@
 //! over [`SimplifiedHepburn`]; the kana-table stays the inherited
 //! hepburn copy.
 
+use std::sync::OnceLock;
+
+use fancy_regex::Regex;
+
 use super::simplified_hepburn_class::SimplifiedHepburn;
 
 #[derive(Debug, Clone)]
@@ -17,6 +21,27 @@ impl TraditionalHepburn {
             "oo", "ō", "ou", "ō", "uu", "ū",
         ]))
     }
+
+    /// `r-simplify` method (`romanize.lisp:155-158`): run the simplified-hepburn
+    /// simplification (`call-next-method`), then `n'` before a vowel becomes
+    /// `n-`, and `n` before `m`/`b`/`p` becomes `m`.
+    pub fn r_simplify(&self, str: &str) -> String {
+        let str = self.0.r_simplify(str);
+        let str = n_apos_vowel().replace_all(&str, "n-${1}");
+        n_before_mbp().replace_all(&str, "m${1}").into_owned()
+    }
+}
+
+/// `n'([aiueoy])`
+fn n_apos_vowel() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new("n'([aiueoy])").expect("n-apostrophe-vowel scanner compiles"))
+}
+
+/// `n([mbp])`
+fn n_before_mbp() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new("n([mbp])").expect("n-before-labial scanner compiles"))
 }
 
 #[cfg(test)]

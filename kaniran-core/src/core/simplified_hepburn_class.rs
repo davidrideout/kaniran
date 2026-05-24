@@ -6,6 +6,7 @@
 //! `:initform nil` maps to an empty list.
 
 use super::generic_hepburn_class::GenericHepburn;
+use crate::characters::simplify_ngrams::simplify_ngrams;
 
 #[derive(Debug, Clone)]
 pub struct SimplifiedHepburn {
@@ -19,6 +20,22 @@ impl SimplifiedHepburn {
             base: GenericHepburn::new(),
             simplifications,
         }
+    }
+
+    /// `r-simplify` method (`romanize.lisp:141-142`): run the generic-hepburn
+    /// simplification (`call-next-method`), then fold the `simplifications`
+    /// slot's from/to pairs through `simplify-ngrams`. The slot is the flat
+    /// alternating list `simplify-ngrams` itself pairs up by `cddr`
+    /// (`characters.lisp:211`).
+    pub fn r_simplify(&self, str: &str) -> String {
+        let str = self.base.r_simplify(str);
+        let pairs: Vec<(&str, &str)> = self
+            .simplifications
+            .chunks(2)
+            .filter(|pair| pair.len() == 2)
+            .map(|pair| (pair[0], pair[1]))
+            .collect();
+        simplify_ngrams(&str, &pairs)
     }
 }
 

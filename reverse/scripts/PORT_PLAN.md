@@ -596,18 +596,18 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  528. `ichiran/dict:*hint-simplify-map*`  — global, dict-split.lisp:818  *[ported]*
  529. `ichiran/dict:process-hints`  — fn, dict-split.lisp:872  *[ported]*
  530. `ichiran:get-character-classes`  — fn, romanize.lisp:3  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 227954/227954]*
- 531. `ichiran:r-special`  — gf, romanize.lisp:0  *[extracted: chunk_a_romanize_2026_05_14]*
+ 531. `ichiran:r-special`  — gf, romanize.lisp:0  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 252625/252625]*
  532. `ichiran:process-iteration-characters`  — fn, romanize.lisp:7  *[ported]*
  533. `ichiran:process-modifiers`  — fn, romanize.lisp:15  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 228139/228139]*
  534. `ichiran:*kunrei-siki-kana-table*`  — global, romanize.lisp:0  *[ported]*
  535. `ichiran:kunrei-siki`  — class, romanize.lisp:194  *[ported]*
- 536. `ichiran:r-simplify`  — gf, romanize.lisp:0  *[extracted: chunk_a_romanize_2026_05_14]*
+ 536. `ichiran:r-simplify`  — gf, romanize.lisp:0  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 217622/217622]*
  537. `ichiran:leftmost-atom`  — fn, romanize.lisp:25  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 7443/7443]*
- 538. `ichiran:r-base`  — gf, romanize.lisp:0  *[extracted: chunk_a_romanize_2026_05_14]*
+ 538. `ichiran:r-base`  — gf, romanize.lisp:0  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 74/74]*
  539. **CYCLE (2 symbols — port together)**
-        - `ichiran:r-apply`  — gf, romanize.lisp:0  *[extracted: chunk_a_romanize_2026_05_14]*
-        - `ichiran:romanize-core`  — fn, romanize.lisp:29  *[extracted: chunk_a_romanize_2026_05_14]*
- 540. `ichiran:romanize-list`  — fn, romanize.lisp:205  *[extracted: chunk_a_romanize_2026_05_14]*
+        - `ichiran:r-apply`  — gf, romanize.lisp:0  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 8024/8024]*
+        - `ichiran:romanize-core`  — fn, romanize.lisp:29  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 228296/228296]*
+ 540. `ichiran:romanize-list`  — fn, romanize.lisp:205  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 222426/222426]*
  541. `ichiran:romanize-word`  — fn, romanize.lisp:217  *[extracted: chunk_a_romanize_2026_05_14]*
  542. `ichiran:romanize-word-info`  — fn, romanize.lisp:248  *[extracted: chunk_a_romanize_2026_05_14]*
  543. `ichiran:romanize`  — fn, romanize.lisp:257

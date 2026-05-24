@@ -365,3 +365,27 @@ path = "audit/core/process_modifiers_test.rs"
 [[bin]]
 name = "leftmost_atom_test"
 path = "audit/core/leftmost_atom_test.rs"
+
+[[bin]]
+name = "r_base_test"
+path = "audit/core/r_base_test.rs"
+
+[[bin]]
+name = "r_apply_test"
+path = "audit/core/r_apply_test.rs"
+
+[[bin]]
+name = "r_simplify_test"
+path = "audit/core/r_simplify_test.rs"
+
+[[bin]]
+name = "r_special_test"
+path = "audit/core/r_special_test.rs"
+
+[[bin]]
+name = "romanize_core_test"
+path = "audit/core/romanize_core_test.rs"
+
+[[bin]]
+name = "romanize_list_test"
+path = "audit/core/romanize_list_test.rs"
