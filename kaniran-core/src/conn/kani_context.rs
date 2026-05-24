@@ -165,30 +165,58 @@ impl KaniranContext {
                 eprintln!("kaniran: failed to connect to database at `{url}`: {e}");
                 Error::from(e)
             })?;
-        let no_conj_data = Arc::new(build_no_conj_data(&pool).await?);
-        let is_arch = Arc::new(build_is_arch(&pool).await?);
-        // counter_cache + suffix_cache populators call DB-touching fns
-        // that take &KaniranContext — build a partial ctx first, then
-        // swap the populated maps in.
-        let mut ctx = Self {
-            pool,
-            no_conj_data,
-            is_arch,
-            counter_cache: Arc::new(CounterCache::new()),
-            suffix_cache: Arc::new(SuffixCache::new()),
-            suffix_class: Arc::new(SuffixClass::new()),
-            reading_cache: Arc::new(new_reading_cache()),
-            disable_hints: false,
-            substring_hash: None,
-            suffix_map_temp: None,
-            suffix_next_end: None,
-            split_map: SplitMapKind::Default,
-        };
-        ctx.counter_cache = Arc::new(build_counter_cache(&ctx).await?);
-        let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;
-        ctx.suffix_cache = Arc::new(suffix_cache);
-        ctx.suffix_class = Arc::new(suffix_class);
-        Ok(Arc::new(ctx))
+        // The DB-derived caches are identical across every context built
+        // in a single test process and dominate build time (~5s of table
+        // scans each). During the crate's own tests, build them once and
+        // share the Arcs; each context still gets its own runtime-bound
+        // pool (a shared pool's connections die when a per-test runtime is
+        // torn down) and a fresh reading-cache. Production builds fresh.
+        #[cfg(test)]
+        {
+            let (no_conj_data, is_arch, counter_cache, suffix_cache, suffix_class) =
+                test_support::shared_caches(&pool).await?;
+            return Ok(Arc::new(Self {
+                pool,
+                no_conj_data,
+                is_arch,
+                counter_cache,
+                suffix_cache,
+                suffix_class,
+                reading_cache: Arc::new(new_reading_cache()),
+                disable_hints: false,
+                substring_hash: None,
+                suffix_map_temp: None,
+                suffix_next_end: None,
+                split_map: SplitMapKind::Default,
+            }));
+        }
+        #[cfg(not(test))]
+        {
+            let no_conj_data = Arc::new(build_no_conj_data(&pool).await?);
+            let is_arch = Arc::new(build_is_arch(&pool).await?);
+            // counter_cache + suffix_cache populators call DB-touching fns
+            // that take &KaniranContext — build a partial ctx first, then
+            // swap the populated maps in.
+            let mut ctx = Self {
+                pool,
+                no_conj_data,
+                is_arch,
+                counter_cache: Arc::new(CounterCache::new()),
+                suffix_cache: Arc::new(SuffixCache::new()),
+                suffix_class: Arc::new(SuffixClass::new()),
+                reading_cache: Arc::new(new_reading_cache()),
+                disable_hints: false,
+                substring_hash: None,
+                suffix_map_temp: None,
+                suffix_next_end: None,
+                split_map: SplitMapKind::Default,
+            };
+            ctx.counter_cache = Arc::new(build_counter_cache(&ctx).await?);
+            let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;
+            ctx.suffix_cache = Arc::new(suffix_cache);
+            ctx.suffix_class = Arc::new(suffix_class);
+            Ok(Arc::new(ctx))
+        }
     }
 
     /// Read a Postgres URL via [`config::Config`] (file + env layered)
@@ -208,5 +236,66 @@ impl KaniranContext {
             }
         };
         Self::from_url(&url).await
+    }
+}
+
+/// Shared cache builder for the crate's own test runs. The five
+/// DB-derived caches are deterministic from database content, so they
+/// are built once per test process and reused across every
+/// `#[tokio::test]` context. The cache maps are plain runtime-independent
+/// data — sharing them across the per-test tokio runtimes is sound,
+/// unlike the `PgPool` whose connections are bound to the runtime that
+/// opened them. Not compiled into production builds.
+#[cfg(test)]
+mod test_support {
+    use super::*;
+    use tokio::sync::OnceCell;
+
+    type Caches = (
+        Arc<HashSet<i32>>,
+        Arc<HashSet<i32>>,
+        Arc<CounterCache>,
+        Arc<SuffixCache>,
+        Arc<SuffixClass>,
+    );
+
+    static SHARED: OnceCell<Caches> = OnceCell::const_new();
+
+    pub(super) async fn shared_caches(pool: &PgPool) -> Result<Caches, Error> {
+        let caches = SHARED.get_or_try_init(|| build_once(pool)).await?;
+        Ok(caches.clone())
+    }
+
+    /// Mirrors the cache-build sequence in
+    /// [`KaniranContext::from_url`]'s production path, run against a
+    /// throwaway context whose pool belongs to the first test that
+    /// triggers the build. Only the resulting cache Arcs are retained.
+    async fn build_once(pool: &PgPool) -> Result<Caches, Error> {
+        let no_conj_data = Arc::new(build_no_conj_data(pool).await?);
+        let is_arch = Arc::new(build_is_arch(pool).await?);
+        let mut ctx = KaniranContext {
+            pool: pool.clone(),
+            no_conj_data: no_conj_data.clone(),
+            is_arch: is_arch.clone(),
+            counter_cache: Arc::new(CounterCache::new()),
+            suffix_cache: Arc::new(SuffixCache::new()),
+            suffix_class: Arc::new(SuffixClass::new()),
+            reading_cache: Arc::new(new_reading_cache()),
+            disable_hints: false,
+            substring_hash: None,
+            suffix_map_temp: None,
+            suffix_next_end: None,
+            split_map: SplitMapKind::Default,
+        };
+        let counter_cache = Arc::new(build_counter_cache(&ctx).await?);
+        ctx.counter_cache = counter_cache.clone();
+        let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;
+        Ok((
+            no_conj_data,
+            is_arch,
+            counter_cache,
+            Arc::new(suffix_cache),
+            Arc::new(suffix_class),
+        ))
     }
 }
