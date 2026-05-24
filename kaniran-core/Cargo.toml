@@ -15,6 +15,7 @@ sqlx = { workspace = true }
 tokio = { workspace = true }
 config = { workspace = true }
 thiserror = { workspace = true }
+unicode-properties = { workspace = true }
 parquet = "55"
 arrow = "55"
 futures = "0.3"
@@ -348,3 +349,15 @@ path = "audit/dict/join_substring_words_star_test.rs"
 [[bin]]
 name = "join_substring_words_test"
 path = "audit/dict/join_substring_words_test.rs"
+
+[[bin]]
+name = "get_character_classes_test"
+path = "audit/core/get_character_classes_test.rs"
+
+[[bin]]
+name = "process_modifiers_test"
+path = "audit/core/process_modifiers_test.rs"
+
+[[bin]]
+name = "leftmost_atom_test"
+path = "audit/core/leftmost_atom_test.rs"

@@ -333,6 +333,33 @@ The Lisp populator routes for the existing cache globals are tracked alongside t
 
 Tests live in `#[cfg(test)] mod tests { ... }` at the bottom of the port file. Don't make a separate `tests/` directory under `kaniran-core/` — that's reserved for crate-level integration tests (none exist yet).
 
+### 6.1. Parameterize parallel cases — no walls of near-identical `#[test]` fns
+
+When several tests differ only in input and expected output — same callee, same assertion shape — collapse them into **one** table-driven `#[test]` that iterates a list of cases. A column of one-assertion test functions is noise; the table is the spec, and adding a case is one line.
+
+```rust
+#[test]
+fn get_character_classes_fixtures() {
+    // REPL fixtures (.103, ichiran::get-character-classes), 2026-05-23.
+    let cases: &[(&str, Vec<CcItem>)] = &[
+        ("し", vec![class(KanaClass::Shi)]),
+        ("による", vec![class(KanaClass::Ni), class(KanaClass::Yo), class(KanaClass::Ru)]),
+        ("Aと5", vec![CcItem::Char('A'), class(KanaClass::To), CcItem::Char('5')]),
+    ];
+    for (word, expected) in cases {
+        assert_eq!(&get_character_classes(word), expected, "word={word:?}");
+    }
+}
+```
+
+Rules:
+
+- **The loop must name the failing case.** Put the input (or a per-case label) in the `assert_*` message — `"word={word:?}"` — so a failure points at the row, not an anonymous line number. A bare `assert_eq!` inside a loop that can't say which row blew up is worse than separate fns.
+- **One table per behavior, not one mega-table.** Cases that share a call shape and assertion belong together; a branch needing different setup, a different callee, a `#[should_panic]`, or a different field asserted stays its own `#[test]` (or its own table). Don't force unrelated tests into a single loop just to have one.
+- **The REPL citation moves to the table header**; each row's input carries its own "why". Keep an inline `// comment` on a row only when the input alone doesn't convey what edge it exercises.
+
+This refines, not replaces, "test logic not data": the table is still pinning behavior captured from the REPL — it just stops paying per-fixture boilerplate to do it.
+
 For frozen-literal globals: a "matches introspected value" test pinning the output to the value `reverse/scripts/introspect.lisp` captured. This is the staleness alarm.
 
 ---

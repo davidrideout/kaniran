@@ -77,7 +77,10 @@ fn fmt_idxs(idxs: &[i64]) -> String {
 use serde::Deserialize;
 use serde_json::Value;
 
+use kaniran_core::characters::kani_kana_class::KanaClass;
 use kaniran_core::conn::kani_context::KaniranContext;
+use kaniran_core::core::kani_cc_item::CcItem;
+use kaniran_core::core::kani_cc_tree::CcTree;
 use kaniran_core::dict::compound_text_class::{CompoundText, ScoreMod};
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::conj_prop_dao::ConjProp;
@@ -2162,4 +2165,183 @@ pub fn parse_kpcl(v: &Value) -> Result<(bool, bool, bool, bool), String> {
         };
     }
     Ok((bools[0], bools[1], bools[2], bools[3]))
+}
+
+
+// --- character-class list / tree readers -----------------------------------
+//
+// The romanize pipeline (`get-character-classes` → `process-modifiers` →
+// `leftmost-atom`) traffics in keyword-or-char atoms and the cons-tree
+// `process-modifiers` builds. The JSON projector encodes a keyword as
+// ":FOO", a character as `{"_meta":{"char":<codepoint>}}`, NIL as null,
+// and a proper list as a JSON array.
+
+/// Parse a Lisp keyword string (":SHI", ":+YA", ":LONG-VOWEL", …) into a
+/// [`KanaClass`]. Inverse of [`KanaClass::lisp_name`] with the colon.
+pub fn parse_kana_class(keyword: &str) -> Result<KanaClass, String> {
+    let name = keyword
+        .strip_prefix(':')
+        .ok_or_else(|| format!("not a keyword: {}", keyword))?;
+    Ok(match name {
+        "SOKUON" => KanaClass::Sokuon,
+        "ITER" => KanaClass::Iter,
+        "ITER-V" => KanaClass::IterV,
+        "+A" => KanaClass::PlusA,
+        "+I" => KanaClass::PlusI,
+        "+U" => KanaClass::PlusU,
+        "+E" => KanaClass::PlusE,
+        "+O" => KanaClass::PlusO,
+        "+YA" => KanaClass::PlusYa,
+        "+YU" => KanaClass::PlusYu,
+        "+YO" => KanaClass::PlusYo,
+        "+WA" => KanaClass::PlusWa,
+        "LONG-VOWEL" => KanaClass::LongVowel,
+        "A" => KanaClass::A,
+        "I" => KanaClass::I,
+        "U" => KanaClass::U,
+        "E" => KanaClass::E,
+        "O" => KanaClass::O,
+        "KA" => KanaClass::Ka,
+        "KI" => KanaClass::Ki,
+        "KU" => KanaClass::Ku,
+        "KE" => KanaClass::Ke,
+        "KO" => KanaClass::Ko,
+        "SA" => KanaClass::Sa,
+        "SHI" => KanaClass::Shi,
+        "SU" => KanaClass::Su,
+        "SE" => KanaClass::Se,
+        "SO" => KanaClass::So,
+        "TA" => KanaClass::Ta,
+        "CHI" => KanaClass::Chi,
+        "TSU" => KanaClass::Tsu,
+        "TE" => KanaClass::Te,
+        "TO" => KanaClass::To,
+        "NA" => KanaClass::Na,
+        "NI" => KanaClass::Ni,
+        "NU" => KanaClass::Nu,
+        "NE" => KanaClass::Ne,
+        "NO" => KanaClass::No,
+        "HA" => KanaClass::Ha,
+        "HI" => KanaClass::Hi,
+        "FU" => KanaClass::Fu,
+        "HE" => KanaClass::He,
+        "HO" => KanaClass::Ho,
+        "MA" => KanaClass::Ma,
+        "MI" => KanaClass::Mi,
+        "MU" => KanaClass::Mu,
+        "ME" => KanaClass::Me,
+        "MO" => KanaClass::Mo,
+        "YA" => KanaClass::Ya,
+        "YU" => KanaClass::Yu,
+        "YO" => KanaClass::Yo,
+        "RA" => KanaClass::Ra,
+        "RI" => KanaClass::Ri,
+        "RU" => KanaClass::Ru,
+        "RE" => KanaClass::Re,
+        "RO" => KanaClass::Ro,
+        "WA" => KanaClass::Wa,
+        "WI" => KanaClass::Wi,
+        "WE" => KanaClass::We,
+        "WO" => KanaClass::Wo,
+        "N" => KanaClass::N,
+        "GA" => KanaClass::Ga,
+        "GI" => KanaClass::Gi,
+        "GU" => KanaClass::Gu,
+        "GE" => KanaClass::Ge,
+        "GO" => KanaClass::Go,
+        "ZA" => KanaClass::Za,
+        "JI" => KanaClass::Ji,
+        "ZU" => KanaClass::Zu,
+        "ZE" => KanaClass::Ze,
+        "ZO" => KanaClass::Zo,
+        "DA" => KanaClass::Da,
+        "DJI" => KanaClass::Dji,
+        "DZU" => KanaClass::Dzu,
+        "DE" => KanaClass::De,
+        "DO" => KanaClass::Do,
+        "BA" => KanaClass::Ba,
+        "BI" => KanaClass::Bi,
+        "BU" => KanaClass::Bu,
+        "BE" => KanaClass::Be,
+        "BO" => KanaClass::Bo,
+        "PA" => KanaClass::Pa,
+        "PI" => KanaClass::Pi,
+        "PU" => KanaClass::Pu,
+        "PE" => KanaClass::Pe,
+        "PO" => KanaClass::Po,
+        "VU" => KanaClass::Vu,
+        other => return Err(format!("unknown KanaClass keyword: :{}", other)),
+    })
+}
+
+/// Read a `{"_meta":{"char":<codepoint>}}` envelope into a [`char`].
+pub fn parse_meta_char(value: &Value) -> Result<char, String> {
+    let codepoint = value
+        .pointer("/_meta/char")
+        .and_then(|c| c.as_u64())
+        .ok_or_else(|| format!("not a char meta: {}", value))?;
+    char::from_u32(codepoint as u32)
+        .ok_or_else(|| format!("invalid codepoint: {}", codepoint))
+}
+
+/// Parse one cc-list atom: ":KW" → [`CcItem::Class`], char meta →
+/// [`CcItem::Char`].
+pub fn parse_cc_item(value: &Value) -> Result<CcItem, String> {
+    match value {
+        Value::String(keyword) => Ok(CcItem::Class(parse_kana_class(keyword)?)),
+        Value::Object(_) => Ok(CcItem::Char(parse_meta_char(value)?)),
+        other => Err(format!("cc-item: expected keyword / char meta, got {}", other)),
+    }
+}
+
+/// Parse a flat cc-list (a JSON array of atoms). A bare `null` is the
+/// empty list — `(process-modifiers nil)` recurses on a `:sokuon` tail
+/// with nothing after it.
+pub fn parse_cc_list(value: &Value) -> Result<Vec<CcItem>, String> {
+    match value {
+        Value::Null => Ok(Vec::new()),
+        Value::Array(arr) => arr.iter().map(parse_cc_item).collect(),
+        other => Err(format!("cc-list: expected array / null, got {}", other)),
+    }
+}
+
+/// Parse one cc-tree node: null → [`CcTree::Nil`], ":KW" / char meta →
+/// [`CcTree::Atom`], array (keyword head + node tail) → [`CcTree::Node`].
+pub fn parse_cc_node(value: &Value) -> Result<CcTree, String> {
+    match value {
+        Value::Null => Ok(CcTree::Nil),
+        Value::String(keyword) => Ok(CcTree::Atom(CcItem::Class(parse_kana_class(keyword)?))),
+        Value::Object(_) => Ok(CcTree::Atom(CcItem::Char(parse_meta_char(value)?))),
+        Value::Array(arr) => {
+            let (head, tail) = arr
+                .split_first()
+                .ok_or_else(|| "cc-tree node: empty list".to_string())?;
+            let head_keyword = head
+                .as_str()
+                .ok_or_else(|| format!("cc-tree node head not keyword: {}", head))?;
+            let class = parse_kana_class(head_keyword)?;
+            let children: Result<Vec<CcTree>, String> = tail.iter().map(parse_cc_node).collect();
+            Ok(CcTree::Node(class, children?))
+        }
+        other => Err(format!("cc-tree node: unexpected {}", other)),
+    }
+}
+
+/// Parse a cc-tree (a JSON array of nodes). A bare `null` is NIL — the
+/// empty tree (e.g. the cdr of a sokuon node with no following mora).
+pub fn parse_cc_tree(value: &Value) -> Result<Vec<CcTree>, String> {
+    match value {
+        Value::Null => Ok(Vec::new()),
+        Value::Array(arr) => arr.iter().map(parse_cc_node).collect(),
+        other => Err(format!("cc-tree: expected array / null, got {}", other)),
+    }
+}
+
+/// Parse a `leftmost-atom` result: null → `None`, ":KW" / char meta →
+/// `Some`.
+pub fn parse_cc_atom(value: &Value) -> Result<Option<CcItem>, String> {
+    match value {
+        Value::Null => Ok(None),
+        _ => Ok(Some(parse_cc_item(value)?)),
+    }
 }

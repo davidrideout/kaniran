@@ -8,13 +8,9 @@
 //! (no previous item) drops out silently — matching the upstream's
 //! conditional-collect behavior.
 //!
-//! Input items come from looking up each character of a word in
-//! `*char-class-hash*` with the default-as-self idiom: each item is
-//! either a [`KanaClass`] (when the char is a recognized kana) or a
-//! plain [`char`]. [`CcItem`] models this closed two-shape set per
-//! CONVENTIONS §4.3. Defined inline because no other ported symbol
-//! consumes the shape yet; promote to a `kani_cc_item` sidecar when a
-//! second consumer arrives.
+//! Input items are [`CcItem`]s — the per-character lookups produced by
+//! `get-character-classes` (a [`KanaClass`] when the glyph is recognized
+//! kana, else the plain [`char`]).
 //!
 //! Voicing for `IterV` only fires when the previous item is a
 //! [`KanaClass`]. The upstream `voice-char` falls through unchanged on
@@ -22,14 +18,9 @@
 //! returns the input), so a [`CcItem::Char`] previous is emitted
 //! as-is, preserving Lisp behavior.
 
+use super::kani_cc_item::CcItem;
 use crate::characters::kani_kana_class::KanaClass;
 use crate::characters::voice_char::voice_char;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum CcItem {
-    Class(KanaClass),
-    Char(char),
-}
 
 pub fn process_iteration_characters(cc_list: &[CcItem]) -> Vec<CcItem> {
     let mut out = Vec::with_capacity(cc_list.len());

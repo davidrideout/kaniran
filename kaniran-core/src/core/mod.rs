@@ -4,6 +4,12 @@
 
 pub mod _star_hepburn_kana_table_star_;
 pub mod _star_kunrei_siki_kana_table_star_;
+pub mod get_character_classes;
+pub mod join_parts;
 pub mod kana_representation_struct;
+pub mod kani_cc_item;
+pub mod kani_cc_tree;
+pub mod leftmost_atom;
 pub mod process_iteration_characters;
+pub mod process_modifiers;
 pub mod rmap_item_struct;
