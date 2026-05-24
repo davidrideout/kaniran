@@ -411,7 +411,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  394. `ichiran/dict:sense-id`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*  *[extracted: word_info_path_2026_05_13]*
  395. **CYCLE (2 symbols — port together)**
         - `ichiran/dict:calc-score`  — fn, dict.lisp:775  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*  *[audited 545110/545110]*
-        - `ichiran/dict:kanji-break-penalty`  — fn, dict.lisp:702  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
+        - `ichiran/dict:kanji-break-penalty`  — fn, dict.lisp:702  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*  *[audited 60794/60794]*
  396. `ichiran/dict:get-segsplit`  — fn, dict-split.lisp:823  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*  *[audited 1555663/1555663]*
  397. `ichiran/dict:expand-segment-list`  — fn, dict.lisp:1180  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*  *[audited 1293225/1293225]*
  398. `ichiran/dict:*gap-penalty*`  — global, dict.lisp:1165  *[ported]*

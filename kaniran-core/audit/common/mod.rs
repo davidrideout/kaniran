@@ -289,7 +289,18 @@ where
 /// [`setup_ctx`] and passes it as the first argument to `audit_one`.
 /// Bounded concurrency. Pool is sized at `max_connections=100` in
 /// `KaniranContext::from_url`; keep headroom for non-query work.
-const ASYNC_CONCURRENCY: usize = 50;
+///
+/// Overridable via `KANI_AUDIT_CONCURRENCY` so a run can be throttled
+/// to fit within a constrained Postgres connection budget (otherwise
+/// the in-flight tasks contend for more connections than the server
+/// allows and acquisitions time out). Defaults to 50.
+fn async_concurrency() -> usize {
+    std::env::var("KANI_AUDIT_CONCURRENCY")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .filter(|&n| n > 0)
+        .unwrap_or(50)
+}
 
 pub async fn run_async<F>(expected_fqn: &str, audit_one: F) -> !
 where
@@ -322,7 +333,7 @@ where
             (idx, size, outcome)
         },
     ))
-    .buffer_unordered(ASYNC_CONCURRENCY);
+    .buffer_unordered(async_concurrency());
 
     let mut pass: usize = 0;
     let mut fail: usize = 0;
@@ -420,7 +431,7 @@ where
                 (local_idx, outcome)
             }),
         )
-        .buffer_unordered(ASYNC_CONCURRENCY)
+        .buffer_unordered(async_concurrency())
         .collect()
         .await;
 
@@ -535,7 +546,7 @@ where
                 (local_idx, outcome)
             }),
         )
-        .buffer_unordered(ASYNC_CONCURRENCY)
+        .buffer_unordered(async_concurrency())
         .collect()
         .await;
 
