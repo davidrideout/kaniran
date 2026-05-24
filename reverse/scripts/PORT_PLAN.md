@@ -562,8 +562,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  494. `ichiran/dict:get-suffix-description`  — fn, dict-grammar.lisp:160  *[ported]*
  495. `ichiran/dict:errata-conj-description-hook`  — fn, dict-errata.lisp:1320  *[ported]*
  496. `ichiran/dict:load-conj-description`  — fn, dict-load.lisp:255  *[ported]*
- 497. `ichiran/dict:get-conj-description`  — fn, dict-load.lisp:255
- 498. `ichiran/dict:conj-info-short`  — fn, dict.lisp:275
+ 497. `ichiran/dict:get-conj-description`  — fn, dict-load.lisp:255  *[ported]*
+ 498. `ichiran/dict:conj-info-short`  — fn, dict.lisp:275  *[ported]*
  499. `ichiran/dict:reading-str*`  — fn, dict.lisp:1580
  500. `ichiran/dict:reading-str-seq`  — fn, dict.lisp:1584
  501. `ichiran/dict:short-sense-str`  — fn, dict.lisp:1562
