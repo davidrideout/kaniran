@@ -588,8 +588,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  520. `ichiran:*hepburn-traditional*`  — global, romanize.lisp:160
  521. `ichiran:*default-romanization-method*`  — global, romanize.lisp:203
  522. `ichiran:join-parts`  — fn, romanize.lisp:235  *[ported]*
- 523. `ichiran/dict:simplify-reading-list`  — fn, dict.lisp:1704  *[extracted: chunk_b_segmentation_2026_05_14]*
- 524. `ichiran/dict:map-word-info-kana`  — fn, dict.lisp:1728
+ 523. `ichiran/dict:simplify-reading-list`  — fn, dict.lisp:1704  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
+ 524. `ichiran/dict:map-word-info-kana`  — fn, dict.lisp:1728  *[ported]*
  525. `ichiran/dict:*hint-char-map*`  — global, dict-split.lisp:816  *[ported]*
  526. `ichiran/dict:strip-hints`  — fn, dict-split.lisp:874  *[ported]*
  527. `ichiran/dict:*kana-hint-mod*`  — global, dict-split.lisp:813  *[ported]*

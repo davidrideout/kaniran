@@ -351,6 +351,10 @@ name = "join_substring_words_test"
 path = "audit/dict/join_substring_words_test.rs"
 
 [[bin]]
+name = "simplify_reading_list_test"
+path = "audit/dict/simplify_reading_list_test.rs"
+
+[[bin]]
 name = "get_character_classes_test"
 path = "audit/core/get_character_classes_test.rs"
 

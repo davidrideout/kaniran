@@ -416,7 +416,7 @@ ichiran/dict:load-pos-index,load-pos-index,ichiran/dict,dict-load.lisp,247,fn,pe
 ichiran/dict:load-secondary-conjugations,load-secondary-conjugations,ichiran/dict,dict-load.lisp,457,fn,pending,,,
 ichiran/dict:make-segment-list-from,make-segment-list-from,ichiran/dict,dict-grammar.lisp,733,fn,ported,,,
 ichiran/dict:make-slice,make-slice,ichiran/dict,dict.lisp,1010,fn,ported,,word_info_path_2026_05_13,
-ichiran/dict:map-word-info-kana,map-word-info-kana,ichiran/dict,dict.lisp,1728,fn,pending,,,
+ichiran/dict:map-word-info-kana,map-word-info-kana,ichiran/dict,dict.lisp,1728,fn,ported,,,
 ichiran/dict:match-glosses,match-glosses,ichiran/dict,dict.lisp,1921,fn,ported,,,
 ichiran/dict:match-kana-kanji,match-kana-kanji,ichiran/dict,dict.lisp,1507,fn,pending,,,
 ichiran/dict:match-sense-restrictions,match-sense-restrictions,ichiran/dict,dict.lisp,1515,fn,pending,,,
@@ -487,7 +487,7 @@ ichiran/dict:short-sense-str,short-sense-str,ichiran/dict,dict.lisp,1562,fn,pend
 ichiran/dict:simple-segment,simple-segment,ichiran/dict,dict.lisp,1456,fn,ported,,,
 ichiran/dict:simple-text,simple-text,ichiran/dict,dict.lisp,69,class,ported,,,
 ichiran/dict:simple-word-info,simple-word-info,ichiran/dict,dict.lisp,1282,fn,pending,,,
-ichiran/dict:simplify-reading-list,simplify-reading-list,ichiran/dict,dict.lisp,1704,fn,pending,,chunk_b_segmentation_2026_05_14,
+ichiran/dict:simplify-reading-list,simplify-reading-list,ichiran/dict,dict.lisp,1704,fn,ported,,chunk_b_segmentation_2026_05_14,
 ichiran/dict:skip-by-conj-data,skip-by-conj-data,ichiran/dict,dict-errata.lisp,1336,fn,ported,,tatoeba,33168/33168
 ichiran/dict:source,source,ichiran/dict,dict-counters.lisp,0,gf,ported,,15fqn_combined_2026_05_11,27/27
 ichiran/dict:split-1000430,split-1000430,ichiran/dict,dict-split.lisp,505,fn,skip,"manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.",,
