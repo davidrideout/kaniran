@@ -645,8 +645,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  575. `ichiran/dict:load-pos-by-index`  — fn, dict-load.lisp:251  *[ported]*
  576. `ichiran/dict:get-pos`  — fn, dict-load.lisp:251  *[ported]*
  577. `ichiran/dict:load-pos-index`  — fn, dict-load.lisp:247  *[ported]*
- 578. `ichiran/dict:get-pos-index`  — fn, dict-load.lisp:247
- 579. `ichiran/dict:errata-conj-rules-hook`  — fn, dict-errata.lisp:1329
+ 578. `ichiran/dict:get-pos-index`  — fn, dict-load.lisp:247  *[ported]*
+ 579. `ichiran/dict:errata-conj-rules-hook`  — fn, dict-errata.lisp:1329  *[ported]*
  580. `ichiran/dict:load-conj-rules`  — fn, dict-load.lisp:265
  581. `ichiran/dict:get-conj-rules`  — fn, dict-load.lisp:265
  582. `ichiran/dict:conjugate-entry-inner`  — fn, dict-load.lisp:314
