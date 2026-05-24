@@ -174,6 +174,7 @@ pub mod gloss_dao;
 pub mod init_suffixes_thread;
 pub mod insert_hints;
 pub mod is_arch;
+pub mod join_substring_words_star_;
 pub mod kana_text_dao;
 pub mod kanji_break_penalty;
 pub mod kani_conj_form;

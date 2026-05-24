@@ -397,7 +397,7 @@ ichiran/dict:insert-senses,insert-senses,ichiran/dict,dict-load.lisp,71,fn,pendi
 ichiran/dict:is-arch,is-arch,ichiran/dict,dict.lisp,760,fn,ported,,,
 ichiran/dict:is-rareru,is-rareru,ichiran/dict,dict.lisp,1619,fn,pending,,,
 ichiran/dict:join-substring-words,join-substring-words,ichiran/dict,dict.lisp,1113,fn,pending,,substring_2026_05_14,
-ichiran/dict:join-substring-words*,join-substring-words*,ichiran/dict,dict.lisp,1069,fn,pending,,substring_2026_05_14,
+ichiran/dict:join-substring-words*,join-substring-words*,ichiran/dict,dict.lisp,1069,fn,ported,,substring_2026_05_14,531369/533670 (2301 fail)
 ichiran/dict:kana-text,kana-text,ichiran/dict,dict.lisp,128,dao,ported,,,
 ichiran/dict:kanji-break-penalty,kanji-break-penalty,ichiran/dict,dict.lisp,702,fn,ported,,chunk_b_segmentation_2026_05_14,
 ichiran/dict:kanji-text,kanji-text,ichiran/dict,dict.lisp,86,dao,ported,,,
