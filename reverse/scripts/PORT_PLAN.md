@@ -567,10 +567,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  499. `ichiran/dict:reading-str*`  — fn, dict.lisp:1580  *[ported]*
  500. `ichiran/dict:reading-str-seq`  — fn, dict.lisp:1584  *[ported]*
  501. `ichiran/dict:short-sense-str`  — fn, dict.lisp:1562  *[ported]*
- 502. `ichiran/dict:entry-info-short`  — fn, dict.lisp:1595
+ 502. `ichiran/dict:entry-info-short`  — fn, dict.lisp:1595  *[ported]*
  503. `ichiran/dict:conj-type-order`  — fn, dict.lisp:1612  *[ported]*
- 504. `ichiran/dict:is-rareru`  — fn, dict.lisp:1619
- 505. `ichiran/dict:filter-props`  — fn, dict.lisp:1627
+ 504. `ichiran/dict:is-rareru`  — fn, dict.lisp:1619  *[ported]*
+ 505. `ichiran/dict:filter-props`  — fn, dict.lisp:1627  *[ported]*
  506. `ichiran/dict:select-conjs`  — fn, dict.lisp:1604
  507. `ichiran/dict:select-conjs-and-props`  — fn, dict.lisp:1640
  508. `ichiran/dict:print-conj-info`  — fn, dict.lisp:1649
