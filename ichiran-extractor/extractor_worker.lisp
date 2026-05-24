@@ -315,29 +315,20 @@
                     :arg-projector arg-fn
                     :result-projector result-fn
                     :encoder :json))
-            ;; Batch D1a: GET-SYNERGIES + 9 synergies (10 FQNs)
-            '("ICHIRAN/DICT:GET-SYNERGIES"
-              "ICHIRAN/DICT:SYNERGY-NOUN-PARTICLE"
-              "ICHIRAN/DICT:SYNERGY-NOUN-DA"
-              "ICHIRAN/DICT:SYNERGY-NO-DA"
-              "ICHIRAN/DICT:SYNERGY-SOU-NANDA"
-              "ICHIRAN/DICT:SYNERGY-NO-ADJECTIVES"
-              "ICHIRAN/DICT:SYNERGY-NA-ADJECTIVES"
-              "ICHIRAN/DICT:SYNERGY-TO-ADVERBS"
-              "ICHIRAN/DICT:SYNERGY-SUFFIX-CHU"
-              "ICHIRAN/DICT:SYNERGY-SUFFIX-TACHI")
-            ;; Batch D1b (run next; swap into the quoted list above):
-            ;;   ICHIRAN/DICT:GET-PENALTIES
-            ;;   ICHIRAN/DICT:PENALTY-SHORT
-            ;;   ICHIRAN/DICT:PENALTY-SEMI-FINAL
-            ;;   ICHIRAN/DICT:SYNERGY-SUFFIX-BURI
-            ;;   ICHIRAN/DICT:SYNERGY-SUFFIX-SEI
-            ;;   ICHIRAN/DICT:SYNERGY-O-PREFIX
-            ;;   ICHIRAN/DICT:SYNERGY-KANJI-PREFIX
-            ;;   ICHIRAN/DICT:SYNERGY-SHICHA-IKENAI
-            ;;   ICHIRAN/DICT:SYNERGY-SHIKA-NEGATIVE
-            ;;   ICHIRAN/DICT:SYNERGY-NO-TOORI
-            ;;   ICHIRAN/DICT:SYNERGY-OKI
+            ;; Gap-suffix batch (2026-05-23): the 11 suffix/abbr fns that had
+            ;; zero or thin productive captures in diverse_250k. Re-extract
+            ;; over the 2,342 appended gap sentences (corpus rows >= 250000).
+            '("ICHIRAN/DICT:SUFFIX-SOU"
+              "ICHIRAN/DICT:SUFFIX-KUDASAI"
+              "ICHIRAN/DICT:SUFFIX-DESHO"
+              "ICHIRAN/DICT:SUFFIX-DESU"
+              "ICHIRAN/DICT:ABBR-MEBA"
+              "ICHIRAN/DICT:ABBR-KEBA"
+              "ICHIRAN/DICT:ABBR-GEBA"
+              "ICHIRAN/DICT:ABBR-SEBA"
+              "ICHIRAN/DICT:ABBR-TEBA"
+              "ICHIRAN/DICT:ABBR-NEBA"
+              "ICHIRAN/DICT:ABBR-REBA")
             )))
 
 (handler-case

@@ -1054,24 +1054,37 @@ fn parse_captured_score_mod(v: &Value) -> Result<ScoreMod, String> {
             Ok(ScoreMod::Single(i))
         }
         Value::Array(arr) => {
+            // Each element is itself a score-mod: an integer (Single) or a
+            // {"kind":"constantly","value":N} object (Constant). Recurse so
+            // a stacked compound carrying a (constantly N) suffix score
+            // parses correctly.
             let mut items = Vec::with_capacity(arr.len());
             for item in arr {
-                let i = item.as_i64().ok_or_else(|| {
-                    format!(
-                        "score_mod entry not i64 (likely a (constantly N) closure from \
-                         suffix-kudasai/sou/desu/desho — projector clause for function-\
-                         typed slots is missing; see parse_captured_score_mod doc): {}",
-                        item
-                    )
-                })?;
-                items.push(ScoreMod::Single(i));
+                items.push(parse_captured_score_mod(item)?);
             }
             Ok(ScoreMod::Stack(items))
         }
+        // {"kind":"constantly","value":N} → ScoreMod::Constant(N). Emitted
+        // by the JSON projector's `function` clause for the (constantly N)
+        // score-mod closures of suffix-kudasai/sou/desu/desho.
+        Value::Object(_) => {
+            match v.get("kind").and_then(|k| k.as_str()) {
+                Some("constantly") => {
+                    let n = v
+                        .get("value")
+                        .and_then(|x| x.as_i64())
+                        .ok_or_else(|| format!("score_mod constantly value not i64: {}", v))?;
+                    Ok(ScoreMod::Constant(n))
+                }
+                other => Err(format!(
+                    "score_mod object: expected kind=\"constantly\", got kind={:?}: {}",
+                    other, v
+                )),
+            }
+        }
         other => Err(format!(
-            "score_mod: function closures not yet representable in capture JSON — got \
-             {} (expected int / array of int / null; see parse_captured_score_mod doc \
-             for the four-suffix audit blackout)",
+            "score_mod: unexpected JSON — got {} (expected int / array / \
+             {{\"kind\":\"constantly\",\"value\":N}} / null)",
             other
         )),
     }

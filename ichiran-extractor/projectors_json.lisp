@@ -196,6 +196,19 @@
                         collect (cons (%slot-key sn) (flatten-to-json (%safe-slot v sn)))))))
       (t (call-next-method)))))
 
+(defmethod flatten-to-json ((v function))
+  ;; The only function that reaches the projected tree is a compound-text
+  ;; SCORE-MOD built by `(constantly N)` — the :score forms of
+  ;; suffix-{sou,kudasai,desu,desho} (dict-grammar.lisp:404/448/516/532).
+  ;; adjoin-word stores the closure verbatim; funcalling it recovers the
+  ;; constant the segmenter applies (constantly ignores its args). Emit the
+  ;; {"kind":"constantly","value":N} shape parse_captured_score_mod maps to
+  ;; ScoreMod::Constant. Guard the funcall so a non-constantly closure
+  ;; degrades to :null rather than aborting the whole capture.
+  (let ((val (handler-case (funcall v 0)
+               (error () :null))))
+    `(:obj ("kind" . "constantly") ("value" . ,(flatten-to-json val)))))
+
 (defun flatten-args-json (args) (mapcar #'flatten-to-json args))
 (defun flatten-results-json (results) (mapcar #'flatten-to-json results))
 
