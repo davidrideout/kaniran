@@ -116,6 +116,10 @@ name = "fill_segment_path_test"
 path = "audit/dict/fill_segment_path_test.rs"
 
 [[bin]]
+name = "dict_segment_test"
+path = "audit/dict/dict_segment_test.rs"
+
+[[bin]]
 name = "get_suffixes_dump"
 path = "audit/dict/get_suffixes_dump.rs"
 
