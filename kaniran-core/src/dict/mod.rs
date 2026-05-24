@@ -261,6 +261,8 @@ pub mod segment_list_struct;
 pub mod segment_struct;
 pub mod sense_dao;
 pub mod sense_prop_dao;
+pub mod select_conjs;
+pub mod select_conjs_and_props;
 pub mod seq;
 pub mod set_word_conjugations;
 pub mod short_sense_str;
