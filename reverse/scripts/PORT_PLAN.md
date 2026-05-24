@@ -559,9 +559,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  491. `ichiran/dict:get-senses`  — fn, dict.lisp:1487  *[ported]*
  492. `ichiran/dict:get-senses-str`  — fn, dict.lisp:1495  *[ported]*
  493. `ichiran/dict:*suffix-description*`  — global, dict-grammar.lisp:0  *[ported]*
- 494. `ichiran/dict:get-suffix-description`  — fn, dict-grammar.lisp:160
- 495. `ichiran/dict:errata-conj-description-hook`  — fn, dict-errata.lisp:1320
- 496. `ichiran/dict:load-conj-description`  — fn, dict-load.lisp:255
+ 494. `ichiran/dict:get-suffix-description`  — fn, dict-grammar.lisp:160  *[ported]*
+ 495. `ichiran/dict:errata-conj-description-hook`  — fn, dict-errata.lisp:1320  *[ported]*
+ 496. `ichiran/dict:load-conj-description`  — fn, dict-load.lisp:255  *[ported]*
  497. `ichiran/dict:get-conj-description`  — fn, dict-load.lisp:255
  498. `ichiran/dict:conj-info-short`  — fn, dict.lisp:275
  499. `ichiran/dict:reading-str*`  — fn, dict.lisp:1580
@@ -684,7 +684,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  614. `ichiran/custom:slurp`  — gf, dict-custom.lisp:0
  615. `ichiran/custom:load-custom-data`  — fn, dict-custom.lisp:329
  616. `ichiran/dict:*aux-verbs*`  — global, dict-grammar.lisp:1072  *[ported]*
- 617. `ichiran/dict:*conj-description*`  — global, dict-load.lisp:0
+ 617. `ichiran/dict:*conj-description*`  — global, dict-load.lisp:0  *[ported]*
  618. `ichiran/dict:*conj-rules*`  — global, dict-load.lisp:0
  619. `ichiran/dict:*do-not-conjugate-seq*`  — global, dict-load.lisp:305  *[ported]*
  620. `ichiran/dict:*easy-hints-seqs*`  — global, dict-split.lisp:904  *[ported]*

@@ -12,9 +12,9 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 255 fn/gf
+- Checked: 258 fn/gf
 - Macros (file-existence only): 3
-- Divergences: 23
+- Divergences: 24
 
 ## Divergences
 
@@ -97,6 +97,11 @@ captured Lisp lambda list. New entries should be either:
 
 - file: `kaniran-core/src/dict/find_word_with_suffix.rs`
 - drift: arity 3 ≠ Lisp 1 (req=1, opt=0, keys=[]) (ctx-injected; +1 absorbed)
+
+### `ichiran/dict:get-suffix-description`
+
+- file: `kaniran-core/src/dict/get_suffix_description.rs`
+- drift: return-arity 1 inside Option ≠ Lisp (values …) required=2 (rust="Option<&'static str>", lisp='(values t boolean &optional)')
 
 ### `ichiran/dict:init-suffixes-thread`
 

@@ -8,6 +8,7 @@
 //! itself land in subsequent waves.
 
 pub mod _star_aux_verbs_star_;
+pub mod _star_conj_description_star_;
 pub mod _star_copulae_star_;
 pub mod _star_counter_accepts_star_;
 pub mod _star_counter_cache_star_;
@@ -113,6 +114,7 @@ pub mod def_segfilter_must_follow_macro;
 pub mod def_simple_suffix_macro;
 pub mod dict_segment;
 pub mod entry_dao;
+pub mod errata_conj_description_hook;
 pub mod expand_segment_list;
 pub mod fill_segment_path;
 pub mod filter_in_seq_set;
@@ -167,6 +169,7 @@ pub mod get_original_text_star_;
 pub mod get_penalties;
 pub mod get_split;
 pub mod get_split_star_;
+pub mod get_suffix_description;
 pub mod get_suffix_map;
 pub mod get_suffixes;
 pub mod get_synergies;
@@ -195,6 +198,7 @@ pub mod kani_word;
 pub mod kanji_text_dao;
 pub mod length_multiplier_coeff;
 pub mod lex_compare;
+pub mod load_conj_description;
 pub mod make_conj_data;
 pub mod make_segment_list_from;
 pub mod make_slice;
