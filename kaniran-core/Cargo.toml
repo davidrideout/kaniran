@@ -341,3 +341,6 @@ path = "audit/dict/abbr_teba_test.rs"
 [[bin]]
 name = "join_substring_words_star_test"
 path = "audit/dict/join_substring_words_star_test.rs"
+[[bin]]
+name = "join_substring_words_test"
+path = "audit/dict/join_substring_words_test.rs"

@@ -552,7 +552,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran/dict:teiru-check`  — fn, dict-grammar.lisp:404  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*
  485. `ichiran/dict:get-suffix-map`  — fn, dict-grammar.lisp:685  *[ported]*
  486. `ichiran/dict:join-substring-words*`  — fn, dict.lisp:1069  *[ported]*  *[extracted: substring_2026_05_14]*  *[audited 531369/533670 (2301 fail)]*
- 487. `ichiran/dict:join-substring-words`  — fn, dict.lisp:1113  *[extracted: substring_2026_05_14]*
+ 487. `ichiran/dict:join-substring-words`  — fn, dict.lisp:1113  *[ported]*  *[extracted: substring_2026_05_14]*  *[audited 531529/533756 (2227 fail)]*
  488. `ichiran/dict:dict-segment`  — fn, dict.lisp:1451  *[extracted: chunk_b_segmentation_2026_05_14]*
  489. `ichiran/dict:simple-segment`  — fn, dict.lisp:1456
  490. `ichiran/dict:get-senses-raw`  — fn, dict.lisp:1458  *[ported]*

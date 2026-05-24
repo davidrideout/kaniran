@@ -157,7 +157,7 @@ impl KaniranContext {
     /// Connect the pool and run every cache populator before returning.
     pub async fn from_url(url: &str) -> Result<Arc<Self>, Error> {
         let pool = PgPoolOptions::new()
-            .max_connections(100)
+            .max_connections(60)
             .acquire_timeout(Duration::from_secs(10))
             .connect(url)
             .await

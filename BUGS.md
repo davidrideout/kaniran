@@ -200,6 +200,65 @@ teba 15}).
 
 ---
 
+## 5. `join-substring-words` audit — wave 487 (2026-05-23)
+
+Corpus: `corpus/substring_2026_05_14/dict/join_substring_words.parquet`,
+**531,529 pass / 2,227 fail / 0 skipped (99.58%)** — matches the
+`join-substring-words*` profile (531,369 / 533,670). The non-starred
+function gen-scores the starred function's segments, drops those below
+`*score-cutoff*`, and culls; its segments therefore carry populated
+`score` + `info` (the starred audit compared unscored segments).
+
+**Verdict — no port-logic bugs.** All 2,227 failures were categorized
+from the full log (not a sample). Zero are `join-substring-words`'s own
+logic:
+- **0** segment-list count / span / `matches` mismatches — every failure
+  is "segments differ", so the loop bounds, sticky/cutoff filtering, cull,
+  and `matches` count are correct corpus-wide.
+- **0** cases of the same `seq-set` mapping to a different score — the only
+  signature a wrong `:final` / `kanji-break` / cutoff in this port would
+  produce. Score gaps appear *only* alongside a different word being
+  selected upstream.
+
+| Cluster | Count | Verdict |
+|---|---|---|
+| `conjugations` slot / conj-data provenance (score + seq-set identical) | 2,215 | Benign — inherited from `find-word-full`; §1a (naku slot) + §1c (row-ordering) |
+| different reading selected upstream (seq-set + score differ) | 12 | Benign — non-deterministic suffix-compound primary (§5a) |
+
+### 5a. らしい-suffix compound primary is non-deterministic across processes
+
+Refines §1c. For idx 9975 (`…随分しゃべりまくっていたらしい`) the span
+20–28 compound "くっていたらしい" is built by attaching the らしい suffix
+onto a くって stem. "くって" has three score-tied readings (て-forms of
+繰る / 刳る / 抉る, all `common` NULL). Which one becomes the compound
+primary has no deterministic tiebreak, so it varies *by process*, not just
+by database:
+
+- captured fixture: primary seq 10158198 (繰る), score 237
+- Rust audit (local DB): primary seq 10511674 (刳る), score 316
+- fresh eval on the ichiran host: produces **no** (20,28) compound at all
+  (4/4 repeated calls in one session)
+
+So the captured value is one stale sample of a non-deterministic upstream
+choice; 10511674 is the higher-scored reading on current data, so the Rust
+result is a legitimate alternative. The selection lives entirely in
+`find-word-full`'s suffix path (a dependency of `join-substring-words*`,
+already audited with this class); `join-substring-words` faithfully scores
+and culls whatever it is handed, so the 316-vs-237 gap is purely downstream.
+Unlike the §1c cases (equivalent row, byte-identical `romanize`), here the
+score differs — but only because the candidate itself differs, and
+candidate selection is upstream.
+
+### 5b. DB pool ceiling
+
+Running the audit at 50-way concurrency exhausted Postgres connections
+(`FATAL: sorry, too many clients already`): `KaniranContext` opened a
+100-connection pool, but the server's `max_connections` is 100 with 3
+superuser-reserved (97 available to the audit user). Lowered the pool to 60
+(`kani_context.rs:160`).
+
+---
+
 ## Appendix — reproduction
 
 **One-shot upstream eval on the ichiran host** (read-only; UTF-8 needs a real temp
