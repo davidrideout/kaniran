@@ -233,7 +233,7 @@ ichiran/dict:apply-score-mod,apply-score-mod,ichiran/dict,dict.lisp,0,gf,ported,
 ichiran/dict:apply-segfilters,apply-segfilters,ichiran/dict,dict-grammar.lisp,1177,fn,ported,,,
 ichiran/dict:best-kana-conj,best-kana-conj,ichiran/dict,dict.lisp,428,fn,ported,,15fqn_combined_2026_05_11,131616/131616
 ichiran/dict:best-kanji-conj,best-kanji-conj,ichiran/dict,dict.lisp,457,fn,ported,,,
-ichiran/dict:calc-score,calc-score,ichiran/dict,dict.lisp,775,fn,ported,,chunk_b_segmentation_2026_05_14,
+ichiran/dict:calc-score,calc-score,ichiran/dict,dict.lisp,775,fn,ported,,chunk_b_segmentation_2026_05_14,545110/545110
 ichiran/dict:check-easy-hints,check-easy-hints,ichiran/dict,dict-split.lisp,950,fn,ported,,,
 ichiran/dict:classify,classify,ichiran/dict,dict-grammar.lisp,1046,fn,ported,,,
 ichiran/dict:common,common,ichiran/dict,dict-counters.lisp,0,gf,ported,,15fqn_combined_2026_05_11,3180/3180
