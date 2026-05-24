@@ -292,6 +292,92 @@ where
     report_and_exit(expected_fqn, pass, fail, skipped, &first_failures)
 }
 
+/// Streaming sync driver: reads parquet batches lazily and runs
+/// `audit_one` once per row, without buffering the whole file or running
+/// the [`group_by_args`] equivalence-class pass. Suitable for
+/// deterministic, DB-free functions on large corpora — each captured row
+/// is checked exactly once against the produced output. For
+/// non-deterministic captures use [`run_sync`]; for functions needing a
+/// [`KaniranContext`] use [`run_async_streaming`].
+pub fn run_sync_streaming<F>(expected_fqn: &str, audit_one: F) -> !
+where
+    F: Fn(&CapturedRow) -> Result<(), String>,
+{
+    let path = parse_path_arg();
+    let file = std::fs::File::open(&path)
+        .unwrap_or_else(|err| panic!("open {:?}: {}", path, err));
+    let builder = ParquetRecordBatchReaderBuilder::try_new(file)
+        .unwrap_or_else(|err| panic!("parquet builder {:?}: {}", path, err));
+    let total_rows = builder.metadata().file_metadata().num_rows() as usize;
+    eprintln!("streaming: {} rows from {:?}", total_rows, path);
+    let reader = builder.build().expect("build reader");
+
+    let mut pass: usize = 0;
+    let mut fail: usize = 0;
+    let mut skipped: usize = 0;
+    let mut first_failures: Vec<String> = Vec::new();
+    let mut progress = Progress::new(expected_fqn, total_rows);
+    let mut done: usize = 0;
+    let mut row_seq: usize = 0;
+
+    for batch in reader {
+        let batch = batch.expect("batch");
+        let args_col = batch
+            .column_by_name("args")
+            .expect("args column")
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .expect("args is StringArray");
+        let result_col = batch
+            .column_by_name("result")
+            .expect("result column")
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .expect("result is StringArray");
+
+        for row_idx in 0..batch.num_rows() {
+            row_seq += 1;
+            let args_json = args_col.value(row_idx);
+            let result_json = result_col.value(row_idx);
+            let args: Vec<Value> = match serde_json::from_str(args_json) {
+                Ok(v) => v,
+                Err(err) => {
+                    eprintln!("skip row {}: args parse: {}", row_seq, err);
+                    skipped += 1;
+                    continue;
+                }
+            };
+            let result: Vec<Value> = match serde_json::from_str(result_json) {
+                Ok(v) => v,
+                Err(err) => {
+                    eprintln!("skip row {}: result parse: {}", row_seq, err);
+                    skipped += 1;
+                    continue;
+                }
+            };
+            let row = CapturedRow { args, result, idxs: extract_idxs(&batch, row_idx) };
+            done += 1;
+            match audit_one(&row) {
+                Ok(()) => pass += 1,
+                Err(err) => {
+                    fail += 1;
+                    let idxs_str = fmt_idxs(&row.idxs);
+                    eprintln!("FAIL [row {}{}] {}", done, idxs_str, err);
+                    if first_failures.len() < MAX_FIRST_FAILURES {
+                        first_failures.push(format!("[row {}{}] {}", done, idxs_str, err));
+                    }
+                }
+            }
+        }
+        progress.tick(done, pass, fail);
+    }
+
+    if skipped > 0 {
+        eprintln!("loader: {} row(s) skipped (malformed JSON from extractor)", skipped);
+    }
+    report_and_exit(expected_fqn, pass, fail, skipped, &first_failures)
+}
+
 /// Async flavor: same as [`run_sync`] but builds a [`KaniranContext`] via
 /// [`setup_ctx`] and passes it as the first argument to `audit_one`.
 /// Bounded concurrency. Pool is sized at `max_connections=100` in
@@ -1702,7 +1788,7 @@ fn parse_captured_seq(value: &Value) -> Result<Option<WordInfoSeq>, String> {
 /// `null` → `None`; string → `Some(Single(_))`; array → `Some(Multi(_))`
 /// where each element is recursively parsed (preserving nested arrays
 /// and `null` entries when an upstream child has no kana).
-fn parse_captured_kana(value: &Value) -> Result<Option<WordInfoKana>, String> {
+pub fn parse_captured_kana(value: &Value) -> Result<Option<WordInfoKana>, String> {
     match value {
         Value::Null => Ok(None),
         Value::String(s) => Ok(Some(WordInfoKana::Single(s.clone()))),

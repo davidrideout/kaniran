@@ -872,8 +872,8 @@ ichiran:romanize,romanize,ichiran,romanize.lisp,257,fn,pending,,,
 ichiran:romanize*,romanize*,ichiran,romanize.lisp,273,fn,pending,,,
 ichiran:romanize-core,romanize-core,ichiran,romanize.lisp,29,fn,ported,,chunk_a_romanize_2026_05_14,228296/228296
 ichiran:romanize-list,romanize-list,ichiran,romanize.lisp,205,fn,ported,,chunk_a_romanize_2026_05_14,222426/222426
-ichiran:romanize-word,romanize-word,ichiran,romanize.lisp,217,fn,pending,,chunk_a_romanize_2026_05_14,
+ichiran:romanize-word,romanize-word,ichiran,romanize.lisp,217,fn,ported,,chunk_a_romanize_2026_05_14,268510/268510
 ichiran:romanize-word-geo,romanize-word-geo,ichiran,romanize.lisp,232,fn,pending,,,
-ichiran:romanize-word-info,romanize-word-info,ichiran,romanize.lisp,248,fn,pending,,chunk_a_romanize_2026_05_14,
+ichiran:romanize-word-info,romanize-word-info,ichiran,romanize.lisp,248,fn,ported,,chunk_a_romanize_2026_05_14,928764/928764
 ichiran:simplified-hepburn,simplified-hepburn,ichiran,romanize.lisp,136,class,ported,,,
 ichiran:traditional-hepburn,traditional-hepburn,ichiran,romanize.lisp,152,class,ported,,,

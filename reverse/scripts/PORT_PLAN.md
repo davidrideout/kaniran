@@ -608,8 +608,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
         - `ichiran:r-apply`  — gf, romanize.lisp:0  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 8024/8024]*
         - `ichiran:romanize-core`  — fn, romanize.lisp:29  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 228296/228296]*
  540. `ichiran:romanize-list`  — fn, romanize.lisp:205  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 222426/222426]*
- 541. `ichiran:romanize-word`  — fn, romanize.lisp:217  *[extracted: chunk_a_romanize_2026_05_14]*
- 542. `ichiran:romanize-word-info`  — fn, romanize.lisp:248  *[extracted: chunk_a_romanize_2026_05_14]*
+ 541. `ichiran:romanize-word`  — fn, romanize.lisp:217  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 268510/268510]*
+ 542. `ichiran:romanize-word-info`  — fn, romanize.lisp:248  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 928764/928764]*
  543. `ichiran:romanize`  — fn, romanize.lisp:257
  544. `ichiran:romanize*`  — fn, romanize.lisp:273
  545. `ichiran/cli:main`  — fn, cli.lisp:48
