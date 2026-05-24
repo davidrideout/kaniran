@@ -8,34 +8,25 @@
 //!   :serial nil
 //!   :score -9)
 //! ```
-//!
-//! Divergences from Lisp:
-//! - Returns [`Option<Synergy>`] rather than `nil`-or-struct
-//!   (CONVENTIONS §4.1).
-//! - `pushnew ',name *penalty-list*` from the `defpenalty` expansion
-//!   moves to the `*penalty-list*` port (separate wave).
 
+use super::def_generic_penalty_macro::{def_generic_penalty_body, DefGenericPenaltyOpts};
 use super::filter_short_kana::filter_short_kana;
 use super::kani_lite_segment_list::KaniLiteSegmentList;
 use super::synergy_struct::Synergy;
 
 pub fn penalty_short(l: &KaniLiteSegmentList, r: &KaniLiteSegmentList) -> Option<Synergy> {
-    let start = l.end;
-    let end = r.start;
-    // dict-grammar.lisp:972-984 (def-generic-penalty expansion;
-    // serial=nil elides the (= start end) guard, connector defaults to " ")
-    let test_left = filter_short_kana(1, vec![]);
-    let test_right = filter_short_kana(1, vec!["と".to_string()]);
-    if !test_left(l) || !test_right(r) {
-        return None;
-    }
-    Some(Synergy {
-        description: Some("short".to_string()),
-        connector: Some(" ".to_string()),
-        score: -9,
-        start,
-        end,
-    })
+    def_generic_penalty_body(
+        l,
+        r,
+        filter_short_kana(1, vec![]),
+        filter_short_kana(1, vec!["と".to_string()]),
+        &DefGenericPenaltyOpts {
+            serial: false,
+            description: "short",
+            score: -9,
+            connector: " ",
+        },
+    )
 }
 
 #[cfg(test)]

@@ -115,6 +115,7 @@ pub mod counter_tsu_class;
 pub mod counter_wari_class;
 pub mod cull_segments;
 pub mod def_abbr_suffix_macro;
+pub mod def_generic_penalty_macro;
 pub mod def_segfilter_must_follow_macro;
 pub mod def_simple_suffix_macro;
 pub mod dict_segment;

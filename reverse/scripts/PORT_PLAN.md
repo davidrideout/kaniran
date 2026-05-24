@@ -777,8 +777,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  705. `ichiran/dict:translate-hint-position`  — fn, dict-split.lisp:930  *[ported]*
  706. `ichiran/dict:translate-hints`  — fn, dict-split.lisp:942  *[ported]*
  707. `ichiran/dict:def-easy-hint`  — macro, dict-split.lisp:955  *[skip — DSL definer (§4.6 case (a)). Expands to (push seq *easy-hints-seqs*) + (defhint (seq) ...). The shared body lives in kani_hint_engine::run_easy_hint; per-callsite data lives in _star_hint_map_star_.rs::EASY_HINTS (431 rows).]*
- 708. `ichiran/dict:defpenalty`  — macro, dict-grammar.lisp:981
- 709. `ichiran/dict:def-generic-penalty`  — macro, dict-grammar.lisp:984
+ 708. `ichiran/dict:defpenalty`  — macro, dict-grammar.lisp:981  *[skip — DSL definer (§4.6 case (a)): expands to (defun name ...) + (pushnew name *penalty-list*). Each penalty is its own pub fn (penalty_short, penalty_semi_final); the pushnew registration is captured in _star_penalty_list_star_::PENALTY_LIST. No port file.]*
+ 709. `ichiran/dict:def-generic-penalty`  — macro, dict-grammar.lisp:984  *[ported]*
  710. `ichiran/dict:defsynergy`  — macro, dict-grammar.lisp:738
  711. `ichiran/dict:def-generic-synergy`  — macro, dict-grammar.lisp:739
  712. `ichiran/dict:def-reader-for-json`  — macro, dict.lisp:1289

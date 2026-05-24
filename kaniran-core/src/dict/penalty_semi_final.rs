@@ -9,39 +9,29 @@
 //!   :description "semi-final not final"
 //!   :score -15)
 //! ```
-//!
-//! Divergences from Lisp:
-//! - Returns [`Option<Synergy>`] rather than `nil`-or-struct
-//!   (CONVENTIONS §4.1).
-//! - `pushnew ',name *penalty-list*` from the `defpenalty` expansion
-//!   moves to the `*penalty-list*` port (separate wave).
 
 use super::_star_semi_final_prt_star_::semi_final_prt;
+use super::def_generic_penalty_macro::{def_generic_penalty_body, DefGenericPenaltyOpts};
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::kani_lite_segment_list::KaniLiteSegmentList;
 use super::synergy_struct::Synergy;
 
 pub fn penalty_semi_final(l: &KaniLiteSegmentList, r: &KaniLiteSegmentList) -> Option<Synergy> {
-    let start = l.end;
-    let end = r.start;
-    // dict-grammar.lisp:972-984 (def-generic-penalty expansion;
-    // serial defaults to t so (= start end) gates, connector defaults to " ")
-    if start != end {
-        return None;
-    }
-    // dict-grammar.lisp:1004-1006 (test-left lambda over (apply 'filter-in-seq-set *semi-final-prt*))
     let f = filter_in_seq_set(semi_final_prt().to_vec());
-    if !l.segments.iter().any(|s| f(s)) {
-        return None;
-    }
-    // dict-grammar.lisp:1007 (test-right = (constantly t))
-    Some(Synergy {
-        description: Some("semi-final not final".to_string()),
-        connector: Some(" ".to_string()),
-        score: -15,
-        start,
-        end,
-    })
+    def_generic_penalty_body(
+        l,
+        r,
+        // dict-grammar.lisp:1004-1006 (test-left lambda over (apply 'filter-in-seq-set *semi-final-prt*))
+        |sl| sl.segments.iter().any(|s| f(s)),
+        // dict-grammar.lisp:1007 (test-right = (constantly t))
+        |_| true,
+        &DefGenericPenaltyOpts {
+            serial: true,
+            description: "semi-final not final",
+            score: -15,
+            connector: " ",
+        },
+    )
 }
 
 #[cfg(test)]
