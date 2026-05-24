@@ -650,7 +650,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  580. `ichiran/dict:load-conj-rules`  — fn, dict-load.lisp:265
  581. `ichiran/dict:get-conj-rules`  — fn, dict-load.lisp:265
  582. `ichiran/dict:conjugate-entry-inner`  — fn, dict-load.lisp:314
- 583. `ichiran/dict:get-all-readings`  — fn, dict-errata.lisp:257
+ 583. `ichiran/dict:get-all-readings`  — fn, dict-errata.lisp:257  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
  584. `ichiran/dict:*secondary-conjugation-types-from*`  — global, dict-load.lisp:312  *[ported]*
  585. `ichiran/dict:insert-conjugation`  — fn, dict-load.lisp:375
  586. `ichiran/dict:next-seq`  — fn, dict-load.lisp:110
@@ -696,51 +696,51 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  626. `ichiran/dict:*noun-particles*`  — global, dict-grammar.lisp:801  *[ported]*
  627. `ichiran/dict:*pos-by-index*`  — global, dict-load.lisp:0  *[ported]*
  628. `ichiran/dict:*pos-index*`  — global, dict-load.lisp:0  *[ported]*
- 629. `ichiran/dict:find-conj`  — fn, dict-errata.lisp:1
- 630. `ichiran/dict:add-conj`  — fn, dict-errata.lisp:15
- 631. `ichiran/dict:root-diff`  — fn, dict-errata.lisp:95
- 632. `ichiran/dict:root-diff-fn`  — fn, dict-errata.lisp:104
- 633. `ichiran/dict:add-conj-reading`  — fn, dict-errata.lisp:109
- 634. `ichiran/dict:add-reading`  — fn, dict-errata.lisp:35
- 635. `ichiran/dict:add-deha-ja-readings`  — fn, dict-errata.lisp:171
- 636. `ichiran/dict:add-sense-prop`  — fn, dict-errata.lisp:140
+ 629. `ichiran/dict:find-conj`  — fn, dict-errata.lisp:1  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 630. `ichiran/dict:add-conj`  — fn, dict-errata.lisp:15  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 631. `ichiran/dict:root-diff`  — fn, dict-errata.lisp:95  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 632. `ichiran/dict:root-diff-fn`  — fn, dict-errata.lisp:104  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 633. `ichiran/dict:add-conj-reading`  — fn, dict-errata.lisp:109  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 634. `ichiran/dict:add-reading`  — fn, dict-errata.lisp:35  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 635. `ichiran/dict:add-deha-ja-readings`  — fn, dict-errata.lisp:171  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 636. `ichiran/dict:add-sense-prop`  — fn, dict-errata.lisp:140  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
  637. `ichiran/dict:set-reading`  — gf, dict-load.lisp:0
- 638. `ichiran/dict:reset-readings`  — fn, dict-errata.lisp:70
- 639. `ichiran/dict:delete-reading`  — fn, dict-errata.lisp:76
- 640. `ichiran/dict:set-common`  — fn, dict-errata.lisp:166
- 641. `ichiran/dict:set-primary-nokanji`  — fn, dict-errata.lisp:224
- 642. `ichiran/dict:add-errata-apr19`  — fn, dict-errata.lisp:847
- 643. `ichiran/dict:add-new-sense*`  — fn, dict-errata.lisp:153
- 644. `ichiran/dict:add-errata-apr20`  — fn, dict-errata.lisp:932
- 645. `ichiran/dict:do-readings`  — macro, dict-errata.lisp:246
- 646. `ichiran/dict:add-primary-nokanji`  — fn, dict-errata.lisp:251
- 647. `ichiran/dict:delete-sense-prop`  — fn, dict-errata.lisp:136
- 648. `ichiran/dict:add-errata-aug18`  — fn, dict-errata.lisp:803
- 649. `ichiran/dict:add-gloss`  — fn, dict-errata.lisp:156
- 650. `ichiran/dict:add-errata-counters`  — fn, dict-errata.lisp:1159
- 651. `ichiran/dict:add-errata-dec23`  — fn, dict-errata.lisp:1028
- 652. `ichiran/dict:add-errata-feb17`  — fn, dict-errata.lisp:608
- 653. `ichiran/dict:add-errata-jan18`  — fn, dict-errata.lisp:697
- 654. `ichiran/dict:add-errata-jan19`  — fn, dict-errata.lisp:823
- 655. `ichiran/dict:add-errata-jan20`  — fn, dict-errata.lisp:867
- 656. `ichiran/dict:replace-reading`  — fn, dict-errata.lisp:49
- 657. `ichiran/dict:add-errata-jan21`  — fn, dict-errata.lisp:979
- 658. `ichiran/dict:add-errata-jan22`  — fn, dict-errata.lisp:1017
- 659. `ichiran/dict:replace-reading-conj`  — fn, dict-errata.lisp:60
- 660. `ichiran/dict:add-errata-jan25`  — fn, dict-errata.lisp:1055
- 661. `ichiran/dict:add-errata-jan26`  — fn, dict-errata.lisp:1077
- 662. `ichiran/dict:rearrange-readings`  — fn, dict-errata.lisp:229
- 663. `ichiran/dict:rearrange-readings-conj`  — fn, dict-errata.lisp:241
- 664. `ichiran/dict:add-errata-jul20`  — fn, dict-errata.lisp:961
- 665. `ichiran/dict:add-errata-mar18`  — fn, dict-errata.lisp:764
- 666. `ichiran/dict:add-errata-may21`  — fn, dict-errata.lisp:1006
- 667. `ichiran/dict:delete-conjugation`  — fn, dict-errata.lisp:198
- 668. `ichiran/dict:add-gozaimasu-conjs`  — fn, dict-errata.lisp:263
- 669. `ichiran/dict:conjugate-da`  — fn, dict-errata.lisp:281
- 670. `ichiran/dict:delete-senses`  — fn, dict-errata.lisp:129
- 671. `ichiran/dict:remove-hiragana-nokanji`  — fn, dict-errata.lisp:217
- 672. `ichiran/dict:add-errata`  — fn, dict-errata.lisp:289
- 673. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146
+ 638. `ichiran/dict:reset-readings`  — fn, dict-errata.lisp:70  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 639. `ichiran/dict:delete-reading`  — fn, dict-errata.lisp:76  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 640. `ichiran/dict:set-common`  — fn, dict-errata.lisp:166  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 641. `ichiran/dict:set-primary-nokanji`  — fn, dict-errata.lisp:224  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 642. `ichiran/dict:add-errata-apr19`  — fn, dict-errata.lisp:847  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 643. `ichiran/dict:add-new-sense*`  — fn, dict-errata.lisp:153  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 644. `ichiran/dict:add-errata-apr20`  — fn, dict-errata.lisp:932  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 645. `ichiran/dict:do-readings`  — macro, dict-errata.lisp:246  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 646. `ichiran/dict:add-primary-nokanji`  — fn, dict-errata.lisp:251  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 647. `ichiran/dict:delete-sense-prop`  — fn, dict-errata.lisp:136  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 648. `ichiran/dict:add-errata-aug18`  — fn, dict-errata.lisp:803  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 649. `ichiran/dict:add-gloss`  — fn, dict-errata.lisp:156  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 650. `ichiran/dict:add-errata-counters`  — fn, dict-errata.lisp:1159  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 651. `ichiran/dict:add-errata-dec23`  — fn, dict-errata.lisp:1028  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 652. `ichiran/dict:add-errata-feb17`  — fn, dict-errata.lisp:608  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 653. `ichiran/dict:add-errata-jan18`  — fn, dict-errata.lisp:697  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 654. `ichiran/dict:add-errata-jan19`  — fn, dict-errata.lisp:823  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 655. `ichiran/dict:add-errata-jan20`  — fn, dict-errata.lisp:867  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 656. `ichiran/dict:replace-reading`  — fn, dict-errata.lisp:49  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 657. `ichiran/dict:add-errata-jan21`  — fn, dict-errata.lisp:979  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 658. `ichiran/dict:add-errata-jan22`  — fn, dict-errata.lisp:1017  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 659. `ichiran/dict:replace-reading-conj`  — fn, dict-errata.lisp:60  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 660. `ichiran/dict:add-errata-jan25`  — fn, dict-errata.lisp:1055  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 661. `ichiran/dict:add-errata-jan26`  — fn, dict-errata.lisp:1077  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 662. `ichiran/dict:rearrange-readings`  — fn, dict-errata.lisp:229  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 663. `ichiran/dict:rearrange-readings-conj`  — fn, dict-errata.lisp:241  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 664. `ichiran/dict:add-errata-jul20`  — fn, dict-errata.lisp:961  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 665. `ichiran/dict:add-errata-mar18`  — fn, dict-errata.lisp:764  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 666. `ichiran/dict:add-errata-may21`  — fn, dict-errata.lisp:1006  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 667. `ichiran/dict:delete-conjugation`  — fn, dict-errata.lisp:198  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 668. `ichiran/dict:add-gozaimasu-conjs`  — fn, dict-errata.lisp:263  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 669. `ichiran/dict:conjugate-da`  — fn, dict-errata.lisp:281  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 670. `ichiran/dict:delete-senses`  — fn, dict-errata.lisp:129  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 671. `ichiran/dict:remove-hiragana-nokanji`  — fn, dict-errata.lisp:217  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 672. `ichiran/dict:add-errata`  — fn, dict-errata.lisp:289  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 673. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
  674. `ichiran/dict:true-kana`  — gf, dict.lisp:0  *[ported]*  *[extracted: hint_2026_05_13]*
  675. `ichiran/dict:true-kanji`  — gf, dict.lisp:0  *[ported]*
  676. `ichiran/kanji:reading`  — dao, kanji.lisp:42  *[ported]*
