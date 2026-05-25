@@ -60,9 +60,17 @@ mod tests {
     }
 
     #[test]
-    fn unset_yields_none() {
+    fn unset_falls_back_to_config_file() {
         with_env(None, || {
-            assert_eq!(get_ichiran_connection_env().unwrap(), None);
+            // With DATABASE_URL unset, the layered config falls back to
+            // the `kaniran.toml` value (the env overlay supplies nothing).
+            let from_file = Config::builder()
+                .add_source(File::with_name("kaniran").required(false))
+                .build()
+                .unwrap()
+                .get_string(&DATABASE_URL.to_ascii_lowercase())
+                .ok();
+            assert_eq!(get_ichiran_connection_env().unwrap(), from_file);
         });
     }
 

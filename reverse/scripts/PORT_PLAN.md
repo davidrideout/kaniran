@@ -448,22 +448,22 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  429. `ichiran/dict:penalty-short`  — fn, dict-grammar.lisp:1020  *[ported]*
  430. `ichiran/dict:*penalty-list*`  — global, dict-grammar.lisp:964  *[ported]*
  431. `ichiran/dict:get-penalties`  — fn, dict-grammar.lisp:1030  *[ported]*
- 432. `ichiran/dict:synergy-kanji-prefix`  — fn, dict-grammar.lisp:940  *[ported]*
+ 432. `ichiran/dict:synergy-kanji-prefix`  — fn, dict-grammar.lisp:940  *[ported]*  *[extracted: chunk_d1b_synergy_2026_05_24]*
  433. `ichiran/dict:synergy-na-adjectives`  — fn, dict-grammar.lisp:892  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
  434. `ichiran/dict:synergy-no-adjectives`  — fn, dict-grammar.lisp:884  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
  435. `ichiran/dict:synergy-no-da`  — fn, dict-grammar.lisp:871  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
- 436. `ichiran/dict:synergy-no-toori`  — fn, dict-grammar.lisp:970  *[ported]*
+ 436. `ichiran/dict:synergy-no-toori`  — fn, dict-grammar.lisp:970  *[ported]*  *[extracted: chunk_d1b_synergy_2026_05_24]*
  437. `ichiran/dict:filter-is-noun`  — fn, dict-grammar.lisp:760  *[ported]*  *[extracted: chunk_c_suffix_abbr_2026_05_16]*  *[audited 1229022/1229022]*
  438. `ichiran/dict:synergy-noun-da`  — fn, dict-grammar.lisp:859  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*  *[audited 65833770/65833770]*
  439. `ichiran/dict:synergy-noun-particle`  — fn, dict-grammar.lisp:850  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
- 440. `ichiran/dict:synergy-o-prefix`  — fn, dict-grammar.lisp:935  *[ported]*
- 441. `ichiran/dict:synergy-oki`  — fn, dict-grammar.lisp:973  *[ported]*
- 442. `ichiran/dict:synergy-shicha-ikenai`  — fn, dict-grammar.lisp:951  *[ported]*
- 443. `ichiran/dict:synergy-shika-negative`  — fn, dict-grammar.lisp:959  *[ported]*
+ 440. `ichiran/dict:synergy-o-prefix`  — fn, dict-grammar.lisp:935  *[ported]*  *[extracted: chunk_d1b_synergy_2026_05_24]*
+ 441. `ichiran/dict:synergy-oki`  — fn, dict-grammar.lisp:973  *[ported]*  *[extracted: chunk_d1b_synergy_2026_05_24]*
+ 442. `ichiran/dict:synergy-shicha-ikenai`  — fn, dict-grammar.lisp:951  *[ported]*  *[extracted: chunk_d1b_synergy_2026_05_24]*
+ 443. `ichiran/dict:synergy-shika-negative`  — fn, dict-grammar.lisp:959  *[ported]*  *[extracted: chunk_d1b_synergy_2026_05_24]*
  444. `ichiran/dict:synergy-sou-nanda`  — fn, dict-grammar.lisp:878  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
- 445. `ichiran/dict:synergy-suffix-buri`  — fn, dict-grammar.lisp:925  *[ported]*
+ 445. `ichiran/dict:synergy-suffix-buri`  — fn, dict-grammar.lisp:925  *[ported]*  *[extracted: chunk_d1b_synergy_2026_05_24]*
  446. `ichiran/dict:synergy-suffix-chu`  — fn, dict-grammar.lisp:914  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
- 447. `ichiran/dict:synergy-suffix-sei`  — fn, dict-grammar.lisp:929  *[ported]*
+ 447. `ichiran/dict:synergy-suffix-sei`  — fn, dict-grammar.lisp:929  *[ported]*  *[extracted: chunk_d1b_synergy_2026_05_24]*
  448. `ichiran/dict:synergy-suffix-tachi`  — fn, dict-grammar.lisp:921  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
  449. `ichiran/dict:synergy-to-adverbs`  — fn, dict-grammar.lisp:902  *[ported]*  *[extracted: chunk_d1a_synergy_2026_05_17]*
  450. `ichiran/dict:*synergy-list*`  — global, dict-grammar.lisp:723  *[ported]*
@@ -795,10 +795,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  723. `ichiran/dict:entry-info-long`  — fn, dict.lisp:1601  *[ported]*
  724. `ichiran/dict:exists-reading`  — fn, dict.lisp:1847  *[ported]*
  725. `ichiran/dict:filter-is-pos`  — macro, dict-grammar.lisp:772  *[ported]*
- 726. `ichiran/dict:find-word-kana-pattern`  — fn, dict.lisp:1877
- 727. `ichiran/dict:find-kanji-for-pattern`  — fn, dict.lisp:1882
+ 726. `ichiran/dict:find-word-kana-pattern`  — fn, dict.lisp:1877  *[ported]*
+ 727. `ichiran/dict:find-kanji-for-pattern`  — fn, dict.lisp:1882  *[ported]*
  728. `ichiran/dict:find-word-info`  — fn, dict.lisp:1850  *[ported]*
- 729. `ichiran/dict:word-info-reading`  — fn, dict.lisp:1445
+ 729. `ichiran/dict:word-info-reading`  — fn, dict.lisp:1445  *[ported]*
  730. `ichiran/dict:word-info-gloss-json`  — fn, dict.lisp:1784
  731. `ichiran/dict:find-word-info-json`  — fn, dict.lisp:1872
  732. `ichiran/dict:fix-entities`  — fn, dict-load.lisp:159  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
@@ -811,7 +811,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  739. `ichiran/dict:load-extras`  — fn, dict-load.lisp:183  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  740. `ichiran/dict:load-jmdict`  — fn, dict-load.lisp:168  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  741. `ichiran/dict:recalc-entry-stats`  — fn, dict.lisp:53
- 742. `ichiran/dict:word-info-json`  — fn, dict.lisp:1262
+ 742. `ichiran/dict:word-info-json`  — fn, dict.lisp:1262  *[ported]*
  743. `ichiran/dict:simple-word-info`  — fn, dict.lisp:1282
  744. `ichiran/dict:split-kigatsuku`  — fn, dict-split.lisp:298
  745. `ichiran/dict:substring-index`  — fn, dict.lisp:1132
@@ -858,11 +858,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  786. `ichiran:kana-representation`  — struct, deromanize.lisp:23  *[ported]*
  787. `ichiran:possible-long-vowel-p`  — fn, deromanize.lisp:30
  788. `ichiran:apply-rmap-item`  — fn, deromanize.lisp:35
- 789. `ichiran:join-branches`  — fn, deromanize.lisp:54  *[skip — deromanize.lisp — romaji-input inverse path. Not reached by romanize* (forward Japanese-text driver). Needs romaji corpus to extract.]*
+ 789. `ichiran:join-branches`  — fn, deromanize.lisp:54
  790. `ichiran:kr-concat`  — fn, deromanize.lisp:23
  791. `ichiran:load-romaji-kana`  — fn, deromanize.lisp:5
- 792. `ichiran:get-romaji-kana`  — fn, deromanize.lisp:5  *[skip — deromanize.lisp — romaji-input inverse path. Not reached by romanize* (forward Japanese-text driver). Needs romaji corpus to extract.]*
+ 792. `ichiran:get-romaji-kana`  — fn, deromanize.lisp:5
  793. `ichiran:romaji-next`  — fn, deromanize.lisp:46
- 794. `ichiran:branches-next`  — fn, deromanize.lisp:69  *[skip — deromanize.lisp — romaji-input inverse path. Not reached by romanize* (forward Japanese-text driver). Needs romaji corpus to extract.]*
+ 794. `ichiran:branches-next`  — fn, deromanize.lisp:69
  795. `ichiran:romaji-kana`  — fn, deromanize.lisp:84
  796. `ichiran:romaji-suggest`  — fn, deromanize.lisp:95
