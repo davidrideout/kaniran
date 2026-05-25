@@ -368,7 +368,7 @@ ichiran/dict:get-penalties,get-penalties,ichiran/dict,dict-grammar.lisp,1030,fn,
 ichiran/dict:get-pos,get-pos,ichiran/dict,dict-load.lisp,251,fn,ported,,,
 ichiran/dict:get-pos-index,get-pos-index,ichiran/dict,dict-load.lisp,247,fn,ported,,,
 ichiran/dict:get-seg-initial,get-seg-initial,ichiran/dict,dict.lisp,1172,fn,ported,,chunk_b_segmentation_2026_05_14,
-ichiran/dict:get-seg-splits,get-seg-splits,ichiran/dict,dict.lisp,1175,fn,ported,,chunk_b_segmentation_2026_05_14,
+ichiran/dict:get-seg-splits,get-seg-splits,ichiran/dict,dict.lisp,1175,fn,ported,,chunk_b_segmentation_2026_05_14,1229970/1229970
 ichiran/dict:get-segment-score,get-segment-score,ichiran/dict,dict.lisp,0,gf,ported,,,
 ichiran/dict:get-segsplit,get-segsplit,ichiran/dict,dict-split.lisp,823,fn,ported,,chunk_c_suffix_abbr_2026_05_16,1555663/1555663
 ichiran/dict:get-senses,get-senses,ichiran/dict,dict.lisp,1487,fn,ported,,,
