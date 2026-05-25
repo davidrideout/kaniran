@@ -114,7 +114,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  105. `ichiran/dict:get-counter-stags`  — fn, dict-counters.lisp:292  *[ported]*
  106. `ichiran/dict:ord`  — gf, dict-counters.lisp:0  *[ported]*
  107. `ichiran/dict:get-counter-readings`  — fn, dict-counters.lisp:335  *[ported]*
- 108. `ichiran/dict:no-conj-data`  — fn, dict.lisp:337  *[ported]*  *[extracted: chunk_c_2026_05_24]*
+ 108. `ichiran/dict:no-conj-data`  — fn, dict.lisp:337  *[ported]*
  109. `ichiran/dict:*suffix-cache*`  — global, dict-grammar.lisp:0  *[ported]*
  110. `ichiran/dict:*suffix-class*`  — global, dict-grammar.lisp:0  *[ported]*
  111. **CYCLE (4 symbols — port together)**
@@ -135,7 +135,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  122. `ichiran/dict:get-kana-form`  — fn, dict-grammar.lisp:36  *[ported]*
  123. `ichiran/dict:conj-data`  — struct, dict.lisp:327  *[ported]*
  124. `ichiran/dict:conj-id`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; every (id X) / (conj-id X) site has a locally-known DAO type. Each Rust DAO struct exposes pub id: i32 / pub conj_id: i32 directly per CONVENTIONS §4.7.]*
- 125. `ichiran/dict:get-conj-data`  — fn, dict.lisp:340  *[ported]*  *[extracted: chunk_c_2026_05_24]*
+ 125. `ichiran/dict:get-conj-data`  — fn, dict.lisp:340  *[ported]*
  126. `ichiran/dict:*weak-conj-forms*`  — global, dict-errata.lisp:1316  *[ported]*
  127. `ichiran/dict:*skip-conj-forms*`  — global, dict-errata.lisp:1310  *[ported]*
  128. `ichiran/dict:test-conj-prop`  — fn, dict-errata.lisp:1336  *[ported]*
@@ -155,7 +155,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  142. `ichiran/dict:to-json`  — gf, writer.lisp:0  *[skip — jsown library gf — only ichiran-authored method is the cli.lisp one-liner that delegates to word-info-gloss-json (wave 730). JSON serialization in Rust uses serde_json; the word-info method belongs in a future kaniran-cli crate.]*
  143. `ichiran/dict:true-text`  — gf, dict.lisp:0  *[ported]*
  144. `ichiran/dict:word-info`  — class, dict.lisp:1245  *[ported]*
- 145. `ichiran/dict:process-word-info`  — fn, dict.lisp:1417  *[ported]*  *[extracted: chunk_c_2026_05_24]*
+ 145. `ichiran/dict:process-word-info`  — fn, dict.lisp:1417  *[ported]*
  146. `ichiran/dict:synergy`  — struct, dict-grammar.lisp:713  *[ported]*
  147. **CYCLE (4 symbols — port together)**
         - `ichiran/dict:segment`  — struct, dict.lisp:674  *[ported]*
@@ -398,7 +398,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  381. `ichiran/dict:get-original-text`  — gf, dict.lisp:0  *[ported]*  *[extracted: calc_score_2026_05_11]*
  382. `ichiran/dict:get-split*`  — fn, dict-split.lisp:67  *[ported]*  *[extracted: wave_158_frontier_2026_05_09]*
  383. `ichiran/dict:get-split`  — fn, dict-split.lisp:75  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 232366/232366]*
- 384. `ichiran/dict:is-arch`  — fn, dict.lisp:760  *[ported]*  *[extracted: chunk_c_2026_05_24]*
+ 384. `ichiran/dict:is-arch`  — fn, dict.lisp:760  *[ported]*
  385. `ichiran/dict:*no-kanji-break-penalty*`  — global, dict-errata.lisp:1214  *[ported]*
  386. `ichiran/dict:*score-cutoff*`  — global, dict.lisp:1069  *[ported]*
  387. `ichiran/dict:parse-suffix-val`  — fn, dict-grammar.lisp:679  *[ported]*  *[extracted: calc_score_2026_05_11]*
@@ -554,7 +554,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  486. `ichiran/dict:join-substring-words*`  — fn, dict.lisp:1069  *[ported]*  *[extracted: substring_2026_05_14]*  *[audited 531369/533670 (2301 fail)]*
  487. `ichiran/dict:join-substring-words`  — fn, dict.lisp:1113  *[ported]*  *[extracted: substring_2026_05_14]*  *[audited 531529/533756 (2227 fail)]*
  488. `ichiran/dict:dict-segment`  — fn, dict.lisp:1451  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
- 489. `ichiran/dict:simple-segment`  — fn, dict.lisp:1456  *[ported]*  *[extracted: chunk_c_2026_05_24]*
+ 489. `ichiran/dict:simple-segment`  — fn, dict.lisp:1456  *[ported]*
  490. `ichiran/dict:get-senses-raw`  — fn, dict.lisp:1458  *[ported]*
  491. `ichiran/dict:get-senses`  — fn, dict.lisp:1487  *[ported]*
  492. `ichiran/dict:get-senses-str`  — fn, dict.lisp:1495  *[ported]*
@@ -575,7 +575,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  507. `ichiran/dict:select-conjs-and-props`  — fn, dict.lisp:1640  *[ported]*
  508. `ichiran/dict:print-conj-info`  — fn, dict.lisp:1649  *[ported]*
  509. `ichiran/dict:query-parents-kana`  — fn, dict.lisp:415  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 4/4]*
- 510. `ichiran/dict:best-kanji-conj`  — fn, dict.lisp:457  *[ported]*  *[extracted: chunk_c_2026_05_24]*
+ 510. `ichiran/dict:best-kanji-conj`  — fn, dict.lisp:457  *[ported]*
  511. `ichiran/dict:get-kanji`  — gf, dict.lisp:0  *[ported]*
  512. `ichiran/dict:word-info-reading-str`  — fn, dict.lisp:1734  *[ported]*
  513. `ichiran/dict:reading-str`  — gf, dict.lisp:0  *[ported]*
@@ -591,10 +591,10 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  523. `ichiran/dict:simplify-reading-list`  — fn, dict.lisp:1704  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
  524. `ichiran/dict:map-word-info-kana`  — fn, dict.lisp:1728  *[ported]*
  525. `ichiran/dict:*hint-char-map*`  — global, dict-split.lisp:816  *[ported]*
- 526. `ichiran/dict:strip-hints`  — fn, dict-split.lisp:874  *[ported]*  *[extracted: chunk_c_2026_05_24]*
+ 526. `ichiran/dict:strip-hints`  — fn, dict-split.lisp:874  *[ported]*
  527. `ichiran/dict:*kana-hint-mod*`  — global, dict-split.lisp:813  *[ported]*
  528. `ichiran/dict:*hint-simplify-map*`  — global, dict-split.lisp:818  *[ported]*
- 529. `ichiran/dict:process-hints`  — fn, dict-split.lisp:872  *[ported]*  *[extracted: chunk_c_2026_05_24]*
+ 529. `ichiran/dict:process-hints`  — fn, dict-split.lisp:872  *[ported]*
  530. `ichiran:get-character-classes`  — fn, romanize.lisp:3  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 227954/227954]*
  531. `ichiran:r-special`  — gf, romanize.lisp:0  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 252625/252625]*
  532. `ichiran:process-iteration-characters`  — fn, romanize.lisp:7  *[ported]*
@@ -754,7 +754,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  684. `ichiran/kanji:match-readings`  — fn, kanji.lisp:292  *[ported]*
  685. `ichiran/dict:check-easy-hints`  — fn, dict-split.lisp:950  *[ported]*
  686. `ichiran/dict:common-tags`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
- 687. `ichiran/dict:conj-prop-json`  — fn, dict.lisp:283
+ 687. `ichiran/dict:conj-prop-json`  — fn, dict.lisp:283  *[ported]*
  688. `ichiran/dict:find-words-seqs`  — fn, dict.lisp:520
  689. `ichiran/dict:get-original-text-once`  — fn, dict.lisp:369
  690. `ichiran/dict:match-kana-kanji`  — fn, dict.lisp:1507
@@ -773,7 +773,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  701. `ichiran/dict:def-de-split`  — macro, dict-split.lisp:81  *[skip — DSL definer (CONVENTIONS §4.6 case (a)); second-order macro expanding to def-simple-split. Its 32 callsites (dict-split.lisp:102-133) each register a split-de-<seq> fn into *split-map* with the fixed shape [(seq-a (- len 1)) (2028980 1)] score 20. All 32 are captured as data rows in SPLIT_TABLE (_star_split_map_star_.rs), wired into split_map_dispatch via run_split; the def-simple-split expansion shape itself is kani_split_engine::run_split. Nothing left to translate.]*
  702. `ichiran/dict:def-do-split`  — macro, dict-split.lisp:181  *[skip — DSL definer (CONVENTIONS §4.6 case (a)); second-order macro expanding to def-simple-split. Its 4 callsites (dict-split.lisp:177-183) each register a split-do-<seq> fn into *split-map* with the fixed shape [(seq-a 1) (seq-b)] score 30, default seq-a 2252690 (ど). All 4 are captured as data rows in SPLIT_TABLE (_star_split_map_star_.rs), wired into split_map_dispatch via run_split; the def-simple-split expansion shape itself is kani_split_engine::run_split. Nothing left to translate.]*
  703. `ichiran/dict:defhint`  — macro, dict-split.lisp:892  *[skip — DSL definer (§4.6 case (a)). Each callsite is a (setf (gethash ,seq *hint-map*) ...) registration; the data is captured statically in _star_hint_map_star_.rs's SimpleHintGroup match arms and EASY_HINTS table.]*
- 704. `ichiran/dict:insert-hints`  — fn, dict-split.lisp:875  *[ported]*  *[extracted: chunk_c_2026_05_24]*
+ 704. `ichiran/dict:insert-hints`  — fn, dict-split.lisp:875  *[ported]*
  705. `ichiran/dict:translate-hint-position`  — fn, dict-split.lisp:930  *[ported]*
  706. `ichiran/dict:translate-hints`  — fn, dict-split.lisp:942  *[ported]*
  707. `ichiran/dict:def-easy-hint`  — macro, dict-split.lisp:955  *[skip — DSL definer (§4.6 case (a)). Expands to (push seq *easy-hints-seqs*) + (defhint (seq) ...). The shared body lives in kani_hint_engine::run_easy_hint; per-callsite data lives in _star_hint_map_star_.rs::EASY_HINTS (431 rows).]*
@@ -845,7 +845,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  773. `ichiran/kanji:match-readings-json`  — fn, kanji.lisp:452
  774. `ichiran/kanji:query-kanji-json`  — macro, kanji.lisp:458
  775. `ichiran/numbers:*digit-kanji-legal*`  — global, numbers.lisp:5  *[ported]*
- 776. `ichiran/numbers:parse-number*`  — fn, numbers.lisp:57  *[ported]*  *[extracted: chunk_c_2026_05_24]*
+ 776. `ichiran/numbers:parse-number*`  — fn, numbers.lisp:57  *[ported]*
  777. `ichiran/numbers:parse-number`  — fn, numbers.lisp:77  *[ported]*  *[extracted: counter_2026_05_08]*
  778. `ichiran:modified-hepburn`  — class, romanize.lisp:162
  779. `ichiran:*hepburn-modified*`  — global, romanize.lisp:168
