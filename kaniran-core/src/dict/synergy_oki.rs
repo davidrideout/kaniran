@@ -9,10 +9,9 @@
 //! ```
 //!
 //! Divergences from Lisp:
-//! - The `filter-is-pos` macro expansion (`dict-grammar.lisp:757-764`)
-//!   is inlined as a closure on the lite [`KaniLiteSegment::pos`] bit
-//!   field per CONVENTIONS §4.6. The `kpcl-test` body is `t`
-//!   (unconditional), so the closure only checks the posi membership.
+//! - The `filter-is-pos` filter (`dict-grammar.lisp:952`) is built via
+//!   [`filter_is_pos`]; the `kpcl-test` body is `t` (unconditional),
+//!   so only the posi membership decides.
 //! - The macro call omits `:description`, so the slot is `nil` —
 //!   mapped to [`None`] per [`Synergy::description`]
 //!   (`synergy-struct` doc-comment notes some synergies leave it nil).
@@ -24,6 +23,7 @@
 use std::sync::Arc;
 
 use super::filter_in_seq_set::filter_in_seq_set;
+use super::filter_is_pos_macro::filter_is_pos;
 use super::kani_lite_segment::{KaniLiteSegment, POS_CTR};
 use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 use super::synergy_struct::Synergy;
@@ -38,8 +38,8 @@ pub fn synergy_oki(
     if start != end {
         return vec![];
     }
-    // dict-grammar.lisp:757-764 (filter-is-pos macro expansion)
-    let test_left = |seg: &Arc<KaniLiteSegment>| -> bool { (seg.pos & POS_CTR) != 0 };
+    // dict-grammar.lisp:952 (filter-is-pos ("ctr") t)
+    let test_left = filter_is_pos(POS_CTR, |_k, _p, _c, _l| true);
     let test_right = filter_in_seq_set(vec![2854117, 2084550]);
     let left: Vec<Arc<KaniLiteSegment>> =
         l.segments.iter().filter(|s| test_left(s)).cloned().collect();

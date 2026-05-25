@@ -779,7 +779,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  707. `ichiran/dict:def-easy-hint`  — macro, dict-split.lisp:955  *[skip — DSL definer (§4.6 case (a)). Expands to (push seq *easy-hints-seqs*) + (defhint (seq) ...). The shared body lives in kani_hint_engine::run_easy_hint; per-callsite data lives in _star_hint_map_star_.rs::EASY_HINTS (431 rows).]*
  708. `ichiran/dict:defpenalty`  — macro, dict-grammar.lisp:981  *[skip — DSL definer (§4.6 case (a)): expands to (defun name ...) + (pushnew name *penalty-list*). Each penalty is its own pub fn (penalty_short, penalty_semi_final); the pushnew registration is captured in _star_penalty_list_star_::PENALTY_LIST. No port file.]*
  709. `ichiran/dict:def-generic-penalty`  — macro, dict-grammar.lisp:984  *[ported]*
- 710. `ichiran/dict:defsynergy`  — macro, dict-grammar.lisp:738
+ 710. `ichiran/dict:defsynergy`  — macro, dict-grammar.lisp:738  *[skip — DSL definer (§4.6 case (a)): expands to (defun name ...) + (pushnew name *synergy-list*). Each synergy is its own pub fn (synergy_no_adjectives, synergy_oki, …); the pushnew registration is captured in _star_synergy_list_star_::SYNERGY_LIST (wired into get_synergies). No port file.]*
  711. `ichiran/dict:def-generic-synergy`  — macro, dict-grammar.lisp:739
  712. `ichiran/dict:def-reader-for-json`  — macro, dict.lisp:1289
  713. `ichiran/dict:defsegfilter`  — macro, dict-grammar.lisp:1043  *[skip — DSL definer (§4.6 case (a)) — only effect is pushnew into *segfilter-list*, captured as the static SEGFILTER_LIST slice in dict/_star_segfilter_list_star_.rs]*
@@ -794,7 +794,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  722. `ichiran/dict:entry-digest`  — fn, dict.lisp:64
  723. `ichiran/dict:entry-info-long`  — fn, dict.lisp:1601
  724. `ichiran/dict:exists-reading`  — fn, dict.lisp:1847  *[ported]*
- 725. `ichiran/dict:filter-is-pos`  — macro, dict-grammar.lisp:772  *[skip — DSL macro (§4.6): the (lambda (segment) ...) kpcl/posi filter expansion is inlined as a local closure at each of the 6 def-generic-synergy callsites (synergy_no_adjectives, synergy_na_adjectives, synergy_to_adverbs, synergy_o_prefix, synergy_kanji_prefix, synergy_oki), cited // dict-grammar.lisp:757-764. No standalone port file.]*
+ 725. `ichiran/dict:filter-is-pos`  — macro, dict-grammar.lisp:772  *[ported]*
  726. `ichiran/dict:find-word-kana-pattern`  — fn, dict.lisp:1877  *[skip — Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.]*
  727. `ichiran/dict:find-kanji-for-pattern`  — fn, dict.lisp:1882
  728. `ichiran/dict:find-word-info`  — fn, dict.lisp:1850

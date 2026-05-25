@@ -133,6 +133,7 @@ pub mod filter_is_compound_end;
 pub mod filter_is_compound_end_text;
 pub mod filter_is_conjugation;
 pub mod filter_is_noun;
+pub mod filter_is_pos_macro;
 pub mod filter_props;
 pub mod filter_short_kana;
 pub mod find_best_path;

@@ -10,19 +10,18 @@
 //! ```
 //!
 //! Divergences from Lisp:
-//! - The `filter-is-pos` macro expansion (`dict-grammar.lisp:757-764`)
-//!   is inlined as a closure on the lite [`KaniLiteSegment::kpcl`] /
-//!   [`KaniLiteSegment::pos`] bit fields per CONVENTIONS §4.6. The
-//!   kpcl-test here is `(or k l p)` (note: bare `p` without `c`,
-//!   unlike the sibling `synergy-no-adjectives` / `synergy-na-
-//!   adjectives` ports).
+//! - The `filter-is-pos` filter (`dict-grammar.lisp:878`) is built via
+//!   [`filter_is_pos`]; the kpcl-test here is `(or k l p)` (bare `p`
+//!   without `c`, unlike the sibling `synergy-no-adjectives` /
+//!   `synergy-na-adjectives` ports).
 //! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
 //!   moves to the `*synergy-list*` port (separate wave).
 
 use std::sync::Arc;
 
 use super::filter_in_seq_set::filter_in_seq_set;
-use super::kani_lite_segment::{KaniLiteSegment, KPCL_K, KPCL_L, KPCL_P, POS_ADV_TO};
+use super::filter_is_pos_macro::filter_is_pos;
+use super::kani_lite_segment::{KaniLiteSegment, POS_ADV_TO};
 use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 use super::synergy_struct::Synergy;
 
@@ -36,10 +35,8 @@ pub fn synergy_to_adverbs(
     if start != end {
         return vec![];
     }
-    // dict-grammar.lisp:757-764 (filter-is-pos macro expansion)
-    let test_left = |seg: &Arc<KaniLiteSegment>| -> bool {
-        (seg.kpcl & (KPCL_K | KPCL_L | KPCL_P)) != 0 && (seg.pos & POS_ADV_TO) != 0
-    };
+    // dict-grammar.lisp:878 (filter-is-pos ("adv-to") (or k l p))
+    let test_left = filter_is_pos(POS_ADV_TO, |k, p, _c, l| k || l || p);
     let test_right = filter_in_seq_set(vec![1008490]);
     let left: Vec<Arc<KaniLiteSegment>> =
         l.segments.iter().filter(|s| test_left(s)).cloned().collect();

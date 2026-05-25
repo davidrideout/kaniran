@@ -10,17 +10,16 @@
 //! ```
 //!
 //! Divergences from Lisp:
-//! - The `filter-is-pos` macro expansion (`dict-grammar.lisp:757-764`)
-//!   is inlined as a closure on the lite [`KaniLiteSegment::kpcl`] /
-//!   [`KaniLiteSegment::pos`] bit fields per CONVENTIONS §4.6. The
-//!   `kpcl-test` body is `(or k l)`.
+//! - The `filter-is-pos` filter (`dict-grammar.lisp:915`, `(or k l)`)
+//!   is built via [`filter_is_pos`].
 //! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
 //!   moves to the `*synergy-list*` port (separate wave).
 
 use std::sync::Arc;
 
 use super::filter_in_seq_set::filter_in_seq_set;
-use super::kani_lite_segment::{KaniLiteSegment, KPCL_K, KPCL_L, POS_N};
+use super::filter_is_pos_macro::filter_is_pos;
+use super::kani_lite_segment::{KaniLiteSegment, POS_N};
 use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 use super::synergy_struct::Synergy;
 
@@ -35,10 +34,8 @@ pub fn synergy_o_prefix(
         return vec![];
     }
     let test_left = filter_in_seq_set(vec![1270190]);
-    // dict-grammar.lisp:757-764 (filter-is-pos macro expansion)
-    let test_right = |seg: &Arc<KaniLiteSegment>| -> bool {
-        (seg.kpcl & (KPCL_K | KPCL_L)) != 0 && (seg.pos & POS_N) != 0
-    };
+    // dict-grammar.lisp:915 (filter-is-pos ("n") (or k l))
+    let test_right = filter_is_pos(POS_N, |k, _p, _c, l| k || l);
     let left: Vec<Arc<KaniLiteSegment>> =
         l.segments.iter().filter(|s| test_left(s)).cloned().collect();
     let right: Vec<Arc<KaniLiteSegment>> =
