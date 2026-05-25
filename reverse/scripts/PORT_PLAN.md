@@ -833,16 +833,16 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  761. `ichiran/kanji:stat-common`  — gf, kanji.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  762. `ichiran:*hepburn-basic*`  — global, romanize.lisp:144  *[ported]*
  763. `ichiran/kanji:reading-info-json`  — fn, kanji.lisp:354  *[ported]*
- 764. `ichiran/kanji:to-json`  — gf, kanji.lisp:0
- 765. `ichiran/kanji:kanji-info-json`  — fn, kanji.lisp:392
+ 764. `ichiran/kanji:to-json`  — gf, kanji.lisp:0  *[ported]*
+ 765. `ichiran/kanji:kanji-info-json`  — fn, kanji.lisp:392  *[ported]*
  766. `ichiran/kanji:kanji-reading-json`  — fn, kanji.lisp:410  *[ported]*
  767. `ichiran/kanji:kanji-word-stats`  — fn, kanji.lisp:316  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  768. `ichiran/kanji:load-readings`  — fn, kanji.lisp:114  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  769. `ichiran/kanji:load-kanji`  — fn, kanji.lisp:152  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  770. `ichiran/kanji:load-kanji-stats`  — fn, kanji.lisp:332  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  771. `ichiran/kanji:load-kanjidic`  — fn, kanji.lisp:185  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 772. `ichiran/kanji:process-match-json`  — fn, kanji.lisp:428
- 773. `ichiran/kanji:match-readings-json`  — fn, kanji.lisp:452
+ 772. `ichiran/kanji:process-match-json`  — fn, kanji.lisp:428  *[ported]*
+ 773. `ichiran/kanji:match-readings-json`  — fn, kanji.lisp:452  *[ported]*
  774. `ichiran/kanji:query-kanji-json`  — macro, kanji.lisp:458
  775. `ichiran/numbers:*digit-kanji-legal*`  — global, numbers.lisp:5  *[ported]*
  776. `ichiran/numbers:parse-number*`  — fn, numbers.lisp:57  *[ported]*
