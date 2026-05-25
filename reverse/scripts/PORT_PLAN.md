@@ -835,7 +835,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  763. `ichiran/kanji:reading-info-json`  — fn, kanji.lisp:354
  764. `ichiran/kanji:to-json`  — gf, kanji.lisp:0
  765. `ichiran/kanji:kanji-info-json`  — fn, kanji.lisp:392
- 766. `ichiran/kanji:kanji-reading-json`  — fn, kanji.lisp:410
+ 766. `ichiran/kanji:kanji-reading-json`  — fn, kanji.lisp:410  *[ported]*
  767. `ichiran/kanji:kanji-word-stats`  — fn, kanji.lisp:316  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  768. `ichiran/kanji:load-readings`  — fn, kanji.lisp:114  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  769. `ichiran/kanji:load-kanji`  — fn, kanji.lisp:152  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
