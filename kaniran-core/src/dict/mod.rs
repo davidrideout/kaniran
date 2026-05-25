@@ -122,6 +122,8 @@ pub mod def_segfilter_must_follow_macro;
 pub mod def_simple_suffix_macro;
 pub mod dict_segment;
 pub mod entry_dao;
+pub mod entry_digest;
+pub mod entry_info_long;
 pub mod entry_info_short;
 pub mod errata_conj_description_hook;
 pub mod errata_conj_rules_hook;

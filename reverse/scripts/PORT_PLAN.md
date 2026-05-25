@@ -791,8 +791,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  719. `ichiran/dict:def-toori-split`  — macro, dict-split.lisp:143
  720. `ichiran/dict:delete-duplicate-props`  — fn, dict.lisp:295  *[skip — Build-time DB cleanup: deletes duplicate conj_prop rows produced by load-conjugations (dict-load.lisp:447); conj_prop is populated by the load pipeline, not at runtime. No programmatic caller (invoked manually during DB construction). Using the provided pre-built/deduplicated ichiran DB dump, so no runtime port needed — same bucket as drop-extras and the add-errata delete-* cluster.]*
  721. `ichiran/dict:drop-extras`  — fn, dict-load.lisp:194  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 722. `ichiran/dict:entry-digest`  — fn, dict.lisp:64
- 723. `ichiran/dict:entry-info-long`  — fn, dict.lisp:1601
+ 722. `ichiran/dict:entry-digest`  — fn, dict.lisp:64  *[ported]*
+ 723. `ichiran/dict:entry-info-long`  — fn, dict.lisp:1601  *[ported]*
  724. `ichiran/dict:exists-reading`  — fn, dict.lisp:1847  *[ported]*
  725. `ichiran/dict:filter-is-pos`  — macro, dict-grammar.lisp:772  *[ported]*
  726. `ichiran/dict:find-word-kana-pattern`  — fn, dict.lisp:1877  *[skip — Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.]*
