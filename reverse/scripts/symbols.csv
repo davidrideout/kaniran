@@ -276,7 +276,7 @@ ichiran/dict:def-do-split,def-do-split,ichiran/dict,dict-split.lisp,181,macro,sk
 ichiran/dict:def-easy-hint,def-easy-hint,ichiran/dict,dict-split.lisp,955,macro,skip,DSL definer (§4.6 case (a)). Expands to (push seq *easy-hints-seqs*) + (defhint (seq) ...). The shared body lives in kani_hint_engine::run_easy_hint; per-callsite data lives in _star_hint_map_star_.rs::EASY_HINTS (431 rows).,,
 ichiran/dict:def-generic-penalty,def-generic-penalty,ichiran/dict,dict-grammar.lisp,984,macro,ported,,,
 ichiran/dict:def-generic-synergy,def-generic-synergy,ichiran/dict,dict-grammar.lisp,739,macro,ported,,,
-ichiran/dict:def-reader-for-json,def-reader-for-json,ichiran/dict,dict.lisp,1289,macro,pending,,,
+ichiran/dict:def-reader-for-json,def-reader-for-json,ichiran/dict,dict.lisp,1289,macro,ported,,,
 ichiran/dict:def-segfilter-must-follow,def-segfilter-must-follow,ichiran/dict,dict-grammar.lisp,1049,macro,ported,,,
 ichiran/dict:def-shi-split,def-shi-split,ichiran/dict,dict-split.lisp,191,macro,skip,DSL definer (CONVENTIONS §4.6 case (a)); 20 callsites captured as data rows in SPLIT_TABLE (_star_split_map_star_.rs).,,
 ichiran/dict:def-simple-hint,def-simple-hint,ichiran/dict,dict-split.lisp,901,macro,skip,DSL definer (§4.6 case (a)). Expands to defhint with a let* prologue + insert-hints call; bodies are inlined as match arms in _star_hint_map_star_.rs::simple_hint_dispatch (17 groups covering 234 callsites).,,
