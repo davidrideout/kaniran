@@ -342,4 +342,5 @@ pub mod word_info_class;
 pub mod word_info_from_segment;
 pub mod word_info_from_segment_list;
 pub mod word_info_reading_str;
+pub mod word_info_str;
 pub mod word_type;
