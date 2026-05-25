@@ -397,3 +397,7 @@ path = "audit/core/romanize_word_test.rs"
 [[bin]]
 name = "romanize_word_info_test"
 path = "audit/core/romanize_word_info_test.rs"
+
+[[bin]]
+name = "romanize_full_json_test"
+path = "audit/core/romanize_full_json_test.rs"

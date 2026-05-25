@@ -3,8 +3,8 @@
 ;;; Loaded by extractor_worker.lisp. Defines the :ICHI-TRACE package.
 ;;; Wraps named functions with a recorder that:
 ;;;   1. forwards to the original definition,
-;;;   2. captures (args, result) as readably-printed Lisp strings,
-;;;   3. discards calls whose args or result aren't primitive-printable
+;;;   2. captures (args, result) as JSON strings (TO-JSON-STRING),
+;;;   3. discards calls whose args or result a projector can't flatten
 ;;;      (closures, instances, hash-tables, opaque structs).
 ;;;
 ;;; The worker pulls captures via DRAIN between requests; the FastAPI
@@ -35,71 +35,25 @@
 ;; deliberately NOT bound around the call to BASIC-DEF, so inner calls
 ;; to other installed fns ARE captured — that's the whole point of
 ;; installing internal callees alongside entry points. The guard exists
-;; purely to keep safe-prin1 (or anything it triggers) from re-entering
-;; the recorder and corrupting *captures*.
+;; purely to keep the projector/serializer (or anything they trigger)
+;; from re-entering the recorder and corrupting *captures*.
 (defparameter *in-recorder* nil)
 
 ;; FQN string -> (sym . result-projector-or-nil) for every fn currently
 ;; encapsulated. The projector is a function called on RESULTS (the
-;; multiple-value-list of the original return) before SAFE-PRIN1, so
+;; multiple-value-list of the original return) before TO-JSON-STRING, so
 ;; non-readable shapes (DAO instances, opaque structs) can be flattened
-;; into primitive-printable plists per-FQN before capture. NIL means
-;; the raw RESULTS goes to SAFE-PRIN1 unchanged (the original behavior).
+;; into jsown-compatible trees per-FQN before capture. NIL means the raw
+;; RESULTS goes to the JSON encoder unchanged.
 (defparameter *installed* (make-hash-table :test 'equal))
 
 ;; List of (fqn args-string result-string), most-recent first. DRAIN
 ;; reverses to chronological order on the way out.
 (defparameter *captures* nil)
 
-;; Skip counter: incremented when args or result fail the primitive
-;; gate. Diagnostic; cleared by CLEAR/DRAIN.
+;; Skip counter: incremented when a projector signals an error and the
+;; call can't be serialized. Diagnostic; cleared by CLEAR/DRAIN.
 (defparameter *skipped* 0)
-
-
-;; --- printability gate -----------------------------------------------------
-
-(defun primitive-p (v)
-  "True if V's printed representation can round-trip via READ. Filters
-   out values whose prin1 produces #<...> syntax that LEXPR can't
-   parse on the Rust replay side."
-  (typecase v
-    ((or null number character string keyword) t)
-    (symbol (and (symbol-package v) t))
-    (cons (and (primitive-p (car v))
-               (primitive-p (cdr v))))
-    ((simple-array t (*)) (every #'primitive-p (coerce v 'list)))
-    (vector (every #'primitive-p (coerce v 'list)))
-    (t nil)))
-
-(defun tag-chars (v)
-  "Recursively replace every CHARACTER inside V with the tagged list
-   (:CHAR <codepoint>). The Rust replay parser deliberately doesn't
-   ship a Unicode-name table — without this tagging, real captures
-   contain forms like #\\HIRAGANA_LETTER_HA that no S-expr reader
-   on the Rust side resolves. (:CHAR n) is just a 2-element list,
-   readable by anything."
-  (typecase v
-    (character (list :char (char-code v)))
-    (cons      (cons (tag-chars (car v)) (tag-chars (cdr v))))
-    (vector    (if (stringp v) v (map 'vector #'tag-chars v)))
-    (t         v)))
-
-(defun safe-prin1 (v)
-  "Return V's prin1 string, or NIL if V is not primitive-printable.
-   *PRINT-READABLY* is bound true so strings keep their quotes and
-   escapes in a form the Rust S-expr parser can parse back. Characters
-   are pre-walked into (:CHAR codepoint) form to dodge Unicode-name
-   syntax SBCL would otherwise emit."
-  (when (primitive-p v)
-    (handler-case
-        (let ((tagged (tag-chars v))
-              (*print-readably* t)
-              (*print-circle* t)
-              (*print-pretty* nil)
-              (*print-length* nil)
-              (*print-level* nil))
-          (with-output-to-string (s) (prin1 tagged s)))
-      (error () nil))))
 
 
 ;; --- recorder factory ------------------------------------------------------
@@ -132,27 +86,22 @@
       value))
 
 (defun default-arg-projector ()
-  (let ((sym (find-symbol "FLATTEN-ARGS" :ichi-projectors)))
+  (let ((sym (find-symbol "FLATTEN-ARGS-JSON" :ichi-projectors-json)))
     (and sym (fboundp sym) (symbol-function sym))))
 
 (defun default-result-projector ()
-  (let ((sym (find-symbol "FLATTEN-RESULTS" :ichi-projectors)))
+  (let ((sym (find-symbol "FLATTEN-RESULTS-JSON" :ichi-projectors-json)))
     (and sym (fboundp sym) (symbol-function sym))))
 
 (defun make-recorder (fqn arg-projector result-projector encoder)
   ;; Resolve defaults at recorder-build time. NIL means "no projection";
   ;; install passes T to mean "use the package default flatten".
   ;;
-  ;; ENCODER selects the serializer applied to the projector output:
-  ;;   :sexp (default) — SAFE-PRIN1, producing Lisp source text. The
-  ;;     Rust audit side parses via the hand-rolled kani::sexp reader.
-  ;;     This is the legacy path; all FQNs use it unless overridden.
-  ;;   :json — TO-JSON-STRING from :ichi-projectors-json. Produces JSON
-  ;;     suitable for serde_json on the Rust audit side. Projectors must
-  ;;     return jsown-compatible trees (lists for arrays, (:obj (k . v)
-  ;;     ...) for objects), not the raw tagged-plist form that the
-  ;;     legacy s-expr projector produces. Pair with the JSON projector
-  ;;     package's FLATTEN-ARGS-JSON / FLATTEN-RESULTS-JSON.
+  ;; ENCODER must be :JSON — the projector output is serialized with
+  ;; TO-JSON-STRING from :ichi-projectors-json, producing JSON the audit
+  ;; loader reads with serde_json. Projectors return jsown-compatible
+  ;; trees (lists for arrays, (:obj (k . v) ...) for objects); the
+  ;; default projectors are FLATTEN-ARGS-JSON / FLATTEN-RESULTS-JSON.
   ;;
   ;; Re-entrance guard scope: *in-recorder* is bound only around the
   ;; projector and serializer calls. Their internals can themselves call
@@ -166,12 +115,11 @@
         (result-fn (cond ((eq result-projector t) (default-result-projector))
                          (t result-projector)))
         (serialize (ecase encoder
-                     (:sexp (lambda (v) (safe-prin1 v)))
                      (:json (let ((sym (find-symbol "TO-JSON-STRING"
                                                     :ichi-projectors-json)))
                               (unless (and sym (fboundp sym))
                                 (error "ICHI-PROJECTORS-JSON:TO-JSON-STRING not available — \
-                                        load projectors_json.lisp before installing with :encoder :json"))
+                                        load projectors_json.lisp before installing"))
                               (let ((encoder-fn (symbol-function sym)))
                                 (lambda (v)
                                   (handler-case (funcall encoder-fn v)
@@ -226,22 +174,18 @@
 
 ;; --- public API ------------------------------------------------------------
 
-(defun install (fqn-string &key (arg-projector t) (result-projector t) (encoder :sexp))
+(defun install (fqn-string &key (arg-projector t) (result-projector t) (encoder :json))
   "Install a recorder for FQN-STRING. ARG-PROJECTOR / RESULT-PROJECTOR
    each accept three values: T (default) uses the package-level
-   ICHI-PROJECTORS:FLATTEN-ARGS / FLATTEN-RESULTS generic flatten;
+   ICHI-PROJECTORS-JSON:FLATTEN-ARGS-JSON / FLATTEN-RESULTS-JSON;
    a function value is called as a custom projector (it receives the
    raw args list / multiple-value-list of the return); NIL disables
    projection on that side and the raw value goes straight to the
-   selected ENCODER.
+   encoder.
 
-   ENCODER controls the serializer:
-     :SEXP (default) — SAFE-PRIN1 of the projector output (legacy).
-     :JSON           — ICHI-PROJECTORS-JSON:TO-JSON-STRING of the
-                       projector output. Projectors must return
-                       jsown-compatible trees; usually paired with
-                       :ARG-PROJECTOR ICHI-PROJECTORS-JSON:FLATTEN-ARGS-JSON
-                       and :RESULT-PROJECTOR FLATTEN-RESULTS-JSON.
+   ENCODER must be :JSON — the projector output is serialized with
+   ICHI-PROJECTORS-JSON:TO-JSON-STRING into JSON the audit loader reads
+   with serde_json.
 
    Re-installing swaps the wrapper — the call is NOT idempotent in the
    projector / encoder arguments."

@@ -41,8 +41,6 @@ kaniran-core/            # The Rust transliteration crate. Workspace member at r
     lib.rs               # declares pub mod kani; (and future per-package transliteration modules)
     kani.rs              # kani:: namespace — kaniran infra, NOT transliterations
     kani/
-      fixture.rs         # JSONL fixture envelope + replay parsing (kani::sexp)
-      sexp.rs            # hand-written CL prin1 reader (replaces the old lexpr dep)
       naming.rs          # Lisp FQN -> Rust path (single source of truth, exhaustively tested)
   Cargo.toml
 

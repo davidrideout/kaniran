@@ -852,15 +852,15 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  780. `ichiran:*hepburn-passport*`  — global, romanize.lisp:149  *[ported]*
  781. `ichiran:*kunrei-siki*`  — global, romanize.lisp:201  *[ported]*
  782. `ichiran:rmap-item`  — struct, deromanize.lisp:5  *[ported]*
- 783. `ichiran:*romaji-kana*`  — global, deromanize.lisp:0
+ 783. `ichiran:*romaji-kana*`  — global, deromanize.lisp:0  *[ported]*
  784. `ichiran:has-successors`  — fn, deromanize.lisp:11  *[ported]*
- 785. `ichiran:*romaji-kana-next*`  — global, deromanize.lisp:21
+ 785. `ichiran:*romaji-kana-next*`  — global, deromanize.lisp:21  *[ported]*
  786. `ichiran:kana-representation`  — struct, deromanize.lisp:23  *[ported]*
- 787. `ichiran:possible-long-vowel-p`  — fn, deromanize.lisp:30
+ 787. `ichiran:possible-long-vowel-p`  — fn, deromanize.lisp:30  *[ported]*
  788. `ichiran:apply-rmap-item`  — fn, deromanize.lisp:35
- 789. `ichiran:join-branches`  — fn, deromanize.lisp:54
+ 789. `ichiran:join-branches`  — fn, deromanize.lisp:54  *[ported]*
  790. `ichiran:kr-concat`  — fn, deromanize.lisp:23
- 791. `ichiran:load-romaji-kana`  — fn, deromanize.lisp:5
+ 791. `ichiran:load-romaji-kana`  — fn, deromanize.lisp:5  *[ported]*
  792. `ichiran:get-romaji-kana`  — fn, deromanize.lisp:5
  793. `ichiran:romaji-next`  — fn, deromanize.lisp:46
  794. `ichiran:branches-next`  — fn, deromanize.lisp:69

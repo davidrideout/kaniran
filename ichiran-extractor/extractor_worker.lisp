@@ -41,13 +41,14 @@
 ;; The entries listed here exercise the 'characters' preprocessing
 ;; pipeline; their internal calls into other installed fns get captured
 ;; via the encapsulate hooks regardless.
-;; chunk-D (synergies / penalties / segfilters) reaches its targets via
-;; romanize*'s scoring path (gen-score -> get-synergies / get-penalties /
-;; apply-segfilters), so the single romanize* pass suffices — matching the
-;; D1a synergy run. (call-entries keeps the ICHIRAN:ROMANIZE:KANA marker
-;; special-case for other chunks; it's just unused here.)
+;; Romanize JSON chunk (2026-05-25): capture the e2e complete-result JSON —
+;; exactly the CLI's --full output, (jsown:to-json (romanize* text :limit 5)).
+;; There's no single ichiran fn for it (cli.lisp builds it inline), so the
+;; driver is the worker-local wrapper ROMANIZE-FULL-JSON defined below; its
+;; result is a plain JSON string. Structured romanize/romanize* capture is
+;; deferred to a later run.
 (defparameter *entry-points*
-  '("ICHIRAN:ROMANIZE*"))
+  '("CL-USER::ROMANIZE-FULL-JSON"))
 
 (defun call-entry (fqn text)
   "Invoke FQN with TEXT as its single argument. Wrapped in
@@ -280,13 +281,9 @@
 ;; hooked so a worker crash + pool respawn does not silently drop
 ;; instrumentation mid-run. Without this, install state was per-image
 ;; and lost on respawn — replacements came up clean.
-;; Each entry is either a bare FQN string (uses defaults: package-level
-;; flatten projectors + :sexp encoder) or a list `(FQN &key arg-projector
+;; Each entry is either a bare FQN string (uses defaults: the JSON
+;; flatten projectors + :json encoder) or a list `(FQN &key arg-projector
 ;; result-projector encoder)` passed to ICHI-TRACE:INSTALL via APPLY.
-;;
-;; All entries use the JSON projector + JSON encoder so the resulting
-;; parquet feeds straight into `kaniran-core/audit/<pkg>/<fqn>_test.rs`
-;; runners.
 
 ;; Extend *omit-slots* to break the segment-list / segment `top` ->
 ;; top-array -> top-array-item.payload -> segment-list cycle. Without
@@ -308,41 +305,34 @@
                 ;; are reconstructable from class-name alone.
                 (ichiran::generic-romanization ichiran::kana-table))))
 
-;; chunk-D batch D1b (2026-05-24): the 8 trigger-pattern synergies.
-;; Continuation of the D1a synergy run (GET-SYNERGIES + 9 common
-;; synergies, captured 2026-05-17). Trimmed from the 12-FQN Group D —
-;; get-penalties / penalty-short / penalty-semi-final / apply-segfilters
-;; were dropped: at 12 FQNs the per-sentence segment-list payload drove a
-;; 2.55% worker-heap-death rate on long sentences (vs D1a's 0.91% at 10),
-;; with apply-segfilters the largest contributor. Penalties + segfilters
-;; run as a separate batch later. (Echoes the original D1 split that
-;; OOMed the aiohttp wire at 21 FQNs — see chunk_d1_bulk.log.)
-;;
-;; Same JSON projector + :json encoder as D1a (FLATTEN-ARGS-JSON /
-;; FLATTEN-RESULTS-JSON) so the parquet feeds the existing
-;; kaniran-core/audit/dict/synergy_*_test.rs runners. All 8 are called on
-;; every adjacent segment-list pair via get-synergies in the scoring path
-;; (return nil unless their trigger filter matches). The segment-list
-;; `top` cycle and the romanize kana-table hash are broken by
-;; *omit-slots* above.
+;; Romanize JSON chunk (2026-05-25). The complete-result JSON depends on
+;; ichiran's custom jsown method for word-info objects, which lives in
+;; cli.lisp (the separate :ichiran/cli asdf system) and is NOT part of the
+;; base :ichiran image the worker boots from. Define it here so to-json
+;; renders each word instead of erroring on the CLOS object. Mirrors the
+;; cli.lisp one-liner verbatim.
+(defmethod jsown:to-json ((wi ichiran/dict:word-info))
+  (jsown:to-json (ichiran/dict:word-info-gloss-json wi)))
+
+;; e2e driver: exactly the CLI --full expression. Input is the sentence,
+;; output is the complete JSON string. Capture with the JSON projector +
+;; :json encoder (like every other audit FQN) so the args/result columns
+;; are JSON — the audit loader (kaniran-core/audit/common) parses every
+;; column with serde_json. FLATTEN-RESULTS-JSON on a plain string yields
+;; the one-element array ["<json>"] the runner's single_result expects
+;; (same shape chunk A captured for romanize-word-info's string result).
+(defun romanize-full-json (text)
+  (jsown:to-json (ichiran:romanize* text :limit 5)))
+
 (defparameter *boot-install-fqns*
   (let ((arg-fn    (symbol-function (find-symbol "FLATTEN-ARGS-JSON"
                                                  :ichi-projectors-json)))
         (result-fn (symbol-function (find-symbol "FLATTEN-RESULTS-JSON"
                                                  :ichi-projectors-json))))
-    (mapcar (lambda (fqn)
-              (list fqn
-                    :arg-projector arg-fn
-                    :result-projector result-fn
-                    :encoder :json))
-            '("ICHIRAN/DICT:SYNERGY-SUFFIX-BURI"
-              "ICHIRAN/DICT:SYNERGY-SUFFIX-SEI"
-              "ICHIRAN/DICT:SYNERGY-O-PREFIX"
-              "ICHIRAN/DICT:SYNERGY-KANJI-PREFIX"
-              "ICHIRAN/DICT:SYNERGY-SHICHA-IKENAI"
-              "ICHIRAN/DICT:SYNERGY-SHIKA-NEGATIVE"
-              "ICHIRAN/DICT:SYNERGY-NO-TOORI"
-              "ICHIRAN/DICT:SYNERGY-OKI"))))
+    (list (list "CL-USER::ROMANIZE-FULL-JSON"
+                :arg-projector arg-fn
+                :result-projector result-fn
+                :encoder :json))))
 
 (handler-case
     (ichi-trace:install-many *boot-install-fqns*)

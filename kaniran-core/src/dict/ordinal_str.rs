@@ -2,10 +2,7 @@
 //!
 //! Renders `n` as an English ordinal — "1st", "22nd", "113th", etc.
 //! Used by `value-string` (`dict-counters.lisp:46`) when the counter
-//! is flagged `ordinalp`. Produces a `simple-base-string` upstream
-//! (via `format nil`); fixture rows therefore carry results as
-//! `#A((N) BASE-CHAR . "<string>")` literals, parsed by
-//! [`crate::kani::sexp`].
+//! is flagged `ordinalp`.
 //!
 //! ## Modular arithmetic
 //!
