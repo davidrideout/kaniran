@@ -327,7 +327,7 @@ ichiran/dict:find-word,find-word,ichiran/dict,dict.lisp,489,fn,ported,,15fqn_com
 ichiran/dict:find-word-as-hiragana,find-word-as-hiragana,ichiran/dict,dict.lisp,592,fn,ported,,15fqn_combined_2026_05_11,30/30
 ichiran/dict:find-word-conj-of,find-word-conj-of,ichiran/dict,dict-grammar.lisp,77,fn,ported,,,
 ichiran/dict:find-word-full,find-word-full,ichiran/dict,dict.lisp,1052,fn,ported,,find_word_layer_2026_05_21,
-ichiran/dict:find-word-info,find-word-info,ichiran/dict,dict.lisp,1850,fn,pending,,,
+ichiran/dict:find-word-info,find-word-info,ichiran/dict,dict.lisp,1850,fn,ported,,,
 ichiran/dict:find-word-info-json,find-word-info-json,ichiran/dict,dict.lisp,1872,fn,pending,,,
 ichiran/dict:find-word-kana-pattern,find-word-kana-pattern,ichiran/dict,dict.lisp,1877,fn,skip,Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.,,
 ichiran/dict:find-word-seq,find-word-seq,ichiran/dict,dict-grammar.lisp,73,fn,ported,,,

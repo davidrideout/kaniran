@@ -147,6 +147,7 @@ pub mod find_word;
 pub mod find_word_as_hiragana;
 pub mod find_word_conj_of;
 pub mod find_word_full;
+pub mod find_word_info;
 pub mod find_word_seq;
 pub mod find_word_suffix;
 pub mod find_word_with_conj_prop;

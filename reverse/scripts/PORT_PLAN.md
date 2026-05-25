@@ -797,7 +797,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  725. `ichiran/dict:filter-is-pos`  — macro, dict-grammar.lisp:772  *[ported]*
  726. `ichiran/dict:find-word-kana-pattern`  — fn, dict.lisp:1877
  727. `ichiran/dict:find-kanji-for-pattern`  — fn, dict.lisp:1882
- 728. `ichiran/dict:find-word-info`  — fn, dict.lisp:1850
+ 728. `ichiran/dict:find-word-info`  — fn, dict.lisp:1850  *[ported]*
  729. `ichiran/dict:word-info-reading`  — fn, dict.lisp:1445
  730. `ichiran/dict:word-info-gloss-json`  — fn, dict.lisp:1784
  731. `ichiran/dict:find-word-info-json`  — fn, dict.lisp:1872
