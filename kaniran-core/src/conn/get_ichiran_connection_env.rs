@@ -26,6 +26,15 @@ pub fn get_ichiran_connection_env() -> Result<Option<String>, Error> {
         .add_source(File::with_name("kaniran").required(false))
         .add_source(Environment::default())
         .build()?;
+    connection_url_from_config(&cfg)
+}
+
+/// The resolved-value decision: empty / whitespace → [`None`], a
+/// present non-empty value → [`Some`], a missing key → [`None`], any
+/// other read error → [`Error`]. Factored out so it can be exercised
+/// against an explicitly-built [`Config`] without mutating the
+/// process-global environment.
+fn connection_url_from_config(cfg: &Config) -> Result<Option<String>, Error> {
     let key = DATABASE_URL.to_ascii_lowercase();
     match cfg.get_string(&key) {
         Ok(s) if s.trim().is_empty() => Ok(None),
@@ -38,61 +47,55 @@ pub fn get_ichiran_connection_env() -> Result<Option<String>, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
 
-    // Env-var mutation isn't thread-safe; tests serialize on this lock
-    // so cargo's parallel test runner doesn't race them against each
-    // other.
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
+    // Build a Config carrying an explicit `database_url` override —
+    // exercises the same `get_string(&key)` → match path the env
+    // overlay feeds, without touching the process-global environment
+    // (which `from_env` callers across the crate read concurrently).
+    fn config_with(database_url: Option<&str>) -> Config {
+        let builder = Config::builder();
+        let builder = match database_url {
+            Some(v) => builder
+                .set_override(DATABASE_URL.to_ascii_lowercase(), v)
+                .unwrap(),
+            None => builder,
+        };
+        builder.build().unwrap()
+    }
 
-    fn with_env<F: FnOnce()>(value: Option<&str>, f: F) {
-        let _guard = ENV_LOCK.lock().unwrap();
-        let prior = std::env::var(DATABASE_URL).ok();
-        match value {
-            Some(v) => std::env::set_var(DATABASE_URL, v),
-            None => std::env::remove_var(DATABASE_URL),
+    #[test]
+    fn resolves_override_value() {
+        // (database_url override, expected). Empty / whitespace-only and
+        // a missing key all collapse to None; a present non-empty value
+        // passes through unchanged.
+        let cases: &[(Option<&str>, Option<&str>)] = &[
+            (Some(""), None),
+            (Some("   "), None),
+            (None, None),
+            (
+                Some("postgres://postgres@localhost/jmdict?sslmode=disable"),
+                Some("postgres://postgres@localhost/jmdict?sslmode=disable"),
+            ),
+        ];
+        for (override_value, expected) in cases {
+            let got = connection_url_from_config(&config_with(*override_value)).unwrap();
+            assert_eq!(got.as_deref(), *expected, "override={override_value:?}");
         }
-        f();
-        match prior {
-            Some(v) => std::env::set_var(DATABASE_URL, v),
-            None => std::env::remove_var(DATABASE_URL),
-        }
     }
 
     #[test]
-    fn unset_falls_back_to_config_file() {
-        with_env(None, || {
-            // With DATABASE_URL unset, the layered config falls back to
-            // the `kaniran.toml` value (the env overlay supplies nothing).
-            let from_file = Config::builder()
-                .add_source(File::with_name("kaniran").required(false))
-                .build()
-                .unwrap()
-                .get_string(&DATABASE_URL.to_ascii_lowercase())
-                .ok();
-            assert_eq!(get_ichiran_connection_env().unwrap(), from_file);
-        });
-    }
-
-    #[test]
-    fn empty_yields_none() {
-        with_env(Some(""), || {
-            assert_eq!(get_ichiran_connection_env().unwrap(), None);
-        });
-    }
-
-    #[test]
-    fn whitespace_only_yields_none() {
-        with_env(Some("   "), || {
-            assert_eq!(get_ichiran_connection_env().unwrap(), None);
-        });
-    }
-
-    #[test]
-    fn url_value_passes_through() {
-        let url = "postgres://postgres@localhost/jmdict?sslmode=disable";
-        with_env(Some(url), || {
-            assert_eq!(get_ichiran_connection_env().unwrap().as_deref(), Some(url));
-        });
+    fn config_file_value_passes_through() {
+        // The `kaniran.toml` File source alone (no env overlay) is read
+        // and passed through the same logic — the fallback path when
+        // DATABASE_URL is unset in the environment.
+        let cfg = Config::builder()
+            .add_source(File::with_name("kaniran").required(false))
+            .build()
+            .unwrap();
+        let from_file = cfg
+            .get_string(&DATABASE_URL.to_ascii_lowercase())
+            .ok()
+            .filter(|s| !s.trim().is_empty());
+        assert_eq!(connection_url_from_config(&cfg).unwrap(), from_file);
     }
 }

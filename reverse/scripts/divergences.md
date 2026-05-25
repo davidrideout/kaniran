@@ -12,9 +12,9 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 302 fn/gf
+- Checked: 308 fn/gf
 - Macros (file-existence only): 7
-- Divergences: 25
+- Divergences: 26
 
 ## Divergences
 
@@ -122,6 +122,11 @@ captured Lisp lambda list. New entries should be either:
 
 - file: `kaniran-core/src/dict/query_parents_kanji.rs`
 - drift: arity 3 ≠ Lisp 0 (req=0, opt=0, keys=[]) (ctx-injected; +1 absorbed)
+
+### `ichiran/dict:recalc-entry-stats`
+
+- file: `kaniran-core/src/dict/recalc_entry_stats.rs`
+- drift: arity 2 ≠ Lisp 0 (req=0, opt=0, keys=[]) (ctx-injected; +1 absorbed)
 
 ### `ichiran/dict:split-pos`
 

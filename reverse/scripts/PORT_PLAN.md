@@ -799,21 +799,21 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  727. `ichiran/dict:find-kanji-for-pattern`  — fn, dict.lisp:1882  *[ported]*
  728. `ichiran/dict:find-word-info`  — fn, dict.lisp:1850  *[ported]*
  729. `ichiran/dict:word-info-reading`  — fn, dict.lisp:1445  *[ported]*
- 730. `ichiran/dict:word-info-gloss-json`  — fn, dict.lisp:1784
- 731. `ichiran/dict:find-word-info-json`  — fn, dict.lisp:1872
+ 730. `ichiran/dict:word-info-gloss-json`  — fn, dict.lisp:1784  *[ported]*
+ 731. `ichiran/dict:find-word-info-json`  — fn, dict.lisp:1872  *[ported]*
  732. `ichiran/dict:fix-entities`  — fn, dict-load.lisp:159  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  733. `ichiran/dict:get-kanji-words`  — fn, dict.lisp:1836
  734. `ichiran/dict:init-tables`  — fn, dict-load.lisp:3  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  735. `ichiran/dict:length-multiplier`  — fn, dict.lisp:681
  736. `ichiran/dict:load-best-readings`  — fn, dict-load.lisp:530  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  737. `ichiran/dict:load-conjugations`  — fn, dict-load.lisp:445  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 738. `ichiran/dict:recalc-entry-stats-all`  — fn, dict.lisp:59
+ 738. `ichiran/dict:recalc-entry-stats-all`  — fn, dict.lisp:59  *[ported]*
  739. `ichiran/dict:load-extras`  — fn, dict-load.lisp:183  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  740. `ichiran/dict:load-jmdict`  — fn, dict-load.lisp:168  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 741. `ichiran/dict:recalc-entry-stats`  — fn, dict.lisp:53
+ 741. `ichiran/dict:recalc-entry-stats`  — fn, dict.lisp:53  *[ported]*
  742. `ichiran/dict:word-info-json`  — fn, dict.lisp:1262  *[ported]*
  743. `ichiran/dict:simple-word-info`  — fn, dict.lisp:1282  *[ported]*
- 744. `ichiran/dict:split-kigatsuku`  — fn, dict-split.lisp:298
+ 744. `ichiran/dict:split-kigatsuku`  — fn, dict-split.lisp:298  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
  745. `ichiran/dict:substring-index`  — fn, dict.lisp:1132
  746. `ichiran/dict:suffix-sou-base`  — macro, dict-grammar.lisp:445  *[ported]*
  747. `ichiran/dict:word-info-from-text`  — fn, dict.lisp:1382
