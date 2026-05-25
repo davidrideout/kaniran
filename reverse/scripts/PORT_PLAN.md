@@ -573,7 +573,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  505. `ichiran/dict:filter-props`  — fn, dict.lisp:1627  *[ported]*
  506. `ichiran/dict:select-conjs`  — fn, dict.lisp:1604  *[ported]*
  507. `ichiran/dict:select-conjs-and-props`  — fn, dict.lisp:1640  *[ported]*
- 508. `ichiran/dict:print-conj-info`  — fn, dict.lisp:1649
+ 508. `ichiran/dict:print-conj-info`  — fn, dict.lisp:1649  *[ported]*
  509. `ichiran/dict:query-parents-kana`  — fn, dict.lisp:415  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 4/4]*
  510. `ichiran/dict:best-kanji-conj`  — fn, dict.lisp:457  *[ported]*  *[extracted: chunk_c_2026_05_24]*
  511. `ichiran/dict:get-kanji`  — gf, dict.lisp:0  *[ported]*
