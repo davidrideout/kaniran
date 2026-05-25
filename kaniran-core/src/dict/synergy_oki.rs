@@ -12,54 +12,36 @@
 //! - The `filter-is-pos` filter (`dict-grammar.lisp:952`) is built via
 //!   [`filter_is_pos`]; the `kpcl-test` body is `t` (unconditional),
 //!   so only the posi membership decides.
-//! - The macro call omits `:description`, so the slot is `nil` —
-//!   mapped to [`None`] per [`Synergy::description`]
-//!   (`synergy-struct` doc-comment notes some synergies leave it nil).
+//! - The macro call omits `:description`, so the slot is `nil`, mapped
+//!   to `None`.
 //! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
 //!   moves to the `*synergy-list*` port (separate wave).
-//!
-//! [`Synergy::description`]: super::synergy_struct::Synergy#structfield.description
 
 use std::sync::Arc;
 
+use super::def_generic_synergy_macro::{def_generic_synergy_body, DefGenericSynergyOpts};
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::filter_is_pos_macro::filter_is_pos;
-use super::kani_lite_segment::{KaniLiteSegment, POS_CTR};
-use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
+use super::kani_lite_segment::POS_CTR;
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 use super::synergy_struct::Synergy;
 
 pub fn synergy_oki(
     l: &KaniLiteSegmentList,
     r: &KaniLiteSegmentList,
 ) -> Vec<(Arc<KaniLiteSegmentList>, Synergy, Arc<KaniLiteSegmentList>)> {
-    let start = l.end;
-    let end = r.start;
-    // dict-grammar.lisp:731-746 (def-generic-synergy expansion)
-    if start != end {
-        return vec![];
-    }
-    // dict-grammar.lisp:952 (filter-is-pos ("ctr") t)
-    let test_left = filter_is_pos(POS_CTR, |_k, _p, _c, _l| true);
-    let test_right = filter_in_seq_set(vec![2854117, 2084550]);
-    let left: Vec<Arc<KaniLiteSegment>> =
-        l.segments.iter().filter(|s| test_left(s)).cloned().collect();
-    let right: Vec<Arc<KaniLiteSegment>> =
-        r.segments.iter().filter(|s| test_right(s)).cloned().collect();
-    if left.is_empty() || right.is_empty() {
-        return vec![];
-    }
-    let syn = Synergy {
-        description: None,
-        connector: Some(String::new()),
-        score: 20,
-        start,
-        end,
-    };
-    vec![(
-        Arc::new(make_kani_lite_segment_list_from(r, right)),
-        syn,
-        Arc::new(make_kani_lite_segment_list_from(l, left)),
-    )]
+    def_generic_synergy_body(
+        l,
+        r,
+        // dict-grammar.lisp:952 (filter-is-pos ("ctr") t)
+        filter_is_pos(POS_CTR, |_k, _p, _c, _l| true),
+        filter_in_seq_set(vec![2854117, 2084550]),
+        &DefGenericSynergyOpts {
+            description: None,
+            connector: "",
+            score: 20,
+        },
+    )
 }
 
 #[cfg(test)]

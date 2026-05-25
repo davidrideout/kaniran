@@ -275,7 +275,7 @@ ichiran/dict:def-de-split,def-de-split,ichiran/dict,dict-split.lisp,81,macro,ski
 ichiran/dict:def-do-split,def-do-split,ichiran/dict,dict-split.lisp,181,macro,skip,"DSL definer (CONVENTIONS §4.6 case (a)); second-order macro expanding to def-simple-split. Its 4 callsites (dict-split.lisp:177-183) each register a split-do-<seq> fn into *split-map* with the fixed shape [(seq-a 1) (seq-b)] score 30, default seq-a 2252690 (ど). All 4 are captured as data rows in SPLIT_TABLE (_star_split_map_star_.rs), wired into split_map_dispatch via run_split; the def-simple-split expansion shape itself is kani_split_engine::run_split. Nothing left to translate.",,
 ichiran/dict:def-easy-hint,def-easy-hint,ichiran/dict,dict-split.lisp,955,macro,skip,DSL definer (§4.6 case (a)). Expands to (push seq *easy-hints-seqs*) + (defhint (seq) ...). The shared body lives in kani_hint_engine::run_easy_hint; per-callsite data lives in _star_hint_map_star_.rs::EASY_HINTS (431 rows).,,
 ichiran/dict:def-generic-penalty,def-generic-penalty,ichiran/dict,dict-grammar.lisp,984,macro,ported,,,
-ichiran/dict:def-generic-synergy,def-generic-synergy,ichiran/dict,dict-grammar.lisp,739,macro,pending,,,
+ichiran/dict:def-generic-synergy,def-generic-synergy,ichiran/dict,dict-grammar.lisp,739,macro,ported,,,
 ichiran/dict:def-reader-for-json,def-reader-for-json,ichiran/dict,dict.lisp,1289,macro,pending,,,
 ichiran/dict:def-segfilter-must-follow,def-segfilter-must-follow,ichiran/dict,dict-grammar.lisp,1049,macro,ported,,,
 ichiran/dict:def-shi-split,def-shi-split,ichiran/dict,dict-split.lisp,191,macro,pending,,,

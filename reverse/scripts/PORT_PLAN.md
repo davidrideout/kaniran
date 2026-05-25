@@ -780,7 +780,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  708. `ichiran/dict:defpenalty`  — macro, dict-grammar.lisp:981  *[skip — DSL definer (§4.6 case (a)): expands to (defun name ...) + (pushnew name *penalty-list*). Each penalty is its own pub fn (penalty_short, penalty_semi_final); the pushnew registration is captured in _star_penalty_list_star_::PENALTY_LIST. No port file.]*
  709. `ichiran/dict:def-generic-penalty`  — macro, dict-grammar.lisp:984  *[ported]*
  710. `ichiran/dict:defsynergy`  — macro, dict-grammar.lisp:738  *[skip — DSL definer (§4.6 case (a)): expands to (defun name ...) + (pushnew name *synergy-list*). Each synergy is its own pub fn (synergy_no_adjectives, synergy_oki, …); the pushnew registration is captured in _star_synergy_list_star_::SYNERGY_LIST (wired into get_synergies). No port file.]*
- 711. `ichiran/dict:def-generic-synergy`  — macro, dict-grammar.lisp:739
+ 711. `ichiran/dict:def-generic-synergy`  — macro, dict-grammar.lisp:739  *[ported]*
  712. `ichiran/dict:def-reader-for-json`  — macro, dict.lisp:1289
  713. `ichiran/dict:defsegfilter`  — macro, dict-grammar.lisp:1043  *[skip — DSL definer (§4.6 case (a)) — only effect is pushnew into *segfilter-list*, captured as the static SEGFILTER_LIST slice in dict/_star_segfilter_list_star_.rs]*
  714. `ichiran/dict:def-segfilter-must-follow`  — macro, dict-grammar.lisp:1049  *[ported]*

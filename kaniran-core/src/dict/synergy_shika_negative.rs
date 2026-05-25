@@ -15,47 +15,33 @@
 //! Divergences from Lisp:
 //! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
 //!   moves to the `*synergy-list*` port (separate wave).
-//! - The right-side `lambda` is inlined; `some` returns the first
-//!   non-nil result from `(conj-neg (conj-data-prop cdata))`. The lite
-//!   layer precomputes this as [`KaniLiteSegment::conj_has_neg`].
+//! - The right-side `lambda` is inlined as `|s| s.conj_has_neg`; the
+//!   lite layer precomputes `(some (conj-neg (conj-data-prop cdata)))`
+//!   over `:conj` as the `KaniLiteSegment::conj_has_neg` field.
 
 use std::sync::Arc;
 
+use super::def_generic_synergy_macro::{def_generic_synergy_body, DefGenericSynergyOpts};
 use super::filter_in_seq_set::filter_in_seq_set;
-use super::kani_lite_segment::KaniLiteSegment;
-use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 use super::synergy_struct::Synergy;
 
 pub fn synergy_shika_negative(
     l: &KaniLiteSegmentList,
     r: &KaniLiteSegmentList,
 ) -> Vec<(Arc<KaniLiteSegmentList>, Synergy, Arc<KaniLiteSegmentList>)> {
-    let start = l.end;
-    let end = r.start;
-    // dict-grammar.lisp:731-746 (def-generic-synergy expansion)
-    if start != end {
-        return vec![];
-    }
-    let test_left = filter_in_seq_set(vec![1005460]);
-    let left: Vec<Arc<KaniLiteSegment>> =
-        l.segments.iter().filter(|s| test_left(s)).cloned().collect();
-    let right: Vec<Arc<KaniLiteSegment>> =
-        r.segments.iter().filter(|s| s.conj_has_neg).cloned().collect();
-    if left.is_empty() || right.is_empty() {
-        return vec![];
-    }
-    let syn = Synergy {
-        description: Some("shika+neg".to_string()),
-        connector: Some(" ".to_string()),
-        score: 50,
-        start,
-        end,
-    };
-    vec![(
-        Arc::new(make_kani_lite_segment_list_from(r, right)),
-        syn,
-        Arc::new(make_kani_lite_segment_list_from(l, left)),
-    )]
+    def_generic_synergy_body(
+        l,
+        r,
+        filter_in_seq_set(vec![1005460]),
+        // dict-grammar.lisp:936-939 (lambda (some (conj-neg (conj-data-prop cdata)) :conj))
+        |s| s.conj_has_neg,
+        &DefGenericSynergyOpts {
+            description: Some("shika+neg"),
+            connector: " ",
+            score: 50,
+        },
+    )
 }
 
 #[cfg(test)]

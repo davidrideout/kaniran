@@ -15,42 +15,27 @@
 
 use std::sync::Arc;
 
+use super::def_generic_synergy_macro::{def_generic_synergy_body, DefGenericSynergyOpts};
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::filter_is_noun::filter_is_noun;
-use super::kani_lite_segment::KaniLiteSegment;
-use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 use super::synergy_struct::Synergy;
 
 pub fn synergy_suffix_tachi(
     l: &KaniLiteSegmentList,
     r: &KaniLiteSegmentList,
 ) -> Vec<(Arc<KaniLiteSegmentList>, Synergy, Arc<KaniLiteSegmentList>)> {
-    let start = l.end;
-    let end = r.start;
-    // dict-grammar.lisp:731-746 (def-generic-synergy expansion)
-    if start != end {
-        return vec![];
-    }
-    let test_right = filter_in_seq_set(vec![1416220]);
-    let left: Vec<Arc<KaniLiteSegment>> =
-        l.segments.iter().filter(|s| filter_is_noun(s)).cloned().collect();
-    let right: Vec<Arc<KaniLiteSegment>> =
-        r.segments.iter().filter(|s| test_right(s)).cloned().collect();
-    if left.is_empty() || right.is_empty() {
-        return vec![];
-    }
-    let syn = Synergy {
-        description: Some("suffix-tachi".to_string()),
-        connector: Some("-".to_string()),
-        score: 10,
-        start,
-        end,
-    };
-    vec![(
-        Arc::new(make_kani_lite_segment_list_from(r, right)),
-        syn,
-        Arc::new(make_kani_lite_segment_list_from(l, left)),
-    )]
+    def_generic_synergy_body(
+        l,
+        r,
+        filter_is_noun,
+        filter_in_seq_set(vec![1416220]),
+        &DefGenericSynergyOpts {
+            description: Some("suffix-tachi"),
+            connector: "-",
+            score: 10,
+        },
+    )
 }
 
 #[cfg(test)]

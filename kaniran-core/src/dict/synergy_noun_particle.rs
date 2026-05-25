@@ -9,9 +9,6 @@
 //!   :connector " ")
 //! ```
 //!
-//! The score is the only piece that varies: `10 + 4 * (r.end - r.start)`,
-//! so a particle that occupies more characters scores higher.
-//!
 //! Divergences from Lisp:
 //! - `(apply #'filter-in-seq-set *noun-particles*)` becomes a direct
 //!   call with the global's slice cloned into a `Vec` — Rust's
@@ -22,45 +19,30 @@
 use std::sync::Arc;
 
 use super::_star_noun_particles_star_::NOUN_PARTICLES;
+use super::def_generic_synergy_macro::{def_generic_synergy_body, DefGenericSynergyOpts};
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::filter_is_noun::filter_is_noun;
-use super::kani_lite_segment::KaniLiteSegment;
-use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 use super::synergy_struct::Synergy;
 
 pub fn synergy_noun_particle(
     l: &KaniLiteSegmentList,
     r: &KaniLiteSegmentList,
 ) -> Vec<(Arc<KaniLiteSegmentList>, Synergy, Arc<KaniLiteSegmentList>)> {
-    let start = l.end;
-    let end = r.start;
-    // dict-grammar.lisp:731-746 (def-generic-synergy expansion)
-    if start != end {
-        return vec![];
-    }
-    let test_right = filter_in_seq_set(NOUN_PARTICLES.to_vec());
-    let left: Vec<Arc<KaniLiteSegment>> =
-        l.segments.iter().filter(|s| filter_is_noun(s)).cloned().collect();
-    let right: Vec<Arc<KaniLiteSegment>> =
-        r.segments.iter().filter(|s| test_right(s)).cloned().collect();
-    if left.is_empty() || right.is_empty() {
-        return vec![];
-    }
-    // dict-grammar.lisp:831 (:score (+ 10 (* 4 (- end start))))
+    // dict-grammar.lisp:831 (:score (+ 10 (* 4 (- (segment-list-end r) (segment-list-start r)))))
     let span = r.end - r.start;
     let score = 10 + 4 * (span as i32);
-    let syn = Synergy {
-        description: Some("noun+prt".to_string()),
-        connector: Some(" ".to_string()),
-        score,
-        start,
-        end,
-    };
-    vec![(
-        Arc::new(make_kani_lite_segment_list_from(r, right)),
-        syn,
-        Arc::new(make_kani_lite_segment_list_from(l, left)),
-    )]
+    def_generic_synergy_body(
+        l,
+        r,
+        filter_is_noun,
+        filter_in_seq_set(NOUN_PARTICLES.to_vec()),
+        &DefGenericSynergyOpts {
+            description: Some("noun+prt"),
+            connector: " ",
+            score,
+        },
+    )
 }
 
 #[cfg(test)]

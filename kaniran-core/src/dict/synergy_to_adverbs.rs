@@ -19,47 +19,32 @@
 
 use std::sync::Arc;
 
+use super::def_generic_synergy_macro::{def_generic_synergy_body, DefGenericSynergyOpts};
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::filter_is_pos_macro::filter_is_pos;
-use super::kani_lite_segment::{KaniLiteSegment, POS_ADV_TO};
-use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
+use super::kani_lite_segment::POS_ADV_TO;
+use super::kani_lite_segment_list::KaniLiteSegmentList;
 use super::synergy_struct::Synergy;
 
 pub fn synergy_to_adverbs(
     l: &KaniLiteSegmentList,
     r: &KaniLiteSegmentList,
 ) -> Vec<(Arc<KaniLiteSegmentList>, Synergy, Arc<KaniLiteSegmentList>)> {
-    let start = l.end;
-    let end = r.start;
-    // dict-grammar.lisp:731-746 (def-generic-synergy expansion)
-    if start != end {
-        return vec![];
-    }
-    // dict-grammar.lisp:878 (filter-is-pos ("adv-to") (or k l p))
-    let test_left = filter_is_pos(POS_ADV_TO, |k, p, _c, l| k || l || p);
-    let test_right = filter_in_seq_set(vec![1008490]);
-    let left: Vec<Arc<KaniLiteSegment>> =
-        l.segments.iter().filter(|s| test_left(s)).cloned().collect();
-    let right: Vec<Arc<KaniLiteSegment>> =
-        r.segments.iter().filter(|s| test_right(s)).cloned().collect();
-    if left.is_empty() || right.is_empty() {
-        return vec![];
-    }
-    // dict-grammar.lisp:881 (:score (+ 10 (* 10 (- (end l) (start l)))))
+    // dict-grammar.lisp:881 (:score (+ 10 (* 10 (- (segment-list-end l) (segment-list-start l)))))
     let span = l.end - l.start;
     let score = 10 + 10 * (span as i32);
-    let syn = Synergy {
-        description: Some("to-adverb".to_string()),
-        connector: Some(" ".to_string()),
-        score,
-        start,
-        end,
-    };
-    vec![(
-        Arc::new(make_kani_lite_segment_list_from(r, right)),
-        syn,
-        Arc::new(make_kani_lite_segment_list_from(l, left)),
-    )]
+    def_generic_synergy_body(
+        l,
+        r,
+        // dict-grammar.lisp:878 (filter-is-pos ("adv-to") (or k l p))
+        filter_is_pos(POS_ADV_TO, |k, p, _c, l| k || l || p),
+        filter_in_seq_set(vec![1008490]),
+        &DefGenericSynergyOpts {
+            description: Some("to-adverb"),
+            connector: " ",
+            score,
+        },
+    )
 }
 
 #[cfg(test)]
