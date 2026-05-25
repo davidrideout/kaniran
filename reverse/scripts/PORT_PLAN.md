@@ -471,7 +471,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  452. `ichiran/dict:get-seg-splits`  — fn, dict.lisp:1175  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
  453. `ichiran/dict:get-segment-score`  — gf, dict.lisp:0  *[ported]*
  454. `ichiran/dict:register-item`  — gf, dict.lisp:0  *[ported]*
- 455. `ichiran/dict:find-best-path`  — fn, dict.lisp:1190  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
+ 455. `ichiran/dict:find-best-path`  — fn, dict.lisp:1190  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*  *[audited 522823/522823]*
  456. `ichiran/dict:*identical-word-score-cutoff*`  — global, dict.lisp:1020  *[ported]*
  457. `ichiran/dict:cull-segments`  — fn, dict.lisp:1027  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*
  458. `ichiran/dict:gen-score`  — fn, dict.lisp:985  *[ported]*  *[extracted: chunk_b_segmentation_2026_05_14]*  *[audited 2251107/2251107]*

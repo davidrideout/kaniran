@@ -317,7 +317,7 @@ ichiran/dict:filter-is-noun,filter-is-noun,ichiran/dict,dict-grammar.lisp,760,fn
 ichiran/dict:filter-is-pos,filter-is-pos,ichiran/dict,dict-grammar.lisp,772,macro,pending,,,
 ichiran/dict:filter-props,filter-props,ichiran/dict,dict.lisp,1627,fn,ported,,,
 ichiran/dict:filter-short-kana,filter-short-kana,ichiran/dict,dict-grammar.lisp,1008,fn,ported,,,
-ichiran/dict:find-best-path,find-best-path,ichiran/dict,dict.lisp,1190,fn,ported,,chunk_b_segmentation_2026_05_14,
+ichiran/dict:find-best-path,find-best-path,ichiran/dict,dict.lisp,1190,fn,ported,,chunk_b_segmentation_2026_05_14,522823/522823
 ichiran/dict:find-conj,find-conj,ichiran/dict,dict-errata.lisp,1,fn,skip,"add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed",,
 ichiran/dict:find-counter,find-counter,ichiran/dict,dict-counters.lisp,273,fn,ported,,counter_2026_05_08,
 ichiran/dict:find-kanji-for-pattern,find-kanji-for-pattern,ichiran/dict,dict.lisp,1882,fn,pending,,,
