@@ -743,7 +743,7 @@ ichiran/dict:top-array,top-array,ichiran/dict,dict.lisp,1140,class,ported,,,
 ichiran/dict:top-array-item,top-array-item,ichiran/dict,dict.lisp,1138,struct,ported,,,
 ichiran/dict:translate-hint-position,translate-hint-position,ichiran/dict,dict-split.lisp,930,fn,ported,,,
 ichiran/dict:translate-hints,translate-hints,ichiran/dict,dict-split.lisp,942,fn,ported,,,
-ichiran/dict:true-kana,true-kana,ichiran/dict,dict.lisp,0,gf,ported,,hint_2026_05_13,
+ichiran/dict:true-kana,true-kana,ichiran/dict,dict.lisp,0,gf,ported,,hint_2026_05_13,442/442
 ichiran/dict:true-kanji,true-kanji,ichiran/dict,dict.lisp,0,gf,ported,,,
 ichiran/dict:true-text,true-text,ichiran/dict,dict.lisp,0,gf,ported,,,
 ichiran/dict:value-string,value-string,ichiran/dict,dict-counters.lisp,0,gf,ported,,counter_2026_05_08,

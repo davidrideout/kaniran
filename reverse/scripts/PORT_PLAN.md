@@ -741,7 +741,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  671. `ichiran/dict:remove-hiragana-nokanji`  — fn, dict-errata.lisp:217  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
  672. `ichiran/dict:add-errata`  — fn, dict-errata.lisp:289  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
  673. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 674. `ichiran/dict:true-kana`  — gf, dict.lisp:0  *[ported]*  *[extracted: hint_2026_05_13]*
+ 674. `ichiran/dict:true-kana`  — gf, dict.lisp:0  *[ported]*  *[extracted: hint_2026_05_13]*  *[audited 442/442]*
  675. `ichiran/dict:true-kanji`  — gf, dict.lisp:0  *[ported]*
  676. `ichiran/kanji:reading`  — dao, kanji.lisp:42  *[ported]*
  677. `ichiran/kanji:get-reading-alternatives`  — fn, kanji.lisp:216  *[ported]*
