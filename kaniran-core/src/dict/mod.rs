@@ -173,6 +173,7 @@ pub mod get_seg_splits;
 pub mod get_segment_score;
 pub mod get_segsplit;
 pub mod get_senses;
+pub mod get_senses_json;
 pub mod get_senses_raw;
 pub mod get_senses_str;
 pub mod get_non_arch_posi;
