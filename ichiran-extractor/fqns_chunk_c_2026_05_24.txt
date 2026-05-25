@@ -1,0 +1,29 @@
+# Group C — conjugation/scoring hot-path + hints + numbers.
+# Driver: per /extract sentence, the worker sweep runs
+#   (romanize* text)              — default method, limit 5 (multi-path)
+#   (romanize  text :method :kana) — simple-segment + strip-hints
+# All 10 below are internal callees captured via the encapsulate hooks.
+#
+# Reachability (verified against romanize.lisp / dict.lisp):
+#   simple-segment      <- romanize (line 269), the :kana pass
+#   strip-hints         <- romanize-word-info :kana branch (line 253)
+#   process-hints       <- romanize-word (line 229)
+#   process-word-info   <- fill-segment-path (every segment)
+#   best-kanji-conj     <- word-info construction / scoring
+#   get-conj-data       <- calc-score / word-conj-data
+#   no-conj-data        <- every get-conj-data
+#   is-arch             <- calc-score
+#   insert-hints        <- get-hint (def-simple-hint / def-easy-hint)
+#   parse-number*       <- counter-text construction (number+counter)
+#
+# Bare FQN => default generic-flatten projector (DAOs / structs / primitives).
+ICHIRAN/DICT:SIMPLE-SEGMENT
+ICHIRAN/DICT:PROCESS-WORD-INFO
+ICHIRAN/DICT:BEST-KANJI-CONJ
+ICHIRAN/DICT:GET-CONJ-DATA
+ICHIRAN/DICT:NO-CONJ-DATA
+ICHIRAN/DICT:IS-ARCH
+ICHIRAN/DICT:PROCESS-HINTS
+ICHIRAN/DICT:STRIP-HINTS
+ICHIRAN/DICT:INSERT-HINTS
+ICHIRAN/NUMBERS:PARSE-NUMBER*

@@ -41,6 +41,11 @@
 ;; The entries listed here exercise the 'characters' preprocessing
 ;; pipeline; their internal calls into other installed fns get captured
 ;; via the encapsulate hooks regardless.
+;; chunk-D (synergies / penalties / segfilters) reaches its targets via
+;; romanize*'s scoring path (gen-score -> get-synergies / get-penalties /
+;; apply-segfilters), so the single romanize* pass suffices — matching the
+;; D1a synergy run. (call-entries keeps the ICHIRAN:ROMANIZE:KANA marker
+;; special-case for other chunks; it's just unused here.)
 (defparameter *entry-points*
   '("ICHIRAN:ROMANIZE*"))
 
@@ -66,6 +71,11 @@
              ((string-equal fqn "ICHIRAN/CHARACTERS:SEQUENTIAL-KANJI-POSITIONS")
               (handler-case
                   (funcall (ichi-trace::resolve-symbol fqn) text 0)
+                (error () nil)))
+             ((string-equal fqn "ICHIRAN:ROMANIZE:KANA")
+              (handler-case
+                  (funcall (ichi-trace::resolve-symbol "ICHIRAN:ROMANIZE")
+                           text :method :kana)
                 (error () nil)))
              (t (call-entry fqn text)))))
 
@@ -298,13 +308,23 @@
                 ;; are reconstructable from class-name alone.
                 (ichiran::generic-romanization ichiran::kana-table))))
 
-;; chunk-d synergies + segfilters + penalties (2026-05-16). 38 FQNs from
-;; docs/extraction-candidates/chunk-d-synergy-segfilter-penalty.md.
+;; chunk-D batch D1b (2026-05-24): the 8 trigger-pattern synergies.
+;; Continuation of the D1a synergy run (GET-SYNERGIES + 9 common
+;; synergies, captured 2026-05-17). Trimmed from the 12-FQN Group D —
+;; get-penalties / penalty-short / penalty-semi-final / apply-segfilters
+;; were dropped: at 12 FQNs the per-sentence segment-list payload drove a
+;; 2.55% worker-heap-death rate on long sentences (vs D1a's 0.91% at 10),
+;; with apply-segfilters the largest contributor. Penalties + segfilters
+;; run as a separate batch later. (Echoes the original D1 split that
+;; OOMed the aiohttp wire at 21 FQNs — see chunk_d1_bulk.log.)
 ;;
-;; Batch D1 (21 FQNs) was originally a single run but the combined per-sentence
-;; payload tripped aiohttp's chunk-size limit and OOMed the wire — see
-;; chunk_d1_bulk.log for the cascade. Split into D1a / D1b. Run D1a first,
-;; then swap the install-set for D1b and redeploy.
+;; Same JSON projector + :json encoder as D1a (FLATTEN-ARGS-JSON /
+;; FLATTEN-RESULTS-JSON) so the parquet feeds the existing
+;; kaniran-core/audit/dict/synergy_*_test.rs runners. All 8 are called on
+;; every adjacent segment-list pair via get-synergies in the scoring path
+;; (return nil unless their trigger filter matches). The segment-list
+;; `top` cycle and the romanize kana-table hash are broken by
+;; *omit-slots* above.
 (defparameter *boot-install-fqns*
   (let ((arg-fn    (symbol-function (find-symbol "FLATTEN-ARGS-JSON"
                                                  :ichi-projectors-json)))
@@ -315,21 +335,14 @@
                     :arg-projector arg-fn
                     :result-projector result-fn
                     :encoder :json))
-            ;; Gap-suffix batch (2026-05-23): the 11 suffix/abbr fns that had
-            ;; zero or thin productive captures in diverse_250k. Re-extract
-            ;; over the 2,342 appended gap sentences (corpus rows >= 250000).
-            '("ICHIRAN/DICT:SUFFIX-SOU"
-              "ICHIRAN/DICT:SUFFIX-KUDASAI"
-              "ICHIRAN/DICT:SUFFIX-DESHO"
-              "ICHIRAN/DICT:SUFFIX-DESU"
-              "ICHIRAN/DICT:ABBR-MEBA"
-              "ICHIRAN/DICT:ABBR-KEBA"
-              "ICHIRAN/DICT:ABBR-GEBA"
-              "ICHIRAN/DICT:ABBR-SEBA"
-              "ICHIRAN/DICT:ABBR-TEBA"
-              "ICHIRAN/DICT:ABBR-NEBA"
-              "ICHIRAN/DICT:ABBR-REBA")
-            )))
+            '("ICHIRAN/DICT:SYNERGY-SUFFIX-BURI"
+              "ICHIRAN/DICT:SYNERGY-SUFFIX-SEI"
+              "ICHIRAN/DICT:SYNERGY-O-PREFIX"
+              "ICHIRAN/DICT:SYNERGY-KANJI-PREFIX"
+              "ICHIRAN/DICT:SYNERGY-SHICHA-IKENAI"
+              "ICHIRAN/DICT:SYNERGY-SHIKA-NEGATIVE"
+              "ICHIRAN/DICT:SYNERGY-NO-TOORI"
+              "ICHIRAN/DICT:SYNERGY-OKI"))))
 
 (handler-case
     (ichi-trace:install-many *boot-install-fqns*)
