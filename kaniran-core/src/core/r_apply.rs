@@ -22,6 +22,7 @@ pub fn r_apply(modifier: KanaClass, method: RomanizationMethod<'_>, cc_tree: &[C
         RomanizationMethod::GenericHepburn(_)
             | RomanizationMethod::SimplifiedHepburn(_)
             | RomanizationMethod::TraditionalHepburn(_)
+            | RomanizationMethod::ModifiedHepburn(_)
     );
     match modifier {
         KanaClass::Sokuon => {

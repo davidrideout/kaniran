@@ -847,13 +847,13 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  775. `ichiran/numbers:*digit-kanji-legal*`  — global, numbers.lisp:5  *[ported]*
  776. `ichiran/numbers:parse-number*`  — fn, numbers.lisp:57  *[ported]*
  777. `ichiran/numbers:parse-number`  — fn, numbers.lisp:77  *[ported]*  *[extracted: counter_2026_05_08]*
- 778. `ichiran:modified-hepburn`  — class, romanize.lisp:162
- 779. `ichiran:*hepburn-modified*`  — global, romanize.lisp:168
- 780. `ichiran:*hepburn-passport*`  — global, romanize.lisp:149
- 781. `ichiran:*kunrei-siki*`  — global, romanize.lisp:201
+ 778. `ichiran:modified-hepburn`  — class, romanize.lisp:162  *[ported]*
+ 779. `ichiran:*hepburn-modified*`  — global, romanize.lisp:168  *[ported]*
+ 780. `ichiran:*hepburn-passport*`  — global, romanize.lisp:149  *[ported]*
+ 781. `ichiran:*kunrei-siki*`  — global, romanize.lisp:201  *[ported]*
  782. `ichiran:rmap-item`  — struct, deromanize.lisp:5  *[ported]*
  783. `ichiran:*romaji-kana*`  — global, deromanize.lisp:0
- 784. `ichiran:has-successors`  — fn, deromanize.lisp:11
+ 784. `ichiran:has-successors`  — fn, deromanize.lisp:11  *[ported]*
  785. `ichiran:*romaji-kana-next*`  — global, deromanize.lisp:21
  786. `ichiran:kana-representation`  — struct, deromanize.lisp:23  *[ported]*
  787. `ichiran:possible-long-vowel-p`  — fn, deromanize.lisp:30

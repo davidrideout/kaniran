@@ -8,6 +8,7 @@ use std::collections::HashMap;
 
 use super::generic_hepburn_class::GenericHepburn;
 use super::kunrei_siki_class::KunreiSiki;
+use super::modified_hepburn_class::ModifiedHepburn;
 use super::simplified_hepburn_class::SimplifiedHepburn;
 use super::traditional_hepburn_class::TraditionalHepburn;
 use crate::characters::kani_kana_class::KanaClass;
@@ -27,13 +28,12 @@ impl GenericRomanization {
 
 /// The `method` argument the `r-*` generics dispatch on — one variant
 /// per instantiated `generic-romanization` subclass (`romanize.lisp:62-201`).
-/// `modified-hepburn` (`romanize.lisp:162`) is pending; its variant joins
-/// the exhaustive matches when that wave lands.
 #[derive(Debug, Clone, Copy)]
 pub enum RomanizationMethod<'a> {
     GenericHepburn(&'a GenericHepburn),
     SimplifiedHepburn(&'a SimplifiedHepburn),
     TraditionalHepburn(&'a TraditionalHepburn),
+    ModifiedHepburn(&'a ModifiedHepburn),
     KunreiSiki(&'a KunreiSiki),
 }
 
@@ -45,6 +45,7 @@ impl RomanizationMethod<'_> {
             RomanizationMethod::GenericHepburn(method) => &method.0.kana_table,
             RomanizationMethod::SimplifiedHepburn(method) => &method.base.0.kana_table,
             RomanizationMethod::TraditionalHepburn(method) => &method.0.base.0.kana_table,
+            RomanizationMethod::ModifiedHepburn(method) => &method.0.base.0.kana_table,
             RomanizationMethod::KunreiSiki(method) => &method.0.kana_table,
         }
     }

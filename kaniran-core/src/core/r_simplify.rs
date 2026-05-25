@@ -12,6 +12,7 @@ pub fn r_simplify(method: RomanizationMethod<'_>, str: &str) -> String {
         RomanizationMethod::GenericHepburn(method) => method.r_simplify(str),
         RomanizationMethod::SimplifiedHepburn(method) => method.r_simplify(str),
         RomanizationMethod::TraditionalHepburn(method) => method.r_simplify(str),
+        RomanizationMethod::ModifiedHepburn(method) => method.r_simplify(str),
         RomanizationMethod::KunreiSiki(method) => method.r_simplify(str),
     }
 }
