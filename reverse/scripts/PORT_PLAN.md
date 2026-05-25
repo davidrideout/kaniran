@@ -757,9 +757,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  687. `ichiran/dict:conj-prop-json`  — fn, dict.lisp:283  *[ported]*
  688. `ichiran/dict:find-words-seqs`  — fn, dict.lisp:520  *[ported]*
  689. `ichiran/dict:get-original-text-once`  — fn, dict.lisp:369  *[ported]*
- 690. `ichiran/dict:match-kana-kanji`  — fn, dict.lisp:1507
- 691. `ichiran/dict:match-sense-restrictions`  — fn, dict.lisp:1515
- 692. `ichiran/dict:split-pos`  — fn, dict.lisp:1535
+ 690. `ichiran/dict:match-kana-kanji`  — fn, dict.lisp:1507  *[ported]*
+ 691. `ichiran/dict:match-sense-restrictions`  — fn, dict.lisp:1515  *[ported]*
+ 692. `ichiran/dict:split-pos`  — fn, dict.lisp:1535  *[ported]*
  693. `ichiran/dict:get-senses-json`  — fn, dict.lisp:1537
  694. **CYCLE (2 symbols — port together)**
         - `ichiran/dict:conj-info-json`  — fn, dict.lisp:1698
