@@ -124,6 +124,7 @@ pub mod entry_dao;
 pub mod entry_info_short;
 pub mod errata_conj_description_hook;
 pub mod errata_conj_rules_hook;
+pub mod exists_reading;
 pub mod expand_segment_list;
 pub mod fill_segment_path;
 pub mod filter_in_seq_set;
