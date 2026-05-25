@@ -755,8 +755,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  685. `ichiran/dict:check-easy-hints`  — fn, dict-split.lisp:950  *[ported]*
  686. `ichiran/dict:common-tags`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  687. `ichiran/dict:conj-prop-json`  — fn, dict.lisp:283  *[ported]*
- 688. `ichiran/dict:find-words-seqs`  — fn, dict.lisp:520
- 689. `ichiran/dict:get-original-text-once`  — fn, dict.lisp:369
+ 688. `ichiran/dict:find-words-seqs`  — fn, dict.lisp:520  *[ported]*
+ 689. `ichiran/dict:get-original-text-once`  — fn, dict.lisp:369  *[ported]*
  690. `ichiran/dict:match-kana-kanji`  — fn, dict.lisp:1507
  691. `ichiran/dict:match-sense-restrictions`  — fn, dict.lisp:1515
  692. `ichiran/dict:split-pos`  — fn, dict.lisp:1535
