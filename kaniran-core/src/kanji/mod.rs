@@ -23,3 +23,4 @@ pub mod match_readings_star_;
 pub mod meaning_dao;
 pub mod okurigana_dao;
 pub mod reading_dao;
+pub mod reading_info_json;

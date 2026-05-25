@@ -831,8 +831,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  759. `ichiran/kanji:init-tables`  — fn, kanji.lisp:98  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  760. `ichiran/kanji:kanji-id`  — gf, kanji.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  761. `ichiran/kanji:stat-common`  — gf, kanji.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
- 762. `ichiran:*hepburn-basic*`  — global, romanize.lisp:144
- 763. `ichiran/kanji:reading-info-json`  — fn, kanji.lisp:354
+ 762. `ichiran:*hepburn-basic*`  — global, romanize.lisp:144  *[ported]*
+ 763. `ichiran/kanji:reading-info-json`  — fn, kanji.lisp:354  *[ported]*
  764. `ichiran/kanji:to-json`  — gf, kanji.lisp:0
  765. `ichiran/kanji:kanji-info-json`  — fn, kanji.lisp:392
  766. `ichiran/kanji:kanji-reading-json`  — fn, kanji.lisp:410  *[ported]*

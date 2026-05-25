@@ -3,6 +3,7 @@
 //! does not shadow the crate root; see [`crate::kani::naming`].
 
 pub mod _star_default_romanization_method_star_;
+pub mod _star_hepburn_basic_star_;
 pub mod _star_hepburn_kana_table_star_;
 pub mod _star_hepburn_simple_star_;
 pub mod _star_hepburn_traditional_star_;
