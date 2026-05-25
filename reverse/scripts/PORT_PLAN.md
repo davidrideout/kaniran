@@ -784,18 +784,18 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  712. `ichiran/dict:def-reader-for-json`  — macro, dict.lisp:1289
  713. `ichiran/dict:defsegfilter`  — macro, dict-grammar.lisp:1043  *[skip — DSL definer (§4.6 case (a)) — only effect is pushnew into *segfilter-list*, captured as the static SEGFILTER_LIST slice in dict/_star_segfilter_list_star_.rs]*
  714. `ichiran/dict:def-segfilter-must-follow`  — macro, dict-grammar.lisp:1049  *[ported]*
- 715. `ichiran/dict:def-shi-split`  — macro, dict-split.lisp:191
+ 715. `ichiran/dict:def-shi-split`  — macro, dict-split.lisp:191  *[skip — DSL definer (CONVENTIONS §4.6 case (a)); 20 callsites captured as data rows in SPLIT_TABLE (_star_split_map_star_.rs).]*
  716. `ichiran/dict:def-simple-hint`  — macro, dict-split.lisp:901  *[skip — DSL definer (§4.6 case (a)). Expands to defhint with a let* prologue + insert-hints call; bodies are inlined as match arms in _star_hint_map_star_.rs::simple_hint_dispatch (17 groups covering 234 callsites).]*
  717. `ichiran/dict:def-simple-suffix`  — macro, dict-grammar.lisp:345  *[ported — CONVENTIONS §4.6 case (a): DSL definer expanding to (defsuffix ...) for stem-aware suffix entries. Per-callsite bodies become standalone functions in the CYCLE 484 unit; the macro's (key . fn-name) registration target is *suffix-list*. No port file.]*
- 718. `ichiran/dict:def-special-counter`  — macro, dict-counters.lisp:361
- 719. `ichiran/dict:def-toori-split`  — macro, dict-split.lisp:143
+ 718. `ichiran/dict:def-special-counter`  — macro, dict-counters.lisp:361  *[skip — Code-emitting DSL definer (CONVENTIONS §4.6 case (c)); 91 callsites captured as closures in build_special_counters (_star_special_counters_star_.rs); args/args-suffix/args-multi helpers ported in kani_counter_args.rs.]*
+ 719. `ichiran/dict:def-toori-split`  — macro, dict-split.lisp:143  *[skip — DSL definer (CONVENTIONS §4.6 case (a)); 13 callsites captured as data rows in SPLIT_TABLE (_star_split_map_star_.rs).]*
  720. `ichiran/dict:delete-duplicate-props`  — fn, dict.lisp:295  *[skip — Build-time DB cleanup: deletes duplicate conj_prop rows produced by load-conjugations (dict-load.lisp:447); conj_prop is populated by the load pipeline, not at runtime. No programmatic caller (invoked manually during DB construction). Using the provided pre-built/deduplicated ichiran DB dump, so no runtime port needed — same bucket as drop-extras and the add-errata delete-* cluster.]*
  721. `ichiran/dict:drop-extras`  — fn, dict-load.lisp:194  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  722. `ichiran/dict:entry-digest`  — fn, dict.lisp:64  *[ported]*
  723. `ichiran/dict:entry-info-long`  — fn, dict.lisp:1601  *[ported]*
  724. `ichiran/dict:exists-reading`  — fn, dict.lisp:1847  *[ported]*
  725. `ichiran/dict:filter-is-pos`  — macro, dict-grammar.lisp:772  *[ported]*
- 726. `ichiran/dict:find-word-kana-pattern`  — fn, dict.lisp:1877  *[skip — Unreachable from romanize* (the corpus driver entry). Lives on JSON-output / lookup-API / no-star romanize entry points. Re-extract with a targeted driver if/when needed.]*
+ 726. `ichiran/dict:find-word-kana-pattern`  — fn, dict.lisp:1877
  727. `ichiran/dict:find-kanji-for-pattern`  — fn, dict.lisp:1882
  728. `ichiran/dict:find-word-info`  — fn, dict.lisp:1850
  729. `ichiran/dict:word-info-reading`  — fn, dict.lisp:1445
