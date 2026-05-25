@@ -97,6 +97,7 @@ pub mod conj_data_prop;
 pub mod conj_data_struct;
 pub mod conj_info_short;
 pub mod conj_prop_dao;
+pub mod conj_prop_json;
 pub mod conj_source_reading_dao;
 pub mod conj_type_order;
 pub mod conjugation_dao;

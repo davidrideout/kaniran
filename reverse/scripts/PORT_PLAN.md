@@ -579,7 +579,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  511. `ichiran/dict:get-kanji`  — gf, dict.lisp:0  *[ported]*
  512. `ichiran/dict:word-info-reading-str`  — fn, dict.lisp:1734  *[ported]*
  513. `ichiran/dict:reading-str`  — gf, dict.lisp:0  *[ported]*
- 514. `ichiran/dict:word-info-str`  — fn, dict.lisp:1747
+ 514. `ichiran/dict:word-info-str`  — fn, dict.lisp:1747  *[ported]*
  515. `ichiran:*hepburn-kana-table*`  — global, romanize.lisp:0  *[ported]*
  516. `ichiran:generic-romanization`  — class, romanize.lisp:62  *[ported]*
  517. `ichiran:generic-hepburn`  — class, romanize.lisp:103  *[ported]*
