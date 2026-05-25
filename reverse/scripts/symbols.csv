@@ -242,8 +242,8 @@ ichiran/dict:compare-common,compare-common,ichiran/dict,dict.lisp,1022,fn,ported
 ichiran/dict:compound-text,compound-text,ichiran/dict,dict.lisp,608,class,ported,,,
 ichiran/dict:conj-data,conj-data,ichiran/dict,dict.lisp,327,struct,ported,,,
 ichiran/dict:conj-id,conj-id,ichiran/dict,dict.lisp,0,gf,skip,Slot-reader gf with no polymorphic callsites; every (id X) / (conj-id X) site has a locally-known DAO type. Each Rust DAO struct exposes pub id: i32 / pub conj_id: i32 directly per CONVENTIONS §4.7.,,
-ichiran/dict:conj-info-json,conj-info-json,ichiran/dict,dict.lisp,1698,fn,pending,,,
-ichiran/dict:conj-info-json*,conj-info-json*,ichiran/dict,dict.lisp,1665,fn,pending,,,
+ichiran/dict:conj-info-json,conj-info-json,ichiran/dict,dict.lisp,1698,fn,ported,,,
+ichiran/dict:conj-info-json*,conj-info-json*,ichiran/dict,dict.lisp,1665,fn,ported,,,
 ichiran/dict:conj-info-short,conj-info-short,ichiran/dict,dict.lisp,275,fn,ported,,,
 ichiran/dict:conj-prop,conj-prop,ichiran/dict,dict.lisp,262,dao,ported,,,
 ichiran/dict:conj-prop-json,conj-prop-json,ichiran/dict,dict.lisp,283,fn,ported,,,
@@ -486,7 +486,7 @@ ichiran/dict:set-reading,set-reading,ichiran/dict,dict-load.lisp,0,gf,skip,"JMdi
 ichiran/dict:short-sense-str,short-sense-str,ichiran/dict,dict.lisp,1562,fn,ported,,,
 ichiran/dict:simple-segment,simple-segment,ichiran/dict,dict.lisp,1456,fn,ported,,,
 ichiran/dict:simple-text,simple-text,ichiran/dict,dict.lisp,69,class,ported,,,
-ichiran/dict:simple-word-info,simple-word-info,ichiran/dict,dict.lisp,1282,fn,pending,,,
+ichiran/dict:simple-word-info,simple-word-info,ichiran/dict,dict.lisp,1282,fn,ported,,,
 ichiran/dict:simplify-reading-list,simplify-reading-list,ichiran/dict,dict.lisp,1704,fn,ported,,chunk_b_segmentation_2026_05_14,
 ichiran/dict:skip-by-conj-data,skip-by-conj-data,ichiran/dict,dict-errata.lisp,1336,fn,ported,,tatoeba,33168/33168
 ichiran/dict:source,source,ichiran/dict,dict-counters.lisp,0,gf,ported,,15fqn_combined_2026_05_11,27/27

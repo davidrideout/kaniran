@@ -762,8 +762,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  692. `ichiran/dict:split-pos`  — fn, dict.lisp:1535  *[ported]*
  693. `ichiran/dict:get-senses-json`  — fn, dict.lisp:1537  *[ported]*
  694. **CYCLE (2 symbols — port together)**
-        - `ichiran/dict:conj-info-json`  — fn, dict.lisp:1698
-        - `ichiran/dict:conj-info-json*`  — fn, dict.lisp:1665
+        - `ichiran/dict:conj-info-json`  — fn, dict.lisp:1698  *[ported]*
+        - `ichiran/dict:conj-info-json*`  — fn, dict.lisp:1665  *[ported]*
  695. `ichiran/dict:conjugate-word`  — fn, dict-load.lisp:294  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  696. `ichiran/dict:csv-hash`  — macro, dict-load.lisp:201  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  697. `ichiran/dict:defsuffix`  — macro, dict-grammar.lisp:342  *[skip — CONVENTIONS §4.6 case (a): DSL definer that registers (key . fn-name) pairs into *suffix-list*. The registry itself is the data store; per-callsite ports (suffix-tai, suffix-te, abbr-nee, …) live as standalone functions in the same Lisp file and will be transliterated alongside the CYCLE 484 unit (PORT_PLAN #484). No port file.]*
@@ -781,7 +781,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  709. `ichiran/dict:def-generic-penalty`  — macro, dict-grammar.lisp:984  *[ported]*
  710. `ichiran/dict:defsynergy`  — macro, dict-grammar.lisp:738  *[skip — DSL definer (§4.6 case (a)): expands to (defun name ...) + (pushnew name *synergy-list*). Each synergy is its own pub fn (synergy_no_adjectives, synergy_oki, …); the pushnew registration is captured in _star_synergy_list_star_::SYNERGY_LIST (wired into get_synergies). No port file.]*
  711. `ichiran/dict:def-generic-synergy`  — macro, dict-grammar.lisp:739  *[ported]*
- 712. `ichiran/dict:def-reader-for-json`  — macro, dict.lisp:1289
+ 712. `ichiran/dict:def-reader-for-json`  — macro, dict.lisp:1289  *[ported]*
  713. `ichiran/dict:defsegfilter`  — macro, dict-grammar.lisp:1043  *[skip — DSL definer (§4.6 case (a)) — only effect is pushnew into *segfilter-list*, captured as the static SEGFILTER_LIST slice in dict/_star_segfilter_list_star_.rs]*
  714. `ichiran/dict:def-segfilter-must-follow`  — macro, dict-grammar.lisp:1049  *[ported]*
  715. `ichiran/dict:def-shi-split`  — macro, dict-split.lisp:191  *[skip — DSL definer (CONVENTIONS §4.6 case (a)); 20 callsites captured as data rows in SPLIT_TABLE (_star_split_map_star_.rs).]*
@@ -812,7 +812,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  740. `ichiran/dict:load-jmdict`  — fn, dict-load.lisp:168  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  741. `ichiran/dict:recalc-entry-stats`  — fn, dict.lisp:53
  742. `ichiran/dict:word-info-json`  — fn, dict.lisp:1262  *[ported]*
- 743. `ichiran/dict:simple-word-info`  — fn, dict.lisp:1282
+ 743. `ichiran/dict:simple-word-info`  — fn, dict.lisp:1282  *[ported]*
  744. `ichiran/dict:split-kigatsuku`  — fn, dict-split.lisp:298
  745. `ichiran/dict:substring-index`  — fn, dict.lisp:1132
  746. `ichiran/dict:suffix-sou-base`  — macro, dict-grammar.lisp:445  *[ported]*
