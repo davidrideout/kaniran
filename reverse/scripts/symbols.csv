@@ -868,8 +868,8 @@ ichiran:rmap-item,rmap-item,ichiran,deromanize.lisp,5,struct,ported,,,
 ichiran:romaji-kana,romaji-kana,ichiran,deromanize.lisp,84,fn,pending,,,
 ichiran:romaji-next,romaji-next,ichiran,deromanize.lisp,46,fn,pending,,,
 ichiran:romaji-suggest,romaji-suggest,ichiran,deromanize.lisp,95,fn,pending,,,
-ichiran:romanize,romanize,ichiran,romanize.lisp,257,fn,pending,,,
-ichiran:romanize*,romanize*,ichiran,romanize.lisp,273,fn,pending,,,
+ichiran:romanize,romanize,ichiran,romanize.lisp,257,fn,ported,,,
+ichiran:romanize*,romanize*,ichiran,romanize.lisp,273,fn,ported,,,
 ichiran:romanize-core,romanize-core,ichiran,romanize.lisp,29,fn,ported,,chunk_a_romanize_2026_05_14,228296/228296
 ichiran:romanize-list,romanize-list,ichiran,romanize.lisp,205,fn,ported,,chunk_a_romanize_2026_05_14,222426/222426
 ichiran:romanize-word,romanize-word,ichiran,romanize.lisp,217,fn,ported,,chunk_a_romanize_2026_05_14,268510/268510

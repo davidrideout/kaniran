@@ -610,8 +610,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  540. `ichiran:romanize-list`  — fn, romanize.lisp:205  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 222426/222426]*
  541. `ichiran:romanize-word`  — fn, romanize.lisp:217  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 268510/268510]*
  542. `ichiran:romanize-word-info`  — fn, romanize.lisp:248  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 928764/928764]*
- 543. `ichiran:romanize`  — fn, romanize.lisp:257
- 544. `ichiran:romanize*`  — fn, romanize.lisp:273
+ 543. `ichiran:romanize`  — fn, romanize.lisp:257  *[ported]*
+ 544. `ichiran:romanize*`  — fn, romanize.lisp:273  *[ported]*
  545. `ichiran/cli:main`  — fn, cli.lisp:48
  546. `ichiran/conn:*debug*`  — global, conn.lisp:20  *[skip — Debug-flag global gating dp. Replaced by the tracing crate's filter level.]*
  547. `ichiran/conn:def-conn-var`  — macro, conn.lisp:41  *[skip — Macro registering a global into the per-connection variable rebinding list. The cross-DB rebinding pattern is gone — each Ctx owns its caches directly.]*
