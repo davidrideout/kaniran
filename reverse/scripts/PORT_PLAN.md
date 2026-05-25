@@ -816,9 +816,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  744. `ichiran/dict:split-kigatsuku`  — fn, dict-split.lisp:298  *[skip — manual bypass — data row in SPLIT_TABLE in dict/_star_split_map_star_.rs, interpreted by kani_split_engine::run_split. CONVENTIONS §1 deliberately violated to remove per-callsite scaffolding.]*
  745. `ichiran/dict:substring-index`  — fn, dict.lisp:1132  *[ported]*
  746. `ichiran/dict:suffix-sou-base`  — macro, dict-grammar.lisp:445  *[ported]*
- 747. `ichiran/dict:word-info-from-text`  — fn, dict.lisp:1382
- 748. `ichiran/dict:word-info-rec-find`  — fn, dict.lisp:1409
- 749. `ichiran/dict:word-readings`  — fn, dict.lisp:536
+ 747. `ichiran/dict:word-info-from-text`  — fn, dict.lisp:1382  *[ported]*
+ 748. `ichiran/dict:word-info-rec-find`  — fn, dict.lisp:1409  *[ported]*
+ 749. `ichiran/dict:word-readings`  — fn, dict.lisp:536  *[ported]*
  750. `ichiran/kanji:*kanjidic-path*`  — global, settings.lisp:16  *[ported]*
  751. `ichiran/kanji:calculate-perc`  — fn, kanji.lisp:349  *[ported]*
  752. `ichiran/kanji:first-node-text`  — fn, kanji.lisp:106  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
