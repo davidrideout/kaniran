@@ -103,14 +103,13 @@ pub async fn find_substring_words(
         .fetch_all(&ctx.pool)
         .await?;
         for kt in rows {
-            // dict.lisp:518 — (push (cons table kt) (gethash (getf kt :text) substring-hash))
-            // The per-key variant was pre-seeded as `Kana(vec)` above
-            // (test-word classified this substring as kana). Append
-            // rather than prepend: SBCL's `push` reverses SQL row
-            // order, but the SQL is unordered so the eventual
-            // ordering is non-deterministic on both sides.
+            // dict.lisp:517 — (push (cons table kt) (gethash (getf kt :text) substring-hash)).
+            // CL `push` prepends, so each bucket is the reverse of the SQL
+            // row order; `insert(0, …)` mirrors it. The order is
+            // load-bearing: find-word returns the bucket in this order and
+            // downstream homonym selection takes the last-iterated row.
             if let Some(FindWordRows::Kana(v)) = substring_hash.get_mut(&kt.text) {
-                v.push(kt);
+                v.insert(0, kt);
             }
         }
     }
@@ -122,8 +121,9 @@ pub async fn find_substring_words(
         .fetch_all(&ctx.pool)
         .await?;
         for kt in rows {
+            // dict.lisp:517 — prepend to mirror CL `push` (see kana loop).
             if let Some(FindWordRows::Kanji(v)) = substring_hash.get_mut(&kt.text) {
-                v.push(kt);
+                v.insert(0, kt);
             }
         }
     }
@@ -327,5 +327,33 @@ mod tests {
         assert_eq!(rows_sorted(&h, "こ"), ko_rows());
         assert_eq!(rows_sorted(&h, "ね"), ne_rows());
         assert_eq!(rows_sorted(&h, "ねこ"), vec![(1467640, 0, Some(7))]);
+    }
+
+    /// Order guard for the `insert(0, …)` prepend (dict.lisp:517 `push`):
+    /// a multi-row bucket must be the *reverse* of the database's row
+    /// order, not its fetch order. Compared unsorted, unlike the other
+    /// tests here — that's the point. DB-agnostic: derives the expected
+    /// order from the same query the populator runs, so it pins the
+    /// reversal relationship rather than hard-coded seqs. '行って' has
+    /// 3 kanji rows on the local DB.
+    #[tokio::test]
+    async fn bucket_is_reverse_of_fetch_order() {
+        let ctx = ctx_from_env().await;
+        let keys = vec!["行って".to_string()];
+        let fetch: Vec<i32> =
+            sqlx::query_scalar("SELECT seq FROM kanji_text WHERE text = ANY($1)")
+                .bind(&keys)
+                .fetch_all(&ctx.pool)
+                .await
+                .unwrap();
+        assert!(fetch.len() > 1, "test needs a multi-row bucket");
+        let h = find_substring_words(&ctx, "行って", &[]).await.unwrap();
+        let bucket: Vec<i32> = match h.get("行って").unwrap() {
+            FindWordRows::Kanji(v) => v.iter().map(|r| r.seq).collect(),
+            FindWordRows::Kana(v) => v.iter().map(|r| r.seq).collect(),
+        };
+        let mut expected = fetch;
+        expected.reverse();
+        assert_eq!(bucket, expected, "bucket must be reverse of fetch order");
     }
 }

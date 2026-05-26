@@ -76,6 +76,15 @@ of any SQL column. Options for future work, none yet chosen:
 3. Replicate `query-dao`'s permutation. Probably infeasible (in-
    process allocator / hash state).
 
+**Update 2026-05-26.** Option 1 was in fact silently shipped — a
+`seq DESC, id DESC` variant landed in `get_kana_forms_star_` on
+2026-05-15 (commit `166625b`), bundled into an unrelated port commit
+and self-justified with a misapplied CONVENTIONS §4.4 citation. It was
+**removed 2026-05-26** after the cli-full e2e audit showed it
+net-harmful — see §3. The UNION is back to upstream's no-`ORDER BY`
+shape; the 459 get_suffixes cache-tie rows return as expected
+divergence.
+
 **Downstream impact.** The chosen cache row identity feeds into
 `word_conj_data` for any compound built atop that suffix entry, which
 in turn feeds segment scoring. Verified that for the specific seqs
@@ -249,6 +258,47 @@ specific call sites, not a per-input specification. Treating them as
 a hard pass/fail gate would re-fail on every recapture.
 
 [`_star_suffix_cache_star_.rs`]: kaniran-core/src/dict/_star_suffix_cache_star_.rs
+
+---
+
+## 3. cli-full e2e: Passive/Potential `prop.type` on `いる`-auxiliary compounds
+
+**Scope.** The cli-full e2e audit (`(jsown:to-json (romanize* text :limit 5))`,
+runner `cli_full_test`) shows `conj[N].prop[N].type` (and
+`.via[N].prop[N].type`) reading `Passive` where the captured Lisp reads
+`Potential` (or the reverse) on `〜ていられ…` / `〜てられ…` constructions.
+This is the downstream surfacing §1's "Downstream impact" flagged to
+re-check when next-layer audits land. It is **not** a conj-layer bug.
+
+**Mechanism.** `〜てられない` attaches `いる` as an auxiliary through a
+`*suffix-cache*` entry keyed by spelling (`られない`, `いられません`,
+`いられよう`, …). `いる`'s negative forms are homonyms: its Potential
+(e.g. seq 10551851 `いられない`) and Passive (e.g. seq 10235827) share
+the same kana but are distinct UNION rows. The §1 last-write-wins
+populator keeps whichever the loader iterates last for that key, and
+the conj layer then faithfully renders that seq's `prop.type`. Which
+reading a spelling key resolves to is therefore the §1 nondeterminism.
+
+Proof it is arbitrary, not meaningful: in a single SBCL process the
+cache resolves `られない`→Potential (10551851) but `いられません`→Passive
+(10235828) and `いられよう`→Passive (10235857) — structurally identical
+homonym ties landing on different readings within one process. The pool
+workers that captured the corpus likewise disagree across processes.
+
+**Reproduction.** Subset `cli_full_failures.txt`'s `rust="Passive"
+lisp="Potential"` rows (31) into a parquet and run
+`cargo run --release --bin cli_full_test -- --path <subset>`:
+**31 fail** with the old `ORDER BY u.seq DESC, u.id DESC` in
+`get_kana_forms_star_`; **2 fail** without it (verified 2026-05-26).
+The 2 residuals are `いられません`/`いられよう` keys whose captures landed
+on Passive while Rust's wire order lands on Potential.
+
+**Disposition.** Same as §1 — irreducible upstream loader
+nondeterminism; no deterministic `ORDER BY` reconciles all captures
+because different spelling keys (and different pool workers) land on
+different homonyms. The `ORDER BY` was removed (see §1 Update
+2026-05-26); the residual divergences are expected at the e2e layer,
+not a per-input specification.
 
 ---
 

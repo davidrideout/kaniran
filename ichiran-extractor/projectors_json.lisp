@@ -155,6 +155,21 @@
 (defmethod flatten-to-json ((v vector))
   (if (stringp v) v (map 'list #'flatten-to-json v)))
 
+(defmethod flatten-to-json ((v hash-table))
+  ;; Hash-table -> JSON object {key: value}. Keys coerced to strings;
+  ;; each value flattens by the generic rules, so list values stay
+  ;; ordered arrays. maphash order is unspecified, but JSON object key
+  ;; order is not significant — only each value's internal list order
+  ;; matters (e.g. find-substring-words bucket order), and that is
+  ;; preserved.
+  (let (pairs)
+    (maphash (lambda (k val)
+               (push (cons (if (stringp k) k (princ-to-string k))
+                           (flatten-to-json val))
+                     pairs))
+             v)
+    (cons :obj (nreverse pairs))))
+
 (defmethod flatten-to-json ((v structure-object))
   (let* ((cls (class-of v))
          (cls-name (class-name cls)))
@@ -211,6 +226,35 @@
 
 (defun flatten-args-json (args) (mapcar #'flatten-to-json args))
 (defun flatten-results-json (results) (mapcar #'flatten-to-json results))
+
+;; Dedicated result-projector for ichiran/dict:find-substring-words
+;; (dict.lisp:501). Its single return value is a hash-table:
+;;   substring (string) -> list of (table-symbol . column-plist)
+;; The generic hash-table method above would render each row as a flat
+;; keyword-array; this emits rows as objects instead:
+;;   { substring: [ {"table": …, <columns>}, … ], … }
+;; The bucket array is kept IN ORDER — the order is load-bearing
+;; (find-word hands the bucket downstream as-is, dict.lisp:493). Pass as
+;; :result-projector when installing the FQN. Empty buckets serialize as
+;; null (Lisp nil); the audit runner treats null as the empty bucket [].
+(defun flatten-find-substring-words-results (results)
+  (let ((h (first results))
+        (pairs nil))
+    (maphash
+     (lambda (substring bucket)
+       (push (cons substring
+                   (mapcar
+                    (lambda (entry)
+                      (cons :obj
+                            (cons (cons "table"
+                                        (string-downcase (symbol-name (car entry))))
+                                  (loop for (k v) on (cdr entry) by #'cddr
+                                        collect (cons (%slot-key k)
+                                                      (flatten-to-json v))))))
+                    bucket))
+             pairs))
+     h)
+    (list (cons :obj (nreverse pairs)))))
 
 ;; Hint-aware variant — appends `*disable-hints*` value as a trailing
 ;; meta-tagged entry so audit-replay can distinguish hint-active calls

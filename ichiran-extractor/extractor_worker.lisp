@@ -336,22 +336,19 @@
   (ichi-projectors-json:flatten-results-json
    (list (jsown:to-json (first results)))))
 
+;; find-substring-words extraction (2026-05-26). Capture the substring
+;; lookup-cache builder. Its result is a hash-table str -> list of
+;; (table . column-plist); FLATTEN-FIND-SUBSTRING-WORDS-RESULTS renders it
+;; as { substring: [ {row}, ... ] } with bucket order preserved (the order
+;; is load-bearing — find-word consumes the bucket as-is). The CLI-FULL
+;; entry-point drives the segmentation that invokes find-substring-words;
+;; args use the default flatten-args-json projector.
 (defparameter *boot-install-fqns*
-  (let ((arg-fn (symbol-function (find-symbol "FLATTEN-ARGS-JSON"
-                                              :ichi-projectors-json))))
-    (list "ICHIRAN/DICT:SELECT-CONJS-AND-PROPS"
-          (list "ICHIRAN/DICT:CONJ-INFO-JSON*"
-                :arg-projector arg-fn
-                :result-projector #'jsown-tojson-result
-                :encoder :json)
-          (list "ICHIRAN/DICT:CONJ-INFO-JSON"
-                :arg-projector arg-fn
-                :result-projector #'jsown-tojson-result
-                :encoder :json)
-          (list "ICHIRAN/DICT:CONJ-PROP-JSON"
-                :arg-projector arg-fn
-                :result-projector #'jsown-tojson-result
-                :encoder :json))))
+  (list (list "ICHIRAN/DICT:FIND-SUBSTRING-WORDS"
+              :result-projector (symbol-function
+                                 (find-symbol "FLATTEN-FIND-SUBSTRING-WORDS-RESULTS"
+                                              :ichi-projectors-json))
+              :encoder :json)))
 
 (handler-case
     (ichi-trace:install-many *boot-install-fqns*)
