@@ -612,7 +612,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  542. `ichiran:romanize-word-info`  — fn, romanize.lisp:248  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 928764/928764]*
  543. `ichiran:romanize`  — fn, romanize.lisp:257  *[ported]*
  544. `ichiran:romanize*`  — fn, romanize.lisp:273  *[ported]*
- 545. `ichiran/cli:main`  — fn, cli.lisp:48
+ 545. `ichiran/cli:main`  — fn, cli.lisp:48  *[extracted: romanize_json_2026_05_25]*
  546. `ichiran/conn:*debug*`  — global, conn.lisp:20  *[skip — Debug-flag global gating dp. Replaced by the tracing crate's filter level.]*
  547. `ichiran/conn:def-conn-var`  — macro, conn.lisp:41  *[skip — Macro registering a global into the per-connection variable rebinding list. The cross-DB rebinding pattern is gone — each Ctx owns its caches directly.]*
  548. `ichiran/conn:defcache`  — macro, conn.lisp:135  *[skip — Macro registering a cache + defining init-cache method. Rust shape has no registry; each cache is a typed Ctx field with hand-written accessor.]*

@@ -1,6 +1,9 @@
 //! Fixture-replay runner for the e2e complete-result JSON — ichiran's
-//! `ichiran-cli --full` output, captured under the synthetic FQN
-//! `CL-USER::ROMANIZE-FULL-JSON` = `(jsown:to-json (romanize* text :limit 5))`.
+//! `ichiran-cli --full` output. cli.lisp's `--full` branch is
+//! `(princ (jsown:to-json (romanize* input :limit limit-value)))`; captures
+//! were driven by a synthetic CL-USER entry point named after that cli mode,
+//! `CL-USER::CLI-FULL` = `(jsown:to-json (romanize* text :limit 5))`
+//! (i.e. `ichiran-cli -f -l 5`).
 //!
 //! There is no library fn for the top-level JSON assembly: `cli.lisp` builds
 //! it inline and that path is marked skip (a future kaniran-cli crate). This
@@ -15,8 +18,8 @@
 //! order. Byte-exact serialization is a kaniran-cli concern, out of scope here.
 //!
 //! Run with:
-//!   cargo run --release --bin romanize_full_json_test -- \
-//!     --path corpus/extracted_romanize_json_2026_05_25/cl-user/romanize_full_json.parquet
+//!   cargo run --release --bin cli_full_test -- \
+//!     --path corpus/extracted_romanize_json_2026_05_25/cl-user/cli_full.parquet
 
 #[path = "../common/mod.rs"]
 mod common;
@@ -29,9 +32,9 @@ use kaniran_core::core::romanize_star_::{romanize_star_, RomanizeStarSegment};
 use kaniran_core::dict::word_info_gloss_json::word_info_gloss_json;
 
 use common::{single_result, CapturedRow};
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 
-const EXPECTED_FQN: &str = "CL-USER::ROMANIZE-FULL-JSON";
+const EXPECTED_FQN: &str = "CL-USER::CLI-FULL";
 
 /// Reproduce `(jsown:to-json (romanize* text :limit 5))`. `:method` is the
 /// default (traditional-hepburn) the capture ran under; `wordprop-fn` is
@@ -108,6 +111,43 @@ fn first_diff(rust: &Value, lisp: &Value, path: &str) -> Option<String> {
     }
 }
 
+/// Canonicalize order-unstable parts before comparison. Two axes come
+/// back in the database's unordered SQL row order (no `ORDER BY`
+/// upstream), so the order carries no meaning on either side:
+///   - a word's alternative readings, joined into the `/`-separated
+///     romaji string (e.g. `naka/chū` vs `chū/naka`);
+///   - the `alternative` array inside a gloss object.
+/// Both are compared as sets: sort the `/`-tokens, sort the
+/// `alternative` array, and sort object keys so that array sort is
+/// itself order-independent. Genuine divergences (a different reading
+/// or seq) survive because only pure reorderings collapse to equal.
+fn normalize(v: &Value) -> Value {
+    match v {
+        Value::Array(xs) => Value::Array(xs.iter().map(normalize).collect()),
+        Value::Object(map) => {
+            let mut keys: Vec<&String> = map.keys().collect();
+            keys.sort();
+            let mut out = Map::new();
+            for k in keys {
+                let mut nv = normalize(&map[k]);
+                if k == "alternative" {
+                    if let Value::Array(a) = &mut nv {
+                        a.sort_by(|x, y| x.to_string().cmp(&y.to_string()));
+                    }
+                }
+                out.insert(k.clone(), nv);
+            }
+            Value::Object(out)
+        }
+        Value::String(s) if s.contains('/') => {
+            let mut parts: Vec<&str> = s.split('/').collect();
+            parts.sort_unstable();
+            Value::String(parts.join("/"))
+        }
+        other => other.clone(),
+    }
+}
+
 async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     let text = row
         .args
@@ -122,6 +162,8 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
 
     let actual = full_json(ctx, text).await.map_err(|e| e.to_string())?;
 
+    let actual = normalize(&actual);
+    let expected = normalize(&expected);
     if actual == expected {
         Ok(())
     } else {

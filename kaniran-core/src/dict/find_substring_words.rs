@@ -133,10 +133,13 @@ pub async fn find_substring_words(
 
 #[cfg(test)]
 mod tests {
-    //! All counts cross-checked against the .103 SBCL via
-    //! `/tmp/probe_fsw.lisp` and `/tmp/probe_fsw2.lisp` (2026-05-17
-    //! runs). Test threads must be 1 — `cargo test --test-threads=1`
-    //! per the project's DB-test convention.
+    //! Per-key buckets cross-checked against the local ichiran Postgres
+    //! (2026-05-25), the same DB these tests query. Each bucket is
+    //! compared as a sorted `(seq, ord, common)` list: the populating
+    //! query (`text = ANY(...)`) has no ORDER BY, so the bucket order is
+    //! not stable — sorting both sides keeps the comparison
+    //! order-independent. Test threads must be 1 — `cargo test --
+    //! --test-threads=1` per the project's DB-test convention.
     use super::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -145,98 +148,152 @@ mod tests {
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
-    fn lens(h: &SubstringHash) -> Vec<(String, usize)> {
-        let mut out: Vec<(String, usize)> = h
-            .iter()
-            .map(|(k, v)| {
-                let n = match v {
-                    FindWordRows::Kana(v) => v.len(),
-                    FindWordRows::Kanji(v) => v.len(),
-                };
-                (k.clone(), n)
-            })
-            .collect();
+    /// A key's bucket as a sorted `(seq, ord, common)` list. Both this
+    /// and the expected literal are in seq order so the unordered SQL
+    /// bucket can't make the comparison flake.
+    fn rows_sorted(h: &SubstringHash, key: &str) -> Vec<(i32, i32, Option<i32>)> {
+        let mut out: Vec<(i32, i32, Option<i32>)> =
+            match h.get(key).unwrap_or_else(|| panic!("missing key {key:?}")) {
+                FindWordRows::Kana(v) => v.iter().map(|r| (r.seq, r.ord, r.common)).collect(),
+                FindWordRows::Kanji(v) => v.iter().map(|r| (r.seq, r.ord, r.common)).collect(),
+            };
         out.sort();
         out
     }
 
+    fn keys_sorted(h: &SubstringHash) -> Vec<String> {
+        let mut ks: Vec<String> = h.keys().cloned().collect();
+        ks.sort();
+        ks
+    }
+
+    fn is_kana(h: &SubstringHash, key: &str) -> bool {
+        matches!(h.get(key), Some(FindWordRows::Kana(_)))
+    }
+
+    // 'こ' and 'ね' buckets are each shared by two tests — one copy here.
+    fn ko_rows() -> Vec<(i32, i32, Option<i32>)> {
+        vec![
+            (1264740, 0, Some(0)),
+            (1267110, 0, None),
+            (1307770, 0, Some(1)),
+            (1504770, 1, None),
+            (1531190, 1, None),
+            (1659920, 0, None),
+            (1956240, 0, Some(28)),
+            (2065150, 1, None),
+            (2087990, 0, None),
+            (2153770, 0, Some(0)),
+            (2215030, 0, None),
+            (2230390, 0, None),
+            (2577750, 0, None),
+            (2788170, 0, None),
+            (2842951, 0, None),
+            (2844354, 0, None),
+        ]
+    }
+
+    fn ne_rows() -> Vec<(i32, i32, Option<i32>)> {
+        vec![
+            (1290020, 0, Some(5)),
+            (1307780, 0, Some(0)),
+            (1642760, 0, Some(15)),
+            (2029080, 0, Some(0)),
+            (2836242, 0, None),
+            (2841117, 3, None),
+            (2859162, 0, Some(0)),
+            (10426293, 0, None),
+        ]
+    }
+
     #[tokio::test]
     async fn single_kanji_char_one_key() {
-        // REPL '猫' (no sticky): n keys=1, '猫' -> 2 items (KANJI-TEXT)
+        // '猫' (no sticky): one kanji-classified key, two rows.
         let ctx = ctx_from_env().await;
         let h = find_substring_words(&ctx, "猫", &[]).await.unwrap();
-        assert_eq!(h.len(), 1);
-        let v = h.get("猫").expect("missing key");
-        match v {
-            FindWordRows::Kanji(rows) => assert_eq!(rows.len(), 2),
-            FindWordRows::Kana(_) => panic!("expected kanji variant"),
-        }
+        assert_eq!(keys_sorted(&h), vec!["猫".to_string()]);
+        assert!(!is_kana(&h, "猫"), "'猫' should be kanji variant");
+        assert_eq!(
+            rows_sorted(&h, "猫"),
+            vec![(1467640, 0, Some(7)), (2698030, 0, None)]
+        );
     }
 
     #[tokio::test]
     async fn mixed_kana_kanji_three_keys() {
-        // REPL '猫が' (no sticky):
-        //   'が' -> 7 KANA-TEXT
-        //   '猫'  -> 2 KANJI-TEXT
-        //   '猫が' -> 0 (no DB row), classified kanji (mixed string)
+        // '猫が': が (7 kana), 猫 (2 kanji), 猫が (empty, kanji-classified
+        // — the mixed string contains a kanji).
         let ctx = ctx_from_env().await;
         let h = find_substring_words(&ctx, "猫が", &[]).await.unwrap();
         assert_eq!(
-            lens(&h),
+            keys_sorted(&h),
+            vec!["が".to_string(), "猫".to_string(), "猫が".to_string()]
+        );
+        assert!(is_kana(&h, "が"), "'が' should be kana variant");
+        assert_eq!(
+            rows_sorted(&h, "が"),
             vec![
-                ("が".to_string(), 7),
-                ("猫".to_string(), 2),
-                ("猫が".to_string(), 0),
+                (1197760, 0, Some(40)),
+                (1202270, 1, None),
+                (2028930, 0, Some(0)),
+                (2220800, 0, None),
+                (2224630, 0, None),
+                (2232110, 0, None),
+                (2834041, 0, None),
             ]
         );
-        // Variant tags are pre-seeded by `test_word`.
-        match h.get("が").unwrap() {
-            FindWordRows::Kana(_) => {}
-            _ => panic!("'が' should be kana variant"),
-        }
-        match h.get("猫").unwrap() {
-            FindWordRows::Kanji(_) => {}
-            _ => panic!("'猫' should be kanji variant"),
-        }
-        match h.get("猫が").unwrap() {
-            FindWordRows::Kanji(_) => {}
-            _ => panic!("mixed substring classified non-kana"),
-        }
+        assert!(!is_kana(&h, "猫"), "'猫' should be kanji variant");
+        assert_eq!(
+            rows_sorted(&h, "猫"),
+            vec![(1467640, 0, Some(7)), (2698030, 0, None)]
+        );
+        assert!(!is_kana(&h, "猫が"), "mixed substring classified non-kana");
+        assert!(rows_sorted(&h, "猫が").is_empty());
     }
 
     #[tokio::test]
     async fn sticky_end_blocks_substrings() {
-        // REPL '猫が' (sticky=(1)): only key is '猫が' (length 2)
-        // because all 1-char substrings either start or end at pos 1.
+        // '猫が' sticky=(1): every 1-char substring starts or ends at
+        // pos 1, so only the length-2 key survives (empty bucket).
         let ctx = ctx_from_env().await;
         let h = find_substring_words(&ctx, "猫が", &[1]).await.unwrap();
-        assert_eq!(lens(&h), vec![("猫が".to_string(), 0)]);
+        assert_eq!(keys_sorted(&h), vec!["猫が".to_string()]);
+        assert!(rows_sorted(&h, "猫が").is_empty());
     }
 
     #[tokio::test]
     async fn sticky_start_and_end_block() {
-        // REPL 'ねこが' (sticky=(0 3)): only 'こ' survives.
-        //   start=0 blocked, start=1 + end=2 -> 'こ' (end=3 sticky).
+        // 'ねこが' sticky=(0 3): start=0 and end=3 blocked, so only 'こ'
+        // (start=1, end=2) survives.
         let ctx = ctx_from_env().await;
         let h = find_substring_words(&ctx, "ねこが", &[0, 3]).await.unwrap();
-        assert_eq!(lens(&h), vec![("こ".to_string(), 16)]);
+        assert_eq!(keys_sorted(&h), vec!["こ".to_string()]);
+        assert_eq!(rows_sorted(&h, "こ"), ko_rows());
     }
 
     #[tokio::test]
     async fn sticky_interior_blocks_boundary_only() {
-        // REPL 'ねこが' (sticky=(2)): 3 keys
-        //   start=0,end=1 'ね' (kana, 8); start=0,end=3 'ねこが' (0);
-        //   start=1,end=3 'こが' (6, kana). start=2 blocked.
+        // 'ねこが' sticky=(2): ね (8), こが (6), ねこが (empty). start=2
+        // and end=2 are both blocked.
         let ctx = ctx_from_env().await;
         let h = find_substring_words(&ctx, "ねこが", &[2]).await.unwrap();
         assert_eq!(
-            lens(&h),
+            keys_sorted(&h),
+            vec!["こが".to_string(), "ね".to_string(), "ねこが".to_string()]
+        );
+        assert_eq!(
+            rows_sorted(&h, "こが"),
             vec![
-                ("こが".to_string(), 6),
-                ("ね".to_string(), 8),
-                ("ねこが".to_string(), 0),
+                (1265180, 0, None),
+                (1265190, 0, None),
+                (10136364, 0, None),
+                (10276500, 0, None),
+                (12294787, 0, None),
+                (12295833, 0, None),
             ]
         );
+        assert_eq!(rows_sorted(&h, "ね"), ne_rows());
+        assert!(rows_sorted(&h, "ねこが").is_empty());
     }
 
     #[tokio::test]
@@ -249,30 +306,26 @@ mod tests {
 
     #[tokio::test]
     async fn ascii_unknown_pre_seeds_empty_entry() {
-        // REPL 'x': 1 key 'x' -> 0 items. Confirms pre-seeded
-        // empty-variant entry survives the no-row query.
+        // 'x': one kanji-classified key, empty bucket — the pre-seeded
+        // empty entry survives the no-row query.
         let ctx = ctx_from_env().await;
         let h = find_substring_words(&ctx, "x", &[]).await.unwrap();
-        assert_eq!(h.len(), 1);
-        match h.get("x").unwrap() {
-            FindWordRows::Kanji(v) => assert!(v.is_empty()),
-            FindWordRows::Kana(_) => panic!("'x' classified kanji (not in kana char set)"),
-        }
+        assert_eq!(keys_sorted(&h), vec!["x".to_string()]);
+        assert!(!is_kana(&h, "x"), "'x' classified kanji (not in kana char set)");
+        assert!(rows_sorted(&h, "x").is_empty());
     }
 
     #[tokio::test]
     async fn full_kana_three_keys() {
-        // REPL 'ねこ' (no sticky):
-        //   'こ' -> 16, 'ね' -> 8, 'ねこ' -> 1
+        // 'ねこ': こ (16), ね (8), ねこ (1).
         let ctx = ctx_from_env().await;
         let h = find_substring_words(&ctx, "ねこ", &[]).await.unwrap();
         assert_eq!(
-            lens(&h),
-            vec![
-                ("こ".to_string(), 16),
-                ("ね".to_string(), 8),
-                ("ねこ".to_string(), 1),
-            ]
+            keys_sorted(&h),
+            vec!["こ".to_string(), "ね".to_string(), "ねこ".to_string()]
         );
+        assert_eq!(rows_sorted(&h, "こ"), ko_rows());
+        assert_eq!(rows_sorted(&h, "ね"), ne_rows());
+        assert_eq!(rows_sorted(&h, "ねこ"), vec![(1467640, 0, Some(7))]);
     }
 }

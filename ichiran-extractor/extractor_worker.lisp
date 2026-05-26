@@ -44,11 +44,11 @@
 ;; Romanize JSON chunk (2026-05-25): capture the e2e complete-result JSON —
 ;; exactly the CLI's --full output, (jsown:to-json (romanize* text :limit 5)).
 ;; There's no single ichiran fn for it (cli.lisp builds it inline), so the
-;; driver is the worker-local wrapper ROMANIZE-FULL-JSON defined below; its
-;; result is a plain JSON string. Structured romanize/romanize* capture is
-;; deferred to a later run.
+;; driver is the worker-local wrapper CLI-FULL defined below (named after the
+;; cli `-f`/`--full` mode it reproduces); its result is a plain JSON string.
+;; Structured romanize/romanize* capture is deferred to a later run.
 (defparameter *entry-points*
-  '("CL-USER::ROMANIZE-FULL-JSON"))
+  '("CL-USER::CLI-FULL"))
 
 (defun call-entry (fqn text)
   "Invoke FQN with TEXT as its single argument. Wrapped in
@@ -321,7 +321,7 @@
 ;; column with serde_json. FLATTEN-RESULTS-JSON on a plain string yields
 ;; the one-element array ["<json>"] the runner's single_result expects
 ;; (same shape chunk A captured for romanize-word-info's string result).
-(defun romanize-full-json (text)
+(defun cli-full (text)
   (jsown:to-json (ichiran:romanize* text :limit 5)))
 
 ;; Conjugation-JSON chunk (2026-05-25). CONJ-INFO-JSON / CONJ-INFO-JSON* /
@@ -329,7 +329,7 @@
 ;; jsown:to-json and wrap as FLATTEN-RESULTS-JSON wraps a plain string
 ;; result — the audit loader's single_result then extracts one JSON string
 ;; the runner parses with serde_json and compares structurally (same shape
-;; ROMANIZE-FULL-JSON captured). SELECT-CONJS-AND-PROPS returns conjugation /
+;; CLI-FULL captured). SELECT-CONJS-AND-PROPS returns conjugation /
 ;; conj-prop DAOs, so it keeps the default flatten projectors (the _meta DAO
 ;; envelope the loader already decodes).
 (defun jsown-tojson-result (results)
