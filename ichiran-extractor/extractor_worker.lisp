@@ -324,14 +324,33 @@
 (defun romanize-full-json (text)
   (jsown:to-json (ichiran:romanize* text :limit 5)))
 
+;; Conjugation-JSON chunk (2026-05-25). CONJ-INFO-JSON / CONJ-INFO-JSON* /
+;; CONJ-PROP-JSON return jsown values, not strings. Serialize each with
+;; jsown:to-json and wrap as FLATTEN-RESULTS-JSON wraps a plain string
+;; result — the audit loader's single_result then extracts one JSON string
+;; the runner parses with serde_json and compares structurally (same shape
+;; ROMANIZE-FULL-JSON captured). SELECT-CONJS-AND-PROPS returns conjugation /
+;; conj-prop DAOs, so it keeps the default flatten projectors (the _meta DAO
+;; envelope the loader already decodes).
+(defun jsown-tojson-result (results)
+  (ichi-projectors-json:flatten-results-json
+   (list (jsown:to-json (first results)))))
+
 (defparameter *boot-install-fqns*
-  (let ((arg-fn    (symbol-function (find-symbol "FLATTEN-ARGS-JSON"
-                                                 :ichi-projectors-json)))
-        (result-fn (symbol-function (find-symbol "FLATTEN-RESULTS-JSON"
-                                                 :ichi-projectors-json))))
-    (list (list "CL-USER::ROMANIZE-FULL-JSON"
+  (let ((arg-fn (symbol-function (find-symbol "FLATTEN-ARGS-JSON"
+                                              :ichi-projectors-json))))
+    (list "ICHIRAN/DICT:SELECT-CONJS-AND-PROPS"
+          (list "ICHIRAN/DICT:CONJ-INFO-JSON*"
                 :arg-projector arg-fn
-                :result-projector result-fn
+                :result-projector #'jsown-tojson-result
+                :encoder :json)
+          (list "ICHIRAN/DICT:CONJ-INFO-JSON"
+                :arg-projector arg-fn
+                :result-projector #'jsown-tojson-result
+                :encoder :json)
+          (list "ICHIRAN/DICT:CONJ-PROP-JSON"
+                :arg-projector arg-fn
+                :result-projector #'jsown-tojson-result
                 :encoder :json))))
 
 (handler-case

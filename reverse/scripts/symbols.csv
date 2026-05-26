@@ -242,11 +242,11 @@ ichiran/dict:compare-common,compare-common,ichiran/dict,dict.lisp,1022,fn,ported
 ichiran/dict:compound-text,compound-text,ichiran/dict,dict.lisp,608,class,ported,,,
 ichiran/dict:conj-data,conj-data,ichiran/dict,dict.lisp,327,struct,ported,,,
 ichiran/dict:conj-id,conj-id,ichiran/dict,dict.lisp,0,gf,skip,Slot-reader gf with no polymorphic callsites; every (id X) / (conj-id X) site has a locally-known DAO type. Each Rust DAO struct exposes pub id: i32 / pub conj_id: i32 directly per CONVENTIONS §4.7.,,
-ichiran/dict:conj-info-json,conj-info-json,ichiran/dict,dict.lisp,1698,fn,ported,,,
-ichiran/dict:conj-info-json*,conj-info-json*,ichiran/dict,dict.lisp,1665,fn,ported,,,
+ichiran/dict:conj-info-json,conj-info-json,ichiran/dict,dict.lisp,1698,fn,ported,,conj_json_2026_05_25,166212/166212
+ichiran/dict:conj-info-json*,conj-info-json*,ichiran/dict,dict.lisp,1665,fn,ported,,conj_json_2026_05_25,166212/166212
 ichiran/dict:conj-info-short,conj-info-short,ichiran/dict,dict.lisp,275,fn,ported,,,
 ichiran/dict:conj-prop,conj-prop,ichiran/dict,dict.lisp,262,dao,ported,,,
-ichiran/dict:conj-prop-json,conj-prop-json,ichiran/dict,dict.lisp,283,fn,ported,,,
+ichiran/dict:conj-prop-json,conj-prop-json,ichiran/dict,dict.lisp,283,fn,ported,,conj_json_2026_05_25,40673/40673
 ichiran/dict:conj-source-reading,conj-source-reading,ichiran/dict,dict.lisp,309,dao,ported,,,
 ichiran/dict:conj-type-order,conj-type-order,ichiran/dict,dict.lisp,1612,fn,ported,,,
 ichiran/dict:conjugate-da,conjugate-da,ichiran/dict,dict-errata.lisp,281,fn,skip,"add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed",,
@@ -474,7 +474,7 @@ ichiran/dict:segfilter-wokarasu,segfilter-wokarasu,ichiran/dict,dict-grammar.lis
 ichiran/dict:segment,segment,ichiran/dict,dict.lisp,674,struct,ported,,,
 ichiran/dict:segment-list,segment-list,ichiran/dict,dict.lisp,1038,struct,ported,,,
 ichiran/dict:select-conjs,select-conjs,ichiran/dict,dict.lisp,1604,fn,ported,,,
-ichiran/dict:select-conjs-and-props,select-conjs-and-props,ichiran/dict,dict.lisp,1640,fn,ported,,,
+ichiran/dict:select-conjs-and-props,select-conjs-and-props,ichiran/dict,dict.lisp,1640,fn,ported,,conj_json_2026_05_25,166193/166193
 ichiran/dict:sense,sense,ichiran/dict,dict.lisp,166,dao,ported,,,
 ichiran/dict:sense-exists-p,sense-exists-p,ichiran/dict,dict-load.lisp,80,fn,skip,"JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed",,
 ichiran/dict:sense-id,sense-id,ichiran/dict,dict.lisp,0,gf,skip,Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.,word_info_path_2026_05_13,

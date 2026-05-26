@@ -572,7 +572,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  504. `ichiran/dict:is-rareru`  — fn, dict.lisp:1619  *[ported]*
  505. `ichiran/dict:filter-props`  — fn, dict.lisp:1627  *[ported]*
  506. `ichiran/dict:select-conjs`  — fn, dict.lisp:1604  *[ported]*
- 507. `ichiran/dict:select-conjs-and-props`  — fn, dict.lisp:1640  *[ported]*
+ 507. `ichiran/dict:select-conjs-and-props`  — fn, dict.lisp:1640  *[ported]*  *[extracted: conj_json_2026_05_25]*  *[audited 166193/166193]*
  508. `ichiran/dict:print-conj-info`  — fn, dict.lisp:1649  *[ported]*
  509. `ichiran/dict:query-parents-kana`  — fn, dict.lisp:415  *[ported]*  *[extracted: 15fqn_combined_2026_05_11]*  *[audited 4/4]*
  510. `ichiran/dict:best-kanji-conj`  — fn, dict.lisp:457  *[ported]*
@@ -754,7 +754,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  684. `ichiran/kanji:match-readings`  — fn, kanji.lisp:292  *[ported]*
  685. `ichiran/dict:check-easy-hints`  — fn, dict-split.lisp:950  *[ported]*
  686. `ichiran/dict:common-tags`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
- 687. `ichiran/dict:conj-prop-json`  — fn, dict.lisp:283  *[ported]*
+ 687. `ichiran/dict:conj-prop-json`  — fn, dict.lisp:283  *[ported]*  *[extracted: conj_json_2026_05_25]*  *[audited 40673/40673]*
  688. `ichiran/dict:find-words-seqs`  — fn, dict.lisp:520  *[ported]*
  689. `ichiran/dict:get-original-text-once`  — fn, dict.lisp:369  *[ported]*
  690. `ichiran/dict:match-kana-kanji`  — fn, dict.lisp:1507  *[ported]*
@@ -762,8 +762,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  692. `ichiran/dict:split-pos`  — fn, dict.lisp:1535  *[ported]*
  693. `ichiran/dict:get-senses-json`  — fn, dict.lisp:1537  *[ported]*
  694. **CYCLE (2 symbols — port together)**
-        - `ichiran/dict:conj-info-json`  — fn, dict.lisp:1698  *[ported]*
-        - `ichiran/dict:conj-info-json*`  — fn, dict.lisp:1665  *[ported]*
+        - `ichiran/dict:conj-info-json`  — fn, dict.lisp:1698  *[ported]*  *[extracted: conj_json_2026_05_25]*  *[audited 166212/166212]*
+        - `ichiran/dict:conj-info-json*`  — fn, dict.lisp:1665  *[ported]*  *[extracted: conj_json_2026_05_25]*  *[audited 166212/166212]*
  695. `ichiran/dict:conjugate-word`  — fn, dict-load.lisp:294  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  696. `ichiran/dict:csv-hash`  — macro, dict-load.lisp:201  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  697. `ichiran/dict:defsuffix`  — macro, dict-grammar.lisp:342  *[skip — CONVENTIONS §4.6 case (a): DSL definer that registers (key . fn-name) pairs into *suffix-list*. The registry itself is the data store; per-callsite ports (suffix-tai, suffix-te, abbr-nee, …) live as standalone functions in the same Lisp file and will be transliterated alongside the CYCLE 484 unit (PORT_PLAN #484). No port file.]*

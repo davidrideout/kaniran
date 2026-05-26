@@ -401,3 +401,19 @@ path = "audit/core/romanize_word_info_test.rs"
 [[bin]]
 name = "romanize_full_json_test"
 path = "audit/core/romanize_full_json_test.rs"
+
+[[bin]]
+name = "conj_prop_json_test"
+path = "audit/dict/conj_prop_json_test.rs"
+
+[[bin]]
+name = "conj_info_json_test"
+path = "audit/dict/conj_info_json_test.rs"
+
+[[bin]]
+name = "conj_info_json_star_test"
+path = "audit/dict/conj_info_json_star_test.rs"
+
+[[bin]]
+name = "select_conjs_and_props_test"
+path = "audit/dict/select_conjs_and_props_test.rs"
