@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
-members = ["kaniran-core"]
-# Future siblings (kaniran-cli, kaniran-demo, ...) get added to `members`.
+members = ["kaniran-core", "kaniran-cli", "kaniran-audit"]
+# Future siblings (kaniran-demo, ...) get added to `members`.
 
 [workspace.package]
 version = "0.0.0"

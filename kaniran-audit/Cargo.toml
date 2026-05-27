@@ -1,0 +1,421 @@
+[package]
+name = "kaniran-audit"
+description = "Fixture-replay audit runners for kaniran-core (corpus parity vs ichiran). Per-FQN binaries."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+kaniran-core = { path = "../kaniran-core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
+parquet = "55"
+arrow = "55"
+futures = "0.3"
+pprof = { version = "0.13", features = ["flamegraph"] }
+
+# Per-FQN fixture-replay runners. Each lives at audit/<pkg>/<fqn>_test.rs
+# mirroring kaniran-core/src/<pkg>/<fqn>.rs. Run manually from the repo root with:
+#   cargo run -p kaniran-audit --bin <fqn>_test -- --path corpus/<corpus_tag>/<fqn>.parquet
+[[bin]]
+name = "get_split_test"
+path = "audit/dict/get_split_test.rs"
+
+[[bin]]
+name = "normalize_test"
+path = "audit/characters/normalize_test.rs"
+
+[[bin]]
+name = "seq_test"
+path = "audit/dict/seq_test.rs"
+
+[[bin]]
+name = "common_test"
+path = "audit/dict/common_test.rs"
+
+[[bin]]
+name = "source_test"
+path = "audit/dict/source_test.rs"
+
+[[bin]]
+name = "get_text_test"
+path = "audit/dict/get_text_test.rs"
+
+[[bin]]
+name = "find_word_test"
+path = "audit/dict/find_word_test.rs"
+
+[[bin]]
+name = "find_word_with_pos_test"
+path = "audit/dict/find_word_with_pos_test.rs"
+
+[[bin]]
+name = "find_word_as_hiragana_test"
+path = "audit/dict/find_word_as_hiragana_test.rs"
+
+[[bin]]
+name = "find_word_full_test"
+path = "audit/dict/find_word_full_test.rs"
+
+[[bin]]
+name = "find_word_suffix_test"
+path = "audit/dict/find_word_suffix_test.rs"
+
+[[bin]]
+name = "get_original_text_test"
+path = "audit/dict/get_original_text_test.rs"
+
+[[bin]]
+name = "query_parents_kanji_test"
+path = "audit/dict/query_parents_kanji_test.rs"
+
+[[bin]]
+name = "best_kana_conj_test"
+path = "audit/dict/best_kana_conj_test.rs"
+
+[[bin]]
+name = "query_parents_kana_test"
+path = "audit/dict/query_parents_kana_test.rs"
+
+[[bin]]
+name = "best_kanji_conj_test"
+path = "audit/dict/best_kanji_conj_test.rs"
+
+[[bin]]
+name = "get_kanji_test"
+path = "audit/dict/get_kanji_test.rs"
+
+[[bin]]
+name = "get_kana_test"
+path = "audit/dict/get_kana_test.rs"
+
+[[bin]]
+name = "true_kana_test"
+path = "audit/dict/true_kana_test.rs"
+
+[[bin]]
+name = "get_hint_test"
+path = "audit/dict/get_hint_test.rs"
+
+[[bin]]
+name = "word_info_from_segment_test"
+path = "audit/dict/word_info_from_segment_test.rs"
+
+[[bin]]
+name = "word_info_from_segment_list_test"
+path = "audit/dict/word_info_from_segment_list_test.rs"
+
+[[bin]]
+name = "fill_segment_path_test"
+path = "audit/dict/fill_segment_path_test.rs"
+
+[[bin]]
+name = "dict_segment_test"
+path = "audit/dict/dict_segment_test.rs"
+
+[[bin]]
+name = "get_suffixes_dump"
+path = "audit/dict/get_suffixes_dump.rs"
+
+[[bin]]
+name = "apply_score_mod_test"
+path = "audit/dict/apply_score_mod_test.rs"
+
+[[bin]]
+name = "compare_common_test"
+path = "audit/dict/compare_common_test.rs"
+
+[[bin]]
+name = "cull_segments_test"
+path = "audit/dict/cull_segments_test.rs"
+
+[[bin]]
+name = "get_non_arch_posi_test"
+path = "audit/dict/get_non_arch_posi_test.rs"
+
+[[bin]]
+name = "match_unique_test"
+path = "audit/dict/match_unique_test.rs"
+
+[[bin]]
+name = "calc_score_test"
+path = "audit/dict/calc_score_test.rs"
+
+[[bin]]
+name = "kanji_break_penalty_test"
+path = "audit/dict/kanji_break_penalty_test.rs"
+
+[[bin]]
+name = "gen_score_test"
+path = "audit/dict/gen_score_test.rs"
+
+[[bin]]
+name = "get_segsplit_test"
+path = "audit/dict/get_segsplit_test.rs"
+
+[[bin]]
+name = "pair_words_by_conj_test"
+path = "audit/dict/pair_words_by_conj_test.rs"
+
+[[bin]]
+name = "or_as_hiragana_test"
+path = "audit/dict/or_as_hiragana_test.rs"
+
+[[bin]]
+name = "suffix_suru_test"
+path = "audit/dict/suffix_suru_test.rs"
+
+[[bin]]
+name = "suffix_ra_test"
+path = "audit/dict/suffix_ra_test.rs"
+
+[[bin]]
+name = "suffix_rashii_test"
+path = "audit/dict/suffix_rashii_test.rs"
+
+[[bin]]
+name = "suffix_to_test"
+path = "audit/dict/suffix_to_test.rs"
+
+[[bin]]
+name = "suffix_te_plus_space_test"
+path = "audit/dict/suffix_te_plus_space_test.rs"
+
+[[bin]]
+name = "suffix_teiru_test"
+path = "audit/dict/suffix_teiru_test.rs"
+
+[[bin]]
+name = "suffix_neg_test"
+path = "audit/dict/suffix_neg_test.rs"
+
+[[bin]]
+name = "suffix_adv_test"
+path = "audit/dict/suffix_adv_test.rs"
+
+[[bin]]
+name = "abbr_n_test"
+path = "audit/dict/abbr_n_test.rs"
+
+[[bin]]
+name = "abbr_nx_test"
+path = "audit/dict/abbr_nx_test.rs"
+
+[[bin]]
+name = "abbr_nee_test"
+path = "audit/dict/abbr_nee_test.rs"
+
+[[bin]]
+name = "abbr_nakereba_test"
+path = "audit/dict/abbr_nakereba_test.rs"
+
+[[bin]]
+name = "abbr_dewanai_test"
+path = "audit/dict/abbr_dewanai_test.rs"
+
+[[bin]]
+name = "get_seg_initial_test"
+path = "audit/dict/get_seg_initial_test.rs"
+
+[[bin]]
+name = "get_seg_splits_test"
+path = "audit/dict/get_seg_splits_test.rs"
+
+[[bin]]
+name = "expand_segment_list_test"
+path = "audit/dict/expand_segment_list_test.rs"
+
+[[bin]]
+name = "find_best_path_test"
+path = "audit/dict/find_best_path_test.rs"
+
+[[bin]]
+name = "filter_is_noun_test"
+path = "audit/dict/filter_is_noun_test.rs"
+
+[[bin]]
+name = "get_synergies_test"
+path = "audit/dict/get_synergies_test.rs"
+
+[[bin]]
+name = "synergy_noun_da_test"
+path = "audit/dict/synergy_noun_da_test.rs"
+
+[[bin]]
+name = "synergy_noun_particle_test"
+path = "audit/dict/synergy_noun_particle_test.rs"
+
+[[bin]]
+name = "find_sticky_positions_test"
+path = "audit/dict/find_sticky_positions_test.rs"
+
+[[bin]]
+name = "suffix_chau_test"
+path = "audit/dict/suffix_chau_test.rs"
+[[bin]]
+name = "suffix_desho_test"
+path = "audit/dict/suffix_desho_test.rs"
+[[bin]]
+name = "suffix_desu_test"
+path = "audit/dict/suffix_desu_test.rs"
+[[bin]]
+name = "suffix_garu_test"
+path = "audit/dict/suffix_garu_test.rs"
+[[bin]]
+name = "suffix_iadj_test"
+path = "audit/dict/suffix_iadj_test.rs"
+[[bin]]
+name = "suffix_kudasai_test"
+path = "audit/dict/suffix_kudasai_test.rs"
+[[bin]]
+name = "suffix_kurai_test"
+path = "audit/dict/suffix_kurai_test.rs"
+[[bin]]
+name = "suffix_ren_test"
+path = "audit/dict/suffix_ren_test.rs"
+[[bin]]
+name = "suffix_ren__test"
+path = "audit/dict/suffix_ren__test.rs"
+[[bin]]
+name = "suffix_rou_test"
+path = "audit/dict/suffix_rou_test.rs"
+[[bin]]
+name = "suffix_sa_test"
+path = "audit/dict/suffix_sa_test.rs"
+[[bin]]
+name = "suffix_sou_test"
+path = "audit/dict/suffix_sou_test.rs"
+[[bin]]
+name = "suffix_sou_plus__test"
+path = "audit/dict/suffix_sou_plus__test.rs"
+[[bin]]
+name = "suffix_sugiru_test"
+path = "audit/dict/suffix_sugiru_test.rs"
+[[bin]]
+name = "suffix_tai_test"
+path = "audit/dict/suffix_tai_test.rs"
+[[bin]]
+name = "suffix_teii_test"
+path = "audit/dict/suffix_teii_test.rs"
+[[bin]]
+name = "suffix_teiru_plus__test"
+path = "audit/dict/suffix_teiru_plus__test.rs"
+[[bin]]
+name = "suffix_te_test"
+path = "audit/dict/suffix_te_test.rs"
+[[bin]]
+name = "suffix_te_ren_test"
+path = "audit/dict/suffix_te_ren_test.rs"
+[[bin]]
+name = "suffix_tosuru_test"
+path = "audit/dict/suffix_tosuru_test.rs"
+[[bin]]
+name = "abbr_geba_test"
+path = "audit/dict/abbr_geba_test.rs"
+[[bin]]
+name = "abbr_ii_test"
+path = "audit/dict/abbr_ii_test.rs"
+[[bin]]
+name = "abbr_beba_test"
+path = "audit/dict/abbr_beba_test.rs"
+[[bin]]
+name = "abbr_keba_test"
+path = "audit/dict/abbr_keba_test.rs"
+[[bin]]
+name = "abbr_meba_test"
+path = "audit/dict/abbr_meba_test.rs"
+[[bin]]
+name = "abbr_neba_test"
+path = "audit/dict/abbr_neba_test.rs"
+[[bin]]
+name = "abbr_reba_test"
+path = "audit/dict/abbr_reba_test.rs"
+[[bin]]
+name = "abbr_seba_test"
+path = "audit/dict/abbr_seba_test.rs"
+[[bin]]
+name = "abbr_shimasho_test"
+path = "audit/dict/abbr_shimasho_test.rs"
+[[bin]]
+name = "abbr_teba_test"
+path = "audit/dict/abbr_teba_test.rs"
+[[bin]]
+name = "join_substring_words_star_test"
+path = "audit/dict/join_substring_words_star_test.rs"
+[[bin]]
+name = "join_substring_words_test"
+path = "audit/dict/join_substring_words_test.rs"
+[[bin]]
+name = "find_substring_words_test"
+path = "audit/dict/find_substring_words_test.rs"
+
+[[bin]]
+name = "simplify_reading_list_test"
+path = "audit/dict/simplify_reading_list_test.rs"
+
+[[bin]]
+name = "get_character_classes_test"
+path = "audit/core/get_character_classes_test.rs"
+
+[[bin]]
+name = "process_modifiers_test"
+path = "audit/core/process_modifiers_test.rs"
+
+[[bin]]
+name = "leftmost_atom_test"
+path = "audit/core/leftmost_atom_test.rs"
+
+[[bin]]
+name = "r_base_test"
+path = "audit/core/r_base_test.rs"
+
+[[bin]]
+name = "r_apply_test"
+path = "audit/core/r_apply_test.rs"
+
+[[bin]]
+name = "r_simplify_test"
+path = "audit/core/r_simplify_test.rs"
+
+[[bin]]
+name = "r_special_test"
+path = "audit/core/r_special_test.rs"
+
+[[bin]]
+name = "romanize_core_test"
+path = "audit/core/romanize_core_test.rs"
+
+[[bin]]
+name = "romanize_list_test"
+path = "audit/core/romanize_list_test.rs"
+
+[[bin]]
+name = "romanize_word_test"
+path = "audit/core/romanize_word_test.rs"
+
+[[bin]]
+name = "romanize_word_info_test"
+path = "audit/core/romanize_word_info_test.rs"
+
+[[bin]]
+name = "cli_full_test"
+path = "audit/core/cli_full_test.rs"
+
+[[bin]]
+name = "conj_prop_json_test"
+path = "audit/dict/conj_prop_json_test.rs"
+
+[[bin]]
+name = "conj_info_json_test"
+path = "audit/dict/conj_info_json_test.rs"
+
+[[bin]]
+name = "conj_info_json_star_test"
+path = "audit/dict/conj_info_json_star_test.rs"
+
+[[bin]]
+name = "select_conjs_and_props_test"
+path = "audit/dict/select_conjs_and_props_test.rs"

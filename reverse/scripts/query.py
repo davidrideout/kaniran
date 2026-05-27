@@ -1067,6 +1067,12 @@ def _audit_sweep(syms: dict[str, dict]) -> tuple[int, int, list[tuple[str, str, 
     for fqn, sym in syms.items():
         if sym["status"] != "ported":
             continue
+        # ichiran/cli symbols (the CLI entrypoint + helpers) are transliterated
+        # into the sibling kaniran-cli crate, not kaniran-core. This sweep
+        # audits kaniran-core pub fns against Lisp lambda lists; kaniran-cli
+        # has its own tests, so skip its symbols here.
+        if sym["package"] == "ichiran/cli":
+            continue
         kind = sym["kind"]
         if kind not in ("fn", "macro", "gf"):
             continue

@@ -317,7 +317,7 @@
 ;; e2e driver: exactly the CLI --full expression. Input is the sentence,
 ;; output is the complete JSON string. Capture with the JSON projector +
 ;; :json encoder (like every other audit FQN) so the args/result columns
-;; are JSON — the audit loader (kaniran-core/audit/common) parses every
+;; are JSON — the audit loader (kaniran-audit/audit/common) parses every
 ;; column with serde_json. FLATTEN-RESULTS-JSON on a plain string yields
 ;; the one-element array ["<json>"] the runner's single_result expects
 ;; (same shape chunk A captured for romanize-word-info's string result).

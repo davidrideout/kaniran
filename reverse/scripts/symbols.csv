@@ -61,9 +61,9 @@ ichiran/characters:to-normal-char,to-normal-char,ichiran/characters,characters.l
 ichiran/characters:unrendaku,unrendaku,ichiran/characters,characters.lisp,308,fn,ported,,,
 ichiran/characters:voice-char,voice-char,ichiran/characters,characters.lisp,91,fn,ported,,,
 ichiran/cli:build,build,ichiran/cli,cli.lisp,102,fn,skip,CLI-only entrypoint/help glue; belongs in a future kaniran-cli crate,,
-ichiran/cli:main,main,ichiran/cli,cli.lisp,48,fn,pending,,romanize_json_2026_05_25,252125/252175 (50 fail)
+ichiran/cli:main,main,ichiran/cli,cli.lisp,48,fn,ported,transliterated in kaniran-cli/src/main.rs,romanize_json_2026_05_25,252125/252175 (50 fail)
 ichiran/cli:print-error,print-error,ichiran/cli,cli.lisp,37,fn,skip,"""CLI-only stderr/debugger glue; Rust uses eprintln!/anyhow/panic-hook. Belongs in a future kaniran-cli crate",,
-ichiran/cli:print-romanize-info,print-romanize-info,ichiran/cli,cli.lisp,44,fn,skip,CLI-only entrypoint/help glue; belongs in a future kaniran-cli crate,,
+ichiran/cli:print-romanize-info,print-romanize-info,ichiran/cli,cli.lisp,44,fn,ported,transliterated in kaniran-cli/src/main.rs,,
 ichiran/cli:setup-debugger,setup-debugger,ichiran/cli,cli.lisp,95,fn,skip,"""CLI-only stderr/debugger glue; Rust uses eprintln!/anyhow/panic-hook. Belongs in a future kaniran-cli crate",,
 ichiran/cli:unknown-option,unknown-option,ichiran/cli,cli.lisp,33,fn,skip,CLI-only entrypoint/help glue; belongs in a future kaniran-cli crate,,
 ichiran/conn:*conn-var-cache*,*conn-var-cache*,ichiran/conn,conn.lisp,41,global,skip,Cache mapping (var . spec) -> value for the per-connection rebinding. Subsumed by per-Ctx field ownership.,,

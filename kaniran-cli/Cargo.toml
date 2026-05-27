@@ -1,0 +1,18 @@
+[package]
+name = "kaniran-cli"
+description = "Rust transliteration of ichiran's command-line interface (ichiran/cli)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "kaniran-cli"
+path = "src/main.rs"
+
+[dependencies]
+kaniran-core = { path = "../kaniran-core" }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
+clap = { version = "4", features = ["derive"] }

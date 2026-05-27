@@ -146,7 +146,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  133. `ichiran/dict:init-suffixes-thread`  — fn, dict-grammar.lisp:169  *[ported]*
  134. `ichiran/dict:init-suffixes`  — fn, dict-grammar.lisp:332  *[skip — Subsumed by KaniranContext eager construction; init-suffixes-thread (wave 126) is the actual populator. Same prior-art as init-suffixes-running-p.]*
  135. `ichiran/cli:build`  — fn, cli.lisp:102  *[skip — CLI-only entrypoint/help glue; belongs in a future kaniran-cli crate]*
- 136. `ichiran/cli:print-romanize-info`  — fn, cli.lisp:44  *[skip — CLI-only entrypoint/help glue; belongs in a future kaniran-cli crate]*
+ 136. `ichiran/cli:print-romanize-info`  — fn, cli.lisp:44  *[ported — transliterated in kaniran-cli/src/main.rs]*
  137. `ichiran/cli:unknown-option`  — fn, cli.lisp:33  *[skip — CLI-only entrypoint/help glue; belongs in a future kaniran-cli crate]*
  138. `ichiran/conn:*is-dynamic-connection*`  — global, conn.lisp:14  *[skip — "Boolean marking 'connection came from env]*
  139. `ichiran/conn:*connection-env-var*`  — global, conn.lisp:13  *[ported]*
@@ -612,7 +612,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  542. `ichiran:romanize-word-info`  — fn, romanize.lisp:248  *[ported]*  *[extracted: chunk_a_romanize_2026_05_14]*  *[audited 928764/928764]*
  543. `ichiran:romanize`  — fn, romanize.lisp:257  *[ported]*
  544. `ichiran:romanize*`  — fn, romanize.lisp:273  *[ported]*
- 545. `ichiran/cli:main`  — fn, cli.lisp:48  *[extracted: romanize_json_2026_05_25]*  *[audited 252125/252175 (50 fail)]*
+ 545. `ichiran/cli:main`  — fn, cli.lisp:48  *[ported — transliterated in kaniran-cli/src/main.rs]*  *[extracted: romanize_json_2026_05_25]*  *[audited 252125/252175 (50 fail)]*
  546. `ichiran/conn:*debug*`  — global, conn.lisp:20  *[skip — Debug-flag global gating dp. Replaced by the tracing crate's filter level.]*
  547. `ichiran/conn:def-conn-var`  — macro, conn.lisp:41  *[skip — Macro registering a global into the per-connection variable rebinding list. The cross-DB rebinding pattern is gone — each Ctx owns its caches directly.]*
  548. `ichiran/conn:defcache`  — macro, conn.lisp:135  *[skip — Macro registering a cache + defining init-cache method. Rust shape has no registry; each cache is a typed Ctx field with hand-written accessor.]*
