@@ -843,7 +843,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  771. `ichiran/kanji:load-kanjidic`  — fn, kanji.lisp:185  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
  772. `ichiran/kanji:process-match-json`  — fn, kanji.lisp:428  *[ported]*
  773. `ichiran/kanji:match-readings-json`  — fn, kanji.lisp:452  *[ported]*
- 774. `ichiran/kanji:query-kanji-json`  — macro, kanji.lisp:458
+ 774. `ichiran/kanji:query-kanji-json`  — macro, kanji.lisp:458  *[ported]*
  775. `ichiran/numbers:*digit-kanji-legal*`  — global, numbers.lisp:5  *[ported]*
  776. `ichiran/numbers:parse-number*`  — fn, numbers.lisp:57  *[ported]*
  777. `ichiran/numbers:parse-number`  — fn, numbers.lisp:77  *[ported]*  *[extracted: counter_2026_05_08]*
@@ -862,7 +862,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  790. `ichiran:kr-concat`  — fn, deromanize.lisp:23  *[ported]*
  791. `ichiran:load-romaji-kana`  — fn, deromanize.lisp:5  *[ported]*
  792. `ichiran:get-romaji-kana`  — fn, deromanize.lisp:5  *[ported]*
- 793. `ichiran:romaji-next`  — fn, deromanize.lisp:46
- 794. `ichiran:branches-next`  — fn, deromanize.lisp:69
- 795. `ichiran:romaji-kana`  — fn, deromanize.lisp:84
- 796. `ichiran:romaji-suggest`  — fn, deromanize.lisp:95
+ 793. `ichiran:romaji-next`  — fn, deromanize.lisp:46  *[ported]*
+ 794. `ichiran:branches-next`  — fn, deromanize.lisp:69  *[ported]*
+ 795. `ichiran:romaji-kana`  — fn, deromanize.lisp:84  *[ported]*
+ 796. `ichiran:romaji-suggest`  — fn, deromanize.lisp:95  *[ported]*

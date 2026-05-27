@@ -789,7 +789,7 @@ ichiran/kanji:match-readings-json,match-readings-json,ichiran/kanji,kanji.lisp,4
 ichiran/kanji:meaning,meaning,ichiran/kanji,kanji.lisp,83,dao,ported,,,
 ichiran/kanji:okurigana,okurigana,ichiran/kanji,kanji.lisp,67,dao,ported,,,
 ichiran/kanji:process-match-json,process-match-json,ichiran/kanji,kanji.lisp,428,fn,ported,,,
-ichiran/kanji:query-kanji-json,query-kanji-json,ichiran/kanji,kanji.lisp,458,macro,pending,,,
+ichiran/kanji:query-kanji-json,query-kanji-json,ichiran/kanji,kanji.lisp,458,macro,ported,,,
 ichiran/kanji:reading,reading,ichiran/kanji,kanji.lisp,42,dao,ported,,,
 ichiran/kanji:reading-info-json,reading-info-json,ichiran/kanji,kanji.lisp,354,fn,ported,,,
 ichiran/kanji:stat-common,stat-common,ichiran/kanji,kanji.lisp,0,gf,skip,Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.,,
@@ -843,7 +843,7 @@ ichiran:*kunrei-siki-kana-table*,*kunrei-siki-kana-table*,ichiran,romanize.lisp,
 ichiran:*romaji-kana*,*romaji-kana*,ichiran,deromanize.lisp,0,global,ported,,,
 ichiran:*romaji-kana-next*,*romaji-kana-next*,ichiran,deromanize.lisp,21,global,ported,,,
 ichiran:apply-rmap-item,apply-rmap-item,ichiran,deromanize.lisp,35,fn,ported,,,
-ichiran:branches-next,branches-next,ichiran,deromanize.lisp,69,fn,pending,,,
+ichiran:branches-next,branches-next,ichiran,deromanize.lisp,69,fn,ported,,,
 ichiran:generic-hepburn,generic-hepburn,ichiran,romanize.lisp,103,class,ported,,,
 ichiran:generic-romanization,generic-romanization,ichiran,romanize.lisp,62,class,ported,,,
 ichiran:get-character-classes,get-character-classes,ichiran,romanize.lisp,3,fn,ported,,chunk_a_romanize_2026_05_14,227954/227954
@@ -865,9 +865,9 @@ ichiran:r-base,r-base,ichiran,romanize.lisp,0,gf,ported,,chunk_a_romanize_2026_0
 ichiran:r-simplify,r-simplify,ichiran,romanize.lisp,0,gf,ported,,chunk_a_romanize_2026_05_14,217622/217622
 ichiran:r-special,r-special,ichiran,romanize.lisp,0,gf,ported,,chunk_a_romanize_2026_05_14,252625/252625
 ichiran:rmap-item,rmap-item,ichiran,deromanize.lisp,5,struct,ported,,,
-ichiran:romaji-kana,romaji-kana,ichiran,deromanize.lisp,84,fn,pending,,,
-ichiran:romaji-next,romaji-next,ichiran,deromanize.lisp,46,fn,pending,,,
-ichiran:romaji-suggest,romaji-suggest,ichiran,deromanize.lisp,95,fn,pending,,,
+ichiran:romaji-kana,romaji-kana,ichiran,deromanize.lisp,84,fn,ported,,,
+ichiran:romaji-next,romaji-next,ichiran,deromanize.lisp,46,fn,ported,,,
+ichiran:romaji-suggest,romaji-suggest,ichiran,deromanize.lisp,95,fn,ported,,,
 ichiran:romanize,romanize,ichiran,romanize.lisp,257,fn,ported,,,
 ichiran:romanize*,romanize*,ichiran,romanize.lisp,273,fn,ported,,,
 ichiran:romanize-core,romanize-core,ichiran,romanize.lisp,29,fn,ported,,chunk_a_romanize_2026_05_14,228296/228296
