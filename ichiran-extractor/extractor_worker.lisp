@@ -336,19 +336,21 @@
   (ichi-projectors-json:flatten-results-json
    (list (jsown:to-json (first results)))))
 
-;; find-substring-words extraction (2026-05-26). Capture the substring
-;; lookup-cache builder. Its result is a hash-table str -> list of
-;; (table . column-plist); FLATTEN-FIND-SUBSTRING-WORDS-RESULTS renders it
-;; as { substring: [ {row}, ... ] } with bucket order preserved (the order
-;; is load-bearing — find-word consumes the bucket as-is). The CLI-FULL
-;; entry-point drives the segmentation that invokes find-substring-words;
-;; args use the default flatten-args-json projector.
+;; Full-JSON burn-in (2026-05-27). Capture the e2e complete-result JSON —
+;; exactly the CLI's --full output, (jsown:to-json (romanize* text :limit 5)) —
+;; over the 1.5M diverse corpus. CLI-FULL is the worker-local wrapper (above);
+;; its result is a plain JSON string, so FLATTEN-RESULTS-JSON wraps it as the
+;; one-element array the audit loader expects. Only CLI-FULL is hooked, so each
+;; sentence yields a single capture (no merged multi-FQN envelope).
 (defparameter *boot-install-fqns*
-  (list (list "ICHIRAN/DICT:FIND-SUBSTRING-WORDS"
-              :result-projector (symbol-function
-                                 (find-symbol "FLATTEN-FIND-SUBSTRING-WORDS-RESULTS"
-                                              :ichi-projectors-json))
-              :encoder :json)))
+  (let ((arg-fn    (symbol-function (find-symbol "FLATTEN-ARGS-JSON"
+                                                 :ichi-projectors-json)))
+        (result-fn (symbol-function (find-symbol "FLATTEN-RESULTS-JSON"
+                                                 :ichi-projectors-json))))
+    (list (list "CL-USER::CLI-FULL"
+                :arg-projector arg-fn
+                :result-projector result-fn
+                :encoder :json))))
 
 (handler-case
     (ichi-trace:install-many *boot-install-fqns*)

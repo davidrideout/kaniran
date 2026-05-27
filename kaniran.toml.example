@@ -1,0 +1,5 @@
+# Copy this to `kaniran.toml` (gitignored) and edit the URL.
+# kaniran reads `database_url` from this file, or from the
+# DATABASE_URL environment variable (env wins if both are set).
+
+database_url = "postgres://postgres:password@localhost/jmdict"
