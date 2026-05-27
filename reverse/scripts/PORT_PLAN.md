@@ -857,11 +857,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  785. `ichiran:*romaji-kana-next*`  — global, deromanize.lisp:21  *[ported]*
  786. `ichiran:kana-representation`  — struct, deromanize.lisp:23  *[ported]*
  787. `ichiran:possible-long-vowel-p`  — fn, deromanize.lisp:30  *[ported]*
- 788. `ichiran:apply-rmap-item`  — fn, deromanize.lisp:35
+ 788. `ichiran:apply-rmap-item`  — fn, deromanize.lisp:35  *[ported]*
  789. `ichiran:join-branches`  — fn, deromanize.lisp:54  *[ported]*
- 790. `ichiran:kr-concat`  — fn, deromanize.lisp:23
+ 790. `ichiran:kr-concat`  — fn, deromanize.lisp:23  *[ported]*
  791. `ichiran:load-romaji-kana`  — fn, deromanize.lisp:5  *[ported]*
- 792. `ichiran:get-romaji-kana`  — fn, deromanize.lisp:5
+ 792. `ichiran:get-romaji-kana`  — fn, deromanize.lisp:5  *[ported]*
  793. `ichiran:romaji-next`  — fn, deromanize.lisp:46
  794. `ichiran:branches-next`  — fn, deromanize.lisp:69
  795. `ichiran:romaji-kana`  — fn, deromanize.lisp:84
