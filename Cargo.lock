@@ -1392,7 +1392,7 @@ dependencies = [
 
 [[package]]
 name = "kaniran-audit"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "arrow",
  "futures",
@@ -1407,7 +1407,7 @@ dependencies = [
 
 [[package]]
 name = "kaniran-cli"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "clap",
  "kaniran-core",
@@ -1418,7 +1418,7 @@ dependencies = [
 
 [[package]]
 name = "kaniran-core"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "config",
  "fancy-regex",

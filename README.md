@@ -1,8 +1,8 @@
 # kaniran 🦀
 
-A Rust transliteration of [ichiran](https://github.com/tshatrov/ichiran) — Japanese text segmentation and romanization, backed by the [JMdictDB](http://edrdg.org/~smg/) dictionary.
+A Rust port of [ichiran](https://github.com/tshatrov/ichiran) — Japanese text segmentation and romanization, backed by the [JMdictDB](http://edrdg.org/~smg/) dictionary.
 
-This is a faithful rewrite of ichiran (originally Common Lisp + PostgreSQL) in Rust. It reads the same PostgreSQL database ichiran uses, so you bring up the database exactly as you would for ichiran, then point kaniran at it.
+kaniran is a Rust port of ichiran (originally Common Lisp + PostgreSQL). It reads the same PostgreSQL database ichiran uses, so you bring up the database exactly as you would for ichiran, then point kaniran at it.
 
 ## Requirements
 
