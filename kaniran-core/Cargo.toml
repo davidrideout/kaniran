@@ -349,6 +349,9 @@ path = "audit/dict/join_substring_words_star_test.rs"
 [[bin]]
 name = "join_substring_words_test"
 path = "audit/dict/join_substring_words_test.rs"
+[[bin]]
+name = "find_substring_words_test"
+path = "audit/dict/find_substring_words_test.rs"
 
 [[bin]]
 name = "simplify_reading_list_test"

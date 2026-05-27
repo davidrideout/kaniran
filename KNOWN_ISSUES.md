@@ -302,6 +302,57 @@ not a per-input specification.
 
 ---
 
+## 4. `find-substring-words` bucket order diverges across DB builds
+
+**Scope.** The `find_substring_words` order-sensitive audit
+(`find_substring_words_test`, captured 2026-05-26 over the 250k diverse
+corpus) shows **33,628 / 536,669 (6.3%)** rows whose `*substring-hash*`
+bucket order differs from the captured Lisp, concentrated on 12 common
+homonym keys (`いる` 27,805, `字` 2,109, `彼の` 1,939, `氏` 1,120, `モノ`,
+`分かり`, `やろ`, `いこう`, `きのう`, `とろ`, `つつまし`, `うんち`).
+**100% of the 33,628 are pure reorderings** — identical seq multiset,
+zero rows added/dropped/changed; only the relative order of adjacent
+homonym tuples differs.
+
+**Mechanism.** `find-substring-words` bulk-fetches each substring's
+rows with `(query (:select … :from table :where (:in 'text (:set keys))))`
+(`dict.lisp:514-518`) — no `ORDER BY` — then `(push (cons table kt) …)`
+(`dict.lisp:517`), which prepends, so each bucket is the reverse of the
+fetch order. The Rust port mirrors this (`insert(0, …)`). The fetch
+order of an unordered `text = ANY(...)` scan is PostgreSQL physical heap
+/ scan order, which is **not identical between the `.103` capture DB and
+the local audit DB** for a handful of homonym tuples, even though both
+were built from the same JMdict import. Distinct from §1: this is a raw
+`query` (both sides read the wire order directly — within one DB they
+agree exactly), so the divergence is the physical-placement difference
+between the two DBs, not the Postmodern `query-dao` loader permutation.
+
+**Reproduction.** For homonym key `いる` the two DBs return the same 10
+rows, last two swapped:
+
+```
+local: … 1587780 1322180 1391500
+.103:  … 1587780 1391500 1322180
+```
+
+Rust's bucket is the exact reverse of the local fetch (the prepend fix,
+verified by the `bucket_is_reverse_of_fetch_order` unit test); the Lisp
+bucket is the reverse of `.103`'s. Run
+`cargo run --release --bin find_substring_words_test -- --path corpus/find_substring_words_2026_05_26/dict/find_substring_words.parquet`
+→ pass=503,041 fail=33,628 skipped=0; every failure is a same-multiset
+reorder.
+
+**Disposition.** Not a port bug — the bucket content is 100% faithful
+and the within-DB order is correct (reverse of that DB's fetch). The
+cross-DB order divergence is irreducible: upstream's no-`ORDER BY` query
+gives no order contract, so two DB builds can legitimately disagree.
+The order is load-bearing downstream (last-iterated homonym wins in
+`find-word` / `pair-words-by-conj`), so this is one source feeding the
+§3 cli-full Passive/Potential divergence. Pass-rate is not the gate;
+the divergence pattern (pure reorderings on homonym keys) is.
+
+---
+
 ## On audit interpretation
 
 The `get_suffixes` parquet captures both deterministic and stateful
