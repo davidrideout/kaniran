@@ -323,6 +323,9 @@ path = "audit/dict/abbr_geba_test.rs"
 name = "abbr_ii_test"
 path = "audit/dict/abbr_ii_test.rs"
 [[bin]]
+name = "abbr_beba_test"
+path = "audit/dict/abbr_beba_test.rs"
+[[bin]]
 name = "abbr_keba_test"
 path = "audit/dict/abbr_keba_test.rs"
 [[bin]]

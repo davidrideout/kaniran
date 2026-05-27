@@ -293,7 +293,7 @@ mod tests {
     }
 
     /// 三本 → 3 results, two tied at score 208 (DB-order between the two
-    /// ties is unspecified per KNOWN_ISSUES) then みもと 143. Assert the
+    /// ties is unspecified per docs/known_issues.md) then みもと 143. Assert the
     /// descending score sequence and the seq set, not the tie order.
     #[tokio::test]
     async fn score_tie_then_lower() {

@@ -274,4 +274,58 @@ mod tests {
         let r = find_word_suffix(&ctx, "私ら", &matches).await.unwrap();
         assert!(r.is_empty());
     }
+
+    /// Map-path branch coverage (`dict-grammar.lisp:697` — the
+    /// `*suffix-map-temp*` source, `find_word_suffix.rs:95-103`). Every
+    /// other test here runs with `suffix_map_temp = None` and exercises
+    /// only the `get_suffixes` fallback; this one binds a real suffix
+    /// map (mirroring `join_substring_words_star_`) so the suffix triples
+    /// come from `map[suffix_next_end]`, independent of `word`.
+    ///
+    /// Sentence "しきれなくなったらしく" — なくなったら ends at char 9.
+    /// REPL-verified on the ichiran host: map@9 = (ら たら ったら なったら)
+    /// → `find-word-suffix("なくなったら")` = 3; map@8 = (た った なった)
+    /// → 0. The next-end=8 case is the nested-call shape (a parent suffix
+    /// decremented the end): the map is indexed one position short,
+    /// yields the wrong suffix row, and returns 0 where the bare
+    /// `get_suffixes` path would have returned 3.
+    #[tokio::test]
+    async fn t8_map_path_position_sensitive() {
+        use crate::dict::_star_suffix_map_temp_star_::SuffixMapTemp;
+        use crate::dict::get_suffix_map::get_suffix_map;
+        use std::sync::Arc;
+
+        let ctx = ctx().await;
+        let sentence = "しきれなくなったらしく";
+        // Mirror join_substring_words_star_:72-83 — *suffix-map-temp*
+        // owns its triples, so materialize owned copies of the borrowed
+        // get_suffix_map output.
+        let suffix_map: Arc<SuffixMapTemp> = Arc::new(
+            get_suffix_map(&ctx, sentence)
+                .into_iter()
+                .map(|(end, items)| {
+                    let owned: Vec<(String, String, Option<_>)> = items
+                        .into_iter()
+                        .map(|(s, k, kf)| (s.to_string(), k.to_string(), kf.cloned()))
+                        .collect();
+                    (end, owned)
+                })
+                .collect(),
+        );
+
+        // map@9 = (ら たら ったら なったら) → 3 compounds.
+        let ctx9 = ctx
+            .with_suffix_map_temp(Some(Arc::clone(&suffix_map)))
+            .with_suffix_next_end(Some(9));
+        let r9 = find_word_suffix(&ctx9, "なくなったら", &[]).await.unwrap();
+        assert_eq!(r9.len(), 3, "map@9 (ら/たら/ったら/なったら) → 3 compounds");
+
+        // map@8 = (た った なった) — the decremented-end nested-call
+        // shape; the suffixes don't align with なくなったら → 0.
+        let ctx8 = ctx
+            .with_suffix_map_temp(Some(Arc::clone(&suffix_map)))
+            .with_suffix_next_end(Some(8));
+        let r8 = find_word_suffix(&ctx8, "なくなったら", &[]).await.unwrap();
+        assert!(r8.is_empty(), "map@8 (た/った/なった) → no compounds");
+    }
 }

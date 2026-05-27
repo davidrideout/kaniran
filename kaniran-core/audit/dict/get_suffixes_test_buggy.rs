@@ -1,7 +1,7 @@
 //! Fixture-replay runner for `ICHIRAN/DICT:GET-SUFFIXES`. **Archived
 //! 2026-05-15** — renamed `_buggy` and removed from `Cargo.toml`'s
 //! `[[bin]]` list. Retained on disk as evidence of upstream
-//! nondeterminism (see `KNOWN_ISSUES.md` at the repo root); not built
+//! nondeterminism (see `docs/known_issues.md`); not built
 //! or run by default. To re-enable for investigation, re-add a
 //! `[[bin]] name = "get_suffixes_test_buggy" path = "…"` entry to
 //! `kaniran-core/Cargo.toml`.
@@ -21,7 +21,8 @@
 //! 504 failures (~0.13%). All 504 are explained, none are Rust port
 //! bugs:
 //!
-//! - **459 cache-row identity mismatches** (KNOWN_ISSUES.md §1). The
+//! - **459 cache-row identity mismatches** (docs/known_issues.md,
+//!   "Unordered query results"). The
 //!   upstream UNION in `get_kana_forms_star_` has no `ORDER BY`;
 //!   Postmodern's `query-dao` loader applies a non-trivial permutation
 //!   driven by in-process allocator / hash-table state, which neither
@@ -31,7 +32,8 @@
 //!   fresh worker produces a different parquet with the same failure
 //!   count and different per-row `lisp seq=` values.
 //!
-//! - **125 + 1 leaked-slot mismatches** (KNOWN_ISSUES.md §2). Lisp's
+//! - **125 + 1 leaked-slot mismatches** (docs/known_issues.md,
+//!   "Mid-session state in ichiran"). Lisp's
 //!   `compound-text` shares `KanaText` identity by reference with the
 //!   suffix cache; `(setf word-conjugations …)` on the compound
 //!   delegates via `dict.lisp:666` into the cache row, mutating it.
@@ -60,7 +62,7 @@
 //!
 //! Leave this runner in place until either (a) the suffix subsystem
 //! ports land with an explicit decision on the aliasing-leak fidelity
-//! strategy (KNOWN_ISSUES.md §2 options 1–3), at which point a clean
+//! strategy (docs/known_issues.md, "Mid-session state in ichiran"), at which point a clean
 //! re-extracted fixture replaces this one; or (b) an audit runner is
 //! written that splits known-divergence rows from unknown failures so
 //! a single pass/fail signal is meaningful again.

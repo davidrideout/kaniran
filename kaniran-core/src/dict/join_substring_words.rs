@@ -31,7 +31,7 @@
 //!
 //! Audited 531,529/533,756; every failure is an inherited `find-word-full`
 //! divergence (non-deterministic suffix-compound reading selection), not
-//! this port's logic — see `BUGS.md` §5.
+//! this port's logic — see `docs/known_issues.md`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_score_cutoff_star_::SCORE_CUTOFF;

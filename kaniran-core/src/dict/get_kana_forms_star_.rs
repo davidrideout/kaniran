@@ -10,7 +10,7 @@
 //! inner join; reproduced verbatim so the dedupe (UNION) shape stays
 //! upstream-identical. Upstream's UNION has no `ORDER BY`, so row
 //! order is driver-dependent — a known upstream nondeterminism
-//! (KNOWN_ISSUES.md); reproduced as-is rather than pinned.
+//! (docs/known_issues.md); reproduced as-is rather than pinned.
 //!
 //! [`get_kana_forms_conj_data_filter`]: super::get_kana_forms_conj_data_filter::get_kana_forms_conj_data_filter
 
