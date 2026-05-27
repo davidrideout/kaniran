@@ -1,13 +1,9 @@
 //! Core library for the kaniran Rust port of ichiran.
 //!
-//! Layout:
-//! - [`kani`] — kaniran-specific infrastructure (fixture replay, name
-//!   translation). Original code, not ported from ichiran.
-//! - Sibling modules named for ichiran packages (`characters::`,
-//!   `dict::`, `numbers::`, ...) hold the actual port. One file per
-//!   ported Lisp symbol; see [`kani::naming`] for the mapping rule.
-
-pub mod kani;
+//! Layout: modules named for ichiran packages (`characters::`,
+//! `dict::`, `numbers::`, ...) hold the port — one file per ported
+//! Lisp symbol. Rust-only types/values with no Lisp counterpart take a
+//! `kani_`/`Kani` name prefix.
 
 pub mod characters;
 pub mod conn;

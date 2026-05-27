@@ -15,7 +15,7 @@
 //! Rust-only optimization — semantics are identical.
 //!
 //! Naming convention: `kani_<snake_name>.rs` marks a Rust-only
-//! sidecar — see the module-doc on [`crate::kani::naming`].
+//! sidecar (no Lisp counterpart).
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

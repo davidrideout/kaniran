@@ -1,6 +1,6 @@
 //! Port of the bare `ichiran` package — the top-level romanization
 //! and entry-point logic. Renamed to `core` in the Rust tree so it
-//! does not shadow the crate root; see [`crate::kani::naming`].
+//! does not shadow the crate root.
 
 pub mod _star_default_romanization_method_star_;
 pub mod _star_hepburn_basic_star_;

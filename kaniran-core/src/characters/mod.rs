@@ -1,7 +1,6 @@
 //! Port of the `ichiran/characters` Lisp package.
 //!
-//! One file per ported symbol; file paths for ports follow the rule in
-//! [`crate::kani::naming`]. Rust-only sidecars (no Lisp counterpart)
+//! One file per ported symbol. Rust-only sidecars (no Lisp counterpart)
 //! use a `kani_<name>.rs` filename to distinguish them from
 //! `_star_<name>_star_.rs` (global ports) and `<name>_<kind>.rs`
 //! (typed-Lisp ports). Currently: [`kani_kana_class`].

@@ -89,11 +89,9 @@ def eprint(*args, **kwargs):
 
 def fqn_to_path(fqn: str) -> tuple[str, str]:
     """Map 'ICHIRAN/CHARACTERS:NORMALIZE' to ('characters', 'normalize').
-    Translation rules are the same kani::naming uses on the Rust side
-    (subset: package qualifier becomes the directory; bare 'ichiran'
-    becomes 'core'; symbol name is lowercased and *-+ get the same
-    sub-replacements). The exhaustive rules live in
-    kaniran-core/src/kani/naming.rs."""
+    The kaniran file-naming rule: the package qualifier becomes the
+    directory; bare 'ichiran' becomes 'core'; the symbol name is
+    lowercased and * - + get sub-replacements (CONVENTIONS.md §3)."""
     if ":" not in fqn:
         raise ValueError(f"FQN missing package separator: {fqn}")
     pkg, sym = fqn.split(":", 1)

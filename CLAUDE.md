@@ -26,10 +26,8 @@ kaniran-core/            # The Rust port (the library). Workspace member.
   data/                  # CSVs vendored + embedded via include_str! (romaji-map, kwpos, conj)
   src/
     lib.rs               # declares the per-package modules (characters, core, dict, conn,
-                         #   custom, kanji, numbers, maintenance) + pub mod kani
-    kani.rs              # kani:: namespace — kaniran infra, NOT ported ichiran symbols
-    kani/
-      naming.rs          # Lisp FQN -> Rust path (single source of truth, exhaustively tested)
+                         #   custom, kanji, numbers, maintenance)
+                         # Rust-only types/values (no Lisp counterpart) take a kani_/Kani prefix.
   Cargo.toml
 kaniran-cli/             # Port of ichiran/cli — the `kaniran-cli` binary.
 kaniran-audit/           # Internal bulk fixture-replay audit runners (one bin per fn). Ignorable.
@@ -96,7 +94,7 @@ The driver entrypoint is `(ichiran/test:run-all-tests)`.
 
 ## Working conventions
 
-- **Rust port coding/naming conventions live in [`bookkeeping/CONVENTIONS.md`](./bookkeeping/CONVENTIONS.md).** Read it before adding or editing ported files — it covers file layout, doc-comment requirements, the rules for translating Lisp shapes (multi-value returns, `&key` keywords, in-place mutation, tagged cons cells) into Rust APIs, the testing policy (logic not data), and the workflow steps below in concrete form. The single source of truth for FQN→Rust path translation is the module-doc on [`kaniran-core/src/kani/naming.rs`](./kaniran-core/src/kani/naming.rs); CONVENTIONS.md defers to it.
+- **Rust port coding/naming conventions live in [`bookkeeping/CONVENTIONS.md`](./bookkeeping/CONVENTIONS.md).** Read it before adding or editing ported files — it covers file layout, doc-comment requirements, the rules for translating Lisp shapes (multi-value returns, `&key` keywords, in-place mutation, tagged cons cells) into Rust APIs, the testing policy (logic not data), and the workflow steps below in concrete form. The FQN→Rust-path substitution rules are spelled out in CONVENTIONS.md §3 (a Python copy lives in `bookkeeping/ichiran-extractor/fetch_extractor.py`'s `fqn_to_path`).
 - **The only Lisp in this repo is kaniran's own extraction tooling** under `bookkeeping/ichiran-extractor/` (and `introspect.lisp`). Upstream ichiran source is not checked in — read it on the remote host or GitHub.
 - **`PORT_PLAN.md` is the source of truth for port order.** Regenerate (don't hand-edit) via `query.py plan --out bookkeeping/reverse/scripts/PORT_PLAN.md`. It's deterministic across runs (Tarjan + sorted set iteration); re-running on the same CSVs produces a byte-identical file.
 - **Mark progress in `symbols.csv`'s `status` column** (`pending` → `ported`, `wip`, `skip`, etc.). `query.py mark` does this round-trip-safely. Pair `--status skip` (or any off-the-books status) with `--reason "..."` — the reason lands in the CSV's `reason` column and surfaces in the `PORT_PLAN.md` badge.

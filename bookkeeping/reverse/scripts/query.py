@@ -611,7 +611,7 @@ def _collapse_underscores(s: str) -> str:
 
 
 def fqn_to_rust_path(fqn: str, kind: str) -> str:
-    """Python mirror of `kani::naming::fqn_to_path` — see naming.rs for the spec."""
+    """Compute a port file's path from an FQN — the kaniran file-naming rule (CONVENTIONS.md §3)."""
     pkg, _, name = fqn.partition(":")
     if not name:
         raise ValueError(f"empty name in FQN: {fqn}")

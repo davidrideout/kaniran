@@ -22,14 +22,14 @@ kaniran-core/src/
 
 - One Lisp symbol per Rust file. Don't co-locate two symbols, even if both are tiny.
 - Don't introduce per-package "helpers" or "utils" modules. If a helper is needed by multiple ports, it goes on the relevant data type as a method (e.g. `KanaClass::lisp_name()`), not in a shared util file.
-- `kani/` is reserved for original Rust infrastructure with no Lisp counterpart (the FQN translator, fixture-replay envelope, etc.). Don't put port files there.
-- Adding a file requires a `pub mod <stem>;` line in the package's `mod.rs`. The `kani::naming` coverage tests will not catch missing `mod` declarations — `cargo check` will.
+- A `kani_`-prefixed filename (and `Kani`-prefixed type) marks original Rust code with no Lisp counterpart. It never appears in `symbols.csv`.
+- Adding a file requires a `pub mod <stem>;` line in the package's `mod.rs`; `cargo check` catches a missing one.
 
 ---
 
 ## 2. Naming (Lisp FQN → Rust path)
 
-**Single source of truth: [`kaniran-core/src/kani/naming.rs`](./kaniran-core/src/kani/naming.rs).** The module-doc there spells out the rules; the tests there pin them against every FQN in `reverse/scripts/symbols.csv`.
+The substitution rules are spelled out below in this section. A scriptable copy lives in `reverse/scripts/query.py` (`fqn_to_rust_path`) and `ichiran-extractor/fetch_extractor.py` (`fqn_to_path`); `reverse/scripts/symbols.csv` is the canonical FQN list.
 
 Summary for the common cases:
 
@@ -42,7 +42,7 @@ Summary for the common cases:
 | `ICHIRAN/DICT:DEF-COUNTER` | macro | `dict/def_counter_macro.rs` |
 | `ICHIRAN:JOIN-PARTS` | fn (bare `ichiran` package) | `core/join_parts.rs` |
 
-Substitution rules in the file stem: lowercase, `*` → `_star_`, `+` → `_plus_`, `-` → `_`. Leading/trailing `_` is preserved (some symbols differ only in trailing `-`). Don't try to remember edge cases — feed any FQN through `kani::naming::fqn_to_path` and trust the result.
+Substitution rules in the file stem: lowercase, `*` → `_star_`, `+` → `_plus_`, `-` → `_`. Leading/trailing `_` is preserved (some symbols differ only in trailing `-`). Apply these literally; the same rules are encoded in `fetch_extractor.py`'s `fqn_to_path` if you want to script it.
 
 **`kani_<name>.rs` sidecars.** Rust-only types/values that don't exist in the Lisp use a `kani_` filename prefix (no kind suffix, never appear in `symbols.csv`). Current example: `characters/kani_kana_class.rs` holds `KanaClass`, the closed enum of mora/modifier tags that the Lisp uses inline as `:KA`, `:+YA`, etc. without a named type.
 
@@ -410,7 +410,7 @@ Don't edit `PORT_PLAN.md` by hand. Don't edit upstream `*.lisp` files at the rep
 ## 10. When in doubt
 
 - API shape: re-read §4 and grep upstream callers (`grep -n '<name>' *.lisp | grep -v '^<file>.lisp'`) to see how the return value is consumed.
-- File path: feed the FQN to `kani::naming::fqn_to_path`.
+- File path: apply the §2 stem substitution rules (or `fetch_extractor.py`'s `fqn_to_path`).
 - Whether to test something: §6. If the test would only catch a hand-typed data mistake, skip it.
 - Whether a frozen literal is worth deriving now: if all inputs are ported, derive. If one input is unported, freeze and add to the ledger.
 - Anything else: ask. New conventions get added to this file, not invented per port.
