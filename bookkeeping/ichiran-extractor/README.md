@@ -63,24 +63,24 @@ client (fetch_extractor.py)
 
 ```sh
 # 1. Deploy + start pool (one-time per code change).
-REMOTE_HOST=david@192.168.1.103 \
-REMOTE_API_DIR=/home/david/pooled-extractor \
-REMOTE_STORAGE=/home/david/storage \
-REMOTE_HOME=/home/david \
+REMOTE_HOST=user@ichiran-host \
+REMOTE_API_DIR=/path/to/pooled-extractor \
+REMOTE_STORAGE=/path/to/storage \
+REMOTE_HOME=/path/to \
 ./deploy_server.sh --pool-size 8
 
 # 2. Install the FQNs to capture (one-time per pool start).
 #    fqns.txt has one FQN per line, e.g. ICHIRAN/CHARACTERS:NORMALIZE.
-python3 fetch_extractor.py --api http://192.168.1.103:9100 \
+python3 fetch_extractor.py --api http://ichiran-host:9100 \
     install fqns.txt
 
 # 3. Drive the corpus (input defaults to ../corpus/tatoeba_sentences.txt).
-python3 fetch_extractor.py --api http://192.168.1.103:9100 \
+python3 fetch_extractor.py --api http://ichiran-host:9100 \
     fetch ../corpus/extracted \
     --workers 8 --limit 10000
 
 # Override the corpus when needed:
-python3 fetch_extractor.py --api http://192.168.1.103:9100 \
+python3 fetch_extractor.py --api http://ichiran-host:9100 \
     fetch ../corpus/extracted --input /path/to/other.tsv \
     --workers 8
 ```

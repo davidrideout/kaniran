@@ -85,12 +85,12 @@ bookkeeping/             # Planning + fixture tooling. Not shipped; not needed t
 
 ## Remote ichiran host
 
-A working ichiran install runs on **`david@192.168.1.103:/home/david/storage/ichiran`** with PostgreSQL configured. Used to:
+A working ichiran install runs on a remote host (`<user>@<ichiran-host>`, ichiran checked out under `<ichiran-dir>`) with PostgreSQL configured — the actual address/path live in local notes, not in this repo. Used to:
 
 - Re-run `introspect.lisp` when upstream changes (via `run-remote.sh`).
 - Drive `sb-int:encapsulate` capture for fixture generation via `bookkeeping/ichiran-extractor/`.
 
-Connect with `ssh david@192.168.1.103`. SBCL is at `/usr/bin/sbcl`, version 2.2.9. Quicklisp is set up at `~/quicklisp`. ichiran's deps include `jsown` (handy for JSONL output), `lisp-unit` (test framework), `postmodern` (Postgres).
+Connect over `ssh`. SBCL is at `/usr/bin/sbcl`, version 2.2.9. Quicklisp is set up at `~/quicklisp`. ichiran's deps include `jsown` (handy for JSONL output), `lisp-unit` (test framework), `postmodern` (Postgres).
 
 The driver entrypoint is `(ichiran/test:run-all-tests)`.
 

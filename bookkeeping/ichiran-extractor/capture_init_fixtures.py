@@ -11,9 +11,9 @@ fresh SBCL with the tracer pre-installed and a forced reset.
 
 Usage:
     python3 capture_init_fixtures.py \\
-        --host david@192.168.1.103 \\
-        --remote-dir /home/david/pooled-api \\
-        --core /home/david/storage/ichiran.core \\
+        --host user@ichiran-host \\
+        --remote-dir /path/to/pooled-api \\
+        --core /path/to/storage/ichiran.core \\
         --output corpus/extracted/
 
 The lisp script writes a single JSON envelope to stdout
@@ -53,10 +53,10 @@ def fqn_to_path(fqn: str) -> tuple[str, str]:
 
 def main():
     p = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
-    p.add_argument("--host", required=True, help="ssh target, e.g. david@192.168.1.103")
-    p.add_argument("--remote-dir", default="/home/david/pooled-api",
+    p.add_argument("--host", required=True, help="ssh target, e.g. user@ichiran-host")
+    p.add_argument("--remote-dir", default="/path/to/pooled-api",
                    help="dir on host containing capture_init_fixtures.lisp + projectors.lisp + trace_capture.lisp")
-    p.add_argument("--core", default="/home/david/storage/ichiran.core",
+    p.add_argument("--core", default="/path/to/storage/ichiran.core",
                    help="path to ichiran.core on the host")
     p.add_argument("--output", required=True,
                    help="local output dir; per-fqn parquet lands at <output>/<pkg>/<sym>.parquet")

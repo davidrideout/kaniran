@@ -7,14 +7,14 @@
 #   3. rsync the result back into reverse/ (preserving reverse/scripts/)
 #
 # Env overrides:
-#   ICHIRAN_REMOTE   default david@192.168.1.103
+#   ICHIRAN_REMOTE   default user@ichiran-host
 #   ICHIRAN_REMOTE_DIR   default /storage/ichiran
 #   ICHIRAN_REMOTE_OUT   default /tmp/ichiran-reverse
 
 set -euo pipefail
 
-HOST="${ICHIRAN_REMOTE:-david@192.168.1.103}"
-REMOTE_DIR="${ICHIRAN_REMOTE_DIR:-/home/david/storage/ichiran}"
+HOST="${ICHIRAN_REMOTE:-user@ichiran-host}"
+REMOTE_DIR="${ICHIRAN_REMOTE_DIR:-/path/to/storage/ichiran}"
 REMOTE_OUT="${ICHIRAN_REMOTE_OUT:-/tmp/ichiran-reverse}"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

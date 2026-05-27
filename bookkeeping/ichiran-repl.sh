@@ -215,11 +215,11 @@ HELPERS='
 (format t "~%---READY---~%")
 '
 # Combine helpers + user input, pipe to SBCL on .103 native install
-# (migrated from docker fa843f3e5d78 → /home/david/storage/ichiran native install, 2026-04-22)
+# (migrated from docker fa843f3e5d78 → /path/to/storage/ichiran native install, 2026-04-22)
 {
   echo "$HELPERS"
   cat
-} | ssh david@192.168.1.103 'sbcl --noinform --load ~/quicklisp/setup.lisp --eval "(ql:quickload :ichiran :silent t)"' 2>&1 \
+} | ssh "${ICHIRAN_REMOTE:-user@ichiran-host}" 'sbcl --noinform --load ~/quicklisp/setup.lisp --eval "(ql:quickload :ichiran :silent t)"' 2>&1 \
   | sed '1,/^---READY---$/d' \
   | grep -v '^\* *$' \
   | grep -v '^NIL$' \

@@ -3,8 +3,8 @@
 ;;; tatoeba_2000.txt through ichiran:romanize*, and reports per-fn
 ;;; captures / skips plus a non-trivial sample for each.
 (in-package :cl-user)
-(load "/home/david/pooled-api/trace_capture.lisp")
-(load "/home/david/pooled-api/projectors.lisp")
+(load "/path/to/pooled-api/trace_capture.lisp")
+(load "/path/to/pooled-api/projectors.lisp")
 
 (defparameter *targets*
   '("ICHIRAN/DICT:NO-CONJ-DATA"
@@ -17,7 +17,7 @@
 (format t "INSTALLED: ~a~%" (ichi-trace:installed))
 (finish-output)
 
-(defparameter *corpus-path* "/home/david/storage/tatoeba_2000.txt")
+(defparameter *corpus-path* "/path/to/storage/tatoeba_2000.txt")
 (defparameter *sentences*
   (with-open-file (in *corpus-path* :direction :input :external-format :utf-8)
     (loop for line = (read-line in nil nil)
