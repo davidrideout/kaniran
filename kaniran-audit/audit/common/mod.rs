@@ -88,24 +88,24 @@ use kaniran_core::core::methods::TraditionalHepburn;
 use kaniran_core::dict::compound_text_class::{CompoundText, ScoreMod};
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::conj_prop_dao::ConjProp;
-use kaniran_core::dict::counter_age_class::CounterAge;
-use kaniran_core::dict::counter_days_kun_class::CounterDaysKun;
-use kaniran_core::dict::counter_days_on_class::CounterDaysOn;
-use kaniran_core::dict::counter_halfhour_class::CounterHalfhour;
-use kaniran_core::dict::counter_hifumi_class::CounterHifumi;
-use kaniran_core::dict::counter_months_class::CounterMonths;
-use kaniran_core::dict::counter_people_class::CounterPeople;
-use kaniran_core::dict::counter_text_class::{
+use kaniran_core::dict::counters::subclasses::CounterAge;
+use kaniran_core::dict::counters::subclasses::CounterDaysKun;
+use kaniran_core::dict::counters::subclasses::CounterDaysOn;
+use kaniran_core::dict::counters::subclasses::CounterHalfhour;
+use kaniran_core::dict::counters::subclasses::CounterHifumi;
+use kaniran_core::dict::counters::subclasses::CounterMonths;
+use kaniran_core::dict::counters::subclasses::CounterPeople;
+use kaniran_core::dict::counters::classes::{
     Common, Counter, CounterSource, CounterText, DigitOp, DigitOptEntry, DigitOptKey,
 };
-use kaniran_core::dict::counter_tsu_class::CounterTsu;
-use kaniran_core::dict::counter_wari_class::CounterWari;
+use kaniran_core::dict::counters::subclasses::CounterTsu;
+use kaniran_core::dict::counters::subclasses::CounterWari;
 use kaniran_core::dict::entry_dao::Entry;
 use kaniran_core::dict::kana_text_dao::KanaText;
 use kaniran_core::dict::kani::SuffixKind;
 use kaniran_core::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use kaniran_core::dict::kanji_text_dao::KanjiText;
-use kaniran_core::dict::number_text_class::NumberText;
+use kaniran_core::dict::counters::subclasses::NumberText;
 use kaniran_core::dict::proxy_text_class::ProxyText;
 use kaniran_core::dict::segment_list_struct::SegmentList;
 use kaniran_core::dict::segment_struct::{KaniScoreInfo, KaniSplitInfo, Segment};

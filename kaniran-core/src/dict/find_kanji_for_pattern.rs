@@ -28,7 +28,7 @@ use std::collections::HashSet;
 use super::find_word_kana_pattern::find_word_kana_pattern;
 use super::get_kanji::get_kanji;
 use super::kani::KaniWordDispatchEnum;
-use super::text::text;
+use super::counters::dispatchers::text;
 use crate::conn::kani_context::KaniranContext;
 
 pub async fn find_kanji_for_pattern(

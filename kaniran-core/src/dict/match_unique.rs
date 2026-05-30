@@ -30,7 +30,7 @@
 //!
 //! ## Edge case: compound-text in `matches`
 //!
-//! For [`KaniWordDispatchEnum::Compound`], [`super::seq::seq`] returns
+//! For [`KaniWordDispatchEnum::Compound`], [`super::counters::dispatchers::seq`] returns
 //! `Some(WordInfoSeq::Multi(_))` — a list of children's seqs. In Lisp,
 //! `(seq compound-text)` returns the same list and the `loop … collect
 //! it` form collects it **as a single seqs element**, which then
@@ -50,7 +50,7 @@ use crate::dict::_star_suffix_unique_only_star_::{
     SuffixUniqueOnly, SUFFIX_UNIQUE_ONLY,
 };
 use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::seq::seq;
+use crate::dict::counters::dispatchers::seq;
 use crate::dict::word_info_class::WordInfoSeq;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

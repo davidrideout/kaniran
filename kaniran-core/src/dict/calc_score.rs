@@ -168,11 +168,11 @@ use crate::dict::errata::semi_final_prt;
 use crate::dict::errata::SKIP_WORDS;
 use crate::dict::errata::WEAK_CONJ_FORMS;
 use crate::dict::apply_score_mod::apply_score_mod;
-use crate::dict::common::common as common_fn;
+use crate::dict::counters::dispatchers::common as common_fn;
 use crate::dict::compare_common::compare_common;
 use crate::dict::compound_text_class::ScoreMod;
 use crate::dict::conj_data_struct::ConjData;
-use crate::dict::counter_text_class::Common;
+use crate::dict::counters::classes::Common;
 use crate::dict::entry_dao::Entry;
 use crate::dict::get_non_arch_posi::get_non_arch_posi;
 use crate::dict::get_original_text::get_original_text;
@@ -182,18 +182,18 @@ use crate::dict::kani::SplitPart;
 use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::kanji_break_penalty::kanji_break_penalty;
 use crate::dict::length_multiplier_coeff::length_multiplier_coeff;
-use crate::dict::nokanji::nokanji;
-use crate::dict::ord::ord as ord_fn;
+use crate::dict::counters::find_counter::nokanji;
+use crate::dict::counters::find_counter::ord as ord_fn;
 use crate::dict::proxy_text_class::ProxyText;
 use crate::dict::score_base::score_base;
 use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo};
 use crate::dict::simple_text_class::{SimpleText, WordConjugations};
 use crate::dict::errata::skip_by_conj_data;
 use crate::dict::errata::test_conj_prop;
-use crate::dict::text::text as text_fn;
+use crate::dict::counters::dispatchers::text as text_fn;
 use crate::dict::true_text::true_text;
 use crate::dict::word_conj_data::word_conj_data;
-use crate::dict::word_conjugations::word_conjugations;
+use crate::dict::counters::dispatchers::word_conjugations;
 use crate::dict::word_type::{word_type, WordType};
 
 pub async fn calc_score(
@@ -287,8 +287,8 @@ pub async fn calc_score(
         KaniWordDispatchEnum::Kana(k) => Some(k.seq),
         KaniWordDispatchEnum::Proxy(p) => Some(p.source.seq()),
         KaniWordDispatchEnum::Counter(c) => match c.base().source.as_ref() {
-            Some(crate::dict::counter_text_class::CounterSource::Kanji(k)) => Some(k.seq),
-            Some(crate::dict::counter_text_class::CounterSource::Kana(k)) => Some(k.seq),
+            Some(crate::dict::counters::classes::CounterSource::Kanji(k)) => Some(k.seq),
+            Some(crate::dict::counters::classes::CounterSource::Kana(k)) => Some(k.seq),
             None => None,
         },
         KaniWordDispatchEnum::Compound(_) => {

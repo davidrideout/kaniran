@@ -6,7 +6,7 @@
 //!
 //! - **default `(:method (obj) (text obj))`** at line 20 — for the
 //!   word-shaped union ([`KaniWordDispatchEnum`]) the default delegates
-//!   to [`super::text::text`]. Ported as the [`get_text`] free fn
+//!   to [`super::counters::dispatchers::text`]. Ported as the [`get_text`] free fn
 //!   below; it routes through the existing `text` dispatcher (which
 //!   handles the counter-text concatenation override at
 //!   `dict-counters.lisp:58-59`).
@@ -30,7 +30,7 @@
 use std::borrow::Cow;
 
 use super::kani::KaniWordDispatchEnum;
-use super::text::text;
+use super::counters::dispatchers::text;
 
 pub fn get_text<'a>(obj: &'a KaniWordDispatchEnum) -> Cow<'a, str> {
     text(obj)

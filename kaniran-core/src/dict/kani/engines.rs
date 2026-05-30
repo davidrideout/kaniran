@@ -8,7 +8,7 @@
 //!   the keyword-arg recipe that `def-special-counter` callsites
 //!   produce; the `*counter-cache*` populator stores one per text key,
 //!   and `find-counter` later applies it to `make-instance` to
-//!   construct a [`crate::dict::counter_text_class::Counter`]. Diverges
+//!   construct a [`crate::dict::counters::classes::Counter`]. Diverges
 //!   from upstream by pre-expanding multi-text in [`args_multi`] rather
 //!   than deferring to the populator's `add-args`; output is identical
 //!   given correct insertion order.
@@ -42,7 +42,7 @@ use super::word::{
 use crate::characters::text_utils::{match_diff, safe_subseq, MatchSegment};
 use crate::characters::voicing::unrendaku as unrendaku_fn;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::counter_text_class::{
+use crate::dict::counters::classes::{
     Common, CounterSource, DigitOp, DigitOptEntry, DigitOptKey,
 };
 use crate::dict::find_word_conj_of::find_word_conj_of;
@@ -62,7 +62,7 @@ use crate::kanji::matching::{match_readings, MatchedSegment};
 // CounterArgs (was kani_counter_args.rs)
 // =========================================================================
 
-/// Tag-only twin of [`crate::dict::counter_text_class::Counter`].
+/// Tag-only twin of [`crate::dict::counters::classes::Counter`].
 /// Separate so [`CounterArgs`] can stay `Clone` without forcing it
 /// onto every variant struct.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

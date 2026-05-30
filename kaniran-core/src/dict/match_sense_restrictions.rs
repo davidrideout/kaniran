@@ -37,7 +37,7 @@ use super::kana_text_dao::KanaText;
 use super::kani::KaniWordDispatchEnum;
 use super::kanji_text_dao::KanjiText;
 use super::match_kana_kanji::{match_kana_kanji, MatchKanaKanjiResult};
-use super::text::text;
+use super::counters::dispatchers::text;
 use super::word_type::{word_type, WordType};
 
 pub async fn match_sense_restrictions(

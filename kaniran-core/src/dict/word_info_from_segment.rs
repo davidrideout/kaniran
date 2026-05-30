@@ -23,10 +23,10 @@ use crate::dict::get_kana::get_kana;
 use crate::dict::get_text::get_text;
 use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::segment_struct::Segment;
-use crate::dict::seq::seq;
+use crate::dict::counters::dispatchers::seq;
 use crate::dict::true_text::true_text;
-use crate::dict::value_string::value_string;
-use crate::dict::word_conjugations::word_conjugations;
+use crate::dict::counters::dispatchers::value_string;
+use crate::dict::counters::dispatchers::word_conjugations;
 use crate::dict::word_info_class::{WordInfo, WordInfoKana, WordInfoSeq, WordInfoType};
 use crate::dict::word_type::{word_type, WordType};
 
@@ -155,7 +155,7 @@ mod tests {
     //! Each test exercises one branch of the segment-word dispatch and
     //! confirms the slot mapping against REPL-captured ground truth.
     use super::*;
-    use crate::dict::find_counter::find_counter;
+    use crate::dict::counters::find_counter::find_counter;
     use crate::dict::find_word::{find_word, FindWordRows};
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {

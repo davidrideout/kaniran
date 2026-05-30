@@ -14,8 +14,8 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::common::common as common_fn;
-use kaniran_core::dict::counter_text_class::Common;
+use kaniran_core::dict::counters::dispatchers::common as common_fn;
+use kaniran_core::dict::counters::classes::Common;
 
 use common::{captured_class, parse_captured_word, single_result, CapturedRow};
 

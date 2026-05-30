@@ -66,12 +66,12 @@ impl Segment {
     ///
     /// Lazy memoization: returns the cached [`Segment::text`] when
     /// already populated, otherwise computes
-    /// `text(segment.word)` (via [`crate::dict::text::text`]),
+    /// `text(segment.word)` (via [`crate::dict::counters::dispatchers::text`]),
     /// stores it, and returns a borrow. Mirrors upstream's `setf`
     /// — repeated calls are O(1) after the first.
     pub fn get_text(&mut self) -> &str {
         if self.text.is_none() {
-            let t = crate::dict::text::text(&self.word).into_owned();
+            let t = crate::dict::counters::dispatchers::text(&self.word).into_owned();
             self.text = Some(t);
         }
         self.text.as_deref().unwrap()

@@ -32,7 +32,7 @@ use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::compound_text_class::CompoundText;
-use kaniran_core::dict::counter_text_class::{Counter, CounterSource, CounterText};
+use kaniran_core::dict::counters::classes::{Counter, CounterSource, CounterText};
 use kaniran_core::dict::find_word_full::{find_word_full, CounterArg};
 use kaniran_core::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use kaniran_core::dict::proxy_text_class::ProxyText;

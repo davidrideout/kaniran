@@ -16,7 +16,7 @@
 
 use crate::conn::_star_connection_env_var_star_::DATABASE_URL;
 use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;
-use crate::dict::_star_counter_cache_star_::{build_counter_cache, CounterCache};
+use crate::dict::counters::cache::{build_counter_cache, CounterCache};
 use crate::dict::_star_is_arch_cache_star_::build_is_arch;
 use crate::dict::_star_no_conj_data_star_::build_no_conj_data;
 use crate::dict::split::split_map::SplitMapKind;

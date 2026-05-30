@@ -1,50 +1,185 @@
-//! Port of `ichiran/dict:counter-join` (`dict-counters.lisp:3-7,
-//! 101-201`).
+//! Port of `ichiran/dict:*counter-cache*` (`dict-counters.lisp:221`).
 //!
-//! Constructs the kana surface form of a counter expression by
-//! splicing `number_kana` and `counter_kana` and applying euphonic
-//! transformations (gemination, rendaku, handakuten) keyed by the
-//! decimal "digit" (`get-digit n`) and the kana class of
-//! `counter_kana`'s first glyph. Three alternative paths fire on a
-//! per-counter basis:
+//! Per-text registry of [`CounterArgs`] recipes that `find-counter`
+//! (unported) iterates and instantiates per query. Owned by
+//! [`KaniranContext::counter_cache`]; built once by
+//! [`build_counter_cache`] during `from_url`.
 //!
-//! 1. **Per-digit override** — if the counter has a `digit_opts` entry
-//!    matching the digit, or any `:off` entry, the override list is
-//!    walked verbatim (geminate / rendaku / handakuten / replace
-//!    number-stem / replace counter-kana once `:c` was seen) and the
-//!    standard rules are skipped.
-//! 2. **Foreign counter** — pure-katakana counters
-//!    (`counter.foreign == true`) only geminate before unvoiced
-//!    syllables, narrowed per digit (6 / 8 / 10: ka/sa/ta + p-row;
-//!    100: ka-row only).
-//! 3. **Standard rules** — the long `case digit` block at
-//!    `dict-counters.lisp:148-200` covering all digits 1-10000.
-//!
-//! The Lisp generic dispatches `(counter-text T T T)` to the body
-//! above and `(T T T T)` to a plain `concatenate` fallback. Every
-//! caller passes a `counter-text` (or subclass), so the (T T T T)
-//! method is unreachable in practice; its concatenation behavior is
-//! the implicit `format!("{}{}", ...)` returns at the end of every
-//! branch in the Rust port.
-//!
-//! ## Mutation contract
-//!
-//! [`geminate`] and [`rendaku`] mutate their string in place, mirroring
-//! the upstream `(geminate string)` / `(rendaku string)` calls (both
-//! default to `:fresh nil`). The Lisp method's `(call-next-method)`
-//! invocations rely on this — the `(T T T T)` fallback's
-//! `(concatenate 'string number-kana counter-kana)` reads whatever the
-//! body mutated in place. The Rust port owns `number_kana` /
-//! `counter_kana` as `String` and concatenates them at each return,
-//! producing the same result.
+//! Body mirrors `defcache :counters`: empty `""` seed for
+//! `number-text`, then `*special-counters*` dispatch (or default
+//! counter-text construction over kanji + katakana-kana for foreign
+//! seqs), then `:accepts` suffix expansion and `目` ordinal pass.
 
-use crate::characters::kana_class::char_class_hash;
-use crate::characters::voicing::geminate;
-use crate::characters::kana_class::KanaClass;
-use crate::characters::voicing::{rendaku, Voicing};
-use crate::dict::counter_text_class::{Counter, DigitOp, DigitOptKey};
-use crate::dict::get_digit::get_digit;
+
+
+use crate::characters::char_classes::{CharClass, test_word};
+use crate::characters::kana_class::{KanaClass, char_class_hash};
+use crate::characters::voicing::{Voicing, geminate, rendaku};
+use crate::conn::kani_context::KaniranContext;
+use crate::dict::counters::classes::{Counter, CounterSource, DigitOp, DigitOptKey};
+use crate::dict::counters::find_counter::{get_counter_readings, get_digit};
+use crate::dict::counters::special::special_counters;
+use crate::dict::kana_text_dao::KanaText;
+use crate::dict::kani::{CounterArgs, CounterClass, SuffixKind};
+use crate::dict::kanji_text_dao::KanjiText;
 use crate::numbers::num_class::{DIGIT_TO_KANA, POWER_TO_KANA};
+use std::collections::HashMap;
+
+pub type CounterCache = HashMap<String, Vec<CounterArgs>>;
+
+pub fn counter_cache(ctx: &KaniranContext) -> &CounterCache {
+    &ctx.counter_cache
+}
+
+pub async fn build_counter_cache(ctx: &KaniranContext) -> Result<CounterCache, sqlx::Error> {
+    let mut cache: CounterCache = HashMap::new();
+
+    add_args(&mut cache, CounterArgs::new(CounterClass::NumberText, "", ""));
+
+    let readings = get_counter_readings(ctx).await?;
+    let specials = special_counters();
+    let foreign_set: std::collections::HashSet<i32> = COUNTER_FOREIGN.iter().copied().collect();
+
+    for (seq, (kanji, kana)) in &readings {
+        if let Some(special_fn) = specials.get(seq) {
+            for entry in special_fn(kanji, kana) {
+                add_args(&mut cache, entry);
+            }
+        } else {
+            add_default_entries(&mut cache, *seq, kanji, kana, &foreign_set);
+        }
+    }
+
+    // Ordinal pass: snapshot keys so the in-loop add_args doesn't
+    // perturb iteration over the same map.
+    let snapshot: Vec<String> = cache.keys().cloned().collect();
+    for counter in snapshot {
+        if counter.is_empty() {
+            continue;
+        }
+        if counter.chars().count() > 1 && counter.ends_with('目') {
+            continue;
+        }
+        let cord = format!("{}目", counter);
+        if cache.contains_key(&cord) {
+            continue;
+        }
+        let originals: Vec<CounterArgs> = cache.get(&counter).cloned().unwrap_or_default();
+        for old in originals {
+            if old.ordinalp {
+                continue;
+            }
+            let new_suffix = match old.suffix.as_deref() {
+                Some(s) => format!("{}め", s),
+                None => "め".to_string(),
+            };
+            let derivative = CounterArgs {
+                text: cord.clone(),
+                suffix: Some(new_suffix),
+                ordinalp: true,
+                ..old
+            };
+            add_args(&mut cache, derivative);
+        }
+    }
+
+    Ok(cache)
+}
+
+fn add_default_entries(
+    cache: &mut CounterCache,
+    seq: i32,
+    kanji: &[KanjiText],
+    kana: &[KanaText],
+    foreign_set: &std::collections::HashSet<i32>,
+) {
+    let foreign = kanji.is_empty() || foreign_set.contains(&seq);
+    let kana_first = kana.first().map(|k| k.text.clone()).unwrap_or_default();
+    let accepts: Vec<SuffixKind> = COUNTER_ACCEPTS
+        .iter()
+        .find(|(s, _)| *s == seq)
+        .map(|(_, suffixes)| suffixes.to_vec())
+        .unwrap_or_default();
+
+    for kt in kanji {
+        let entry = build_default_entry(
+            &kt.text,
+            &kana_first,
+            CounterSource::Kanji(kt.clone()),
+            foreign,
+            accepts.clone(),
+        );
+        add_args(cache, entry);
+    }
+
+    if foreign {
+        for kt in kana.iter().filter(|k| test_word(&k.text, CharClass::Katakana)) {
+            let entry = build_default_entry(
+                &kt.text,
+                &kana_first,
+                CounterSource::Kana(kt.clone()),
+                foreign,
+                accepts.clone(),
+            );
+            add_args(cache, entry);
+        }
+    }
+}
+
+fn build_default_entry(
+    text: &str,
+    kana_first: &str,
+    source: CounterSource,
+    foreign: bool,
+    accepts: Vec<SuffixKind>,
+) -> CounterArgs {
+    let ordinalp = text.chars().count() > 1 && text.ends_with('目');
+    CounterArgs::new(CounterClass::Text, text, kana_first)
+        .source(Some(source))
+        .ordinalp(ordinalp)
+        .accepts(accepts)
+        .foreign(foreign)
+}
+
+/// Mirrors `add-args*`. Multi-text was already pre-expanded in
+/// [`crate::dict::kani::args_multi`] so the upstream's outer
+/// `add-args` list-text branch has nothing to do here.
+///
+/// `Vec::insert(0, …)` mirrors Lisp's `(push x list)` — newest
+/// recipe at index 0. `find-counter` (when ported) iterates in this
+/// order, so the most-recently-registered recipe wins the first
+/// verify-pass.
+fn add_args(cache: &mut CounterCache, entry: CounterArgs) {
+    let key = entry.text.clone();
+    let accepts = entry.accepts.clone();
+    cache.entry(key).or_default().insert(0, entry.clone());
+
+    for suf in accepts {
+        let Some((_, suf_text, suf_kana, suf_desc)) =
+            COUNTER_SUFFIXES.iter().copied().find(|(s, _, _, _)| *s == suf)
+        else {
+            continue;
+        };
+        let new_text = format!("{}{}", entry.text, suf_text);
+        let new_suffix = match entry.suffix.as_deref() {
+            Some(prefix) => format!("{}{}", prefix, suf_kana),
+            None => suf_kana.to_string(),
+        };
+        let mut new_descriptions = Vec::with_capacity(entry.suffix_descriptions.len() + 1);
+        new_descriptions.push(suf_desc.to_string());
+        new_descriptions.extend(entry.suffix_descriptions.iter().cloned());
+
+        let derivative = CounterArgs {
+            text: new_text.clone(),
+            suffix: Some(new_suffix),
+            suffix_descriptions: new_descriptions,
+            ..entry.clone()
+        };
+        cache.entry(new_text).or_default().insert(0, derivative);
+    }
+}
+
+// ----- was counter_join.rs -----
 
 pub fn counter_join(
     counter: &Counter,
@@ -235,7 +370,7 @@ fn digit_kana_char_len(digit: i64) -> usize {
 }
 
 #[cfg(test)]
-mod tests {
+mod counter_join_tests {
     //! Tests cover the per-branch logic that fixture replay alone
     //! wouldn't pin clearly: the `:c` mod-counter sequencing, the
     //! `:off` early-out, the digit-stem replacement char-length math.
@@ -243,7 +378,7 @@ mod tests {
     //! `corpus/extracted_counter_2026_05_08/dict/counter_join.parquet`
     //! (131k rows) — replayed by `audit_fixtures`.
     use super::*;
-    use crate::dict::counter_text_class::{
+    use crate::dict::counters::classes::{
         Counter, CounterText, DigitOp, DigitOptEntry, DigitOptKey, Common,
     };
 
@@ -374,3 +509,52 @@ mod tests {
         assert_eq!(out, "いち");
     }
 }
+
+
+// ----- was _star_counter_suffixes_star_.rs -----
+
+pub static COUNTER_SUFFIXES: &[(SuffixKind, &str, &str, &str)] = &[
+    (SuffixKind::Kan, "間", "かん", "[duration]"),
+    (SuffixKind::Kango, "間後", "かんご", "[after ...]"),
+    (SuffixKind::Chuu, "中", "ちゅう", "[among/out of ...]"),
+];
+
+
+// ----- was _star_counter_accepts_star_.rs -----
+
+pub static COUNTER_ACCEPTS: &[(i32, &[SuffixKind])] = &[
+    (1194480, &[SuffixKind::Kan]),
+    (1490430, &[SuffixKind::Kan]),
+    (1333450, &[SuffixKind::Kan, SuffixKind::Kango]),
+];
+
+
+// ----- was _star_counter_foreign_star_.rs -----
+pub static COUNTER_FOREIGN: &[i32] = &[1120410];
+
+
+// ----- was _star_extra_counter_ids_star_.rs -----
+pub static EXTRA_COUNTER_IDS: &[i32] = &[
+    1255430, // 月
+    1606800, // 割
+];
+
+
+// ----- was _star_skip_counter_ids_star_.rs -----
+pub static SKIP_COUNTER_IDS: &[i32] = &[
+    2426510, // 一個当り
+    2220370, // 歳 （とせ）
+    2248360, // 入 （しお）
+    2423450, // 差し
+    2671670, // 幅 （の）
+    2735690, // 種 （くさ）
+    2838543, // 杯 （はた）
+    // mahjong stuff - need some research on how to say these
+    2249290, // 荘
+    2833260, // 翻
+    2833465, // 萬
+    2833466, // 索
+    2833467, // 筒
+];
+
+

@@ -24,7 +24,7 @@
 //!   strings the cache uses (`"ra"`, `"suru"`, …) per
 //!   [`super::_star_suffix_class_star_`].
 //! - **`(listp seq)`** maps to `WordInfoSeq::Multi(_)`: per the
-//!   [`super::seq::seq`] dispatcher, only compound-text yields a
+//!   [`super::counters::dispatchers::seq`] dispatcher, only compound-text yields a
 //!   `Multi` value. `Single` (simple-text / counter-text-with-source)
 //!   and `None` (sourceless counter-text) both skip the suffix-class
 //!   lookup, matching upstream's `(listp seq)` guard.
@@ -40,7 +40,7 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_suffix_class_star_::suffix_class;
 use crate::dict::find_word_full::find_word_full;
 use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::seq::seq;
+use crate::dict::counters::dispatchers::seq;
 use crate::dict::word_info_class::WordInfoSeq;
 
 pub async fn find_word_with_suffix(

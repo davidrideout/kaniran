@@ -24,7 +24,7 @@
 //! alongside `find-counter` in a later wave.
 //!
 //! [`CounterArgs::class`]: crate::dict::kani::CounterArgs#structfield.class
-//! [`CounterHifumi::digit_set`]: crate::dict::counter_hifumi_class::CounterHifumi#structfield.digit_set
+//! [`CounterHifumi::digit_set`]: crate::dict::counters::subclasses::CounterHifumi#structfield.digit_set
 //!
 //! ## Family dispatch
 //!
@@ -68,26 +68,15 @@
 //!   counter (kanji-text or kana-text), or [`None`] for synthesized
 //!   `number_text` rows. Modeled as enum [`CounterSource`] per §4.3.
 
-use crate::dict::split::hint_map::KANA_HINT_SPACE;
-use crate::dict::counter_age_class::CounterAge;
-use crate::dict::counter_days_kun_class::CounterDaysKun;
-use crate::dict::counter_days_on_class::CounterDaysOn;
-use crate::dict::counter_halfhour_class::CounterHalfhour;
-use crate::dict::counter_hifumi_class::CounterHifumi;
-use crate::dict::counter_months_class::CounterMonths;
-use crate::dict::counter_people_class::CounterPeople;
-use crate::dict::counter_tsu_class::CounterTsu;
-use crate::dict::counter_wari_class::CounterWari;
+
+use crate::dict::counters::subclasses::{CounterAge, CounterDaysKun, CounterDaysOn, CounterHalfhour, CounterHifumi, CounterMonths, CounterPeople, CounterTsu, CounterWari, NumberText};
 use crate::dict::kana_text_dao::KanaText;
+use crate::dict::kani::{CounterArgs, CounterClass, SuffixKind};
 use crate::dict::kanji_text_dao::KanjiText;
-use crate::dict::kani::{CounterArgs, CounterClass};
-use crate::dict::kani::SuffixKind;
-use crate::dict::number_text_class::NumberText;
+use crate::dict::split::hint_map::KANA_HINT_SPACE;
+use crate::numbers::kana_form::{NumberToKanaOutput, number_to_kana};
+use crate::numbers::kanji_form::{NotANumber, number_to_kanji, parse_number};
 use crate::numbers::num_class::{DIGIT_KANJI_DEFAULT, POWER_KANJI};
-use crate::numbers::kanji_form::NotANumber;
-use crate::numbers::kana_form::{number_to_kana, NumberToKanaOutput};
-use crate::numbers::kanji_form::number_to_kanji;
-use crate::numbers::kanji_form::parse_number;
 
 #[derive(Debug, Clone)]
 pub struct CounterText {
@@ -123,8 +112,8 @@ impl CounterText {
     /// directly — except [`CounterDaysOn::verify`], which mirrors
     /// the upstream `(call-next-method)` on the days-on method.
     ///
-    /// [`CounterTsu::verify`]: crate::dict::counter_tsu_class::CounterTsu::verify
-    /// [`CounterDaysOn::verify`]: crate::dict::counter_days_on_class::CounterDaysOn::verify
+    /// [`CounterTsu::verify`]: crate::dict::counters::subclasses::CounterTsu::verify
+    /// [`CounterDaysOn::verify`]: crate::dict::counters::subclasses::CounterDaysOn::verify
     pub fn verify(&self, unique: bool) -> bool {
         let n = self.number as i64;
         let allowed_match = self.allowed.is_empty()
@@ -147,14 +136,14 @@ impl CounterText {
     /// `" <desc>"`. Subclass overrides
     /// ([`CounterHalfhour::value_string`], [`CounterMonths::value_string`],
     /// [`CounterWari::value_string`]) replace this body entirely;
-    /// they're routed by [`crate::dict::value_string::value_string`].
+    /// they're routed by [`crate::dict::counters::dispatchers::value_string`].
     ///
-    /// [`CounterHalfhour::value_string`]: crate::dict::counter_halfhour_class::CounterHalfhour::value_string
-    /// [`CounterMonths::value_string`]: crate::dict::counter_months_class::CounterMonths::value_string
-    /// [`CounterWari::value_string`]: crate::dict::counter_wari_class::CounterWari::value_string
+    /// [`CounterHalfhour::value_string`]: crate::dict::counters::subclasses::CounterHalfhour::value_string
+    /// [`CounterMonths::value_string`]: crate::dict::counters::subclasses::CounterMonths::value_string
+    /// [`CounterWari::value_string`]: crate::dict::counters::subclasses::CounterWari::value_string
     pub fn value_string(&self) -> String {
         let head = if self.ordinalp {
-            crate::dict::ordinal_str::ordinal_str(self.number as i64)
+            crate::dict::counters::find_counter::ordinal_str(self.number as i64)
         } else {
             self.number.to_string()
         };
@@ -177,7 +166,7 @@ impl CounterText {
     /// Called by [`Counter::get_kana`] as the `call-next-method`
     /// target for subclasses whose specialized method returns
     /// `None`. Takes the wrapping [`Counter`] because the inner
-    /// [`crate::dict::counter_join::counter_join`] dispatches on
+    /// [`crate::dict::counters::cache::counter_join`] dispatches on
     /// subclass.
     pub fn primary_get_kana_for(counter: &Counter) -> String {
         let base = counter.base();
@@ -190,7 +179,7 @@ impl CounterText {
                 "number-to-kana with Some(separator) always returns Joined"
             ),
         };
-        crate::dict::counter_join::counter_join(
+        crate::dict::counters::cache::counter_join(
             counter,
             n as i64,
             number_kana,
@@ -297,7 +286,7 @@ impl Counter {
     ///
     /// [`CounterArgs::class`]: crate::dict::kani::CounterArgs#structfield.class
     /// [`CounterArgs::digit_set`]: crate::dict::kani::CounterArgs#structfield.digit_set
-    /// [`CounterHifumi::digit_set`]: crate::dict::counter_hifumi_class::CounterHifumi#structfield.digit_set
+    /// [`CounterHifumi::digit_set`]: crate::dict::counters::subclasses::CounterHifumi#structfield.digit_set
     pub fn new(args: &CounterArgs, number_text: impl Into<String>) -> Result<Self, NotANumber> {
         // dict-counters.lisp:278 (find-counter — apply make-instance over recipe)
         let mut base = CounterText::from_args(args, number_text.into())?;

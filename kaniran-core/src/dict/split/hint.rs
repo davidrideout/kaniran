@@ -20,7 +20,7 @@ use crate::characters::normalize::simplify_ngrams;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::conj_data_from::conj_data_from;
 use crate::dict::kani::{KaniHintKind, KaniMatchPart, KaniWordDispatchEnum};
-use crate::dict::seq::seq as word_seq;
+use crate::dict::counters::dispatchers::seq as word_seq;
 use crate::dict::split::hint_map::{
     hint_map_dispatch, hint_simplify_map, HintDispatch, HINT_CHAR_MAP,
 };
@@ -224,7 +224,7 @@ pub fn translate_hints(
 /// the receiver here is always a `kanji-text`, `kana-text`, or
 /// `proxy-text`. For proxy-text, `(seq proxy)` is
 /// `(seq (source proxy))`, which the Rust dispatcher routes through
-/// [`crate::dict::seq::seq`].
+/// [`crate::dict::counters::dispatchers::seq`].
 pub async fn get_hint(
     ctx: &KaniranContext,
     reading: &KaniWordDispatchEnum,

@@ -19,8 +19,8 @@
 //! predicate via `some`.
 
 use super::kani::KaniWordDispatchEnum;
-use super::nokanji::nokanji;
-use super::text::text;
+use super::counters::find_counter::nokanji;
+use super::counters::dispatchers::text;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MatchKanaKanjiResult {

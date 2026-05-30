@@ -14,14 +14,14 @@
 //! `proxy-text` branch unwraps through [`ProxyText::source`]
 //! iteratively (the source is itself a [`KaniSimpleTextDispatchEnum`]
 //! that may carry another `Proxy`); every other branch delegates to
-//! [`super::text::text`] so the counter-text concatenation lives in
+//! [`super::counters::dispatchers::text`] so the counter-text concatenation lives in
 //! exactly one place.
 
 use std::borrow::Cow;
 
 use super::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use super::proxy_text_class::ProxyText;
-use super::text::text;
+use super::counters::dispatchers::text;
 
 pub fn true_text<'a>(obj: &'a KaniWordDispatchEnum) -> Cow<'a, str> {
     match obj {

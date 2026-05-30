@@ -40,9 +40,9 @@ use std::sync::Arc;
 use super::word::KaniWordDispatchEnum;
 use crate::dict::segment_list_struct::SegmentList;
 use crate::dict::segment_struct::Segment;
-use crate::dict::seq::seq;
+use crate::dict::counters::dispatchers::seq;
 use crate::dict::synergy_struct::Synergy;
-use crate::dict::text::text;
+use crate::dict::counters::dispatchers::text;
 use crate::dict::word_info_class::WordInfoSeq;
 
 // =========================================================================

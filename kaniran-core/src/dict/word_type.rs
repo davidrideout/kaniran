@@ -10,7 +10,7 @@
 //!   counter's text — `:kanji` if any `kanji-char` in the
 //!   `(text obj)` result, else `:kana`. The text gf for counter-text
 //!   concatenates `number-text + counter-text` (see
-//!   [`super::text::text`]).
+//!   [`super::counters::dispatchers::text`]).
 //! - **proxy-text** (`dict.lisp:586-587`): recurse on source.
 //! - **compound-text** (`dict.lisp:630`): recurse on the
 //!   `primary` slot.
@@ -23,7 +23,7 @@
 use crate::characters::char_classes::CharClass;
 use crate::characters::char_classes::count_char_class;
 use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::text::text;
+use crate::dict::counters::dispatchers::text;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WordType {
@@ -61,7 +61,7 @@ fn word_type_simple(obj: &KaniSimpleTextDispatchEnum) -> WordType {
 mod tests {
     use super::*;
     use crate::dict::compound_text_class::{CompoundText, ScoreMod};
-    use crate::dict::counter_text_class::{Common, Counter, CounterSource, CounterText};
+    use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText};
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kanji_text_dao::KanjiText;
     use crate::dict::proxy_text_class::ProxyText;

@@ -367,7 +367,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "(setf word-conjugations) on counter-text")]
     fn counter_text_panics() {
-        use crate::dict::counter_text_class::{Common, Counter, CounterText};
+        use crate::dict::counters::classes::{Common, Counter, CounterText};
         let counter = Counter::Base(CounterText {
             text: String::new(),
             kana: String::new(),
