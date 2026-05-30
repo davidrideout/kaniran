@@ -3,26 +3,18 @@
 //! conj-prop-json, select-conjs[-and-props], filter-props,
 //! make-conj-data, print-conj-info, no-conj-data, conj-type-order.
 
-pub use conj_data_struct_inner::*;
-pub use conj_data_from_inner::*;
-pub use conj_data_prop_inner::*;
-pub use _star_no_conj_data_star__inner::*;
-pub use no_conj_data_inner::*;
-pub use get_conj_data_inner::*;
-pub use conj_info_short_inner::*;
-pub use conj_info_json_inner::*;
-pub use conj_info_json_star__inner::*;
-pub use conj_prop_json_inner::*;
-pub use conj_type_order_inner::*;
-pub use select_conjs_inner::*;
-pub use select_conjs_and_props_inner::*;
-pub use filter_props_inner::*;
-pub use make_conj_data_inner::*;
-pub use print_conj_info_inner::*;
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod conj_data_struct_inner {
-use crate::dict::dao::ConjProp;
+use crate::conn::kani_context::KaniranContext;
+use crate::dict::best_text::get_original_text_once;
+use crate::dict::dao::{ConjProp, Conjugation};
+use crate::dict::find_word::find_words_seqs;
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::load::{get_conj_description, lex_compare};
+use crate::dict::senses::{entry_info_short, get_senses_json, is_rareru, reading_str_seq};
+use crate::dict::text_classes::WordConjugations;
+use serde_json::{Map, Value};
+use sqlx::{PgPool, Row};
+use std::cmp::Ordering;
+use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
 pub struct ConjData {
@@ -32,32 +24,14 @@ pub struct ConjData {
     pub prop: Option<ConjProp>,
     pub src_map: Vec<(String, String)>,
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod conj_data_from_inner {
-use super::ConjData;
 
 pub fn conj_data_from(cd: &ConjData) -> Option<i32> {
     cd.from
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod conj_data_prop_inner {
-use super::ConjData;
-use crate::dict::dao::ConjProp;
 
 pub fn conj_data_prop(cd: &ConjData) -> Option<ConjProp> {
     cd.prop.clone()
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_no_conj_data_star__inner {
-use crate::conn::kani_context::KaniranContext;
-use sqlx::PgPool;
-use std::collections::HashSet;
 
 /// `_cache` suffix because the bare name `no_conj_data` is reserved
 /// for the predicate function port at `dict.lisp:339`
@@ -76,27 +50,10 @@ pub async fn build_no_conj_data(pool: &PgPool) -> Result<HashSet<i32>, sqlx::Err
     .await?;
     Ok(seqs.into_iter().collect())
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod no_conj_data_inner {
-use crate::conn::kani_context::KaniranContext;
 
 pub fn no_conj_data(ctx: &KaniranContext, seq: i32) -> bool {
     ctx.no_conj_data.contains(&seq)
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod get_conj_data_inner {
-use crate::conn::kani_context::KaniranContext;
-use sqlx::Row;
-
-use crate::dict::dao::ConjProp;
-use super::ConjData;
-use crate::dict::dao::Conjugation;
-use super::make_conj_data;
-use super::no_conj_data;
 
 #[derive(Debug, Clone)]
 pub enum FromOrConjIds {
@@ -161,12 +118,10 @@ pub async fn get_conj_data(
             .fetch_all(&ctx.pool)
             .await?
         } else {
-            sqlx::query(
-                "SELECT text, source_text FROM conj_source_reading WHERE conj_id = $1",
-            )
-            .bind(conj.id)
-            .fetch_all(&ctx.pool)
-            .await?
+            sqlx::query("SELECT text, source_text FROM conj_source_reading WHERE conj_id = $1")
+                .bind(conj.id)
+                .fetch_all(&ctx.pool)
+                .await?
         };
         let src_map: Vec<(String, String)> = src_rows
             .into_iter()
@@ -194,12 +149,6 @@ pub async fn get_conj_data(
     }
     Ok(out)
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod conj_info_short_inner {
-use crate::dict::dao::ConjProp;
-use crate::dict::load::get_conj_description;
 
 pub fn conj_info_short(obj: &ConjProp) -> String {
     // dict.lisp:277 — "[~a] ~a~@[~[ Affirmative~; Negative~]~]~@[~[ Plain~; Formal~]~]"
@@ -223,83 +172,6 @@ pub fn conj_info_short(obj: &ConjProp) -> String {
     )
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn prop(pos: &str, conj_type: i32, neg: Option<bool>, fml: Option<bool>) -> ConjProp {
-        ConjProp {
-            id: 0,
-            conj_id: 0,
-            conj_type,
-            pos: pos.to_string(),
-            neg,
-            fml,
-        }
-    }
-
-    /// REPL fixtures (.103, ichiran/dict::conj-info-short on conj_prop
-    /// rows), 2026-05-24. Covers every neg/fml state — Some(false)
-    /// (Lisp nil), Some(true) (Lisp t), None (db-null) — plus the
-    /// missing-description path (`~a` of nil → "NIL").
-    #[test]
-    fn conj_info_short_fixtures() {
-        let cases: &[(ConjProp, &str)] = &[
-            (
-                prop("v5k", 2, Some(false), Some(false)),
-                "[v5k] Past (~ta) Affirmative Plain",
-            ),
-            (
-                prop("v5k", 1, Some(false), Some(true)),
-                "[v5k] Non-past Affirmative Formal",
-            ),
-            (
-                prop("v5k", 1, Some(true), Some(false)),
-                "[v5k] Non-past Negative Plain",
-            ),
-            (
-                prop("v5k", 1, Some(true), Some(true)),
-                "[v5k] Non-past Negative Formal",
-            ),
-            (
-                prop("adj-i", 3, Some(false), None),
-                "[adj-i] Conjunctive (~te) Affirmative",
-            ),
-            (
-                prop("v5k", 52, Some(true), None),
-                "[v5k] Negative Stem Negative",
-            ),
-            (
-                prop("adj-i", 9, None, Some(false)),
-                "[adj-i] Volitional Plain",
-            ),
-            (
-                prop("adj-i", 9, None, Some(true)),
-                "[adj-i] Volitional Formal",
-            ),
-            (prop("v5k", 13, None, None), "[v5k] Continuative (~i)"),
-            (
-                prop("v5k", 999, Some(false), Some(false)),
-                "[v5k] NIL Affirmative Plain",
-            ),
-        ];
-        for (obj, expected) in cases {
-            assert_eq!(&conj_info_short(obj), expected, "obj={obj:?}");
-        }
-    }
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod conj_info_json_inner {
-use serde_json::Value;
-
-use crate::conn::kani_context::KaniranContext;
-
-use super::conj_info_json_star_;
-use super::FilterPropsText;
-use crate::dict::text_classes::WordConjugations;
-
 // (jsown:val c "readok") as a generalized boolean — t is truthy, jsown's
 // nil-rendering [] is falsy.
 fn readok_truthy(entry: &Value) -> bool {
@@ -321,101 +193,14 @@ pub async fn conj_info_json(
     // (apply 'conj-info-json* seq rest)
     let cij = conj_info_json_star_(ctx, seq, conjugations, text, has_gloss).await?;
     // (remove-if-not (lambda (c) (jsown:val c "readok")) cij)
-    let fcij: Vec<Value> = cij.iter().filter(|entry| readok_truthy(entry)).cloned().collect();
+    let fcij: Vec<Value> = cij
+        .iter()
+        .filter(|entry| readok_truthy(entry))
+        .cloned()
+        .collect();
     // (or fcij cij)
     Ok(if fcij.is_empty() { cij } else { fcij })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::sync::Arc;
-
-    async fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
-    }
-
-    fn json(values: &[Value]) -> String {
-        serde_json::to_string(values).unwrap()
-    }
-
-    /// REPL fixtures (.103, `(jsown:to-json (conj-info-json …))`), 2026-05-24.
-    /// seq 10175587 (尽き果てる, ~ta) resolves the original reading with a
-    /// matching surface (readok true → kept). With nil text every entry's
-    /// readok is `[]`, so `remove-if-not` empties the filtered list and the
-    /// `(or fcij cij)` fallback returns the unfiltered list unchanged.
-    #[tokio::test]
-    async fn readok_filter_and_fallback() {
-        let ctx = ctx_from_env().await;
-        let found = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":true}]"#;
-        let unresolved = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":[]}]"#;
-
-        let result = conj_info_json(&ctx, 10175587, None, FilterPropsText::One("つきはてた"), false)
-            .await
-            .unwrap();
-        assert_eq!(json(&result), found, "resolved surface");
-
-        let result = conj_info_json(&ctx, 10175587, None, FilterPropsText::None, false)
-            .await
-            .unwrap();
-        assert_eq!(json(&result), unresolved, "nil text → fallback to cij");
-
-        // has-gloss + unresolved reading drops the only entry in conj-info-json*,
-        // so cij is empty and (or fcij cij) is the empty list.
-        let result = conj_info_json(&ctx, 10175587, None, FilterPropsText::One("存在しない"), true)
-            .await
-            .unwrap();
-        assert_eq!(json(&result), "[]", "has-gloss drop → empty");
-    }
-
-    /// REPL: `(conj-info-json 10670519 :conjugations nil :text "あくどくさせた"
-    /// :has-gloss nil)`. The via-not-null entry keeps its recursive `via`
-    /// payload (readok copied from the via's first element → true).
-    #[tokio::test]
-    async fn via_recursion_kept() {
-        let ctx = ctx_from_env().await;
-        let expected = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"via":[{"prop":[{"pos":"adj-i","type":"Causative"}],"reading":"悪どい 【あくどい】","gloss":[{"pos":"[adj-i]","gloss":"gaudy; showy; garish; loud"},{"pos":"[adj-i]","gloss":"crooked; vicious; wicked; nasty; unscrupulous; dishonest"}],"readok":true}],"readok":true}]"#;
-        let result =
-            conj_info_json(&ctx, 10670519, None, FilterPropsText::One("あくどくさせた"), false)
-                .await
-                .unwrap();
-        assert_eq!(json(&result), expected);
-    }
-
-    /// REPL: `(conj-info-json 1156880 :conjugations nil :text "慰め")`. Both
-    /// via-null entries resolve (readok true), so the filtered list equals
-    /// the full two-entry list.
-    #[tokio::test]
-    async fn multi_entry_all_kept() {
-        let ctx = ctx_from_env().await;
-        let both = r#"[{"prop":[{"pos":"v1","type":"Continuative (~i)"}],"reading":"慰める 【なぐさめる】","gloss":[{"pos":"[vt,v1]","gloss":"to comfort; to console; to amuse"}],"readok":true},{"prop":[{"pos":"v5m","type":"Imperative"}],"reading":"慰む 【なぐさむ】","gloss":[{"pos":"[v5m,vi]","gloss":"to feel comforted; to be in good spirits; to feel better; to forget one's worries"},{"pos":"[vt,v5m]","gloss":"to trifle with; to fool around with"}],"readok":true}]"#;
-        let result = conj_info_json(&ctx, 1156880, None, FilterPropsText::One("慰め"), false)
-            .await
-            .unwrap();
-        assert_eq!(json(&result), both);
-    }
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod conj_info_json_star__inner {
-use serde_json::{Map, Value};
-
-use crate::conn::kani_context::KaniranContext;
-
-use super::conj_info_json;
-use super::conj_prop_json;
-use super::FilterPropsText;
-use crate::dict::find_word::find_words_seqs;
-use super::{get_conj_data, FromOrConjIds};
-use crate::dict::best_text::get_original_text_once;
-use crate::dict::senses::get_senses_json;
-use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::senses::reading_str_seq;
-use super::select_conjs_and_props;
-use crate::dict::text_classes::WordConjugations;
 
 pub async fn conj_info_json_star_(
     ctx: &KaniranContext,
@@ -553,116 +338,6 @@ pub async fn conj_info_json_star_(
     Ok(result)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::sync::Arc;
-
-    async fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
-    }
-
-    fn json(values: &[Value]) -> String {
-        serde_json::to_string(values).unwrap()
-    }
-
-    /// REPL fixtures (.103, `(jsown:to-json (conj-info-json* …))`),
-    /// 2026-05-24. seq 10175587 is the past-tense (~ta) conjugation of
-    /// 1370080 (尽き果てる), via-null. The kana / kanji surface both resolve
-    /// the original reading (readok true); has-gloss true keeps the entry
-    /// because the reading resolves; a non-matching surface and nil text
-    /// leave the original reading nil (`readok` `[]`, `reading` from
-    /// `reading-str-seq` of seq-from). With has-gloss true AND no resolved
-    /// reading, `(return-from outer nil)` drops the entry entirely (`[]`).
-    #[tokio::test]
-    async fn via_null_paths() {
-        let ctx = ctx_from_env().await;
-        let found = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":true}]"#;
-        let unresolved = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":[]}]"#;
-        let dropped = "[]";
-
-        struct Case {
-            label: &'static str,
-            text: FilterPropsText<'static>,
-            has_gloss: bool,
-            expected: &'static str,
-        }
-        let cases = [
-            Case { label: "kana surface", text: FilterPropsText::One("つきはてた"), has_gloss: false, expected: found },
-            Case { label: "kanji surface", text: FilterPropsText::One("尽き果てた"), has_gloss: false, expected: found },
-            Case { label: "has-gloss, resolved", text: FilterPropsText::One("つきはてた"), has_gloss: true, expected: found },
-            Case { label: "non-matching surface", text: FilterPropsText::One("存在しない"), has_gloss: false, expected: unresolved },
-            Case { label: "nil text", text: FilterPropsText::None, has_gloss: false, expected: unresolved },
-            Case { label: "has-gloss, non-matching → dropped", text: FilterPropsText::One("存在しない"), has_gloss: true, expected: dropped },
-            Case { label: "has-gloss, nil text → dropped", text: FilterPropsText::None, has_gloss: true, expected: dropped },
-        ];
-        for case in &cases {
-            let result = conj_info_json_star_(&ctx, 10175587, None, case.text, case.has_gloss)
-                .await
-                .unwrap();
-            assert_eq!(json(&result), case.expected, "case={}", case.label);
-        }
-    }
-
-    /// REPL: `(conj-info-json* 10670519 :conjugations nil :text "あくどくさせた"
-    /// :has-gloss …)`. seq 10670519 is the causative-past of 1000260
-    /// (悪どい) via 10155281 (causative), exercising the via-not-null
-    /// recursion: the entry nests the via's own conj-info-json under
-    /// `"via"` and copies its `readok`.
-    #[tokio::test]
-    async fn via_not_null_recursion() {
-        let ctx = ctx_from_env().await;
-        let expected = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"via":[{"prop":[{"pos":"adj-i","type":"Causative"}],"reading":"悪どい 【あくどい】","gloss":[{"pos":"[adj-i]","gloss":"gaudy; showy; garish; loud"},{"pos":"[adj-i]","gloss":"crooked; vicious; wicked; nasty; unscrupulous; dishonest"}],"readok":true}],"readok":true}]"#;
-        for has_gloss in [false, true] {
-            let result =
-                conj_info_json_star_(&ctx, 10670519, None, FilterPropsText::One("あくどくさせた"), has_gloss)
-                    .await
-                    .unwrap();
-            assert_eq!(json(&result), expected, "has_gloss={has_gloss}");
-        }
-    }
-
-    /// REPL: `(conj-info-json* 1156880 …)`. seq 1156880 (慰め) carries two
-    /// via-null conjugations — 慰める (v1 continuative) and 慰む (v5m
-    /// imperative) — so the loop emits two entries in `select-conjs-and-props`
-    /// order. nil text leaves both readings unresolved (`readok` `[]`);
-    /// restricting `conjugations` to one conj id (661748) emits a single
-    /// entry.
-    #[tokio::test]
-    async fn multi_entry_and_conj_ids() {
-        let ctx = ctx_from_env().await;
-        let both = r#"[{"prop":[{"pos":"v1","type":"Continuative (~i)"}],"reading":"慰める 【なぐさめる】","gloss":[{"pos":"[vt,v1]","gloss":"to comfort; to console; to amuse"}],"readok":true},{"prop":[{"pos":"v5m","type":"Imperative"}],"reading":"慰む 【なぐさむ】","gloss":[{"pos":"[v5m,vi]","gloss":"to feel comforted; to be in good spirits; to feel better; to forget one's worries"},{"pos":"[vt,v5m]","gloss":"to trifle with; to fool around with"}],"readok":true}]"#;
-        let both_unresolved = r#"[{"prop":[{"pos":"v1","type":"Continuative (~i)"}],"reading":"慰める 【なぐさめる】","gloss":[{"pos":"[vt,v1]","gloss":"to comfort; to console; to amuse"}],"readok":[]},{"prop":[{"pos":"v5m","type":"Imperative"}],"reading":"慰む 【なぐさむ】","gloss":[{"pos":"[v5m,vi]","gloss":"to feel comforted; to be in good spirits; to feel better; to forget one's worries"},{"pos":"[vt,v5m]","gloss":"to trifle with; to fool around with"}],"readok":[]}]"#;
-        let only_one = r#"[{"prop":[{"pos":"v1","type":"Continuative (~i)"}],"reading":"慰める 【なぐさめる】","gloss":[{"pos":"[vt,v1]","gloss":"to comfort; to console; to amuse"}],"readok":true}]"#;
-
-        let result = conj_info_json_star_(&ctx, 1156880, None, FilterPropsText::One("慰め"), false)
-            .await
-            .unwrap();
-        assert_eq!(json(&result), both, "慰め");
-
-        let result = conj_info_json_star_(&ctx, 1156880, None, FilterPropsText::None, false)
-            .await
-            .unwrap();
-        assert_eq!(json(&result), both_unresolved, "nil text");
-
-        let ids = WordConjugations::Ids(vec![661748]);
-        let result = conj_info_json_star_(&ctx, 1156880, Some(&ids), FilterPropsText::One("慰め"), false)
-            .await
-            .unwrap();
-        assert_eq!(json(&result), only_one, "conj-ids 661748");
-    }
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod conj_prop_json_inner {
-use serde_json::{Map, Value};
-
-use crate::dict::dao::ConjProp;
-use crate::dict::load::get_conj_description;
-
 pub fn conj_prop_json(obj: &ConjProp) -> Value {
     let mut js = Map::new();
     js.insert("pos".to_owned(), Value::String(obj.pos.clone()));
@@ -686,48 +361,6 @@ pub fn conj_prop_json(obj: &ConjProp) -> Value {
     Value::Object(js)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn prop(conj_type: i32, pos: &str, neg: Option<bool>, fml: Option<bool>) -> ConjProp {
-        ConjProp { id: 0, conj_id: 0, conj_type, pos: pos.to_owned(), neg, fml }
-    }
-
-    /// REPL fixtures (.103, `jsown:to-json` of `conj-prop-json` on real
-    /// conj_prop rows), 2026-05-24. Rows cover every neg/fml state
-    /// (`:null`→None, `t`→Some(true), `nil`→Some(false)); the no-description
-    /// row pins jsown's nil→[] rendering of "type".
-    #[test]
-    fn conj_prop_json_fixtures() {
-        let cases = [
-            // id=52: neg :null, fml :null
-            (prop(13, "v5k", None, None), r#"{"pos":"v5k","type":"Continuative (~i)"}"#),
-            // id=3: neg t, fml t
-            (prop(1, "v5k", Some(true), Some(true)), r#"{"pos":"v5k","type":"Non-past","neg":true,"fml":true}"#),
-            // id=2: neg t, fml nil
-            (prop(1, "v5k", Some(true), Some(false)), r#"{"pos":"v5k","type":"Non-past","neg":true}"#),
-            // id=1: neg nil, fml t
-            (prop(1, "v5k", Some(false), Some(true)), r#"{"pos":"v5k","type":"Non-past","fml":true}"#),
-            // id=4: neg nil, fml nil
-            (prop(2, "v5k", Some(false), Some(false)), r#"{"pos":"v5k","type":"Past (~ta)"}"#),
-            // id=226: neg :null, fml t
-            (prop(9, "adj-i", None, Some(true)), r#"{"pos":"adj-i","type":"Volitional","fml":true}"#),
-            // id=53: neg t, fml :null
-            (prop(52, "v5k", Some(true), None), r#"{"pos":"v5k","type":"Negative Stem","neg":true}"#),
-            // no description for conj_type → jsown nil renders as []
-            (prop(999, "v5k", None, None), r#"{"pos":"v5k","type":[]}"#),
-        ];
-        for (obj, expected) in &cases {
-            let actual = serde_json::to_string(&conj_prop_json(obj)).unwrap();
-            assert_eq!(actual.as_str(), *expected, "conj_type={} pos={}", obj.conj_type, obj.pos);
-        }
-    }
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod conj_type_order_inner {
 pub fn conj_type_order(conj_type: i32) -> i32 {
     match conj_type {
         10 => 13,
@@ -735,29 +368,6 @@ pub fn conj_type_order(conj_type: i32) -> i32 {
         _ => conj_type,
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// REPL fixtures (.103, `ichiran/dict::conj-type-order`), 2026-05-24.
-    /// Covers the 10↔13 swap and the identity fall-through.
-    #[test]
-    fn conj_type_order_fixtures() {
-        let cases: &[(i32, i32)] = &[(10, 13), (13, 10), (1, 1), (0, 0), (99, 99)];
-        for (conj_type, expected) in cases {
-            assert_eq!(conj_type_order(*conj_type), *expected, "conj_type={conj_type}");
-        }
-    }
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod select_conjs_inner {
-use crate::conn::kani_context::KaniranContext;
-
-use crate::dict::dao::Conjugation;
-use crate::dict::text_classes::WordConjugations;
 
 pub async fn select_conjs(
     ctx: &KaniranContext,
@@ -794,8 +404,543 @@ pub async fn select_conjs(
     }
 }
 
+pub async fn select_conjs_and_props(
+    ctx: &KaniranContext,
+    seq: i32,
+    conj_ids: Option<&WordConjugations>,
+    text: FilterPropsText<'_>,
+) -> Result<Vec<(Conjugation, Vec<ConjProp>, [i32; 2])>, sqlx::Error> {
+    let mut result: Vec<(Conjugation, Vec<ConjProp>, [i32; 2])> = Vec::new();
+    // (loop for conj in (select-conjs seq conj-ids) …)
+    for conj in select_conjs(ctx, seq, conj_ids).await? {
+        // (select-dao 'conj-prop (:= 'conj-id (id conj)))
+        let props: Vec<ConjProp> = sqlx::query_as("SELECT * FROM conj_prop WHERE conj_id = $1")
+            .bind(conj.id)
+            .fetch_all(&ctx.pool)
+            .await?;
+        // (loop for prop in props minimizing (conj-type-order (conj-type prop)))
+        let val = props
+            .iter()
+            .map(|prop| conj_type_order(prop.conj_type))
+            .min()
+            .unwrap_or(0);
+        // (filter-props props text)
+        let fprops: Vec<ConjProp> = filter_props(&props, text).into_iter().cloned().collect();
+        // (list (if (eql (seq-via conj) :null) 0 1) val)
+        let key = [if conj.seq_via.is_none() { 0 } else { 1 }, val];
+        result.push((conj, fprops, key));
+    }
+    // (sort … (lex-compare '<) :key 'third)
+    let key_cmp = lex_compare(|left: &i32, right: &i32| left < right);
+    result.sort_by(|left, right| {
+        if key_cmp(&left.2, &right.2) {
+            Ordering::Less
+        } else if key_cmp(&right.2, &left.2) {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    });
+    Ok(result)
+}
+
+#[derive(Clone, Copy)]
+pub enum FilterPropsText<'a> {
+    None,
+    One(&'a str),
+    Many(&'a [&'a str]),
+}
+
+pub fn filter_props<'a>(props: &'a [ConjProp], text: FilterPropsText<'_>) -> Vec<&'a ConjProp> {
+    let mut result = Vec::new();
+    for prop in props {
+        // (and text (= (conj-type prop) 6) (find (pos prop) '("v1" "v1s" "vk")) (not …))
+        let drop_passive = match text {
+            // text nil → (and text …) short-circuits → keep prop
+            FilterPropsText::None => false,
+            FilterPropsText::One(text) => {
+                prop.conj_type == 6
+                    && ["v1", "v1s", "vk"].contains(&prop.pos.as_str())
+                    && !is_rareru(text)
+            }
+            // empty list is nil → (and text …) short-circuits → keep prop
+            FilterPropsText::Many(text) => {
+                !text.is_empty()
+                    && prop.conj_type == 6
+                    && ["v1", "v1s", "vk"].contains(&prop.pos.as_str())
+                    && !text.iter().any(|text| is_rareru(text))
+            }
+        };
+        if !drop_passive {
+            result.push(prop);
+        }
+    }
+    result
+}
+
+pub fn make_conj_data(
+    seq: Option<i32>,
+    from: Option<i32>,
+    via: Option<i32>,
+    prop: Option<ConjProp>,
+    src_map: Vec<(String, String)>,
+) -> ConjData {
+    ConjData {
+        seq,
+        from,
+        via,
+        prop,
+        src_map,
+    }
+}
+
+pub async fn print_conj_info(
+    ctx: &KaniranContext,
+    seq: i32,
+    conjugations: Option<&WordConjugations>,
+    out: &mut String,
+) -> Result<(), sqlx::Error> {
+    let mut via_used: Vec<Option<i32>> = Vec::new();
+    // (select-conjs-and-props seq conjugations) — print-conj-info passes no text
+    for (conj, props, _) in
+        select_conjs_and_props(ctx, seq, conjugations, FilterPropsText::None).await?
+    {
+        let via = conj.seq_via;
+        // unless (member via via-used)
+        if via_used.contains(&via) {
+            continue;
+        }
+        // dict.lisp:1655 — "~%~:[ ~;[~] Conjugation: ~a" (first → "[", else " ")
+        let mut first = true;
+        for conj_prop in &props {
+            out.push_str(&format!(
+                "\n{} Conjugation: {}",
+                if first { "[" } else { " " },
+                conj_info_short(conj_prop)
+            ));
+            first = false;
+        }
+        // (if (eql via :null) ...)
+        match via {
+            None => {
+                // (format out "~%  ~a" (entry-info-short (seq-from conj)))
+                out.push_str(&format!(
+                    "\n  {}",
+                    entry_info_short(ctx, conj.seq_from, None).await?
+                ));
+            }
+            Some(via_seq) => {
+                // (format out "~% --(via)--")
+                out.push_str("\n --(via)--");
+                // (print-conj-info via :out out)
+                Box::pin(print_conj_info(ctx, via_seq, None, out)).await?;
+                // (push via via-used)
+                via_used.push(via);
+            }
+        }
+        // (princ " ]" out)
+        out.push_str(" ]");
+    }
+    Ok(())
+}
+
 #[cfg(test)]
-mod tests {
+mod conj_info_short_tests {
+    use super::*;
+
+    fn prop(pos: &str, conj_type: i32, neg: Option<bool>, fml: Option<bool>) -> ConjProp {
+        ConjProp {
+            id: 0,
+            conj_id: 0,
+            conj_type,
+            pos: pos.to_string(),
+            neg,
+            fml,
+        }
+    }
+
+    /// REPL fixtures (.103, ichiran/dict::conj-info-short on conj_prop
+    /// rows), 2026-05-24. Covers every neg/fml state — Some(false)
+    /// (Lisp nil), Some(true) (Lisp t), None (db-null) — plus the
+    /// missing-description path (`~a` of nil → "NIL").
+    #[test]
+    fn conj_info_short_fixtures() {
+        let cases: &[(ConjProp, &str)] = &[
+            (
+                prop("v5k", 2, Some(false), Some(false)),
+                "[v5k] Past (~ta) Affirmative Plain",
+            ),
+            (
+                prop("v5k", 1, Some(false), Some(true)),
+                "[v5k] Non-past Affirmative Formal",
+            ),
+            (
+                prop("v5k", 1, Some(true), Some(false)),
+                "[v5k] Non-past Negative Plain",
+            ),
+            (
+                prop("v5k", 1, Some(true), Some(true)),
+                "[v5k] Non-past Negative Formal",
+            ),
+            (
+                prop("adj-i", 3, Some(false), None),
+                "[adj-i] Conjunctive (~te) Affirmative",
+            ),
+            (
+                prop("v5k", 52, Some(true), None),
+                "[v5k] Negative Stem Negative",
+            ),
+            (
+                prop("adj-i", 9, None, Some(false)),
+                "[adj-i] Volitional Plain",
+            ),
+            (
+                prop("adj-i", 9, None, Some(true)),
+                "[adj-i] Volitional Formal",
+            ),
+            (prop("v5k", 13, None, None), "[v5k] Continuative (~i)"),
+            (
+                prop("v5k", 999, Some(false), Some(false)),
+                "[v5k] NIL Affirmative Plain",
+            ),
+        ];
+        for (obj, expected) in cases {
+            assert_eq!(&conj_info_short(obj), expected, "obj={obj:?}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod conj_info_json_tests {
+    use super::*;
+    use std::sync::Arc;
+
+    async fn ctx_from_env() -> Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .await
+            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    }
+
+    fn json(values: &[Value]) -> String {
+        serde_json::to_string(values).unwrap()
+    }
+
+    /// REPL fixtures (.103, `(jsown:to-json (conj-info-json …))`), 2026-05-24.
+    /// seq 10175587 (尽き果てる, ~ta) resolves the original reading with a
+    /// matching surface (readok true → kept). With nil text every entry's
+    /// readok is `[]`, so `remove-if-not` empties the filtered list and the
+    /// `(or fcij cij)` fallback returns the unfiltered list unchanged.
+    #[tokio::test]
+    async fn readok_filter_and_fallback() {
+        let ctx = ctx_from_env().await;
+        let found = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":true}]"#;
+        let unresolved = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":[]}]"#;
+
+        let result = conj_info_json(
+            &ctx,
+            10175587,
+            None,
+            FilterPropsText::One("つきはてた"),
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(json(&result), found, "resolved surface");
+
+        let result = conj_info_json(&ctx, 10175587, None, FilterPropsText::None, false)
+            .await
+            .unwrap();
+        assert_eq!(json(&result), unresolved, "nil text → fallback to cij");
+
+        // has-gloss + unresolved reading drops the only entry in conj-info-json*,
+        // so cij is empty and (or fcij cij) is the empty list.
+        let result = conj_info_json(
+            &ctx,
+            10175587,
+            None,
+            FilterPropsText::One("存在しない"),
+            true,
+        )
+        .await
+        .unwrap();
+        assert_eq!(json(&result), "[]", "has-gloss drop → empty");
+    }
+
+    /// REPL: `(conj-info-json 10670519 :conjugations nil :text "あくどくさせた"
+    /// :has-gloss nil)`. The via-not-null entry keeps its recursive `via`
+    /// payload (readok copied from the via's first element → true).
+    #[tokio::test]
+    async fn via_recursion_kept() {
+        let ctx = ctx_from_env().await;
+        let expected = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"via":[{"prop":[{"pos":"adj-i","type":"Causative"}],"reading":"悪どい 【あくどい】","gloss":[{"pos":"[adj-i]","gloss":"gaudy; showy; garish; loud"},{"pos":"[adj-i]","gloss":"crooked; vicious; wicked; nasty; unscrupulous; dishonest"}],"readok":true}],"readok":true}]"#;
+        let result = conj_info_json(
+            &ctx,
+            10670519,
+            None,
+            FilterPropsText::One("あくどくさせた"),
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(json(&result), expected);
+    }
+
+    /// REPL: `(conj-info-json 1156880 :conjugations nil :text "慰め")`. Both
+    /// via-null entries resolve (readok true), so the filtered list equals
+    /// the full two-entry list.
+    #[tokio::test]
+    async fn multi_entry_all_kept() {
+        let ctx = ctx_from_env().await;
+        let both = r#"[{"prop":[{"pos":"v1","type":"Continuative (~i)"}],"reading":"慰める 【なぐさめる】","gloss":[{"pos":"[vt,v1]","gloss":"to comfort; to console; to amuse"}],"readok":true},{"prop":[{"pos":"v5m","type":"Imperative"}],"reading":"慰む 【なぐさむ】","gloss":[{"pos":"[v5m,vi]","gloss":"to feel comforted; to be in good spirits; to feel better; to forget one's worries"},{"pos":"[vt,v5m]","gloss":"to trifle with; to fool around with"}],"readok":true}]"#;
+        let result = conj_info_json(&ctx, 1156880, None, FilterPropsText::One("慰め"), false)
+            .await
+            .unwrap();
+        assert_eq!(json(&result), both);
+    }
+}
+
+#[cfg(test)]
+mod conj_info_json_star_tests {
+    use super::*;
+    use std::sync::Arc;
+
+    async fn ctx_from_env() -> Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .await
+            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    }
+
+    fn json(values: &[Value]) -> String {
+        serde_json::to_string(values).unwrap()
+    }
+
+    /// REPL fixtures (.103, `(jsown:to-json (conj-info-json* …))`),
+    /// 2026-05-24. seq 10175587 is the past-tense (~ta) conjugation of
+    /// 1370080 (尽き果てる), via-null. The kana / kanji surface both resolve
+    /// the original reading (readok true); has-gloss true keeps the entry
+    /// because the reading resolves; a non-matching surface and nil text
+    /// leave the original reading nil (`readok` `[]`, `reading` from
+    /// `reading-str-seq` of seq-from). With has-gloss true AND no resolved
+    /// reading, `(return-from outer nil)` drops the entry entirely (`[]`).
+    #[tokio::test]
+    async fn via_null_paths() {
+        let ctx = ctx_from_env().await;
+        let found = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":true}]"#;
+        let unresolved = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":[]}]"#;
+        let dropped = "[]";
+
+        struct Case {
+            label: &'static str,
+            text: FilterPropsText<'static>,
+            has_gloss: bool,
+            expected: &'static str,
+        }
+        let cases = [
+            Case {
+                label: "kana surface",
+                text: FilterPropsText::One("つきはてた"),
+                has_gloss: false,
+                expected: found,
+            },
+            Case {
+                label: "kanji surface",
+                text: FilterPropsText::One("尽き果てた"),
+                has_gloss: false,
+                expected: found,
+            },
+            Case {
+                label: "has-gloss, resolved",
+                text: FilterPropsText::One("つきはてた"),
+                has_gloss: true,
+                expected: found,
+            },
+            Case {
+                label: "non-matching surface",
+                text: FilterPropsText::One("存在しない"),
+                has_gloss: false,
+                expected: unresolved,
+            },
+            Case {
+                label: "nil text",
+                text: FilterPropsText::None,
+                has_gloss: false,
+                expected: unresolved,
+            },
+            Case {
+                label: "has-gloss, non-matching → dropped",
+                text: FilterPropsText::One("存在しない"),
+                has_gloss: true,
+                expected: dropped,
+            },
+            Case {
+                label: "has-gloss, nil text → dropped",
+                text: FilterPropsText::None,
+                has_gloss: true,
+                expected: dropped,
+            },
+        ];
+        for case in &cases {
+            let result = conj_info_json_star_(&ctx, 10175587, None, case.text, case.has_gloss)
+                .await
+                .unwrap();
+            assert_eq!(json(&result), case.expected, "case={}", case.label);
+        }
+    }
+
+    /// REPL: `(conj-info-json* 10670519 :conjugations nil :text "あくどくさせた"
+    /// :has-gloss …)`. seq 10670519 is the causative-past of 1000260
+    /// (悪どい) via 10155281 (causative), exercising the via-not-null
+    /// recursion: the entry nests the via's own conj-info-json under
+    /// `"via"` and copies its `readok`.
+    #[tokio::test]
+    async fn via_not_null_recursion() {
+        let ctx = ctx_from_env().await;
+        let expected = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"via":[{"prop":[{"pos":"adj-i","type":"Causative"}],"reading":"悪どい 【あくどい】","gloss":[{"pos":"[adj-i]","gloss":"gaudy; showy; garish; loud"},{"pos":"[adj-i]","gloss":"crooked; vicious; wicked; nasty; unscrupulous; dishonest"}],"readok":true}],"readok":true}]"#;
+        for has_gloss in [false, true] {
+            let result = conj_info_json_star_(
+                &ctx,
+                10670519,
+                None,
+                FilterPropsText::One("あくどくさせた"),
+                has_gloss,
+            )
+            .await
+            .unwrap();
+            assert_eq!(json(&result), expected, "has_gloss={has_gloss}");
+        }
+    }
+
+    /// REPL: `(conj-info-json* 1156880 …)`. seq 1156880 (慰め) carries two
+    /// via-null conjugations — 慰める (v1 continuative) and 慰む (v5m
+    /// imperative) — so the loop emits two entries in `select-conjs-and-props`
+    /// order. nil text leaves both readings unresolved (`readok` `[]`);
+    /// restricting `conjugations` to one conj id (661748) emits a single
+    /// entry.
+    #[tokio::test]
+    async fn multi_entry_and_conj_ids() {
+        let ctx = ctx_from_env().await;
+        let both = r#"[{"prop":[{"pos":"v1","type":"Continuative (~i)"}],"reading":"慰める 【なぐさめる】","gloss":[{"pos":"[vt,v1]","gloss":"to comfort; to console; to amuse"}],"readok":true},{"prop":[{"pos":"v5m","type":"Imperative"}],"reading":"慰む 【なぐさむ】","gloss":[{"pos":"[v5m,vi]","gloss":"to feel comforted; to be in good spirits; to feel better; to forget one's worries"},{"pos":"[vt,v5m]","gloss":"to trifle with; to fool around with"}],"readok":true}]"#;
+        let both_unresolved = r#"[{"prop":[{"pos":"v1","type":"Continuative (~i)"}],"reading":"慰める 【なぐさめる】","gloss":[{"pos":"[vt,v1]","gloss":"to comfort; to console; to amuse"}],"readok":[]},{"prop":[{"pos":"v5m","type":"Imperative"}],"reading":"慰む 【なぐさむ】","gloss":[{"pos":"[v5m,vi]","gloss":"to feel comforted; to be in good spirits; to feel better; to forget one's worries"},{"pos":"[vt,v5m]","gloss":"to trifle with; to fool around with"}],"readok":[]}]"#;
+        let only_one = r#"[{"prop":[{"pos":"v1","type":"Continuative (~i)"}],"reading":"慰める 【なぐさめる】","gloss":[{"pos":"[vt,v1]","gloss":"to comfort; to console; to amuse"}],"readok":true}]"#;
+
+        let result = conj_info_json_star_(&ctx, 1156880, None, FilterPropsText::One("慰め"), false)
+            .await
+            .unwrap();
+        assert_eq!(json(&result), both, "慰め");
+
+        let result = conj_info_json_star_(&ctx, 1156880, None, FilterPropsText::None, false)
+            .await
+            .unwrap();
+        assert_eq!(json(&result), both_unresolved, "nil text");
+
+        let ids = WordConjugations::Ids(vec![661748]);
+        let result = conj_info_json_star_(
+            &ctx,
+            1156880,
+            Some(&ids),
+            FilterPropsText::One("慰め"),
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(json(&result), only_one, "conj-ids 661748");
+    }
+}
+
+#[cfg(test)]
+mod conj_prop_json_tests {
+    use super::*;
+
+    fn prop(conj_type: i32, pos: &str, neg: Option<bool>, fml: Option<bool>) -> ConjProp {
+        ConjProp {
+            id: 0,
+            conj_id: 0,
+            conj_type,
+            pos: pos.to_owned(),
+            neg,
+            fml,
+        }
+    }
+
+    /// REPL fixtures (.103, `jsown:to-json` of `conj-prop-json` on real
+    /// conj_prop rows), 2026-05-24. Rows cover every neg/fml state
+    /// (`:null`→None, `t`→Some(true), `nil`→Some(false)); the no-description
+    /// row pins jsown's nil→[] rendering of "type".
+    #[test]
+    fn conj_prop_json_fixtures() {
+        let cases = [
+            // id=52: neg :null, fml :null
+            (
+                prop(13, "v5k", None, None),
+                r#"{"pos":"v5k","type":"Continuative (~i)"}"#,
+            ),
+            // id=3: neg t, fml t
+            (
+                prop(1, "v5k", Some(true), Some(true)),
+                r#"{"pos":"v5k","type":"Non-past","neg":true,"fml":true}"#,
+            ),
+            // id=2: neg t, fml nil
+            (
+                prop(1, "v5k", Some(true), Some(false)),
+                r#"{"pos":"v5k","type":"Non-past","neg":true}"#,
+            ),
+            // id=1: neg nil, fml t
+            (
+                prop(1, "v5k", Some(false), Some(true)),
+                r#"{"pos":"v5k","type":"Non-past","fml":true}"#,
+            ),
+            // id=4: neg nil, fml nil
+            (
+                prop(2, "v5k", Some(false), Some(false)),
+                r#"{"pos":"v5k","type":"Past (~ta)"}"#,
+            ),
+            // id=226: neg :null, fml t
+            (
+                prop(9, "adj-i", None, Some(true)),
+                r#"{"pos":"adj-i","type":"Volitional","fml":true}"#,
+            ),
+            // id=53: neg t, fml :null
+            (
+                prop(52, "v5k", Some(true), None),
+                r#"{"pos":"v5k","type":"Negative Stem","neg":true}"#,
+            ),
+            // no description for conj_type → jsown nil renders as []
+            (prop(999, "v5k", None, None), r#"{"pos":"v5k","type":[]}"#),
+        ];
+        for (obj, expected) in &cases {
+            let actual = serde_json::to_string(&conj_prop_json(obj)).unwrap();
+            assert_eq!(
+                actual.as_str(),
+                *expected,
+                "conj_type={} pos={}",
+                obj.conj_type,
+                obj.pos
+            );
+        }
+    }
+}
+
+#[cfg(test)]
+mod conj_type_order_tests {
+    use super::*;
+
+    /// REPL fixtures (.103, `ichiran/dict::conj-type-order`), 2026-05-24.
+    /// Covers the 10↔13 swap and the identity fall-through.
+    #[test]
+    fn conj_type_order_fixtures() {
+        let cases: &[(i32, i32)] = &[(10, 13), (13, 10), (1, 1), (0, 0), (99, 99)];
+        for (conj_type, expected) in cases {
+            assert_eq!(
+                conj_type_order(*conj_type),
+                *expected,
+                "conj_type={conj_type}"
+            );
+        }
+    }
+}
+
+#[cfg(test)]
+mod select_conjs_tests {
     use super::*;
     use std::sync::Arc;
 
@@ -875,64 +1020,9 @@ mod tests {
         assert!(none.is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod select_conjs_and_props_inner {
-use std::cmp::Ordering;
-
-use crate::conn::kani_context::KaniranContext;
-
-use crate::dict::dao::ConjProp;
-use super::conj_type_order;
-use crate::dict::dao::Conjugation;
-use super::{filter_props, FilterPropsText};
-use crate::dict::load::lex_compare;
-use super::select_conjs;
-use crate::dict::text_classes::WordConjugations;
-
-pub async fn select_conjs_and_props(
-    ctx: &KaniranContext,
-    seq: i32,
-    conj_ids: Option<&WordConjugations>,
-    text: FilterPropsText<'_>,
-) -> Result<Vec<(Conjugation, Vec<ConjProp>, [i32; 2])>, sqlx::Error> {
-    let mut result: Vec<(Conjugation, Vec<ConjProp>, [i32; 2])> = Vec::new();
-    // (loop for conj in (select-conjs seq conj-ids) …)
-    for conj in select_conjs(ctx, seq, conj_ids).await? {
-        // (select-dao 'conj-prop (:= 'conj-id (id conj)))
-        let props: Vec<ConjProp> = sqlx::query_as("SELECT * FROM conj_prop WHERE conj_id = $1")
-            .bind(conj.id)
-            .fetch_all(&ctx.pool)
-            .await?;
-        // (loop for prop in props minimizing (conj-type-order (conj-type prop)))
-        let val = props
-            .iter()
-            .map(|prop| conj_type_order(prop.conj_type))
-            .min()
-            .unwrap_or(0);
-        // (filter-props props text)
-        let fprops: Vec<ConjProp> = filter_props(&props, text).into_iter().cloned().collect();
-        // (list (if (eql (seq-via conj) :null) 0 1) val)
-        let key = [if conj.seq_via.is_none() { 0 } else { 1 }, val];
-        result.push((conj, fprops, key));
-    }
-    // (sort … (lex-compare '<) :key 'third)
-    let key_cmp = lex_compare(|left: &i32, right: &i32| left < right);
-    result.sort_by(|left, right| {
-        if key_cmp(&left.2, &right.2) {
-            Ordering::Less
-        } else if key_cmp(&right.2, &left.2) {
-            Ordering::Greater
-        } else {
-            Ordering::Equal
-        }
-    });
-    Ok(result)
-}
 
 #[cfg(test)]
-mod tests {
+mod select_conjs_and_props_tests {
     use super::*;
     use std::sync::Arc;
 
@@ -990,7 +1080,14 @@ mod tests {
                 1156870,
                 None,
                 [0, 13],
-                vec![(374822, 366552, 10, "v5m".to_string(), Some(false), Some(false))],
+                vec![(
+                    374822,
+                    366552,
+                    10,
+                    "v5m".to_string(),
+                    Some(false),
+                    Some(false),
+                )],
             ),
         ];
         assert_eq!(project(&rows), expected);
@@ -1021,7 +1118,14 @@ mod tests {
                 1609260,
                 Some(10036081),
                 [1, 13],
-                vec![(1254581, 1239126, 10, "v5s".to_string(), Some(false), Some(false))],
+                vec![(
+                    1254581,
+                    1239126,
+                    10,
+                    "v5s".to_string(),
+                    Some(false),
+                    Some(false),
+                )],
             ),
         ];
         assert_eq!(project(&rows), expected);
@@ -1038,9 +1142,15 @@ mod tests {
     #[tokio::test]
     async fn text_threads_to_filter_props() {
         let ctx = ctx_from_env().await;
-        let prop = (163127, 159588, 6, "v1".to_string(), Some(false), Some(false));
-        let kept: Vec<ConjRow> =
-            vec![(159588, 1232500, 2864818, None, [0, 6], vec![prop.clone()])];
+        let prop = (
+            163127,
+            159588,
+            6,
+            "v1".to_string(),
+            Some(false),
+            Some(false),
+        );
+        let kept: Vec<ConjRow> = vec![(159588, 1232500, 2864818, None, [0, 6], vec![prop.clone()])];
         let dropped: Vec<ConjRow> = vec![(159588, 1232500, 2864818, None, [0, 6], vec![])];
 
         let rareru = ["食べる", "見られる"];
@@ -1065,55 +1175,20 @@ mod tests {
     #[tokio::test]
     async fn root_conj_ids_empty() {
         let ctx = ctx_from_env().await;
-        let rows = select_conjs_and_props(&ctx, 2028980, Some(&WordConjugations::Root), FilterPropsText::None)
-            .await
-            .unwrap();
+        let rows = select_conjs_and_props(
+            &ctx,
+            2028980,
+            Some(&WordConjugations::Root),
+            FilterPropsText::None,
+        )
+        .await
+        .unwrap();
         assert!(rows.is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod filter_props_inner {
-use crate::dict::dao::ConjProp;
-use crate::dict::senses::is_rareru;
-
-#[derive(Clone, Copy)]
-pub enum FilterPropsText<'a> {
-    None,
-    One(&'a str),
-    Many(&'a [&'a str]),
-}
-
-pub fn filter_props<'a>(props: &'a [ConjProp], text: FilterPropsText<'_>) -> Vec<&'a ConjProp> {
-    let mut result = Vec::new();
-    for prop in props {
-        // (and text (= (conj-type prop) 6) (find (pos prop) '("v1" "v1s" "vk")) (not …))
-        let drop_passive = match text {
-            // text nil → (and text …) short-circuits → keep prop
-            FilterPropsText::None => false,
-            FilterPropsText::One(text) => {
-                prop.conj_type == 6
-                    && ["v1", "v1s", "vk"].contains(&prop.pos.as_str())
-                    && !is_rareru(text)
-            }
-            // empty list is nil → (and text …) short-circuits → keep prop
-            FilterPropsText::Many(text) => {
-                !text.is_empty()
-                    && prop.conj_type == 6
-                    && ["v1", "v1s", "vk"].contains(&prop.pos.as_str())
-                    && !text.iter().any(|text| is_rareru(text))
-            }
-        };
-        if !drop_passive {
-            result.push(prop);
-        }
-    }
-    result
-}
 
 #[cfg(test)]
-mod tests {
+mod filter_props_tests {
     use super::*;
 
     fn prop(conj_id: i32, conj_type: i32, pos: &str) -> ConjProp {
@@ -1165,86 +1240,9 @@ mod tests {
         assert!(filter_props(&[], FilterPropsText::One("食べる")).is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod make_conj_data_inner {
-use super::ConjData;
-use crate::dict::dao::ConjProp;
-
-pub fn make_conj_data(
-    seq: Option<i32>,
-    from: Option<i32>,
-    via: Option<i32>,
-    prop: Option<ConjProp>,
-    src_map: Vec<(String, String)>,
-) -> ConjData {
-    ConjData { seq, from, via, prop, src_map }
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod print_conj_info_inner {
-use crate::conn::kani_context::KaniranContext;
-
-use super::conj_info_short;
-use crate::dict::senses::entry_info_short;
-use super::FilterPropsText;
-use super::select_conjs_and_props;
-use crate::dict::text_classes::WordConjugations;
-
-pub async fn print_conj_info(
-    ctx: &KaniranContext,
-    seq: i32,
-    conjugations: Option<&WordConjugations>,
-    out: &mut String,
-) -> Result<(), sqlx::Error> {
-    let mut via_used: Vec<Option<i32>> = Vec::new();
-    // (select-conjs-and-props seq conjugations) — print-conj-info passes no text
-    for (conj, props, _) in
-        select_conjs_and_props(ctx, seq, conjugations, FilterPropsText::None).await?
-    {
-        let via = conj.seq_via;
-        // unless (member via via-used)
-        if via_used.contains(&via) {
-            continue;
-        }
-        // dict.lisp:1655 — "~%~:[ ~;[~] Conjugation: ~a" (first → "[", else " ")
-        let mut first = true;
-        for conj_prop in &props {
-            out.push_str(&format!(
-                "\n{} Conjugation: {}",
-                if first { "[" } else { " " },
-                conj_info_short(conj_prop)
-            ));
-            first = false;
-        }
-        // (if (eql via :null) ...)
-        match via {
-            None => {
-                // (format out "~%  ~a" (entry-info-short (seq-from conj)))
-                out.push_str(&format!(
-                    "\n  {}",
-                    entry_info_short(ctx, conj.seq_from, None).await?
-                ));
-            }
-            Some(via_seq) => {
-                // (format out "~% --(via)--")
-                out.push_str("\n --(via)--");
-                // (print-conj-info via :out out)
-                Box::pin(print_conj_info(ctx, via_seq, None, out)).await?;
-                // (push via via-used)
-                via_used.push(via);
-            }
-        }
-        // (princ " ]" out)
-        out.push_str(" ]");
-    }
-    Ok(())
-}
 
 #[cfg(test)]
-mod tests {
+mod print_conj_info_tests {
     use super::*;
     use std::sync::Arc;
 
@@ -1323,5 +1321,4 @@ mod tests {
             "conjugations=(366552)"
         );
     }
-}
 }

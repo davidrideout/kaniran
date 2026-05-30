@@ -1,13 +1,8 @@
 //! Port of the dict.lisp simple-text / proxy-text / compound-text
 //! class hierarchy plus the `(setf word-conjugations)` family.
 
-pub use simple_text_class_inner::*;
-pub use proxy_text_class_inner::*;
-pub use compound_text_class_inner::*;
-pub use set_word_conjugations_inner::*;
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod simple_text_class_inner {
 #[derive(Debug, Clone, Default)]
 pub struct SimpleText {
     pub conjugations: Option<WordConjugations>,
@@ -24,12 +19,6 @@ pub enum WordConjugations {
     Root,
     Ids(Vec<i32>),
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod proxy_text_class_inner {
-use crate::dict::kani::KaniSimpleTextDispatchEnum;
-use crate::dict::text_classes::SimpleText;
 
 #[derive(Debug, Clone)]
 pub struct ProxyText {
@@ -38,11 +27,6 @@ pub struct ProxyText {
     pub source: Box<KaniSimpleTextDispatchEnum>,
     pub state: SimpleText,
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod compound_text_class_inner {
-use crate::dict::kani::KaniWordDispatchEnum;
 
 #[derive(Debug, Clone)]
 pub struct CompoundText {
@@ -81,17 +65,8 @@ pub enum ScoreMod {
     Constant(i64),
     Stack(Vec<ScoreMod>),
 }
-}
 
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod set_word_conjugations_inner {
-use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::text_classes::WordConjugations;
-
-pub fn set_word_conjugations(
-    word: &mut KaniWordDispatchEnum,
-    value: Option<WordConjugations>,
-) {
+pub fn set_word_conjugations(word: &mut KaniWordDispatchEnum, value: Option<WordConjugations>) {
     match word {
         KaniWordDispatchEnum::Kanji(k) => k.state.conjugations = value,
         KaniWordDispatchEnum::Kana(k) => k.state.conjugations = value,
@@ -104,16 +79,13 @@ pub fn set_word_conjugations(
                 "(setf word-conjugations) on compound-text with empty words: no applicable method"
             ),
         },
-        KaniWordDispatchEnum::Counter(_) => panic!(
-            "(setf word-conjugations) on counter-text: no applicable method"
-        ),
+        KaniWordDispatchEnum::Counter(_) => {
+            panic!("(setf word-conjugations) on counter-text: no applicable method")
+        }
     }
 }
 
-fn set_simple_text(
-    simple: &mut KaniSimpleTextDispatchEnum,
-    value: Option<WordConjugations>,
-) {
+fn set_simple_text(simple: &mut KaniSimpleTextDispatchEnum, value: Option<WordConjugations>) {
     match simple {
         KaniSimpleTextDispatchEnum::Kanji(k) => k.state.conjugations = value,
         KaniSimpleTextDispatchEnum::Kana(k) => k.state.conjugations = value,
@@ -122,13 +94,10 @@ fn set_simple_text(
 }
 
 #[cfg(test)]
-mod tests {
+mod set_word_conjugations_tests {
     use super::*;
-    use crate::dict::text_classes::{CompoundText, ScoreMod};
-    use crate::dict::dao::KanaText;
-    use crate::dict::dao::KanjiText;
-    use crate::dict::text_classes::ProxyText;
-    use crate::dict::text_classes::SimpleText;
+    use crate::dict::dao::{KanaText, KanjiText};
+    use crate::dict::text_classes::{CompoundText, ProxyText, ScoreMod, SimpleText};
 
     fn kana(seq: i32) -> KanaText {
         KanaText {
@@ -238,10 +207,9 @@ mod tests {
                     KaniSimpleTextDispatchEnum::Proxy(inner) => {
                         assert!(inner.state.conjugations.is_none(), "inner state untouched");
                         match &*inner.source {
-                            KaniSimpleTextDispatchEnum::Kana(k) => assert_eq!(
-                                k.state.conjugations,
-                                Some(WordConjugations::Root)
-                            ),
+                            KaniSimpleTextDispatchEnum::Kana(k) => {
+                                assert_eq!(k.state.conjugations, Some(WordConjugations::Root))
+                            }
                             _ => panic!("expected kana leaf"),
                         }
                     }
@@ -278,10 +246,9 @@ mod tests {
                 }
                 // Last word mutated.
                 match &c.words[1] {
-                    KaniWordDispatchEnum::Kana(k) => assert_eq!(
-                        k.state.conjugations,
-                        Some(WordConjugations::Root)
-                    ),
+                    KaniWordDispatchEnum::Kana(k) => {
+                        assert_eq!(k.state.conjugations, Some(WordConjugations::Root))
+                    }
                     _ => panic!("expected kana last"),
                 }
             }
@@ -462,5 +429,4 @@ mod tests {
         let mut w = KaniWordDispatchEnum::Counter(counter);
         set_word_conjugations(&mut w, Some(WordConjugations::Root));
     }
-}
 }

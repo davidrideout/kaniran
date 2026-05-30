@@ -3,23 +3,8 @@
 //! conj-prop / conj-source-reading DAOs plus entry-digest /
 //! recalc-entry-stats[-all].
 
-pub use entry_dao_inner::*;
-pub use kanji_text_dao_inner::*;
-pub use kana_text_dao_inner::*;
-pub use sense_dao_inner::*;
-pub use sense_prop_dao_inner::*;
-pub use gloss_dao_inner::*;
-pub use restricted_readings_dao_inner::*;
-pub use conjugation_dao_inner::*;
-pub use conj_prop_dao_inner::*;
-pub use conj_source_reading_dao_inner::*;
-pub use entry_digest_inner::*;
-pub use recalc_entry_stats_inner::*;
-pub use recalc_entry_stats_all_inner::*;
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod entry_dao_inner {
 use crate::conn::kani_context::KaniranContext;
+use crate::dict::text_classes::SimpleText;
 use sqlx::postgres::PgRow;
 use sqlx::{FromRow, Row};
 
@@ -72,11 +57,12 @@ impl Entry {
     ///   upstream errors on `(text nil)` if the headword row is
     ///   absent (data-integrity violation), which the Rust port
     ///   surfaces as [`None`].
-    pub async fn get_text(
-        &self,
-        ctx: &KaniranContext,
-    ) -> Result<Option<String>, sqlx::Error> {
-        let table = if self.n_kanji > 0 { "kanji_text" } else { "kana_text" };
+    pub async fn get_text(&self, ctx: &KaniranContext) -> Result<Option<String>, sqlx::Error> {
+        let table = if self.n_kanji > 0 {
+            "kanji_text"
+        } else {
+            "kana_text"
+        };
         let sql = format!("SELECT text FROM {} WHERE seq = $1 AND ord = 0", table);
         let row: Option<(String,)> = sqlx::query_as(&sql)
             .bind(self.seq)
@@ -107,10 +93,7 @@ impl Entry {
     ///   upstream errors on `(text nil)` if the headword row is
     ///   absent (data-integrity violation), which the Rust port
     ///   surfaces as [`None`].
-    pub async fn get_kana(
-        &self,
-        ctx: &KaniranContext,
-    ) -> Result<Option<String>, sqlx::Error> {
+    pub async fn get_kana(&self, ctx: &KaniranContext) -> Result<Option<String>, sqlx::Error> {
         let row: Option<(String,)> =
             sqlx::query_as("SELECT text FROM kana_text WHERE seq = $1 AND ord = 0")
                 .bind(self.seq)
@@ -119,13 +102,6 @@ impl Entry {
         Ok(row.map(|(t,)| t))
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod kanji_text_dao_inner {
-use crate::dict::text_classes::SimpleText;
-use sqlx::postgres::PgRow;
-use sqlx::{FromRow, Row};
 
 #[derive(Debug, Clone)]
 pub struct KanjiText {
@@ -157,13 +133,6 @@ impl<'r> FromRow<'r, PgRow> for KanjiText {
         })
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod kana_text_dao_inner {
-use crate::dict::text_classes::SimpleText;
-use sqlx::postgres::PgRow;
-use sqlx::{FromRow, Row};
 
 #[derive(Debug, Clone)]
 pub struct KanaText {
@@ -195,12 +164,6 @@ impl<'r> FromRow<'r, PgRow> for KanaText {
         })
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod sense_dao_inner {
-use sqlx::postgres::PgRow;
-use sqlx::{FromRow, Row};
 
 #[derive(Debug, Clone)]
 pub struct Sense {
@@ -218,12 +181,6 @@ impl<'r> FromRow<'r, PgRow> for Sense {
         })
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod sense_prop_dao_inner {
-use sqlx::postgres::PgRow;
-use sqlx::{FromRow, Row};
 
 #[derive(Debug, Clone)]
 pub struct SenseProp {
@@ -247,12 +204,6 @@ impl<'r> FromRow<'r, PgRow> for SenseProp {
         })
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod gloss_dao_inner {
-use sqlx::postgres::PgRow;
-use sqlx::{FromRow, Row};
 
 #[derive(Debug, Clone)]
 pub struct Gloss {
@@ -272,12 +223,6 @@ impl<'r> FromRow<'r, PgRow> for Gloss {
         })
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod restricted_readings_dao_inner {
-use sqlx::postgres::PgRow;
-use sqlx::{FromRow, Row};
 
 #[derive(Debug, Clone)]
 pub struct RestrictedReadings {
@@ -297,12 +242,6 @@ impl<'r> FromRow<'r, PgRow> for RestrictedReadings {
         })
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod conjugation_dao_inner {
-use sqlx::postgres::PgRow;
-use sqlx::{FromRow, Row};
 
 #[derive(Debug, Clone)]
 pub struct Conjugation {
@@ -322,12 +261,6 @@ impl<'r> FromRow<'r, PgRow> for Conjugation {
         })
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod conj_prop_dao_inner {
-use sqlx::postgres::PgRow;
-use sqlx::{FromRow, Row};
 
 #[derive(Debug, Clone)]
 pub struct ConjProp {
@@ -351,12 +284,6 @@ impl<'r> FromRow<'r, PgRow> for ConjProp {
         })
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod conj_source_reading_dao_inner {
-use sqlx::postgres::PgRow;
-use sqlx::{FromRow, Row};
 
 #[derive(Debug, Clone)]
 pub struct ConjSourceReading {
@@ -376,12 +303,6 @@ impl<'r> FromRow<'r, PgRow> for ConjSourceReading {
         })
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod entry_digest_inner {
-use super::Entry;
-use crate::conn::kani_context::KaniranContext;
 
 pub async fn entry_digest(
     ctx: &KaniranContext,
@@ -394,8 +315,32 @@ pub async fn entry_digest(
     ))
 }
 
+pub async fn recalc_entry_stats(ctx: &KaniranContext, entries: &[i32]) -> Result<u64, sqlx::Error> {
+    let result = sqlx::query(
+        "UPDATE entry SET \
+         n_kanji = (SELECT COUNT(id) FROM kanji_text WHERE kanji_text.seq = entry.seq), \
+         n_kana = (SELECT COUNT(id) FROM kana_text WHERE kana_text.seq = entry.seq) \
+         WHERE entry.seq = ANY($1)",
+    )
+    .bind(entries)
+    .execute(&ctx.pool)
+    .await?;
+    Ok(result.rows_affected())
+}
+
+pub async fn recalc_entry_stats_all(ctx: &KaniranContext) -> Result<u64, sqlx::Error> {
+    let result = sqlx::query(
+        "UPDATE entry SET \
+         n_kanji = (SELECT COUNT(id) FROM kanji_text WHERE kanji_text.seq = entry.seq), \
+         n_kana = (SELECT COUNT(id) FROM kana_text WHERE kana_text.seq = entry.seq)",
+    )
+    .execute(&ctx.pool)
+    .await?;
+    Ok(result.rows_affected())
+}
+
 #[cfg(test)]
-mod tests {
+mod entry_digest_tests {
     use super::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -438,30 +383,9 @@ mod tests {
         }
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod recalc_entry_stats_inner {
-use crate::conn::kani_context::KaniranContext;
-
-pub async fn recalc_entry_stats(
-    ctx: &KaniranContext,
-    entries: &[i32],
-) -> Result<u64, sqlx::Error> {
-    let result = sqlx::query(
-        "UPDATE entry SET \
-         n_kanji = (SELECT COUNT(id) FROM kanji_text WHERE kanji_text.seq = entry.seq), \
-         n_kana = (SELECT COUNT(id) FROM kana_text WHERE kana_text.seq = entry.seq) \
-         WHERE entry.seq = ANY($1)",
-    )
-    .bind(entries)
-    .execute(&ctx.pool)
-    .await?;
-    Ok(result.rows_affected())
-}
 
 #[cfg(test)]
-mod tests {
+mod recalc_entry_stats_tests {
     use super::*;
 
     // Idempotent on a consistent dictionary: the UPDATE rewrites each
@@ -487,12 +411,16 @@ mod tests {
         assert_eq!(empty, 0);
 
         // A seq with no matching entry row -> 0 affected.
-        let missing = recalc_entry_stats(&ctx, &[99999999]).await.expect("missing");
+        let missing = recalc_entry_stats(&ctx, &[99999999])
+            .await
+            .expect("missing");
         assert_eq!(missing, 0);
 
         // (recalc-entry-stats 1591050 99999999) -> 1 (only the present
         // seq is matched; the absent one contributes nothing).
-        let mixed = recalc_entry_stats(&ctx, &[1591050, 99999999]).await.expect("mixed");
+        let mixed = recalc_entry_stats(&ctx, &[1591050, 99999999])
+            .await
+            .expect("mixed");
         assert_eq!(mixed, 1);
     }
 
@@ -536,30 +464,20 @@ mod tests {
                     .fetch_one(&ctx.pool)
                     .await
                     .expect("kana count");
-            assert_eq!(n_kanji as i64, actual_kanji, "seq={seq} stored vs actual kanji");
-            assert_eq!(n_kana as i64, actual_kana, "seq={seq} stored vs actual kana");
+            assert_eq!(
+                n_kanji as i64, actual_kanji,
+                "seq={seq} stored vs actual kanji"
+            );
+            assert_eq!(
+                n_kana as i64, actual_kana,
+                "seq={seq} stored vs actual kana"
+            );
         }
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod recalc_entry_stats_all_inner {
-use crate::conn::kani_context::KaniranContext;
-
-pub async fn recalc_entry_stats_all(ctx: &KaniranContext) -> Result<u64, sqlx::Error> {
-    let result = sqlx::query(
-        "UPDATE entry SET \
-         n_kanji = (SELECT COUNT(id) FROM kanji_text WHERE kanji_text.seq = entry.seq), \
-         n_kana = (SELECT COUNT(id) FROM kana_text WHERE kana_text.seq = entry.seq)",
-    )
-    .execute(&ctx.pool)
-    .await?;
-    Ok(result.rows_affected())
-}
 
 #[cfg(test)]
-mod tests {
+mod recalc_entry_stats_all_tests {
     use super::*;
 
     // Idempotent on a consistent dictionary: every entry's stored
@@ -612,9 +530,14 @@ mod tests {
                     .fetch_one(&ctx.pool)
                     .await
                     .expect("kana count");
-            assert_eq!(n_kanji as i64, actual_kanji, "seq={seq} stored vs actual kanji");
-            assert_eq!(n_kana as i64, actual_kana, "seq={seq} stored vs actual kana");
+            assert_eq!(
+                n_kanji as i64, actual_kanji,
+                "seq={seq} stored vs actual kanji"
+            );
+            assert_eq!(
+                n_kana as i64, actual_kana,
+                "seq={seq} stored vs actual kana"
+            );
         }
     }
-}
 }

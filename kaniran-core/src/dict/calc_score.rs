@@ -2,53 +2,29 @@
 //! large defun from dict.lisp:775-985) plus gen-score and
 //! apply-score-mod.
 
-pub use calc_score_inner::*;
-pub use gen_score_inner::*;
-pub use apply_score_mod_inner::*;
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod calc_score_inner {
-use std::borrow::Cow;
-
-use crate::characters::char_classes::CharClass;
-use crate::characters::char_classes::count_char_class;
+use crate::characters::char_classes::{count_char_class, CharClass};
 use crate::characters::text_utils::mora_length;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::errata::COPULAE;
-use crate::dict::errata::FINAL_PRT;
-use crate::dict::segment::KaniLengthClass;
-use crate::dict::errata::NON_FINAL_PRT;
-use crate::dict::errata::semi_final_prt;
-use crate::dict::errata::SKIP_WORDS;
-use crate::dict::errata::WEAK_CONJ_FORMS;
-use crate::dict::calc_score::apply_score_mod;
-use crate::dict::counters::dispatchers::common as common_fn;
-use crate::dict::segment::compare_common;
-use crate::dict::text_classes::ScoreMod;
+use crate::dict::best_text::{get_original_text, true_text};
 use crate::dict::conj_data::ConjData;
 use crate::dict::counters::classes::Common;
+use crate::dict::counters::dispatchers::{common as common_fn, text as text_fn, word_conjugations};
+use crate::dict::counters::find_counter::{nokanji, ord as ord_fn};
 use crate::dict::dao::Entry;
-use crate::dict::find_word::get_non_arch_posi;
-use crate::dict::best_text::get_original_text;
+use crate::dict::errata::{
+    semi_final_prt, skip_by_conj_data, test_conj_prop, COPULAE, FINAL_PRT, NON_FINAL_PRT,
+    SKIP_WORDS, WEAK_CONJ_FORMS,
+};
+use crate::dict::find_word::{get_non_arch_posi, is_arch as is_arch_fn};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum, SplitPart};
+use crate::dict::segment::{
+    compare_common, kanji_break_penalty, length_multiplier_coeff, KaniLengthClass, KaniScoreInfo,
+    KaniSegmentInfo, KaniSplitInfo, Segment,
+};
 use crate::dict::split::split::get_split;
-use crate::dict::find_word::is_arch as is_arch_fn;
-use crate::dict::kani::SplitPart;
-use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::segment::kanji_break_penalty;
-use crate::dict::segment::length_multiplier_coeff;
-use crate::dict::counters::find_counter::nokanji;
-use crate::dict::counters::find_counter::ord as ord_fn;
-use crate::dict::text_classes::ProxyText;
-use crate::dict::word_info::score_base;
-use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo};
-use crate::dict::text_classes::{SimpleText, WordConjugations};
-use crate::dict::errata::skip_by_conj_data;
-use crate::dict::errata::test_conj_prop;
-use crate::dict::counters::dispatchers::text as text_fn;
-use crate::dict::best_text::true_text;
-use crate::dict::word_info::word_conj_data;
-use crate::dict::counters::dispatchers::word_conjugations;
-use crate::dict::word_info::{word_type, WordType};
+use crate::dict::text_classes::{ProxyText, ScoreMod, SimpleText, WordConjugations};
+use crate::dict::word_info::{score_base, word_conj_data, word_type, WordType};
+use std::borrow::Cow;
 
 pub async fn calc_score(
     ctx: &KaniranContext,
@@ -70,7 +46,12 @@ pub async fn calc_score(
 
         // dict.lisp:785 (multiple-value-bind (score info) (apply 'calc-score args))
         let (mut rec_score, rec_info) = Box::pin(calc_score(
-            ctx, base, false, use_length_rec, score_mod_rec, &[],
+            ctx,
+            base,
+            false,
+            use_length_rec,
+            score_mod_rec,
+            &[],
         ))
         .await?;
 
@@ -128,8 +109,7 @@ pub async fn calc_score(
     // dict.lisp:794-850 (let* (...) ...) — the main body's sequential bindings.
     let mut score: i32 = 1;
     let kanji_p = word_type(reading) == WordType::Kanji;
-    let katakana_p = !kanji_p
-        && count_char_class(&true_text(reading), CharClass::KatakanaUniq) > 0;
+    let katakana_p = !kanji_p && count_char_class(&true_text(reading), CharClass::KatakanaUniq) > 0;
     let text: String = text_fn(reading).into_owned();
     let n_kanji = count_char_class(&text, CharClass::Kanji) as i32;
     let len: usize = mora_length(&text).max(1);
@@ -167,8 +147,7 @@ pub async fn calc_score(
     let conj_only = matches!(wc, Some(WordConjugations::Ids(_)));
 
     // dict.lisp:805 (root-p (or ctr-mode (and (not conj-only) (root-p entry))))
-    let root_p = ctr_mode
-        || (!conj_only && entry.as_ref().map(|e| e.root_p).unwrap_or(false));
+    let root_p = ctr_mode || (!conj_only && entry.as_ref().map(|e| e.root_p).unwrap_or(false));
 
     // dict.lisp:806 (conj-data (word-conj-data reading))
     let mut conj_data: Vec<ConjData> = word_conj_data(ctx, reading).await?;
@@ -269,25 +248,20 @@ pub async fn calc_score(
 
     // dict.lisp:831-835
     let particle_p = posi.iter().any(|s| s == "prt");
-    let semi_final_particle_p =
-        seq.is_some_and(|s| semi_final_prt().contains(&s));
-    let non_final_particle_p =
-        seq.is_some_and(|s| NON_FINAL_PRT.contains(&s));
+    let semi_final_particle_p = seq.is_some_and(|s| semi_final_prt().contains(&s));
+    let non_final_particle_p = seq.is_some_and(|s| NON_FINAL_PRT.contains(&s));
     let pronoun_p = posi.iter().any(|s| s == "pn");
     let cop_da_p = seq_set.iter().any(|s| COPULAE.contains(s));
 
     // dict.lisp:836-844 (long-p …)
     let long_threshold: usize = if kanji_p
         && !prefer_kana
-        && ((root_p && conj_data.is_empty())
-            || (use_length.is_some() && conj_types.contains(&13)))
+        && ((root_p && conj_data.is_empty()) || (use_length.is_some() && conj_types.contains(&13)))
     {
         2
     } else if common_p && common_value > 0 && common_value < 10 {
         2
-    } else if (conj_types.contains(&3) || conj_types.contains(&9))
-        && use_length.is_none()
-    {
+    } else if (conj_types.contains(&3) || conj_types.contains(&9)) && use_length.is_none() {
         4
     } else {
         3
@@ -295,9 +269,8 @@ pub async fn calc_score(
     let long_p = len > long_threshold;
 
     // dict.lisp:845-847 (no-common-bonus …)
-    let no_common_bonus = particle_p
-        || !conj_types_p
-        || (!long_p && posi.len() == 1 && posi[0] == "int");
+    let no_common_bonus =
+        particle_p || !conj_types_p || (!long_p && posi.len() == 1 && posi[0] == "int");
 
     let mut primary_p = false;
     let mut use_length_bonus: i32 = 0;
@@ -327,8 +300,7 @@ pub async fn calc_score(
                 unreachable!("conj-data block reached for non-simple-text reading")
             }
         };
-        let orig_texts =
-            get_original_text(ctx, &reading_simple, Some(&conj_data)).await?;
+        let orig_texts = get_original_text(ctx, &reading_simple, Some(&conj_data)).await?;
 
         // dict.lisp:860-861 collect (list (common ot) (ord ot))
         let conj_of_data: Vec<(Option<i32>, i32)> = orig_texts
@@ -336,9 +308,9 @@ pub async fn calc_score(
             .map(|ot| match ot {
                 KaniSimpleTextDispatchEnum::Kanji(k) => (k.common, k.ord),
                 KaniSimpleTextDispatchEnum::Kana(k) => (k.common, k.ord),
-                KaniSimpleTextDispatchEnum::Proxy(_) => unreachable!(
-                    "get-original-text returns kanji/kana variants only"
-                ),
+                KaniSimpleTextDispatchEnum::Proxy(_) => {
+                    unreachable!("get-original-text returns kanji/kana variants only")
+                }
             })
             .collect();
 
@@ -346,10 +318,8 @@ pub async fn calc_score(
             // dict.lisp:863-867 (unless common-p …) — only collect/sort conj-of-common
             // when the candidate doesn't already have a common rank.
             if !common_p {
-                let conj_of_common: Vec<i32> = conj_of_data
-                    .iter()
-                    .filter_map(|(c, _)| *c)
-                    .collect();
+                let conj_of_common: Vec<i32> =
+                    conj_of_data.iter().filter_map(|(c, _)| *c).collect();
                 if !conj_of_common.is_empty() {
                     // dict.lisp:867 (car (sort conj-of-common #'compare-common))
                     // `compare-common` is a binary predicate (not a strict-weak
@@ -357,9 +327,7 @@ pub async fn calc_score(
                     // it — only the single-minimum lookup the upstream `(car …)`
                     // expresses is well-defined. `min_by` is enough.
                     common_of = conj_of_common.iter().copied().min_by(|a, b| {
-                        if compare_common(Some(*a as i64), Some(*b as i64))
-                            .is_truthy()
-                        {
+                        if compare_common(Some(*a as i64), Some(*b as i64)).is_truthy() {
                             std::cmp::Ordering::Less
                         } else {
                             std::cmp::Ordering::Greater
@@ -400,9 +368,7 @@ pub async fn calc_score(
                 // dict.lisp:879-883 (and (or (= ord 0) cop-da-p) (or kanji-p conj-types-p) (...))
                 let cond_c = (ord == 0 || cop_da_p)
                     && (kanji_p || conj_types_p)
-                    && ((kanji_p && !prefer_kana)
-                        || (common_p && pronoun_p)
-                        || e.n_kanji == 0);
+                    && ((kanji_p && !prefer_kana) || (common_p && pronoun_p) || e.n_kanji == 0);
                 // dict.lisp:884-887 (and prefer-kana kanji-p (= ord 0)
                 //                       (not (query (:select 'id :from 'sense
                 //                                            :where (:and (:in 'id (:set …)) (:= 'ord 0))))))
@@ -416,12 +382,11 @@ pub async fn calc_score(
                 // `prefer_kana_sense_ids` non-empty. Don't widen the gate
                 // without re-checking this invariant.
                 let cond_d = if prefer_kana && kanji_p && ord == 0 {
-                    let any_sense_ord_zero: Option<i32> = sqlx::query_scalar(
-                        "SELECT id FROM sense WHERE id = ANY($1) AND ord = 0",
-                    )
-                    .bind(&prefer_kana_sense_ids)
-                    .fetch_optional(&ctx.pool)
-                    .await?;
+                    let any_sense_ord_zero: Option<i32> =
+                        sqlx::query_scalar("SELECT id FROM sense WHERE id = ANY($1) AND ord = 0")
+                            .bind(&prefer_kana_sense_ids)
+                            .fetch_optional(&ctx.pool)
+                            .await?;
                     any_sense_ord_zero.is_none()
                 } else {
                     false
@@ -468,11 +433,12 @@ pub async fn calc_score(
     // dict.lisp:903-918 (when (and common-p (not no-common-bonus)) …)
     if common_p && !no_common_bonus {
         let mut common_bonus: i32 = if secondary_conj_p && use_length.is_none() {
-            if kanji_p && primary_p { 4 } else { 2 }
-        } else if long_p
-            || cop_da_p
-            || (root_p && (kanji_p || (primary_p && len > 2)))
-        {
+            if kanji_p && primary_p {
+                4
+            } else {
+                2
+            }
+        } else if long_p || cop_da_p || (root_p && (kanji_p || (primary_p && len > 2))) {
             if common_value == 0 {
                 10
             } else if !primary_p {
@@ -595,8 +561,7 @@ pub async fn calc_score(
                         let new_len: usize = (1i32)
                             .max(plen as i32 + outer_text_chars as i32 - slen as i32)
                             as usize;
-                        let truncated_text: String =
-                            ptext.chars().take(new_len).collect();
+                        let truncated_text: String = ptext.chars().take(new_len).collect();
                         let part_simple: KaniSimpleTextDispatchEnum = match part {
                             KaniWordDispatchEnum::Kanji(k) => {
                                 KaniSimpleTextDispatchEnum::Kanji(k.clone())
@@ -698,8 +663,48 @@ fn ceiling_div(a: i32, b: i32) -> i32 {
     (a + b - 1) / b
 }
 
+pub async fn gen_score<'a>(
+    ctx: &KaniranContext,
+    segment: &'a mut Segment,
+    final_: bool,
+    kanji_break: &[usize],
+) -> Result<&'a mut Segment, sqlx::Error> {
+    // dict.lisp:986-987 — (setf (values (segment-score segment) (segment-info segment))
+    //                       (calc-score (segment-word segment) :final final :kanji-break kanji-break))
+    let (score, info) = calc_score(
+        ctx,
+        &segment.word,
+        final_,
+        /* use_length */ None,
+        /* score_mod */ None,
+        kanji_break,
+    )
+    .await?;
+    segment.score = Some(score);
+    segment.info = info;
+    // dict.lisp:988 — segment (the function returns the same segment).
+    Ok(segment)
+}
+
+pub fn apply_score_mod(score_mod: &ScoreMod, score: i64, len: i64) -> i64 {
+    match score_mod {
+        // dict.lisp:737-738 — (:method ((score-mod integer) score len)
+        //                       (* score score-mod len))
+        ScoreMod::Single(n) => score * n * len,
+        // dict.lisp:739-740 — (:method ((score-mod function) score len)
+        //                       (funcall score-mod score)).
+        // Every reachable upstream value is (constantly N), which
+        // ignores its argument and returns N.
+        ScoreMod::Constant(n) => *n,
+        // dict.lisp:741-742 — (:method ((score-mod list) score len)
+        //                       (reduce '+ score-mod
+        //                         :key (lambda (sm) (apply-score-mod sm score len))))
+        ScoreMod::Stack(stack) => stack.iter().map(|sm| apply_score_mod(sm, score, len)).sum(),
+    }
+}
+
 #[cfg(test)]
-mod tests {
+mod calc_score_tests {
     use super::*;
     use crate::dict::find_word::{find_word, FindWordRows};
     use crate::dict::segment::KaniSplitInfo;
@@ -720,11 +725,7 @@ mod tests {
     /// Fetch a specific kana_text row by (seq, text) — deterministic
     /// alternative to `first_word_for` when find-word's row order
     /// (no upstream ORDER BY) would make a test flaky.
-    async fn kana_by_seq_text(
-        ctx: &KaniranContext,
-        seq: i32,
-        text: &str,
-    ) -> KaniWordDispatchEnum {
+    async fn kana_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
         let rows: Vec<crate::dict::dao::KanaText> = sqlx::query_as(
             "SELECT * FROM kana_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
         )
@@ -974,19 +975,25 @@ mod tests {
             assert_eq!(info.kpcl, (false, false, true, false));
         };
 
-        let (score, info) = calc_score(&ctx, &w, false, Some(5), None, &[]).await.unwrap();
+        let (score, info) = calc_score(&ctx, &w, false, Some(5), None, &[])
+            .await
+            .unwrap();
         assert_eq!(score, 80);
         let info = info.unwrap();
         assert_neko_baseline(&info);
         assert_eq!(info.score_info.use_length_bonus, 64);
 
-        let (score, info) = calc_score(&ctx, &w, false, Some(3), None, &[]).await.unwrap();
+        let (score, info) = calc_score(&ctx, &w, false, Some(3), None, &[])
+            .await
+            .unwrap();
         assert_eq!(score, 32);
         let info = info.unwrap();
         assert_neko_baseline(&info);
         assert_eq!(info.score_info.use_length_bonus, 16);
 
-        let (score, info) = calc_score(&ctx, &w, false, Some(2), None, &[]).await.unwrap();
+        let (score, info) = calc_score(&ctx, &w, false, Some(2), None, &[])
+            .await
+            .unwrap();
         assert_eq!(score, 16);
         let info = info.unwrap();
         assert_neko_baseline(&info);
@@ -1010,9 +1017,8 @@ mod tests {
     //       arm at line 167 returns `(0, None)`, so both tests fail
     //       on `info.expect(...)`.
 
-    use crate::dict::text_classes::CompoundText;
     use crate::dict::dao::KanaText;
-    use crate::dict::text_classes::SimpleText;
+    use crate::dict::text_classes::{CompoundText, SimpleText};
 
     /// Row 279 of chunk_b calc_score parquet. Compound `れちゃう`,
     /// `score_base = null` (falls back to primary), `score_mod = 5`.
@@ -1214,39 +1220,9 @@ mod tests {
         assert_eq!(info.kpcl, (false, false, false, false));
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod gen_score_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::calc_score::calc_score;
-use crate::dict::segment::Segment;
-
-pub async fn gen_score<'a>(
-    ctx: &KaniranContext,
-    segment: &'a mut Segment,
-    final_: bool,
-    kanji_break: &[usize],
-) -> Result<&'a mut Segment, sqlx::Error> {
-    // dict.lisp:986-987 — (setf (values (segment-score segment) (segment-info segment))
-    //                       (calc-score (segment-word segment) :final final :kanji-break kanji-break))
-    let (score, info) = calc_score(
-        ctx,
-        &segment.word,
-        final_,
-        /* use_length */ None,
-        /* score_mod */ None,
-        kanji_break,
-    )
-    .await?;
-    segment.score = Some(score);
-    segment.info = info;
-    // dict.lisp:988 — segment (the function returns the same segment).
-    Ok(segment)
-}
 
 #[cfg(test)]
-mod tests {
+mod gen_score_tests {
     use super::*;
     use crate::dict::find_word::{find_word, FindWordRows};
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -1268,11 +1244,7 @@ mod tests {
     /// Deterministic single-row fetch — `find-word`'s SQL has no
     /// ORDER BY, so the same lookup can rotate first rows between
     /// runs / databases.
-    async fn kana_by_seq_text(
-        ctx: &KaniranContext,
-        seq: i32,
-        text: &str,
-    ) -> KaniWordDispatchEnum {
+    async fn kana_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
         let rows: Vec<crate::dict::dao::KanaText> = sqlx::query_as(
             "SELECT * FROM kana_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
         )
@@ -1284,11 +1256,7 @@ mod tests {
         KaniWordDispatchEnum::Kana(rows.into_iter().next().expect("row exists"))
     }
 
-    async fn kanji_by_seq_text(
-        ctx: &KaniranContext,
-        seq: i32,
-        text: &str,
-    ) -> KaniWordDispatchEnum {
+    async fn kanji_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
         let rows: Vec<crate::dict::dao::KanjiText> = sqlx::query_as(
             "SELECT * FROM kanji_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
         )
@@ -1387,34 +1355,9 @@ mod tests {
         assert_eq!(info.kpcl, (false, false, true, false));
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod apply_score_mod_inner {
-use crate::dict::text_classes::ScoreMod;
-
-pub fn apply_score_mod(score_mod: &ScoreMod, score: i64, len: i64) -> i64 {
-    match score_mod {
-        // dict.lisp:737-738 — (:method ((score-mod integer) score len)
-        //                       (* score score-mod len))
-        ScoreMod::Single(n) => score * n * len,
-        // dict.lisp:739-740 — (:method ((score-mod function) score len)
-        //                       (funcall score-mod score)).
-        // Every reachable upstream value is (constantly N), which
-        // ignores its argument and returns N.
-        ScoreMod::Constant(n) => *n,
-        // dict.lisp:741-742 — (:method ((score-mod list) score len)
-        //                       (reduce '+ score-mod
-        //                         :key (lambda (sm) (apply-score-mod sm score len))))
-        ScoreMod::Stack(stack) => stack
-            .iter()
-            .map(|sm| apply_score_mod(sm, score, len))
-            .sum(),
-    }
-}
 
 #[cfg(test)]
-mod tests {
+mod apply_score_mod_tests {
     use super::*;
 
     // All assertions REPL-pinned against upstream ichiran.
@@ -1581,10 +1524,7 @@ mod tests {
         // (apply-score-mod (list (constantly 200) (constantly 300)) 10 2) = 500
         assert_eq!(
             apply_score_mod(
-                &ScoreMod::Stack(vec![
-                    ScoreMod::Constant(200),
-                    ScoreMod::Constant(300),
-                ]),
+                &ScoreMod::Stack(vec![ScoreMod::Constant(200), ScoreMod::Constant(300),]),
                 10,
                 2
             ),
@@ -1666,5 +1606,4 @@ mod tests {
         assert_eq!(apply_score_mod(&ScoreMod::Constant(300), 21, 3), 300);
         assert_eq!(apply_score_mod(&ScoreMod::Constant(300), 21, 2), 300);
     }
-}
 }

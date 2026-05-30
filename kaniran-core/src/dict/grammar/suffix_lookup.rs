@@ -1,16 +1,15 @@
 //! Port of the dict-grammar.lisp suffix-lookup layer.
 
-pub use get_suffix_map_inner::*;
-pub use get_suffixes_inner::*;
-pub use match_unique_inner::*;
-pub use find_word_suffix_inner::*;
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod get_suffix_map_inner {
 use crate::conn::kani_context::KaniranContext;
+use crate::dict::counters::dispatchers::seq;
 use crate::dict::dao::KanaText;
+use crate::dict::grammar::suffix_init::{
+    lookup_suffix_fn, suffix_class, SuffixUniqueOnly, SUFFIX_UNIQUE_ONLY,
+};
 use crate::dict::grammar::suffix_rules::parse_suffix_val;
+use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::segment::subseq_slice;
+use crate::dict::word_info::WordInfoSeq;
 use std::collections::HashMap;
 
 pub fn get_suffix_map<'a, 'b>(
@@ -38,8 +37,209 @@ pub fn get_suffix_map<'a, 'b>(
     result
 }
 
+pub fn get_suffixes<'a, 'b>(
+    ctx: &'a KaniranContext,
+    word: &'b str,
+) -> Vec<(&'b str, &'a str, Option<&'a KanaText>)> {
+    // dict-grammar.lisp:683 (init-suffixes) — eager-population invariant
+    // of `KaniranContext::from_url`. The contract is load-bearing: an
+    // unpopulated cache makes get_suffixes silently degenerate to the
+    // empty answer for every word, which would corrupt every segmenter
+    // path that depends on suffix recognition. Guard in release too.
+    assert!(
+        !ctx.suffix_cache.is_empty(),
+        "get-suffixes: ctx.suffix_cache is empty (init-suffixes contract violated)",
+    );
+    let len = word.chars().count();
+    let mut out: Vec<(&'b str, &'a str, Option<&'a KanaText>)> = Vec::new();
+    // dict-grammar.lisp:684 (loop for start from (1- (length word)) downto 1)
+    for start in (1..len).rev() {
+        // dict-grammar.lisp:685 (subseq-slice nil word start)
+        let substr = subseq_slice(None, word, start, None);
+        // dict-grammar.lisp:686 (gethash substr *suffix-cache*)
+        let val = ctx.suffix_cache.get(substr).map(|v| v.as_slice());
+        // dict-grammar.lisp:687 (nconc (parse-suffix-val substr val))
+        out.extend(parse_suffix_val(substr, val));
+    }
+    out
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MatchUniqueResult {
+    Bare,
+    Sa(Vec<i32>),
+    Desu,
+}
+
+pub async fn match_unique(
+    ctx: &KaniranContext,
+    suffix_class: &str,
+    matches: &[KaniWordDispatchEnum],
+) -> Result<Option<MatchUniqueResult>, sqlx::Error> {
+    let Some((_, kind)) = SUFFIX_UNIQUE_ONLY.iter().find(|(k, _)| *k == suffix_class) else {
+        return Ok(None);
+    };
+    match kind {
+        // dict-grammar.lisp:689-693 (defun match-unique) — bare entry
+        // case: `(cond ... (t uniq))` returns the matched keyword
+        // itself (truthy).
+        SuffixUniqueOnly::Bare => Ok(Some(MatchUniqueResult::Bare)),
+        // dict-grammar.lisp:522-530 (pushnew (cons :desu (lambda …)))
+        SuffixUniqueOnly::Desu => {
+            let seqs = collect_seqs(matches);
+            // (and seqs (query …)) — empty seqs short-circuit to nil
+            // → (length nil) = 0 → (< 0 (length matches)) = T iff
+            // matches non-empty.
+            let row_count = if seqs.is_empty() {
+                0
+            } else {
+                let rows: Vec<i32> = sqlx::query_scalar(
+                    "SELECT seq FROM conjugation \
+                     WHERE seq = ANY($1) AND \"from\" = 2755350",
+                )
+                .bind(&seqs)
+                .fetch_all(&ctx.pool)
+                .await?;
+                rows.len()
+            };
+            Ok(if row_count < matches.len() {
+                Some(MatchUniqueResult::Desu)
+            } else {
+                None
+            })
+        }
+        // dict-grammar.lisp:486-490 (pushnew (cons :sa (lambda …)))
+        SuffixUniqueOnly::Sa => {
+            let seqs = collect_seqs(matches);
+            if seqs.is_empty() {
+                // (and nil …) → nil → None.
+                return Ok(None);
+            }
+            let rows: Vec<i32> =
+                sqlx::query_scalar("SELECT seq FROM entry WHERE seq = ANY($1) AND root_p")
+                    .bind(&seqs)
+                    .fetch_all(&ctx.pool)
+                    .await?;
+            // (and seqs (query …)) — non-empty seqs evaluate the
+            // query; empty result is nil (falsy), non-empty is the
+            // list of root seqs (truthy).
+            Ok(if rows.is_empty() {
+                None
+            } else {
+                Some(MatchUniqueResult::Sa(rows))
+            })
+        }
+    }
+}
+
+/// dict-grammar.lisp:488,524 (loop for match in matches if (seq match)
+/// collect it) — collects the integer seq when `(seq match)` is
+/// truthy, skips when nil. `Multi` panics per the module-doc edge-
+/// case note (mirrors Lisp's Postgres 42883 error).
+fn collect_seqs(matches: &[KaniWordDispatchEnum]) -> Vec<i32> {
+    matches
+        .iter()
+        .filter_map(|m| match seq(m) {
+            Some(WordInfoSeq::Single(s)) => Some(s),
+            None => None,
+            Some(WordInfoSeq::Multi(_)) => panic!(
+                "match_unique: compound-text seq returned WordInfoSeq::Multi; \
+                 upstream Lisp errors with Postgres 42883 \
+                 'operator does not exist: integer = record' for this input"
+            ),
+        })
+        .collect()
+}
+
+pub async fn find_word_suffix(
+    ctx: &KaniranContext,
+    word: &str,
+    matches: &[KaniWordDispatchEnum],
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let word_len = word.chars().count();
+
+    // dict-grammar.lisp:696-698 (with suffixes = (if *suffix-map-temp* …))
+    // Two sources keep distinct ownership: a borrowed slice over the
+    // ctx-owned map, or an owned Vec from get_suffixes.
+    let suffixes_owned: Vec<(String, String, Option<KanaText>)>;
+    let suffixes_from_map: Option<&[(String, String, Option<KanaText>)]>;
+
+    if let Some(map) = ctx.suffix_map_temp.as_deref() {
+        // dict-grammar.lisp:697 (gethash *suffix-next-end* *suffix-map-temp*)
+        // Negative *suffix-next-end* values match no hash key (gethash
+        // returns nil); SuffixMapTemp keys are usize so we mirror via
+        // `try_from`.
+        let key = ctx.suffix_next_end.and_then(|e| usize::try_from(e).ok());
+        suffixes_from_map = key.and_then(|k| map.get(&k)).map(|v| v.as_slice());
+        suffixes_owned = Vec::new();
+    } else {
+        // dict-grammar.lisp:698 (get-suffixes word)
+        // get_suffixes returns borrowed slices into ctx; convert to
+        // owned triples so the loop body can be uniform.
+        suffixes_owned = get_suffixes(ctx, word)
+            .into_iter()
+            .map(|(s, k, kf)| (s.to_string(), k.to_string(), kf.cloned()))
+            .collect();
+        suffixes_from_map = None;
+    }
+    let suffix_triples: &[(String, String, Option<KanaText>)] = match suffixes_from_map {
+        Some(s) => s,
+        None => suffixes_owned.as_slice(),
+    };
+
+    let class_map = suffix_class(ctx);
+    let mut out: Vec<KaniWordDispatchEnum> = Vec::new();
+
+    // dict-grammar.lisp:700 (for (suffix keyword kf) in suffixes)
+    for (suffix, keyword, kf) in suffix_triples {
+        // dict-grammar.lisp:701 (cdr (assoc keyword *suffix-list*))
+        let Some(suffix_fn) = lookup_suffix_fn(keyword) else {
+            continue;
+        };
+        let suffix_len = suffix.chars().count();
+        // dict-grammar.lisp:703 (- (length word) (length suffix))
+        // Use checked_sub to mirror Lisp's signed arithmetic — Lisp
+        // would produce a negative offset for over-long suffixes,
+        // failing the (> offset 0) gate; in Rust we treat the
+        // saturating-to-zero case the same way.
+        let Some(offset) = word_len.checked_sub(suffix_len) else {
+            continue;
+        };
+        // dict-grammar.lisp:704 (and suffix-fn (> offset 0) ...)
+        if offset == 0 {
+            continue;
+        }
+        // dict-grammar.lisp:702 (if kf (gethash (seq kf) *suffix-class*) keyword)
+        let suffix_class_str: &str = match kf {
+            Some(k) => class_map.get(&k.seq).map(String::as_str).unwrap_or(keyword),
+            None => keyword,
+        };
+        // dict-grammar.lisp:705 (not (and matches (match-unique suffix-class matches)))
+        if !matches.is_empty()
+            && match_unique(ctx, suffix_class_str, matches)
+                .await?
+                .is_some()
+        {
+            continue;
+        }
+        // dict-grammar.lisp:706 (let ((*suffix-next-end* (and *suffix-next-end* (- *suffix-next-end* (length suffix)))))
+        // Lisp `(and nil x)` → nil so the rebind only computes a new
+        // value when the current binding is non-nil. Mirror with
+        // `Option::map`.
+        let new_next_end = ctx.suffix_next_end.map(|e| e - suffix_len as i32);
+        let ctx2 = ctx.with_suffix_next_end(new_next_end);
+        // dict-grammar.lisp:707 (funcall suffix-fn (subseq-slice slice word 0 offset) suffix kf)
+        // subseq_slice's first arg is the legacy `make-slice` seed and
+        // is ignored in Rust; pass None per the port note.
+        let root = subseq_slice(None, word, 0, Some(offset));
+        let compounds = suffix_fn(&ctx2, root, suffix, kf.as_ref()).await?;
+        out.extend(compounds);
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
-mod tests {
+mod get_suffix_map_tests {
     use super::*;
     use crate::conn::kani_context::KaniranContext;
 
@@ -269,44 +469,9 @@ mod tests {
         assert_eq!(kf1.common, Some(0));
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod get_suffixes_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::dao::KanaText;
-use crate::dict::grammar::suffix_rules::parse_suffix_val;
-use crate::dict::segment::subseq_slice;
-
-pub fn get_suffixes<'a, 'b>(
-    ctx: &'a KaniranContext,
-    word: &'b str,
-) -> Vec<(&'b str, &'a str, Option<&'a KanaText>)> {
-    // dict-grammar.lisp:683 (init-suffixes) — eager-population invariant
-    // of `KaniranContext::from_url`. The contract is load-bearing: an
-    // unpopulated cache makes get_suffixes silently degenerate to the
-    // empty answer for every word, which would corrupt every segmenter
-    // path that depends on suffix recognition. Guard in release too.
-    assert!(
-        !ctx.suffix_cache.is_empty(),
-        "get-suffixes: ctx.suffix_cache is empty (init-suffixes contract violated)",
-    );
-    let len = word.chars().count();
-    let mut out: Vec<(&'b str, &'a str, Option<&'a KanaText>)> = Vec::new();
-    // dict-grammar.lisp:684 (loop for start from (1- (length word)) downto 1)
-    for start in (1..len).rev() {
-        // dict-grammar.lisp:685 (subseq-slice nil word start)
-        let substr = subseq_slice(None, word, start, None);
-        // dict-grammar.lisp:686 (gethash substr *suffix-cache*)
-        let val = ctx.suffix_cache.get(substr).map(|v| v.as_slice());
-        // dict-grammar.lisp:687 (nconc (parse-suffix-val substr val))
-        out.extend(parse_suffix_val(substr, val));
-    }
-    out
-}
 
 #[cfg(test)]
-mod tests {
+mod get_suffixes_tests {
     use super::*;
     use crate::conn::kani_context::KaniranContext;
 
@@ -435,111 +600,9 @@ mod tests {
         assert_eq!(kf2.common, None);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod match_unique_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::suffix_init::{
-    SuffixUniqueOnly, SUFFIX_UNIQUE_ONLY,
-};
-use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::counters::dispatchers::seq;
-use crate::dict::word_info::WordInfoSeq;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum MatchUniqueResult {
-    Bare,
-    Sa(Vec<i32>),
-    Desu,
-}
-
-pub async fn match_unique(
-    ctx: &KaniranContext,
-    suffix_class: &str,
-    matches: &[KaniWordDispatchEnum],
-) -> Result<Option<MatchUniqueResult>, sqlx::Error> {
-    let Some((_, kind)) = SUFFIX_UNIQUE_ONLY
-        .iter()
-        .find(|(k, _)| *k == suffix_class)
-    else {
-        return Ok(None);
-    };
-    match kind {
-        // dict-grammar.lisp:689-693 (defun match-unique) — bare entry
-        // case: `(cond ... (t uniq))` returns the matched keyword
-        // itself (truthy).
-        SuffixUniqueOnly::Bare => Ok(Some(MatchUniqueResult::Bare)),
-        // dict-grammar.lisp:522-530 (pushnew (cons :desu (lambda …)))
-        SuffixUniqueOnly::Desu => {
-            let seqs = collect_seqs(matches);
-            // (and seqs (query …)) — empty seqs short-circuit to nil
-            // → (length nil) = 0 → (< 0 (length matches)) = T iff
-            // matches non-empty.
-            let row_count = if seqs.is_empty() {
-                0
-            } else {
-                let rows: Vec<i32> = sqlx::query_scalar(
-                    "SELECT seq FROM conjugation \
-                     WHERE seq = ANY($1) AND \"from\" = 2755350",
-                )
-                .bind(&seqs)
-                .fetch_all(&ctx.pool)
-                .await?;
-                rows.len()
-            };
-            Ok(if row_count < matches.len() {
-                Some(MatchUniqueResult::Desu)
-            } else {
-                None
-            })
-        }
-        // dict-grammar.lisp:486-490 (pushnew (cons :sa (lambda …)))
-        SuffixUniqueOnly::Sa => {
-            let seqs = collect_seqs(matches);
-            if seqs.is_empty() {
-                // (and nil …) → nil → None.
-                return Ok(None);
-            }
-            let rows: Vec<i32> = sqlx::query_scalar(
-                "SELECT seq FROM entry WHERE seq = ANY($1) AND root_p",
-            )
-            .bind(&seqs)
-            .fetch_all(&ctx.pool)
-            .await?;
-            // (and seqs (query …)) — non-empty seqs evaluate the
-            // query; empty result is nil (falsy), non-empty is the
-            // list of root seqs (truthy).
-            Ok(if rows.is_empty() {
-                None
-            } else {
-                Some(MatchUniqueResult::Sa(rows))
-            })
-        }
-    }
-}
-
-/// dict-grammar.lisp:488,524 (loop for match in matches if (seq match)
-/// collect it) — collects the integer seq when `(seq match)` is
-/// truthy, skips when nil. `Multi` panics per the module-doc edge-
-/// case note (mirrors Lisp's Postgres 42883 error).
-fn collect_seqs(matches: &[KaniWordDispatchEnum]) -> Vec<i32> {
-    matches
-        .iter()
-        .filter_map(|m| match seq(m) {
-            Some(WordInfoSeq::Single(s)) => Some(s),
-            None => None,
-            Some(WordInfoSeq::Multi(_)) => panic!(
-                "match_unique: compound-text seq returned WordInfoSeq::Multi; \
-                 upstream Lisp errors with Postgres 42883 \
-                 'operator does not exist: integer = record' for this input"
-            ),
-        })
-        .collect()
-}
 
 #[cfg(test)]
-mod tests {
+mod match_unique_tests {
     use super::*;
     use crate::conn::kani_context::KaniranContext;
     use crate::dict::dao::KanaText;
@@ -625,7 +688,10 @@ mod tests {
     async fn sa_with_only_non_root_seqs_returns_none() {
         let c = ctx().await;
         let mats = wrap(fetch_kana_rows_for_seq(&c, 10243330).await);
-        assert!(!mats.is_empty(), "REPL precondition: kana_text rows exist for seq=10243330");
+        assert!(
+            !mats.is_empty(),
+            "REPL precondition: kana_text rows exist for seq=10243330"
+        );
         let out = match_unique(&c, "sa", &mats).await.unwrap();
         assert_eq!(out, None);
     }
@@ -773,108 +839,9 @@ mod tests {
         let _ = match_unique(&c, "desu", &[compound]).await;
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_word_suffix_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::suffix_init::suffix_class;
-use crate::dict::grammar::suffix_init::lookup_suffix_fn;
-use crate::dict::grammar::suffix_lookup::get_suffixes;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::grammar::suffix_lookup::match_unique;
-use crate::dict::segment::subseq_slice;
-
-pub async fn find_word_suffix(
-    ctx: &KaniranContext,
-    word: &str,
-    matches: &[KaniWordDispatchEnum],
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let word_len = word.chars().count();
-
-    // dict-grammar.lisp:696-698 (with suffixes = (if *suffix-map-temp* …))
-    // Two sources keep distinct ownership: a borrowed slice over the
-    // ctx-owned map, or an owned Vec from get_suffixes.
-    let suffixes_owned: Vec<(String, String, Option<KanaText>)>;
-    let suffixes_from_map: Option<&[(String, String, Option<KanaText>)]>;
-
-    if let Some(map) = ctx.suffix_map_temp.as_deref() {
-        // dict-grammar.lisp:697 (gethash *suffix-next-end* *suffix-map-temp*)
-        // Negative *suffix-next-end* values match no hash key (gethash
-        // returns nil); SuffixMapTemp keys are usize so we mirror via
-        // `try_from`.
-        let key = ctx
-            .suffix_next_end
-            .and_then(|e| usize::try_from(e).ok());
-        suffixes_from_map = key.and_then(|k| map.get(&k)).map(|v| v.as_slice());
-        suffixes_owned = Vec::new();
-    } else {
-        // dict-grammar.lisp:698 (get-suffixes word)
-        // get_suffixes returns borrowed slices into ctx; convert to
-        // owned triples so the loop body can be uniform.
-        suffixes_owned = get_suffixes(ctx, word)
-            .into_iter()
-            .map(|(s, k, kf)| (s.to_string(), k.to_string(), kf.cloned()))
-            .collect();
-        suffixes_from_map = None;
-    }
-    let suffix_triples: &[(String, String, Option<KanaText>)] = match suffixes_from_map {
-        Some(s) => s,
-        None => suffixes_owned.as_slice(),
-    };
-
-    let class_map = suffix_class(ctx);
-    let mut out: Vec<KaniWordDispatchEnum> = Vec::new();
-
-    // dict-grammar.lisp:700 (for (suffix keyword kf) in suffixes)
-    for (suffix, keyword, kf) in suffix_triples {
-        // dict-grammar.lisp:701 (cdr (assoc keyword *suffix-list*))
-        let Some(suffix_fn) = lookup_suffix_fn(keyword) else {
-            continue;
-        };
-        let suffix_len = suffix.chars().count();
-        // dict-grammar.lisp:703 (- (length word) (length suffix))
-        // Use checked_sub to mirror Lisp's signed arithmetic — Lisp
-        // would produce a negative offset for over-long suffixes,
-        // failing the (> offset 0) gate; in Rust we treat the
-        // saturating-to-zero case the same way.
-        let Some(offset) = word_len.checked_sub(suffix_len) else {
-            continue;
-        };
-        // dict-grammar.lisp:704 (and suffix-fn (> offset 0) ...)
-        if offset == 0 {
-            continue;
-        }
-        // dict-grammar.lisp:702 (if kf (gethash (seq kf) *suffix-class*) keyword)
-        let suffix_class_str: &str = match kf {
-            Some(k) => class_map.get(&k.seq).map(String::as_str).unwrap_or(keyword),
-            None => keyword,
-        };
-        // dict-grammar.lisp:705 (not (and matches (match-unique suffix-class matches)))
-        if !matches.is_empty()
-            && match_unique(ctx, suffix_class_str, matches).await?.is_some()
-        {
-            continue;
-        }
-        // dict-grammar.lisp:706 (let ((*suffix-next-end* (and *suffix-next-end* (- *suffix-next-end* (length suffix)))))
-        // Lisp `(and nil x)` → nil so the rebind only computes a new
-        // value when the current binding is non-nil. Mirror with
-        // `Option::map`.
-        let new_next_end = ctx.suffix_next_end.map(|e| e - suffix_len as i32);
-        let ctx2 = ctx.with_suffix_next_end(new_next_end);
-        // dict-grammar.lisp:707 (funcall suffix-fn (subseq-slice slice word 0 offset) suffix kf)
-        // subseq_slice's first arg is the legacy `make-slice` seed and
-        // is ignored in Rust; pass None per the port note.
-        let root = subseq_slice(None, word, 0, Some(offset));
-        let compounds = suffix_fn(&ctx2, root, suffix, kf.as_ref()).await?;
-        out.extend(compounds);
-    }
-    Ok(out)
-}
 
 #[cfg(test)]
-mod tests {
+mod find_word_suffix_tests {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -968,14 +935,12 @@ mod tests {
             .await
             .unwrap();
         let matches: Vec<KaniWordDispatchEnum> = match watashi_rows {
-            crate::dict::find_word::FindWordRows::Kana(v) => v
-                .into_iter()
-                .map(KaniWordDispatchEnum::Kana)
-                .collect(),
-            crate::dict::find_word::FindWordRows::Kanji(v) => v
-                .into_iter()
-                .map(KaniWordDispatchEnum::Kanji)
-                .collect(),
+            crate::dict::find_word::FindWordRows::Kana(v) => {
+                v.into_iter().map(KaniWordDispatchEnum::Kana).collect()
+            }
+            crate::dict::find_word::FindWordRows::Kanji(v) => {
+                v.into_iter().map(KaniWordDispatchEnum::Kanji).collect()
+            }
         };
         assert!(!matches.is_empty(), "REPL precondition: 私 rows exist");
         let r = find_word_suffix(&ctx, "私ら", &matches).await.unwrap();
@@ -1035,5 +1000,4 @@ mod tests {
         let r8 = find_word_suffix(&ctx8, "なくなったら", &[]).await.unwrap();
         assert!(r8.is_empty(), "map@8 (た/った/なった) → no compounds");
     }
-}
 }

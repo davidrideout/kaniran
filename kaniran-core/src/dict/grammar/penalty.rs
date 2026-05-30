@@ -1,27 +1,14 @@
 //! Port of the dict-grammar.lisp penalty layer.
 
-pub use _star_penalty_list_star__inner::*;
-pub use def_generic_penalty_macro_inner::*;
-pub use penalty_short_inner::*;
-pub use penalty_semi_final_inner::*;
-pub use get_penalties_inner::*;
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_penalty_list_star__inner {
-use crate::dict::kani::KaniLiteSegmentList;
-use super::penalty_semi_final;
-use super::penalty_short;
+use crate::dict::errata::semi_final_prt;
+use crate::dict::grammar::filter::{filter_in_seq_set, filter_short_kana};
 use crate::dict::grammar::synergy::Synergy;
+use crate::dict::kani::{KaniLitePathElement, KaniLiteSegmentList};
+use std::sync::Arc;
 
 pub type Penalty = fn(&KaniLiteSegmentList, &KaniLiteSegmentList) -> Option<Synergy>;
 
 pub static PENALTY_LIST: &[Penalty] = &[penalty_semi_final, penalty_short];
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod def_generic_penalty_macro_inner {
-use crate::dict::kani::KaniLiteSegmentList;
-use crate::dict::grammar::synergy::Synergy;
 
 pub struct DefGenericPenaltyOpts<'a> {
     pub serial: bool,
@@ -56,14 +43,6 @@ pub fn def_generic_penalty_body(
         None
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod penalty_short_inner {
-use super::{def_generic_penalty_body, DefGenericPenaltyOpts};
-use crate::dict::grammar::filter::filter_short_kana;
-use crate::dict::kani::KaniLiteSegmentList;
-use crate::dict::grammar::synergy::Synergy;
 
 pub fn penalty_short(l: &KaniLiteSegmentList, r: &KaniLiteSegmentList) -> Option<Synergy> {
     def_generic_penalty_body(
@@ -80,14 +59,54 @@ pub fn penalty_short(l: &KaniLiteSegmentList, r: &KaniLiteSegmentList) -> Option
     )
 }
 
+pub fn penalty_semi_final(l: &KaniLiteSegmentList, r: &KaniLiteSegmentList) -> Option<Synergy> {
+    let f = filter_in_seq_set(semi_final_prt().to_vec());
+    def_generic_penalty_body(
+        l,
+        r,
+        // dict-grammar.lisp:1004-1006 (test-left lambda over (apply 'filter-in-seq-set *semi-final-prt*))
+        |sl| sl.segments.iter().any(|s| f(s)),
+        // dict-grammar.lisp:1007 (test-right = (constantly t))
+        |_| true,
+        &DefGenericPenaltyOpts {
+            serial: true,
+            description: "semi-final not final",
+            score: -15,
+            connector: " ",
+        },
+    )
+}
+
+pub fn get_penalties(
+    seg_left: &Arc<KaniLiteSegmentList>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<KaniLitePathElement> {
+    for penalty_fn in PENALTY_LIST {
+        if let Some(penalty) = penalty_fn(seg_left, seg_right) {
+            // dict-grammar.lisp:1015 (`(return (list seg-right penalty seg-left))`)
+            return vec![
+                KaniLitePathElement::SegmentList(Arc::clone(seg_right)),
+                KaniLitePathElement::Synergy(penalty),
+                KaniLitePathElement::SegmentList(Arc::clone(seg_left)),
+            ];
+        }
+    }
+    // dict-grammar.lisp:1016 (`(finally (return (list seg-right seg-left)))`)
+    vec![
+        KaniLitePathElement::SegmentList(Arc::clone(seg_right)),
+        KaniLitePathElement::SegmentList(Arc::clone(seg_left)),
+    ]
+}
+
 #[cfg(test)]
-mod tests {
+mod penalty_short_tests {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -189,7 +208,11 @@ mod tests {
     #[test]
     fn d6_serial_nil_allows_non_adjacent() {
         let l = lite_sl_owned(0, 1, vec![seg(0, 1, (false, false, false, false), "あ")]);
-        let r = lite_sl_owned(100, 101, vec![seg(100, 101, (false, false, false, false), "い")]);
+        let r = lite_sl_owned(
+            100,
+            101,
+            vec![seg(100, 101, (false, false, false, false), "い")],
+        );
         let got = penalty_short(&l, &r).expect("synergy");
         assert_eq!(got.start, 1);
         assert_eq!(got.end, 100);
@@ -202,42 +225,16 @@ mod tests {
         assert!(penalty_short(&l, &r).is_none());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod penalty_semi_final_inner {
-use crate::dict::errata::semi_final_prt;
-use super::{def_generic_penalty_body, DefGenericPenaltyOpts};
-use crate::dict::grammar::filter::filter_in_seq_set;
-use crate::dict::kani::KaniLiteSegmentList;
-use crate::dict::grammar::synergy::Synergy;
-
-pub fn penalty_semi_final(l: &KaniLiteSegmentList, r: &KaniLiteSegmentList) -> Option<Synergy> {
-    let f = filter_in_seq_set(semi_final_prt().to_vec());
-    def_generic_penalty_body(
-        l,
-        r,
-        // dict-grammar.lisp:1004-1006 (test-left lambda over (apply 'filter-in-seq-set *semi-final-prt*))
-        |sl| sl.segments.iter().any(|s| f(s)),
-        // dict-grammar.lisp:1007 (test-right = (constantly t))
-        |_| true,
-        &DefGenericPenaltyOpts {
-            serial: true,
-            description: "semi-final not final",
-            score: -15,
-            connector: " ",
-        },
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod penalty_semi_final_tests {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -347,46 +344,17 @@ mod tests {
         assert_eq!(got.score, -15);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod get_penalties_inner {
-use std::sync::Arc;
-
-use super::PENALTY_LIST;
-use crate::dict::kani::KaniLiteSegmentList;
-use crate::dict::kani::KaniLitePathElement;
-
-pub fn get_penalties(
-    seg_left: &Arc<KaniLiteSegmentList>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<KaniLitePathElement> {
-    for penalty_fn in PENALTY_LIST {
-        if let Some(penalty) = penalty_fn(seg_left, seg_right) {
-            // dict-grammar.lisp:1015 (`(return (list seg-right penalty seg-left))`)
-            return vec![
-                KaniLitePathElement::SegmentList(Arc::clone(seg_right)),
-                KaniLitePathElement::Synergy(penalty),
-                KaniLitePathElement::SegmentList(Arc::clone(seg_left)),
-            ];
-        }
-    }
-    // dict-grammar.lisp:1016 (`(finally (return (list seg-right seg-left)))`)
-    vec![
-        KaniLitePathElement::SegmentList(Arc::clone(seg_right)),
-        KaniLitePathElement::SegmentList(Arc::clone(seg_left)),
-    ]
-}
 
 #[cfg(test)]
-mod tests {
+mod get_penalties_tests {
     use super::*;
-    use crate::dict::errata::semi_final_prt;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
+    use crate::dict::errata::semi_final_prt;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -466,8 +434,16 @@ mod tests {
 
     #[test]
     fn a_no_penalty_returns_two_element_list() {
-        let l = lite_sl(0, 3, vec![seg(0, 3, (true, false, false, false), vec![999], "abc")]);
-        let r = lite_sl(3, 6, vec![seg(3, 6, (true, false, false, false), vec![888], "def")]);
+        let l = lite_sl(
+            0,
+            3,
+            vec![seg(0, 3, (true, false, false, false), vec![999], "abc")],
+        );
+        let r = lite_sl(
+            3,
+            6,
+            vec![seg(3, 6, (true, false, false, false), vec![888], "def")],
+        );
         let res = get_penalties(&l, &r);
         assert_eq!(res.len(), 2);
         let s0 = unwrap_sl(&res[0]);
@@ -483,8 +459,16 @@ mod tests {
 
     #[test]
     fn b_penalty_short_triggers_returns_three_element_list() {
-        let l = lite_sl(0, 1, vec![seg(0, 1, (false, false, false, false), vec![999], "あ")]);
-        let r = lite_sl(3, 4, vec![seg(3, 4, (false, false, false, false), vec![888], "い")]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, (false, false, false, false), vec![999], "あ")],
+        );
+        let r = lite_sl(
+            3,
+            4,
+            vec![seg(3, 4, (false, false, false, false), vec![888], "い")],
+        );
         let res = get_penalties(&l, &r);
         assert_eq!(res.len(), 3);
         let s0 = unwrap_sl(&res[0]);
@@ -506,8 +490,16 @@ mod tests {
     #[test]
     fn c_penalty_semi_final_triggers_returns_three_element_list() {
         let semi_seq = semi_final_prt()[0];
-        let l = lite_sl(0, 1, vec![seg(0, 1, (false, false, false, false), vec![semi_seq], "x")]);
-        let r = lite_sl(1, 2, vec![seg(1, 2, (false, false, false, false), vec![999], "y")]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, (false, false, false, false), vec![semi_seq], "x")],
+        );
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(1, 2, (false, false, false, false), vec![999], "y")],
+        );
         let res = get_penalties(&l, &r);
         assert_eq!(res.len(), 3);
         let s0 = unwrap_sl(&res[0]);
@@ -526,8 +518,16 @@ mod tests {
     #[test]
     fn d_both_could_match_semi_final_wins_first_in_list() {
         let semi_seq = semi_final_prt()[0];
-        let l = lite_sl(0, 1, vec![seg(0, 1, (false, false, false, false), vec![semi_seq], "x")]);
-        let r = lite_sl(1, 2, vec![seg(1, 2, (false, false, false, false), vec![999], "y")]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, (false, false, false, false), vec![semi_seq], "x")],
+        );
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(1, 2, (false, false, false, false), vec![999], "y")],
+        );
         let res = get_penalties(&l, &r);
         assert_eq!(res.len(), 3);
         let syn = unwrap_synergy(&res[1]);
@@ -537,8 +537,16 @@ mod tests {
 
     #[test]
     fn e_penalty_branch_arg_order_seg_right_then_seg_left() {
-        let l = lite_sl(10, 11, vec![seg(10, 11, (false, false, false, false), vec![444], "α")]);
-        let r = lite_sl(13, 14, vec![seg(13, 14, (false, false, false, false), vec![555], "β")]);
+        let l = lite_sl(
+            10,
+            11,
+            vec![seg(10, 11, (false, false, false, false), vec![444], "α")],
+        );
+        let r = lite_sl(
+            13,
+            14,
+            vec![seg(13, 14, (false, false, false, false), vec![555], "β")],
+        );
         let res = get_penalties(&l, &r);
         assert_eq!(res.len(), 3);
         let s0 = unwrap_sl(&res[0]);
@@ -558,8 +566,28 @@ mod tests {
 
     #[test]
     fn f_no_penalty_branch_arg_order_seg_right_then_seg_left() {
-        let l = lite_sl(10, 13, vec![seg(10, 13, (true, false, false, false), vec![444], "α-long")]);
-        let r = lite_sl(13, 16, vec![seg(13, 16, (true, false, false, false), vec![555], "β-long")]);
+        let l = lite_sl(
+            10,
+            13,
+            vec![seg(
+                10,
+                13,
+                (true, false, false, false),
+                vec![444],
+                "α-long",
+            )],
+        );
+        let r = lite_sl(
+            13,
+            16,
+            vec![seg(
+                13,
+                16,
+                (true, false, false, false),
+                vec![555],
+                "β-long",
+            )],
+        );
         let res = get_penalties(&l, &r);
         assert_eq!(res.len(), 2);
         let s0 = unwrap_sl(&res[0]);
@@ -574,7 +602,11 @@ mod tests {
 
     #[test]
     fn g_empty_l_segments_no_penalty_branch() {
-        let r = lite_sl(1, 2, vec![seg(1, 2, (false, false, false, false), vec![999], "い")]);
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(1, 2, (false, false, false, false), vec![999], "い")],
+        );
         let l = lite_sl(0, 1, vec![]);
         let res = get_penalties(&l, &r);
         assert_eq!(res.len(), 2);
@@ -587,5 +619,4 @@ mod tests {
         assert_eq!(s1.end, 1);
         assert_eq!(s1.segments.len(), 0);
     }
-}
 }

@@ -1,31 +1,14 @@
 //! Port of the dict-grammar.lisp `def-abbr-suffix` macro + 15 callsites.
 
-pub use def_abbr_suffix_macro_inner::*;
-pub use abbr_nee_inner::*;
-pub use abbr_nx_inner::*;
-pub use abbr_n_inner::*;
-pub use abbr_nakereba_inner::*;
-pub use abbr_shimasho_inner::*;
-pub use abbr_dewanai_inner::*;
-pub use abbr_teba_inner::*;
-pub use abbr_reba_inner::*;
-pub use abbr_keba_inner::*;
-pub use abbr_geba_inner::*;
-pub use abbr_neba_inner::*;
-pub use abbr_beba_inner::*;
-pub use abbr_meba_inner::*;
-pub use abbr_seba_inner::*;
-pub use abbr_ii_inner::*;
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod def_abbr_suffix_macro_inner {
 use crate::characters::char_classes::CharClass;
 use crate::characters::text_utils::destem;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::best_text::get_kana;
+use crate::dict::dao::KanaText;
+use crate::dict::find_word::find_word_full;
+use crate::dict::grammar::find_word::{find_word_conj_of, find_word_with_conj_prop, WordSeqRows};
 use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::text_classes::ProxyText;
-use crate::dict::text_classes::SimpleText;
+use crate::dict::text_classes::{ProxyText, SimpleText};
 
 pub async fn def_abbr_suffix_body(
     ctx: &KaniranContext,
@@ -107,15 +90,6 @@ pub async fn def_abbr_suffix_body(
     }
     Ok(out)
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_nee_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::grammar::find_word::find_word_with_conj_prop;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_nee(
     ctx: &KaniranContext,
@@ -134,9 +108,7 @@ pub async fn abbr_nee(
         //   (and (not (find (conj-data-from cdata) '(1577980 1547720)))
         //        (conj-neg (conj-data-prop cdata))))
         |cdata| {
-            let from_blocked = cdata
-                .from
-                .is_some_and(|f| f == 1577980 || f == 1547720);
+            let from_blocked = cdata.from.is_some_and(|f| f == 1577980 || f == 1547720);
             !from_blocked && cdata.prop.as_ref().is_some_and(|p| p.neg != Some(false))
         },
         true,
@@ -145,8 +117,217 @@ pub async fn abbr_nee(
     def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
 }
 
+pub async fn abbr_nx(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    // dict-grammar.lisp:555 — (let* ((*suffix-map-temp* nil) …))
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+
+    // dict-grammar.lisp:592-600 (cond ((equal root "せ") …) (t …))
+    let (primary_words, patch): (Vec<KaniWordDispatchEnum>, Option<(&str, &str)>) = if root == "せ"
+    {
+        // dict-grammar.lisp:593-594 — (setf patch '("しない" . "せ"))
+        //                              (find-word-conj-of "しない" 1157170)
+        let rows = find_word_conj_of(&ctx_rebound, "しない", &[1157170]).await?;
+        let words: Vec<KaniWordDispatchEnum> = match rows {
+            WordSeqRows::Kana(v) => v.into_iter().map(KaniWordDispatchEnum::Kana).collect(),
+            WordSeqRows::Kanji(v) => v.into_iter().map(KaniWordDispatchEnum::Kanji).collect(),
+        };
+        (words, Some(("しない", "せ")))
+    } else {
+        // dict-grammar.lisp:596-600 — (find-word-with-conj-prop (concatenate root "ない") λ)
+        let wordstr = format!("{}{}", root, "ない");
+        let words = find_word_with_conj_prop(
+            &ctx_rebound,
+            &wordstr,
+            // dict-grammar.lisp:598-599 — (and (/= (conj-data-from cdata) 1157170)
+            //                                   (conj-neg (conj-data-prop cdata)))
+            |cdata| {
+                cdata.from != Some(1157170)
+                    && cdata.prop.as_ref().is_some_and(|p| p.neg != Some(false))
+            },
+            false,
+        )
+        .await?;
+        (words, None)
+    };
+
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, patch).await
+}
+
+pub async fn abbr_n(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+    let wordstr = format!("{}{}", root, "ない");
+    let primary_words = find_word_with_conj_prop(
+        &ctx_rebound,
+        &wordstr,
+        // dict-grammar.lisp:605-607 — (and (not (find (conj-data-from cdata)
+        //                                            '(1577980 1547720)))
+        //                                  (conj-neg (conj-data-prop cdata)))
+        |cdata| {
+            let from_blocked = cdata.from.is_some_and(|f| f == 1577980 || f == 1547720);
+            !from_blocked && cdata.prop.as_ref().is_some_and(|p| p.neg != Some(false))
+        },
+        false,
+    )
+    .await?;
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
+}
+
+pub async fn abbr_nakereba(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+    let wordstr = format!("{}{}", root, "なければ");
+    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 4, None).await
+}
+
+pub async fn abbr_shimasho(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+    let wordstr = format!("{}{}", root, "しましょう");
+    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 5, None).await
+}
+
+pub async fn abbr_dewanai(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+    let wordstr = format!("{}{}", root, "ではない");
+    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 4, None).await
+}
+
+pub async fn abbr_teba(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+    let wordstr = format!("{}{}", root, "てば");
+    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
+}
+
+pub async fn abbr_reba(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+    let wordstr = format!("{}{}", root, "れば");
+    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
+}
+
+pub async fn abbr_keba(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+    let wordstr = format!("{}{}", root, "けば");
+    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
+}
+
+pub async fn abbr_geba(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+    let wordstr = format!("{}{}", root, "げば");
+    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
+}
+
+pub async fn abbr_neba(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+    let wordstr = format!("{}{}", root, "ねば");
+    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
+}
+
+pub async fn abbr_beba(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+    let wordstr = format!("{}{}", root, "べば");
+    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
+}
+
+pub async fn abbr_meba(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+    let wordstr = format!("{}{}", root, "めば");
+    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
+}
+
+pub async fn abbr_seba(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+    let wordstr = format!("{}{}", root, "せば");
+    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
+}
+
+pub async fn abbr_ii(
+    ctx: &KaniranContext,
+    root: &str,
+    suf_var: &str,
+    _suf: Option<&KanaText>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let ctx_rebound = ctx.with_suffix_map_temp(None);
+    let wordstr = format!("{}{}", root, "いい");
+    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
+    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
+}
+
 #[cfg(test)]
-mod tests {
+mod abbr_nee_tests {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -261,61 +442,9 @@ mod tests {
         assert_eq!(k.seq, 2398700);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_nx_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::grammar::find_word::find_word_conj_of;
-use crate::dict::grammar::find_word::WordSeqRows;
-use crate::dict::grammar::find_word::find_word_with_conj_prop;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_nx(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    // dict-grammar.lisp:555 — (let* ((*suffix-map-temp* nil) …))
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-
-    // dict-grammar.lisp:592-600 (cond ((equal root "せ") …) (t …))
-    let (primary_words, patch): (Vec<KaniWordDispatchEnum>, Option<(&str, &str)>) =
-        if root == "せ" {
-            // dict-grammar.lisp:593-594 — (setf patch '("しない" . "せ"))
-            //                              (find-word-conj-of "しない" 1157170)
-            let rows = find_word_conj_of(&ctx_rebound, "しない", &[1157170]).await?;
-            let words: Vec<KaniWordDispatchEnum> = match rows {
-                WordSeqRows::Kana(v) => v.into_iter().map(KaniWordDispatchEnum::Kana).collect(),
-                WordSeqRows::Kanji(v) => v.into_iter().map(KaniWordDispatchEnum::Kanji).collect(),
-            };
-            (words, Some(("しない", "せ")))
-        } else {
-            // dict-grammar.lisp:596-600 — (find-word-with-conj-prop (concatenate root "ない") λ)
-            let wordstr = format!("{}{}", root, "ない");
-            let words = find_word_with_conj_prop(
-                &ctx_rebound,
-                &wordstr,
-                // dict-grammar.lisp:598-599 — (and (/= (conj-data-from cdata) 1157170)
-                //                                   (conj-neg (conj-data-prop cdata)))
-                |cdata| {
-                    cdata.from != Some(1157170)
-                        && cdata.prop.as_ref().is_some_and(|p| p.neg != Some(false))
-                },
-                false,
-            )
-            .await?;
-            (words, None)
-        };
-
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, patch).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_nx_tests {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -414,44 +543,9 @@ mod tests {
         assert_eq!(p.kana, "せぬ");
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_n_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::grammar::find_word::find_word_with_conj_prop;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_n(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-    let wordstr = format!("{}{}", root, "ない");
-    let primary_words = find_word_with_conj_prop(
-        &ctx_rebound,
-        &wordstr,
-        // dict-grammar.lisp:605-607 — (and (not (find (conj-data-from cdata)
-        //                                            '(1577980 1547720)))
-        //                                  (conj-neg (conj-data-prop cdata)))
-        |cdata| {
-            let from_blocked = cdata
-                .from
-                .is_some_and(|f| f == 1577980 || f == 1547720);
-            !from_blocked && cdata.prop.as_ref().is_some_and(|p| p.neg != Some(false))
-        },
-        false,
-    )
-    .await?;
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_n_tests {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -545,30 +639,9 @@ mod tests {
         assert!(!seqs.contains(&1155180));
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_nakereba_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word::find_word_full;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_nakereba(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-    let wordstr = format!("{}{}", root, "なければ");
-    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 4, None).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_nakereba_tests {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -646,30 +719,9 @@ mod tests {
         assert_eq!(seqs, vec![10038002, 10366027, 10402893, 10463965]);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_shimasho_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word::find_word_full;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_shimasho(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-    let wordstr = format!("{}{}", root, "しましょう");
-    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 5, None).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_shimasho_tests {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -718,30 +770,9 @@ mod tests {
         assert_eq!(w1.text, "しましょう");
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_dewanai_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word::find_word_full;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_dewanai(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-    let wordstr = format!("{}{}", root, "ではない");
-    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 4, None).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_dewanai_tests {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -761,30 +792,9 @@ mod tests {
         assert!(result.is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_teba_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word::find_word_full;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_teba(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-    let wordstr = format!("{}{}", root, "てば");
-    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_teba_tests {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -832,30 +842,9 @@ mod tests {
         assert_eq!(k.seq, 10316061);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_reba_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word::find_word_full;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_reba(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-    let wordstr = format!("{}{}", root, "れば");
-    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_reba_tests {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -885,30 +874,9 @@ mod tests {
         assert_eq!(k.seq, 10315017);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_keba_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word::find_word_full;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_keba(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-    let wordstr = format!("{}{}", root, "けば");
-    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_keba_tests {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -938,30 +906,9 @@ mod tests {
         assert_eq!(k.seq, 10526936);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_geba_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word::find_word_full;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_geba(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-    let wordstr = format!("{}{}", root, "げば");
-    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_geba_tests {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -991,30 +938,9 @@ mod tests {
         assert_eq!(k.seq, 10485536);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_neba_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word::find_word_full;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_neba(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-    let wordstr = format!("{}{}", root, "ねば");
-    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_neba_tests {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -1044,30 +970,9 @@ mod tests {
         assert_eq!(k.seq, 10236417);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_beba_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word::find_word_full;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_beba(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-    let wordstr = format!("{}{}", root, "べば");
-    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_beba_tests {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -1123,30 +1028,9 @@ mod tests {
         assert_eq!(seqs, vec![10202469, 10225128]);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_meba_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word::find_word_full;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_meba(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-    let wordstr = format!("{}{}", root, "めば");
-    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_meba_tests {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -1176,30 +1060,9 @@ mod tests {
         assert_eq!(k.seq, 10665831);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_seba_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word::find_word_full;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_seba(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-    let wordstr = format!("{}{}", root, "せば");
-    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_seba_tests {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -1229,30 +1092,9 @@ mod tests {
         assert_eq!(k.seq, 10143263);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod abbr_ii_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word::find_word_full;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn abbr_ii(
-    ctx: &KaniranContext,
-    root: &str,
-    suf_var: &str,
-    _suf: Option<&KanaText>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let ctx_rebound = ctx.with_suffix_map_temp(None);
-    let wordstr = format!("{}{}", root, "いい");
-    let primary_words = find_word_full(&ctx_rebound, &wordstr, false, None).await?;
-    def_abbr_suffix_body(&ctx_rebound, primary_words, root, suf_var, 2, None).await
-}
 
 #[cfg(test)]
-mod tests {
+mod abbr_ii_tests {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -1278,5 +1120,4 @@ mod tests {
         let result = abbr_ii(&ctx, "い", "ええ", None).await.unwrap();
         assert!(result.is_empty());
     }
-}
 }

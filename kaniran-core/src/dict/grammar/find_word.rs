@@ -1,24 +1,22 @@
 //! Port of the dict-grammar.lisp find-word + kana-form layer.
 
-pub use get_kana_forms_conj_data_filter_inner::*;
-pub use get_kana_forms_star__inner::*;
-pub use get_kana_forms_inner::*;
-pub use get_kana_form_inner::*;
-pub use find_word_with_conj_prop_inner::*;
-pub use find_word_with_conj_type_inner::*;
-pub use pair_words_by_conj_inner::*;
-pub use find_word_seq_inner::*;
-pub use find_word_conj_of_inner::*;
-pub use find_word_with_pos_inner::*;
-pub use or_as_hiragana_inner::*;
-pub use find_word_with_suffix_inner::*;
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod get_kana_forms_conj_data_filter_inner {
-use crate::dict::errata::WEAK_CONJ_FORMS;
-use crate::dict::conj_data::ConjData;
-use crate::dict::errata::skip_by_conj_data;
-use crate::dict::errata::test_conj_prop;
+use crate::characters::char_classes::{test_word, CharClass};
+use crate::conn::kani_context::KaniranContext;
+use crate::dict::conj_data::{get_conj_data, ConjData, FromOrConjIds};
+use crate::dict::counters::dispatchers::{seq, word_conjugations};
+use crate::dict::dao::{Conjugation, KanaText, KanjiText};
+use crate::dict::errata::{skip_by_conj_data, test_conj_prop, WEAK_CONJ_FORMS};
+use crate::dict::find_word::{find_word_as_hiragana, find_word_full, FindWordRows, HiraganaFinder};
+use crate::dict::grammar::suffix_init::suffix_class;
+use crate::dict::kani::KaniWordDispatchEnum;
+use crate::dict::load::lex_compare;
+use crate::dict::text_classes::{set_word_conjugations, ProxyText, WordConjugations};
+use crate::dict::word_info::{word_conj_data, WordInfoSeq};
+use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet};
+use std::future::Future;
+use std::pin::Pin;
+use std::sync::Arc;
 
 pub fn get_kana_forms_conj_data_filter(conj_data: &[ConjData]) -> Vec<i32> {
     if skip_by_conj_data(conj_data) {
@@ -36,15 +34,6 @@ pub fn get_kana_forms_conj_data_filter(conj_data: &[ConjData]) -> Vec<i32> {
         })
         .collect()
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod get_kana_forms_star__inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::conj_data::{get_conj_data, FromOrConjIds};
-use super::get_kana_forms_conj_data_filter;
-use crate::dict::dao::KanaText;
-use crate::dict::text_classes::WordConjugations;
 
 pub async fn get_kana_forms_star_(
     ctx: &KaniranContext,
@@ -77,31 +66,14 @@ pub async fn get_kana_forms_star_(
     }
     Ok(out)
 }
-}
 
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod get_kana_forms_inner {
-use crate::conn::kani_context::KaniranContext;
-use super::get_kana_forms_star_;
-use crate::dict::dao::KanaText;
-
-pub async fn get_kana_forms(
-    ctx: &KaniranContext,
-    seq: i32,
-) -> Result<Vec<KanaText>, sqlx::Error> {
+pub async fn get_kana_forms(ctx: &KaniranContext, seq: i32) -> Result<Vec<KanaText>, sqlx::Error> {
     let result = get_kana_forms_star_(ctx, seq).await?;
     if result.is_empty() {
         eprintln!("kaniran: No kana forms found for: {seq}");
     }
     Ok(result)
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod get_kana_form_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::dao::KanaText;
-use crate::dict::text_classes::WordConjugations;
 
 pub async fn get_kana_form(
     ctx: &KaniranContext,
@@ -109,15 +81,13 @@ pub async fn get_kana_form(
     text: &str,
     conj: Option<WordConjugations>,
 ) -> Result<Option<KanaText>, sqlx::Error> {
-    let row = sqlx::query_as::<_, KanaText>(
-        "SELECT * FROM kana_text WHERE text = $1 AND seq = $2",
-    )
-    .bind(text)
-    .bind(seq)
-    .fetch_all(&ctx.pool)
-    .await?
-    .into_iter()
-    .next();
+    let row = sqlx::query_as::<_, KanaText>("SELECT * FROM kana_text WHERE text = $1 AND seq = $2")
+        .bind(text)
+        .bind(seq)
+        .fetch_all(&ctx.pool)
+        .await?
+        .into_iter()
+        .next();
     Ok(row.map(|mut r| {
         if let Some(c) = conj {
             r.state.conjugations = Some(c);
@@ -125,17 +95,6 @@ pub async fn get_kana_form(
         r
     }))
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_word_with_conj_prop_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::conj_data::ConjData;
-use crate::dict::find_word::find_word_full;
-use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::text_classes::set_word_conjugations;
-use crate::dict::text_classes::WordConjugations;
-use crate::dict::word_info::word_conj_data;
 
 pub async fn find_word_with_conj_prop<F>(
     ctx: &KaniranContext,
@@ -176,8 +135,346 @@ where
     Ok(out)
 }
 
+pub async fn find_word_with_conj_type(
+    ctx: &KaniranContext,
+    word: &str,
+    conj_types: &[i32],
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    find_word_with_conj_prop(
+        ctx,
+        word,
+        // dict-grammar.lisp:54-56 — (lambda (cdata) (member (conj-type (conj-data-prop cdata)) conj-types))
+        // Lisp `(member x nil)` is nil — closing over an empty slice
+        // returns false for every cdata, mirroring (member … '()).
+        |cd| {
+            cd.prop
+                .as_ref()
+                .is_some_and(|p| conj_types.contains(&p.conj_type))
+        },
+        false,
+    )
+    .await
+}
+
+pub async fn pair_words_by_conj(
+    ctx: &KaniranContext,
+    word_groups: &[Vec<KaniWordDispatchEnum>],
+) -> Result<Vec<Vec<Option<KaniWordDispatchEnum>>>, sqlx::Error> {
+    // dict-grammar.lisp:64 — (sort … (lex-compare '<))
+    let pair_cmp = lex_compare(|a: &i32, b: &i32| a < b);
+    let mut bag: HashMap<Vec<i32>, Vec<Option<KaniWordDispatchEnum>>> = HashMap::new();
+
+    // dict-grammar.lisp:65-72 — outer loop walks word-groups with idx.
+    for (idx, wg) in word_groups.iter().enumerate() {
+        for word in wg {
+            let key = compute_key(ctx, word, &pair_cmp).await?;
+            // dict-grammar.lisp:70 — (or (gethash key bag) (loop … collect nil)).
+            let arr = bag
+                .entry(key)
+                .or_insert_with(|| vec![None; word_groups.len()]);
+            // dict-grammar.lisp:71-72 — (setf (elt arr idx) word).
+            arr[idx] = Some(word.clone());
+        }
+    }
+    // dict-grammar.lisp:73 — (alexandria:hash-table-values bag).
+    Ok(bag.into_values().collect())
+}
+
+async fn compute_key(
+    ctx: &KaniranContext,
+    word: &KaniWordDispatchEnum,
+    pair_cmp: &impl Fn(&[i32], &[i32]) -> bool,
+) -> Result<Vec<i32>, sqlx::Error> {
+    // dict-grammar.lisp:60-63 — (mapcar (lambda (conj-id) …) (word-conjugations word)).
+    // CL `(mapcar f nil)` → nil; `(mapcar f :root)` would TYPE-ERROR.
+    let conj_ids: Vec<i32> = match word_conjugations(word) {
+        Some(WordConjugations::Ids(ids)) => ids,
+        None => Vec::new(),
+        Some(WordConjugations::Root) => {
+            unreachable!(
+                "pair-words-by-conj received a :root-tagged word; upstream \
+                 (mapcar f :root) signals a TYPE-ERROR and no producer in the \
+                 call graph (find-word-with-conj-prop) sets word-conjugations \
+                 to :root"
+            )
+        }
+    };
+    let mut pairs: Vec<[i32; 2]> = Vec::with_capacity(conj_ids.len());
+    for cid in &conj_ids {
+        // dict-grammar.lisp:61 — (get-dao 'conjugation conj-id)
+        let conj: Conjugation = sqlx::query_as("SELECT * FROM conjugation WHERE id = $1")
+            .bind(cid)
+            .fetch_one(&ctx.pool)
+            .await?;
+        // dict-grammar.lisp:62 — (let ((via (seq-via conj))) (if (eql via :null) 0 via)).
+        let via = conj.seq_via.unwrap_or(0);
+        pairs.push([conj.seq_from, via]);
+    }
+    // dict-grammar.lisp:64 — sort the pair list with the lex-compare comparator.
+    pairs.sort_by(|a, b| {
+        if pair_cmp(a, b) {
+            Ordering::Less
+        } else if pair_cmp(b, a) {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    });
+    // Hash key: flatten the sorted pair list. Inner length is fixed at 2,
+    // so the flat sequence is a deterministic bijection of the nested form
+    // and matches CL `equal` on the original list-of-2-element-lists.
+    Ok(pairs.into_iter().flatten().collect())
+}
+
+#[derive(Debug, Clone)]
+pub enum WordSeqRows {
+    Kana(Vec<KanaText>),
+    Kanji(Vec<KanjiText>),
+}
+
+impl WordSeqRows {
+    /// `(car ...)` over the row vector, wrapping the row as a
+    /// [`KaniWordDispatchEnum`] for downstream dispatchers. Empty
+    /// vector yields `None`. Used by `*split-map*` entries that
+    /// resolve a part via `(car (apply find-word-seq ...))`.
+    pub(crate) fn first_word(self) -> Option<KaniWordDispatchEnum> {
+        match self {
+            Self::Kana(v) => v.into_iter().next().map(KaniWordDispatchEnum::Kana),
+            Self::Kanji(v) => v.into_iter().next().map(KaniWordDispatchEnum::Kanji),
+        }
+    }
+
+    /// First row's `seq`, used by the `("text" seq) part-seq` form
+    /// of `def-simple-split` to compute the dynamic pseq via
+    /// `(seq (car (find-word-conj-of "text" seq)))`. Empty vector
+    /// yields `None`.
+    pub(crate) fn first_seq(&self) -> Option<i32> {
+        match self {
+            Self::Kana(v) => v.first().map(|r| r.seq),
+            Self::Kanji(v) => v.first().map(|r| r.seq),
+        }
+    }
+}
+
+pub async fn find_word_seq(
+    ctx: &KaniranContext,
+    word: &str,
+    seqs: &[i32],
+) -> Result<WordSeqRows, sqlx::Error> {
+    if test_word(word, CharClass::Kana) {
+        let rows = sqlx::query_as::<_, KanaText>(
+            "SELECT * FROM kana_text WHERE text = $1 AND seq = ANY($2)",
+        )
+        .bind(word)
+        .bind(seqs)
+        .fetch_all(&ctx.pool)
+        .await?;
+        Ok(WordSeqRows::Kana(rows))
+    } else {
+        let rows = sqlx::query_as::<_, KanjiText>(
+            "SELECT * FROM kanji_text WHERE text = $1 AND seq = ANY($2)",
+        )
+        .bind(word)
+        .bind(seqs)
+        .fetch_all(&ctx.pool)
+        .await?;
+        Ok(WordSeqRows::Kanji(rows))
+    }
+}
+
+pub async fn find_word_conj_of(
+    ctx: &KaniranContext,
+    word: &str,
+    seqs: &[i32],
+) -> Result<WordSeqRows, sqlx::Error> {
+    let primary = find_word_seq(ctx, word, seqs).await?;
+    if test_word(word, CharClass::Kana) {
+        let conj_rows: Vec<KanaText> = sqlx::query_as::<_, KanaText>(
+            "SELECT kt.* FROM kana_text kt, conjugation conj \
+             WHERE kt.seq = conj.seq AND conj.\"from\" = ANY($1) AND kt.text = $2",
+        )
+        .bind(seqs)
+        .bind(word)
+        .fetch_all(&ctx.pool)
+        .await?;
+        let primary_rows = match primary {
+            WordSeqRows::Kana(v) => v,
+            WordSeqRows::Kanji(_) => unreachable!(
+                "test_word dispatch must agree between find-word-seq and find-word-conj-of"
+            ),
+        };
+        Ok(WordSeqRows::Kana(union_by_id(
+            primary_rows,
+            conj_rows,
+            |r| r.id,
+        )))
+    } else {
+        let conj_rows: Vec<KanjiText> = sqlx::query_as::<_, KanjiText>(
+            "SELECT kt.* FROM kanji_text kt, conjugation conj \
+             WHERE kt.seq = conj.seq AND conj.\"from\" = ANY($1) AND kt.text = $2",
+        )
+        .bind(seqs)
+        .bind(word)
+        .fetch_all(&ctx.pool)
+        .await?;
+        let primary_rows = match primary {
+            WordSeqRows::Kanji(v) => v,
+            WordSeqRows::Kana(_) => unreachable!(
+                "test_word dispatch must agree between find-word-seq and find-word-conj-of"
+            ),
+        };
+        Ok(WordSeqRows::Kanji(union_by_id(
+            primary_rows,
+            conj_rows,
+            |r| r.id,
+        )))
+    }
+}
+
+/// `(union list1 list2 :key id)` for SBCL semantics — NOT a generic
+/// set union. SBCL picks the longer list (list1 wins length-tie),
+/// starts a fresh result, copies the shorter list in, then walks the
+/// longer list left-to-right `cons`-pushing each non-duplicate. The
+/// final shape is `reverse(<longer's uniques>) ++ <shorter>`.
+///
+/// Empirically verified on SBCL 2.2.9:
+/// - `(union '() '(1 2 3))`            → `(3 2 1)`
+/// - `(union '(1 2 3) '())`            → `(3 2 1)`
+/// - `(union '(1 2 3) '(4 5 6))`       → `(3 2 1 4 5 6)` (list1 wins tie)
+/// - `(union '(4) '(1 2 3))`           → `(3 2 1 4)` (list2 longer)
+/// - `(union '(1 2 3) '(2))`           → `(3 1 2)` (skip dup 2)
+fn union_by_id<T>(list1: Vec<T>, list2: Vec<T>, id: impl Fn(&T) -> i32) -> Vec<T> {
+    let (shorter, longer) = if list1.len() >= list2.len() {
+        (list2, list1)
+    } else {
+        (list1, list2)
+    };
+    let shorter_keys: HashSet<i32> = shorter.iter().map(&id).collect();
+    let mut uniques: Vec<T> = Vec::new();
+    for elt in longer {
+        if !shorter_keys.contains(&id(&elt)) {
+            uniques.push(elt);
+        }
+    }
+    uniques.reverse();
+    uniques.extend(shorter);
+    uniques
+}
+
+#[derive(Debug, Clone)]
+pub enum WordWithPosRows {
+    Kana(Vec<KanaText>),
+    Kanji(Vec<KanjiText>),
+}
+
+pub async fn find_word_with_pos(
+    ctx: &KaniranContext,
+    word: &str,
+    posi: &[&str],
+) -> Result<WordWithPosRows, sqlx::Error> {
+    // s-sql `:in 'sp.text (:set posi)` expands to multiple `?` binds;
+    // Postgres' `sp.text = ANY($2)` is the array-bound equivalent. The
+    // sqlx Encode impl for `&[&str]` over Postgres requires owned
+    // String elements, so allocate a Vec<String> for the bind (see
+    // dict/get_conj_data.rs:67 for the same pattern).
+    let posi_owned: Vec<String> = posi.iter().map(|s| (*s).to_string()).collect();
+    if test_word(word, CharClass::Kana) {
+        let rows = sqlx::query_as::<_, KanaText>(
+            "SELECT DISTINCT kt.* FROM kana_text kt \
+             INNER JOIN sense_prop sp ON sp.seq = kt.seq AND sp.tag = 'pos' \
+             WHERE kt.text = $1 AND sp.text = ANY($2)",
+        )
+        .bind(word)
+        .bind(&posi_owned)
+        .fetch_all(&ctx.pool)
+        .await?;
+        Ok(WordWithPosRows::Kana(rows))
+    } else {
+        let rows = sqlx::query_as::<_, KanjiText>(
+            "SELECT DISTINCT kt.* FROM kanji_text kt \
+             INNER JOIN sense_prop sp ON sp.seq = kt.seq AND sp.tag = 'pos' \
+             WHERE kt.text = $1 AND sp.text = ANY($2)",
+        )
+        .bind(word)
+        .bind(&posi_owned)
+        .fetch_all(&ctx.pool)
+        .await?;
+        Ok(WordWithPosRows::Kanji(rows))
+    }
+}
+
+/// Cloneable async closure called both directly and as the
+/// `:finder` re-entry through [`find_word_as_hiragana`].
+pub type OrAsHiraganaFinder<'a> = Arc<
+    dyn Fn(String) -> Pin<Box<dyn Future<Output = Result<FindWordRows, sqlx::Error>> + Send + 'a>>
+        + Send
+        + Sync
+        + 'a,
+>;
+
+#[derive(Debug, Clone)]
+pub enum OrAsHiraganaRows {
+    Direct(FindWordRows),
+    AsHiragana(Vec<ProxyText>),
+}
+
+pub async fn or_as_hiragana<'a>(
+    ctx: &'a KaniranContext,
+    word: &str,
+    fn_: OrAsHiraganaFinder<'a>,
+) -> Result<Option<OrAsHiraganaRows>, sqlx::Error> {
+    // dict-grammar.lisp:98 (let ((result (apply fn word args))) …)
+    let result = fn_(word.to_string()).await?;
+    let result_empty = match &result {
+        FindWordRows::Kana(rows) => rows.is_empty(),
+        FindWordRows::Kanji(rows) => rows.is_empty(),
+    };
+    if !result_empty {
+        return Ok(Some(OrAsHiraganaRows::Direct(result)));
+    }
+    // dict-grammar.lisp:100 (find-word-as-hiragana word :finder (lambda (w) (apply fn w args)))
+    let fn_clone = Arc::clone(&fn_);
+    let finder: HiraganaFinder<'a> = Box::new(move |w| fn_clone(w));
+    let proxies = find_word_as_hiragana(ctx, word, &[], Some(finder)).await?;
+    if proxies.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(OrAsHiraganaRows::AsHiragana(proxies)))
+    }
+}
+
+pub async fn find_word_with_suffix(
+    ctx: &KaniranContext,
+    wordstr: &str,
+    suffix_classes: &[&str],
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let words = find_word_full(ctx, wordstr, false, None).await?;
+    let class_map = suffix_class(ctx);
+    let mut out: Vec<KaniWordDispatchEnum> = Vec::new();
+    for word in words {
+        // dict-grammar.lisp:104 (seq word)
+        let word_seq = seq(&word);
+        // dict-grammar.lisp:105 (and (listp seq) (gethash (car (last seq)) *suffix-class*))
+        let class: Option<&String> = match word_seq {
+            Some(WordInfoSeq::Multi(elems)) => match elems.last() {
+                Some(Some(WordInfoSeq::Single(i))) => class_map.get(i),
+                // nested compound or nil last element — hash lookup misses
+                _ => None,
+            },
+            _ => None,
+        };
+        // dict-grammar.lisp:106 (when (and suffix-class (find suffix-class suffix-classes)) collect word)
+        if let Some(cls) = class {
+            if suffix_classes.contains(&cls.as_str()) {
+                out.push(word);
+            }
+        }
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
-mod tests {
+mod find_word_with_conj_prop_tests {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -308,37 +605,9 @@ mod tests {
         assert_eq!(r.len(), 1);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_word_with_conj_type_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::find_word::find_word_with_conj_prop;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub async fn find_word_with_conj_type(
-    ctx: &KaniranContext,
-    word: &str,
-    conj_types: &[i32],
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    find_word_with_conj_prop(
-        ctx,
-        word,
-        // dict-grammar.lisp:54-56 — (lambda (cdata) (member (conj-type (conj-data-prop cdata)) conj-types))
-        // Lisp `(member x nil)` is nil — closing over an empty slice
-        // returns false for every cdata, mirroring (member … '()).
-        |cd| {
-            cd.prop
-                .as_ref()
-                .is_some_and(|p| conj_types.contains(&p.conj_type))
-        },
-        false,
-    )
-    .await
-}
 
 #[cfg(test)]
-mod tests {
+mod find_word_with_conj_type_tests {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -352,7 +621,9 @@ mod tests {
     #[tokio::test]
     async fn t1_conj_type_3_matches() {
         let ctx = ctx().await;
-        let r = find_word_with_conj_type(&ctx, "食べて", &[3]).await.unwrap();
+        let r = find_word_with_conj_type(&ctx, "食べて", &[3])
+            .await
+            .unwrap();
         assert_eq!(r.len(), 1);
         let crate::dict::kani::KaniWordDispatchEnum::Kanji(k) = &r[0] else {
             panic!("expected KANJI-TEXT");
@@ -360,7 +631,9 @@ mod tests {
         assert_eq!(k.seq, 10092233);
         assert_eq!(
             k.state.conjugations,
-            Some(crate::dict::text_classes::WordConjugations::Ids(vec![92707]))
+            Some(crate::dict::text_classes::WordConjugations::Ids(vec![
+                92707
+            ]))
         );
     }
 
@@ -382,7 +655,9 @@ mod tests {
     #[tokio::test]
     async fn t3_no_match_for_root() {
         let ctx = ctx().await;
-        let r = find_word_with_conj_type(&ctx, "食べる", &[3]).await.unwrap();
+        let r = find_word_with_conj_type(&ctx, "食べる", &[3])
+            .await
+            .unwrap();
         assert!(r.is_empty());
     }
 
@@ -428,92 +703,9 @@ mod tests {
         assert!(r.is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod pair_words_by_conj_inner {
-use std::cmp::Ordering;
-use std::collections::HashMap;
-
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::dao::Conjugation;
-use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::load::lex_compare;
-use crate::dict::text_classes::WordConjugations;
-use crate::dict::counters::dispatchers::word_conjugations;
-
-pub async fn pair_words_by_conj(
-    ctx: &KaniranContext,
-    word_groups: &[Vec<KaniWordDispatchEnum>],
-) -> Result<Vec<Vec<Option<KaniWordDispatchEnum>>>, sqlx::Error> {
-    // dict-grammar.lisp:64 — (sort … (lex-compare '<))
-    let pair_cmp = lex_compare(|a: &i32, b: &i32| a < b);
-    let mut bag: HashMap<Vec<i32>, Vec<Option<KaniWordDispatchEnum>>> = HashMap::new();
-
-    // dict-grammar.lisp:65-72 — outer loop walks word-groups with idx.
-    for (idx, wg) in word_groups.iter().enumerate() {
-        for word in wg {
-            let key = compute_key(ctx, word, &pair_cmp).await?;
-            // dict-grammar.lisp:70 — (or (gethash key bag) (loop … collect nil)).
-            let arr = bag
-                .entry(key)
-                .or_insert_with(|| vec![None; word_groups.len()]);
-            // dict-grammar.lisp:71-72 — (setf (elt arr idx) word).
-            arr[idx] = Some(word.clone());
-        }
-    }
-    // dict-grammar.lisp:73 — (alexandria:hash-table-values bag).
-    Ok(bag.into_values().collect())
-}
-
-async fn compute_key(
-    ctx: &KaniranContext,
-    word: &KaniWordDispatchEnum,
-    pair_cmp: &impl Fn(&[i32], &[i32]) -> bool,
-) -> Result<Vec<i32>, sqlx::Error> {
-    // dict-grammar.lisp:60-63 — (mapcar (lambda (conj-id) …) (word-conjugations word)).
-    // CL `(mapcar f nil)` → nil; `(mapcar f :root)` would TYPE-ERROR.
-    let conj_ids: Vec<i32> = match word_conjugations(word) {
-        Some(WordConjugations::Ids(ids)) => ids,
-        None => Vec::new(),
-        Some(WordConjugations::Root) => {
-            unreachable!(
-                "pair-words-by-conj received a :root-tagged word; upstream \
-                 (mapcar f :root) signals a TYPE-ERROR and no producer in the \
-                 call graph (find-word-with-conj-prop) sets word-conjugations \
-                 to :root"
-            )
-        }
-    };
-    let mut pairs: Vec<[i32; 2]> = Vec::with_capacity(conj_ids.len());
-    for cid in &conj_ids {
-        // dict-grammar.lisp:61 — (get-dao 'conjugation conj-id)
-        let conj: Conjugation = sqlx::query_as("SELECT * FROM conjugation WHERE id = $1")
-            .bind(cid)
-            .fetch_one(&ctx.pool)
-            .await?;
-        // dict-grammar.lisp:62 — (let ((via (seq-via conj))) (if (eql via :null) 0 via)).
-        let via = conj.seq_via.unwrap_or(0);
-        pairs.push([conj.seq_from, via]);
-    }
-    // dict-grammar.lisp:64 — sort the pair list with the lex-compare comparator.
-    pairs.sort_by(|a, b| {
-        if pair_cmp(a, b) {
-            Ordering::Less
-        } else if pair_cmp(b, a) {
-            Ordering::Greater
-        } else {
-            Ordering::Equal
-        }
-    });
-    // Hash key: flatten the sorted pair list. Inner length is fixed at 2,
-    // so the flat sequence is a deterministic bijection of the nested form
-    // and matches CL `equal` on the original list-of-2-element-lists.
-    Ok(pairs.into_iter().flatten().collect())
-}
 
 #[cfg(test)]
-mod tests {
+mod pair_words_by_conj_tests {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::text_classes::SimpleText;
@@ -552,9 +744,7 @@ mod tests {
 
     /// Sort buckets by `(idx0_seq, idx1_seq, …)` so we can deterministically
     /// compare against the REPL-captured pairing despite HashMap order.
-    fn canonical(
-        buckets: Vec<Vec<Option<KaniWordDispatchEnum>>>,
-    ) -> Vec<Vec<Option<i32>>> {
+    fn canonical(buckets: Vec<Vec<Option<KaniWordDispatchEnum>>>) -> Vec<Vec<Option<i32>>> {
         let mut rows: Vec<Vec<Option<i32>>> = buckets
             .into_iter()
             .map(|b| b.into_iter().map(|c| c.map(|w| seq_of(&w))).collect())
@@ -576,7 +766,9 @@ mod tests {
     #[tokio::test]
     async fn all_empty_groups_returns_empty() {
         let ctx = ctx_from_env().await;
-        let result = pair_words_by_conj(&ctx, &[vec![], vec![], vec![]]).await.unwrap();
+        let result = pair_words_by_conj(&ctx, &[vec![], vec![], vec![]])
+            .await
+            .unwrap();
         assert!(result.is_empty());
     }
 
@@ -595,7 +787,9 @@ mod tests {
             kana(10226124, "あった", vec![227649]),
             kana(10470714, "あった", vec![475105]),
         ];
-        let result = pair_words_by_conj(&ctx, std::slice::from_ref(&g1)).await.unwrap();
+        let result = pair_words_by_conj(&ctx, std::slice::from_ref(&g1))
+            .await
+            .unwrap();
         let expected: Vec<Vec<Option<i32>>> = vec![
             vec![Some(10087210)],
             vec![Some(10226124)],
@@ -613,14 +807,14 @@ mod tests {
     async fn rashii_callsite_three_pairs() {
         let ctx = ctx_from_env().await;
         let g1 = vec![
-            kana(10087210, "あった", vec![87667]),     // (1198180, 0)
-            kana(10226124, "あった", vec![227649]),    // (1284430, 0)
-            kana(10470714, "あった", vec![475105]),    // (1296400, 0)
+            kana(10087210, "あった", vec![87667]),  // (1198180, 0)
+            kana(10226124, "あった", vec![227649]), // (1284430, 0)
+            kana(10470714, "あった", vec![475105]), // (1296400, 0)
         ];
         let g2 = vec![
-            kana(10087250, "あったら", vec![87707]),   // (1198180, 0)
-            kana(10226164, "あったら", vec![227689]),  // (1284430, 0)
-            kana(10470753, "あったら", vec![475145]),  // (1296400, 0)
+            kana(10087250, "あったら", vec![87707]),  // (1198180, 0)
+            kana(10226164, "あったら", vec![227689]), // (1284430, 0)
+            kana(10470753, "あったら", vec![475145]), // (1296400, 0)
         ];
         let result = pair_words_by_conj(&ctx, &[g1, g2]).await.unwrap();
         let expected: Vec<Vec<Option<i32>>> = vec![
@@ -649,7 +843,9 @@ mod tests {
     async fn middle_group_only_word_padding_on_both_sides() {
         let ctx = ctx_from_env().await;
         let g2 = vec![kana(10087210, "あった", vec![87667])];
-        let result = pair_words_by_conj(&ctx, &[vec![], g2, vec![]]).await.unwrap();
+        let result = pair_words_by_conj(&ctx, &[vec![], g2, vec![]])
+            .await
+            .unwrap();
         let expected: Vec<Vec<Option<i32>>> = vec![vec![None, Some(10087210), None]];
         assert_eq!(canonical(result), expected);
     }
@@ -669,208 +865,9 @@ mod tests {
         assert_eq!(canonical(result), expected);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_word_seq_inner {
-use crate::characters::char_classes::CharClass;
-use crate::characters::char_classes::test_word;
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::dao::KanjiText;
-
-#[derive(Debug, Clone)]
-pub enum WordSeqRows {
-    Kana(Vec<KanaText>),
-    Kanji(Vec<KanjiText>),
-}
-
-impl WordSeqRows {
-    /// `(car ...)` over the row vector, wrapping the row as a
-    /// [`KaniWordDispatchEnum`] for downstream dispatchers. Empty
-    /// vector yields `None`. Used by `*split-map*` entries that
-    /// resolve a part via `(car (apply find-word-seq ...))`.
-    pub(crate) fn first_word(self) -> Option<KaniWordDispatchEnum> {
-        match self {
-            Self::Kana(v) => v.into_iter().next().map(KaniWordDispatchEnum::Kana),
-            Self::Kanji(v) => v.into_iter().next().map(KaniWordDispatchEnum::Kanji),
-        }
-    }
-
-    /// First row's `seq`, used by the `("text" seq) part-seq` form
-    /// of `def-simple-split` to compute the dynamic pseq via
-    /// `(seq (car (find-word-conj-of "text" seq)))`. Empty vector
-    /// yields `None`.
-    pub(crate) fn first_seq(&self) -> Option<i32> {
-        match self {
-            Self::Kana(v) => v.first().map(|r| r.seq),
-            Self::Kanji(v) => v.first().map(|r| r.seq),
-        }
-    }
-}
-
-pub async fn find_word_seq(
-    ctx: &KaniranContext,
-    word: &str,
-    seqs: &[i32],
-) -> Result<WordSeqRows, sqlx::Error> {
-    if test_word(word, CharClass::Kana) {
-        let rows = sqlx::query_as::<_, KanaText>(
-            "SELECT * FROM kana_text WHERE text = $1 AND seq = ANY($2)",
-        )
-        .bind(word)
-        .bind(seqs)
-        .fetch_all(&ctx.pool)
-        .await?;
-        Ok(WordSeqRows::Kana(rows))
-    } else {
-        let rows = sqlx::query_as::<_, KanjiText>(
-            "SELECT * FROM kanji_text WHERE text = $1 AND seq = ANY($2)",
-        )
-        .bind(word)
-        .bind(seqs)
-        .fetch_all(&ctx.pool)
-        .await?;
-        Ok(WordSeqRows::Kanji(rows))
-    }
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_word_conj_of_inner {
-use crate::characters::char_classes::CharClass;
-use crate::characters::char_classes::test_word;
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::find_word::{find_word_seq, WordSeqRows};
-use crate::dict::dao::KanaText;
-use crate::dict::dao::KanjiText;
-use std::collections::HashSet;
-
-pub async fn find_word_conj_of(
-    ctx: &KaniranContext,
-    word: &str,
-    seqs: &[i32],
-) -> Result<WordSeqRows, sqlx::Error> {
-    let primary = find_word_seq(ctx, word, seqs).await?;
-    if test_word(word, CharClass::Kana) {
-        let conj_rows: Vec<KanaText> = sqlx::query_as::<_, KanaText>(
-            "SELECT kt.* FROM kana_text kt, conjugation conj \
-             WHERE kt.seq = conj.seq AND conj.\"from\" = ANY($1) AND kt.text = $2",
-        )
-        .bind(seqs)
-        .bind(word)
-        .fetch_all(&ctx.pool)
-        .await?;
-        let primary_rows = match primary {
-            WordSeqRows::Kana(v) => v,
-            WordSeqRows::Kanji(_) => unreachable!(
-                "test_word dispatch must agree between find-word-seq and find-word-conj-of"
-            ),
-        };
-        Ok(WordSeqRows::Kana(union_by_id(primary_rows, conj_rows, |r| r.id)))
-    } else {
-        let conj_rows: Vec<KanjiText> = sqlx::query_as::<_, KanjiText>(
-            "SELECT kt.* FROM kanji_text kt, conjugation conj \
-             WHERE kt.seq = conj.seq AND conj.\"from\" = ANY($1) AND kt.text = $2",
-        )
-        .bind(seqs)
-        .bind(word)
-        .fetch_all(&ctx.pool)
-        .await?;
-        let primary_rows = match primary {
-            WordSeqRows::Kanji(v) => v,
-            WordSeqRows::Kana(_) => unreachable!(
-                "test_word dispatch must agree between find-word-seq and find-word-conj-of"
-            ),
-        };
-        Ok(WordSeqRows::Kanji(union_by_id(primary_rows, conj_rows, |r| r.id)))
-    }
-}
-
-/// `(union list1 list2 :key id)` for SBCL semantics — NOT a generic
-/// set union. SBCL picks the longer list (list1 wins length-tie),
-/// starts a fresh result, copies the shorter list in, then walks the
-/// longer list left-to-right `cons`-pushing each non-duplicate. The
-/// final shape is `reverse(<longer's uniques>) ++ <shorter>`.
-///
-/// Empirically verified on SBCL 2.2.9:
-/// - `(union '() '(1 2 3))`            → `(3 2 1)`
-/// - `(union '(1 2 3) '())`            → `(3 2 1)`
-/// - `(union '(1 2 3) '(4 5 6))`       → `(3 2 1 4 5 6)` (list1 wins tie)
-/// - `(union '(4) '(1 2 3))`           → `(3 2 1 4)` (list2 longer)
-/// - `(union '(1 2 3) '(2))`           → `(3 1 2)` (skip dup 2)
-fn union_by_id<T>(list1: Vec<T>, list2: Vec<T>, id: impl Fn(&T) -> i32) -> Vec<T> {
-    let (shorter, longer) = if list1.len() >= list2.len() {
-        (list2, list1)
-    } else {
-        (list1, list2)
-    };
-    let shorter_keys: HashSet<i32> = shorter.iter().map(&id).collect();
-    let mut uniques: Vec<T> = Vec::new();
-    for elt in longer {
-        if !shorter_keys.contains(&id(&elt)) {
-            uniques.push(elt);
-        }
-    }
-    uniques.reverse();
-    uniques.extend(shorter);
-    uniques
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_word_with_pos_inner {
-use crate::characters::char_classes::CharClass;
-use crate::characters::char_classes::test_word;
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::dao::KanaText;
-use crate::dict::dao::KanjiText;
-
-#[derive(Debug, Clone)]
-pub enum WordWithPosRows {
-    Kana(Vec<KanaText>),
-    Kanji(Vec<KanjiText>),
-}
-
-pub async fn find_word_with_pos(
-    ctx: &KaniranContext,
-    word: &str,
-    posi: &[&str],
-) -> Result<WordWithPosRows, sqlx::Error> {
-    // s-sql `:in 'sp.text (:set posi)` expands to multiple `?` binds;
-    // Postgres' `sp.text = ANY($2)` is the array-bound equivalent. The
-    // sqlx Encode impl for `&[&str]` over Postgres requires owned
-    // String elements, so allocate a Vec<String> for the bind (see
-    // dict/get_conj_data.rs:67 for the same pattern).
-    let posi_owned: Vec<String> = posi.iter().map(|s| (*s).to_string()).collect();
-    if test_word(word, CharClass::Kana) {
-        let rows = sqlx::query_as::<_, KanaText>(
-            "SELECT DISTINCT kt.* FROM kana_text kt \
-             INNER JOIN sense_prop sp ON sp.seq = kt.seq AND sp.tag = 'pos' \
-             WHERE kt.text = $1 AND sp.text = ANY($2)",
-        )
-        .bind(word)
-        .bind(&posi_owned)
-        .fetch_all(&ctx.pool)
-        .await?;
-        Ok(WordWithPosRows::Kana(rows))
-    } else {
-        let rows = sqlx::query_as::<_, KanjiText>(
-            "SELECT DISTINCT kt.* FROM kanji_text kt \
-             INNER JOIN sense_prop sp ON sp.seq = kt.seq AND sp.tag = 'pos' \
-             WHERE kt.text = $1 AND sp.text = ANY($2)",
-        )
-        .bind(word)
-        .bind(&posi_owned)
-        .fetch_all(&ctx.pool)
-        .await?;
-        Ok(WordWithPosRows::Kanji(rows))
-    }
-}
 
 #[cfg(test)]
-mod tests {
+mod find_word_with_pos_tests {
     use super::*;
 
     /// Kanji input → `kanji_text` dispatch with a single matching row.
@@ -904,7 +901,9 @@ mod tests {
     #[tokio::test]
     async fn kana_single_match() {
         let ctx = KaniranContext::from_env().await.unwrap();
-        let rows = find_word_with_pos(&ctx, "ジョギング", &["vs"]).await.unwrap();
+        let rows = find_word_with_pos(&ctx, "ジョギング", &["vs"])
+            .await
+            .unwrap();
         let kana = match rows {
             WordWithPosRows::Kana(v) => v,
             WordWithPosRows::Kanji(_) => panic!("expected Kana variant"),
@@ -1022,7 +1021,9 @@ mod tests {
     #[tokio::test]
     async fn multi_pos_match() {
         let ctx = KaniranContext::from_env().await.unwrap();
-        let rows = find_word_with_pos(&ctx, "食べる", &["v1", "vs"]).await.unwrap();
+        let rows = find_word_with_pos(&ctx, "食べる", &["v1", "vs"])
+            .await
+            .unwrap();
         let kanji = match rows {
             WordWithPosRows::Kanji(v) => v,
             WordWithPosRows::Kana(_) => panic!("expected Kanji variant"),
@@ -1040,7 +1041,9 @@ mod tests {
     #[tokio::test]
     async fn kana_multi_pos_match() {
         let ctx = KaniranContext::from_env().await.unwrap();
-        let rows = find_word_with_pos(&ctx, "する", &["vs-i", "vs-s"]).await.unwrap();
+        let rows = find_word_with_pos(&ctx, "する", &["vs-i", "vs-s"])
+            .await
+            .unwrap();
         let kana = match rows {
             WordWithPosRows::Kana(v) => v,
             WordWithPosRows::Kanji(_) => panic!("expected Kana variant"),
@@ -1059,7 +1062,9 @@ mod tests {
     #[tokio::test]
     async fn kana_three_pos_twentysix_rows() {
         let ctx = KaniranContext::from_env().await.unwrap();
-        let rows = find_word_with_pos(&ctx, "そう", &["adv", "n", "aux-v"]).await.unwrap();
+        let rows = find_word_with_pos(&ctx, "そう", &["adv", "n", "aux-v"])
+            .await
+            .unwrap();
         let kana = match rows {
             WordWithPosRows::Kana(v) => v,
             WordWithPosRows::Kanji(_) => panic!("expected Kana variant"),
@@ -1098,70 +1103,15 @@ mod tests {
         assert_eq!(got, expected);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod or_as_hiragana_inner {
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
-
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::find_word::FindWordRows;
-use crate::dict::find_word::{find_word_as_hiragana, HiraganaFinder};
-use crate::dict::text_classes::ProxyText;
-
-/// Cloneable async closure called both directly and as the
-/// `:finder` re-entry through [`find_word_as_hiragana`].
-pub type OrAsHiraganaFinder<'a> = Arc<
-    dyn Fn(String) -> Pin<Box<dyn Future<Output = Result<FindWordRows, sqlx::Error>> + Send + 'a>>
-        + Send
-        + Sync
-        + 'a,
->;
-
-#[derive(Debug, Clone)]
-pub enum OrAsHiraganaRows {
-    Direct(FindWordRows),
-    AsHiragana(Vec<ProxyText>),
-}
-
-pub async fn or_as_hiragana<'a>(
-    ctx: &'a KaniranContext,
-    word: &str,
-    fn_: OrAsHiraganaFinder<'a>,
-) -> Result<Option<OrAsHiraganaRows>, sqlx::Error> {
-    // dict-grammar.lisp:98 (let ((result (apply fn word args))) …)
-    let result = fn_(word.to_string()).await?;
-    let result_empty = match &result {
-        FindWordRows::Kana(rows) => rows.is_empty(),
-        FindWordRows::Kanji(rows) => rows.is_empty(),
-    };
-    if !result_empty {
-        return Ok(Some(OrAsHiraganaRows::Direct(result)));
-    }
-    // dict-grammar.lisp:100 (find-word-as-hiragana word :finder (lambda (w) (apply fn w args)))
-    let fn_clone = Arc::clone(&fn_);
-    let finder: HiraganaFinder<'a> = Box::new(move |w| fn_clone(w));
-    let proxies = find_word_as_hiragana(ctx, word, &[], Some(finder)).await?;
-    if proxies.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(OrAsHiraganaRows::AsHiragana(proxies)))
-    }
-}
 
 #[cfg(test)]
-mod tests {
+mod or_as_hiragana_tests {
     use super::*;
     use crate::dict::grammar::find_word::{find_word_with_pos, WordWithPosRows};
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
     // dict-grammar.lisp:506 (or-as-hiragana 'find-word-with-pos root …)
-    fn make_pos_finder<'a>(
-        ctx: &'a KaniranContext,
-        posi: &'a [&'a str],
-    ) -> OrAsHiraganaFinder<'a> {
+    fn make_pos_finder<'a>(ctx: &'a KaniranContext, posi: &'a [&'a str]) -> OrAsHiraganaFinder<'a> {
         Arc::new(move |word: String| {
             Box::pin(async move {
                 let rows = find_word_with_pos(ctx, &word, posi).await?;
@@ -1344,49 +1294,9 @@ mod tests {
         assert!(result.is_none());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_word_with_suffix_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::suffix_init::suffix_class;
-use crate::dict::find_word::find_word_full;
-use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::counters::dispatchers::seq;
-use crate::dict::word_info::WordInfoSeq;
-
-pub async fn find_word_with_suffix(
-    ctx: &KaniranContext,
-    wordstr: &str,
-    suffix_classes: &[&str],
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let words = find_word_full(ctx, wordstr, false, None).await?;
-    let class_map = suffix_class(ctx);
-    let mut out: Vec<KaniWordDispatchEnum> = Vec::new();
-    for word in words {
-        // dict-grammar.lisp:104 (seq word)
-        let word_seq = seq(&word);
-        // dict-grammar.lisp:105 (and (listp seq) (gethash (car (last seq)) *suffix-class*))
-        let class: Option<&String> = match word_seq {
-            Some(WordInfoSeq::Multi(elems)) => match elems.last() {
-                Some(Some(WordInfoSeq::Single(i))) => class_map.get(i),
-                // nested compound or nil last element — hash lookup misses
-                _ => None,
-            },
-            _ => None,
-        };
-        // dict-grammar.lisp:106 (when (and suffix-class (find suffix-class suffix-classes)) collect word)
-        if let Some(cls) = class {
-            if suffix_classes.contains(&cls.as_str()) {
-                out.push(word);
-            }
-        }
-    }
-    Ok(out)
-}
 
 #[cfg(test)]
-mod tests {
+mod find_word_with_suffix_tests {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -1400,7 +1310,9 @@ mod tests {
     #[tokio::test]
     async fn t1_warera_ra_match() {
         let ctx = ctx().await;
-        let r = find_word_with_suffix(&ctx, "我々ら", &["ra"]).await.unwrap();
+        let r = find_word_with_suffix(&ctx, "我々ら", &["ra"])
+            .await
+            .unwrap();
         assert_eq!(r.len(), 1);
         let KaniWordDispatchEnum::Compound(c) = &r[0] else {
             panic!("expected COMPOUND");
@@ -1430,7 +1342,9 @@ mod tests {
     #[tokio::test]
     async fn t3_wrong_class_drops() {
         let ctx = ctx().await;
-        let r = find_word_with_suffix(&ctx, "勉強する", &["ra"]).await.unwrap();
+        let r = find_word_with_suffix(&ctx, "勉強する", &["ra"])
+            .await
+            .unwrap();
         assert!(r.is_empty());
     }
 
@@ -1439,7 +1353,9 @@ mod tests {
     #[tokio::test]
     async fn t4_simple_text_seq_not_listp() {
         let ctx = ctx().await;
-        let r = find_word_with_suffix(&ctx, "区別", &["suru"]).await.unwrap();
+        let r = find_word_with_suffix(&ctx, "区別", &["suru"])
+            .await
+            .unwrap();
         assert!(r.is_empty());
     }
 
@@ -1471,5 +1387,4 @@ mod tests {
             .unwrap();
         assert_eq!(r.len(), 1);
     }
-}
 }

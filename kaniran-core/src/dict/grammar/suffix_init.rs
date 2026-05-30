@@ -1,42 +1,39 @@
 //! Port of the dict-grammar.lisp suffix-init layer.
 
-pub use _star_suffix_cache_star__inner::*;
-pub use _star_suffix_class_star__inner::*;
-pub use _star_suffix_description_star__inner::*;
-pub use init_suffixes_thread_inner::*;
-pub use _star_suffix_list_star__inner::*;
-pub use _star_suffix_unique_only_star__inner::*;
-pub use get_suffix_description_inner::*;
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_suffix_cache_star__inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::dao::KanaText;
+use crate::dict::grammar::abbr::{
+    abbr_beba, abbr_dewanai, abbr_geba, abbr_ii, abbr_keba, abbr_meba, abbr_n, abbr_nakereba,
+    abbr_neba, abbr_nee, abbr_nx, abbr_reba, abbr_seba, abbr_shimasho, abbr_teba,
+};
+use crate::dict::grammar::find_word::{
+    find_word_conj_of, get_kana_form, get_kana_forms, WordSeqRows,
+};
+use crate::dict::grammar::suffix_rules::{
+    suffix_adv, suffix_chau, suffix_desho, suffix_desu, suffix_garu, suffix_iadj, suffix_kudasai,
+    suffix_kurai, suffix_neg, suffix_ra, suffix_rashii, suffix_ren, suffix_ren_, suffix_rou,
+    suffix_sa, suffix_sou, suffix_sou_plus_, suffix_sugiru, suffix_suru, suffix_tai, suffix_te,
+    suffix_te_plus_space, suffix_te_ren, suffix_teii, suffix_teiru, suffix_teiru_plus_, suffix_to,
+    suffix_tosuru,
+};
+use crate::dict::kani::KaniWordDispatchEnum;
+use crate::dict::text_classes::WordConjugations;
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
+use std::sync::OnceLock;
 
 pub type SuffixCache = HashMap<String, Vec<(String, Option<KanaText>)>>;
 
 pub fn suffix_cache(ctx: &KaniranContext) -> &SuffixCache {
     &ctx.suffix_cache
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_suffix_class_star__inner {
-use crate::conn::kani_context::KaniranContext;
-use std::collections::HashMap;
 
 pub type SuffixClass = HashMap<i32, String>;
 
 pub fn suffix_class(ctx: &KaniranContext) -> &SuffixClass {
     &ctx.suffix_class
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_suffix_description_star__inner {
-use std::collections::HashMap;
-use std::sync::OnceLock;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum SuffixDescKey {
@@ -50,123 +47,150 @@ pub fn suffix_description() -> &'static HashMap<SuffixDescKey, &'static str> {
     MAP.get_or_init(|| {
         let mut map: HashMap<SuffixDescKey, &'static str> = HashMap::with_capacity(47);
         // dict-grammar.lisp:110-148 (hash-from-list payload — class keywords)
-        map.insert(SuffixDescKey::Class("chau".to_string()), "indicates completion (to finish ...)");
-        map.insert(SuffixDescKey::Class("ha".to_string()), "topic marker particle");
-        map.insert(SuffixDescKey::Class("tai".to_string()), "want to... / would like to...");
-        map.insert(SuffixDescKey::Class("iru".to_string()), "indicates continuing action (to be ...ing)");
-        map.insert(SuffixDescKey::Class("oru".to_string()), "indicates continuing action (to be ...ing) (humble)");
-        map.insert(SuffixDescKey::Class("aru".to_string()), "indicates completion / finished action");
-        map.insert(SuffixDescKey::Class("kuru".to_string()), "indicates action that had been continuing up till now / came to be ");
-        map.insert(SuffixDescKey::Class("oku".to_string()), "to do in advance / to leave in the current state expecting a later change");
-        map.insert(SuffixDescKey::Class("kureru".to_string()), "(asking) to do something for one");
-        map.insert(SuffixDescKey::Class("morau".to_string()), "(asking) to get somebody to do something");
-        map.insert(SuffixDescKey::Class("itadaku".to_string()), "(asking) to get somebody to do something (polite)");
-        map.insert(SuffixDescKey::Class("iku".to_string()), "is becoming / action starting now and continuing");
-        map.insert(SuffixDescKey::Class("suru".to_string()), "makes a verb from a noun");
-        map.insert(SuffixDescKey::Class("itasu".to_string()), "makes a verb from a noun (humble)");
-        map.insert(SuffixDescKey::Class("sareru".to_string()), "makes a verb from a noun (honorific or passive)");
-        map.insert(SuffixDescKey::Class("saseru".to_string()), "let/make someone/something do ...");
-        map.insert(SuffixDescKey::Class("rou".to_string()), "probably / it seems that... / I guess ...");
-        map.insert(SuffixDescKey::Class("ii".to_string()), "it's ok if ... / is it ok if ...?");
+        map.insert(
+            SuffixDescKey::Class("chau".to_string()),
+            "indicates completion (to finish ...)",
+        );
+        map.insert(
+            SuffixDescKey::Class("ha".to_string()),
+            "topic marker particle",
+        );
+        map.insert(
+            SuffixDescKey::Class("tai".to_string()),
+            "want to... / would like to...",
+        );
+        map.insert(
+            SuffixDescKey::Class("iru".to_string()),
+            "indicates continuing action (to be ...ing)",
+        );
+        map.insert(
+            SuffixDescKey::Class("oru".to_string()),
+            "indicates continuing action (to be ...ing) (humble)",
+        );
+        map.insert(
+            SuffixDescKey::Class("aru".to_string()),
+            "indicates completion / finished action",
+        );
+        map.insert(
+            SuffixDescKey::Class("kuru".to_string()),
+            "indicates action that had been continuing up till now / came to be ",
+        );
+        map.insert(
+            SuffixDescKey::Class("oku".to_string()),
+            "to do in advance / to leave in the current state expecting a later change",
+        );
+        map.insert(
+            SuffixDescKey::Class("kureru".to_string()),
+            "(asking) to do something for one",
+        );
+        map.insert(
+            SuffixDescKey::Class("morau".to_string()),
+            "(asking) to get somebody to do something",
+        );
+        map.insert(
+            SuffixDescKey::Class("itadaku".to_string()),
+            "(asking) to get somebody to do something (polite)",
+        );
+        map.insert(
+            SuffixDescKey::Class("iku".to_string()),
+            "is becoming / action starting now and continuing",
+        );
+        map.insert(
+            SuffixDescKey::Class("suru".to_string()),
+            "makes a verb from a noun",
+        );
+        map.insert(
+            SuffixDescKey::Class("itasu".to_string()),
+            "makes a verb from a noun (humble)",
+        );
+        map.insert(
+            SuffixDescKey::Class("sareru".to_string()),
+            "makes a verb from a noun (honorific or passive)",
+        );
+        map.insert(
+            SuffixDescKey::Class("saseru".to_string()),
+            "let/make someone/something do ...",
+        );
+        map.insert(
+            SuffixDescKey::Class("rou".to_string()),
+            "probably / it seems that... / I guess ...",
+        );
+        map.insert(
+            SuffixDescKey::Class("ii".to_string()),
+            "it's ok if ... / is it ok if ...?",
+        );
         map.insert(SuffixDescKey::Class("mo".to_string()), "even if ...");
-        map.insert(SuffixDescKey::Class("sugiru".to_string()), "to be too (much) ...");
+        map.insert(
+            SuffixDescKey::Class("sugiru".to_string()),
+            "to be too (much) ...",
+        );
         map.insert(SuffixDescKey::Class("nikui".to_string()), "difficult to...");
         map.insert(SuffixDescKey::Class("gatai".to_string()), "difficult to...");
-        map.insert(SuffixDescKey::Class("sa".to_string()), "-ness (degree or condition of adjective)");
-        map.insert(SuffixDescKey::Class("tsutsu".to_string()), "while ... / in the process of ...");
-        map.insert(SuffixDescKey::Class("tsutsuaru".to_string()), "to be doing ... / to be in the process of doing ...");
-        map.insert(SuffixDescKey::Class("uru".to_string()), "can ... / to be able to ...");
-        map.insert(SuffixDescKey::Class("sou".to_string()), "looking like ... / seeming ...");
+        map.insert(
+            SuffixDescKey::Class("sa".to_string()),
+            "-ness (degree or condition of adjective)",
+        );
+        map.insert(
+            SuffixDescKey::Class("tsutsu".to_string()),
+            "while ... / in the process of ...",
+        );
+        map.insert(
+            SuffixDescKey::Class("tsutsuaru".to_string()),
+            "to be doing ... / to be in the process of doing ...",
+        );
+        map.insert(
+            SuffixDescKey::Class("uru".to_string()),
+            "can ... / to be able to ...",
+        );
+        map.insert(
+            SuffixDescKey::Class("sou".to_string()),
+            "looking like ... / seeming ...",
+        );
         map.insert(SuffixDescKey::Class("nai".to_string()), "negative suffix");
-        map.insert(SuffixDescKey::Class("ra".to_string()), "pluralizing suffix (not polite)");
+        map.insert(
+            SuffixDescKey::Class("ra".to_string()),
+            "pluralizing suffix (not polite)",
+        );
         map.insert(SuffixDescKey::Class("kudasai".to_string()), "please do ...");
-        map.insert(SuffixDescKey::Class("yagaru".to_string()), "indicates disdain or contempt");
+        map.insert(
+            SuffixDescKey::Class("yagaru".to_string()),
+            "indicates disdain or contempt",
+        );
         map.insert(SuffixDescKey::Class("naru".to_string()), "to become ...");
         map.insert(SuffixDescKey::Class("desu".to_string()), "formal copula");
-        map.insert(SuffixDescKey::Class("desho".to_string()), "it seems/perhaps/don't you think?");
-        map.insert(SuffixDescKey::Class("tosuru".to_string()), "to try to .../to be about to...");
-        map.insert(SuffixDescKey::Class("garu".to_string()), "to feel .../have a ... impression of someone");
+        map.insert(
+            SuffixDescKey::Class("desho".to_string()),
+            "it seems/perhaps/don't you think?",
+        );
+        map.insert(
+            SuffixDescKey::Class("tosuru".to_string()),
+            "to try to .../to be about to...",
+        );
+        map.insert(
+            SuffixDescKey::Class("garu".to_string()),
+            "to feel .../have a ... impression of someone",
+        );
         map.insert(SuffixDescKey::Class("me".to_string()), "somewhat/-ish");
         map.insert(SuffixDescKey::Class("gai".to_string()), "worth it to ...");
-        map.insert(SuffixDescKey::Class("tasou".to_string()), "seem to want to... (tai+sou)");
+        map.insert(
+            SuffixDescKey::Class("tasou".to_string()),
+            "seem to want to... (tai+sou)",
+        );
         // dict-grammar.lisp:149-157 (hash-from-list payload — seq keys for splitsegs)
         map.insert(SuffixDescKey::Seq(2826528), "polite prefix");
         map.insert(SuffixDescKey::Seq(2028980), "at / in / by");
         map.insert(SuffixDescKey::Seq(2028970), "or / questioning particle");
         map.insert(SuffixDescKey::Seq(2028990), "to / at / in");
-        map.insert(SuffixDescKey::Seq(2029010), "indicates direct object of action");
+        map.insert(
+            SuffixDescKey::Seq(2029010),
+            "indicates direct object of action",
+        );
         map.insert(SuffixDescKey::Seq(1469800), "indicates possessive (...'s)");
         map.insert(SuffixDescKey::Seq(2086960), "quoting particle");
         map.insert(SuffixDescKey::Seq(1002980), "from / because");
         map
     })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Cardinality and spot-check against the live image. Probed
-    /// on .103 (`(hash-table-count *suffix-description*) => 47`,
-    /// per-key values dumped via `maphash`).
-    #[test]
-    fn matches_introspected_value() {
-        let map = suffix_description();
-        assert_eq!(map.len(), 47);
-
-        // class keywords
-        assert_eq!(
-            map.get(&SuffixDescKey::Class("chau".to_string())).copied(),
-            Some("indicates completion (to finish ...)"),
-        );
-        assert_eq!(
-            map.get(&SuffixDescKey::Class("ha".to_string())).copied(),
-            Some("topic marker particle"),
-        );
-        // trailing space is load-bearing — preserved from upstream literal
-        assert_eq!(
-            map.get(&SuffixDescKey::Class("kuru".to_string())).copied(),
-            Some("indicates action that had been continuing up till now / came to be "),
-        );
-        assert_eq!(
-            map.get(&SuffixDescKey::Class("tasou".to_string())).copied(),
-            Some("seem to want to... (tai+sou)"),
-        );
-
-        // seq keys
-        assert_eq!(map.get(&SuffixDescKey::Seq(2826528)).copied(), Some("polite prefix"));
-        assert_eq!(map.get(&SuffixDescKey::Seq(2028980)).copied(), Some("at / in / by"));
-        assert_eq!(map.get(&SuffixDescKey::Seq(1002980)).copied(), Some("from / because"));
-
-        // miss
-        assert_eq!(map.get(&SuffixDescKey::Class("nonexistent".to_string())).copied(), None);
-        assert_eq!(map.get(&SuffixDescKey::Seq(0)).copied(), None);
-    }
-
-    /// Pin the class/seq partition counts so adding/removing
-    /// entries on one side trips the test.
-    #[test]
-    fn class_seq_partition() {
-        let map = suffix_description();
-        let class_count = map.keys().filter(|k| matches!(k, SuffixDescKey::Class(_))).count();
-        let seq_count = map.keys().filter(|k| matches!(k, SuffixDescKey::Seq(_))).count();
-        assert_eq!(class_count, 39);
-        assert_eq!(seq_count, 8);
-    }
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod init_suffixes_thread_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::suffix_init::SuffixCache;
-use crate::dict::grammar::suffix_init::SuffixClass;
-use crate::dict::grammar::find_word::find_word_conj_of;
-use crate::dict::grammar::find_word::WordSeqRows;
-use crate::dict::grammar::find_word::get_kana_form;
-use crate::dict::grammar::find_word::get_kana_forms;
-use crate::dict::dao::KanaText;
-use crate::dict::text_classes::WordConjugations;
 
 #[derive(Default)]
 struct SuffixCacheBuilder {
@@ -183,12 +207,7 @@ impl SuffixCacheBuilder {
     /// `dict-grammar.lisp:210-215, 233-236` — both behaviors are
     /// parity-preserved by mirroring the bypass, not by routing through
     /// `update_suffix_cache`.
-    fn update_suffix_cache(
-        &mut self,
-        text: &str,
-        new: (String, Option<KanaText>),
-        join: bool,
-    ) {
+    fn update_suffix_cache(&mut self, text: &str, new: (String, Option<KanaText>), join: bool) {
         match self.cache.get_mut(text) {
             None => {
                 self.cache.insert(text.to_string(), vec![new]);
@@ -271,8 +290,10 @@ pub async fn build_suffix_caches(
     let tasou_kf = require_kana_form(ctx, 900000, "たそう", None).await?;
     b.load_kf("tai", tasou_kf, Some("tasou"), None, false);
 
-    b.load_conjs(ctx, "ren-", 2772730, Some("nikui"), false).await?;
-    b.load_conjs(ctx, "ren-", 2867504, Some("gatai"), false).await?;
+    b.load_conjs(ctx, "ren-", 2772730, Some("nikui"), false)
+        .await?;
+    b.load_conjs(ctx, "ren-", 2867504, Some("gatai"), false)
+        .await?;
 
     b.load_conjs(ctx, "te", 1577985, Some("oru"), false).await?; // おる
     b.load_conjs(ctx, "te", 1296400, Some("aru"), false).await?; // ある
@@ -286,8 +307,13 @@ pub async fn build_suffix_caches(
     let iru_kfs = get_kana_forms(ctx, 1577980).await?;
     for kf in iru_kfs {
         let tkf = kf.text.clone();
-        let key = if tkf.chars().count() > 1 { "teiru+" } else { "teiru" };
-        b.cache.insert(tkf.clone(), vec![(key.to_string(), Some(kf.clone()))]);
+        let key = if tkf.chars().count() > 1 {
+            "teiru+"
+        } else {
+            "teiru"
+        };
+        b.cache
+            .insert(tkf.clone(), vec![(key.to_string(), Some(kf.clone()))]);
         b.class.insert(kf.seq, "iru".to_string());
         if tkf.chars().count() > 1 {
             // text[1..] in Lisp is `(subseq tkf 1)` — drop the first
@@ -298,16 +324,21 @@ pub async fn build_suffix_caches(
         }
     }
 
-    b.load_conjs(ctx, "te", 1547720, Some("kuru"), false).await?; // くる
+    b.load_conjs(ctx, "te", 1547720, Some("kuru"), false)
+        .await?; // くる
 
     b.load_conjs(ctx, "te", 1421850, Some("oku"), false).await?; // おく
     b.load_conjs(ctx, "to", 2108590, Some("oku"), false).await?; // とく
 
-    b.load_conjs(ctx, "te", 1305380, Some("chau"), false).await?; // しまう
+    b.load_conjs(ctx, "te", 1305380, Some("chau"), false)
+        .await?; // しまう
 
-    b.load_conjs(ctx, "te+space", 1269130, Some("kureru"), false).await?; // くれる
-    b.load_conjs(ctx, "te+space", 1535910, Some("morau"), false).await?; // もらう
-    b.load_conjs(ctx, "te+space", 1587290, Some("itadaku"), false).await?; // いただく
+    b.load_conjs(ctx, "te+space", 1269130, Some("kureru"), false)
+        .await?; // くれる
+    b.load_conjs(ctx, "te+space", 1535910, Some("morau"), false)
+        .await?; // もらう
+    b.load_conjs(ctx, "te+space", 1587290, Some("itadaku"), false)
+        .await?; // いただく
 
     // いく/く — direct setf, gated on first char being い (HIRAGANA_LETTER_I).
     // Mirrors dict-grammar.lisp:233-236: upstream writes the long form
@@ -335,15 +366,17 @@ pub async fn build_suffix_caches(
     let mo_kf = require_kana_form(ctx, 2028940, "も", None).await?;
     b.load_kf("te", mo_kf, Some("mo"), None, false);
 
-    let kudasai_kf = require_kana_form(
-        ctx, 1184270, "ください", Some(WordConjugations::Root),
-    ).await?;
+    let kudasai_kf =
+        require_kana_form(ctx, 1184270, "ください", Some(WordConjugations::Root)).await?;
     b.load_kf("kudasai", kudasai_kf, None, None, false);
 
     b.load_conjs(ctx, "suru", 1157170, None, false).await?; // する
-    b.load_conjs(ctx, "suru", 1421900, Some("itasu"), false).await?; // いたす
-    b.load_conjs(ctx, "suru", 2269820, Some("sareru"), false).await?; // される
-    b.load_conjs(ctx, "suru", 1005160, Some("saseru"), false).await?; // させる
+    b.load_conjs(ctx, "suru", 1421900, Some("itasu"), false)
+        .await?; // いたす
+    b.load_conjs(ctx, "suru", 2269820, Some("sareru"), false)
+        .await?; // される
+    b.load_conjs(ctx, "suru", 1005160, Some("saseru"), false)
+        .await?; // させる
 
     b.load_conjs(ctx, "sou", 1006610, None, false).await?; // そう
     b.load_conjs(ctx, "sou+", 2141080, None, false).await?; // そうにない
@@ -358,7 +391,8 @@ pub async fn build_suffix_caches(
 
     let tsutsu_kf = require_kana_form(ctx, 1008120, "つつ", None).await?;
     b.load_kf("ren", tsutsu_kf, Some("tsutsu"), None, false);
-    b.load_conjs(ctx, "ren", 2027910, Some("tsutsuaru"), false).await?;
+    b.load_conjs(ctx, "ren", 2027910, Some("tsutsuaru"), false)
+        .await?;
 
     let uru_kf = require_kana_form(ctx, 1454500, "うる", None).await?;
     b.load_kf("ren", uru_kf, Some("uru"), None, false);
@@ -371,9 +405,11 @@ pub async fn build_suffix_caches(
     };
     b.load_kf("neg", naku_kf, Some("nai"), None, false);
 
-    b.load_conjs(ctx, "adv", 1375610, Some("naru"), false).await?; // なる
+    b.load_conjs(ctx, "adv", 1375610, Some("naru"), false)
+        .await?; // なる
 
-    b.load_conjs(ctx, "teren", 1012740, Some("yagaru"), false).await?;
+    b.load_conjs(ctx, "teren", 1012740, Some("yagaru"), false)
+        .await?;
 
     let ra_kf = require_kana_form(ctx, 2067770, "ら", None).await?;
     b.load_kf("ra", ra_kf, None, None, false);
@@ -437,59 +473,6 @@ pub async fn build_suffix_caches(
 
     Ok((b.cache, b.class))
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_suffix_list_star__inner {
-use std::future::Future;
-use std::pin::Pin;
-
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::abbr::abbr_beba;
-use crate::dict::grammar::abbr::abbr_dewanai;
-use crate::dict::grammar::abbr::abbr_geba;
-use crate::dict::grammar::abbr::abbr_ii;
-use crate::dict::grammar::abbr::abbr_keba;
-use crate::dict::grammar::abbr::abbr_meba;
-use crate::dict::grammar::abbr::abbr_n;
-use crate::dict::grammar::abbr::abbr_nakereba;
-use crate::dict::grammar::abbr::abbr_neba;
-use crate::dict::grammar::abbr::abbr_nee;
-use crate::dict::grammar::abbr::abbr_nx;
-use crate::dict::grammar::abbr::abbr_reba;
-use crate::dict::grammar::abbr::abbr_seba;
-use crate::dict::grammar::abbr::abbr_shimasho;
-use crate::dict::grammar::abbr::abbr_teba;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::grammar::suffix_rules::suffix_adv;
-use crate::dict::grammar::suffix_rules::suffix_chau;
-use crate::dict::grammar::suffix_rules::suffix_desho;
-use crate::dict::grammar::suffix_rules::suffix_desu;
-use crate::dict::grammar::suffix_rules::suffix_garu;
-use crate::dict::grammar::suffix_rules::suffix_iadj;
-use crate::dict::grammar::suffix_rules::suffix_kudasai;
-use crate::dict::grammar::suffix_rules::suffix_kurai;
-use crate::dict::grammar::suffix_rules::suffix_neg;
-use crate::dict::grammar::suffix_rules::suffix_ra;
-use crate::dict::grammar::suffix_rules::suffix_rashii;
-use crate::dict::grammar::suffix_rules::suffix_ren;
-use crate::dict::grammar::suffix_rules::suffix_ren_;
-use crate::dict::grammar::suffix_rules::suffix_rou;
-use crate::dict::grammar::suffix_rules::suffix_sa;
-use crate::dict::grammar::suffix_rules::suffix_sou;
-use crate::dict::grammar::suffix_rules::suffix_sou_plus_;
-use crate::dict::grammar::suffix_rules::suffix_sugiru;
-use crate::dict::grammar::suffix_rules::suffix_suru;
-use crate::dict::grammar::suffix_rules::suffix_tai;
-use crate::dict::grammar::suffix_rules::suffix_te;
-use crate::dict::grammar::suffix_rules::suffix_te_plus_space;
-use crate::dict::grammar::suffix_rules::suffix_te_ren;
-use crate::dict::grammar::suffix_rules::suffix_teii;
-use crate::dict::grammar::suffix_rules::suffix_teiru;
-use crate::dict::grammar::suffix_rules::suffix_teiru_plus_;
-use crate::dict::grammar::suffix_rules::suffix_to;
-use crate::dict::grammar::suffix_rules::suffix_tosuru;
 
 /// Dispatch signature for one entry in [`SUFFIX_LIST`]. Mirrors the
 /// `(funcall suffix-fn root suf kf)` shape at
@@ -503,7 +486,9 @@ pub type SuffixFn = for<'a> fn(
     &'a str,
     &'a str,
     Option<&'a KanaText>,
-) -> Pin<Box<dyn Future<Output = Result<Vec<KaniWordDispatchEnum>, sqlx::Error>> + Send + 'a>>;
+) -> Pin<
+    Box<dyn Future<Output = Result<Vec<KaniWordDispatchEnum>, sqlx::Error>> + Send + 'a>,
+>;
 
 // Macro: wrap a `def-simple-suffix` body (returning `Vec<CompoundText>`
 // with non-Option kf) into the unified SuffixFn shape. `.expect` is
@@ -558,34 +543,114 @@ macro_rules! abbr_suffix_dispatch {
 // hint identifies which `(load-conjs …)` / `(load-kf …)` populator
 // puts the keyword's row into `*suffix-cache*`.
 
-simple_suffix_dispatch!(suffix_suru_dispatch,        suffix_suru,         "suru",     "load-conjs :suru");
-simple_suffix_dispatch!(suffix_ra_dispatch,          suffix_ra,           "ra",       "load-kf :ra");
-simple_suffix_dispatch!(suffix_tai_dispatch,         suffix_tai,          "tai",      "load-conjs :tai");
-simple_suffix_dispatch!(suffix_ren_dispatch,         suffix_ren,          "ren",      "load-kf :ren");
-simple_suffix_dispatch!(suffix_ren_minus_dispatch,   suffix_ren_,         "ren-",     "load-conjs :ren-");
-simple_suffix_dispatch!(suffix_neg_dispatch,         suffix_neg,          "neg",      "load-kf :neg");
-simple_suffix_dispatch!(suffix_te_dispatch,          suffix_te,           "te",       "load-conjs :te / load-kf :te");
-simple_suffix_dispatch!(suffix_teiru_dispatch,       suffix_teiru,        "teiru",    "いる(る) loop");
-simple_suffix_dispatch!(suffix_teiru_plus_dispatch,  suffix_teiru_plus_,  "teiru+",   "いる(る) loop");
-simple_suffix_dispatch!(suffix_te_plus_space_dispatch, suffix_te_plus_space, "te+space", "load-conjs :te+space");
-simple_suffix_dispatch!(suffix_kudasai_dispatch,     suffix_kudasai,      "kudasai",  "load-kf :kudasai");
-simple_suffix_dispatch!(suffix_te_ren_dispatch,      suffix_te_ren,       "teren",    "load-conjs :teren");
-simple_suffix_dispatch!(suffix_teii_dispatch,        suffix_teii,         "teii",     "load-kf :teii");
-simple_suffix_dispatch!(suffix_rou_dispatch,         suffix_rou,          "rou",      "load-kf :rou");
-simple_suffix_dispatch!(suffix_adv_dispatch,         suffix_adv,          "adv",      "load-conjs :adv");
-simple_suffix_dispatch!(suffix_iadj_dispatch,        suffix_iadj,         "iadj",     "load-kf :iadj");
-simple_suffix_dispatch!(suffix_tosuru_dispatch,      suffix_tosuru,       "tosuru",   "load-conjs :tosuru");
-simple_suffix_dispatch!(suffix_kurai_dispatch,       suffix_kurai,        "kurai",    "load-kf :kurai");
-simple_suffix_dispatch!(suffix_chau_dispatch,        suffix_chau,         "chau",     "load-conjs :chau");
-simple_suffix_dispatch!(suffix_to_dispatch,          suffix_to,           "to",       "load-conjs :to");
-simple_suffix_dispatch!(suffix_sa_dispatch,          suffix_sa,           "sa",       "load-kf :sa");
-simple_suffix_dispatch!(suffix_sou_dispatch,         suffix_sou,          "sou",      "load-kf :sou");
-simple_suffix_dispatch!(suffix_sou_plus_dispatch,    suffix_sou_plus_,    "sou+",     "load-kf :sou+");
-simple_suffix_dispatch!(suffix_sugiru_dispatch,      suffix_sugiru,       "sugiru",   "load-conjs :sugiru");
-simple_suffix_dispatch!(suffix_garu_dispatch,        suffix_garu,         "garu",     "load-conjs :garu");
-simple_suffix_dispatch!(suffix_desu_dispatch,        suffix_desu,         "desu",     "load-kf :desu");
-simple_suffix_dispatch!(suffix_desho_dispatch,       suffix_desho,        "desho",    "load-kf :desho");
-simple_suffix_dispatch!(suffix_rashii_dispatch,      suffix_rashii,       "rashii",   "load-kf :rashii");
+simple_suffix_dispatch!(
+    suffix_suru_dispatch,
+    suffix_suru,
+    "suru",
+    "load-conjs :suru"
+);
+simple_suffix_dispatch!(suffix_ra_dispatch, suffix_ra, "ra", "load-kf :ra");
+simple_suffix_dispatch!(suffix_tai_dispatch, suffix_tai, "tai", "load-conjs :tai");
+simple_suffix_dispatch!(suffix_ren_dispatch, suffix_ren, "ren", "load-kf :ren");
+simple_suffix_dispatch!(
+    suffix_ren_minus_dispatch,
+    suffix_ren_,
+    "ren-",
+    "load-conjs :ren-"
+);
+simple_suffix_dispatch!(suffix_neg_dispatch, suffix_neg, "neg", "load-kf :neg");
+simple_suffix_dispatch!(
+    suffix_te_dispatch,
+    suffix_te,
+    "te",
+    "load-conjs :te / load-kf :te"
+);
+simple_suffix_dispatch!(
+    suffix_teiru_dispatch,
+    suffix_teiru,
+    "teiru",
+    "いる(る) loop"
+);
+simple_suffix_dispatch!(
+    suffix_teiru_plus_dispatch,
+    suffix_teiru_plus_,
+    "teiru+",
+    "いる(る) loop"
+);
+simple_suffix_dispatch!(
+    suffix_te_plus_space_dispatch,
+    suffix_te_plus_space,
+    "te+space",
+    "load-conjs :te+space"
+);
+simple_suffix_dispatch!(
+    suffix_kudasai_dispatch,
+    suffix_kudasai,
+    "kudasai",
+    "load-kf :kudasai"
+);
+simple_suffix_dispatch!(
+    suffix_te_ren_dispatch,
+    suffix_te_ren,
+    "teren",
+    "load-conjs :teren"
+);
+simple_suffix_dispatch!(suffix_teii_dispatch, suffix_teii, "teii", "load-kf :teii");
+simple_suffix_dispatch!(suffix_rou_dispatch, suffix_rou, "rou", "load-kf :rou");
+simple_suffix_dispatch!(suffix_adv_dispatch, suffix_adv, "adv", "load-conjs :adv");
+simple_suffix_dispatch!(suffix_iadj_dispatch, suffix_iadj, "iadj", "load-kf :iadj");
+simple_suffix_dispatch!(
+    suffix_tosuru_dispatch,
+    suffix_tosuru,
+    "tosuru",
+    "load-conjs :tosuru"
+);
+simple_suffix_dispatch!(
+    suffix_kurai_dispatch,
+    suffix_kurai,
+    "kurai",
+    "load-kf :kurai"
+);
+simple_suffix_dispatch!(
+    suffix_chau_dispatch,
+    suffix_chau,
+    "chau",
+    "load-conjs :chau"
+);
+simple_suffix_dispatch!(suffix_to_dispatch, suffix_to, "to", "load-conjs :to");
+simple_suffix_dispatch!(suffix_sa_dispatch, suffix_sa, "sa", "load-kf :sa");
+simple_suffix_dispatch!(suffix_sou_dispatch, suffix_sou, "sou", "load-kf :sou");
+simple_suffix_dispatch!(
+    suffix_sou_plus_dispatch,
+    suffix_sou_plus_,
+    "sou+",
+    "load-kf :sou+"
+);
+simple_suffix_dispatch!(
+    suffix_sugiru_dispatch,
+    suffix_sugiru,
+    "sugiru",
+    "load-conjs :sugiru"
+);
+simple_suffix_dispatch!(
+    suffix_garu_dispatch,
+    suffix_garu,
+    "garu",
+    "load-conjs :garu"
+);
+simple_suffix_dispatch!(suffix_desu_dispatch, suffix_desu, "desu", "load-kf :desu");
+simple_suffix_dispatch!(
+    suffix_desho_dispatch,
+    suffix_desho,
+    "desho",
+    "load-kf :desho"
+);
+simple_suffix_dispatch!(
+    suffix_rashii_dispatch,
+    suffix_rashii,
+    "rashii",
+    "load-kf :rashii"
+);
 
 // --- def-abbr-suffix adapters ---------------------------------------------
 //
@@ -608,21 +673,21 @@ simple_suffix_dispatch!(suffix_rashii_dispatch,      suffix_rashii,       "rashi
 //   abbr_seba      → :seba      (dict-grammar.lisp:647)
 //   abbr_ii        → :ii        (dict-grammar.lisp:660)
 
-abbr_suffix_dispatch!(abbr_nee_dispatch,       abbr_nee);
-abbr_suffix_dispatch!(abbr_nx_dispatch,        abbr_nx);
-abbr_suffix_dispatch!(abbr_n_dispatch,         abbr_n);
-abbr_suffix_dispatch!(abbr_nakereba_dispatch,  abbr_nakereba);
-abbr_suffix_dispatch!(abbr_shimasho_dispatch,  abbr_shimasho);
-abbr_suffix_dispatch!(abbr_dewanai_dispatch,   abbr_dewanai);
-abbr_suffix_dispatch!(abbr_teba_dispatch,      abbr_teba);
-abbr_suffix_dispatch!(abbr_reba_dispatch,      abbr_reba);
-abbr_suffix_dispatch!(abbr_keba_dispatch,      abbr_keba);
-abbr_suffix_dispatch!(abbr_geba_dispatch,      abbr_geba);
-abbr_suffix_dispatch!(abbr_neba_dispatch,      abbr_neba);
-abbr_suffix_dispatch!(abbr_beba_dispatch,      abbr_beba);
-abbr_suffix_dispatch!(abbr_meba_dispatch,      abbr_meba);
-abbr_suffix_dispatch!(abbr_seba_dispatch,      abbr_seba);
-abbr_suffix_dispatch!(abbr_ii_dispatch,        abbr_ii);
+abbr_suffix_dispatch!(abbr_nee_dispatch, abbr_nee);
+abbr_suffix_dispatch!(abbr_nx_dispatch, abbr_nx);
+abbr_suffix_dispatch!(abbr_n_dispatch, abbr_n);
+abbr_suffix_dispatch!(abbr_nakereba_dispatch, abbr_nakereba);
+abbr_suffix_dispatch!(abbr_shimasho_dispatch, abbr_shimasho);
+abbr_suffix_dispatch!(abbr_dewanai_dispatch, abbr_dewanai);
+abbr_suffix_dispatch!(abbr_teba_dispatch, abbr_teba);
+abbr_suffix_dispatch!(abbr_reba_dispatch, abbr_reba);
+abbr_suffix_dispatch!(abbr_keba_dispatch, abbr_keba);
+abbr_suffix_dispatch!(abbr_geba_dispatch, abbr_geba);
+abbr_suffix_dispatch!(abbr_neba_dispatch, abbr_neba);
+abbr_suffix_dispatch!(abbr_beba_dispatch, abbr_beba);
+abbr_suffix_dispatch!(abbr_meba_dispatch, abbr_meba);
+abbr_suffix_dispatch!(abbr_seba_dispatch, abbr_seba);
+abbr_suffix_dispatch!(abbr_ii_dispatch, abbr_ii);
 
 /// Full port of `*suffix-list*`: 43 of 43 upstream entries (28
 /// def-simple-suffix + 15 def-abbr-suffix). Keys are the lowercase
@@ -686,48 +751,6 @@ pub fn lookup_suffix_fn(keyword: &str) -> Option<SuffixFn> {
         .find_map(|(k, f)| if *k == keyword { Some(*f) } else { None })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Every upstream-published keyword resolves through `lookup_suffix_fn`.
-    /// Pins the full set so a row removal regresses visibly.
-    #[test]
-    fn registered_keys_resolve() {
-        // def-simple-suffix
-        for key in [
-            "suru", "ra", "tai", "ren", "ren-", "neg", "te", "teiru", "teiru+",
-            "te+space", "kudasai", "teren", "teii", "rou", "adv", "iadj",
-            "tosuru", "kurai", "chau", "to", "sa", "sou", "sou+", "sugiru",
-            "garu", "desu", "desho", "rashii",
-        ] {
-            assert!(lookup_suffix_fn(key).is_some(), "missing key: {}", key);
-        }
-        // def-abbr-suffix
-        for key in [
-            "nai", "nai-x", "nai-n", "nakereba", "shimashou", "dewanai",
-            "teba", "reba", "keba", "geba", "neba", "beba", "meba", "seba",
-            "ii",
-        ] {
-            assert!(lookup_suffix_fn(key).is_some(), "missing key: {}", key);
-        }
-    }
-
-    #[test]
-    fn unregistered_keys_return_none() {
-        assert!(lookup_suffix_fn("").is_none());
-        assert!(lookup_suffix_fn("unknown").is_none());
-    }
-
-    #[test]
-    fn entry_count_matches_upstream() {
-        assert_eq!(SUFFIX_LIST.len(), 43);
-    }
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_suffix_unique_only_star__inner {
 #[derive(Debug, Clone, Copy)]
 pub enum SuffixUniqueOnly {
     Bare,
@@ -755,13 +778,6 @@ pub static SUFFIX_UNIQUE_ONLY: &[(&str, SuffixUniqueOnly)] = &[
     ("ra", SuffixUniqueOnly::Bare),
     ("sa", SuffixUniqueOnly::Sa),
 ];
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod get_suffix_description_inner {
-use super::suffix_class;
-use super::{suffix_description, SuffixDescKey};
-use crate::conn::kani_context::KaniranContext;
 
 pub fn get_suffix_description(ctx: &KaniranContext, seq: i32) -> Option<&'static str> {
     let key = match suffix_class(ctx).get(&seq) {
@@ -772,7 +788,129 @@ pub fn get_suffix_description(ctx: &KaniranContext, seq: i32) -> Option<&'static
 }
 
 #[cfg(test)]
-mod tests {
+mod _star_suffix_description_star_tests {
+    use super::*;
+
+    /// Cardinality and spot-check against the live image. Probed
+    /// on .103 (`(hash-table-count *suffix-description*) => 47`,
+    /// per-key values dumped via `maphash`).
+    #[test]
+    fn matches_introspected_value() {
+        let map = suffix_description();
+        assert_eq!(map.len(), 47);
+
+        // class keywords
+        assert_eq!(
+            map.get(&SuffixDescKey::Class("chau".to_string())).copied(),
+            Some("indicates completion (to finish ...)"),
+        );
+        assert_eq!(
+            map.get(&SuffixDescKey::Class("ha".to_string())).copied(),
+            Some("topic marker particle"),
+        );
+        // trailing space is load-bearing — preserved from upstream literal
+        assert_eq!(
+            map.get(&SuffixDescKey::Class("kuru".to_string())).copied(),
+            Some("indicates action that had been continuing up till now / came to be "),
+        );
+        assert_eq!(
+            map.get(&SuffixDescKey::Class("tasou".to_string())).copied(),
+            Some("seem to want to... (tai+sou)"),
+        );
+
+        // seq keys
+        assert_eq!(
+            map.get(&SuffixDescKey::Seq(2826528)).copied(),
+            Some("polite prefix")
+        );
+        assert_eq!(
+            map.get(&SuffixDescKey::Seq(2028980)).copied(),
+            Some("at / in / by")
+        );
+        assert_eq!(
+            map.get(&SuffixDescKey::Seq(1002980)).copied(),
+            Some("from / because")
+        );
+
+        // miss
+        assert_eq!(
+            map.get(&SuffixDescKey::Class("nonexistent".to_string()))
+                .copied(),
+            None
+        );
+        assert_eq!(map.get(&SuffixDescKey::Seq(0)).copied(), None);
+    }
+
+    /// Pin the class/seq partition counts so adding/removing
+    /// entries on one side trips the test.
+    #[test]
+    fn class_seq_partition() {
+        let map = suffix_description();
+        let class_count = map
+            .keys()
+            .filter(|k| matches!(k, SuffixDescKey::Class(_)))
+            .count();
+        let seq_count = map
+            .keys()
+            .filter(|k| matches!(k, SuffixDescKey::Seq(_)))
+            .count();
+        assert_eq!(class_count, 39);
+        assert_eq!(seq_count, 8);
+    }
+}
+
+#[cfg(test)]
+mod _star_suffix_list_star_tests {
+    use super::*;
+
+    /// Every upstream-published keyword resolves through `lookup_suffix_fn`.
+    /// Pins the full set so a row removal regresses visibly.
+    #[test]
+    fn registered_keys_resolve() {
+        // def-simple-suffix
+        for key in [
+            "suru", "ra", "tai", "ren", "ren-", "neg", "te", "teiru", "teiru+", "te+space",
+            "kudasai", "teren", "teii", "rou", "adv", "iadj", "tosuru", "kurai", "chau", "to",
+            "sa", "sou", "sou+", "sugiru", "garu", "desu", "desho", "rashii",
+        ] {
+            assert!(lookup_suffix_fn(key).is_some(), "missing key: {}", key);
+        }
+        // def-abbr-suffix
+        for key in [
+            "nai",
+            "nai-x",
+            "nai-n",
+            "nakereba",
+            "shimashou",
+            "dewanai",
+            "teba",
+            "reba",
+            "keba",
+            "geba",
+            "neba",
+            "beba",
+            "meba",
+            "seba",
+            "ii",
+        ] {
+            assert!(lookup_suffix_fn(key).is_some(), "missing key: {}", key);
+        }
+    }
+
+    #[test]
+    fn unregistered_keys_return_none() {
+        assert!(lookup_suffix_fn("").is_none());
+        assert!(lookup_suffix_fn("unknown").is_none());
+    }
+
+    #[test]
+    fn entry_count_matches_upstream() {
+        assert_eq!(SUFFIX_LIST.len(), 43);
+    }
+}
+
+#[cfg(test)]
+mod get_suffix_description_tests {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -808,5 +946,4 @@ mod tests {
             assert_eq!(get_suffix_description(&ctx, *seq), *expected, "seq={seq}");
         }
     }
-}
 }

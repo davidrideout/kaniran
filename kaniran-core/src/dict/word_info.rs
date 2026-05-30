@@ -4,23 +4,24 @@
 //! def-reader-for-json macro, register-item, score-base, word-type,
 //! word-conj-data.
 
-pub use word_info_class_inner::*;
-pub use word_info_from_segment_inner::*;
-pub use word_info_from_segment_list_inner::*;
-pub use word_info_from_text_inner::*;
-pub use simple_word_info_inner::*;
-pub use simplify_reading_list_inner::*;
-pub use word_info_json_inner::*;
-pub use word_info_gloss_json_inner::*;
-pub use def_reader_for_json_macro_inner::*;
-pub use register_item_inner::*;
-pub use score_base_inner::*;
-pub use word_type_inner::*;
-pub use word_conj_data_inner::*;
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod word_info_class_inner {
-use crate::dict::text_classes::WordConjugations;
+use crate::characters::char_classes::{count_char_class, CharClass};
+use crate::conn::kani_context::KaniranContext;
+use crate::dict::best_path::SEGMENT_SCORE_CUTOFF;
+use crate::dict::best_text::{get_kana, get_text, true_text, word_info_reading};
+use crate::dict::calc_score::gen_score;
+use crate::dict::conj_data::{
+    conj_info_json, get_conj_data, ConjData, FilterPropsText, FromOrConjIds,
+};
+use crate::dict::counters::dispatchers::{seq, text, value_string, word_conjugations};
+use crate::dict::find_word::{find_word_full, CounterArg};
+use crate::dict::grammar::suffix_init::get_suffix_description;
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::segment::{PathElement, Segment, SegmentList, TopArray, TopArrayItem};
+use crate::dict::senses::get_senses_json;
+use crate::dict::text_classes::{CompoundText, ProxyText, WordConjugations};
+use serde_json::{Map, Number, Value};
+use std::future::Future;
+use std::pin::Pin;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WordInfoType {
@@ -87,22 +88,6 @@ impl Default for WordInfo {
         }
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod word_info_from_segment_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::text_classes::CompoundText;
-use crate::dict::best_text::get_kana;
-use crate::dict::best_text::get_text;
-use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::segment::Segment;
-use crate::dict::counters::dispatchers::seq;
-use crate::dict::best_text::true_text;
-use crate::dict::counters::dispatchers::value_string;
-use crate::dict::counters::dispatchers::word_conjugations;
-use crate::dict::word_info::{WordInfo, WordInfoKana, WordInfoSeq, WordInfoType};
-use crate::dict::word_info::{word_type, WordType};
 
 pub async fn word_info_from_segment(
     ctx: &KaniranContext,
@@ -129,10 +114,9 @@ pub async fn word_info_from_segment(
     let (true_text_v, conjugations_v) = match word {
         KaniWordDispatchEnum::Kanji(_)
         | KaniWordDispatchEnum::Kana(_)
-        | KaniWordDispatchEnum::Proxy(_) => (
-            Some(true_text(word).into_owned()),
-            word_conjugations(word),
-        ),
+        | KaniWordDispatchEnum::Proxy(_) => {
+            (Some(true_text(word).into_owned()), word_conjugations(word))
+        }
         _ => (None, None),
     };
 
@@ -191,9 +175,7 @@ async fn compound_components(
                 other, primary_seq
             ),
         };
-        let child_kana = get_kana(ctx, wrd)
-            .await?
-            .map(WordInfoKana::Single);
+        let child_kana = get_kana(ctx, wrd).await?.map(WordInfoKana::Single);
         out.push(WordInfo {
             // dict.lisp:1339 (:type (word-type wrd))
             kind: word_info_type_from(word_type(wrd)),
@@ -223,8 +205,678 @@ fn word_info_type_from(word_type: WordType) -> WordInfoType {
     }
 }
 
+pub async fn word_info_from_segment_list(
+    ctx: &KaniranContext,
+    segment_list: &mut SegmentList,
+) -> Result<WordInfo, sqlx::Error> {
+    // dict.lisp:1354-1355 ((segments ...) (wi-list* ...)) — map over segments
+    let mut wi_list_star: Vec<WordInfo> = Vec::with_capacity(segment_list.segments.len());
+    for seg in segment_list.segments.iter_mut() {
+        wi_list_star.push(word_info_from_segment(ctx, seg).await?);
+    }
+
+    // dict.lisp:1356 (wi1 (car wi-list*)) — bound BEFORE the score filter;
+    // every "return wi1 fields" reference below resolves against this.
+    let wi1 = wi_list_star
+        .first()
+        .expect("segment-list has zero segments")
+        .clone();
+    let matches = segment_list.matches as i32;
+
+    // dict.lisp:1357-1361 (max-score / wi-list = remove-if score < cutoff*max-score)
+    // — Lisp `(* 2/3 nil)` and `(< nil _)` both raise TYPE-ERROR; the
+    // Rust port panics in the same situation rather than silently
+    // substituting 0 (which would change the surviving set).
+    let max_int = wi1.score.expect(
+        "word-info-from-segment-list: wi1.score is nil — Lisp `(* 2/3 nil)` would type-error",
+    ) as i64;
+    let (num, den) = SEGMENT_SCORE_CUTOFF;
+    let wi_list: Vec<WordInfo> = wi_list_star
+        .into_iter()
+        .filter(|wi| {
+            let s = wi.score.expect(
+                "word-info-from-segment-list: wi.score is nil during cutoff filter — Lisp `(< nil _)` would type-error",
+            ) as i64;
+            den * s >= num * max_int
+        })
+        .collect();
+
+    // dict.lisp:1363-1365 ((if (= (length wi-list) 1) (prog1 wi1 (setf skipped ...))))
+    // — `prog1` returns wi1 (the pre-filter binding); we mutate skipped
+    // on the wi1 we already cloned above.
+    if wi_list.len() == 1 {
+        let mut result = wi1;
+        result.skipped = matches - 1;
+        return Ok(result);
+    }
+
+    // dict.lisp:1366-1380 (multi-branch)
+    // dict.lisp:1367-1368 — collect kana / seq per child, position-aligned.
+    let kana_list: Vec<Option<WordInfoKana>> = wi_list.iter().map(|wi| wi.kana.clone()).collect();
+    let seq_list: Vec<Option<WordInfoSeq>> = wi_list.iter().map(|wi| wi.seq.clone()).collect();
+
+    // dict.lisp:1372 (remove-duplicates kana-list :test 'equal :from-end t)
+    let kana_dedup = dedup_keep_first(&kana_list);
+
+    let kept = wi_list.len() as i32;
+    Ok(WordInfo {
+        // dict.lisp:1370 (:type (word-info-type wi1))
+        kind: wi1.kind,
+        // dict.lisp:1371 (:text (word-info-text wi1))
+        text: wi1.text.clone(),
+        kana: Some(WordInfoKana::Multi(kana_dedup)),
+        seq: Some(WordInfoSeq::Multi(seq_list)),
+        components: wi_list,
+        alternative: true,
+        // dict.lisp:1376 (:score (word-info-score wi1))
+        score: wi1.score,
+        start: Some(segment_list.start),
+        end: Some(segment_list.end),
+        skipped: matches - kept,
+        ..Default::default()
+    })
+}
+
+// dict.lisp:1372 (remove-duplicates kana-list :test 'equal :from-end t)
+// — :from-end t keeps the FIRST occurrence in left-to-right order. The
+// list is heterogeneous (Single / Multi / None entries), so dedup runs
+// on the full Option<WordInfoKana> value via PartialEq.
+fn dedup_keep_first(items: &[Option<WordInfoKana>]) -> Vec<Option<WordInfoKana>> {
+    let mut out: Vec<Option<WordInfoKana>> = Vec::with_capacity(items.len());
+    for item in items {
+        if !out.iter().any(|seen| seen == item) {
+            out.push(item.clone());
+        }
+    }
+    out
+}
+
+pub async fn word_info_from_text(
+    ctx: &KaniranContext,
+    text: &str,
+) -> Result<WordInfo, sqlx::Error> {
+    // dict.lisp:1384 (readings (find-word-full text :counter :auto))
+    let readings = find_word_full(ctx, text, false, Some(CounterArg::Auto)).await?;
+    // dict.lisp:1385 (segments (loop for r in readings collect (gen-score (make-segment …))))
+    let text_len = text.chars().count();
+    let mut segments: Vec<Segment> = Vec::with_capacity(readings.len());
+    for r in readings {
+        let mut segment = Segment {
+            start: 0,
+            end: text_len,
+            word: r,
+            score: None,
+            info: None,
+            top: None,
+            text: Some(text.to_string()),
+        };
+        gen_score(ctx, &mut segment, false, &[]).await?;
+        segments.push(segment);
+    }
+    // dict.lisp:1386-1387 (segment-list (make-segment-list :segments segments :start 0 :end (length text) :matches (length segments)))
+    let matches = segments.len();
+    let mut segment_list = SegmentList {
+        segments,
+        start: 0,
+        end: text_len,
+        top: None,
+        matches,
+    };
+    // dict.lisp:1388 (word-info-from-segment-list segment-list)
+    word_info_from_segment_list(ctx, &mut segment_list).await
+}
+
+/// The `:as` keyword — selects [`simple_word_info`]'s return shape.
+#[derive(Debug, Clone, Copy)]
+pub enum SimpleWordInfoAs {
+    Object,
+    Json,
+}
+
+/// Tagged return for [`simple_word_info`]: `:object` yields the [`WordInfo`],
+/// `:json` its [`word_info_json`] serialization.
+#[derive(Debug)]
+pub enum KaniSimpleWordInfo {
+    Object(WordInfo),
+    Json(Value),
+}
+
+pub fn simple_word_info(
+    seq: Option<WordInfoSeq>,
+    text: &str,
+    reading: Option<WordInfoKana>,
+    kind: WordInfoType,
+    as_: SimpleWordInfoAs,
+) -> KaniSimpleWordInfo {
+    let obj = WordInfo {
+        kind,
+        text: text.to_owned(),
+        true_text: Some(text.to_owned()),
+        seq,
+        kana: reading,
+        ..WordInfo::default()
+    };
+    match as_ {
+        SimpleWordInfoAs::Object => KaniSimpleWordInfo::Object(obj),
+        SimpleWordInfoAs::Json => KaniSimpleWordInfo::Json(word_info_json(&obj)),
+    }
+}
+
+/// Mirrors `(remove-duplicates positions)`. Order is unobservable here
+/// (callers either sort the result or use it only for `count`), so this
+/// keeps first occurrences.
+fn remove_duplicates(positions: &[usize]) -> Vec<usize> {
+    let mut out: Vec<usize> = Vec::new();
+    for &position in positions {
+        if !out.contains(&position) {
+            out.push(position);
+        }
+    }
+    out
+}
+
+pub fn simplify_reading_list(reading_list: &[String]) -> Vec<String> {
+    // assoc entries are `(can cnt . spos)`: de-spaced text, count of
+    // readings that mapped to it, and the accumulated boundary positions
+    // (each reading's positions concatenated, cross-reading duplicates
+    // kept so `count` below can measure agreement). Kept in encounter
+    // order (Lisp builds the reverse and `nreverse`s; see the push arm).
+    let mut assoc: Vec<(String, i32, Vec<usize>)> = Vec::new();
+    for reading in reading_list {
+        let mut can = String::new();
+        let mut spos: Vec<usize> = Vec::new();
+        let mut off: usize = 0;
+        for (i, char) in reading.chars().enumerate() {
+            if char == ' ' {
+                spos.push(i - off);
+                off += 1;
+            } else {
+                can.push(char);
+            }
+        }
+        let spos = remove_duplicates(&spos);
+        match assoc.iter_mut().find(|(entry_can, _, _)| *entry_can == can) {
+            // dict.lisp:1713 — (setf (cddr a) (nconc spos (cddr a))) (incf (cadr a)).
+            Some(entry) => {
+                entry.2.extend(spos);
+                entry.1 += 1;
+            }
+            // dict.lisp:1714 — (push (list* can 1 spos) assoc). Lisp pushes
+            // onto the front and `nreverse`s at the end; appending here builds
+            // the same encounter order directly.
+            None => assoc.push((can, 1, spos)),
+        }
+    }
+    let mut out: Vec<String> = Vec::with_capacity(assoc.len());
+    for (can, cnt, spos) in &assoc {
+        let mut sspos = remove_duplicates(spos);
+        sspos.sort_unstable();
+        let mut sspos = sspos.into_iter().peekable();
+        let mut s = String::new();
+        for (i, char) in can.chars().enumerate() {
+            if sspos.peek() == Some(&i) {
+                let count = spos.iter().filter(|&&position| position == i).count() as i32;
+                s.push(if count == *cnt { ' ' } else { '\u{00B7}' });
+                sspos.next();
+            }
+            s.push(char);
+        }
+        out.push(s);
+    }
+    out
+}
+
+/// jsown renders CL `nil` as `[]`; shared empty-array sentinel.
+fn nil() -> Value {
+    Value::Array(Vec::new())
+}
+
+/// `(symbol-name type)` — the keyword's print name.
+fn type_name(t: WordInfoType) -> &'static str {
+    match t {
+        WordInfoType::Kanji => "KANJI",
+        WordInfoType::Kana => "KANA",
+        WordInfoType::Gap => "GAP",
+    }
+}
+
+fn kana_json(kana: &WordInfoKana) -> Value {
+    match kana {
+        WordInfoKana::Single(s) => Value::String(s.clone()),
+        WordInfoKana::Multi(items) => Value::Array(
+            items
+                .iter()
+                .map(|item| item.as_ref().map_or_else(nil, kana_json))
+                .collect(),
+        ),
+    }
+}
+
+fn seq_json(seq: &WordInfoSeq) -> Value {
+    match seq {
+        WordInfoSeq::Single(n) => Value::Number(Number::from(*n)),
+        WordInfoSeq::Multi(items) => Value::Array(
+            items
+                .iter()
+                .map(|item| item.as_ref().map_or_else(nil, seq_json))
+                .collect(),
+        ),
+    }
+}
+
+pub fn word_info_json(word_info: &WordInfo) -> Value {
+    let mut js = Map::new();
+    js.insert(
+        "type".to_owned(),
+        Value::String(type_name(word_info.kind).to_owned()),
+    );
+    js.insert("text".to_owned(), Value::String(word_info.text.clone()));
+    js.insert(
+        "truetext".to_owned(),
+        word_info
+            .true_text
+            .as_ref()
+            .map_or_else(nil, |t| Value::String(t.clone())),
+    );
+    js.insert(
+        "kana".to_owned(),
+        word_info.kana.as_ref().map_or_else(nil, kana_json),
+    );
+    js.insert(
+        "seq".to_owned(),
+        word_info.seq.as_ref().map_or_else(nil, seq_json),
+    );
+    js.insert(
+        "conjugations".to_owned(),
+        match &word_info.conjugations {
+            None => nil(),
+            Some(WordConjugations::Root) => Value::String("ROOT".to_owned()),
+            Some(WordConjugations::Ids(ids)) => Value::Array(
+                ids.iter()
+                    .map(|id| Value::Number(Number::from(*id)))
+                    .collect(),
+            ),
+        },
+    );
+    js.insert(
+        "score".to_owned(),
+        word_info
+            .score
+            .map_or_else(nil, |n| Value::Number(Number::from(n))),
+    );
+    js.insert(
+        "components".to_owned(),
+        Value::Array(word_info.components.iter().map(word_info_json).collect()),
+    );
+    js.insert(
+        "alternative".to_owned(),
+        if word_info.alternative {
+            Value::Bool(true)
+        } else {
+            nil()
+        },
+    );
+    js.insert(
+        "primary".to_owned(),
+        if word_info.primary {
+            Value::Bool(true)
+        } else {
+            nil()
+        },
+    );
+    js.insert(
+        "start".to_owned(),
+        word_info
+            .start
+            .map_or_else(nil, |n| Value::Number(Number::from(n))),
+    );
+    js.insert(
+        "end".to_owned(),
+        word_info
+            .end
+            .map_or_else(nil, |n| Value::Number(Number::from(n))),
+    );
+    js.insert(
+        "counter".to_owned(),
+        match &word_info.counter {
+            None => nil(),
+            Some((value_string, ordinalp)) => Value::Array(vec![
+                Value::String(value_string.clone()),
+                if *ordinalp { Value::Bool(true) } else { nil() },
+            ]),
+        },
+    );
+    js.insert(
+        "skipped".to_owned(),
+        Value::Number(Number::from(word_info.skipped)),
+    );
+    Value::Object(js)
+}
+
+// The counter and `(t ...)` cond arms run only when components is empty; a
+// list seq co-occurs with components (word-info-from-segment-list), handled by
+// the compound arm first. Upstream `(get-senses-json (list …))` would raise a
+// PostgreSQL `integer = record` error on a list seq reaching here.
+fn single_seq(seq: &Option<WordInfoSeq>) -> Option<i32> {
+    match seq {
+        None => None,
+        Some(WordInfoSeq::Single(seq)) => Some(*seq),
+        Some(WordInfoSeq::Multi(_)) => panic!(
+            "word-info-gloss-json: list seq in a non-compound branch \
+             — upstream `(get-senses-json (list …))` raises `integer = record`"
+        ),
+    }
+}
+
+fn inner<'a>(
+    ctx: &'a KaniranContext,
+    word_info: &'a WordInfo,
+    suffix: bool,
+    root_only: bool,
+) -> Pin<Box<dyn Future<Output = Result<Value, sqlx::Error>> + 'a>> {
+    Box::pin(async move {
+        let mut js = Map::new();
+        // ("reading" (reading-str word-info)) / ("text" …) / ("kana" …)
+        js.insert(
+            "reading".to_owned(),
+            word_info.reading_str().map_or_else(nil, Value::String),
+        );
+        js.insert("text".to_owned(), Value::String(word_info.text.clone()));
+        js.insert(
+            "kana".to_owned(),
+            word_info.kana.as_ref().map_or_else(nil, kana_json),
+        );
+        // (when (word-info-score word-info) ("score" …)) — 0 is truthy; only nil skips.
+        if let Some(score) = word_info.score {
+            js.insert("score".to_owned(), Value::from(score));
+        }
+
+        if !word_info.components.is_empty() {
+            // ((word-info-components word-info) …)
+            js.insert(
+                "compound".to_owned(),
+                Value::Array(
+                    word_info
+                        .components
+                        .iter()
+                        .map(|component| Value::String(component.text.clone()))
+                        .collect(),
+                ),
+            );
+            let mut components = Vec::with_capacity(word_info.components.len());
+            for component in &word_info.components {
+                // (inner wi (not (word-info-primary wi)))
+                components.push(inner(ctx, component, !component.primary, root_only).await?);
+            }
+            js.insert("components".to_owned(), Value::Array(components));
+        } else if let Some((value, ordinal)) = &word_info.counter {
+            // ((word-info-counter word-info) …)
+            let mut counter = Map::new();
+            counter.insert("value".to_owned(), Value::String(value.clone()));
+            counter.insert(
+                "ordinal".to_owned(),
+                if *ordinal { Value::Bool(true) } else { nil() },
+            );
+            js.insert("counter".to_owned(), Value::Object(counter));
+            // (let ((seq (word-info-seq word-info))) (when seq …))
+            if let Some(seq) = single_seq(&word_info.seq) {
+                js.insert("seq".to_owned(), Value::from(seq));
+                // (get-senses-json seq :pos-list '("ctr") :reading-getter reading-getter)
+                let pos_list = [String::from("ctr")];
+                let gloss = get_senses_json(
+                    ctx,
+                    seq,
+                    &pos_list,
+                    None,
+                    Some(word_info_reading(ctx, word_info)),
+                )
+                .await?;
+                // (when gloss …)
+                if !gloss.is_empty() {
+                    js.insert("gloss".to_owned(), Value::Array(gloss));
+                }
+            }
+        } else {
+            // (t …)
+            let seq = single_seq(&word_info.seq);
+            let conjs = word_info.conjugations.as_ref();
+            // (when seq ("seq" seq))
+            if let Some(seq) = seq {
+                js.insert("seq".to_owned(), Value::from(seq));
+            }
+            let mut has_gloss = false;
+            if root_only {
+                // (return-from inner (extend-js js ("gloss" (get-senses-json seq :reading-getter …))))
+                let gloss = match seq {
+                    Some(seq) => {
+                        get_senses_json(
+                            ctx,
+                            seq,
+                            &[],
+                            None,
+                            Some(word_info_reading(ctx, word_info)),
+                        )
+                        .await?
+                    }
+                    None => Vec::new(),
+                };
+                js.insert("gloss".to_owned(), Value::Array(gloss));
+                return Ok(Value::Object(js));
+            }
+            // ((and suffix (setf desc (get-suffix-description seq))) …)
+            let mut suffix_done = false;
+            if suffix {
+                if let Some(seq) = seq {
+                    if let Some(desc) = get_suffix_description(ctx, seq) {
+                        js.insert("suffix".to_owned(), Value::String(desc.to_owned()));
+                        suffix_done = true;
+                    }
+                }
+            }
+            // ((and seq (or (not conjs) (eql conjs :root))) …)
+            if !suffix_done {
+                if let Some(seq) = seq {
+                    if conjs.is_none() || matches!(conjs, Some(WordConjugations::Root)) {
+                        let gloss = get_senses_json(
+                            ctx,
+                            seq,
+                            &[],
+                            None,
+                            Some(word_info_reading(ctx, word_info)),
+                        )
+                        .await?;
+                        // (when gloss (setf has-gloss t) ("gloss" gloss))
+                        if !gloss.is_empty() {
+                            has_gloss = true;
+                            js.insert("gloss".to_owned(), Value::Array(gloss));
+                        }
+                    }
+                }
+            }
+            // (when seq ("conj" (conj-info-json seq :conjugations … :text … :has-gloss …)))
+            if let Some(seq) = seq {
+                let text = match &word_info.true_text {
+                    Some(true_text) => FilterPropsText::One(true_text),
+                    None => FilterPropsText::None,
+                };
+                let conj =
+                    conj_info_json(ctx, seq, word_info.conjugations.as_ref(), text, has_gloss)
+                        .await?;
+                js.insert("conj".to_owned(), Value::Array(conj));
+            }
+        }
+        Ok(Value::Object(js))
+    })
+}
+
+pub async fn word_info_gloss_json(
+    ctx: &KaniranContext,
+    word_info: &WordInfo,
+    root_only: bool,
+) -> Result<Value, sqlx::Error> {
+    if word_info.alternative {
+        // (jsown:new-js ("alternative" (mapcar #'inner (word-info-components word-info))))
+        let mut alternatives = Vec::with_capacity(word_info.components.len());
+        for component in &word_info.components {
+            alternatives.push(inner(ctx, component, false, root_only).await?);
+        }
+        let mut js = Map::new();
+        js.insert("alternative".to_owned(), Value::Array(alternatives));
+        Ok(Value::Object(js))
+    } else {
+        inner(ctx, word_info, false, root_only).await
+    }
+}
+
+pub fn def_reader_for_json<'a>(obj: &'a Value, slot: &str) -> &'a Value {
+    obj.get(slot)
+        .unwrap_or_else(|| panic!("jsown:val: key {slot:?} not present in object"))
+}
+
+pub fn register_item(obj: &mut TopArray, score: i32, payload: Vec<PathElement>) {
+    // dict.lisp:1151 (let ((item (make-top-array-item :score score :payload payload)) (len ...)))
+    let mut item: Option<TopArrayItem> = Some(TopArrayItem { score, payload });
+    let len = obj.array.len();
+    // dict.lisp:1153 (loop for idx from (min count len) downto 0 ...)
+    let start = obj.count.min(len);
+    let mut idx = start;
+    loop {
+        // dict.lisp:1154 (for prev-item = (when (> idx 0) (aref array (1- idx))))
+        // The slot value is itself an Option (initialize-instance fills with nil);
+        // both "idx == 0" and "slot is nil" collapse to None here.
+        let prev_score = if idx > 0 {
+            obj.array[idx - 1].as_ref().map(|prev| prev.score)
+        } else {
+            None
+        };
+        // dict.lisp:1155 (for done = (or (not prev-item) (>= (tai-score prev-item) score)))
+        let done = match prev_score {
+            None => true,
+            Some(prev) => prev >= score,
+        };
+        // dict.lisp:1156 (when (< idx len) do (setf (aref array idx) (if done item prev-item)))
+        if idx < len {
+            obj.array[idx] = if done {
+                item.take()
+            } else {
+                obj.array[idx - 1].take()
+            };
+        }
+        // dict.lisp:1157 (until done)
+        if done {
+            break;
+        }
+        idx -= 1;
+    }
+    // dict.lisp:1158 (incf count)
+    obj.count += 1;
+}
+
+pub fn score_base(word: &CompoundText) -> &KaniWordDispatchEnum {
+    word.score_base.as_deref().unwrap_or(&*word.primary)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WordType {
+    Kanji,
+    Kana,
+    Gap,
+}
+
+pub fn word_type(obj: &KaniWordDispatchEnum) -> WordType {
+    match obj {
+        KaniWordDispatchEnum::Kanji(_) => WordType::Kanji,
+        KaniWordDispatchEnum::Kana(_) => WordType::Kana,
+        KaniWordDispatchEnum::Counter(_) => {
+            let t = text(obj);
+            if count_char_class(&t, CharClass::KanjiChar) > 0 {
+                WordType::Kanji
+            } else {
+                WordType::Kana
+            }
+        }
+        KaniWordDispatchEnum::Proxy(p) => word_type_simple(&p.source),
+        KaniWordDispatchEnum::Compound(c) => word_type(&c.primary),
+    }
+}
+
+fn word_type_simple(obj: &KaniSimpleTextDispatchEnum) -> WordType {
+    match obj {
+        KaniSimpleTextDispatchEnum::Kanji(_) => WordType::Kanji,
+        KaniSimpleTextDispatchEnum::Kana(_) => WordType::Kana,
+        KaniSimpleTextDispatchEnum::Proxy(p) => word_type_simple(&p.source),
+    }
+}
+
+pub async fn word_conj_data(
+    ctx: &KaniranContext,
+    word: &KaniWordDispatchEnum,
+) -> Result<Vec<ConjData>, sqlx::Error> {
+    match word {
+        // dict-counters.lisp:87 (defmethod word-conj-data ((obj counter-text)) nil)
+        KaniWordDispatchEnum::Counter(_) => Ok(Vec::new()),
+
+        // dict.lisp:660-661 (defmethod word-conj-data ((word compound-text)))
+        KaniWordDispatchEnum::Compound(c) => {
+            let last = c
+                .words
+                .last()
+                .expect("compound-text always has at least one word (adjoin-word ctor)");
+            Box::pin(word_conj_data(ctx, last)).await
+        }
+
+        // dict.lisp:657-658 (defmethod word-conj-data ((word simple-text)))
+        KaniWordDispatchEnum::Kanji(k) => {
+            simple_text_arm(ctx, k.seq, &k.state.conjugations, &k.text).await
+        }
+        KaniWordDispatchEnum::Kana(k) => {
+            simple_text_arm(ctx, k.seq, &k.state.conjugations, &k.text).await
+        }
+        KaniWordDispatchEnum::Proxy(p) => {
+            // dict.lisp:657-658 — proxy's seq / word-conjugations / true-text gfs
+            // each delegate to (source obj); the leaf is a kanji-text or kana-text
+            // and supplies all three slot reads.
+            let leaf = leaf_of(p);
+            let (seq, conj, text) = leaf_slots(leaf);
+            simple_text_arm(ctx, seq, conj, text).await
+        }
+    }
+}
+
+async fn simple_text_arm(
+    ctx: &KaniranContext,
+    seq: i32,
+    conjugations: &Option<WordConjugations>,
+    true_text: &str,
+) -> Result<Vec<ConjData>, sqlx::Error> {
+    let from_or_conj_ids = match conjugations {
+        None => FromOrConjIds::All,
+        Some(WordConjugations::Root) => FromOrConjIds::Root,
+        Some(WordConjugations::Ids(ids)) => FromOrConjIds::ConjIds(ids.clone()),
+    };
+    get_conj_data(ctx, seq, from_or_conj_ids, &[true_text]).await
+}
+
+fn leaf_of(p: &ProxyText) -> &KaniSimpleTextDispatchEnum {
+    let mut current: &KaniSimpleTextDispatchEnum = &p.source;
+    loop {
+        match current {
+            KaniSimpleTextDispatchEnum::Proxy(inner) => current = &inner.source,
+            _ => return current,
+        }
+    }
+}
+
+fn leaf_slots(leaf: &KaniSimpleTextDispatchEnum) -> (i32, &Option<WordConjugations>, &str) {
+    match leaf {
+        KaniSimpleTextDispatchEnum::Kanji(k) => (k.seq, &k.state.conjugations, &k.text),
+        KaniSimpleTextDispatchEnum::Kana(k) => (k.seq, &k.state.conjugations, &k.text),
+        KaniSimpleTextDispatchEnum::Proxy(_) => unreachable!("leaf_of strips proxies"),
+    }
+}
+
 #[cfg(test)]
-mod tests {
+mod word_info_from_segment_tests {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //! Each test exercises one branch of the segment-word dispatch and
     //! confirms the slot mapping against REPL-captured ground truth.
@@ -379,107 +1031,9 @@ mod tests {
         assert!(!wi.components[1].primary); // different seq
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod word_info_from_segment_list_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::best_path::SEGMENT_SCORE_CUTOFF;
-use crate::dict::segment::SegmentList;
-use crate::dict::word_info::{WordInfo, WordInfoKana, WordInfoSeq};
-use crate::dict::word_info::word_info_from_segment;
-
-pub async fn word_info_from_segment_list(
-    ctx: &KaniranContext,
-    segment_list: &mut SegmentList,
-) -> Result<WordInfo, sqlx::Error> {
-    // dict.lisp:1354-1355 ((segments ...) (wi-list* ...)) — map over segments
-    let mut wi_list_star: Vec<WordInfo> = Vec::with_capacity(segment_list.segments.len());
-    for seg in segment_list.segments.iter_mut() {
-        wi_list_star.push(word_info_from_segment(ctx, seg).await?);
-    }
-
-    // dict.lisp:1356 (wi1 (car wi-list*)) — bound BEFORE the score filter;
-    // every "return wi1 fields" reference below resolves against this.
-    let wi1 = wi_list_star
-        .first()
-        .expect("segment-list has zero segments")
-        .clone();
-    let matches = segment_list.matches as i32;
-
-    // dict.lisp:1357-1361 (max-score / wi-list = remove-if score < cutoff*max-score)
-    // — Lisp `(* 2/3 nil)` and `(< nil _)` both raise TYPE-ERROR; the
-    // Rust port panics in the same situation rather than silently
-    // substituting 0 (which would change the surviving set).
-    let max_int = wi1
-        .score
-        .expect("word-info-from-segment-list: wi1.score is nil — Lisp `(* 2/3 nil)` would type-error")
-        as i64;
-    let (num, den) = SEGMENT_SCORE_CUTOFF;
-    let wi_list: Vec<WordInfo> = wi_list_star
-        .into_iter()
-        .filter(|wi| {
-            let s = wi.score.expect(
-                "word-info-from-segment-list: wi.score is nil during cutoff filter — Lisp `(< nil _)` would type-error",
-            ) as i64;
-            den * s >= num * max_int
-        })
-        .collect();
-
-    // dict.lisp:1363-1365 ((if (= (length wi-list) 1) (prog1 wi1 (setf skipped ...))))
-    // — `prog1` returns wi1 (the pre-filter binding); we mutate skipped
-    // on the wi1 we already cloned above.
-    if wi_list.len() == 1 {
-        let mut result = wi1;
-        result.skipped = matches - 1;
-        return Ok(result);
-    }
-
-    // dict.lisp:1366-1380 (multi-branch)
-    // dict.lisp:1367-1368 — collect kana / seq per child, position-aligned.
-    let kana_list: Vec<Option<WordInfoKana>> =
-        wi_list.iter().map(|wi| wi.kana.clone()).collect();
-    let seq_list: Vec<Option<WordInfoSeq>> =
-        wi_list.iter().map(|wi| wi.seq.clone()).collect();
-
-    // dict.lisp:1372 (remove-duplicates kana-list :test 'equal :from-end t)
-    let kana_dedup = dedup_keep_first(&kana_list);
-
-    let kept = wi_list.len() as i32;
-    Ok(WordInfo {
-        // dict.lisp:1370 (:type (word-info-type wi1))
-        kind: wi1.kind,
-        // dict.lisp:1371 (:text (word-info-text wi1))
-        text: wi1.text.clone(),
-        kana: Some(WordInfoKana::Multi(kana_dedup)),
-        seq: Some(WordInfoSeq::Multi(seq_list)),
-        components: wi_list,
-        alternative: true,
-        // dict.lisp:1376 (:score (word-info-score wi1))
-        score: wi1.score,
-        start: Some(segment_list.start),
-        end: Some(segment_list.end),
-        skipped: matches - kept,
-        ..Default::default()
-    })
-}
-
-// dict.lisp:1372 (remove-duplicates kana-list :test 'equal :from-end t)
-// — :from-end t keeps the FIRST occurrence in left-to-right order. The
-// list is heterogeneous (Single / Multi / None entries), so dedup runs
-// on the full Option<WordInfoKana> value via PartialEq.
-fn dedup_keep_first(items: &[Option<WordInfoKana>]) -> Vec<Option<WordInfoKana>> {
-    let mut out: Vec<Option<WordInfoKana>> = Vec::with_capacity(items.len());
-    for item in items {
-        if !out.iter().any(|seen| seen == item) {
-            out.push(item.clone());
-        }
-    }
-    out
-}
 
 #[cfg(test)]
-mod tests {
+mod word_info_from_segment_list_tests {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //!
     //! Per-branch coverage:
@@ -579,12 +1133,7 @@ mod tests {
         let ctx = ctx_from_env().await;
         let neko = one_kana_reading(&ctx, "ねこ").await;
         let inu = one_kana_reading(&ctx, "いぬ").await;
-        let mut sl = seg_list(
-            vec![seg(neko, 5, 0, 2), seg(inu, 5, 0, 2)],
-            0,
-            2,
-            2,
-        );
+        let mut sl = seg_list(vec![seg(neko, 5, 0, 2), seg(inu, 5, 0, 2)], 0, 2, 2);
         let wi = word_info_from_segment_list(&ctx, &mut sl).await.unwrap();
         assert!(wi.alternative);
         assert_eq!(wi.text, "ねこ"); // wi1.text (first segment's wi)
@@ -631,12 +1180,7 @@ mod tests {
         let ctx = ctx_from_env().await;
         let a = one_kana_reading(&ctx, "ねこ").await;
         let b = one_kana_reading(&ctx, "いぬ").await;
-        let mut sl = seg_list(
-            vec![seg(a, 9, 0, 1), seg(b, 7, 0, 1)],
-            0,
-            1,
-            2,
-        );
+        let mut sl = seg_list(vec![seg(a, 9, 0, 1), seg(b, 7, 0, 1)], 0, 1, 2);
         let wi = word_info_from_segment_list(&ctx, &mut sl).await.unwrap();
         assert!(wi.alternative);
         assert_eq!(wi.text, "ねこ"); // wi1.text
@@ -666,55 +1210,9 @@ mod tests {
         assert_eq!(result, vec![a, b, none, nested]);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod word_info_from_text_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::find_word::{find_word_full, CounterArg};
-use crate::dict::calc_score::gen_score;
-use crate::dict::segment::SegmentList;
-use crate::dict::segment::Segment;
-use crate::dict::word_info::WordInfo;
-use crate::dict::word_info::word_info_from_segment_list;
-
-pub async fn word_info_from_text(
-    ctx: &KaniranContext,
-    text: &str,
-) -> Result<WordInfo, sqlx::Error> {
-    // dict.lisp:1384 (readings (find-word-full text :counter :auto))
-    let readings = find_word_full(ctx, text, false, Some(CounterArg::Auto)).await?;
-    // dict.lisp:1385 (segments (loop for r in readings collect (gen-score (make-segment …))))
-    let text_len = text.chars().count();
-    let mut segments: Vec<Segment> = Vec::with_capacity(readings.len());
-    for r in readings {
-        let mut segment = Segment {
-            start: 0,
-            end: text_len,
-            word: r,
-            score: None,
-            info: None,
-            top: None,
-            text: Some(text.to_string()),
-        };
-        gen_score(ctx, &mut segment, false, &[]).await?;
-        segments.push(segment);
-    }
-    // dict.lisp:1386-1387 (segment-list (make-segment-list :segments segments :start 0 :end (length text) :matches (length segments)))
-    let matches = segments.len();
-    let mut segment_list = SegmentList {
-        segments,
-        start: 0,
-        end: text_len,
-        top: None,
-        matches,
-    };
-    // dict.lisp:1388 (word-info-from-segment-list segment-list)
-    word_info_from_segment_list(ctx, &mut segment_list).await
-}
 
 #[cfg(test)]
-mod tests {
+mod word_info_from_text_tests {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //!
     //! Every case is a single-survivor result (`skipped = 0`, i.e.
@@ -838,53 +1336,9 @@ mod tests {
         assert!(wi.primary);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod simple_word_info_inner {
-use serde_json::Value;
-
-use super::{WordInfo, WordInfoKana, WordInfoSeq, WordInfoType};
-use super::word_info_json;
-
-/// The `:as` keyword — selects [`simple_word_info`]'s return shape.
-#[derive(Debug, Clone, Copy)]
-pub enum SimpleWordInfoAs {
-    Object,
-    Json,
-}
-
-/// Tagged return for [`simple_word_info`]: `:object` yields the [`WordInfo`],
-/// `:json` its [`word_info_json`] serialization.
-#[derive(Debug)]
-pub enum KaniSimpleWordInfo {
-    Object(WordInfo),
-    Json(Value),
-}
-
-pub fn simple_word_info(
-    seq: Option<WordInfoSeq>,
-    text: &str,
-    reading: Option<WordInfoKana>,
-    kind: WordInfoType,
-    as_: SimpleWordInfoAs,
-) -> KaniSimpleWordInfo {
-    let obj = WordInfo {
-        kind,
-        text: text.to_owned(),
-        true_text: Some(text.to_owned()),
-        seq,
-        kana: reading,
-        ..WordInfo::default()
-    };
-    match as_ {
-        SimpleWordInfoAs::Object => KaniSimpleWordInfo::Object(obj),
-        SimpleWordInfoAs::Json => KaniSimpleWordInfo::Json(word_info_json(&obj)),
-    }
-}
 
 #[cfg(test)]
-mod tests {
+mod simple_word_info_tests {
     use super::*;
 
     /// REPL fixture (.103, `simple-word-info ... :as :json`), 2026-05-25.
@@ -927,76 +1381,9 @@ mod tests {
         assert!(wi.primary);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod simplify_reading_list_inner {
-/// Mirrors `(remove-duplicates positions)`. Order is unobservable here
-/// (callers either sort the result or use it only for `count`), so this
-/// keeps first occurrences.
-fn remove_duplicates(positions: &[usize]) -> Vec<usize> {
-    let mut out: Vec<usize> = Vec::new();
-    for &position in positions {
-        if !out.contains(&position) {
-            out.push(position);
-        }
-    }
-    out
-}
-
-pub fn simplify_reading_list(reading_list: &[String]) -> Vec<String> {
-    // assoc entries are `(can cnt . spos)`: de-spaced text, count of
-    // readings that mapped to it, and the accumulated boundary positions
-    // (each reading's positions concatenated, cross-reading duplicates
-    // kept so `count` below can measure agreement). Kept in encounter
-    // order (Lisp builds the reverse and `nreverse`s; see the push arm).
-    let mut assoc: Vec<(String, i32, Vec<usize>)> = Vec::new();
-    for reading in reading_list {
-        let mut can = String::new();
-        let mut spos: Vec<usize> = Vec::new();
-        let mut off: usize = 0;
-        for (i, char) in reading.chars().enumerate() {
-            if char == ' ' {
-                spos.push(i - off);
-                off += 1;
-            } else {
-                can.push(char);
-            }
-        }
-        let spos = remove_duplicates(&spos);
-        match assoc.iter_mut().find(|(entry_can, _, _)| *entry_can == can) {
-            // dict.lisp:1713 — (setf (cddr a) (nconc spos (cddr a))) (incf (cadr a)).
-            Some(entry) => {
-                entry.2.extend(spos);
-                entry.1 += 1;
-            }
-            // dict.lisp:1714 — (push (list* can 1 spos) assoc). Lisp pushes
-            // onto the front and `nreverse`s at the end; appending here builds
-            // the same encounter order directly.
-            None => assoc.push((can, 1, spos)),
-        }
-    }
-    let mut out: Vec<String> = Vec::with_capacity(assoc.len());
-    for (can, cnt, spos) in &assoc {
-        let mut sspos = remove_duplicates(spos);
-        sspos.sort_unstable();
-        let mut sspos = sspos.into_iter().peekable();
-        let mut s = String::new();
-        for (i, char) in can.chars().enumerate() {
-            if sspos.peek() == Some(&i) {
-                let count = spos.iter().filter(|&&position| position == i).count() as i32;
-                s.push(if count == *cnt { ' ' } else { '\u{00B7}' });
-                sspos.next();
-            }
-            s.push(char);
-        }
-        out.push(s);
-    }
-    out
-}
 
 #[cfg(test)]
-mod tests {
+mod simplify_reading_list_tests {
     use super::*;
 
     fn srl(readings: &[&str]) -> Vec<String> {
@@ -1038,131 +1425,9 @@ mod tests {
         }
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod word_info_json_inner {
-use serde_json::{Map, Number, Value};
-
-use crate::dict::text_classes::WordConjugations;
-use super::{WordInfo, WordInfoKana, WordInfoSeq, WordInfoType};
-
-/// jsown renders CL `nil` as `[]`; shared empty-array sentinel.
-fn nil() -> Value {
-    Value::Array(Vec::new())
-}
-
-/// `(symbol-name type)` — the keyword's print name.
-fn type_name(t: WordInfoType) -> &'static str {
-    match t {
-        WordInfoType::Kanji => "KANJI",
-        WordInfoType::Kana => "KANA",
-        WordInfoType::Gap => "GAP",
-    }
-}
-
-fn kana_json(kana: &WordInfoKana) -> Value {
-    match kana {
-        WordInfoKana::Single(s) => Value::String(s.clone()),
-        WordInfoKana::Multi(items) => Value::Array(
-            items
-                .iter()
-                .map(|item| item.as_ref().map_or_else(nil, kana_json))
-                .collect(),
-        ),
-    }
-}
-
-fn seq_json(seq: &WordInfoSeq) -> Value {
-    match seq {
-        WordInfoSeq::Single(n) => Value::Number(Number::from(*n)),
-        WordInfoSeq::Multi(items) => Value::Array(
-            items
-                .iter()
-                .map(|item| item.as_ref().map_or_else(nil, seq_json))
-                .collect(),
-        ),
-    }
-}
-
-pub fn word_info_json(word_info: &WordInfo) -> Value {
-    let mut js = Map::new();
-    js.insert(
-        "type".to_owned(),
-        Value::String(type_name(word_info.kind).to_owned()),
-    );
-    js.insert("text".to_owned(), Value::String(word_info.text.clone()));
-    js.insert(
-        "truetext".to_owned(),
-        word_info
-            .true_text
-            .as_ref()
-            .map_or_else(nil, |t| Value::String(t.clone())),
-    );
-    js.insert(
-        "kana".to_owned(),
-        word_info.kana.as_ref().map_or_else(nil, kana_json),
-    );
-    js.insert(
-        "seq".to_owned(),
-        word_info.seq.as_ref().map_or_else(nil, seq_json),
-    );
-    js.insert(
-        "conjugations".to_owned(),
-        match &word_info.conjugations {
-            None => nil(),
-            Some(WordConjugations::Root) => Value::String("ROOT".to_owned()),
-            Some(WordConjugations::Ids(ids)) => {
-                Value::Array(ids.iter().map(|id| Value::Number(Number::from(*id))).collect())
-            }
-        },
-    );
-    js.insert(
-        "score".to_owned(),
-        word_info
-            .score
-            .map_or_else(nil, |n| Value::Number(Number::from(n))),
-    );
-    js.insert(
-        "components".to_owned(),
-        Value::Array(word_info.components.iter().map(word_info_json).collect()),
-    );
-    js.insert(
-        "alternative".to_owned(),
-        if word_info.alternative { Value::Bool(true) } else { nil() },
-    );
-    js.insert(
-        "primary".to_owned(),
-        if word_info.primary { Value::Bool(true) } else { nil() },
-    );
-    js.insert(
-        "start".to_owned(),
-        word_info
-            .start
-            .map_or_else(nil, |n| Value::Number(Number::from(n))),
-    );
-    js.insert(
-        "end".to_owned(),
-        word_info
-            .end
-            .map_or_else(nil, |n| Value::Number(Number::from(n))),
-    );
-    js.insert(
-        "counter".to_owned(),
-        match &word_info.counter {
-            None => nil(),
-            Some((value_string, ordinalp)) => Value::Array(vec![
-                Value::String(value_string.clone()),
-                if *ordinalp { Value::Bool(true) } else { nil() },
-            ]),
-        },
-    );
-    js.insert("skipped".to_owned(), Value::Number(Number::from(word_info.skipped)));
-    Value::Object(js)
-}
 
 #[cfg(test)]
-mod tests {
+mod word_info_json_tests {
     use super::*;
 
     fn single_kana(s: &str) -> Option<WordInfoKana> {
@@ -1309,215 +1574,9 @@ mod tests {
         );
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod word_info_gloss_json_inner {
-use std::future::Future;
-use std::pin::Pin;
-
-use serde_json::{Map, Value};
-
-use crate::conn::kani_context::KaniranContext;
-
-use crate::dict::conj_data::conj_info_json;
-use crate::dict::conj_data::FilterPropsText;
-use crate::dict::senses::get_senses_json;
-use crate::dict::grammar::suffix_init::get_suffix_description;
-use crate::dict::text_classes::WordConjugations;
-use super::{WordInfo, WordInfoKana, WordInfoSeq};
-use crate::dict::best_text::word_info_reading;
-
-// jsown renders CL `nil` as `[]`.
-fn nil() -> Value {
-    Value::Array(Vec::new())
-}
-
-// `(word-info-kana word-info)` handed straight to jsown: a string prints as
-// itself, nil as `[]`, a list as a JSON array (mirrors word-info-json's slot).
-fn kana_json(kana: &WordInfoKana) -> Value {
-    match kana {
-        WordInfoKana::Single(reading) => Value::String(reading.clone()),
-        WordInfoKana::Multi(readings) => Value::Array(
-            readings
-                .iter()
-                .map(|reading| reading.as_ref().map_or_else(nil, kana_json))
-                .collect(),
-        ),
-    }
-}
-
-// The counter and `(t ...)` cond arms run only when components is empty; a
-// list seq co-occurs with components (word-info-from-segment-list), handled by
-// the compound arm first. Upstream `(get-senses-json (list …))` would raise a
-// PostgreSQL `integer = record` error on a list seq reaching here.
-fn single_seq(seq: &Option<WordInfoSeq>) -> Option<i32> {
-    match seq {
-        None => None,
-        Some(WordInfoSeq::Single(seq)) => Some(*seq),
-        Some(WordInfoSeq::Multi(_)) => panic!(
-            "word-info-gloss-json: list seq in a non-compound branch \
-             — upstream `(get-senses-json (list …))` raises `integer = record`"
-        ),
-    }
-}
-
-fn inner<'a>(
-    ctx: &'a KaniranContext,
-    word_info: &'a WordInfo,
-    suffix: bool,
-    root_only: bool,
-) -> Pin<Box<dyn Future<Output = Result<Value, sqlx::Error>> + 'a>> {
-    Box::pin(async move {
-        let mut js = Map::new();
-        // ("reading" (reading-str word-info)) / ("text" …) / ("kana" …)
-        js.insert(
-            "reading".to_owned(),
-            word_info.reading_str().map_or_else(nil, Value::String),
-        );
-        js.insert("text".to_owned(), Value::String(word_info.text.clone()));
-        js.insert(
-            "kana".to_owned(),
-            word_info.kana.as_ref().map_or_else(nil, kana_json),
-        );
-        // (when (word-info-score word-info) ("score" …)) — 0 is truthy; only nil skips.
-        if let Some(score) = word_info.score {
-            js.insert("score".to_owned(), Value::from(score));
-        }
-
-        if !word_info.components.is_empty() {
-            // ((word-info-components word-info) …)
-            js.insert(
-                "compound".to_owned(),
-                Value::Array(
-                    word_info
-                        .components
-                        .iter()
-                        .map(|component| Value::String(component.text.clone()))
-                        .collect(),
-                ),
-            );
-            let mut components = Vec::with_capacity(word_info.components.len());
-            for component in &word_info.components {
-                // (inner wi (not (word-info-primary wi)))
-                components.push(inner(ctx, component, !component.primary, root_only).await?);
-            }
-            js.insert("components".to_owned(), Value::Array(components));
-        } else if let Some((value, ordinal)) = &word_info.counter {
-            // ((word-info-counter word-info) …)
-            let mut counter = Map::new();
-            counter.insert("value".to_owned(), Value::String(value.clone()));
-            counter.insert(
-                "ordinal".to_owned(),
-                if *ordinal { Value::Bool(true) } else { nil() },
-            );
-            js.insert("counter".to_owned(), Value::Object(counter));
-            // (let ((seq (word-info-seq word-info))) (when seq …))
-            if let Some(seq) = single_seq(&word_info.seq) {
-                js.insert("seq".to_owned(), Value::from(seq));
-                // (get-senses-json seq :pos-list '("ctr") :reading-getter reading-getter)
-                let pos_list = [String::from("ctr")];
-                let gloss = get_senses_json(
-                    ctx,
-                    seq,
-                    &pos_list,
-                    None,
-                    Some(word_info_reading(ctx, word_info)),
-                )
-                .await?;
-                // (when gloss …)
-                if !gloss.is_empty() {
-                    js.insert("gloss".to_owned(), Value::Array(gloss));
-                }
-            }
-        } else {
-            // (t …)
-            let seq = single_seq(&word_info.seq);
-            let conjs = word_info.conjugations.as_ref();
-            // (when seq ("seq" seq))
-            if let Some(seq) = seq {
-                js.insert("seq".to_owned(), Value::from(seq));
-            }
-            let mut has_gloss = false;
-            if root_only {
-                // (return-from inner (extend-js js ("gloss" (get-senses-json seq :reading-getter …))))
-                let gloss = match seq {
-                    Some(seq) => {
-                        get_senses_json(ctx, seq, &[], None, Some(word_info_reading(ctx, word_info)))
-                            .await?
-                    }
-                    None => Vec::new(),
-                };
-                js.insert("gloss".to_owned(), Value::Array(gloss));
-                return Ok(Value::Object(js));
-            }
-            // ((and suffix (setf desc (get-suffix-description seq))) …)
-            let mut suffix_done = false;
-            if suffix {
-                if let Some(seq) = seq {
-                    if let Some(desc) = get_suffix_description(ctx, seq) {
-                        js.insert("suffix".to_owned(), Value::String(desc.to_owned()));
-                        suffix_done = true;
-                    }
-                }
-            }
-            // ((and seq (or (not conjs) (eql conjs :root))) …)
-            if !suffix_done {
-                if let Some(seq) = seq {
-                    if conjs.is_none() || matches!(conjs, Some(WordConjugations::Root)) {
-                        let gloss = get_senses_json(
-                            ctx,
-                            seq,
-                            &[],
-                            None,
-                            Some(word_info_reading(ctx, word_info)),
-                        )
-                        .await?;
-                        // (when gloss (setf has-gloss t) ("gloss" gloss))
-                        if !gloss.is_empty() {
-                            has_gloss = true;
-                            js.insert("gloss".to_owned(), Value::Array(gloss));
-                        }
-                    }
-                }
-            }
-            // (when seq ("conj" (conj-info-json seq :conjugations … :text … :has-gloss …)))
-            if let Some(seq) = seq {
-                let text = match &word_info.true_text {
-                    Some(true_text) => FilterPropsText::One(true_text),
-                    None => FilterPropsText::None,
-                };
-                let conj =
-                    conj_info_json(ctx, seq, word_info.conjugations.as_ref(), text, has_gloss)
-                        .await?;
-                js.insert("conj".to_owned(), Value::Array(conj));
-            }
-        }
-        Ok(Value::Object(js))
-    })
-}
-
-pub async fn word_info_gloss_json(
-    ctx: &KaniranContext,
-    word_info: &WordInfo,
-    root_only: bool,
-) -> Result<Value, sqlx::Error> {
-    if word_info.alternative {
-        // (jsown:new-js ("alternative" (mapcar #'inner (word-info-components word-info))))
-        let mut alternatives = Vec::with_capacity(word_info.components.len());
-        for component in &word_info.components {
-            alternatives.push(inner(ctx, component, false, root_only).await?);
-        }
-        let mut js = Map::new();
-        js.insert("alternative".to_owned(), Value::Array(alternatives));
-        Ok(Value::Object(js))
-    } else {
-        inner(ctx, word_info, false, root_only).await
-    }
-}
 
 #[cfg(test)]
-mod tests {
+mod word_info_gloss_json_tests {
     //! Ground truth captured from `(jsown:to-json (word-info-gloss-json …))`
     //! and `find-word-info-json` on .103 (2026-05-25) after `(init-suffixes t t)`.
     //! jsown emits `\uXXXX`; the expected strings below are the
@@ -1548,15 +1607,27 @@ mod tests {
         // (text, expected single-object json)
         let cases: &[(&str, &str)] = &[
             // simple noun — no conjs → top-level gloss, has-gloss → empty conj.
-            ("政府", r#"{"reading":"政府 【せいふ】","text":"政府","kana":"せいふ","score":325,"seq":1376070,"gloss":[{"pos":"[n]","gloss":"government; administration; ministry"}],"conj":[]}"#),
+            (
+                "政府",
+                r#"{"reading":"政府 【せいふ】","text":"政府","kana":"せいふ","score":325,"seq":1376070,"gloss":[{"pos":"[n]","gloss":"government; administration; ministry"}],"conj":[]}"#,
+            ),
             // conjugated verb — conjs is a list (not nil/:root) → no top-level
             // gloss; conj-info-json (has-gloss nil) carries the gloss.
-            ("書いた", r#"{"reading":"書いた 【かいた】","text":"書いた","kana":"かいた","score":336,"seq":10526928,"conj":[{"prop":[{"pos":"v5k","type":"Past (~ta)"}],"reading":"書く 【かく】","gloss":[{"pos":"[v5k,vt]","gloss":"to write; to compose; to pen"},{"pos":"[vt,v5k]","gloss":"to draw; to paint"}],"readok":true}]}"#),
+            (
+                "書いた",
+                r#"{"reading":"書いた 【かいた】","text":"書いた","kana":"かいた","score":336,"seq":10526928,"conj":[{"prop":[{"pos":"v5k","type":"Past (~ta)"}],"reading":"書く 【かく】","gloss":[{"pos":"[v5k,vt]","gloss":"to write; to compose; to pen"},{"pos":"[vt,v5k]","gloss":"to draw; to paint"}],"readok":true}]}"#,
+            ),
             // ordinal counter — counter object with ordinal:true.
-            ("5番目", r#"{"reading":"5番目 【ごばんめ】","text":"5番目","kana":"ごばんめ","score":667,"counter":{"value":"Value: 5th","ordinal":true},"seq":1482410,"gloss":[{"pos":"[ctr]","gloss":"the nth ...","info":"indicates position in a sequence"}]}"#),
+            (
+                "5番目",
+                r#"{"reading":"5番目 【ごばんめ】","text":"5番目","kana":"ごばんめ","score":667,"counter":{"value":"Value: 5th","ordinal":true},"seq":1482410,"gloss":[{"pos":"[ctr]","gloss":"the nth ...","info":"indicates position in a sequence"}]}"#,
+            ),
             // compound — compound list + components, the non-primary いる
             // component reaches the suffix arm (suffix t, has a description).
-            ("食べてる", r#"{"reading":"食べてる 【たべてる】","text":"食べてる","kana":"たべてる","score":434,"compound":["食べて","いる"],"components":[{"reading":"食べて 【たべて】","text":"食べて","kana":"たべて","score":0,"seq":10092233,"conj":[{"prop":[{"pos":"v1","type":"Conjunctive (~te)"}],"reading":"食べる 【たべる】","gloss":[{"pos":"[v1,vt]","gloss":"to eat"},{"pos":"[vt,v1]","gloss":"to live on (e.g. a salary); to live off; to subsist on"}],"readok":true}]},{"reading":"いる","text":"いる","kana":"いる","score":0,"seq":1577980,"suffix":"indicates continuing action (to be ...ing)","conj":[]}]}"#),
+            (
+                "食べてる",
+                r#"{"reading":"食べてる 【たべてる】","text":"食べてる","kana":"たべてる","score":434,"compound":["食べて","いる"],"components":[{"reading":"食べて 【たべて】","text":"食べて","kana":"たべて","score":0,"seq":10092233,"conj":[{"prop":[{"pos":"v1","type":"Conjunctive (~te)"}],"reading":"食べる 【たべる】","gloss":[{"pos":"[v1,vt]","gloss":"to eat"},{"pos":"[vt,v1]","gloss":"to live on (e.g. a salary); to live off; to subsist on"}],"readok":true}]},{"reading":"いる","text":"いる","kana":"いる","score":0,"seq":1577980,"suffix":"indicates continuing action (to be ...ing)","conj":[]}]}"#,
+            ),
         ];
         for (text, expected) in cases {
             let wis = find_word_info(&ctx, text, None, false).await.unwrap();
@@ -1574,8 +1645,14 @@ mod tests {
     async fn root_only_t_arm() {
         let ctx = ctx_from_env().await;
         let cases: &[(&str, &str)] = &[
-            ("政府", r#"{"reading":"政府 【せいふ】","text":"政府","kana":"せいふ","score":325,"seq":1376070,"gloss":[{"pos":"[n]","gloss":"government; administration; ministry"}]}"#),
-            ("書いた", r#"{"reading":"書いた 【かいた】","text":"書いた","kana":"かいた","score":336,"seq":10526928,"gloss":[]}"#),
+            (
+                "政府",
+                r#"{"reading":"政府 【せいふ】","text":"政府","kana":"せいふ","score":325,"seq":1376070,"gloss":[{"pos":"[n]","gloss":"government; administration; ministry"}]}"#,
+            ),
+            (
+                "書いた",
+                r#"{"reading":"書いた 【かいた】","text":"書いた","kana":"かいた","score":336,"seq":10526928,"gloss":[]}"#,
+            ),
         ];
         for (text, expected) in cases {
             let wis = find_word_info(&ctx, text, None, false).await.unwrap();
@@ -1625,19 +1702,9 @@ mod tests {
         assert_eq!(json(&result), expected);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod def_reader_for_json_macro_inner {
-use serde_json::Value;
-
-pub fn def_reader_for_json<'a>(obj: &'a Value, slot: &str) -> &'a Value {
-    obj.get(slot)
-        .unwrap_or_else(|| panic!("jsown:val: key {slot:?} not present in object"))
-}
 
 #[cfg(test)]
-mod tests {
+mod def_reader_for_json_macro_tests {
     use super::*;
     use serde_json::json;
 
@@ -1692,7 +1759,10 @@ mod tests {
             "alternative":true,"primary":true,"start":0,"end":2,"counter":[],"skipped":0
         });
         assert_eq!(def_reader_for_json(&hitori, "kana"), &json!(["ひとり"]));
-        assert_eq!(def_reader_for_json(&hitori, "seq"), &json!([1576150, 2149890]));
+        assert_eq!(
+            def_reader_for_json(&hitori, "seq"),
+            &json!([1576150, 2149890])
+        );
         assert_eq!(def_reader_for_json(&hitori, "alternative"), &json!(true));
         assert_eq!(def_reader_for_json(&hitori, "truetext"), &json!([]));
         let components = def_reader_for_json(&hitori, "components");
@@ -1711,56 +1781,11 @@ mod tests {
         def_reader_for_json(&obj, "nonexistent");
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod register_item_inner {
-use crate::dict::segment::TopArray;
-use crate::dict::segment::{PathElement, TopArrayItem};
-
-pub fn register_item(obj: &mut TopArray, score: i32, payload: Vec<PathElement>) {
-    // dict.lisp:1151 (let ((item (make-top-array-item :score score :payload payload)) (len ...)))
-    let mut item: Option<TopArrayItem> = Some(TopArrayItem { score, payload });
-    let len = obj.array.len();
-    // dict.lisp:1153 (loop for idx from (min count len) downto 0 ...)
-    let start = obj.count.min(len);
-    let mut idx = start;
-    loop {
-        // dict.lisp:1154 (for prev-item = (when (> idx 0) (aref array (1- idx))))
-        // The slot value is itself an Option (initialize-instance fills with nil);
-        // both "idx == 0" and "slot is nil" collapse to None here.
-        let prev_score = if idx > 0 {
-            obj.array[idx - 1].as_ref().map(|prev| prev.score)
-        } else {
-            None
-        };
-        // dict.lisp:1155 (for done = (or (not prev-item) (>= (tai-score prev-item) score)))
-        let done = match prev_score {
-            None => true,
-            Some(prev) => prev >= score,
-        };
-        // dict.lisp:1156 (when (< idx len) do (setf (aref array idx) (if done item prev-item)))
-        if idx < len {
-            obj.array[idx] = if done {
-                item.take()
-            } else {
-                obj.array[idx - 1].take()
-            };
-        }
-        // dict.lisp:1157 (until done)
-        if done {
-            break;
-        }
-        idx -= 1;
-    }
-    // dict.lisp:1158 (incf count)
-    obj.count += 1;
-}
 
 #[cfg(test)]
-mod tests {
-    use crate::dict::segment::SegmentList;
+mod register_item_tests {
     use super::*;
+    use crate::dict::segment::SegmentList;
 
     fn payload(tag: i32) -> Vec<PathElement> {
         // Use a sentinel SegmentList with `matches` carrying the tag —
@@ -1923,91 +1948,59 @@ mod tests {
         assert!(item.payload.is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod score_base_inner {
-use crate::dict::text_classes::CompoundText;
-use crate::dict::kani::KaniWordDispatchEnum;
-
-pub fn score_base(word: &CompoundText) -> &KaniWordDispatchEnum {
-    word.score_base.as_deref().unwrap_or(&*word.primary)
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod word_type_inner {
-use crate::characters::char_classes::CharClass;
-use crate::characters::char_classes::count_char_class;
-use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::counters::dispatchers::text;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum WordType {
-    Kanji,
-    Kana,
-    Gap,
-}
-
-pub fn word_type(obj: &KaniWordDispatchEnum) -> WordType {
-    match obj {
-        KaniWordDispatchEnum::Kanji(_) => WordType::Kanji,
-        KaniWordDispatchEnum::Kana(_) => WordType::Kana,
-        KaniWordDispatchEnum::Counter(_) => {
-            let t = text(obj);
-            if count_char_class(&t, CharClass::KanjiChar) > 0 {
-                WordType::Kanji
-            } else {
-                WordType::Kana
-            }
-        }
-        KaniWordDispatchEnum::Proxy(p) => word_type_simple(&p.source),
-        KaniWordDispatchEnum::Compound(c) => word_type(&c.primary),
-    }
-}
-
-fn word_type_simple(obj: &KaniSimpleTextDispatchEnum) -> WordType {
-    match obj {
-        KaniSimpleTextDispatchEnum::Kanji(_) => WordType::Kanji,
-        KaniSimpleTextDispatchEnum::Kana(_) => WordType::Kana,
-        KaniSimpleTextDispatchEnum::Proxy(p) => word_type_simple(&p.source),
-    }
-}
 
 #[cfg(test)]
-mod tests {
+mod word_type_tests {
     use super::*;
-    use crate::dict::text_classes::{CompoundText, ScoreMod};
     use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText};
-    use crate::dict::dao::KanaText;
-    use crate::dict::dao::KanjiText;
-    use crate::dict::text_classes::ProxyText;
-    use crate::dict::text_classes::SimpleText;
+    use crate::dict::dao::{KanaText, KanjiText};
+    use crate::dict::text_classes::{CompoundText, ProxyText, ScoreMod, SimpleText};
 
     fn kanji(seq: i32, text: &str) -> KanjiText {
         KanjiText {
-            id: 0, seq, text: text.into(), ord: 0,
-            common: None, common_tags: String::new(), conjugate_p: true,
-            nokanji: false, best_kana: None, state: SimpleText::default(),
+            id: 0,
+            seq,
+            text: text.into(),
+            ord: 0,
+            common: None,
+            common_tags: String::new(),
+            conjugate_p: true,
+            nokanji: false,
+            best_kana: None,
+            state: SimpleText::default(),
         }
     }
 
     fn kana(seq: i32, text: &str) -> KanaText {
         KanaText {
-            id: 0, seq, text: text.into(), ord: 0,
-            common: None, common_tags: String::new(), conjugate_p: true,
-            nokanji: false, best_kanji: None, state: SimpleText::default(),
+            id: 0,
+            seq,
+            text: text.into(),
+            ord: 0,
+            common: None,
+            common_tags: String::new(),
+            conjugate_p: true,
+            nokanji: false,
+            best_kanji: None,
+            state: SimpleText::default(),
         }
     }
 
     fn counter(number_text: &str, text: &str, source: Option<CounterSource>) -> Counter {
         Counter::Base(CounterText {
-            text: text.into(), kana: String::new(),
-            number_text: number_text.into(), number: 0,
-            source, ordinalp: false, suffix: None,
-            accepts_suffixes: Vec::new(), suffix_descriptions: Vec::new(),
-            digit_opts: Vec::new(), common: Common::Inherit,
-            allowed: Vec::new(), foreign: false,
+            text: text.into(),
+            kana: String::new(),
+            number_text: number_text.into(),
+            number: 0,
+            source,
+            ordinalp: false,
+            suffix: None,
+            accepts_suffixes: Vec::new(),
+            suffix_descriptions: Vec::new(),
+            digit_opts: Vec::new(),
+            common: Common::Inherit,
+            allowed: Vec::new(),
+            foreign: false,
         })
     }
 
@@ -2041,22 +2034,23 @@ mod tests {
     fn counter_with_only_kana_text() {
         // "1" + "つ" → "1つ"; no kanji.
         let c = counter("1", "つ", None);
-        assert_eq!(
-            word_type(&KaniWordDispatchEnum::Counter(c)),
-            WordType::Kana,
-        );
+        assert_eq!(word_type(&KaniWordDispatchEnum::Counter(c)), WordType::Kana,);
     }
 
     #[test]
     fn proxy_recurses_through_source_chain() {
         let leaf = KaniSimpleTextDispatchEnum::Kana(kana(1, "ねこ"));
         let inner = KaniSimpleTextDispatchEnum::Proxy(ProxyText {
-            text: String::new(), kana: String::new(),
-            source: Box::new(leaf), state: SimpleText::default(),
+            text: String::new(),
+            kana: String::new(),
+            source: Box::new(leaf),
+            state: SimpleText::default(),
         });
         let outer = ProxyText {
-            text: String::new(), kana: String::new(),
-            source: Box::new(inner), state: SimpleText::default(),
+            text: String::new(),
+            kana: String::new(),
+            source: Box::new(inner),
+            state: SimpleText::default(),
         };
         assert_eq!(
             word_type(&KaniWordDispatchEnum::Proxy(outer)),
@@ -2072,93 +2066,16 @@ mod tests {
             KaniWordDispatchEnum::Kana(kana(2, "ねこ")),
         ];
         let c = CompoundText {
-            text: String::new(), kana: String::new(),
-            primary, words,
-            score_base: None, score_mod: ScoreMod::Single(0),
+            text: String::new(),
+            kana: String::new(),
+            primary,
+            words,
+            score_base: None,
+            score_mod: ScoreMod::Single(0),
         };
         assert_eq!(
             word_type(&KaniWordDispatchEnum::Compound(c)),
             WordType::Kanji,
         );
     }
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod word_conj_data_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::conj_data::ConjData;
-use crate::dict::conj_data::{get_conj_data, FromOrConjIds};
-use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::text_classes::ProxyText;
-use crate::dict::text_classes::WordConjugations;
-
-pub async fn word_conj_data(
-    ctx: &KaniranContext,
-    word: &KaniWordDispatchEnum,
-) -> Result<Vec<ConjData>, sqlx::Error> {
-    match word {
-        // dict-counters.lisp:87 (defmethod word-conj-data ((obj counter-text)) nil)
-        KaniWordDispatchEnum::Counter(_) => Ok(Vec::new()),
-
-        // dict.lisp:660-661 (defmethod word-conj-data ((word compound-text)))
-        KaniWordDispatchEnum::Compound(c) => {
-            let last = c
-                .words
-                .last()
-                .expect("compound-text always has at least one word (adjoin-word ctor)");
-            Box::pin(word_conj_data(ctx, last)).await
-        }
-
-        // dict.lisp:657-658 (defmethod word-conj-data ((word simple-text)))
-        KaniWordDispatchEnum::Kanji(k) => {
-            simple_text_arm(ctx, k.seq, &k.state.conjugations, &k.text).await
-        }
-        KaniWordDispatchEnum::Kana(k) => {
-            simple_text_arm(ctx, k.seq, &k.state.conjugations, &k.text).await
-        }
-        KaniWordDispatchEnum::Proxy(p) => {
-            // dict.lisp:657-658 — proxy's seq / word-conjugations / true-text gfs
-            // each delegate to (source obj); the leaf is a kanji-text or kana-text
-            // and supplies all three slot reads.
-            let leaf = leaf_of(p);
-            let (seq, conj, text) = leaf_slots(leaf);
-            simple_text_arm(ctx, seq, conj, text).await
-        }
-    }
-}
-
-async fn simple_text_arm(
-    ctx: &KaniranContext,
-    seq: i32,
-    conjugations: &Option<WordConjugations>,
-    true_text: &str,
-) -> Result<Vec<ConjData>, sqlx::Error> {
-    let from_or_conj_ids = match conjugations {
-        None => FromOrConjIds::All,
-        Some(WordConjugations::Root) => FromOrConjIds::Root,
-        Some(WordConjugations::Ids(ids)) => FromOrConjIds::ConjIds(ids.clone()),
-    };
-    get_conj_data(ctx, seq, from_or_conj_ids, &[true_text]).await
-}
-
-fn leaf_of(p: &ProxyText) -> &KaniSimpleTextDispatchEnum {
-    let mut current: &KaniSimpleTextDispatchEnum = &p.source;
-    loop {
-        match current {
-            KaniSimpleTextDispatchEnum::Proxy(inner) => current = &inner.source,
-            _ => return current,
-        }
-    }
-}
-
-fn leaf_slots(
-    leaf: &KaniSimpleTextDispatchEnum,
-) -> (i32, &Option<WordConjugations>, &str) {
-    match leaf {
-        KaniSimpleTextDispatchEnum::Kanji(k) => (k.seq, &k.state.conjugations, &k.text),
-        KaniSimpleTextDispatchEnum::Kana(k) => (k.seq, &k.state.conjugations, &k.text),
-        KaniSimpleTextDispatchEnum::Proxy(_) => unreachable!("leaf_of strips proxies"),
-    }
-}
 }

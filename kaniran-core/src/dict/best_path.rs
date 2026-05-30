@@ -3,37 +3,29 @@
 //! substring-index + fill-segment-path + word-info-rec-find +
 //! process-word-info plus the segmenter scoring cutoffs.
 
-pub use find_best_path_inner::*;
-pub use adjoin_word_inner::*;
-pub use join_substring_words_inner::*;
-pub use join_substring_words_star__inner::*;
-pub use substring_index_inner::*;
-pub use fill_segment_path_inner::*;
-pub use word_info_rec_find_inner::*;
-pub use process_word_info_inner::*;
-pub use _star_score_cutoff_star__inner::*;
-pub use _star_identical_word_score_cutoff_star__inner::*;
-pub use _star_segment_score_cutoff_star__inner::*;
-pub use _star_suffix_map_temp_star__inner::*;
-pub use _star_suffix_next_end_star__inner::*;
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_best_path_inner {
-use std::sync::Arc;
-
+use crate::characters::char_classes::CharClass;
+use crate::characters::kana_class::{get_char_class, KanaClass};
+use crate::characters::kanji::sequential_kanji_positions;
+use crate::characters::text_utils::consecutive_char_groups;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::segment::expand_segment_list;
-use crate::dict::segment::gap_penalty;
-use crate::dict::segment::get_seg_initial;
-use crate::dict::segment::get_seg_splits;
-use crate::dict::segment::{get_segment_score, KaniSegmentScoreArg};
-use crate::dict::kani::KaniLiteSegmentList;
+use crate::dict::best_text::{get_kana, get_text};
+use crate::dict::calc_score::gen_score;
+use crate::dict::dao::KanaText;
+use crate::dict::errata::{FORCE_KANJI_BREAK, NO_KANJI_BREAK};
+use crate::dict::find_word::{find_substring_words, find_word_full, CounterArg, MAX_WORD_LENGTH};
+use crate::dict::grammar::suffix_lookup::get_suffix_map;
 use crate::dict::kani::{
-    kani_lite_get_array, kani_lite_register_item, KaniLiteTopArray,
+    kani_lite_get_array, kani_lite_register_item, KaniLitePathElement, KaniLiteSegmentList,
+    KaniLiteTopArray, KaniLiteTopArrayItem, KaniSimpleTextDispatchEnum, KaniWordDispatchEnum,
 };
-use crate::dict::kani::{KaniLitePathElement, KaniLiteTopArrayItem};
-use crate::dict::segment::SegmentList;
-use crate::dict::segment::PathElement;
+use crate::dict::segment::{
+    cull_segments, expand_segment_list, find_sticky_positions, gap_penalty, get_seg_initial,
+    get_seg_splits, get_segment_score, KaniSegmentScoreArg, PathElement, Segment, SegmentList,
+};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
+use crate::dict::word_info::{word_info_from_segment_list, WordInfo, WordInfoKana, WordInfoType};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 const DEFAULT_LIMIT: usize = 5;
 
@@ -58,8 +50,9 @@ pub async fn find_best_path(
         .iter()
         .map(|sl| Arc::new(KaniLiteSegmentList::from_segment_list(sl)))
         .collect();
-    let mut per_list_tops: Vec<KaniLiteTopArray> =
-        (0..lite_lists.len()).map(|_| KaniLiteTopArray::new(limit)).collect();
+    let mut per_list_tops: Vec<KaniLiteTopArray> = (0..lite_lists.len())
+        .map(|_| KaniLiteTopArray::new(limit))
+        .collect();
 
     // dict.lisp:1192 (let ((top (make-instance 'top-array :limit limit))))
     let mut top = KaniLiteTopArray::new(limit);
@@ -88,12 +81,10 @@ pub async fn find_best_path(
         // dict.lisp:1205-1209 (loop for seg in initial-segs ...)
         for seg in initial_segs {
             // dict.lisp:1206 (for score1 = (get-segment-score seg))
-            let score1 =
-                get_segment_score(&KaniSegmentScoreArg::KaniLiteSegmentList(&seg))
-                    .expect("get-seg-initial output carries a scored first segment");
-            let payload: Arc<[KaniLitePathElement]> = Arc::from(vec![
-                KaniLitePathElement::SegmentList(Arc::clone(&seg)),
-            ]);
+            let score1 = get_segment_score(&KaniSegmentScoreArg::KaniLiteSegmentList(&seg))
+                .expect("get-seg-initial output carries a scored first segment");
+            let payload: Arc<[KaniLitePathElement]> =
+                Arc::from(vec![KaniLitePathElement::SegmentList(Arc::clone(&seg))]);
             // dict.lisp:1208 (register-item (segment-list-top seg1) (+ gap-left score1) (list seg))
             kani_lite_register_item(
                 &mut per_list_tops[i],
@@ -118,9 +109,8 @@ pub async fn find_best_path(
                 continue;
             }
 
-            let score2 =
-                get_segment_score(&KaniSegmentScoreArg::KaniLiteSegmentList(&seg2))
-                    .expect("post-expand segment-list carries a scored first segment");
+            let score2 = get_segment_score(&KaniSegmentScoreArg::KaniLiteSegmentList(&seg2))
+                .expect("post-expand segment-list carries a scored first segment");
 
             let gap_left = gap_penalty(seg1_end, seg2_start);
             let gap_right = gap_penalty(seg2_end, str_length);
@@ -148,10 +138,9 @@ pub async fn find_best_path(
                 };
                 let tail: &[KaniLitePathElement] = &payload_slice[1..];
 
-                let score3 = get_segment_score(&KaniSegmentScoreArg::KaniLiteSegmentList(
-                    &seg_left_sl,
-                ))
-                .expect("payload-head segment-list is scored");
+                let score3 =
+                    get_segment_score(&KaniSegmentScoreArg::KaniLiteSegmentList(&seg_left_sl))
+                        .expect("payload-head segment-list is scored");
                 let score_tail = tai.score - score3;
 
                 let splits = get_seg_splits(&seg_left_sl, &seg2);
@@ -163,9 +152,7 @@ pub async fn find_best_path(
                                 KaniLitePathElement::SegmentList(sl) => {
                                     KaniSegmentScoreArg::KaniLiteSegmentList(sl)
                                 }
-                                KaniLitePathElement::Synergy(s) => {
-                                    KaniSegmentScoreArg::Synergy(s)
-                                }
+                                KaniLitePathElement::Synergy(s) => KaniSegmentScoreArg::Synergy(s),
                             };
                             get_segment_score(&arg)
                                 .expect("split element is scored (get-seg-splits output)")
@@ -212,72 +199,6 @@ pub async fn find_best_path(
     }
     Ok(result)
 }
-
-#[cfg(test)]
-mod tests {
-    //! Empty-input unit tests pinned against `.103` REPL probes
-    //! (SBCL 2.2.9, 2026-05-19). The DB-dependent non-empty paths
-    //! (outer loop, get-seg-initial, get-seg-splits accumulation) are
-    //! covered by the 522K-row audit binary at
-    //! `audit/dict/find_best_path_test.rs`.
-
-    use super::*;
-
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
-    }
-
-    // REPL: (ichiran/dict::find-best-path nil 5) => ((NIL . -2500))
-    #[tokio::test]
-    async fn empty_input_length_5_default_limit() {
-        let ctx = ctx_from_env().await;
-        let result = find_best_path(&ctx, &mut [], 5, None).await.unwrap();
-        assert_eq!(result.len(), 1);
-        assert!(result[0].0.is_empty(), "initial gap-seed has empty payload");
-        assert_eq!(result[0].1, -2500);
-    }
-
-    // REPL: (ichiran/dict::find-best-path nil 0) => ((NIL . 0))
-    #[tokio::test]
-    async fn empty_input_length_0() {
-        let ctx = ctx_from_env().await;
-        let result = find_best_path(&ctx, &mut [], 0, None).await.unwrap();
-        assert_eq!(result.len(), 1);
-        assert!(result[0].0.is_empty());
-        assert_eq!(result[0].1, 0);
-    }
-
-    // REPL: (ichiran/dict::find-best-path nil 1 :limit 3) => ((NIL . -500))
-    #[tokio::test]
-    async fn empty_input_length_1_limit_3() {
-        let ctx = ctx_from_env().await;
-        let result = find_best_path(&ctx, &mut [], 1, Some(3)).await.unwrap();
-        assert_eq!(result.len(), 1);
-        assert!(result[0].0.is_empty());
-        assert_eq!(result[0].1, -500);
-    }
-
-    // REPL: (ichiran/dict::find-best-path nil 1 :limit 1) => ((NIL . -500))
-    #[tokio::test]
-    async fn empty_input_length_1_limit_1() {
-        let ctx = ctx_from_env().await;
-        let result = find_best_path(&ctx, &mut [], 1, Some(1)).await.unwrap();
-        assert_eq!(result.len(), 1);
-        assert!(result[0].0.is_empty());
-        assert_eq!(result[0].1, -500);
-    }
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod adjoin_word_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::text_classes::{CompoundText, ScoreMod};
-use crate::dict::best_text::get_kana;
-use crate::dict::best_text::get_text;
-use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 
 pub async fn adjoin_word(
     ctx: &KaniranContext,
@@ -379,11 +300,452 @@ pub async fn adjoin_word(
     }
 }
 
+pub async fn join_substring_words(
+    ctx: &KaniranContext,
+    str: &str,
+) -> Result<Vec<SegmentList>, sqlx::Error> {
+    // (multiple-value-bind (result kanji-break) (join-substring-words* str) ...)
+    let (result, kanji_break) = join_substring_words_star_(ctx, str).await?;
+    let length = str.chars().count();
+    // dict.lisp:1116 — (alexandria:ends-with #\ー str)
+    let ends_with_lw = str.chars().last() == Some('ー');
+
+    let mut sls: Vec<SegmentList> = Vec::new();
+    // for (start end segments) in result
+    for (start, end, segments) in result {
+        // dict.lisp:1118 — (mapcar (lambda (n) (- n start))
+        //   (intersection (list start end) kanji-break))
+        // SBCL conses each match onto the front, so the intersection of
+        // (start end) is (end start) when both are present.
+        let mut intersection: Vec<usize> = Vec::new();
+        if kanji_break.contains(&start) {
+            intersection.push(start);
+        }
+        if kanji_break.contains(&end) {
+            intersection.push(end);
+        }
+        intersection.reverse();
+        let kb: Vec<usize> = intersection.iter().map(|n| n - start).collect();
+
+        // :matches (length segments) — the pre-filter segment count.
+        let matches = segments.len();
+        // for sl = (loop for segment in segments do (gen-score ...)
+        //              if (>= (segment-score segment) *score-cutoff*) collect segment)
+        let mut sl: Vec<Segment> = Vec::new();
+        for mut segment in segments {
+            // dict.lisp:1121-1123 — :final (or (= (segment-end segment) (length str))
+            //   (and ends-with-lw (= (segment-end segment) (1- (length str)))))
+            let final_ = segment.end == length || (ends_with_lw && segment.end == length - 1);
+            gen_score(ctx, &mut segment, final_, &kb).await?;
+            if segment.score.expect("gen-score populates segment.score") >= SCORE_CUTOFF {
+                sl.push(segment);
+            }
+        }
+        // when sl collect (make-segment-list :segments (cull-segments sl) ...)
+        if !sl.is_empty() {
+            sls.push(SegmentList {
+                segments: cull_segments(sl),
+                start,
+                end,
+                top: None,
+                matches,
+            });
+        }
+    }
+    Ok(sls)
+}
+
+pub async fn join_substring_words_star_(
+    ctx: &KaniranContext,
+    str: &str,
+) -> Result<(Vec<(usize, usize, Vec<Segment>)>, Vec<usize>), sqlx::Error> {
+    let chars: Vec<char> = str.chars().collect();
+    let length = chars.len();
+
+    let sticky = find_sticky_positions(str);
+    let substring_hash = Arc::new(find_substring_words(ctx, str, &sticky).await?);
+    let katakana_groups = consecutive_char_groups(CharClass::Katakana, str, 0, length);
+    let number_groups = consecutive_char_groups(CharClass::Number, str, 0, length);
+    // (get-suffix-map str) returns triples borrowing str / ctx.suffix_cache;
+    // *suffix-map-temp* owns its data, so materialize owned triples once.
+    let suffix_map: Arc<SuffixMapTemp> = Arc::new(
+        get_suffix_map(ctx, str)
+            .into_iter()
+            .map(|(end, items)| {
+                let owned: Vec<(String, String, Option<_>)> = items
+                    .into_iter()
+                    .map(|(substr, key, kf)| (substr.to_string(), key.to_string(), kf.cloned()))
+                    .collect();
+                (end, owned)
+            })
+            .collect(),
+    );
+
+    let mut kanji_break: Vec<usize> = Vec::new();
+    let mut ends: Vec<usize> = Vec::new();
+    let mut result: Vec<(usize, usize, Vec<Segment>)> = Vec::new();
+
+    for start in 0..length {
+        // (cdr (assoc start katakana-groups)) / (cdr (assoc start number-groups))
+        let katakana_group_end = katakana_groups
+            .iter()
+            .find(|(group_start, _)| *group_start == start)
+            .map(|(_, group_end)| *group_end);
+        let number_group_end = number_groups
+            .iter()
+            .find(|(group_start, _)| *group_start == start)
+            .map(|(_, group_end)| *group_end);
+        // unless (member start sticky)
+        if sticky.contains(&start) {
+            continue;
+        }
+        // for end from (1+ start) upto (min (length str) (+ start *max-word-length*))
+        let end_max = length.min(start + MAX_WORD_LENGTH);
+        for end in (start + 1)..=end_max {
+            // unless (member end sticky)
+            if sticky.contains(&end) {
+                continue;
+            }
+            // (subseq str start end)
+            let part: String = chars[start..end].iter().collect();
+            // :as-hiragana (and katakana-group-end (= end katakana-group-end))
+            let as_hiragana = katakana_group_end == Some(end);
+            // :counter (and number-group-end (<= number-group-end end)
+            //               (let ((d (- number-group-end start))) (and (<= d 20) d)))
+            let counter = match number_group_end {
+                Some(number_group_end) if number_group_end <= end => {
+                    let d = number_group_end - start;
+                    if d <= 20 {
+                        Some(CounterArg::At(d))
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            };
+            // dict.lisp:1090-1092 — (let ((*suffix-map-temp* suffix-map)
+            //   (*suffix-next-end* end) (*substring-hash* substring-hash)) (find-word-full ...))
+            let ctx2 = ctx
+                .with_suffix_map_temp(Some(Arc::clone(&suffix_map)))
+                .with_suffix_next_end(Some(end as i32))
+                .with_substring_hash(Arc::clone(&substring_hash));
+            let words = find_word_full(&ctx2, &part, as_hiragana, counter).await?;
+            // (mapcar (lambda (word) (make-segment :start start :end end :word word)) ...)
+            let segments: Vec<Segment> = words
+                .into_iter()
+                .map(|word| Segment {
+                    start,
+                    end,
+                    word,
+                    score: None,
+                    info: None,
+                    top: None,
+                    text: None,
+                })
+                .collect();
+            // (when segments ...)
+            if !segments.is_empty() {
+                // (when (or (= start 0) (find start ends)) (setf kanji-break (nconc (cond ...) kanji-break)))
+                if start == 0 || ends.contains(&start) {
+                    let new_positions: Vec<usize> = if FORCE_KANJI_BREAK.contains(&part.as_str()) {
+                        // (alexandria:iota (1- (length part)) :start (1+ start))
+                        ((start + 1)..end).collect()
+                    } else if NO_KANJI_BREAK.contains(&part.as_str()) {
+                        Vec::new()
+                    } else {
+                        sequential_kanji_positions(&part, start)
+                    };
+                    // (nconc new-positions kanji-break)
+                    let mut combined = new_positions;
+                    combined.append(&mut kanji_break);
+                    kanji_break = combined;
+                }
+                // (pushnew end ends)
+                if !ends.contains(&end) {
+                    ends.insert(0, end);
+                }
+                // (list (list start end segments))
+                result.push((start, end, segments));
+            }
+        }
+    }
+
+    // (values result (remove-duplicates kanji-break))
+    Ok((result, remove_duplicates(&kanji_break)))
+}
+
+/// `(remove-duplicates seq)` with the default `:from-end nil`: an
+/// element recurring later in the list is dropped at its earlier
+/// position, so the last occurrence survives; the surviving relative
+/// order is preserved.
+fn remove_duplicates(items: &[usize]) -> Vec<usize> {
+    let mut out: Vec<usize> = Vec::new();
+    for (index, position) in items.iter().enumerate() {
+        if !items[index + 1..].contains(position) {
+            out.push(*position);
+        }
+    }
+    out
+}
+
+pub async fn substring_index(
+    ctx: &KaniranContext,
+    str: &str,
+) -> Result<HashMap<(usize, usize), SegmentList>, sqlx::Error> {
+    let sls = join_substring_words(ctx, str).await?;
+    let mut index: HashMap<(usize, usize), SegmentList> = HashMap::new();
+    for sl in sls {
+        index.insert((sl.start, sl.end), sl);
+    }
+    Ok(index)
+}
+
+pub async fn fill_segment_path(
+    ctx: &KaniranContext,
+    str: &str,
+    path: &mut [PathElement],
+) -> Result<Vec<WordInfo>, sqlx::Error> {
+    let str_char_len = str.chars().count();
+    let mut idx: usize = 0;
+    let mut result: Vec<WordInfo> = Vec::new();
+
+    // dict.lisp:1396-1403 (loop ... for segment-list in path
+    //   when (typep segment-list 'segment-list) ...)
+    for element in path.iter_mut() {
+        let PathElement::SegmentList(sl) = element else {
+            continue;
+        };
+        // dict.lisp:1399-1400 (when start > idx, push gap)
+        if sl.start > idx {
+            result.push(make_substr_gap(str, idx, sl.start));
+        }
+        // dict.lisp:1402 (push (word-info-from-segment-list segment-list) result)
+        let wi = word_info_from_segment_list(ctx, sl).await?;
+        // dict.lisp:1403 (setf idx (segment-list-end segment-list))
+        idx = sl.end;
+        result.push(wi);
+    }
+
+    // dict.lisp:1404-1406 (finally — trailing gap if idx < length)
+    if idx < str_char_len {
+        result.push(make_substr_gap(str, idx, str_char_len));
+    }
+
+    // dict.lisp:1407 (return (process-word-info (nreverse result)))
+    // — we built `result` forward, so no nreverse; process_word_info
+    //   takes ownership and returns the transformed Vec.
+    Ok(process_word_info(result))
+}
+
+// dict.lisp:1391-1395 (flet make-substr-gap)
+fn make_substr_gap(str: &str, start: usize, end: usize) -> WordInfo {
+    // (subseq str start end) — char-indexed in SBCL (CONVENTIONS §4.5)
+    let substr: String = str.chars().skip(start).take(end - start).collect();
+    WordInfo {
+        kind: WordInfoType::Gap,
+        text: substr.clone(),
+        kana: Some(WordInfoKana::Single(substr)),
+        start: Some(start),
+        end: Some(end),
+        ..Default::default()
+    }
+}
+
+pub fn word_info_rec_find<'a, F>(
+    wi_list: &'a [WordInfo],
+    test_fn: &F,
+) -> Vec<(&'a WordInfo, Option<&'a WordInfo>)>
+where
+    F: Fn(&WordInfo) -> bool,
+{
+    let mut result = Vec::new();
+    // dict.lisp:1411 (loop for (wi wi-next) on wi-list)
+    for (idx, wi) in wi_list.iter().enumerate() {
+        let wi_next = wi_list.get(idx + 1);
+        // dict.lisp:1412 (for components = (word-info-components wi))
+        let components = &wi.components;
+        // dict.lisp:1413 (if (funcall test-fn wi) nconc (list (cons wi wi-next)))
+        if test_fn(wi) {
+            result.push((wi, wi_next));
+        }
+        // dict.lisp:1414-1415 (nconc (loop for (wf . wf-next) in (word-info-rec-find components test-fn)
+        //                                collect (cons wf (or wf-next wi-next))))
+        for (wf, wf_next) in word_info_rec_find(components, test_fn) {
+            result.push((wf, wf_next.or(wi_next)));
+        }
+    }
+    result
+}
+
+pub fn process_word_info(mut wi_list: Vec<WordInfo>) -> Vec<WordInfo> {
+    for i in 0..wi_list.len() {
+        if wi_list[i].text != "何" {
+            continue;
+        }
+        let Some(next) = wi_list.get(i + 1) else {
+            continue;
+        };
+        // dict.lisp:1421-1438 — `(unless (listp kn) (setf kn (list kn)))`
+        // wraps a non-list `kn` in a singleton; the inner loop then
+        // iterates `kn` at one level. `(char kana 0)` errors with a
+        // type-error on a non-string element; we mirror that by
+        // panicking on a nested `Multi` entry. `None` entries become
+        // length-0 and are skipped via `(when (> (length kana) 0) ...)`.
+        // Iterate kn at one level. Lisp's `(unless (listp kn) (setf kn (list kn)))`
+        // wraps a non-list element into a singleton; equivalent here: a
+        // `Single`/`None` slot wraps to a one-element iteration.
+        let singleton: Option<WordInfoKana>;
+        let kn_iter: &[Option<WordInfoKana>] = match &next.kana {
+            Some(WordInfoKana::Multi(items)) => items.as_slice(),
+            other => {
+                singleton = other.clone();
+                std::slice::from_ref(&singleton)
+            }
+        };
+        let mut nani = false;
+        let mut nan = false;
+        for entry in kn_iter {
+            let kana: &str = match entry {
+                Some(WordInfoKana::Single(s)) => s.as_str(),
+                None => "",
+                Some(WordInfoKana::Multi(_)) => {
+                    panic!(
+                        "process-word-info: nested Multi inside kana list — upstream `(char list 0)` would type-error"
+                    );
+                }
+            };
+            let Some(first_char) = kana.chars().next() else {
+                continue;
+            };
+            let fc_class = get_char_class(first_char);
+            if matches!(fc_class, Some(c) if is_nan_class(c)) {
+                nan = true;
+            } else {
+                nani = true;
+            }
+        }
+        let nani_kana = match (nan, nani) {
+            (true, true) => Some("なに"),
+            (true, false) => Some("なん"),
+            (false, true) => Some("なに"),
+            (false, false) => None,
+        };
+        if let Some(s) = nani_kana {
+            wi_list[i].kana = Some(WordInfoKana::Single(s.to_string()));
+        }
+    }
+    wi_list
+}
+
+fn is_nan_class(c: KanaClass) -> bool {
+    use KanaClass::*;
+    matches!(
+        c,
+        Ba | Bi
+            | Bu
+            | Be
+            | Bo
+            | Pa
+            | Pi
+            | Pu
+            | Pe
+            | Po
+            | Da
+            | Dji
+            | Dzu
+            | De
+            | Do
+            | Za
+            | Ji
+            | Zu
+            | Ze
+            | Zo
+            | Ta
+            | Chi
+            | Tsu
+            | Te
+            | To
+            | Na
+            | Nu
+            | Ne
+            | No
+            | Ra
+            | Ri
+            | Ru
+            | Re
+            | Ro
+    )
+}
+
+pub const SCORE_CUTOFF: i32 = 5;
+
+pub const IDENTICAL_WORD_SCORE_CUTOFF: (i64, i64) = (1, 2);
+
+pub const SEGMENT_SCORE_CUTOFF: (i64, i64) = (2, 3);
+
+pub type SuffixMapTemp = HashMap<usize, Vec<(String, String, Option<KanaText>)>>;
+
 #[cfg(test)]
-mod tests {
+mod find_best_path_tests {
+    //! Empty-input unit tests pinned against `.103` REPL probes
+    //! (SBCL 2.2.9, 2026-05-19). The DB-dependent non-empty paths
+    //! (outer loop, get-seg-initial, get-seg-splits accumulation) are
+    //! covered by the 522K-row audit binary at
+    //! `audit/dict/find_best_path_test.rs`.
+
     use super::*;
-    use crate::dict::dao::KanaText;
-    use crate::dict::dao::KanjiText;
+
+    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .await
+            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    }
+
+    // REPL: (ichiran/dict::find-best-path nil 5) => ((NIL . -2500))
+    #[tokio::test]
+    async fn empty_input_length_5_default_limit() {
+        let ctx = ctx_from_env().await;
+        let result = find_best_path(&ctx, &mut [], 5, None).await.unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(result[0].0.is_empty(), "initial gap-seed has empty payload");
+        assert_eq!(result[0].1, -2500);
+    }
+
+    // REPL: (ichiran/dict::find-best-path nil 0) => ((NIL . 0))
+    #[tokio::test]
+    async fn empty_input_length_0() {
+        let ctx = ctx_from_env().await;
+        let result = find_best_path(&ctx, &mut [], 0, None).await.unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(result[0].0.is_empty());
+        assert_eq!(result[0].1, 0);
+    }
+
+    // REPL: (ichiran/dict::find-best-path nil 1 :limit 3) => ((NIL . -500))
+    #[tokio::test]
+    async fn empty_input_length_1_limit_3() {
+        let ctx = ctx_from_env().await;
+        let result = find_best_path(&ctx, &mut [], 1, Some(3)).await.unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(result[0].0.is_empty());
+        assert_eq!(result[0].1, -500);
+    }
+
+    // REPL: (ichiran/dict::find-best-path nil 1 :limit 1) => ((NIL . -500))
+    #[tokio::test]
+    async fn empty_input_length_1_limit_1() {
+        let ctx = ctx_from_env().await;
+        let result = find_best_path(&ctx, &mut [], 1, Some(1)).await.unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(result[0].0.is_empty());
+        assert_eq!(result[0].1, -500);
+    }
+}
+
+#[cfg(test)]
+mod adjoin_word_tests {
+    use super::*;
+    use crate::dict::dao::{KanaText, KanjiText};
     use crate::dict::text_classes::SimpleText;
 
     fn kanji(seq: i32, text: &str) -> KanjiText {
@@ -740,7 +1102,9 @@ mod tests {
         let ctx = ctx_from_env().await;
         let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
-        let result = adjoin_word(&ctx, w1, w2, None, None, None, None).await.unwrap();
+        let result = adjoin_word(&ctx, w1, w2, None, None, None, None)
+            .await
+            .unwrap();
         assert_eq!(result.text, "食べたい");
         assert_eq!(result.kana, "たべたい");
         assert!(matches!(result.score_mod, ScoreMod::Single(0)));
@@ -914,76 +1278,9 @@ mod tests {
         }
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod join_substring_words_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::best_path::SCORE_CUTOFF;
-use crate::dict::segment::cull_segments;
-use crate::dict::calc_score::gen_score;
-use crate::dict::best_path::join_substring_words_star_;
-use crate::dict::segment::SegmentList;
-use crate::dict::segment::Segment;
-
-pub async fn join_substring_words(
-    ctx: &KaniranContext,
-    str: &str,
-) -> Result<Vec<SegmentList>, sqlx::Error> {
-    // (multiple-value-bind (result kanji-break) (join-substring-words* str) ...)
-    let (result, kanji_break) = join_substring_words_star_(ctx, str).await?;
-    let length = str.chars().count();
-    // dict.lisp:1116 — (alexandria:ends-with #\ー str)
-    let ends_with_lw = str.chars().last() == Some('ー');
-
-    let mut sls: Vec<SegmentList> = Vec::new();
-    // for (start end segments) in result
-    for (start, end, segments) in result {
-        // dict.lisp:1118 — (mapcar (lambda (n) (- n start))
-        //   (intersection (list start end) kanji-break))
-        // SBCL conses each match onto the front, so the intersection of
-        // (start end) is (end start) when both are present.
-        let mut intersection: Vec<usize> = Vec::new();
-        if kanji_break.contains(&start) {
-            intersection.push(start);
-        }
-        if kanji_break.contains(&end) {
-            intersection.push(end);
-        }
-        intersection.reverse();
-        let kb: Vec<usize> = intersection.iter().map(|n| n - start).collect();
-
-        // :matches (length segments) — the pre-filter segment count.
-        let matches = segments.len();
-        // for sl = (loop for segment in segments do (gen-score ...)
-        //              if (>= (segment-score segment) *score-cutoff*) collect segment)
-        let mut sl: Vec<Segment> = Vec::new();
-        for mut segment in segments {
-            // dict.lisp:1121-1123 — :final (or (= (segment-end segment) (length str))
-            //   (and ends-with-lw (= (segment-end segment) (1- (length str)))))
-            let final_ = segment.end == length
-                || (ends_with_lw && segment.end == length - 1);
-            gen_score(ctx, &mut segment, final_, &kb).await?;
-            if segment.score.expect("gen-score populates segment.score") >= SCORE_CUTOFF {
-                sl.push(segment);
-            }
-        }
-        // when sl collect (make-segment-list :segments (cull-segments sl) ...)
-        if !sl.is_empty() {
-            sls.push(SegmentList {
-                segments: cull_segments(sl),
-                start,
-                end,
-                top: None,
-                matches,
-            });
-        }
-    }
-    Ok(sls)
-}
 
 #[cfg(test)]
-mod tests {
+mod join_substring_words_tests {
     //! Every assertion is REPL-verified against the .103 SBCL via
     //! `(ichiran/dict::join-substring-words …)` (2026-05-23 probe runs).
     //! Run with `cargo test ... -- --test-threads=1` per the DB-test
@@ -1119,166 +1416,17 @@ mod tests {
     async fn slice_word_text() {
         let ctx = ctx().await;
         let mut sls = join_substring_words(&ctx, "日本語").await.unwrap();
-        let whole = sls.iter_mut().find(|sl| sl.start == 0 && sl.end == 3).unwrap();
+        let whole = sls
+            .iter_mut()
+            .find(|sl| sl.start == 0 && sl.end == 3)
+            .unwrap();
         assert_eq!(whole.segments.len(), 1);
         assert_eq!(whole.segments[0].get_text(), "日本語");
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod join_substring_words_star__inner {
-use std::sync::Arc;
-
-use crate::characters::char_classes::CharClass;
-use crate::characters::text_utils::consecutive_char_groups;
-use crate::characters::kanji::sequential_kanji_positions;
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::errata::FORCE_KANJI_BREAK;
-use crate::dict::find_word::MAX_WORD_LENGTH;
-use crate::dict::errata::NO_KANJI_BREAK;
-use crate::dict::best_path::SuffixMapTemp;
-use crate::dict::segment::find_sticky_positions;
-use crate::dict::find_word::find_substring_words;
-use crate::dict::find_word::{find_word_full, CounterArg};
-use crate::dict::grammar::suffix_lookup::get_suffix_map;
-use crate::dict::segment::Segment;
-
-pub async fn join_substring_words_star_(
-    ctx: &KaniranContext,
-    str: &str,
-) -> Result<(Vec<(usize, usize, Vec<Segment>)>, Vec<usize>), sqlx::Error> {
-    let chars: Vec<char> = str.chars().collect();
-    let length = chars.len();
-
-    let sticky = find_sticky_positions(str);
-    let substring_hash = Arc::new(find_substring_words(ctx, str, &sticky).await?);
-    let katakana_groups = consecutive_char_groups(CharClass::Katakana, str, 0, length);
-    let number_groups = consecutive_char_groups(CharClass::Number, str, 0, length);
-    // (get-suffix-map str) returns triples borrowing str / ctx.suffix_cache;
-    // *suffix-map-temp* owns its data, so materialize owned triples once.
-    let suffix_map: Arc<SuffixMapTemp> = Arc::new(
-        get_suffix_map(ctx, str)
-            .into_iter()
-            .map(|(end, items)| {
-                let owned: Vec<(String, String, Option<_>)> = items
-                    .into_iter()
-                    .map(|(substr, key, kf)| (substr.to_string(), key.to_string(), kf.cloned()))
-                    .collect();
-                (end, owned)
-            })
-            .collect(),
-    );
-
-    let mut kanji_break: Vec<usize> = Vec::new();
-    let mut ends: Vec<usize> = Vec::new();
-    let mut result: Vec<(usize, usize, Vec<Segment>)> = Vec::new();
-
-    for start in 0..length {
-        // (cdr (assoc start katakana-groups)) / (cdr (assoc start number-groups))
-        let katakana_group_end = katakana_groups
-            .iter()
-            .find(|(group_start, _)| *group_start == start)
-            .map(|(_, group_end)| *group_end);
-        let number_group_end = number_groups
-            .iter()
-            .find(|(group_start, _)| *group_start == start)
-            .map(|(_, group_end)| *group_end);
-        // unless (member start sticky)
-        if sticky.contains(&start) {
-            continue;
-        }
-        // for end from (1+ start) upto (min (length str) (+ start *max-word-length*))
-        let end_max = length.min(start + MAX_WORD_LENGTH);
-        for end in (start + 1)..=end_max {
-            // unless (member end sticky)
-            if sticky.contains(&end) {
-                continue;
-            }
-            // (subseq str start end)
-            let part: String = chars[start..end].iter().collect();
-            // :as-hiragana (and katakana-group-end (= end katakana-group-end))
-            let as_hiragana = katakana_group_end == Some(end);
-            // :counter (and number-group-end (<= number-group-end end)
-            //               (let ((d (- number-group-end start))) (and (<= d 20) d)))
-            let counter = match number_group_end {
-                Some(number_group_end) if number_group_end <= end => {
-                    let d = number_group_end - start;
-                    if d <= 20 {
-                        Some(CounterArg::At(d))
-                    } else {
-                        None
-                    }
-                }
-                _ => None,
-            };
-            // dict.lisp:1090-1092 — (let ((*suffix-map-temp* suffix-map)
-            //   (*suffix-next-end* end) (*substring-hash* substring-hash)) (find-word-full ...))
-            let ctx2 = ctx
-                .with_suffix_map_temp(Some(Arc::clone(&suffix_map)))
-                .with_suffix_next_end(Some(end as i32))
-                .with_substring_hash(Arc::clone(&substring_hash));
-            let words = find_word_full(&ctx2, &part, as_hiragana, counter).await?;
-            // (mapcar (lambda (word) (make-segment :start start :end end :word word)) ...)
-            let segments: Vec<Segment> = words
-                .into_iter()
-                .map(|word| Segment {
-                    start,
-                    end,
-                    word,
-                    score: None,
-                    info: None,
-                    top: None,
-                    text: None,
-                })
-                .collect();
-            // (when segments ...)
-            if !segments.is_empty() {
-                // (when (or (= start 0) (find start ends)) (setf kanji-break (nconc (cond ...) kanji-break)))
-                if start == 0 || ends.contains(&start) {
-                    let new_positions: Vec<usize> = if FORCE_KANJI_BREAK.contains(&part.as_str()) {
-                        // (alexandria:iota (1- (length part)) :start (1+ start))
-                        ((start + 1)..end).collect()
-                    } else if NO_KANJI_BREAK.contains(&part.as_str()) {
-                        Vec::new()
-                    } else {
-                        sequential_kanji_positions(&part, start)
-                    };
-                    // (nconc new-positions kanji-break)
-                    let mut combined = new_positions;
-                    combined.append(&mut kanji_break);
-                    kanji_break = combined;
-                }
-                // (pushnew end ends)
-                if !ends.contains(&end) {
-                    ends.insert(0, end);
-                }
-                // (list (list start end segments))
-                result.push((start, end, segments));
-            }
-        }
-    }
-
-    // (values result (remove-duplicates kanji-break))
-    Ok((result, remove_duplicates(&kanji_break)))
-}
-
-/// `(remove-duplicates seq)` with the default `:from-end nil`: an
-/// element recurring later in the list is dropped at its earlier
-/// position, so the last occurrence survives; the surviving relative
-/// order is preserved.
-fn remove_duplicates(items: &[usize]) -> Vec<usize> {
-    let mut out: Vec<usize> = Vec::new();
-    for (index, position) in items.iter().enumerate() {
-        if !items[index + 1..].contains(position) {
-            out.push(*position);
-        }
-    }
-    out
-}
 
 #[cfg(test)]
-mod tests {
+mod join_substring_words_star_tests {
     //! Every assertion is REPL-verified against the .103 SBCL via
     //! `(ichiran/dict::join-substring-words* …)` (2026-05-23 probe runs).
     //! Run with `cargo test ... -- --test-threads=1` per the DB-test
@@ -1295,7 +1443,10 @@ mod tests {
     /// `(start, end, segment-count)` shape of the result — the
     /// loop-bound / sticky / find-word behavior that the function owns.
     fn shape(result: &[(usize, usize, Vec<Segment>)]) -> Vec<(usize, usize, usize)> {
-        result.iter().map(|(s, e, segs)| (*s, *e, segs.len())).collect()
+        result
+            .iter()
+            .map(|(s, e, segs)| (*s, *e, segs.len()))
+            .collect()
     }
 
     /// REPL `(join-substring-words* "日本語")`:
@@ -1331,8 +1482,9 @@ mod tests {
     #[tokio::test]
     async fn watashi_force_kanji_break_desu() {
         let ctx = ctx().await;
-        let (result, kanji_break) =
-            join_substring_words_star_(&ctx, "私は学生です").await.unwrap();
+        let (result, kanji_break) = join_substring_words_star_(&ctx, "私は学生です")
+            .await
+            .unwrap();
         assert_eq!(
             shape(&result),
             vec![
@@ -1359,7 +1511,14 @@ mod tests {
         let (result, kanji_break) = join_substring_words_star_(&ctx, "一日置く").await.unwrap();
         assert_eq!(
             shape(&result),
-            vec![(0, 1, 6), (0, 2, 5), (1, 2, 4), (1, 3, 1), (2, 4, 1), (3, 4, 8)]
+            vec![
+                (0, 1, 6),
+                (0, 2, 5),
+                (1, 2, 4),
+                (1, 3, 1),
+                (2, 4, 1),
+                (3, 4, 8)
+            ]
         );
         assert_eq!(kanji_break, vec![1]);
         // The [1 3] "日置" slice is present but suppresses its break.
@@ -1396,9 +1555,13 @@ mod tests {
         let (_, _, num) = result.iter().find(|(s, e, _)| *s == 0 && *e == 1).unwrap();
         assert!(matches!(num[0].word, KaniWordDispatchEnum::Counter(_)));
         let (_, _, cnt) = result.iter().find(|(s, e, _)| *s == 0 && *e == 2).unwrap();
-        assert!(cnt.iter().all(|seg| matches!(seg.word, KaniWordDispatchEnum::Counter(_))));
+        assert!(cnt
+            .iter()
+            .all(|seg| matches!(seg.word, KaniWordDispatchEnum::Counter(_))));
         let (_, _, hon) = result.iter().find(|(s, e, _)| *s == 1 && *e == 2).unwrap();
-        assert!(hon.iter().all(|seg| matches!(seg.word, KaniWordDispatchEnum::Kanji(_))));
+        assert!(hon
+            .iter()
+            .all(|seg| matches!(seg.word, KaniWordDispatchEnum::Kanji(_))));
     }
 
     /// REPL `(join-substring-words* "やっぱり")` (sticky=(2)): the
@@ -1436,30 +1599,9 @@ mod tests {
         assert_eq!(remove_duplicates(&[2, 2, 2]), vec![2]);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod substring_index_inner {
-use std::collections::HashMap;
-
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::best_path::join_substring_words;
-use crate::dict::segment::SegmentList;
-
-pub async fn substring_index(
-    ctx: &KaniranContext,
-    str: &str,
-) -> Result<HashMap<(usize, usize), SegmentList>, sqlx::Error> {
-    let sls = join_substring_words(ctx, str).await?;
-    let mut index: HashMap<(usize, usize), SegmentList> = HashMap::new();
-    for sl in sls {
-        index.insert((sl.start, sl.end), sl);
-    }
-    Ok(index)
-}
 
 #[cfg(test)]
-mod tests {
+mod substring_index_tests {
     //! Every assertion is REPL-verified against the .103 SBCL via
     //! `(ichiran/dict::substring-index …)` (2026-05-25 probe).
     //! Run with `-- --test-threads=1` per the DB-test convention.
@@ -1533,69 +1675,9 @@ mod tests {
         assert!(index.is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod fill_segment_path_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::best_path::process_word_info;
-use crate::dict::segment::PathElement;
-use crate::dict::word_info::{WordInfo, WordInfoKana, WordInfoType};
-use crate::dict::word_info::word_info_from_segment_list;
-
-pub async fn fill_segment_path(
-    ctx: &KaniranContext,
-    str: &str,
-    path: &mut [PathElement],
-) -> Result<Vec<WordInfo>, sqlx::Error> {
-    let str_char_len = str.chars().count();
-    let mut idx: usize = 0;
-    let mut result: Vec<WordInfo> = Vec::new();
-
-    // dict.lisp:1396-1403 (loop ... for segment-list in path
-    //   when (typep segment-list 'segment-list) ...)
-    for element in path.iter_mut() {
-        let PathElement::SegmentList(sl) = element else {
-            continue;
-        };
-        // dict.lisp:1399-1400 (when start > idx, push gap)
-        if sl.start > idx {
-            result.push(make_substr_gap(str, idx, sl.start));
-        }
-        // dict.lisp:1402 (push (word-info-from-segment-list segment-list) result)
-        let wi = word_info_from_segment_list(ctx, sl).await?;
-        // dict.lisp:1403 (setf idx (segment-list-end segment-list))
-        idx = sl.end;
-        result.push(wi);
-    }
-
-    // dict.lisp:1404-1406 (finally — trailing gap if idx < length)
-    if idx < str_char_len {
-        result.push(make_substr_gap(str, idx, str_char_len));
-    }
-
-    // dict.lisp:1407 (return (process-word-info (nreverse result)))
-    // — we built `result` forward, so no nreverse; process_word_info
-    //   takes ownership and returns the transformed Vec.
-    Ok(process_word_info(result))
-}
-
-// dict.lisp:1391-1395 (flet make-substr-gap)
-fn make_substr_gap(str: &str, start: usize, end: usize) -> WordInfo {
-    // (subseq str start end) — char-indexed in SBCL (CONVENTIONS §4.5)
-    let substr: String = str.chars().skip(start).take(end - start).collect();
-    WordInfo {
-        kind: WordInfoType::Gap,
-        text: substr.clone(),
-        kana: Some(WordInfoKana::Single(substr)),
-        start: Some(start),
-        end: Some(end),
-        ..Default::default()
-    }
-}
 
 #[cfg(test)]
-mod tests {
+mod fill_segment_path_tests {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //! Coverage:
     //! - leading / internal / trailing gap insertion
@@ -1605,10 +1687,9 @@ mod tests {
     //! - char-indexed slicing (multibyte chars don't shift offsets)
     use super::*;
     use crate::dict::find_word::{find_word, FindWordRows};
-    use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::Segment;
     use crate::dict::grammar::synergy::Synergy;
+    use crate::dict::kani::KaniWordDispatchEnum;
+    use crate::dict::segment::{Segment, SegmentList};
     use crate::dict::word_info::WordInfoSeq;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -1763,40 +1844,9 @@ mod tests {
         assert_eq!(result[2].text, "いぬ");
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod word_info_rec_find_inner {
-use crate::dict::word_info::WordInfo;
-
-pub fn word_info_rec_find<'a, F>(
-    wi_list: &'a [WordInfo],
-    test_fn: &F,
-) -> Vec<(&'a WordInfo, Option<&'a WordInfo>)>
-where
-    F: Fn(&WordInfo) -> bool,
-{
-    let mut result = Vec::new();
-    // dict.lisp:1411 (loop for (wi wi-next) on wi-list)
-    for (idx, wi) in wi_list.iter().enumerate() {
-        let wi_next = wi_list.get(idx + 1);
-        // dict.lisp:1412 (for components = (word-info-components wi))
-        let components = &wi.components;
-        // dict.lisp:1413 (if (funcall test-fn wi) nconc (list (cons wi wi-next)))
-        if test_fn(wi) {
-            result.push((wi, wi_next));
-        }
-        // dict.lisp:1414-1415 (nconc (loop for (wf . wf-next) in (word-info-rec-find components test-fn)
-        //                                collect (cons wf (or wf-next wi-next))))
-        for (wf, wf_next) in word_info_rec_find(components, test_fn) {
-            result.push((wf, wf_next.or(wi_next)));
-        }
-    }
-    result
-}
 
 #[cfg(test)]
-mod tests {
+mod word_info_rec_find_tests {
     //! REPL fixtures (.103, ichiran/dict:word-info-rec-find), 2026-05-25.
     //! Each case runs `word-info-rec-find` over a synthetic word-info
     //! tree (parent `P` with components `こ` / `ねこ`, sibling `S`) and
@@ -1822,9 +1872,7 @@ mod tests {
         vec![parent, sibling]
     }
 
-    fn pairs<'a>(
-        result: &[(&'a WordInfo, Option<&'a WordInfo>)],
-    ) -> Vec<(String, Option<String>)> {
+    fn pairs<'a>(result: &[(&'a WordInfo, Option<&'a WordInfo>)]) -> Vec<(String, Option<String>)> {
         result
             .iter()
             .map(|(car, cdr)| (car.text.clone(), cdr.map(|wi| wi.text.clone())))
@@ -1834,9 +1882,8 @@ mod tests {
     #[test]
     fn rec_find_paths() {
         let tree = tree();
-        let matches = |texts: &'static [&'static str]| {
-            move |wi: &WordInfo| texts.contains(&wi.text.as_str())
-        };
+        let matches =
+            |texts: &'static [&'static str]| move |wi: &WordInfo| texts.contains(&wi.text.as_str());
 
         // all-match: ((P . S) (こ . ねこ) (ねこ . S)) — parent emits before
         // its components; the last component's nil cdr falls back to wi-next S.
@@ -1875,90 +1922,9 @@ mod tests {
         assert!(word_info_rec_find(&[], &|_: &WordInfo| true).is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod process_word_info_inner {
-use crate::dict::word_info::{WordInfo, WordInfoKana};
-use crate::characters::kana_class::get_char_class;
-use crate::characters::kana_class::KanaClass;
-
-pub fn process_word_info(mut wi_list: Vec<WordInfo>) -> Vec<WordInfo> {
-    for i in 0..wi_list.len() {
-        if wi_list[i].text != "何" {
-            continue;
-        }
-        let Some(next) = wi_list.get(i + 1) else {
-            continue;
-        };
-        // dict.lisp:1421-1438 — `(unless (listp kn) (setf kn (list kn)))`
-        // wraps a non-list `kn` in a singleton; the inner loop then
-        // iterates `kn` at one level. `(char kana 0)` errors with a
-        // type-error on a non-string element; we mirror that by
-        // panicking on a nested `Multi` entry. `None` entries become
-        // length-0 and are skipped via `(when (> (length kana) 0) ...)`.
-        // Iterate kn at one level. Lisp's `(unless (listp kn) (setf kn (list kn)))`
-        // wraps a non-list element into a singleton; equivalent here: a
-        // `Single`/`None` slot wraps to a one-element iteration.
-        let singleton: Option<WordInfoKana>;
-        let kn_iter: &[Option<WordInfoKana>] = match &next.kana {
-            Some(WordInfoKana::Multi(items)) => items.as_slice(),
-            other => {
-                singleton = other.clone();
-                std::slice::from_ref(&singleton)
-            }
-        };
-        let mut nani = false;
-        let mut nan = false;
-        for entry in kn_iter {
-            let kana: &str = match entry {
-                Some(WordInfoKana::Single(s)) => s.as_str(),
-                None => "",
-                Some(WordInfoKana::Multi(_)) => {
-                    panic!(
-                        "process-word-info: nested Multi inside kana list — upstream `(char list 0)` would type-error"
-                    );
-                }
-            };
-            let Some(first_char) = kana.chars().next() else {
-                continue;
-            };
-            let fc_class = get_char_class(first_char);
-            if matches!(fc_class, Some(c) if is_nan_class(c)) {
-                nan = true;
-            } else {
-                nani = true;
-            }
-        }
-        let nani_kana = match (nan, nani) {
-            (true, true) => Some("なに"),
-            (true, false) => Some("なん"),
-            (false, true) => Some("なに"),
-            (false, false) => None,
-        };
-        if let Some(s) = nani_kana {
-            wi_list[i].kana = Some(WordInfoKana::Single(s.to_string()));
-        }
-    }
-    wi_list
-}
-
-fn is_nan_class(c: KanaClass) -> bool {
-    use KanaClass::*;
-    matches!(
-        c,
-        Ba | Bi | Bu | Be | Bo
-            | Pa | Pi | Pu | Pe | Po
-            | Da | Dji | Dzu | De | Do
-            | Za | Ji | Zu | Ze | Zo
-            | Ta | Chi | Tsu | Te | To
-            | Na | Nu | Ne | No
-            | Ra | Ri | Ru | Re | Ro
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod process_word_info_tests {
     use super::*;
     use crate::dict::word_info::WordInfoType;
 
@@ -2025,33 +1991,4 @@ mod tests {
         let list = process_word_info(vec![wi("何", "なん"), next_wi]);
         assert_eq!(list[0].kana, Some(WordInfoKana::Single("なん".to_string())));
     }
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_score_cutoff_star__inner {
-pub const SCORE_CUTOFF: i32 = 5;
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_identical_word_score_cutoff_star__inner {
-pub const IDENTICAL_WORD_SCORE_CUTOFF: (i64, i64) = (1, 2);
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_segment_score_cutoff_star__inner {
-pub const SEGMENT_SCORE_CUTOFF: (i64, i64) = (2, 3);
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_suffix_map_temp_star__inner {
-use crate::dict::dao::KanaText;
-use std::collections::HashMap;
-
-pub type SuffixMapTemp = HashMap<usize, Vec<(String, String, Option<KanaText>)>>;
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_suffix_next_end_star__inner {
-
 }

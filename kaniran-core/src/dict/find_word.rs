@@ -4,32 +4,32 @@
 //! find-word-kana-pattern / find-kanji-for-pattern / exists-reading /
 //! get-candidates / get-non-arch-posi / is-arch / word-readings.
 
-pub use find_word_inner::*;
-pub use find_substring_words_inner::*;
-pub use find_words_seqs_inner::*;
-pub use find_word_as_hiragana_inner::*;
-pub use find_word_full_inner::*;
-pub use find_word_info_inner::*;
-pub use find_word_info_json_inner::*;
-pub use find_word_kana_pattern_inner::*;
-pub use find_kanji_for_pattern_inner::*;
-pub use exists_reading_inner::*;
-pub use get_candidates_inner::*;
-pub use get_non_arch_posi_inner::*;
-pub use is_arch_inner::*;
-pub use _star_is_arch_cache_star__inner::*;
-pub use _star_max_word_length_star__inner::*;
-pub use _star_substring_hash_star__inner::*;
-pub use word_readings_inner::*;
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_word_inner {
-use crate::characters::char_classes::CharClass;
-use crate::characters::char_classes::test_word;
+use crate::characters::char_classes::{test_word, CharClass};
+use crate::characters::normalize::as_hiragana;
+use crate::characters::text_utils::consecutive_char_groups;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::find_word::MAX_WORD_LENGTH;
-use crate::dict::dao::KanaText;
-use crate::dict::dao::KanjiText;
+use crate::core::methods::{default_romanization_method, RomanizationMethod};
+use crate::core::romanize::romanize_word;
+use crate::dict::best_path::SuffixMapTemp;
+use crate::dict::best_text::get_kanji;
+use crate::dict::calc_score::gen_score;
+use crate::dict::counters::dispatchers::text;
+use crate::dict::counters::find_counter::find_counter;
+use crate::dict::dao::{KanaText, KanjiText};
+use crate::dict::grammar::suffix_lookup::{find_word_suffix, get_suffix_map};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::segment::{compare_common, subseq_slice, Segment};
+use crate::dict::text_classes::{ProxyText, SimpleText};
+use crate::dict::word_info::{
+    word_info_from_segment, word_info_gloss_json, WordInfo, WordInfoKana, WordInfoSeq,
+};
+use serde_json::Value;
+use sqlx::{PgPool, Row};
+use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet};
+use std::future::Future;
+use std::pin::Pin;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum FindWordRows {
@@ -99,18 +99,6 @@ pub async fn find_word(
         Ok(FindWordRows::Kanji(rows))
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_substring_words_inner {
-use crate::characters::char_classes::CharClass;
-use crate::characters::char_classes::test_word;
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::find_word::MAX_WORD_LENGTH;
-use crate::dict::find_word::SubstringHash;
-use crate::dict::find_word::FindWordRows;
-use crate::dict::dao::KanaText;
-use crate::dict::dao::KanjiText;
 
 pub async fn find_substring_words(
     ctx: &KaniranContext,
@@ -171,12 +159,10 @@ pub async fn find_substring_words(
     //   here so the typed `query_as<KanaText>` / `query_as<KanjiText>`
     //   stays known at compile time.
     if !kana_keys.is_empty() {
-        let rows: Vec<KanaText> = sqlx::query_as(
-            "SELECT * FROM kana_text WHERE text = ANY($1)",
-        )
-        .bind(&kana_keys)
-        .fetch_all(&ctx.pool)
-        .await?;
+        let rows: Vec<KanaText> = sqlx::query_as("SELECT * FROM kana_text WHERE text = ANY($1)")
+            .bind(&kana_keys)
+            .fetch_all(&ctx.pool)
+            .await?;
         for kt in rows {
             // dict.lisp:517 — (push (cons table kt) (gethash (getf kt :text) substring-hash)).
             // CL `push` prepends, so each bucket is the reverse of the SQL
@@ -189,12 +175,10 @@ pub async fn find_substring_words(
         }
     }
     if !kanji_keys.is_empty() {
-        let rows: Vec<KanjiText> = sqlx::query_as(
-            "SELECT * FROM kanji_text WHERE text = ANY($1)",
-        )
-        .bind(&kanji_keys)
-        .fetch_all(&ctx.pool)
-        .await?;
+        let rows: Vec<KanjiText> = sqlx::query_as("SELECT * FROM kanji_text WHERE text = ANY($1)")
+            .bind(&kanji_keys)
+            .fetch_all(&ctx.pool)
+            .await?;
         for kt in rows {
             // dict.lisp:517 — prepend to mirror CL `push` (see kana loop).
             if let Some(FindWordRows::Kanji(v)) = substring_hash.get_mut(&kt.text) {
@@ -206,8 +190,563 @@ pub async fn find_substring_words(
     Ok(substring_hash)
 }
 
+pub async fn find_words_seqs(
+    ctx: &KaniranContext,
+    words: &[&str],
+    seqs: &[i32],
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    let mut kana_words: Vec<&str> = Vec::new();
+    let mut kanji_words: Vec<&str> = Vec::new();
+    for &word in words {
+        if test_word(word, CharClass::Kana) {
+            kana_words.push(word);
+        } else {
+            kanji_words.push(word);
+        }
+    }
+
+    let mut out: Vec<KaniWordDispatchEnum> = Vec::new();
+    // dict.lisp:532 (when kanji-words (select-dao 'kanji-text ...))
+    if !kanji_words.is_empty() {
+        let kw: Vec<KanjiText> = sqlx::query_as::<_, KanjiText>(
+            "SELECT * FROM kanji_text WHERE text = ANY($1) AND seq = ANY($2)",
+        )
+        .bind(kanji_words.as_slice())
+        .bind(seqs)
+        .fetch_all(&ctx.pool)
+        .await?;
+        out.extend(kw.into_iter().map(KaniWordDispatchEnum::Kanji));
+    }
+    // dict.lisp:533 (when kana-words (select-dao 'kana-text ...))
+    if !kana_words.is_empty() {
+        let rw: Vec<KanaText> = sqlx::query_as::<_, KanaText>(
+            "SELECT * FROM kana_text WHERE text = ANY($1) AND seq = ANY($2)",
+        )
+        .bind(kana_words.as_slice())
+        .bind(seqs)
+        .fetch_all(&ctx.pool)
+        .await?;
+        out.extend(rw.into_iter().map(KaniWordDispatchEnum::Kana));
+    }
+    Ok(out)
+}
+
+/// Boxed async finder closure for [`find_word_as_hiragana`]. Mirrors
+/// `or-as-hiragana`'s `(lambda (w) (apply fn w args))` callback shape
+/// (`dict-grammar.lisp:97-100`): a one-shot unary call that takes
+/// the hiragana surface form and returns either a [`FindWordRows`]
+/// list or a `sqlx::Error`. `Send` so the result composes with
+/// `tokio::task::spawn` paths (audit harness, segmenter pipeline).
+pub type HiraganaFinder<'a> = Box<
+    dyn FnOnce(
+            String,
+        )
+            -> Pin<Box<dyn Future<Output = Result<FindWordRows, sqlx::Error>> + Send + 'a>>
+        + Send
+        + 'a,
+>;
+
+pub async fn find_word_as_hiragana(
+    ctx: &KaniranContext,
+    str_: &str,
+    exclude: &[i32],
+    finder: Option<HiraganaFinder<'_>>,
+) -> Result<Vec<ProxyText>, sqlx::Error> {
+    let as_hira = as_hiragana(str_);
+    if str_ == as_hira {
+        return Ok(Vec::new());
+    }
+    let words = match finder {
+        Some(f) => f(as_hira).await?,
+        // root_only=true, so the substring-hash short-circuit doesn't
+        // apply (find_word skips the cache check for root_only); the
+        // ctx.substring_hash slot is read inside find_word.
+        None => find_word(ctx, &as_hira, true).await?,
+    };
+    let proxies = match words {
+        FindWordRows::Kana(rows) => rows
+            .into_iter()
+            .filter(|w| !exclude.contains(&w.seq))
+            .map(|w| ProxyText {
+                text: str_.to_string(),
+                kana: str_.to_string(),
+                source: Box::new(KaniSimpleTextDispatchEnum::Kana(w)),
+                state: SimpleText::default(),
+            })
+            .collect(),
+        FindWordRows::Kanji(rows) => rows
+            .into_iter()
+            .filter(|w| !exclude.contains(&w.seq))
+            .map(|w| ProxyText {
+                text: str_.to_string(),
+                kana: str_.to_string(),
+                source: Box::new(KaniSimpleTextDispatchEnum::Kanji(w)),
+                state: SimpleText::default(),
+            })
+            .collect(),
+    };
+    Ok(proxies)
+}
+
+/// Closed shape of the upstream `:counter` keyword. Per CONVENTIONS
+/// §4.3: the Lisp value is `nil` (absent), the keyword `:auto`, or a
+/// character-index integer. `Option<CounterArg>` carries the
+/// nil-vs-present distinction; the enum carries the auto-vs-integer
+/// distinction.
+#[derive(Debug, Clone, Copy)]
+pub enum CounterArg {
+    Auto,
+    At(usize),
+}
+
+pub async fn find_word_full(
+    ctx: &KaniranContext,
+    word: &str,
+    as_hiragana: bool,
+    counter: Option<CounterArg>,
+) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+    // dict.lisp:1053 (find-word word)
+    let simple_words_rows = find_word(ctx, word, false).await?;
+
+    // Pre-collect simple words as KaniWordDispatchEnum values for the
+    // suffix / hiragana branches that need `:matches` / `:exclude`
+    // references against them.
+    let simple_words: Vec<KaniWordDispatchEnum> = match &simple_words_rows {
+        FindWordRows::Kana(rows) => rows
+            .iter()
+            .cloned()
+            .map(KaniWordDispatchEnum::Kana)
+            .collect(),
+        FindWordRows::Kanji(rows) => rows
+            .iter()
+            .cloned()
+            .map(KaniWordDispatchEnum::Kanji)
+            .collect(),
+    };
+
+    let mut out: Vec<KaniWordDispatchEnum> = simple_words.clone();
+
+    // dict.lisp:1055 (find-word-suffix word :matches simple-words)
+    // find_word_suffix returns Vec<KaniWordDispatchEnum> directly —
+    // it carries both Compound (def-simple-suffix output) and Proxy
+    // (def-abbr-suffix output) variants per the etypecase at
+    // dict-grammar.lisp:565-577.
+    let suffix_words = find_word_suffix(ctx, word, &simple_words).await?;
+    out.extend(suffix_words);
+
+    // dict.lisp:1056-1057 (when as-hiragana (find-word-as-hiragana …))
+    if as_hiragana {
+        // (mapcar 'seq simple-words) — simple-words are kanji-text /
+        // kana-text rows; (seq r) is the i32 slot. Mirror with a
+        // direct field read keyed by variant.
+        let exclude: Vec<i32> = simple_words
+            .iter()
+            .filter_map(|w| match w {
+                KaniWordDispatchEnum::Kanji(k) => Some(k.seq),
+                KaniWordDispatchEnum::Kana(k) => Some(k.seq),
+                _ => None,
+            })
+            .collect();
+        let proxies = find_word_as_hiragana(ctx, word, &exclude, None).await?;
+        out.extend(proxies.into_iter().map(KaniWordDispatchEnum::Proxy));
+    }
+
+    // dict.lisp:1058-1067 (when counter …)
+    if let Some(counter_arg) = counter {
+        match counter_arg {
+            CounterArg::Auto => {
+                // dict.lisp:1060-1064 (:auto branch)
+                let word_len = word.chars().count();
+                let groups = consecutive_char_groups(CharClass::Number, word, 0, word_len);
+                if let Some(&(g_start, g_end)) = groups.first() {
+                    // (subseq word (caar groups) (cdar groups))
+                    let number = subseq_slice(None, word, g_start, Some(g_end));
+                    // (subseq word (cdar groups) (length word))
+                    let counter_text = subseq_slice(None, word, g_end, Some(word_len));
+                    let counters = find_counter(ctx, number, counter_text, None);
+                    out.extend(counters.into_iter().map(KaniWordDispatchEnum::Counter));
+                }
+            }
+            CounterArg::At(idx) => {
+                // dict.lisp:1065-1067 (t branch)
+                let word_len = word.chars().count();
+                let number = subseq_slice(None, word, 0, Some(idx));
+                let counter_text = subseq_slice(None, word, idx, Some(word_len));
+                // dict.lisp:1067 (:unique (not simple-words))
+                let unique = simple_words.is_empty();
+                let counters = find_counter(ctx, number, counter_text, Some(unique));
+                out.extend(counters.into_iter().map(KaniWordDispatchEnum::Counter));
+            }
+        }
+    }
+
+    Ok(out)
+}
+
+pub async fn find_word_info(
+    ctx: &KaniranContext,
+    text: &str,
+    reading: Option<&str>,
+    root_only: bool,
+) -> Result<Vec<WordInfo>, sqlx::Error> {
+    // &aux (end (length text))
+    let end = text.chars().count();
+
+    // (let ((*suffix-map-temp* (get-suffix-map text)) (*suffix-next-end* end)) …)
+    // get-suffix-map borrows ctx / text; *suffix-map-temp* owns its data,
+    // so materialize owned triples once.
+    let suffix_map: Arc<SuffixMapTemp> = Arc::new(
+        get_suffix_map(ctx, text)
+            .into_iter()
+            .map(|(end_pos, items)| {
+                let owned: Vec<(String, String, Option<_>)> = items
+                    .into_iter()
+                    .map(|(substr, key, kf)| (substr.to_string(), key.to_string(), kf.cloned()))
+                    .collect();
+                (end_pos, owned)
+            })
+            .collect(),
+    );
+    let ctx2 = ctx
+        .with_suffix_map_temp(Some(suffix_map))
+        .with_suffix_next_end(Some(end as i32));
+
+    // (all-words (if root-only (find-word text :root-only t)
+    //                (find-word-full text :as-hiragana (test-word text :katakana) :counter :auto)))
+    let all_words: Vec<KaniWordDispatchEnum> = if root_only {
+        match find_word(&ctx2, text, true).await? {
+            FindWordRows::Kana(rows) => rows.into_iter().map(KaniWordDispatchEnum::Kana).collect(),
+            FindWordRows::Kanji(rows) => {
+                rows.into_iter().map(KaniWordDispatchEnum::Kanji).collect()
+            }
+        }
+    } else {
+        find_word_full(
+            &ctx2,
+            text,
+            test_word(text, CharClass::Katakana),
+            Some(CounterArg::Auto),
+        )
+        .await?
+    };
+
+    // (segments (loop for word in all-words
+    //              collect (gen-score (make-segment :start 0 :end end :word word :text text))))
+    let mut segments: Vec<Segment> = Vec::with_capacity(all_words.len());
+    for word in all_words {
+        let mut segment = Segment {
+            start: 0,
+            end,
+            word,
+            score: None,
+            info: None,
+            top: None,
+            text: Some(text.to_string()),
+        };
+        gen_score(&ctx2, &mut segment, false, &[]).await?;
+        segments.push(segment);
+    }
+
+    // (segments (sort segments #'> :key #'segment-score)) — descending by score.
+    segments.sort_by(|left, right| right.score.cmp(&left.score));
+
+    // (wis (mapcar #'word-info-from-segment segments))
+    let mut wis: Vec<WordInfo> = Vec::with_capacity(segments.len());
+    for segment in &mut segments {
+        wis.push(word_info_from_segment(&ctx2, segment).await?);
+    }
+
+    // (when reading (setf wis (loop …)))
+    if let Some(reading) = reading {
+        let mut filtered: Vec<WordInfo> = Vec::with_capacity(wis.len());
+        for mut wi in wis {
+            // for seq = (word-info-seq wi)
+            let seq = wi.seq.clone();
+            // if (equal (word-info-kana wi) reading) collect wi
+            if matches!(&wi.kana, Some(WordInfoKana::Single(kana)) if kana == reading) {
+                filtered.push(wi);
+            // else if (and seq (exists-reading seq reading))
+            } else if let Some(seq) = seq {
+                if exists_reading_seq(&ctx2, &seq, reading).await? {
+                    // do (setf (word-info-kana wi) reading) and collect wi
+                    wi.kana = Some(WordInfoKana::Single(reading.to_string()));
+                    filtered.push(wi);
+                }
+            }
+        }
+        wis = filtered;
+    }
+
+    Ok(wis)
+}
+
+/// `(exists-reading seq reading)` (`dict.lisp:1866`) where `seq` is the
+/// `word-info-seq` slot — an int for a simple word, a list for a
+/// compound. For a single seq this is the ported [`exists_reading`]
+/// predicate. For a compound's list seq, postmodern renders the list as
+/// a SQL row literal (`seq = (a, b, …)`), which PostgreSQL rejects with
+/// `operator does not exist: integer = record` (SQLSTATE 42883);
+/// reproduce the same erroring query so the failure propagates
+/// identically.
+async fn exists_reading_seq(
+    ctx: &KaniranContext,
+    seq: &WordInfoSeq,
+    reading: &str,
+) -> Result<bool, sqlx::Error> {
+    match seq {
+        WordInfoSeq::Single(single_seq) => {
+            Ok(!exists_reading(ctx, *single_seq, reading).await?.is_empty())
+        }
+        WordInfoSeq::Multi(_) => {
+            let query = format!(
+                "SELECT seq FROM kana_text WHERE seq = {} AND text = $1",
+                render_seq_row(seq),
+            );
+            let rows = sqlx::query(&query)
+                .bind(reading)
+                .fetch_all(&ctx.pool)
+                .await?;
+            Ok(!rows.is_empty())
+        }
+    }
+}
+
+/// Render a `word-info-seq` value the way postmodern serializes it into
+/// the `(:= 'seq seq)` clause: an int as itself, a list as a
+/// parenthesized comma-separated row literal (`nil` → `NULL`).
+fn render_seq_row(seq: &WordInfoSeq) -> String {
+    match seq {
+        WordInfoSeq::Single(single_seq) => single_seq.to_string(),
+        WordInfoSeq::Multi(elements) => {
+            let rendered: Vec<String> = elements
+                .iter()
+                .map(|element| match element {
+                    Some(inner) => render_seq_row(inner),
+                    None => "NULL".to_string(),
+                })
+                .collect();
+            format!("({})", rendered.join(", "))
+        }
+    }
+}
+
+pub async fn find_word_info_json(
+    ctx: &KaniranContext,
+    text: &str,
+    reading: Option<&str>,
+    root_only: bool,
+) -> Result<Vec<Value>, sqlx::Error> {
+    let word_infos = find_word_info(ctx, text, reading, root_only).await?;
+    let mut out = Vec::with_capacity(word_infos.len());
+    for word_info in &word_infos {
+        out.push(word_info_gloss_json(ctx, word_info, root_only).await?);
+    }
+    Ok(out)
+}
+
+pub async fn find_word_kana_pattern(
+    ctx: &KaniranContext,
+    pattern: &str,
+) -> Result<Vec<KanaText>, sqlx::Error> {
+    // (select-dao 'kana-text (:~ 'text pattern))
+    let mut rows: Vec<KanaText> = sqlx::query_as("SELECT * FROM kana_text WHERE text ~ $1")
+        .bind(pattern)
+        .fetch_all(&ctx.pool)
+        .await?;
+    // (stable-sort … #'compare-common :key (lambda (r) (and (not (eql (common r) :null)) (common r))))
+    // — `common = None` mirrors the `:null` sentinel, so the key is the
+    // row's `common` slot directly.
+    rows.sort_by(|a, b| {
+        let key_a = a.common.map(i64::from);
+        let key_b = b.common.map(i64::from);
+        if compare_common(key_a, key_b).is_truthy() {
+            Ordering::Less
+        } else if compare_common(key_b, key_a).is_truthy() {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    });
+    Ok(rows)
+}
+
+pub async fn find_kanji_for_pattern(
+    ctx: &KaniranContext,
+    pattern: &str,
+) -> Result<(Vec<String>, Vec<String>), sqlx::Error> {
+    let mut kanji: Vec<String> = Vec::new();
+    let mut kana: Vec<String> = Vec::new();
+    // (loop for r in (find-word-kana-pattern pattern) …)
+    for r in find_word_kana_pattern(ctx, pattern).await? {
+        let r = KaniWordDispatchEnum::Kana(r);
+        // for k = (get-kanji r) / when k collect k into kanji
+        if let Some(k) = get_kanji(ctx, &r).await? {
+            kanji.push(k);
+        }
+        // collect (text r) into kana
+        kana.push(text(&r).into_owned());
+    }
+    // (values (remove-duplicates kanji :test 'equal :from-end t)
+    //         (remove-duplicates kana  :test 'equal :from-end t))
+    Ok((
+        remove_duplicates_from_end(kanji),
+        remove_duplicates_from_end(kana),
+    ))
+}
+
+// `(remove-duplicates … :test 'equal :from-end t)` — keep the first
+// occurrence of each value, preserving order.
+fn remove_duplicates_from_end(items: Vec<String>) -> Vec<String> {
+    let mut seen: HashSet<String> = HashSet::new();
+    items
+        .into_iter()
+        .filter(|item| seen.insert(item.clone()))
+        .collect()
+}
+
+pub async fn exists_reading(
+    ctx: &KaniranContext,
+    seq: i32,
+    reading: &str,
+) -> Result<Vec<i32>, sqlx::Error> {
+    let rows = sqlx::query("SELECT seq FROM kana_text WHERE seq = $1 AND text = $2")
+        .bind(seq)
+        .bind(reading)
+        .fetch_all(&ctx.pool)
+        .await?;
+    Ok(rows
+        .into_iter()
+        .map(|row| row.get::<i32, _>("seq"))
+        .collect())
+}
+
+pub async fn get_candidates(
+    ctx: &KaniranContext,
+    text: &str,
+    reading: Option<&str>,
+) -> Result<Vec<i32>, sqlx::Error> {
+    let is_kana = test_word(text, CharClass::Kana);
+    if is_kana {
+        let rows: Vec<(i32,)> = sqlx::query_as(
+            "SELECT e.seq FROM entry e \
+             LEFT JOIN kana_text r ON e.seq = r.seq \
+             LEFT JOIN kanji_text k ON e.seq = k.seq \
+             WHERE e.root_p AND k.text IS NULL AND r.text = $1 AND r.ord = 0 \
+             ORDER BY e.seq",
+        )
+        .bind(text)
+        .fetch_all(&ctx.pool)
+        .await?;
+        Ok(rows.into_iter().map(|(s,)| s).collect())
+    } else {
+        let rows: Vec<(i32,)> = sqlx::query_as(
+            "SELECT e.seq FROM entry e \
+             LEFT JOIN kana_text r ON e.seq = r.seq \
+             LEFT JOIN kanji_text k ON e.seq = k.seq \
+             WHERE k.text = $1 AND k.ord = 0 AND r.text = $2 AND r.ord = 0 \
+             ORDER BY e.seq",
+        )
+        .bind(text)
+        .bind(reading)
+        .fetch_all(&ctx.pool)
+        .await?;
+        Ok(rows.into_iter().map(|(s,)| s).collect())
+    }
+}
+
+pub async fn get_non_arch_posi(
+    ctx: &KaniranContext,
+    seq_set: &[i32],
+) -> Result<Vec<String>, sqlx::Error> {
+    sqlx::query_scalar(
+        "SELECT DISTINCT sp1.text \
+         FROM sense_prop sp1 \
+         LEFT JOIN sense_prop sp2 \
+                ON sp1.sense_id = sp2.sense_id \
+               AND sp2.tag = 'misc' \
+               AND sp2.text IN ('arch', 'obsc', 'rare') \
+         WHERE sp1.seq = ANY($1) \
+           AND sp1.tag = 'pos' \
+           AND sp2.id IS NULL",
+    )
+    .bind(seq_set)
+    .fetch_all(&ctx.pool)
+    .await
+}
+
+pub fn is_arch(ctx: &KaniranContext, seq: i32) -> bool {
+    ctx.is_arch.contains(&seq)
+}
+
+pub fn is_arch_cache(ctx: &KaniranContext) -> &HashSet<i32> {
+    &ctx.is_arch
+}
+
+pub async fn build_is_arch(pool: &PgPool) -> Result<HashSet<i32>, sqlx::Error> {
+    let a1: Vec<i32> = sqlx::query_scalar(
+        "SELECT sense.seq FROM sense \
+         LEFT JOIN sense_prop sp \
+                ON sp.sense_id = sense.id \
+               AND sp.tag = 'misc' \
+               AND sp.text IN ('arch', 'obsc', 'rare') \
+         GROUP BY sense.seq \
+         HAVING bool_and(sp.id IS NOT NULL)",
+    )
+    .fetch_all(pool)
+    .await?;
+    let a2: Vec<i32> =
+        sqlx::query_scalar("SELECT DISTINCT seq FROM conjugation WHERE \"from\" = ANY($1)")
+            .bind(&a1)
+            .fetch_all(pool)
+            .await?;
+    let mut set: HashSet<i32> = a1.into_iter().collect();
+    set.extend(a2);
+    Ok(set)
+}
+
+pub const MAX_WORD_LENGTH: usize = 50;
+
+/// Map from a substring of an input string to the `kana_text` /
+/// `kanji_text` rows pre-fetched for it by `find-substring-words`.
+/// Per-key uniformity (all rows from one table) is enforced by the
+/// populator's kana-vs-kanji key split (`dict.lisp:511`).
+pub type SubstringHash = HashMap<String, FindWordRows>;
+
+pub async fn word_readings(
+    ctx: &KaniranContext,
+    word: &str,
+) -> Result<(Vec<String>, Vec<String>), sqlx::Error> {
+    // dict.lisp:537 (kana-seq (query (:select 'seq :from 'kana-text :where (:= 'text word)) :column))
+    let kana_seq: Vec<i32> = sqlx::query_scalar("SELECT seq FROM kana_text WHERE text = $1")
+        .bind(word)
+        .fetch_all(&ctx.pool)
+        .await?;
+    // dict.lisp:538-545 (readings (if kana-seq (list word) …))
+    let readings: Vec<String> = if !kana_seq.is_empty() {
+        vec![word.to_string()]
+    } else {
+        // dict.lisp:540-541 (kanji-seq (query (:select 'seq :from 'kanji-text :where (:= 'text word)) :column))
+        let kanji_seq: Vec<i32> = sqlx::query_scalar("SELECT seq FROM kanji_text WHERE text = $1")
+            .bind(word)
+            .fetch_all(&ctx.pool)
+            .await?;
+        // dict.lisp:542-545 (query (:order-by (:select 'text :from 'kana-text :where (:in 'seq (:set kanji-seq))) 'id) :column)
+        sqlx::query_scalar("SELECT text FROM kana_text WHERE seq = ANY($1) ORDER BY id")
+            .bind(&kanji_seq)
+            .fetch_all(&ctx.pool)
+            .await?
+    };
+    // dict.lisp:546 (values readings (mapcar #'ichiran:romanize-word readings))
+    let method = RomanizationMethod::TraditionalHepburn(default_romanization_method());
+    let romanizations: Vec<String> = readings
+        .iter()
+        .map(|reading| romanize_word(reading, method, None, true))
+        .collect();
+    Ok((readings, romanizations))
+}
+
 #[cfg(test)]
-mod tests {
+mod find_substring_words_tests {
     //! Per-key buckets cross-checked against the local ichiran Postgres
     //! (2026-05-25), the same DB these tests query. Each bucket is
     //! compared as a sorted `(seq, ord, common)` list: the populating
@@ -386,7 +925,10 @@ mod tests {
         let ctx = ctx_from_env().await;
         let h = find_substring_words(&ctx, "x", &[]).await.unwrap();
         assert_eq!(keys_sorted(&h), vec!["x".to_string()]);
-        assert!(!is_kana(&h, "x"), "'x' classified kanji (not in kana char set)");
+        assert!(
+            !is_kana(&h, "x"),
+            "'x' classified kanji (not in kana char set)"
+        );
         assert!(rows_sorted(&h, "x").is_empty());
     }
 
@@ -415,12 +957,11 @@ mod tests {
     async fn bucket_is_reverse_of_fetch_order() {
         let ctx = ctx_from_env().await;
         let keys = vec!["行って".to_string()];
-        let fetch: Vec<i32> =
-            sqlx::query_scalar("SELECT seq FROM kanji_text WHERE text = ANY($1)")
-                .bind(&keys)
-                .fetch_all(&ctx.pool)
-                .await
-                .unwrap();
+        let fetch: Vec<i32> = sqlx::query_scalar("SELECT seq FROM kanji_text WHERE text = ANY($1)")
+            .bind(&keys)
+            .fetch_all(&ctx.pool)
+            .await
+            .unwrap();
         assert!(fetch.len() > 1, "test needs a multi-row bucket");
         let h = find_substring_words(&ctx, "行って", &[]).await.unwrap();
         let bucket: Vec<i32> = match h.get("行って").unwrap() {
@@ -432,60 +973,9 @@ mod tests {
         assert_eq!(bucket, expected, "bucket must be reverse of fetch order");
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_words_seqs_inner {
-use crate::characters::char_classes::CharClass;
-use crate::characters::char_classes::test_word;
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::dao::KanaText;
-use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::dao::KanjiText;
-
-pub async fn find_words_seqs(
-    ctx: &KaniranContext,
-    words: &[&str],
-    seqs: &[i32],
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    let mut kana_words: Vec<&str> = Vec::new();
-    let mut kanji_words: Vec<&str> = Vec::new();
-    for &word in words {
-        if test_word(word, CharClass::Kana) {
-            kana_words.push(word);
-        } else {
-            kanji_words.push(word);
-        }
-    }
-
-    let mut out: Vec<KaniWordDispatchEnum> = Vec::new();
-    // dict.lisp:532 (when kanji-words (select-dao 'kanji-text ...))
-    if !kanji_words.is_empty() {
-        let kw: Vec<KanjiText> = sqlx::query_as::<_, KanjiText>(
-            "SELECT * FROM kanji_text WHERE text = ANY($1) AND seq = ANY($2)",
-        )
-        .bind(kanji_words.as_slice())
-        .bind(seqs)
-        .fetch_all(&ctx.pool)
-        .await?;
-        out.extend(kw.into_iter().map(KaniWordDispatchEnum::Kanji));
-    }
-    // dict.lisp:533 (when kana-words (select-dao 'kana-text ...))
-    if !kana_words.is_empty() {
-        let rw: Vec<KanaText> = sqlx::query_as::<_, KanaText>(
-            "SELECT * FROM kana_text WHERE text = ANY($1) AND seq = ANY($2)",
-        )
-        .bind(kana_words.as_slice())
-        .bind(seqs)
-        .fetch_all(&ctx.pool)
-        .await?;
-        out.extend(rw.into_iter().map(KaniWordDispatchEnum::Kana));
-    }
-    Ok(out)
-}
 
 #[cfg(test)]
-mod tests {
+mod find_words_seqs_tests {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -590,7 +1080,9 @@ mod tests {
     #[tokio::test]
     async fn no_match_seq() {
         let ctx = ctx().await;
-        let result = find_words_seqs(&ctx, &["食べる"], &[9999999]).await.unwrap();
+        let result = find_words_seqs(&ctx, &["食べる"], &[9999999])
+            .await
+            .unwrap();
         assert!(result.is_empty());
     }
 
@@ -603,184 +1095,9 @@ mod tests {
         assert!(result.is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_word_as_hiragana_inner {
-use std::future::Future;
-use std::pin::Pin;
-
-use crate::characters::normalize::as_hiragana;
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::find_word::{find_word, FindWordRows};
-use crate::dict::kani::KaniSimpleTextDispatchEnum;
-use crate::dict::text_classes::ProxyText;
-use crate::dict::text_classes::SimpleText;
-
-/// Boxed async finder closure for [`find_word_as_hiragana`]. Mirrors
-/// `or-as-hiragana`'s `(lambda (w) (apply fn w args))` callback shape
-/// (`dict-grammar.lisp:97-100`): a one-shot unary call that takes
-/// the hiragana surface form and returns either a [`FindWordRows`]
-/// list or a `sqlx::Error`. `Send` so the result composes with
-/// `tokio::task::spawn` paths (audit harness, segmenter pipeline).
-pub type HiraganaFinder<'a> = Box<
-    dyn FnOnce(String) -> Pin<Box<dyn Future<Output = Result<FindWordRows, sqlx::Error>> + Send + 'a>>
-        + Send
-        + 'a,
->;
-
-pub async fn find_word_as_hiragana(
-    ctx: &KaniranContext,
-    str_: &str,
-    exclude: &[i32],
-    finder: Option<HiraganaFinder<'_>>,
-) -> Result<Vec<ProxyText>, sqlx::Error> {
-    let as_hira = as_hiragana(str_);
-    if str_ == as_hira {
-        return Ok(Vec::new());
-    }
-    let words = match finder {
-        Some(f) => f(as_hira).await?,
-        // root_only=true, so the substring-hash short-circuit doesn't
-        // apply (find_word skips the cache check for root_only); the
-        // ctx.substring_hash slot is read inside find_word.
-        None => find_word(ctx, &as_hira, true).await?,
-    };
-    let proxies = match words {
-        FindWordRows::Kana(rows) => rows
-            .into_iter()
-            .filter(|w| !exclude.contains(&w.seq))
-            .map(|w| ProxyText {
-                text: str_.to_string(),
-                kana: str_.to_string(),
-                source: Box::new(KaniSimpleTextDispatchEnum::Kana(w)),
-                state: SimpleText::default(),
-            })
-            .collect(),
-        FindWordRows::Kanji(rows) => rows
-            .into_iter()
-            .filter(|w| !exclude.contains(&w.seq))
-            .map(|w| ProxyText {
-                text: str_.to_string(),
-                kana: str_.to_string(),
-                source: Box::new(KaniSimpleTextDispatchEnum::Kanji(w)),
-                state: SimpleText::default(),
-            })
-            .collect(),
-    };
-    Ok(proxies)
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_word_full_inner {
-use crate::characters::char_classes::CharClass;
-use crate::characters::text_utils::consecutive_char_groups;
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::counters::find_counter::find_counter;
-use crate::dict::find_word::{find_word, FindWordRows};
-use crate::dict::find_word::find_word_as_hiragana;
-use crate::dict::grammar::suffix_lookup::find_word_suffix;
-use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::segment::subseq_slice;
-
-/// Closed shape of the upstream `:counter` keyword. Per CONVENTIONS
-/// §4.3: the Lisp value is `nil` (absent), the keyword `:auto`, or a
-/// character-index integer. `Option<CounterArg>` carries the
-/// nil-vs-present distinction; the enum carries the auto-vs-integer
-/// distinction.
-#[derive(Debug, Clone, Copy)]
-pub enum CounterArg {
-    Auto,
-    At(usize),
-}
-
-pub async fn find_word_full(
-    ctx: &KaniranContext,
-    word: &str,
-    as_hiragana: bool,
-    counter: Option<CounterArg>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
-    // dict.lisp:1053 (find-word word)
-    let simple_words_rows = find_word(ctx, word, false).await?;
-
-    // Pre-collect simple words as KaniWordDispatchEnum values for the
-    // suffix / hiragana branches that need `:matches` / `:exclude`
-    // references against them.
-    let simple_words: Vec<KaniWordDispatchEnum> = match &simple_words_rows {
-        FindWordRows::Kana(rows) => rows
-            .iter()
-            .cloned()
-            .map(KaniWordDispatchEnum::Kana)
-            .collect(),
-        FindWordRows::Kanji(rows) => rows
-            .iter()
-            .cloned()
-            .map(KaniWordDispatchEnum::Kanji)
-            .collect(),
-    };
-
-    let mut out: Vec<KaniWordDispatchEnum> = simple_words.clone();
-
-    // dict.lisp:1055 (find-word-suffix word :matches simple-words)
-    // find_word_suffix returns Vec<KaniWordDispatchEnum> directly —
-    // it carries both Compound (def-simple-suffix output) and Proxy
-    // (def-abbr-suffix output) variants per the etypecase at
-    // dict-grammar.lisp:565-577.
-    let suffix_words = find_word_suffix(ctx, word, &simple_words).await?;
-    out.extend(suffix_words);
-
-    // dict.lisp:1056-1057 (when as-hiragana (find-word-as-hiragana …))
-    if as_hiragana {
-        // (mapcar 'seq simple-words) — simple-words are kanji-text /
-        // kana-text rows; (seq r) is the i32 slot. Mirror with a
-        // direct field read keyed by variant.
-        let exclude: Vec<i32> = simple_words
-            .iter()
-            .filter_map(|w| match w {
-                KaniWordDispatchEnum::Kanji(k) => Some(k.seq),
-                KaniWordDispatchEnum::Kana(k) => Some(k.seq),
-                _ => None,
-            })
-            .collect();
-        let proxies = find_word_as_hiragana(ctx, word, &exclude, None).await?;
-        out.extend(proxies.into_iter().map(KaniWordDispatchEnum::Proxy));
-    }
-
-    // dict.lisp:1058-1067 (when counter …)
-    if let Some(counter_arg) = counter {
-        match counter_arg {
-            CounterArg::Auto => {
-                // dict.lisp:1060-1064 (:auto branch)
-                let word_len = word.chars().count();
-                let groups = consecutive_char_groups(CharClass::Number, word, 0, word_len);
-                if let Some(&(g_start, g_end)) = groups.first() {
-                    // (subseq word (caar groups) (cdar groups))
-                    let number = subseq_slice(None, word, g_start, Some(g_end));
-                    // (subseq word (cdar groups) (length word))
-                    let counter_text = subseq_slice(None, word, g_end, Some(word_len));
-                    let counters = find_counter(ctx, number, counter_text, None);
-                    out.extend(counters.into_iter().map(KaniWordDispatchEnum::Counter));
-                }
-            }
-            CounterArg::At(idx) => {
-                // dict.lisp:1065-1067 (t branch)
-                let word_len = word.chars().count();
-                let number = subseq_slice(None, word, 0, Some(idx));
-                let counter_text = subseq_slice(None, word, idx, Some(word_len));
-                // dict.lisp:1067 (:unique (not simple-words))
-                let unique = simple_words.is_empty();
-                let counters = find_counter(ctx, number, counter_text, Some(unique));
-                out.extend(counters.into_iter().map(KaniWordDispatchEnum::Counter));
-            }
-        }
-    }
-
-    Ok(out)
-}
 
 #[cfg(test)]
-mod tests {
+mod find_word_full_tests {
     use super::*;
     use crate::dict::text_classes::ScoreMod;
 
@@ -894,7 +1211,9 @@ mod tests {
     #[tokio::test]
     async fn t7_as_hiragana_with_existing_kana_match() {
         let ctx = ctx().await;
-        let r = find_word_full(&ctx, "ジャバスクリプト", true, None).await.unwrap();
+        let r = find_word_full(&ctx, "ジャバスクリプト", true, None)
+            .await
+            .unwrap();
         assert_eq!(r.len(), 1);
         let KaniWordDispatchEnum::Kana(k) = &r[0] else {
             panic!("expected KANA-TEXT");
@@ -981,173 +1300,9 @@ mod tests {
         assert!(r.is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_word_info_inner {
-use std::sync::Arc;
-
-use crate::characters::char_classes::CharClass;
-use crate::characters::char_classes::test_word;
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::best_path::SuffixMapTemp;
-use crate::dict::find_word::exists_reading;
-use crate::dict::find_word::{find_word, FindWordRows};
-use crate::dict::find_word::{find_word_full, CounterArg};
-use crate::dict::calc_score::gen_score;
-use crate::dict::grammar::suffix_lookup::get_suffix_map;
-use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::segment::Segment;
-use crate::dict::word_info::{WordInfo, WordInfoKana, WordInfoSeq};
-use crate::dict::word_info::word_info_from_segment;
-
-pub async fn find_word_info(
-    ctx: &KaniranContext,
-    text: &str,
-    reading: Option<&str>,
-    root_only: bool,
-) -> Result<Vec<WordInfo>, sqlx::Error> {
-    // &aux (end (length text))
-    let end = text.chars().count();
-
-    // (let ((*suffix-map-temp* (get-suffix-map text)) (*suffix-next-end* end)) …)
-    // get-suffix-map borrows ctx / text; *suffix-map-temp* owns its data,
-    // so materialize owned triples once.
-    let suffix_map: Arc<SuffixMapTemp> = Arc::new(
-        get_suffix_map(ctx, text)
-            .into_iter()
-            .map(|(end_pos, items)| {
-                let owned: Vec<(String, String, Option<_>)> = items
-                    .into_iter()
-                    .map(|(substr, key, kf)| (substr.to_string(), key.to_string(), kf.cloned()))
-                    .collect();
-                (end_pos, owned)
-            })
-            .collect(),
-    );
-    let ctx2 = ctx
-        .with_suffix_map_temp(Some(suffix_map))
-        .with_suffix_next_end(Some(end as i32));
-
-    // (all-words (if root-only (find-word text :root-only t)
-    //                (find-word-full text :as-hiragana (test-word text :katakana) :counter :auto)))
-    let all_words: Vec<KaniWordDispatchEnum> = if root_only {
-        match find_word(&ctx2, text, true).await? {
-            FindWordRows::Kana(rows) => rows.into_iter().map(KaniWordDispatchEnum::Kana).collect(),
-            FindWordRows::Kanji(rows) => rows.into_iter().map(KaniWordDispatchEnum::Kanji).collect(),
-        }
-    } else {
-        find_word_full(
-            &ctx2,
-            text,
-            test_word(text, CharClass::Katakana),
-            Some(CounterArg::Auto),
-        )
-        .await?
-    };
-
-    // (segments (loop for word in all-words
-    //              collect (gen-score (make-segment :start 0 :end end :word word :text text))))
-    let mut segments: Vec<Segment> = Vec::with_capacity(all_words.len());
-    for word in all_words {
-        let mut segment = Segment {
-            start: 0,
-            end,
-            word,
-            score: None,
-            info: None,
-            top: None,
-            text: Some(text.to_string()),
-        };
-        gen_score(&ctx2, &mut segment, false, &[]).await?;
-        segments.push(segment);
-    }
-
-    // (segments (sort segments #'> :key #'segment-score)) — descending by score.
-    segments.sort_by(|left, right| right.score.cmp(&left.score));
-
-    // (wis (mapcar #'word-info-from-segment segments))
-    let mut wis: Vec<WordInfo> = Vec::with_capacity(segments.len());
-    for segment in &mut segments {
-        wis.push(word_info_from_segment(&ctx2, segment).await?);
-    }
-
-    // (when reading (setf wis (loop …)))
-    if let Some(reading) = reading {
-        let mut filtered: Vec<WordInfo> = Vec::with_capacity(wis.len());
-        for mut wi in wis {
-            // for seq = (word-info-seq wi)
-            let seq = wi.seq.clone();
-            // if (equal (word-info-kana wi) reading) collect wi
-            if matches!(&wi.kana, Some(WordInfoKana::Single(kana)) if kana == reading) {
-                filtered.push(wi);
-            // else if (and seq (exists-reading seq reading))
-            } else if let Some(seq) = seq {
-                if exists_reading_seq(&ctx2, &seq, reading).await? {
-                    // do (setf (word-info-kana wi) reading) and collect wi
-                    wi.kana = Some(WordInfoKana::Single(reading.to_string()));
-                    filtered.push(wi);
-                }
-            }
-        }
-        wis = filtered;
-    }
-
-    Ok(wis)
-}
-
-/// `(exists-reading seq reading)` (`dict.lisp:1866`) where `seq` is the
-/// `word-info-seq` slot — an int for a simple word, a list for a
-/// compound. For a single seq this is the ported [`exists_reading`]
-/// predicate. For a compound's list seq, postmodern renders the list as
-/// a SQL row literal (`seq = (a, b, …)`), which PostgreSQL rejects with
-/// `operator does not exist: integer = record` (SQLSTATE 42883);
-/// reproduce the same erroring query so the failure propagates
-/// identically.
-async fn exists_reading_seq(
-    ctx: &KaniranContext,
-    seq: &WordInfoSeq,
-    reading: &str,
-) -> Result<bool, sqlx::Error> {
-    match seq {
-        WordInfoSeq::Single(single_seq) => {
-            Ok(!exists_reading(ctx, *single_seq, reading).await?.is_empty())
-        }
-        WordInfoSeq::Multi(_) => {
-            let query = format!(
-                "SELECT seq FROM kana_text WHERE seq = {} AND text = $1",
-                render_seq_row(seq),
-            );
-            let rows = sqlx::query(&query)
-                .bind(reading)
-                .fetch_all(&ctx.pool)
-                .await?;
-            Ok(!rows.is_empty())
-        }
-    }
-}
-
-/// Render a `word-info-seq` value the way postmodern serializes it into
-/// the `(:= 'seq seq)` clause: an int as itself, a list as a
-/// parenthesized comma-separated row literal (`nil` → `NULL`).
-fn render_seq_row(seq: &WordInfoSeq) -> String {
-    match seq {
-        WordInfoSeq::Single(single_seq) => single_seq.to_string(),
-        WordInfoSeq::Multi(elements) => {
-            let rendered: Vec<String> = elements
-                .iter()
-                .map(|element| match element {
-                    Some(inner) => render_seq_row(inner),
-                    None => "NULL".to_string(),
-                })
-                .collect();
-            format!("({})", rendered.join(", "))
-        }
-    }
-}
 
 #[cfg(test)]
-mod tests {
+mod find_word_info_tests {
     //! Ground truth captured from `ichiran/dict:find-word-info` on .103
     //! (2026-05-25) with `(init-suffixes t t)` forced first so the suffix
     //! cache is fully populated — matching `KaniranContext::from_env`'s
@@ -1203,7 +1358,11 @@ mod tests {
             assert_eq!(wi.score, Some(*score), "text={text}");
             assert_eq!(
                 wi.kind,
-                if *is_kana { WordInfoType::Kana } else { WordInfoType::Kanji },
+                if *is_kana {
+                    WordInfoType::Kana
+                } else {
+                    WordInfoType::Kanji
+                },
                 "text={text}"
             );
             assert_eq!(wi.true_text.as_deref(), Some(*text), "text={text}");
@@ -1223,8 +1382,14 @@ mod tests {
         // (text, [(kana, seq, score), …] in expected order)
         let cases: &[(&str, &[(&str, i32, i32)])] = &[
             ("何", &[("なに", 1577100, 24), ("なん", 2846738, 16)]),
-            ("一人", &[("ひとり", 1576150, 312), ("ひとり", 2149890, 208)]),
-            ("二人", &[("ふたり", 1582670, 325), ("ふたり", 2149890, 208)]),
+            (
+                "一人",
+                &[("ひとり", 1576150, 312), ("ひとり", 2149890, 208)],
+            ),
+            (
+                "二人",
+                &[("ふたり", 1582670, 325), ("ふたり", 2149890, 208)],
+            ),
         ];
         for (text, expected) in cases {
             let result = find_word_info(&ctx, text, None, false).await.unwrap();
@@ -1262,8 +1427,14 @@ mod tests {
         let ctx = ctx().await;
         let result = find_word_info(&ctx, "5個", None, false).await.unwrap();
         assert_eq!(result.len(), 2);
-        assert_eq!((kana_of(&result[0]), single_seq(&result[0]), result[0].score), ("ごこ", 1264740, Some(128)));
-        assert_eq!((kana_of(&result[1]), single_seq(&result[1]), result[1].score), ("ごか", 2220320, Some(40)));
+        assert_eq!(
+            (kana_of(&result[0]), single_seq(&result[0]), result[0].score),
+            ("ごこ", 1264740, Some(128))
+        );
+        assert_eq!(
+            (kana_of(&result[1]), single_seq(&result[1]), result[1].score),
+            ("ごか", 2220320, Some(40))
+        );
         // counter-text: true-text nil, counter = (value-string, ordinalp), start/end 0/2.
         for wi in &result {
             assert_eq!(wi.counter, Some(("Value: 5".to_string(), false)));
@@ -1297,12 +1468,16 @@ mod tests {
     #[tokio::test]
     async fn reading_match_collects() {
         let ctx = ctx().await;
-        let seifu = find_word_info(&ctx, "政府", Some("せいふ"), false).await.unwrap();
+        let seifu = find_word_info(&ctx, "政府", Some("せいふ"), false)
+            .await
+            .unwrap();
         assert_eq!(seifu.len(), 1);
         assert_eq!(kana_of(&seifu[0]), "せいふ");
         assert_eq!(single_seq(&seifu[0]), 1376070);
 
-        let taberu = find_word_info(&ctx, "食べてる", Some("たべてる"), false).await.unwrap();
+        let taberu = find_word_info(&ctx, "食べてる", Some("たべてる"), false)
+            .await
+            .unwrap();
         assert_eq!(taberu.len(), 1);
         assert_eq!(kana_of(&taberu[0]), "たべてる");
         assert_eq!(
@@ -1329,11 +1504,21 @@ mod tests {
             ("何", "なん", "なん", 2846738, 16),
         ];
         for (text, reading, kana, seq, score) in cases {
-            let result = find_word_info(&ctx, text, Some(reading), false).await.unwrap();
+            let result = find_word_info(&ctx, text, Some(reading), false)
+                .await
+                .unwrap();
             assert_eq!(result.len(), 1, "text={text} reading={reading}");
             assert_eq!(kana_of(&result[0]), *kana, "text={text} reading={reading}");
-            assert_eq!(single_seq(&result[0]), *seq, "text={text} reading={reading}");
-            assert_eq!(result[0].score, Some(*score), "text={text} reading={reading}");
+            assert_eq!(
+                single_seq(&result[0]),
+                *seq,
+                "text={text} reading={reading}"
+            );
+            assert_eq!(
+                result[0].score,
+                Some(*score),
+                "text={text} reading={reading}"
+            );
         }
     }
 
@@ -1390,7 +1575,10 @@ mod tests {
             assert_eq!(wi.start, Some(0), "text={text}");
             assert_eq!(wi.end, Some(text.chars().count()), "text={text}");
             let expected_seq = WordInfoSeq::Multi(
-                comps.iter().map(|(_, _, s, _)| Some(WordInfoSeq::Single(*s))).collect(),
+                comps
+                    .iter()
+                    .map(|(_, _, s, _)| Some(WordInfoSeq::Single(*s)))
+                    .collect(),
             );
             assert_eq!(wi.seq, Some(expected_seq), "text={text}");
             assert_eq!(wi.components.len(), comps.len(), "text={text}");
@@ -1430,33 +1618,9 @@ mod tests {
             .is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_word_info_json_inner {
-use serde_json::Value;
-
-use crate::conn::kani_context::KaniranContext;
-
-use super::find_word_info;
-use crate::dict::word_info::word_info_gloss_json;
-
-pub async fn find_word_info_json(
-    ctx: &KaniranContext,
-    text: &str,
-    reading: Option<&str>,
-    root_only: bool,
-) -> Result<Vec<Value>, sqlx::Error> {
-    let word_infos = find_word_info(ctx, text, reading, root_only).await?;
-    let mut out = Vec::with_capacity(word_infos.len());
-    for word_info in &word_infos {
-        out.push(word_info_gloss_json(ctx, word_info, root_only).await?);
-    }
-    Ok(out)
-}
 
 #[cfg(test)]
-mod tests {
+mod find_word_info_json_tests {
     //! Ground truth from `(jsown:to-json (find-word-info-json …))` on .103
     //! (2026-05-25) after `(init-suffixes t t)`. jsown's `\uXXXX` decoded to
     //! the raw-UTF-8 serde_json emits. Local DB per project policy.
@@ -1481,8 +1645,18 @@ mod tests {
         let ctx = ctx_from_env().await;
         // (text, reading, root_only, expected list json)
         let cases: &[(&str, Option<&str>, bool, &str)] = &[
-            ("経済", None, false, r#"[{"reading":"経済 【けいざい】","text":"経済","kana":"けいざい","score":325,"seq":1251320,"gloss":[{"pos":"[n]","gloss":"economy; economics"},{"pos":"[n]","gloss":"finance; (one's) finances; financial circumstances"},{"pos":"[n]","gloss":"being economical; economy; thrift"}],"conj":[]}]"#),
-            ("経済", None, true, r#"[{"reading":"経済 【けいざい】","text":"経済","kana":"けいざい","score":325,"seq":1251320,"gloss":[{"pos":"[n]","gloss":"economy; economics"},{"pos":"[n]","gloss":"finance; (one's) finances; financial circumstances"},{"pos":"[n]","gloss":"being economical; economy; thrift"}]}]"#),
+            (
+                "経済",
+                None,
+                false,
+                r#"[{"reading":"経済 【けいざい】","text":"経済","kana":"けいざい","score":325,"seq":1251320,"gloss":[{"pos":"[n]","gloss":"economy; economics"},{"pos":"[n]","gloss":"finance; (one's) finances; financial circumstances"},{"pos":"[n]","gloss":"being economical; economy; thrift"}],"conj":[]}]"#,
+            ),
+            (
+                "経済",
+                None,
+                true,
+                r#"[{"reading":"経済 【けいざい】","text":"経済","kana":"けいざい","score":325,"seq":1251320,"gloss":[{"pos":"[n]","gloss":"economy; economics"},{"pos":"[n]","gloss":"finance; (one's) finances; financial circumstances"},{"pos":"[n]","gloss":"being economical; economy; thrift"}]}]"#,
+            ),
             ("行きたい", None, true, "[]"),
         ];
         for (text, reading, root_only, expected) in cases {
@@ -1508,44 +1682,9 @@ mod tests {
         );
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_word_kana_pattern_inner {
-use std::cmp::Ordering;
-
-use crate::dict::segment::compare_common;
-use crate::dict::dao::KanaText;
-use crate::conn::kani_context::KaniranContext;
-
-pub async fn find_word_kana_pattern(
-    ctx: &KaniranContext,
-    pattern: &str,
-) -> Result<Vec<KanaText>, sqlx::Error> {
-    // (select-dao 'kana-text (:~ 'text pattern))
-    let mut rows: Vec<KanaText> = sqlx::query_as("SELECT * FROM kana_text WHERE text ~ $1")
-        .bind(pattern)
-        .fetch_all(&ctx.pool)
-        .await?;
-    // (stable-sort … #'compare-common :key (lambda (r) (and (not (eql (common r) :null)) (common r))))
-    // — `common = None` mirrors the `:null` sentinel, so the key is the
-    // row's `common` slot directly.
-    rows.sort_by(|a, b| {
-        let key_a = a.common.map(i64::from);
-        let key_b = b.common.map(i64::from);
-        if compare_common(key_a, key_b).is_truthy() {
-            Ordering::Less
-        } else if compare_common(key_b, key_a).is_truthy() {
-            Ordering::Greater
-        } else {
-            Ordering::Equal
-        }
-    });
-    Ok(rows)
-}
 
 #[cfg(test)]
-mod tests {
+mod find_word_kana_pattern_tests {
     use super::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -1565,7 +1704,11 @@ mod tests {
     async fn common_sort_order() {
         let ctx = ctx_from_env().await;
         let cases: &[(&str, &str, Vec<Option<i32>>)] = &[
-            ("^はし$", "はし", vec![Some(5), Some(5), Some(19), None, None, None]),
+            (
+                "^はし$",
+                "はし",
+                vec![Some(5), Some(5), Some(19), None, None, None],
+            ),
             ("^あれ$", "あれ", vec![Some(21), Some(0), None, None]),
             ("^がっこう$", "がっこう", vec![Some(1), None]),
             ("^xyzzlkj$", "", vec![]),
@@ -1600,48 +1743,9 @@ mod tests {
         }
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod find_kanji_for_pattern_inner {
-use std::collections::HashSet;
-
-use super::find_word_kana_pattern;
-use crate::dict::best_text::get_kanji;
-use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::counters::dispatchers::text;
-use crate::conn::kani_context::KaniranContext;
-
-pub async fn find_kanji_for_pattern(
-    ctx: &KaniranContext,
-    pattern: &str,
-) -> Result<(Vec<String>, Vec<String>), sqlx::Error> {
-    let mut kanji: Vec<String> = Vec::new();
-    let mut kana: Vec<String> = Vec::new();
-    // (loop for r in (find-word-kana-pattern pattern) …)
-    for r in find_word_kana_pattern(ctx, pattern).await? {
-        let r = KaniWordDispatchEnum::Kana(r);
-        // for k = (get-kanji r) / when k collect k into kanji
-        if let Some(k) = get_kanji(ctx, &r).await? {
-            kanji.push(k);
-        }
-        // collect (text r) into kana
-        kana.push(text(&r).into_owned());
-    }
-    // (values (remove-duplicates kanji :test 'equal :from-end t)
-    //         (remove-duplicates kana  :test 'equal :from-end t))
-    Ok((remove_duplicates_from_end(kanji), remove_duplicates_from_end(kana)))
-}
-
-// `(remove-duplicates … :test 'equal :from-end t)` — keep the first
-// occurrence of each value, preserving order.
-fn remove_duplicates_from_end(items: Vec<String>) -> Vec<String> {
-    let mut seen: HashSet<String> = HashSet::new();
-    items.into_iter().filter(|item| seen.insert(item.clone())).collect()
-}
 
 #[cfg(test)]
-mod tests {
+mod find_kanji_for_pattern_tests {
     use super::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -1688,28 +1792,9 @@ mod tests {
         );
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod exists_reading_inner {
-use crate::conn::kani_context::KaniranContext;
-use sqlx::Row;
-
-pub async fn exists_reading(
-    ctx: &KaniranContext,
-    seq: i32,
-    reading: &str,
-) -> Result<Vec<i32>, sqlx::Error> {
-    let rows = sqlx::query("SELECT seq FROM kana_text WHERE seq = $1 AND text = $2")
-        .bind(seq)
-        .bind(reading)
-        .fetch_all(&ctx.pool)
-        .await?;
-    Ok(rows.into_iter().map(|row| row.get::<i32, _>("seq")).collect())
-}
 
 #[cfg(test)]
-mod tests {
+mod exists_reading_tests {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -1745,50 +1830,9 @@ mod tests {
             .is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod get_candidates_inner {
-use crate::characters::char_classes::CharClass;
-use crate::characters::char_classes::test_word;
-use crate::conn::kani_context::KaniranContext;
-
-pub async fn get_candidates(
-    ctx: &KaniranContext,
-    text: &str,
-    reading: Option<&str>,
-) -> Result<Vec<i32>, sqlx::Error> {
-    let is_kana = test_word(text, CharClass::Kana);
-    if is_kana {
-        let rows: Vec<(i32,)> = sqlx::query_as(
-            "SELECT e.seq FROM entry e \
-             LEFT JOIN kana_text r ON e.seq = r.seq \
-             LEFT JOIN kanji_text k ON e.seq = k.seq \
-             WHERE e.root_p AND k.text IS NULL AND r.text = $1 AND r.ord = 0 \
-             ORDER BY e.seq",
-        )
-        .bind(text)
-        .fetch_all(&ctx.pool)
-        .await?;
-        Ok(rows.into_iter().map(|(s,)| s).collect())
-    } else {
-        let rows: Vec<(i32,)> = sqlx::query_as(
-            "SELECT e.seq FROM entry e \
-             LEFT JOIN kana_text r ON e.seq = r.seq \
-             LEFT JOIN kanji_text k ON e.seq = k.seq \
-             WHERE k.text = $1 AND k.ord = 0 AND r.text = $2 AND r.ord = 0 \
-             ORDER BY e.seq",
-        )
-        .bind(text)
-        .bind(reading)
-        .fetch_all(&ctx.pool)
-        .await?;
-        Ok(rows.into_iter().map(|(s,)| s).collect())
-    }
-}
 
 #[cfg(test)]
-mod tests {
+mod get_candidates_tests {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //! REPL probe pinned 2026-05-22 covers both branches and the no-row
     //! cases:
@@ -1838,38 +1882,15 @@ mod tests {
     #[tokio::test]
     async fn kanji_branch_bogus_reading_returns_empty() {
         let ctx = ctx_from_env().await;
-        let out = get_candidates(&ctx, "漢字", Some("ZZZZZZZZ")).await.unwrap();
+        let out = get_candidates(&ctx, "漢字", Some("ZZZZZZZZ"))
+            .await
+            .unwrap();
         assert!(out.is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod get_non_arch_posi_inner {
-use crate::conn::kani_context::KaniranContext;
-
-pub async fn get_non_arch_posi(
-    ctx: &KaniranContext,
-    seq_set: &[i32],
-) -> Result<Vec<String>, sqlx::Error> {
-    sqlx::query_scalar(
-        "SELECT DISTINCT sp1.text \
-         FROM sense_prop sp1 \
-         LEFT JOIN sense_prop sp2 \
-                ON sp1.sense_id = sp2.sense_id \
-               AND sp2.tag = 'misc' \
-               AND sp2.text IN ('arch', 'obsc', 'rare') \
-         WHERE sp1.seq = ANY($1) \
-           AND sp1.tag = 'pos' \
-           AND sp2.id IS NULL",
-    )
-    .bind(seq_set)
-    .fetch_all(&ctx.pool)
-    .await
-}
 
 #[cfg(test)]
-mod tests {
+mod get_non_arch_posi_tests {
     use super::*;
     use crate::conn::kani_context::KaniranContext;
 
@@ -1887,10 +1908,7 @@ mod tests {
         // (get-non-arch-posi '(1357400)) → ("v5m" "vt")
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = get_non_arch_posi(&ctx, &[1357400]).await.expect("query");
-        assert_eq!(
-            sorted(got),
-            vec!["v5m".to_string(), "vt".to_string()]
-        );
+        assert_eq!(sorted(got), vec!["v5m".to_string(), "vt".to_string()]);
     }
 
     #[tokio::test]
@@ -1900,11 +1918,7 @@ mod tests {
         let got = get_non_arch_posi(&ctx, &[2089020]).await.expect("query");
         assert_eq!(
             sorted(got),
-            vec![
-                "aux-v".to_string(),
-                "cop".to_string(),
-                "cop-da".to_string(),
-            ]
+            vec!["aux-v".to_string(), "cop".to_string(), "cop-da".to_string(),]
         );
     }
 
@@ -1960,10 +1974,7 @@ mod tests {
         // (get-non-arch-posi '(2029110)) → ("int" "prt")
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = get_non_arch_posi(&ctx, &[2029110]).await.expect("query");
-        assert_eq!(
-            sorted(got),
-            vec!["int".to_string(), "prt".to_string()]
-        );
+        assert_eq!(sorted(got), vec!["int".to_string(), "prt".to_string()]);
     }
 
     #[tokio::test]
@@ -2019,110 +2030,9 @@ mod tests {
         );
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod is_arch_inner {
-use crate::conn::kani_context::KaniranContext;
-
-pub fn is_arch(ctx: &KaniranContext, seq: i32) -> bool {
-    ctx.is_arch.contains(&seq)
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_is_arch_cache_star__inner {
-use crate::conn::kani_context::KaniranContext;
-use sqlx::PgPool;
-use std::collections::HashSet;
-
-pub fn is_arch_cache(ctx: &KaniranContext) -> &HashSet<i32> {
-    &ctx.is_arch
-}
-
-pub async fn build_is_arch(pool: &PgPool) -> Result<HashSet<i32>, sqlx::Error> {
-    let a1: Vec<i32> = sqlx::query_scalar(
-        "SELECT sense.seq FROM sense \
-         LEFT JOIN sense_prop sp \
-                ON sp.sense_id = sense.id \
-               AND sp.tag = 'misc' \
-               AND sp.text IN ('arch', 'obsc', 'rare') \
-         GROUP BY sense.seq \
-         HAVING bool_and(sp.id IS NOT NULL)",
-    )
-    .fetch_all(pool)
-    .await?;
-    let a2: Vec<i32> = sqlx::query_scalar(
-        "SELECT DISTINCT seq FROM conjugation WHERE \"from\" = ANY($1)",
-    )
-    .bind(&a1)
-    .fetch_all(pool)
-    .await?;
-    let mut set: HashSet<i32> = a1.into_iter().collect();
-    set.extend(a2);
-    Ok(set)
-}
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_max_word_length_star__inner {
-pub const MAX_WORD_LENGTH: usize = 50;
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_substring_hash_star__inner {
-use crate::dict::find_word::FindWordRows;
-use std::collections::HashMap;
-
-/// Map from a substring of an input string to the `kana_text` /
-/// `kanji_text` rows pre-fetched for it by `find-substring-words`.
-/// Per-key uniformity (all rows from one table) is enforced by the
-/// populator's kana-vs-kanji key split (`dict.lisp:511`).
-pub type SubstringHash = HashMap<String, FindWordRows>;
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod word_readings_inner {
-use crate::conn::kani_context::KaniranContext;
-use crate::core::methods::default_romanization_method;
-use crate::core::methods::RomanizationMethod;
-use crate::core::romanize::romanize_word;
-
-pub async fn word_readings(
-    ctx: &KaniranContext,
-    word: &str,
-) -> Result<(Vec<String>, Vec<String>), sqlx::Error> {
-    // dict.lisp:537 (kana-seq (query (:select 'seq :from 'kana-text :where (:= 'text word)) :column))
-    let kana_seq: Vec<i32> = sqlx::query_scalar("SELECT seq FROM kana_text WHERE text = $1")
-        .bind(word)
-        .fetch_all(&ctx.pool)
-        .await?;
-    // dict.lisp:538-545 (readings (if kana-seq (list word) …))
-    let readings: Vec<String> = if !kana_seq.is_empty() {
-        vec![word.to_string()]
-    } else {
-        // dict.lisp:540-541 (kanji-seq (query (:select 'seq :from 'kanji-text :where (:= 'text word)) :column))
-        let kanji_seq: Vec<i32> = sqlx::query_scalar("SELECT seq FROM kanji_text WHERE text = $1")
-            .bind(word)
-            .fetch_all(&ctx.pool)
-            .await?;
-        // dict.lisp:542-545 (query (:order-by (:select 'text :from 'kana-text :where (:in 'seq (:set kanji-seq))) 'id) :column)
-        sqlx::query_scalar("SELECT text FROM kana_text WHERE seq = ANY($1) ORDER BY id")
-            .bind(&kanji_seq)
-            .fetch_all(&ctx.pool)
-            .await?
-    };
-    // dict.lisp:546 (values readings (mapcar #'ichiran:romanize-word readings))
-    let method = RomanizationMethod::TraditionalHepburn(default_romanization_method());
-    let romanizations: Vec<String> = readings
-        .iter()
-        .map(|reading| romanize_word(reading, method, None, true))
-        .collect();
-    Ok((readings, romanizations))
-}
 
 #[cfg(test)]
-mod tests {
+mod word_readings_tests {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //! REPL fixtures (.103, ichiran/dict:word-readings), 2026-05-25.
     use super::*;
@@ -2142,7 +2052,11 @@ mod tests {
         // - katakana kana-branch input; macron long vowels; empty-on-both.
         let cases: &[(&str, &[&str], &[&str])] = &[
             // kanji branch, multiple kana readings ordered by id.
-            ("猫", &["ねこ", "ネコ", "ねこま"], &["neko", "neko", "nekoma"]),
+            (
+                "猫",
+                &["ねこ", "ネコ", "ねこま"],
+                &["neko", "neko", "nekoma"],
+            ),
             // kana branch — word is in kana-text, returned as-is.
             ("ねこ", &["ねこ"], &["neko"]),
             // kana branch, katakana surface form (long-vowel bar).
@@ -2164,5 +2078,4 @@ mod tests {
             assert_eq!(&romanizations, exp_rom, "romanizations for {word}");
         }
     }
-}
 }

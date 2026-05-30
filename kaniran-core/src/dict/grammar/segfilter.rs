@@ -1,48 +1,11 @@
 //! Port of the dict-grammar.lisp segfilter layer.
 
-pub use _star_segfilter_list_star__inner::*;
-pub use def_segfilter_must_follow_macro_inner::*;
-pub use _star_aux_verbs_star__inner::*;
-pub use segfilter_aux_verb_inner::*;
-pub use segfilter_tsu_iru_inner::*;
-pub use segfilter_n_inner::*;
-pub use segfilter_wokarasu_inner::*;
-pub use segfilter_badend_inner::*;
-pub use segfilter_sukiyoki_inner::*;
-pub use segfilter_roku_inner::*;
-pub use segfilter_sae_inner::*;
-pub use segfilter_janai_inner::*;
-pub use segfilter_nohayamete_inner::*;
-pub use _star_honorifics_star__inner::*;
-pub use segfilter_toomou_inner::*;
-pub use segfilter_totte_inner::*;
-pub use segfilter_dashi_inner::*;
-pub use segfilter_dekiru_inner::*;
-pub use segfilter_honorific_inner::*;
-pub use segfilter_mononi_inner::*;
-pub use apply_segfilters_inner::*;
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_segfilter_list_star__inner {
+use crate::dict::grammar::filter::{
+    classify, filter_in_seq_set, filter_in_seq_set_simple, filter_is_compound_end,
+    filter_is_compound_end_text, filter_is_conjugation, NOUN_PARTICLES,
+};
+use crate::dict::kani::{make_kani_lite_segment_list_from, KaniLiteSegment, KaniLiteSegmentList};
 use std::sync::Arc;
-
-use super::segfilter_aux_verb;
-use super::segfilter_badend;
-use super::segfilter_dashi;
-use super::segfilter_dekiru;
-use super::segfilter_honorific;
-use super::segfilter_janai;
-use super::segfilter_mononi;
-use super::segfilter_n;
-use super::segfilter_nohayamete;
-use super::segfilter_roku;
-use super::segfilter_sae;
-use super::segfilter_sukiyoki;
-use super::segfilter_toomou;
-use super::segfilter_totte;
-use super::segfilter_tsu_iru;
-use super::segfilter_wokarasu;
-use crate::dict::kani::KaniLiteSegmentList;
 
 pub type SegFilter = fn(
     Option<&Arc<KaniLiteSegmentList>>,
@@ -67,17 +30,6 @@ pub static SEGFILTER_LIST: &[SegFilter] = &[
     segfilter_tsu_iru,
     segfilter_aux_verb,
 ];
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod def_segfilter_must_follow_macro_inner {
-use std::sync::Arc;
-
-use crate::dict::grammar::filter::classify;
-use crate::dict::kani::KaniLiteSegment;
-use crate::dict::kani::{
-    make_kani_lite_segment_list_from, KaniLiteSegmentList,
-};
 
 pub fn def_segfilter_must_follow_body<FL, FR>(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
@@ -133,8 +85,7 @@ where
         return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
     }
 
-    let mut result: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> =
-        Vec::new();
+    let mut result: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> = Vec::new();
     if !con_r.is_empty() {
         result.push((
             Some(Arc::clone(l)),
@@ -154,8 +105,317 @@ where
     result
 }
 
+pub static AUX_VERBS: &[i32] = &[
+    1342560, // 初める/そめる
+];
+
+pub fn segfilter_aux_verb(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        filter_is_conjugation(13),
+        filter_in_seq_set(AUX_VERBS.to_vec()),
+        false,
+    )
+}
+
+const TSU_SEQ: i32 = 2221640;
+const IRU_SEQS: &[i32] = &[1577980];
+
+pub fn segfilter_tsu_iru(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    let inner = filter_in_seq_set(vec![TSU_SEQ]);
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |s| !inner(s),
+        filter_in_seq_set(IRU_SEQS.to_vec()),
+        true,
+    )
+}
+
+const N_SEQS: &[i32] = &[2139720, 2849370, 2849387];
+
+pub fn segfilter_n(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    let inner = filter_in_seq_set_simple(NOUN_PARTICLES.to_vec());
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |s| !inner(s),
+        filter_in_seq_set(N_SEQS.to_vec()),
+        true,
+    )
+}
+
+const WO_SEQ: i32 = 2029010;
+const KARASU_SEQS: &[i32] = &[2087020];
+
+pub fn segfilter_wokarasu(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    // Left filter is (filter-in-seq-set 2029010) — no complement here
+    // unlike most segfilters; sat-l = matches を, con-l = does not.
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        filter_in_seq_set(vec![WO_SEQ]),
+        filter_in_seq_set(KARASU_SEQS.to_vec()),
+        false,
+    )
+}
+
+fn badend_texts() -> Vec<String> {
+    vec![
+        "ちゃい".to_string(),
+        "いか".to_string(),
+        "とか".to_string(),
+        "とき".to_string(),
+        "い".to_string(),
+    ]
+}
+
+pub fn segfilter_badend(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    // Left filter (constantly nil) — sat-l is always empty for this
+    // segfilter so the prepended sat-pair branch in the macro
+    // expansion is unreachable in practice.
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |_: &Arc<KaniLiteSegment>| false,
+        filter_is_compound_end_text(badend_texts()),
+        false,
+    )
+}
+
+const SUKI_SUFFIX: &str = "好き";
+
+pub fn segfilter_sukiyoki(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    let conj_filter = filter_is_conjugation(54); // +conj-adjective-literary+
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |_: &Arc<KaniLiteSegment>| false,
+        // dict-grammar.lisp:1103 (lambda) — and conj-type=54 ends-with "好き".
+        |s| conj_filter(s) && s.text.ends_with(SUKI_SUFFIX),
+        false,
+    )
+}
+
+const IRO_TEXTS: &[&str] = &["いろ"];
+const KU_CHAR: char = 'く';
+
+pub fn segfilter_roku(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    let inner = filter_is_compound_end_text(IRO_TEXTS.iter().map(|s| s.to_string()).collect());
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |s| !inner(s),
+        // dict-grammar.lisp:1114 (lambda) — (starts-with #\く (get-text segment)).
+        |s| s.text.starts_with(KU_CHAR),
+        true,
+    )
+}
+
+const SAE_SEQ: i32 = 2029120;
+const E_CHAR: char = 'え';
+
+pub fn segfilter_sae(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    let inner = filter_is_compound_end(vec![SAE_SEQ]);
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |s| !inner(s),
+        // dict-grammar.lisp:1119 (lambda) — (starts-with #\え (get-text segment)).
+        |s| s.text.starts_with(E_CHAR),
+        true,
+    )
+}
+
+const HA_SEQ: i32 = 2028920;
+const JANAI_SEQS: &[i32] = &[1529520, 1296400, 2139720];
+
+pub fn segfilter_janai(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    let inner = filter_is_compound_end(vec![HA_SEQ]);
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |s| !inner(s),
+        filter_in_seq_set(JANAI_SEQS.to_vec()),
+        true,
+    )
+}
+
+const NO_SEQ: i32 = 1469800;
+const HAYAMETE_SEQS: &[i32] = &[1601080];
+
+pub fn segfilter_nohayamete(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    let inner = filter_in_seq_set(vec![NO_SEQ]);
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |s| !inner(s),
+        filter_in_seq_set(HAYAMETE_SEQS.to_vec()),
+        true,
+    )
+}
+
+pub static HONORIFICS: &[i32] = &[
+    1247260, // 君
+];
+
+const NANDATO_SEQ: i32 = 2837117;
+const OMOU_IU_SEQS: &[i32] = &[1589350, 1587040];
+
+pub fn segfilter_toomou(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    let inner = filter_in_seq_set(vec![NANDATO_SEQ]);
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |s| !inner(s),
+        filter_in_seq_set(OMOU_IU_SEQS.to_vec()),
+        true,
+    )
+}
+
+const TO_SEQ: i32 = 1008490;
+const TOTTE_SEQS: &[i32] = &[2086960];
+
+pub fn segfilter_totte(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    let inner = filter_in_seq_set(vec![TO_SEQ]);
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |s| !inner(s),
+        filter_in_seq_set(TOTTE_SEQS.to_vec()),
+        true,
+    )
+}
+
+const SEQ_DA: i32 = 2089020;
+const SEQ_DE: i32 = 2028980;
+const SURU_SETE_SEQS: &[i32] = &[1157170, 2424740, 1305070];
+
+fn filter_left(segment: &Arc<KaniLiteSegment>) -> bool {
+    // dict-grammar.lisp:1144 (lambda &aux seq-set ...)
+    !segment.seq_set.contains(&SEQ_DA) || segment.seq_set.contains(&SEQ_DE)
+}
+
+pub fn segfilter_dashi(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        filter_left,
+        filter_in_seq_set(SURU_SETE_SEQS.to_vec()),
+        true,
+    )
+}
+
+const DE_SEQS: &[i32] = &[1896380, 2422860];
+const KURU_SEQS: &[i32] = &[2830009, 1547720];
+
+pub fn segfilter_dekiru(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    let inner = filter_in_seq_set(DE_SEQS.to_vec());
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |s| !inner(s),
+        filter_in_seq_set(KURU_SEQS.to_vec()),
+        true,
+    )
+}
+
+pub fn segfilter_honorific(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    let inner = filter_in_seq_set(NOUN_PARTICLES.to_vec());
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |s| !inner(s),
+        filter_in_seq_set(HONORIFICS.to_vec()),
+        false,
+    )
+}
+
+const MO_SEQ: i32 = 2028940;
+const MONONI_SEQS: &[i32] = &[1009980];
+
+pub fn segfilter_mononi(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    let inner = filter_in_seq_set(vec![MO_SEQ]);
+    def_segfilter_must_follow_body(
+        seg_left,
+        seg_right,
+        |s| !inner(s),
+        filter_in_seq_set(MONONI_SEQS.to_vec()),
+        true,
+    )
+}
+
+pub fn apply_segfilters(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    // dict-grammar.lisp:1171 (`with splits = (list (list seg-left seg-right))`)
+    let mut splits: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> =
+        vec![(seg_left.cloned(), Arc::clone(seg_right))];
+    for segfilter in SEGFILTER_LIST {
+        // dict-grammar.lisp:1173-1175 (inner loop nconc-ing each
+        // filter's output across the current splits)
+        let mut next: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> =
+            Vec::new();
+        for (left, right) in &splits {
+            next.extend(segfilter(left.as_ref(), right));
+        }
+        splits = next;
+    }
+    splits
+}
+
 #[cfg(test)]
-mod tests {
+mod def_segfilter_must_follow_macro_tests {
     //! Synthetic-filter tests pinning each branch of the macro
     //! expansion independent of any specific dictionary lookup. The
     //! per-callsite segfilter_*.rs files cover the full pipeline with
@@ -165,8 +425,9 @@ mod tests {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -226,13 +487,8 @@ mod tests {
     #[test]
     fn clause_1_no_right_match_passes_through() {
         let r = sl(0, 1, vec![seg(0, 1, vec![999])]);
-        let result = def_segfilter_must_follow_body(
-            None,
-            &r,
-            |_| true,
-            |s| s.seq_set.contains(&100),
-            false,
-        );
+        let result =
+            def_segfilter_must_follow_body(None, &r, |_| true, |s| s.seq_set.contains(&100), false);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -242,13 +498,8 @@ mod tests {
     #[test]
     fn clause_1_allow_first_passes_through_when_l_none() {
         let r = sl(0, 1, vec![seg(0, 1, vec![100])]);
-        let result = def_segfilter_must_follow_body(
-            None,
-            &r,
-            |_| true,
-            |s| s.seq_set.contains(&100),
-            true,
-        );
+        let result =
+            def_segfilter_must_follow_body(None, &r, |_| true, |s| s.seq_set.contains(&100), true);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
     }
@@ -257,13 +508,8 @@ mod tests {
     #[test]
     fn clause_2_l_none_all_right_matches_returns_empty() {
         let r = sl(0, 1, vec![seg(0, 1, vec![100])]);
-        let result = def_segfilter_must_follow_body(
-            None,
-            &r,
-            |_| true,
-            |s| s.seq_set.contains(&100),
-            false,
-        );
+        let result =
+            def_segfilter_must_follow_body(None, &r, |_| true, |s| s.seq_set.contains(&100), false);
         assert!(result.is_empty());
     }
 
@@ -271,13 +517,8 @@ mod tests {
     #[test]
     fn clause_2_l_none_mixed_right_drops_matches() {
         let r = sl(0, 1, vec![seg(0, 1, vec![100]), seg(0, 1, vec![999])]);
-        let result = def_segfilter_must_follow_body(
-            None,
-            &r,
-            |_| true,
-            |s| s.seq_set.contains(&100),
-            false,
-        );
+        let result =
+            def_segfilter_must_follow_body(None, &r, |_| true, |s| s.seq_set.contains(&100), false);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -374,47 +615,16 @@ mod tests {
         assert_eq!(result[0].1.segments[0].seq_set, vec![100]);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_aux_verbs_star__inner {
-pub static AUX_VERBS: &[i32] = &[
-    1342560, // 初める/そめる
-];
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_aux_verb_inner {
-use std::sync::Arc;
-
-use super::AUX_VERBS;
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_in_seq_set;
-use crate::dict::grammar::filter::filter_is_conjugation;
-use crate::dict::kani::KaniLiteSegmentList;
-
-pub fn segfilter_aux_verb(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        filter_is_conjugation(13),
-        filter_in_seq_set(AUX_VERBS.to_vec()),
-        false,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_aux_verb_tests {
     use super::*;
     use crate::dict::conj_data::ConjData;
-    use crate::dict::dao::ConjProp;
-    use crate::dict::dao::KanaText;
+    use crate::dict::dao::{ConjProp, KanaText};
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -665,40 +875,15 @@ mod tests {
         assert_eq!(result[0].1.segments[0].seq_set, vec![1342560]);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_tsu_iru_inner {
-use std::sync::Arc;
-
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_in_seq_set;
-use crate::dict::kani::KaniLiteSegmentList;
-
-const TSU_SEQ: i32 = 2221640;
-const IRU_SEQS: &[i32] = &[1577980];
-
-pub fn segfilter_tsu_iru(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(vec![TSU_SEQ]);
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        |s| !inner(s),
-        filter_in_seq_set(IRU_SEQS.to_vec()),
-        true,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_tsu_iru_tests {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -733,7 +918,15 @@ mod tests {
     }
 
     fn seg(start: usize, end: usize, info: KaniSegmentInfo) -> Segment {
-        Segment { start, end, word: dummy_word(), score: None, info: Some(info), top: None, text: None }
+        Segment {
+            start,
+            end,
+            word: dummy_word(),
+            score: None,
+            info: Some(info),
+            top: None,
+            text: None,
+        }
     }
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
@@ -798,43 +991,16 @@ mod tests {
         assert_eq!(result[0].1.segments.len(), 1);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_n_inner {
-use std::sync::Arc;
-
-use crate::dict::grammar::filter::NOUN_PARTICLES;
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_in_seq_set;
-use crate::dict::grammar::filter::filter_in_seq_set_simple;
-use crate::dict::kani::KaniLiteSegmentList;
-
-const N_SEQS: &[i32] = &[2139720, 2849370, 2849387];
-
-pub fn segfilter_n(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set_simple(NOUN_PARTICLES.to_vec());
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        |s| !inner(s),
-        filter_in_seq_set(N_SEQS.to_vec()),
-        true,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_n_tests {
     use super::*;
-    use crate::dict::text_classes::{CompoundText, ScoreMod};
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::text_classes::SimpleText;
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
+    use crate::dict::text_classes::{CompoundText, ScoreMod, SimpleText};
 
     fn kana(seq: i32) -> KanaText {
         KanaText {
@@ -856,8 +1022,10 @@ mod tests {
     }
 
     fn compound_word(child_seqs: &[i32]) -> KaniWordDispatchEnum {
-        let words: Vec<KaniWordDispatchEnum> =
-            child_seqs.iter().map(|s| KaniWordDispatchEnum::Kana(kana(*s))).collect();
+        let words: Vec<KaniWordDispatchEnum> = child_seqs
+            .iter()
+            .map(|s| KaniWordDispatchEnum::Kana(kana(*s)))
+            .collect();
         let primary = Box::new(words[0].clone());
         KaniWordDispatchEnum::Compound(CompoundText {
             text: String::new(),
@@ -886,7 +1054,15 @@ mod tests {
     }
 
     fn seg(start: usize, end: usize, word: KaniWordDispatchEnum, info: KaniSegmentInfo) -> Segment {
-        Segment { start, end, word, score: None, info: Some(info), top: None, text: None }
+        Segment {
+            start,
+            end,
+            word,
+            score: None,
+            info: Some(info),
+            top: None,
+            text: None,
+        }
     }
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
@@ -904,7 +1080,16 @@ mod tests {
     #[test]
     fn n_a_l_nil_r_all_n_pass_through() {
         // N-A l=NIL r=all-n cnt=1 → pass-through (allow-first)
-        let r = lite_sl(0, 1, vec![seg(0, 1, simple_word(2139720), info_with_seq_set(vec![2139720]))]);
+        let r = lite_sl(
+            0,
+            1,
+            vec![seg(
+                0,
+                1,
+                simple_word(2139720),
+                info_with_seq_set(vec![2139720]),
+            )],
+        );
         let result = segfilter_n(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -914,7 +1099,11 @@ mod tests {
     #[test]
     fn n_b_l_nil_r_no_match() {
         // N-B l=NIL r=no-match cnt=1 → clause-1
-        let r = lite_sl(0, 1, vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))]);
+        let r = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))],
+        );
         let result = segfilter_n(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -939,8 +1128,21 @@ mod tests {
     #[test]
     fn n_d_l_not_noun_r_n() {
         // N-D l-not-noun r-n cnt=1; sat-l full, con-l empty → (l, r)
-        let l = lite_sl(0, 1, vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))]);
-        let r = lite_sl(1, 2, vec![seg(1, 2, simple_word(2139720), info_with_seq_set(vec![2139720]))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))],
+        );
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(
+                1,
+                2,
+                simple_word(2139720),
+                info_with_seq_set(vec![2139720]),
+            )],
+        );
         let result = segfilter_n(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -949,9 +1151,26 @@ mod tests {
     #[test]
     fn n_e_l_is_noun_r_n_empty() {
         // N-E l-is-noun (simple 2028920=は, in *noun-particles*) r-all-n cnt=0
-        let l =
-            lite_sl(0, 1, vec![seg(0, 1, simple_word(2028920), info_with_seq_set(vec![2028920]))]);
-        let r = lite_sl(1, 2, vec![seg(1, 2, simple_word(2139720), info_with_seq_set(vec![2139720]))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(
+                0,
+                1,
+                simple_word(2028920),
+                info_with_seq_set(vec![2028920]),
+            )],
+        );
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(
+                1,
+                2,
+                simple_word(2139720),
+                info_with_seq_set(vec![2139720]),
+            )],
+        );
         let result = segfilter_n(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -959,8 +1178,16 @@ mod tests {
     #[test]
     fn n_f_l_is_noun_r_mixed() {
         // N-F l-is-noun r-mixed cnt=1 — base pair (l unchanged, mslf r con-r)
-        let l =
-            lite_sl(0, 1, vec![seg(0, 1, simple_word(2028920), info_with_seq_set(vec![2028920]))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(
+                0,
+                1,
+                simple_word(2028920),
+                info_with_seq_set(vec![2028920]),
+            )],
+        );
         let r = lite_sl(
             1,
             2,
@@ -972,7 +1199,10 @@ mod tests {
         let result = segfilter_n(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
-        assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![2028920]);
+        assert_eq!(
+            result[0].0.as_ref().unwrap().segments[0].seq_set,
+            vec![2028920]
+        );
         assert_eq!(result[0].1.segments.len(), 1);
         assert_eq!(result[0].1.segments[0].seq_set, vec![999]);
     }
@@ -990,7 +1220,16 @@ mod tests {
                 seg(0, 1, simple_word(999), info_with_seq_set(vec![999])),
             ],
         );
-        let r = lite_sl(1, 2, vec![seg(1, 2, simple_word(2139720), info_with_seq_set(vec![2139720]))]);
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(
+                1,
+                2,
+                simple_word(2139720),
+                info_with_seq_set(vec![2139720]),
+            )],
+        );
         let result = segfilter_n(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -1001,7 +1240,11 @@ mod tests {
     #[test]
     fn n_h_gap_r_mixed() {
         // N-H gap r-mixed cnt=1 — clause-2 with con-r non-empty
-        let l = lite_sl(0, 1, vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))],
+        );
         let r = lite_sl(
             2,
             3,
@@ -1019,8 +1262,21 @@ mod tests {
     #[test]
     fn n_i_gap_r_all_n_empty() {
         // N-I gap r-all-n cnt=0 — clause-2 with con-r empty
-        let l = lite_sl(0, 1, vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))]);
-        let r = lite_sl(2, 3, vec![seg(2, 3, simple_word(2139720), info_with_seq_set(vec![2139720]))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))],
+        );
+        let r = lite_sl(
+            2,
+            3,
+            vec![seg(
+                2,
+                3,
+                simple_word(2139720),
+                info_with_seq_set(vec![2139720]),
+            )],
+        );
         let result = segfilter_n(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -1040,47 +1296,30 @@ mod tests {
             text: None,
         };
         let l = lite_sl(0, 2, vec![lseg]);
-        let r = lite_sl(2, 3, vec![seg(2, 3, simple_word(2139720), info_with_seq_set(vec![2139720]))]);
+        let r = lite_sl(
+            2,
+            3,
+            vec![seg(
+                2,
+                3,
+                simple_word(2139720),
+                info_with_seq_set(vec![2139720]),
+            )],
+        );
         let result = segfilter_n(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_wokarasu_inner {
-use std::sync::Arc;
-
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_in_seq_set;
-use crate::dict::kani::KaniLiteSegmentList;
-
-const WO_SEQ: i32 = 2029010;
-const KARASU_SEQS: &[i32] = &[2087020];
-
-pub fn segfilter_wokarasu(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    // Left filter is (filter-in-seq-set 2029010) — no complement here
-    // unlike most segfilters; sat-l = matches を, con-l = does not.
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        filter_in_seq_set(vec![WO_SEQ]),
-        filter_in_seq_set(KARASU_SEQS.to_vec()),
-        false,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_wokarasu_tests {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -1115,7 +1354,15 @@ mod tests {
     }
 
     fn seg(start: usize, end: usize, info: KaniSegmentInfo) -> Segment {
-        Segment { start, end, word: dummy_word(), score: None, info: Some(info), top: None, text: None }
+        Segment {
+            start,
+            end,
+            word: dummy_word(),
+            score: None,
+            info: Some(info),
+            top: None,
+            text: None,
+        }
     }
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
@@ -1209,7 +1456,10 @@ mod tests {
 
         // First pair: sat-l × sat-r.
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
-        assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![2029010]);
+        assert_eq!(
+            result[0].0.as_ref().unwrap().segments[0].seq_set,
+            vec![2029010]
+        );
         assert_eq!(result[0].1.segments.len(), 1);
         assert_eq!(result[0].1.segments[0].seq_set, vec![2087020]);
 
@@ -1246,52 +1496,14 @@ mod tests {
         assert!(result.is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_badend_inner {
-use std::sync::Arc;
-
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_is_compound_end_text;
-use crate::dict::kani::KaniLiteSegment;
-use crate::dict::kani::KaniLiteSegmentList;
-
-fn badend_texts() -> Vec<String> {
-    vec![
-        "ちゃい".to_string(),
-        "いか".to_string(),
-        "とか".to_string(),
-        "とき".to_string(),
-        "い".to_string(),
-    ]
-}
-
-pub fn segfilter_badend(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    // Left filter (constantly nil) — sat-l is always empty for this
-    // segfilter so the prepended sat-pair branch in the macro
-    // expansion is unreachable in practice.
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        |_: &Arc<KaniLiteSegment>| false,
-        filter_is_compound_end_text(badend_texts()),
-        false,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_badend_tests {
     use super::*;
-    use crate::dict::text_classes::{CompoundText, ScoreMod};
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::Segment;
-    use crate::dict::text_classes::SimpleText;
+    use crate::dict::segment::{Segment, SegmentList};
+    use crate::dict::text_classes::{CompoundText, ScoreMod, SimpleText};
 
     fn kana(text: &str, seq: i32) -> KanaText {
         KanaText {
@@ -1435,43 +1647,16 @@ mod tests {
         assert_eq!(result[0].1.segments.len(), 1);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_sukiyoki_inner {
-use std::sync::Arc;
-
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_is_conjugation;
-use crate::dict::kani::KaniLiteSegment;
-use crate::dict::kani::KaniLiteSegmentList;
-
-const SUKI_SUFFIX: &str = "好き";
-
-pub fn segfilter_sukiyoki(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let conj_filter = filter_is_conjugation(54); // +conj-adjective-literary+
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        |_: &Arc<KaniLiteSegment>| false,
-        // dict-grammar.lisp:1103 (lambda) — and conj-type=54 ends-with "好き".
-        |s| conj_filter(s) && s.text.ends_with(SUKI_SUFFIX),
-        false,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_sukiyoki_tests {
     use super::*;
     use crate::dict::conj_data::ConjData;
-    use crate::dict::dao::ConjProp;
-    use crate::dict::dao::KanaText;
+    use crate::dict::dao::{ConjProp, KanaText};
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn kana(text: &str, seq: i32) -> KanaText {
@@ -1553,7 +1738,13 @@ mod tests {
         let r = lite_sl(
             0,
             1,
-            vec![seg(0, 1, "好き", 100, Some(info(vec![100], vec![cdata_54()])))],
+            vec![seg(
+                0,
+                1,
+                "好き",
+                100,
+                Some(info(vec![100], vec![cdata_54()])),
+            )],
         );
         let result = segfilter_sukiyoki(None, &r);
         assert!(result.is_empty());
@@ -1587,7 +1778,11 @@ mod tests {
     #[test]
     fn sk_c_l_nil_r_no_match() {
         // SK-C l=NIL r=no-match cnt=1 — clause-1
-        let r = lite_sl(0, 1, vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))]);
+        let r = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))],
+        );
         let result = segfilter_sukiyoki(None, &r);
         assert_eq!(result.len(), 1);
     }
@@ -1597,11 +1792,21 @@ mod tests {
         // SK-D l-simple r-suki cnt=0
         // sat-l empty (constantly nil), con-l full; sat-r full, con-r empty
         // → no base, no sat-l push (sat-l empty) → empty
-        let l = lite_sl(0, 1, vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))],
+        );
         let r = lite_sl(
             1,
             2,
-            vec![seg(1, 2, "好き", 100, Some(info(vec![100], vec![cdata_54()])))],
+            vec![seg(
+                1,
+                2,
+                "好き",
+                100,
+                Some(info(vec![100], vec![cdata_54()])),
+            )],
         );
         let result = segfilter_sukiyoki(Some(&l), &r);
         assert!(result.is_empty());
@@ -1611,7 +1816,11 @@ mod tests {
     fn sk_e_l_simple_r_mixed_base_only() {
         // SK-E l-simple r-mixed cnt=1
         // sat-l empty, con-l full; sat-r=suki, con-r=other → base pair only
-        let l = lite_sl(0, 1, vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))],
+        );
         let r = lite_sl(
             1,
             2,
@@ -1633,11 +1842,21 @@ mod tests {
     #[test]
     fn sk_f_gap_r_suki_empty() {
         // SK-F gap r-suki cnt=0 — clause-2 (l.end != r.start) with con-r empty → ()
-        let l = lite_sl(0, 1, vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))],
+        );
         let r = lite_sl(
             2,
             3,
-            vec![seg(2, 3, "好き", 100, Some(info(vec![100], vec![cdata_54()])))],
+            vec![seg(
+                2,
+                3,
+                "好き",
+                100,
+                Some(info(vec![100], vec![cdata_54()])),
+            )],
         );
         let result = segfilter_sukiyoki(Some(&l), &r);
         assert!(result.is_empty());
@@ -1646,7 +1865,11 @@ mod tests {
     #[test]
     fn sk_g_l_nil_r_suki_no_conj_pass_through() {
         // SK-G l=NIL r=suki-no-conj cnt=1 — filter-right requires conj-54; without it sat-r empty
-        let r = lite_sl(0, 1, vec![seg(0, 1, "好き", 100, Some(info(vec![100], vec![])))]);
+        let r = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, "好き", 100, Some(info(vec![100], vec![])))],
+        );
         let result = segfilter_sukiyoki(None, &r);
         assert_eq!(result.len(), 1);
     }
@@ -1657,49 +1880,26 @@ mod tests {
         let r = lite_sl(
             0,
             1,
-            vec![seg(0, 1, "abc", 100, Some(info(vec![100], vec![cdata_54()])))],
+            vec![seg(
+                0,
+                1,
+                "abc",
+                100,
+                Some(info(vec![100], vec![cdata_54()])),
+            )],
         );
         let result = segfilter_sukiyoki(None, &r);
         assert_eq!(result.len(), 1);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_roku_inner {
-use std::sync::Arc;
-
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_is_compound_end_text;
-use crate::dict::kani::KaniLiteSegmentList;
-
-const IRO_TEXTS: &[&str] = &["いろ"];
-const KU_CHAR: char = 'く';
-
-pub fn segfilter_roku(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_is_compound_end_text(IRO_TEXTS.iter().map(|s| s.to_string()).collect());
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        |s| !inner(s),
-        // dict-grammar.lisp:1114 (lambda) — (starts-with #\く (get-text segment)).
-        |s| s.text.starts_with(KU_CHAR),
-        true,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_roku_tests {
     use super::*;
-    use crate::dict::text_classes::{CompoundText, ScoreMod};
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::Segment;
-    use crate::dict::text_classes::SimpleText;
+    use crate::dict::segment::{Segment, SegmentList};
+    use crate::dict::text_classes::{CompoundText, ScoreMod, SimpleText};
 
     fn kana(text: &str, seq: i32) -> KanaText {
         KanaText {
@@ -1835,10 +2035,7 @@ mod tests {
         let r = lite_sl(
             2,
             3,
-            vec![
-                simple_seg(2, 3, "くる", 100),
-                simple_seg(2, 3, "あさ", 999),
-            ],
+            vec![simple_seg(2, 3, "くる", 100), simple_seg(2, 3, "あさ", 999)],
         );
         let result = segfilter_roku(Some(&l), &r);
         assert_eq!(result.len(), 1);
@@ -1849,43 +2046,16 @@ mod tests {
         }
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_sae_inner {
-use std::sync::Arc;
-
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_is_compound_end;
-use crate::dict::kani::KaniLiteSegmentList;
-
-const SAE_SEQ: i32 = 2029120;
-const E_CHAR: char = 'え';
-
-pub fn segfilter_sae(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_is_compound_end(vec![SAE_SEQ]);
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        |s| !inner(s),
-        // dict-grammar.lisp:1119 (lambda) — (starts-with #\え (get-text segment)).
-        |s| s.text.starts_with(E_CHAR),
-        true,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_sae_tests {
     use super::*;
-    use crate::dict::text_classes::{CompoundText, ScoreMod};
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::text_classes::SimpleText;
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
+    use crate::dict::text_classes::{CompoundText, ScoreMod, SimpleText};
 
     fn kana(text: &str, seq: i32) -> KanaText {
         KanaText {
@@ -1918,7 +2088,13 @@ mod tests {
         }
     }
 
-    fn simple_seg(start: usize, end: usize, t: &str, seq: i32, info: Option<KaniSegmentInfo>) -> Segment {
+    fn simple_seg(
+        start: usize,
+        end: usize,
+        t: &str,
+        seq: i32,
+        info: Option<KaniSegmentInfo>,
+    ) -> Segment {
         Segment {
             start,
             end,
@@ -1987,7 +2163,17 @@ mod tests {
     #[test]
     fn s_c_l_simple_r_e() {
         // S-C l-simple r-e cnt=1 — sat-l full, con-l empty → (l, r)
-        let l = lite_sl(0, 1, vec![simple_seg(0, 1, "abc", 999, Some(info_with_seq_set(vec![999])))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![simple_seg(
+                0,
+                1,
+                "abc",
+                999,
+                Some(info_with_seq_set(vec![999])),
+            )],
+        );
         let r = lite_sl(1, 2, vec![simple_seg(1, 2, "える", 100, None)]);
         let result = segfilter_sae(Some(&l), &r);
         assert_eq!(result.len(), 1);
@@ -2029,43 +2215,16 @@ mod tests {
         assert_eq!(result[0].1.segments.len(), 1);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_janai_inner {
-use std::sync::Arc;
-
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_in_seq_set;
-use crate::dict::grammar::filter::filter_is_compound_end;
-use crate::dict::kani::KaniLiteSegmentList;
-
-const HA_SEQ: i32 = 2028920;
-const JANAI_SEQS: &[i32] = &[1529520, 1296400, 2139720];
-
-pub fn segfilter_janai(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_is_compound_end(vec![HA_SEQ]);
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        |s| !inner(s),
-        filter_in_seq_set(JANAI_SEQS.to_vec()),
-        true,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_janai_tests {
     use super::*;
-    use crate::dict::text_classes::{CompoundText, ScoreMod};
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::text_classes::SimpleText;
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
+    use crate::dict::text_classes::{CompoundText, ScoreMod, SimpleText};
 
     fn kana(text: &str, seq: i32) -> KanaText {
         KanaText {
@@ -2154,7 +2313,12 @@ mod tests {
         let r = lite_sl(
             0,
             1,
-            vec![seg(0, 1, simple_word(1529520), Some(info_with_seq_set(vec![1529520])))],
+            vec![seg(
+                0,
+                1,
+                simple_word(1529520),
+                Some(info_with_seq_set(vec![1529520])),
+            )],
         );
         let result = segfilter_janai(None, &r);
         assert_eq!(result.len(), 1);
@@ -2170,12 +2334,22 @@ mod tests {
         let l = lite_sl(
             0,
             1,
-            vec![seg(0, 1, simple_word(999), Some(info_with_seq_set(vec![999])))],
+            vec![seg(
+                0,
+                1,
+                simple_word(999),
+                Some(info_with_seq_set(vec![999])),
+            )],
         );
         let r = lite_sl(
             1,
             2,
-            vec![seg(1, 2, simple_word(1529520), Some(info_with_seq_set(vec![1529520])))],
+            vec![seg(
+                1,
+                2,
+                simple_word(1529520),
+                Some(info_with_seq_set(vec![1529520])),
+            )],
         );
         let result = segfilter_janai(Some(&l), &r);
         assert_eq!(result.len(), 1);
@@ -2200,7 +2374,12 @@ mod tests {
         let r = lite_sl(
             2,
             3,
-            vec![seg(2, 3, simple_word(1529520), Some(info_with_seq_set(vec![1529520])))],
+            vec![seg(
+                2,
+                3,
+                simple_word(1529520),
+                Some(info_with_seq_set(vec![1529520])),
+            )],
         );
         let result = segfilter_janai(Some(&l), &r);
         assert!(result.is_empty());
@@ -2227,7 +2406,12 @@ mod tests {
         let r = lite_sl(
             2,
             3,
-            vec![seg(2, 3, simple_word(1529520), Some(info_with_seq_set(vec![1529520])))],
+            vec![seg(
+                2,
+                3,
+                simple_word(1529520),
+                Some(info_with_seq_set(vec![1529520])),
+            )],
         );
         let result = segfilter_janai(Some(&l), &r);
         assert_eq!(result.len(), 1);
@@ -2243,13 +2427,23 @@ mod tests {
         let l = lite_sl(
             0,
             1,
-            vec![seg(0, 1, simple_word(999), Some(info_with_seq_set(vec![999])))],
+            vec![seg(
+                0,
+                1,
+                simple_word(999),
+                Some(info_with_seq_set(vec![999])),
+            )],
         );
         let r = lite_sl(
             2,
             3,
             vec![
-                seg(2, 3, simple_word(1296400), Some(info_with_seq_set(vec![1296400]))),
+                seg(
+                    2,
+                    3,
+                    simple_word(1296400),
+                    Some(info_with_seq_set(vec![1296400])),
+                ),
                 seg(2, 3, simple_word(999), Some(info_with_seq_set(vec![999]))),
             ],
         );
@@ -2260,40 +2454,15 @@ mod tests {
         assert_eq!(result[0].1.segments[0].seq_set, vec![999]);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_nohayamete_inner {
-use std::sync::Arc;
-
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_in_seq_set;
-use crate::dict::kani::KaniLiteSegmentList;
-
-const NO_SEQ: i32 = 1469800;
-const HAYAMETE_SEQS: &[i32] = &[1601080];
-
-pub fn segfilter_nohayamete(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(vec![NO_SEQ]);
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        |s| !inner(s),
-        filter_in_seq_set(HAYAMETE_SEQS.to_vec()),
-        true,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_nohayamete_tests {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -2425,47 +2594,15 @@ mod tests {
         assert_eq!(result[0].1.segments[0].seq_set, vec![999]);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod _star_honorifics_star__inner {
-pub static HONORIFICS: &[i32] = &[
-    1247260, // 君
-];
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_toomou_inner {
-use std::sync::Arc;
-
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_in_seq_set;
-use crate::dict::kani::KaniLiteSegmentList;
-
-const NANDATO_SEQ: i32 = 2837117;
-const OMOU_IU_SEQS: &[i32] = &[1589350, 1587040];
-
-pub fn segfilter_toomou(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(vec![NANDATO_SEQ]);
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        |s| !inner(s),
-        filter_in_seq_set(OMOU_IU_SEQS.to_vec()),
-        true,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_toomou_tests {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -2500,7 +2637,15 @@ mod tests {
     }
 
     fn seg(start: usize, end: usize, info: KaniSegmentInfo) -> Segment {
-        Segment { start, end, word: dummy_word(), score: None, info: Some(info), top: None, text: None }
+        Segment {
+            start,
+            end,
+            word: dummy_word(),
+            score: None,
+            info: Some(info),
+            top: None,
+            text: None,
+        }
     }
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
@@ -2570,40 +2715,15 @@ mod tests {
         assert_eq!(result[0].1.segments.len(), 1);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_totte_inner {
-use std::sync::Arc;
-
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_in_seq_set;
-use crate::dict::kani::KaniLiteSegmentList;
-
-const TO_SEQ: i32 = 1008490;
-const TOTTE_SEQS: &[i32] = &[2086960];
-
-pub fn segfilter_totte(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(vec![TO_SEQ]);
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        |s| !inner(s),
-        filter_in_seq_set(TOTTE_SEQS.to_vec()),
-        true,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_totte_tests {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -2638,7 +2758,15 @@ mod tests {
     }
 
     fn seg(start: usize, end: usize, info: KaniSegmentInfo) -> Segment {
-        Segment { start, end, word: dummy_word(), score: None, info: Some(info), top: None, text: None }
+        Segment {
+            start,
+            end,
+            word: dummy_word(),
+            score: None,
+            info: Some(info),
+            top: None,
+            text: None,
+        }
     }
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
@@ -2703,46 +2831,15 @@ mod tests {
         assert_eq!(result[0].1.segments.len(), 1);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_dashi_inner {
-use std::sync::Arc;
-
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_in_seq_set;
-use crate::dict::kani::KaniLiteSegment;
-use crate::dict::kani::KaniLiteSegmentList;
-
-const SEQ_DA: i32 = 2089020;
-const SEQ_DE: i32 = 2028980;
-const SURU_SETE_SEQS: &[i32] = &[1157170, 2424740, 1305070];
-
-fn filter_left(segment: &Arc<KaniLiteSegment>) -> bool {
-    // dict-grammar.lisp:1144 (lambda &aux seq-set ...)
-    !segment.seq_set.contains(&SEQ_DA) || segment.seq_set.contains(&SEQ_DE)
-}
-
-pub fn segfilter_dashi(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        filter_left,
-        filter_in_seq_set(SURU_SETE_SEQS.to_vec()),
-        true,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_dashi_tests {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -2803,7 +2900,11 @@ mod tests {
     #[test]
     fn da_a_l_nil_r_all_match_passes_through_allow_first() {
         // Da-A l=NIL r-all-match -> {(L=NIL R=[1-seg seq=1157170])} (allow-first short-circuit)
-        let r = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![1157170])))]);
+        let r = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, Some(info_with_seq_set(vec![1157170])))],
+        );
         let result = segfilter_dashi(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -2830,7 +2931,11 @@ mod tests {
     #[test]
     fn da_c_l_da_r_no_match_passes_through() {
         // Da-C l-da r-no-match -> {(L=l unchanged 1 seg, R=r unchanged 1 seg seq=999)}
-        let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![2089020])))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, Some(info_with_seq_set(vec![2089020])))],
+        );
         let r = lite_sl(1, 3, vec![seg(1, 3, Some(info_with_seq_set(vec![999])))]);
         let result = segfilter_dashi(Some(&l), &r);
         assert_eq!(result.len(), 1);
@@ -2843,7 +2948,11 @@ mod tests {
         // Da-D l-sat-l (no 2089020) r-sat-r (suru) -> {(L=l unchanged, R=r unchanged)}
         // (sat-l = all of l; con-l empty; falls through to "(list (list l r))")
         let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![123])))]);
-        let r = lite_sl(1, 3, vec![seg(1, 3, Some(info_with_seq_set(vec![1157170])))]);
+        let r = lite_sl(
+            1,
+            3,
+            vec![seg(1, 3, Some(info_with_seq_set(vec![1157170])))],
+        );
         let result = segfilter_dashi(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -2855,7 +2964,11 @@ mod tests {
         // Da-E l-da r-mixed -> {(L=l unchanged 1 seg, R=mslf(r, con_r)=1 seg seq=999)}
         // l has only da: sat-l empty (da fails left filter), con-l full.
         // Only the base pair emits (sat-l prepend skipped).
-        let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![2089020])))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, Some(info_with_seq_set(vec![2089020])))],
+        );
         let r = lite_sl(
             1,
             3,
@@ -2874,8 +2987,16 @@ mod tests {
     #[test]
     fn da_f_l_de_r_suru() {
         // Da-F l-de (sat-l: has 2028980) r-suru -> {(L=l unchanged, R=r unchanged)} (con-l empty)
-        let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![2028980])))]);
-        let r = lite_sl(1, 3, vec![seg(1, 3, Some(info_with_seq_set(vec![1157170])))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, Some(info_with_seq_set(vec![2028980])))],
+        );
+        let r = lite_sl(
+            1,
+            3,
+            vec![seg(1, 3, Some(info_with_seq_set(vec![1157170])))],
+        );
         let result = segfilter_dashi(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -2893,7 +3014,11 @@ mod tests {
                 seg(0, 1, Some(info_with_seq_set(vec![2089020, 2028980]))),
             ],
         );
-        let r = lite_sl(1, 3, vec![seg(1, 3, Some(info_with_seq_set(vec![1157170])))]);
+        let r = lite_sl(
+            1,
+            3,
+            vec![seg(1, 3, Some(info_with_seq_set(vec![1157170])))],
+        );
         let result = segfilter_dashi(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -2908,7 +3033,11 @@ mod tests {
     fn da_h_l_da_r_mixed_gap() {
         // Da-H l-da (l.end=1) r-mixed-gap (r.start=2) -> {(L=l unchanged, R=mslf(r, con_r)=1 seg)}
         // l.end != r.start; con-r non-empty.
-        let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![2089020])))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, Some(info_with_seq_set(vec![2089020])))],
+        );
         let r = lite_sl(
             2,
             4,
@@ -2929,47 +3058,26 @@ mod tests {
         // Da-I l-info-nil r-suru -> {(L=l unchanged, R=r unchanged)}
         // info=None ⇒ seq-set empty ⇒ left filter truthy (not (find da empty)=t).
         let l = lite_sl(0, 1, vec![seg(0, 1, None)]);
-        let r = lite_sl(1, 3, vec![seg(1, 3, Some(info_with_seq_set(vec![1157170])))]);
+        let r = lite_sl(
+            1,
+            3,
+            vec![seg(1, 3, Some(info_with_seq_set(vec![1157170])))],
+        );
         let result = segfilter_dashi(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert!(result[0].0.as_ref().unwrap().segments[0].seq_set.is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_dekiru_inner {
-use std::sync::Arc;
-
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_in_seq_set;
-use crate::dict::kani::KaniLiteSegmentList;
-
-const DE_SEQS: &[i32] = &[1896380, 2422860];
-const KURU_SEQS: &[i32] = &[2830009, 1547720];
-
-pub fn segfilter_dekiru(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(DE_SEQS.to_vec());
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        |s| !inner(s),
-        filter_in_seq_set(KURU_SEQS.to_vec()),
-        true,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_dekiru_tests {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -3030,7 +3138,11 @@ mod tests {
     #[test]
     fn de_a_l_nil_r_all_match() {
         // De-A l=NIL r-all-match -> {(L=NIL R=[1 seg seq=2830009])} (allow-first)
-        let r = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![2830009])))]);
+        let r = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, Some(info_with_seq_set(vec![2830009])))],
+        );
         let result = segfilter_dekiru(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -3056,7 +3168,11 @@ mod tests {
     #[test]
     fn de_c_l_de_r_no_match() {
         // De-C l-de r-no-match -> {(L=l unchanged, R=r unchanged)} (sat-r empty)
-        let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![1896380])))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, Some(info_with_seq_set(vec![1896380])))],
+        );
         let r = lite_sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![999])))]);
         let result = segfilter_dekiru(Some(&l), &r);
         assert_eq!(result.len(), 1);
@@ -3067,7 +3183,11 @@ mod tests {
     fn de_d_l_sat_l_r_sat_r() {
         // De-D l-sat-l (not 出) r-sat-r (来る) -> {(L=l unchanged, R=r unchanged)} (con-l empty)
         let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![123])))]);
-        let r = lite_sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![2830009])))]);
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(1, 2, Some(info_with_seq_set(vec![2830009])))],
+        );
         let result = segfilter_dekiru(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -3077,7 +3197,11 @@ mod tests {
     fn de_e_l_de_r_mixed() {
         // De-E l-de r-mixed -> {(L=l unchanged 1 seg, R=mslf(r, con_r)=1 seg seq=999)}
         // l = only 出 → sat-l empty (complement of in-de-seqs is false), con-l = l's seg.
-        let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![1896380])))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, Some(info_with_seq_set(vec![1896380])))],
+        );
         let r = lite_sl(
             1,
             2,
@@ -3139,7 +3263,11 @@ mod tests {
                 seg(0, 1, Some(info_with_seq_set(vec![888]))),
             ],
         );
-        let r = lite_sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![2830009])))]);
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(1, 2, Some(info_with_seq_set(vec![2830009])))],
+        );
         let result = segfilter_dekiru(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -3153,46 +3281,26 @@ mod tests {
         // info=None ⇒ seq-set empty ⇒ inner filter returns false ⇒ complement returns true ⇒
         // sat-l = full, con-l empty, falls through to "(list (list l r))".
         let l = lite_sl(0, 1, vec![seg(0, 1, None)]);
-        let r = lite_sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![2830009])))]);
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(1, 2, Some(info_with_seq_set(vec![2830009])))],
+        );
         let result = segfilter_dekiru(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert!(result[0].0.as_ref().unwrap().segments[0].seq_set.is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_honorific_inner {
-use std::sync::Arc;
-
-use super::HONORIFICS;
-use crate::dict::grammar::filter::NOUN_PARTICLES;
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_in_seq_set;
-use crate::dict::kani::KaniLiteSegmentList;
-
-pub fn segfilter_honorific(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(NOUN_PARTICLES.to_vec());
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        |s| !inner(s),
-        filter_in_seq_set(HONORIFICS.to_vec()),
-        false,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_honorific_tests {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -3254,7 +3362,11 @@ mod tests {
     fn h_a_l_nil_r_all_honor_empty() {
         // H-A l=NIL r=all-honorific => NIL
         // sat-r full, allow-first=nil, clause-2 (not l)=t, con-r empty → ()
-        let r = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![1247260])))]);
+        let r = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, Some(info_with_seq_set(vec![1247260])))],
+        );
         let result = segfilter_honorific(None, &r);
         assert!(result.is_empty());
     }
@@ -3294,7 +3406,11 @@ mod tests {
         // H-D l-not-noun r-honor cnt=1 l-segs=1 r-segs=1
         // sat-l = full (not in noun particles), con-l empty → (list (list l r))
         let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![999])))]);
-        let r = lite_sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![1247260])))]);
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(1, 2, Some(info_with_seq_set(vec![1247260])))],
+        );
         let result = segfilter_honorific(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -3305,8 +3421,16 @@ mod tests {
     fn h_e_l_is_noun_r_honor_empty() {
         // H-E l-is-noun r-honor cnt=0
         // sat-l empty, con-l full, sat-r full, con-r empty → empty result
-        let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![2028920])))]);
-        let r = lite_sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![1247260])))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, Some(info_with_seq_set(vec![2028920])))],
+        );
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(1, 2, Some(info_with_seq_set(vec![1247260])))],
+        );
         let result = segfilter_honorific(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -3316,7 +3440,11 @@ mod tests {
         // H-F l-is-noun r-mixed cnt=1 r0-segs=1 r0-seq=(999)
         // sat-l empty, con-l full, sat-r=honor, con-r=other
         // → base pair (l unchanged, mslf r con-r); no sat-l prepend
-        let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![2028920])))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, Some(info_with_seq_set(vec![2028920])))],
+        );
         let r = lite_sl(
             1,
             2,
@@ -3345,7 +3473,11 @@ mod tests {
                 seg(0, 1, Some(info_with_seq_set(vec![999]))),
             ],
         );
-        let r = lite_sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![1247260])))]);
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(1, 2, Some(info_with_seq_set(vec![1247260])))],
+        );
         let result = segfilter_honorific(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -3378,45 +3510,24 @@ mod tests {
         // H-I gap all-honor => NIL
         // clause-2 gap with con-r empty → ()
         let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![999])))]);
-        let r = lite_sl(2, 3, vec![seg(2, 3, Some(info_with_seq_set(vec![1247260])))]);
+        let r = lite_sl(
+            2,
+            3,
+            vec![seg(2, 3, Some(info_with_seq_set(vec![1247260])))],
+        );
         let result = segfilter_honorific(Some(&l), &r);
         assert!(result.is_empty());
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod segfilter_mononi_inner {
-use std::sync::Arc;
-
-use super::def_segfilter_must_follow_body;
-use crate::dict::grammar::filter::filter_in_seq_set;
-use crate::dict::kani::KaniLiteSegmentList;
-
-const MO_SEQ: i32 = 2028940;
-const MONONI_SEQS: &[i32] = &[1009980];
-
-pub fn segfilter_mononi(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(vec![MO_SEQ]);
-    def_segfilter_must_follow_body(
-        seg_left,
-        seg_right,
-        |s| !inner(s),
-        filter_in_seq_set(MONONI_SEQS.to_vec()),
-        true,
-    )
-}
 
 #[cfg(test)]
-mod tests {
+mod segfilter_mononi_tests {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -3478,7 +3589,11 @@ mod tests {
     fn m_a_l_nil_r_mononi_pass_through() {
         // M-A l=NIL r=mononi cnt=1
         // allow-first → clause-1 → (list (list nil r))
-        let r = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![1009980])))]);
+        let r = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, Some(info_with_seq_set(vec![1009980])))],
+        );
         let result = segfilter_mononi(None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
@@ -3490,7 +3605,11 @@ mod tests {
         // M-B l-not-mo r-mononi cnt=1 l-segs=1
         // sat-l full (not mo), con-l empty → (list (list l r))
         let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![999])))]);
-        let r = lite_sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))]);
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))],
+        );
         let result = segfilter_mononi(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -3500,8 +3619,16 @@ mod tests {
     fn m_c_l_mo_r_mononi_empty() {
         // M-C l-mo r-mononi => NIL
         // sat-l empty, con-l full, sat-r full, con-r empty → empty result
-        let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![2028940])))]);
-        let r = lite_sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))]);
+        let l = lite_sl(
+            0,
+            1,
+            vec![seg(0, 1, Some(info_with_seq_set(vec![2028940])))],
+        );
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))],
+        );
         let result = segfilter_mononi(Some(&l), &r);
         assert!(result.is_empty());
     }
@@ -3519,7 +3646,11 @@ mod tests {
                 seg(0, 1, Some(info_with_seq_set(vec![999]))),
             ],
         );
-        let r = lite_sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))]);
+        let r = lite_sl(
+            1,
+            2,
+            vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))],
+        );
         let result = segfilter_mononi(Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
@@ -3527,45 +3658,16 @@ mod tests {
         assert_eq!(result[0].1.segments.len(), 1);
     }
 }
-}
-
-#[allow(clippy::module_inception, dead_code, unused_imports)]
-mod apply_segfilters_inner {
-use std::sync::Arc;
-
-use super::SEGFILTER_LIST;
-use crate::dict::kani::KaniLiteSegmentList;
-
-pub fn apply_segfilters(
-    seg_left: Option<&Arc<KaniLiteSegmentList>>,
-    seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    // dict-grammar.lisp:1171 (`with splits = (list (list seg-left seg-right))`)
-    let mut splits: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> =
-        vec![(seg_left.cloned(), Arc::clone(seg_right))];
-    for segfilter in SEGFILTER_LIST {
-        // dict-grammar.lisp:1173-1175 (inner loop nconc-ing each
-        // filter's output across the current splits)
-        let mut next: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> =
-            Vec::new();
-        for (left, right) in &splits {
-            next.extend(segfilter(left.as_ref(), right));
-        }
-        splits = next;
-    }
-    splits
-}
 
 #[cfg(test)]
-mod tests {
+mod apply_segfilters_tests {
     use super::*;
     use crate::dict::conj_data::ConjData;
-    use crate::dict::dao::ConjProp;
-    use crate::dict::dao::KanaText;
-    use crate::dict::kani::KaniLiteSegment;
-    use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment::SegmentList;
-    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::dao::{ConjProp, KanaText};
+    use crate::dict::kani::{KaniLiteSegment, KaniWordDispatchEnum};
+    use crate::dict::segment::{
+        KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment, SegmentList,
+    };
     use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -3665,12 +3767,7 @@ mod tests {
         assert_eq!(seg.kpcl, 0);
     }
 
-    fn assert_conj_seg(
-        seg: &Arc<KaniLiteSegment>,
-        start: usize,
-        end: usize,
-        conj_type: i32,
-    ) {
+    fn assert_conj_seg(seg: &Arc<KaniLiteSegment>, start: usize, end: usize, conj_type: i32) {
         assert_eq!(seg.source.start, start);
         assert_eq!(seg.source.end, end);
         assert!(seg.seq_set.is_empty());
@@ -3772,5 +3869,4 @@ mod tests {
         assert_sl(rp, 0, 1, 0, 1);
         assert_seq_set_seg(&rp.segments[0], 0, 1, &[2139720]);
     }
-}
 }
