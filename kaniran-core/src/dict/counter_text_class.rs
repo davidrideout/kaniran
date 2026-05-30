@@ -83,11 +83,11 @@ use crate::dict::kanji_text_dao::KanjiText;
 use crate::dict::kani_counter_args::{CounterArgs, CounterClass};
 use crate::dict::kani_suffix_kind::SuffixKind;
 use crate::dict::number_text_class::NumberText;
-use crate::numbers::constants::{DIGIT_KANJI_DEFAULT, POWER_KANJI};
-use crate::numbers::not_a_number_condition::NotANumber;
-use crate::numbers::number_to_kana::{number_to_kana, NumberToKanaOutput};
-use crate::numbers::number_to_kanji::number_to_kanji;
-use crate::numbers::parse_number::parse_number;
+use crate::numbers::num_class::{DIGIT_KANJI_DEFAULT, POWER_KANJI};
+use crate::numbers::kanji_form::NotANumber;
+use crate::numbers::kana_form::{number_to_kana, NumberToKanaOutput};
+use crate::numbers::kanji_form::number_to_kanji;
+use crate::numbers::kanji_form::parse_number;
 
 #[derive(Debug, Clone)]
 pub struct CounterText {

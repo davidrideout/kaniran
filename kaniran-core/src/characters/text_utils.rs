@@ -1,9 +1,5 @@
-//! String-level utilities: regex splitting, basic tokenization, kanji
-//! run discovery, mora counting, stem trimming, the recursive aligner,
-//! safe substring, and the join helper. From `characters.lisp:234-249`
-//! (split / basic-split / mora-length), `:273-278`
-//! (consecutive-char-groups), and `:316-370` (destem / match-diff /
-//! safe-subseq / join).
+//! String-level utilities. From `characters.lisp:234-249`, `:273-278`,
+//! and `:316-370`.
 
 use std::sync::OnceLock;
 
@@ -13,15 +9,9 @@ use super::char_classes::{
     basic_split_regex, char_class_bare_scanners, char_scanners_inner, CharClass,
 };
 
-/// `split-by-regex` (`characters.lisp:234-236`). Split `s` by `regex`,
-/// interleaving the captured groups with the between-match text and
-/// dropping any empty pieces. Mirrors cl-ppcre's
-/// `(ppcre:split regex str :with-registers-p t)`.
-///
-/// With a regex that has a single outer capture group (the upstream
-/// usage in `*basic-split-regex*`), the result alternates
-/// "between-match text" with "the matched text" — exactly what
-/// [`basic_split`] relies on for its misc/word classification.
+/// `split-by-regex` (`characters.lisp:234-236`). Mirrors
+/// `(ppcre:split regex str :with-registers-p t)` — interleaves
+/// between-match text with captured groups, dropping empties.
 pub fn split_by_regex(regex: &Regex, s: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut last = 0;
@@ -49,7 +39,6 @@ pub fn split_by_regex(regex: &Regex, s: &str) -> Vec<String> {
     out
 }
 
-/// Tag for the segments returned by [`basic_split`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SegmentKind {
     Misc,
@@ -57,12 +46,8 @@ pub enum SegmentKind {
 }
 
 /// `basic-split` (`characters.lisp:238-243`). Segment Japanese-mixed
-/// text into alternating misc / word runs. Splits with
-/// `*basic-split-regex*` (compiled lazily here), tags the first segment
-/// via `test_word(.., :nonword)`, and alternates from there — that's
-/// how upstream encodes "consecutive segments returned by
-/// `:with-registers-p t` alternate between between-match misc text and
-/// matched word groups."
+/// text via `*basic-split-regex*`; the first segment is classified via
+/// `test_word(.., Nonword)` and subsequent segments alternate.
 pub fn basic_split(s: &str) -> Vec<(SegmentKind, String)> {
     static SCANNER: OnceLock<Regex> = OnceLock::new();
     let scanner = SCANNER
@@ -85,25 +70,16 @@ pub fn basic_split(s: &str) -> Vec<(SegmentKind, String)> {
         .collect()
 }
 
-/// `mora-length` (`characters.lisp:245-249`). Counts the number of
-/// "real" morae in a kana string, ignoring the sokuon, all small kana
-/// modifiers (`ぁィゥェォ`, `ャュョ`), and the long-vowel mark `ー`. Each
-/// excluded glyph either fuses with or lengthens its neighbour rather
-/// than contributing a mora of its own.
+/// `mora-length` (`characters.lisp:245-249`). Real morae in a kana
+/// string — ignores sokuon, small vowel/y-glide modifiers, and `ー`.
 pub fn mora_length(s: &str) -> usize {
     const MODIFIERS: &str = "っッぁァぃィぅゥぇェぉォゃャゅュょョー";
     s.chars().filter(|c| !MODIFIERS.contains(*c)).count()
 }
 
-/// `consecutive-char-groups` (`characters.lisp:273-278`). Find every run
-/// of consecutive characters in `char_class` within `s[start..end]` and
-/// return each as a `(start, end)` pair.
-///
-/// Positions are *character* offsets, matching the upstream — not byte
-/// offsets — so callers can pass them through `chars().nth()` or
-/// compare against Lisp fixtures without translation. The function
-/// converts to byte offsets internally to drive the regex, then
-/// converts back.
+/// `consecutive-char-groups` (`characters.lisp:273-278`). Runs of
+/// consecutive `char_class` characters in `s[start..end]` as
+/// `(start, end)` *character* offsets.
 pub fn consecutive_char_groups(
     char_class: CharClass,
     s: &str,
@@ -133,20 +109,9 @@ fn nth_char_byte(s: &str, char_pos: usize) -> usize {
         .unwrap_or(s.len())
 }
 
-/// `destem` (`characters.lisp:316-324`). Trim from the end of `word` the
-/// suffix that begins at the `stem`-th match of `char_class`'s pattern
-/// (counted from the end). `stem == 0` returns `word` unchanged. When
-/// `word` has fewer than `stem` matches of the class, the result is
-/// empty.
-///
-/// Char-position semantics (CONVENTIONS §4.5): the cut is on a
-/// character boundary, so multi-byte code points pass through
-/// correctly. The compiled regex comes from
-/// [`super::char_classes::char_class_bare_scanners`].
-///
-/// Diverges from the Lisp by exposing `char_class` as a required
-/// argument (the Lisp `&optional` defaulted to `:kana`); both upstream
-/// call-sites pass the default explicitly under this convention.
+/// `destem` (`characters.lisp:316-324`). Trim the suffix that begins at
+/// the `stem`-th match of `char_class` (counted from the end). `stem ==
+/// 0` returns `word` unchanged; `stem > matches` returns `""`.
 pub fn destem(word: &str, stem: usize, char_class: CharClass) -> String {
     if stem == 0 {
         return word.to_string();
@@ -166,7 +131,6 @@ pub fn destem(word: &str, stem: usize, char_class: CharClass) -> String {
     word.chars().take(cut).collect()
 }
 
-/// Alternating segment returned by [`match_diff`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MatchSegment {
     Equal(String),
@@ -174,31 +138,18 @@ pub enum MatchSegment {
 }
 
 /// `match-diff` (`characters.lisp:326-357`). Recursively align two
-/// strings into a sequence of [`MatchSegment`]s that alternate between
-/// equal regions and pairs of differing regions, returning also a score
-/// equal to the total length of the matched portions (number of
-/// *characters*, not bytes). Used by the kanji reading-matcher for any
-/// non-kanji string pair.
+/// strings into alternating equal/diff segments plus a score (count of
+/// matched characters).
 ///
-/// Returns `None` when either input is empty. The upstream `cond` for
-/// these branches is `((zerop l1))` / `((zerop l2))` with no body —
-/// which means the cond returns `T` (the value of `(zerop ...)` when
-/// true), not `nil`. The Rust port deliberately returns `None` instead
-/// of trying to surface that `T` sentinel, because (a) `T` carries no
-/// useful data, and (b) the only non-recursive caller
-/// (`dict-split.lisp:933`) only ever passes non-empty strings, so no
-/// upstream code reads the `T` return.
+/// Returns `None` on empty input. Upstream `cond` returns `T` for that
+/// branch but no caller reads it (the only non-recursive call site,
+/// `dict-split.lisp:933`, always passes non-empty); `None` is the safer
+/// shape.
 ///
-/// Algorithmic notes:
-/// - When one input has length 1 (and the inputs differ), the result
-///   is a single `Diff(s1, s2)` segment with score 0 — even when the
-///   first characters happen to match. The upstream early-returns this
-///   case before the prefix-match branches fire.
-/// - With no shared prefix, the function does a naive O(l1·l2)
-///   pair-search, recursing on every matching `(i, j)` pair to pick the
-///   alignment with the highest score. Worst-case complexity is
-///   exponential; the upstream relies on the inputs being short kana
-///   strings.
+/// One-char input on either side with any mismatch returns a single
+/// `Diff` with score 0 — the upstream early-returns before the
+/// prefix-match branches. With no shared prefix, falls back to an
+/// O(l1·l2) pair search recursing on every matching `(i, j)` pair.
 pub fn match_diff(s1: &str, s2: &str) -> Option<(Vec<MatchSegment>, usize)> {
     let c1: Vec<char> = s1.chars().collect();
     let c2: Vec<char> = s2.chars().collect();
@@ -240,22 +191,16 @@ pub fn match_diff(s1: &str, s2: &str) -> Option<(Vec<MatchSegment>, usize)> {
             }
             best
         }
-        Some(m) if m == l1 => {
-            // s1 is a strict prefix of s2. The upstream peels the last
-            // matched character into the Diff, so the Equal segment is
-            // l1-1 long and the Diff carries one s1 character versus
-            // the trailing s2 portion.
-            Some((
-                vec![
-                    MatchSegment::Equal(safe_subseq(s1, 0, Some(l1 - 1)).expect("l1 >= 1")),
-                    MatchSegment::Diff(
-                        safe_subseq(s1, l1 - 1, None).expect("l1 >= 1"),
-                        safe_subseq(s2, l1 - 1, None).expect("l1-1 < l2"),
-                    ),
-                ],
-                l1 - 1,
-            ))
-        }
+        Some(m) if m == l1 => Some((
+            vec![
+                MatchSegment::Equal(safe_subseq(s1, 0, Some(l1 - 1)).expect("l1 >= 1")),
+                MatchSegment::Diff(
+                    safe_subseq(s1, l1 - 1, None).expect("l1 >= 1"),
+                    safe_subseq(s2, l1 - 1, None).expect("l1-1 < l2"),
+                ),
+            ],
+            l1 - 1,
+        )),
         Some(m) if m == l2 => Some((
             vec![
                 MatchSegment::Equal(safe_subseq(s2, 0, Some(l2 - 1)).expect("l2 >= 1")),
@@ -293,14 +238,9 @@ fn mismatch(a: &[char], b: &[char]) -> Option<usize> {
     }
 }
 
-/// `safe-subseq` (`characters.lisp:359-363`). Bounds-checked substring.
-/// Returns `None` when `start` or `end` would fall outside
-/// `[0, char-length(s)]`, or when `start > end`. Otherwise returns
-/// `Some(<chars start..end>)`. With `end = None`, slices to the end of
-/// the string.
-///
-/// Positions are *character* offsets (CONVENTIONS §4.5) — matches the
-/// Lisp's `subseq` semantics on SBCL strings.
+/// `safe-subseq` (`characters.lisp:359-363`). Bounds-checked substring
+/// over *character* offsets. `None` when `start`/`end` are out of range
+/// or `start > end`; `end = None` slices to the end.
 pub fn safe_subseq(s: &str, start: usize, end: Option<usize>) -> Option<String> {
     let len = s.chars().count();
     if start > len {
@@ -315,12 +255,8 @@ pub fn safe_subseq(s: &str, start: usize, end: Option<usize>) -> Option<String> 
 }
 
 /// `join` (`characters.lisp:365-370`). Concatenate `items` with
-/// `separator` between each pair. The Lisp `&key key` parameter is
-/// dropped — its single upstream caller (`numbers.lisp:136`) pre-maps
-/// already, and Rust callers that need per-element transformation can
-/// `.iter().map(...).collect::<Vec<_>>()` before passing in. The
-/// generic bound lets callers pass `&[&str]`, `&[String]`, etc.
-/// interchangeably.
+/// `separator` between each pair. Lisp `&key key` dropped — pre-map on
+/// the caller side.
 pub fn join<S: AsRef<str>>(separator: &str, items: &[S]) -> String {
     let mut out = String::new();
     for (i, item) in items.iter().enumerate() {
@@ -354,13 +290,9 @@ mod tests {
         assert_eq!(basic_split("日本語"), vec![(Word, "日本語".to_string())]);
     }
 
-    /// Positions are character offsets, not byte offsets. With
-    /// 3-byte CJK chars this is the only behavior worth pinning;
-    /// everything else is delegated to the regex.
     #[test]
     fn consecutive_char_groups_returns_character_offsets_not_byte_offsets() {
         let s = "あ12い34";
-        // chars: 0='あ' 1='1' 2='2' 3='い' 4='3' 5='4'
         assert_eq!(
             consecutive_char_groups(CharClass::Number, s, 0, s.chars().count()),
             vec![(1, 3), (4, 6)],
@@ -390,8 +322,6 @@ mod tests {
         );
     }
 
-    /// Common prefix + differing suffix: produces alternating Equal /
-    /// Diff. Score is the length of the matched prefix (1 char).
     #[test]
     fn match_diff_shared_prefix_then_diff() {
         assert_eq!(
@@ -406,9 +336,6 @@ mod tests {
         );
     }
 
-    /// CJK char-position semantics — the score and segment offsets are
-    /// in characters, not bytes. Without this, an accidental byte-index
-    /// implementation passes every ASCII test.
     #[test]
     fn match_diff_cjk_alignment_uses_char_positions() {
         let result = match_diff("日本語", "日中語").expect("non-empty");
@@ -425,9 +352,6 @@ mod tests {
         );
     }
 
-    /// Slicing covers char-indexed CJK input correctly — without
-    /// pinning this, an accidental byte-index implementation passes
-    /// every ASCII test.
     #[test]
     fn safe_subseq_slices_by_character_not_byte() {
         let s = "あいうえお";
@@ -435,8 +359,6 @@ mod tests {
         assert_eq!(safe_subseq(s, 0, None).as_deref(), Some("あいうえお"));
     }
 
-    /// Out-of-range `start`, `end`, or `start > end` all return None,
-    /// mirroring the Lisp's `(when ...)` guard.
     #[test]
     fn safe_subseq_rejects_out_of_range_or_inverted() {
         let s = "abc";

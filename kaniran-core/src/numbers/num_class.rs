@@ -1,16 +1,32 @@
-//! Numeric glyph / reading tables from `numbers.lisp:3-28`.
+//! Numeric-class tag enum, glyph tables, and per-character lookup.
+//! From `numbers.lisp:3-28`.
+//!
+//! Lisp uses inline `:jd` / `:p` / `:ad` keywords without a named type;
+//! [`NumClass`] is the closed Rust enumeration of that implicit set.
 
-use super::kani_num_class::NumClass;
+use std::collections::HashMap;
+use std::sync::OnceLock;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NumClass {
+    /// Japanese digit kanji (`〇一二三四五六七八九` + legal forms),
+    /// value `0..=9`.
+    Jd,
+    /// Power-of-ten kanji (`十百千万億兆京`), value is the exponent
+    /// (`1, 2, 3, 4, 8, 12, 16`).
+    P,
+    /// ASCII / full-width digit (`0-9`, `０-９`), value `0..=9`.
+    Ad,
+}
 
 /// `*digit-kanji-default*` — everyday 0–9 kanji, indexed by digit.
 pub const DIGIT_KANJI_DEFAULT: &str = "〇一二三四五六七八九";
 
-/// `*digit-kanji-legal*` — financial 0–10 kanji (`壱 弐 参 拾`…) used
-/// in contracts where the everyday forms could be altered.
+/// `*digit-kanji-legal*` — financial 0–10 kanji (`壱 弐 参 拾`…).
 pub const DIGIT_KANJI_LEGAL: &str = "〇壱弐参四五六七八九拾";
 
-/// `*power-kanji*` — `10^i` kanji indexed by exponent; ASCII spaces
-/// fill exponents `5..=7`, `9..=11`, `13..=15` (no single-char form).
+/// `*power-kanji*` — `10^i` indexed by exponent; ASCII spaces fill
+/// exponents `5..=7`, `9..=11`, `13..=15` (no single-char form).
 pub const POWER_KANJI: &str = "一十百千万   億   兆   京";
 
 /// `*digit-to-kana*` — hiragana reading for digits 0..=9.
@@ -27,8 +43,7 @@ pub const DIGIT_TO_KANA: &[&str] = &[
     "きゅう", // 9
 ];
 
-/// `*power-to-kana*` — reading per exponent, sparse (only the
-/// single-char powers: 1, 2, 3, 4, 8, 12, 16).
+/// `*power-to-kana*` — reading per exponent, sparse (1, 2, 3, 4, 8, 12, 16).
 pub const POWER_TO_KANA: &[(u8, &str)] = &[
     (1, "じゅう"),  // 十
     (2, "ひゃく"),  // 百
@@ -71,3 +86,29 @@ pub const CHAR_NUMBER_CLASS: &[(&str, NumClass, u8)] = &[
     ("8８", NumClass::Ad, 8),
     ("9９", NumClass::Ad, 9),
 ];
+
+/// `*char-number-class-hash*` (`numbers.lisp:18`). Per-character lookup
+/// built by exploding every group in [`CHAR_NUMBER_CLASS`].
+pub fn char_number_class_hash() -> &'static HashMap<char, (NumClass, u8)> {
+    static CACHE: OnceLock<HashMap<char, (NumClass, u8)>> = OnceLock::new();
+    CACHE.get_or_init(|| {
+        let mut h = HashMap::new();
+        for &(chars, class, val) in CHAR_NUMBER_CLASS {
+            for c in chars.chars() {
+                h.insert(c, (class, val));
+            }
+        }
+        h
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 42 entries per the Lisp introspector.
+    #[test]
+    fn build_logic_produces_42_entries() {
+        assert_eq!(char_number_class_hash().len(), 42);
+    }
+}

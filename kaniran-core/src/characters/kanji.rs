@@ -1,6 +1,5 @@
 //! Kanji-specific predicates and helpers. From `characters.lisp:179-208`
-//! (sequential / mask / regex / match / cross-match) and `:280-284`
-//! (prefix).
+//! and `:280-284`.
 
 use std::sync::OnceLock;
 
@@ -9,20 +8,9 @@ use fancy_regex::Regex;
 use super::char_classes::KANJI_REGEX;
 
 /// `sequential-kanji-positions` (`characters.lisp:179-183`). For each
-/// adjacent pair of kanji-ish characters in `word`, return the
-/// *character* index of the second kanji of the pair, plus `offset`.
-/// Used to find ambiguity points in compound words: a stretch of N
-/// kanji yields N-1 results.
-///
-/// The upstream's `&optional (offset 0)` becomes a required `usize` —
-/// the single caller passes an explicit offset (CONVENTIONS §4.4 only
-/// makes the parameter optional when keyword polarity is involved;
-/// here the parameter has a single natural meaning).
-///
-/// The zero-width lookahead `(?=[々一-龯][々一-龯])` is matched
-/// non-overlapping by both cl-ppcre and fancy-regex — each iteration
-/// advances by one character past a zero-width hit, so consecutive
-/// pairs do all surface.
+/// adjacent kanji-ish pair in `word`, the *character* index of the
+/// second kanji of the pair, plus `offset`. A run of N kanji yields
+/// N-1 results.
 pub fn sequential_kanji_positions(word: &str, offset: usize) -> Vec<usize> {
     static SCANNER: OnceLock<Regex> = OnceLock::new();
     let re = SCANNER.get_or_init(|| {
@@ -37,10 +25,8 @@ pub fn sequential_kanji_positions(word: &str, offset: usize) -> Vec<usize> {
     out
 }
 
-/// `kanji-mask` (`characters.lisp:185-188`). Replace every run of one or
-/// more kanji-ish characters in `word` with a single `%`, producing a
-/// SQL LIKE-style mask. The underlying pattern is `*kanji-regex*`
-/// repeated one-or-more times; the compiled scanner is cached.
+/// `kanji-mask` (`characters.lisp:185-188`). Replace every run of
+/// kanji-ish characters in `word` with a single `%` (SQL LIKE-style).
 pub fn kanji_mask(word: &str) -> String {
     static SCANNER: OnceLock<Regex> = OnceLock::new();
     let re = SCANNER.get_or_init(|| {
@@ -49,14 +35,10 @@ pub fn kanji_mask(word: &str) -> String {
     re.replace_all(word, "%").into_owned()
 }
 
-/// `kanji-regex` (`characters.lisp:190-198`). Build a per-word [`Regex`]
-/// for matching candidate readings of `word`: every run of kanji becomes
-/// a `.+` (greedy), every non-kanji character is matched literally, and
-/// the whole expression is anchored at both ends. Internally walks the
-/// output of [`kanji_mask`].
-///
-/// Compiles a fresh regex each call — the Lisp does the same. Caching
-/// by input word would have unbounded keys.
+/// `kanji-regex` (`characters.lisp:190-198`). Per-word [`Regex`] for
+/// matching candidate readings: every kanji run becomes `.+`, every
+/// non-kanji character matches literally, anchored at both ends.
+/// Compiles fresh per call — caching by input would have unbounded keys.
 pub fn kanji_regex(word: &str) -> Regex {
     let masked = kanji_mask(word);
     let mut pattern = String::from("^");
@@ -71,25 +53,16 @@ pub fn kanji_regex(word: &str) -> Regex {
     Regex::new(&pattern).expect("kanji_regex pattern compiles")
 }
 
-/// `kanji-match` (`characters.lisp:200-201`). True iff `reading` matches
-/// the per-word regex built by [`kanji_regex`]. The Lisp returns the
-/// match position (truthy) or `nil`; every caller uses it as a
-/// predicate, so the Rust signature is `bool` per CONVENTIONS §4.1.
+/// `kanji-match` (`characters.lisp:200-201`). True iff `reading`
+/// matches [`kanji_regex`] for `word`.
 pub fn kanji_match(word: &str, reading: &str) -> bool {
     kanji_regex(word).is_match(reading).unwrap_or(false)
 }
 
-/// `kanji-cross-match` (`characters.lisp:203-208`). Given an original
-/// `word`, its `reading`, and a `new_word`, return the reading of
-/// `new_word` derived by replacing the diverging tail of `word` (and the
-/// corresponding tail of `reading`) with the diverging tail of
-/// `new_word`. Returns `None` when `word` and `new_word` are identical,
-/// share no prefix, or when the implied cut position falls outside
-/// `reading`.
-///
-/// Char-position semantics throughout (CONVENTIONS §4.5). The Lisp's
-/// latent crash when `mismatch` returns `nil` (arithmetic on `nil`) is
-/// not propagated — equal inputs simply yield `None`.
+/// `kanji-cross-match` (`characters.lisp:203-208`). Derive the reading
+/// of `new_word` by replacing the diverging tail of `word`'s reading
+/// with the diverging tail of `new_word`. Returns `None` for identical
+/// inputs, no shared prefix, or implied cut outside `reading`.
 pub fn kanji_cross_match(word: &str, reading: &str, new_word: &str) -> Option<String> {
     let m = first_mismatch_chars(word, new_word)?;
     let reading_len = reading.chars().count();
@@ -117,15 +90,8 @@ fn first_mismatch_chars(a: &str, b: &str) -> Option<usize> {
     }
 }
 
-/// `kanji-prefix` (`characters.lisp:280-284`). Return the longest
-/// prefix of `word` that ends in a kanji-ish character (CJK ideograph
-/// plus `々ヶ〆`), or the empty string if `word` contains no kanji at
-/// all.
-///
-/// The Lisp uses `scan-to-strings` against `"^.*<kanji-regex>"`, which
-/// falls back to `nil` and is `or`'d with `""`; the Rust port returns
-/// `String` directly to mirror the always-string upstream contract.
-/// The compiled scanner is cached.
+/// `kanji-prefix` (`characters.lisp:280-284`). Longest prefix of `word`
+/// ending in a kanji-ish character, or `""` if `word` has no kanji.
 pub fn kanji_prefix(word: &str) -> String {
     static SCANNER: OnceLock<Regex> = OnceLock::new();
     let re = SCANNER.get_or_init(|| {
@@ -141,8 +107,6 @@ pub fn kanji_prefix(word: &str) -> String {
 mod tests {
     use super::*;
 
-    /// Lookahead semantics: a run of N kanji yields N-1 positions, each
-    /// pointing to the *second* kanji of an adjacent pair (char index).
     #[test]
     fn sequential_kanji_positions_returns_char_position_of_second_in_each_pair() {
         assert_eq!(sequential_kanji_positions("日本語", 0), vec![1, 2]);
@@ -155,8 +119,6 @@ mod tests {
         assert_eq!(sequential_kanji_positions("ひらがな", 0), Vec::<usize>::new());
     }
 
-    /// Pure-kanji word collapses to `^.+$` and accepts any non-empty
-    /// reading. The empty reading is rejected.
     #[test]
     fn kanji_regex_pure_kanji_word_accepts_any_nonempty_reading() {
         let re = kanji_regex("日本語");
@@ -164,8 +126,6 @@ mod tests {
         assert!(!re.is_match("").unwrap());
     }
 
-    /// Non-kanji characters in the word stay literal in the regex —
-    /// the leading hiragana of `お茶` must appear in the reading too.
     #[test]
     fn kanji_regex_non_kanji_characters_stay_literal() {
         let re = kanji_regex("お茶");
@@ -173,15 +133,12 @@ mod tests {
         assert!(!re.is_match("にちゃ").unwrap());
     }
 
-    /// No kanji → empty string, mirroring the Lisp `(or scan "")`.
     #[test]
     fn kanji_prefix_returns_empty_when_no_kanji() {
         assert_eq!(kanji_prefix("ひらがな"), "");
         assert_eq!(kanji_prefix(""), "");
     }
 
-    /// Returns up to and including the *last* kanji — the `.*` is
-    /// greedy. Trailing non-kanji are dropped.
     #[test]
     fn kanji_prefix_returns_prefix_up_to_last_kanji() {
         assert_eq!(kanji_prefix("お茶を飲む"), "お茶を飲");

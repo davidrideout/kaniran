@@ -1,18 +1,11 @@
-//! String/regex constants, the [`CharClass`] enum, the three scanner
+//! String/regex constants, [`CharClass`] enum, the three scanner
 //! caches keyed by it, and the predicates that consume them. From
-//! `characters.lisp:85-91` (punctuation) and `:106-170` (everything else
-//! — constants, mapping, scanners, `count-char-class`, `test-word`).
-//!
-//! The upstream Lisp recompiles each regex on demand (every callsite
-//! passes the raw pattern string into `ppcre:do-matches`). The Rust
-//! scanner caches here are an optimization — semantics are identical.
+//! `characters.lisp:85-91` (punctuation) and `:106-170`.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
 use fancy_regex::Regex;
-
-// -- string + regex constants (characters.lisp:106-129) -------------------
 
 /// `*abnormal-chars*` — source side of the abnormal→normal map,
 /// paired index-by-index with [`NORMAL_CHARS`].
@@ -25,7 +18,7 @@ pub static ABNORMAL_CHARS: &str = "\
 
 /// `*normal-chars*` — target side of the abnormal→normal map.
 /// Upstream `(concatenate 'string <ASCII prefix> *full-width-kana*)`;
-/// captured as a literal here.
+/// captured as a literal.
 pub static NORMAL_CHARS: &str =
     "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#$%&()*+/<=>?@[]^_`{|}~・ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン゛゜";
 
@@ -43,16 +36,16 @@ pub static DECIMAL_POINT_REGEX: &str = "[.,]";
 /// `*digit-regex*` — ASCII, full-width Latin, or ideographic zero `〇`.
 pub static DIGIT_REGEX: &str = "[0-9０-９〇]";
 
-/// `*hiragana-regex*` — hiragana + iteration marks `ゝ ゞ` + long-vowel `ー`.
+/// `*hiragana-regex*` — hiragana + iteration marks `ゝ ゞ` + `ー`.
 pub static HIRAGANA_REGEX: &str = "[ぁ-ゔゝゞー]";
 
-/// `*kanji-regex*` — CJK ideograph block + `々` + abbreviation marks `ヶ 〆`.
+/// `*kanji-regex*` — CJK ideograph block + `々` + `ヶ 〆`.
 pub static KANJI_REGEX: &str = "[々ヶ〆一-龯]";
 
 /// `*kanji-char-regex*` — CJK ideograph block only (no `々ヶ〆`).
 pub static KANJI_CHAR_REGEX: &str = "[一-龯]";
 
-/// `*katakana-regex*` — katakana + iteration marks `ヽ ヾ` + long-vowel `ー`.
+/// `*katakana-regex*` — katakana + iteration marks `ヽ ヾ` + `ー`.
 pub static KATAKANA_REGEX: &str = "[ァ-ヺヽヾー]";
 
 /// `*katakana-uniq-regex*` — [`KATAKANA_REGEX`] without `ー`.
@@ -62,7 +55,7 @@ pub static KATAKANA_UNIQ_REGEX: &str = "[ァ-ヺヽヾ]";
 pub static NONWORD_REGEX: &str = "[^々ヶ〆一-龯ァ-ヺヽヾぁ-ゔゝゞー〇]";
 
 /// `*numeric-regex*` — ASCII + full-width digits + ideographic zero +
-/// kanji numerals (`一-九` plus traditional / large-unit forms).
+/// kanji numerals.
 pub static NUMERIC_REGEX: &str = "[0-9０-９〇一二三四五六七八九零壱弐参拾十百千万億兆京]";
 
 /// `*num-word-regex*` — [`WORD_REGEX`] plus digits.
@@ -72,8 +65,7 @@ pub static NUM_WORD_REGEX: &str = "[0-9０-９〇々ヶ〆一-龯ァ-ヺヽヾ�
 /// hiragana + ideographic zero.
 pub static WORD_REGEX: &str = "[々ヶ〆一-龯ァ-ヺヽヾぁ-ゔゝゞー〇]";
 
-/// `*punctuation-marks*` (`characters.lisp:85-91`) —
-/// `(japanese, ascii-equivalent)` pairs for romanization.
+/// `*punctuation-marks*` (`characters.lisp:85-91`) — `(japanese, ascii)`.
 pub static PUNCTUATION_MARKS: &[(&str, &str)] = &[
     ("【", " ["),
     ("】", "] "),
@@ -95,8 +87,6 @@ pub static PUNCTUATION_MARKS: &[(&str, &str)] = &[
     ("；", "; "),
 ];
 
-// -- CharClass + mapping + scanners (characters.lisp:131-155) -------------
-
 /// `(deftype char-class ...)` — variant order matches the upstream
 /// `member` list.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -113,7 +103,7 @@ pub enum CharClass {
     Number,
 }
 
-/// `*char-class-regex-mapping*` — one-character pattern per class.
+/// `*char-class-regex-mapping*`.
 pub static CHAR_CLASS_REGEX_MAPPING: &[(CharClass, &str)] = &[
     (CharClass::Katakana, "[ァ-ヺヽヾー]"),
     (CharClass::KatakanaUniq, "[ァ-ヺヽヾ]"),
@@ -159,11 +149,9 @@ pub fn char_scanners_inner() -> &'static HashMap<CharClass, Regex> {
     })
 }
 
-/// Bare scanners — one [`Regex`] per [`CharClass`] using the pattern
-/// from [`CHAR_CLASS_REGEX_MAPPING`] directly (no `+` repetition
-/// wrapper). Used by [`count_char_class`] for single-character matches.
-/// Rust-only sidecar; upstream Lisp uses the raw pattern string each
-/// time and skips the cache.
+/// Bare scanners — one [`Regex`] per [`CharClass`] using the raw
+/// pattern from [`CHAR_CLASS_REGEX_MAPPING`] (no `+` wrapper). Used by
+/// [`count_char_class`] for single-character matches.
 pub fn char_class_bare_scanners() -> &'static HashMap<CharClass, Regex> {
     static CACHE: OnceLock<HashMap<CharClass, Regex>> = OnceLock::new();
     CACHE.get_or_init(|| {
@@ -178,9 +166,8 @@ pub fn char_class_bare_scanners() -> &'static HashMap<CharClass, Regex> {
     })
 }
 
-/// `*basic-split-regex*` — composite tokenizer for
-/// Japanese-mixed-with-digits text, built from the regex constants
-/// above via the upstream `format` template.
+/// `*basic-split-regex*` — composite tokenizer built from the regex
+/// constants above via the upstream `format` template.
 pub fn basic_split_regex() -> &'static str {
     static CACHE: OnceLock<String> = OnceLock::new();
     CACHE.get_or_init(|| {
@@ -197,14 +184,8 @@ pub fn basic_split_regex() -> &'static str {
     })
 }
 
-// -- predicates (characters.lisp:160-170) ---------------------------------
-
 /// `test-word` (`characters.lisp:160-163`). True iff every character of
-/// `word` belongs to `char_class` — the scanner from [`char_scanners`]
-/// is anchored as `^pat+$`, so any non-class character makes the match
-/// fail. The Lisp returns the match start position (truthy) or nil
-/// (falsy); every caller treats it as a predicate, so the Rust signature
-/// is `bool`.
+/// `word` belongs to `char_class`.
 pub fn test_word(word: &str, char_class: CharClass) -> bool {
     char_scanners()
         .get(&char_class)
@@ -214,7 +195,7 @@ pub fn test_word(word: &str, char_class: CharClass) -> bool {
 }
 
 /// `count-char-class` (`characters.lisp:165-170`). Non-overlapping
-/// matches of `char_class`'s pattern in `word`.
+/// matches of `char_class` in `word`.
 pub fn count_char_class(word: &str, char_class: CharClass) -> usize {
     char_class_bare_scanners()
         .get(&char_class)
@@ -227,13 +208,11 @@ pub fn count_char_class(word: &str, char_class: CharClass) -> usize {
 mod tests {
     use super::*;
 
-    /// Abnormal/normal pairing is index-by-index; lengths must match.
     #[test]
     fn abnormal_and_normal_have_equal_char_count() {
         assert_eq!(ABNORMAL_CHARS.chars().count(), NORMAL_CHARS.chars().count());
     }
 
-    /// Same for the kana-context source/target.
     #[test]
     fn half_and_full_width_kana_have_equal_char_count() {
         assert_eq!(

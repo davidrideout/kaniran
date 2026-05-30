@@ -1,12 +1,9 @@
-//! Kana-class tag enum, the character tables that populate it, and the
-//! two lookups derived from those tables. From `characters.lisp:3-53`.
+//! Kana-class tag enum, character tables, and the per-glyph lookup.
+//! From `characters.lisp:3-53`.
 //!
-//! The Lisp uses keyword symbols (`:A`, `:KA`, `:SOKUON`, `:+YA`,
-//! `:LONG-VOWEL`, …) inline at hundreds of callsites without a named
-//! type — the tag set is implicitly defined by the keys of
-//! `*all-characters*` plus the same-shape `eql` callsites in
-//! `romanize.lisp` and `dict.lisp`. [`KanaClass`] is the closed Rust
-//! enumeration that names that set.
+//! The Lisp uses inline keyword symbols (`:A`, `:KA`, `:SOKUON`,
+//! `:+YA`, `:LONG-VOWEL`, …) without a named type — [`KanaClass`] is
+//! the closed Rust enumeration of that implicit set.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -104,13 +101,8 @@ pub enum KanaClass {
 }
 
 impl KanaClass {
-    /// The upstream Lisp keyword's printed name — what `(string :ka)`
-    /// would produce: uppercase, no leading colon, hyphenated where the
-    /// keyword is. `Ka` → `"KA"`, `PlusYa` → `"+YA"`, `LongVowel` →
-    /// `"LONG-VOWEL"`, `IterV` → `"ITER-V"`. Used by
-    /// [`long_vowel_modifier_p`], which inspects the last character of
-    /// the name to decide whether a preceding glyph's vowel matches a
-    /// `+a/+i/+u/+e/+o` modifier.
+    /// What `(string :ka)` would produce: `Ka` → `"KA"`, `PlusYa` →
+    /// `"+YA"`, `LongVowel` → `"LONG-VOWEL"`, `IterV` → `"ITER-V"`.
     pub fn lisp_name(&self) -> &'static str {
         match self {
             KanaClass::Sokuon => "SOKUON",
@@ -213,8 +205,7 @@ pub static ITERATION_CHARACTERS: &[(KanaClass, &str)] = &[
     (KanaClass::IterV, "ゞヾ"),
 ];
 
-/// `*modifier-characters*` — small-form vowels, y-glides, long-vowel
-/// mark.
+/// `*modifier-characters*` — small vowels, y-glides, long-vowel mark.
 pub static MODIFIER_CHARACTERS: &[(KanaClass, &str)] = &[
     (KanaClass::PlusA, "ぁァ"),
     (KanaClass::PlusI, "ぃィ"),
@@ -338,26 +329,15 @@ pub fn char_class_hash() -> &'static HashMap<char, KanaClass> {
     })
 }
 
-/// `get-char-class` (`characters.lisp:44-45`) — lookup into
-/// [`char_class_hash`]. Lisp returns the input char on a miss; per
-/// CONVENTIONS §4.2 the Rust port returns `Option<KanaClass>` and
-/// lets the caller fall back to the input it already has.
+/// `get-char-class` (`characters.lisp:44-45`). Lisp returns the input
+/// char on a miss; Rust returns `Option<KanaClass>`.
 pub fn get_char_class(c: char) -> Option<KanaClass> {
     char_class_hash().get(&c).copied()
 }
 
-/// `long-vowel-modifier-p` (`characters.lisp:47-53`) — true when a small
-/// modifier glyph (`ぁ ィ ぅ ェ ぉ`, classified as `+A/+I/+U/+E/+O`)
-/// extends the preceding character's vowel — e.g. `か` followed by `ぁ`
-/// produces a long `aa` rather than a `kya`-style fused mora. The check
-/// compares the modifier's vowel target against the last character of
-/// the previous glyph's `KanaClass` keyword name (e.g. `Ka` → `"KA"`,
-/// last char `'A'`).
-///
-/// Returns `false` when `modifier` isn't one of the five `+vowel`
-/// variants, or when `prev_char` has no known [`KanaClass`]. The Lisp's
-/// `(keywordp char-class)` guard is subsumed by [`get_char_class`]
-/// returning `Option<KanaClass>` (CONVENTIONS §4.2).
+/// `long-vowel-modifier-p` (`characters.lisp:47-53`). True when a small
+/// `+A/+I/+U/+E/+O` glyph extends the preceding character's vowel
+/// rather than fusing into a `kya`-style mora.
 pub fn long_vowel_modifier_p(modifier: KanaClass, prev_char: char) -> bool {
     let vowel = match modifier {
         KanaClass::PlusA => 'A',
@@ -378,7 +358,6 @@ mod tests {
     use super::*;
     use KanaClass::*;
 
-    /// Pinned against the Lisp introspector's captured value.
     #[test]
     fn all_characters_matches_introspected_value() {
         let expected: &[(KanaClass, &str)] = &[
@@ -416,7 +395,6 @@ mod tests {
         assert_eq!(all_characters(), expected);
     }
 
-    /// 173 entries per the Lisp introspector.
     #[test]
     fn char_class_hash_build_logic_produces_173_entries() {
         assert_eq!(char_class_hash().len(), 173);

@@ -1,7 +1,6 @@
-//! KanaClass voicing tables, the `dakuten-join` precomposition data,
-//! and the four functions that mutate the first character of a kana
-//! string. From `characters.lisp:62-104` (tables + `voice-char`) and
-//! `:286-314` (`unrendaku` / `rendaku` / `geminate`).
+//! Voicing tables and the four operations that mutate the first
+//! character of a kana string. From `characters.lisp:62-104` (tables +
+//! `voice-char`) and `:286-314` (`unrendaku`/`rendaku`/`geminate`).
 //!
 //! [`undakuten_hash`] is the lossy inverse of [`dakuten_hash`] +
 //! [`handakuten_hash`] — both `Ba`/`Pa` collapse to `Ha`.
@@ -59,8 +58,7 @@ pub fn undakuten_hash() -> &'static HashMap<KanaClass, KanaClass> {
 }
 
 /// `*dakuten-join*` — `(input+combining-mark, precomposed)` pairs for
-/// `゛` and `゜`. Built on first access from [`dakuten_hash`] +
-/// [`handakuten_hash`] via [`build_dakuten_join`].
+/// `゛` and `゜`.
 pub fn dakuten_join() -> &'static Vec<(String, String)> {
     static CACHE: OnceLock<Vec<(String, String)>> = OnceLock::new();
     CACHE.get_or_init(|| {
@@ -71,13 +69,9 @@ pub fn dakuten_join() -> &'static Vec<(String, String)> {
 }
 
 /// `dakuten-join` (`characters.lisp:93-101`). For each `(unvoiced,
-/// voiced)` mapping in `hash`, produce one pair per glyph (hiragana and
-/// katakana) of the form `(<unvoiced-glyph><mark>, <voiced-glyph>)`.
-///
-/// The Lisp returns a flat plist `(in1 out1 in2 out2 ...)`; the Rust
-/// port returns paired `Vec<(String, String)>` directly — the only
-/// consumer of the Lisp output is [`dakuten_join`], which uses the pairs
-/// as alternation entries.
+/// voiced)` mapping in `hash`, emit `(<unvoiced><mark>, <voiced>)` per
+/// hiragana/katakana glyph. Lisp returns a flat plist; Rust returns
+/// the paired form directly.
 fn build_dakuten_join(hash: &HashMap<KanaClass, KanaClass>, mark: char) -> Vec<(String, String)> {
     let mut out = Vec::new();
     for (cc, ccd) in hash.iter() {
@@ -105,33 +99,17 @@ fn lookup_kana(cc: KanaClass) -> Option<&'static str> {
         .find_map(|(k, s)| if *k == cc { Some(*s) } else { None })
 }
 
-/// `voice-char` (`characters.lisp:81-83`). Returns the voiced form of a
-/// [`KanaClass`], or the input itself if the class has no voiced
-/// counterpart in [`dakuten_hash`]. Only the dakuten mapping is
-/// consulted — handakuten (`Ha → Pa` etc.) is not.
-///
-/// The Lisp idiom `(gethash cc *dakuten-hash* cc)` falls back to the
-/// key when missing. Per CONVENTIONS §4.2 the same-typed default
-/// collapses directly to `unwrap_or` — no `Option` shape needed,
-/// because input and output are both `KanaClass`.
+/// `voice-char` (`characters.lisp:81-83`). Voiced form of `cc`, or `cc`
+/// itself if it has no voiced counterpart. Dakuten only — handakuten
+/// (`Ha → Pa` etc.) is not consulted.
 pub fn voice_char(cc: KanaClass) -> KanaClass {
     dakuten_hash().get(&cc).copied().unwrap_or(cc)
 }
 
 /// `unrendaku` (`characters.lisp:286-296`). Unvoice the first character
-/// of `txt`: maps `がガ → かカ`, `ばバ/ぱパ → はハ`, `ゔヴ → うウ`, etc.
-/// via [`undakuten_hash`]. The script (hiragana vs. katakana) of the
-/// first glyph is preserved by aligning by index inside the input
-/// class's `*kana-characters*` entry.
-///
-/// Leaves `txt` unchanged when it's empty, when the first character has
-/// no [`KanaClass`], or when the class has no unvoiced counterpart.
-///
-/// The upstream signature is `(txt &key fresh)`. With `:fresh nil`
-/// (default) it mutates `txt` in place; with `:fresh t` it copies first
-/// and mutates the copy. The Rust port takes `&mut String` and always
-/// mutates in place — equivalent to `:fresh nil`. Callers that need
-/// `:fresh t` semantics clone before calling.
+/// of `txt`: `がガ → かカ`, `ばバ/ぱパ → はハ`, `ゔヴ → うウ`. Preserves
+/// hiragana/katakana script. Empty `txt` or no-counterpart class is a
+/// no-op. Mutates in place; upstream `:fresh t` callers clone first.
 pub fn unrendaku(txt: &mut String) {
     let Some(first) = txt.chars().next() else {
         return;
@@ -151,8 +129,7 @@ pub fn unrendaku(txt: &mut String) {
     txt.replace_range(0..first_byte_len, new_str);
 }
 
-/// `rendaku` voicing argument. The upstream `:handakuten` boolean
-/// becomes a 2-variant enum (CONVENTIONS §4.4).
+/// `:handakuten` boolean → 2-variant enum.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Voicing {
     Dakuten,
@@ -160,22 +137,9 @@ pub enum Voicing {
 }
 
 /// `rendaku` (`characters.lisp:298-309`). Voice the first character of
-/// `txt` — `かカ → がガ`, `はハ → ばバ`, etc. With [`Voicing::Handakuten`]
+/// `txt`: `かカ → がガ`, `はハ → ばバ`. With [`Voicing::Handakuten`]
 /// the H-row picks up `゜` instead of `゛` (`はハ → ぱパ`); other rows
-/// have no handakuten form so the input passes through unchanged. The
-/// hiragana/katakana script of the first glyph is preserved.
-///
-/// Leaves `txt` unchanged when it's empty, when the first character has
-/// no [`KanaClass`], or when the class has no voiced counterpart in the
-/// chosen hash.
-///
-/// The upstream signature is `(txt &key fresh handakuten)`. With
-/// `:fresh nil` (default) it mutates `txt` in place; with `:fresh t` it
-/// copies first and mutates the copy. The Rust port takes `&mut String`
-/// and always mutates in place — equivalent to `:fresh nil`. Callers
-/// that need `:fresh t` semantics clone before calling. The
-/// `:handakuten` boolean becomes a 2-variant [`Voicing`] enum
-/// (CONVENTIONS §4.4).
+/// have no handakuten form so input passes through.
 pub fn rendaku(txt: &mut String, voicing: Voicing) {
     let Some(first) = txt.chars().next() else {
         return;
@@ -199,29 +163,17 @@ pub fn rendaku(txt: &mut String, voicing: Voicing) {
     txt.replace_range(0..first_byte_len, new_str);
 }
 
-/// `geminate` (`characters.lisp:311-314`). Replace the last character of
-/// `txt` with the small tsu `っ`. Empty input is left unchanged.
-///
-/// The upstream signature is `(txt &key fresh)`. With `:fresh nil`
-/// (default) it mutates `txt` in place; with `:fresh t` it copies first
-/// and mutates the copy. The Rust port takes `&mut String` and always
-/// mutates in place — equivalent to `:fresh nil`. Callers that need
-/// `:fresh t` semantics clone before calling:
-///
-/// ```ignore
-/// let mut copy = original.to_string();
-/// geminate(&mut copy);  // `original` is untouched
-/// ```
+/// `geminate` (`characters.lisp:311-314`). Replace the last character
+/// of `txt` with `っ`. Empty `txt` is a no-op.
 pub fn geminate(txt: &mut String) {
     if txt.pop().is_some() {
         txt.push('っ');
     }
 }
 
-/// Find `c`'s position inside `KANA_CHARACTERS[from]`, then return the
-/// glyph at the same position in `KANA_CHARACTERS[to]`. Used by
-/// [`unrendaku`] and [`rendaku`] to preserve the hiragana/katakana
-/// script of the input.
+/// Find `c`'s index inside `KANA_CHARACTERS[from]` and return the
+/// same-index glyph in `KANA_CHARACTERS[to]` — preserves the
+/// hiragana/katakana script across a voicing swap.
 fn transpose(c: char, from: KanaClass, to: KanaClass) -> Option<char> {
     let from_str = lookup_kana(from)?;
     let to_str = lookup_kana(to)?;
@@ -233,8 +185,6 @@ fn transpose(c: char, from: KanaClass, to: KanaClass) -> Option<char> {
 mod tests {
     use super::*;
 
-    /// SBCL hash-table iteration order is implementation-defined; the
-    /// test sorts both sides before comparing.
     static INTROSPECTED: &[(&str, &str)] = &[
         ("う゛", "ゔ"), ("ウ゛", "ヴ"),
         ("ほ゛", "ぼ"), ("ホ゛", "ボ"),
@@ -264,6 +214,8 @@ mod tests {
         ("は゜", "ぱ"), ("ハ゜", "パ"),
     ];
 
+    /// SBCL hash-table iteration order is implementation-defined; sort
+    /// before comparing.
     #[test]
     fn derived_value_matches_introspected_literal_under_sort() {
         let mut derived: Vec<(&str, &str)> = dakuten_join()

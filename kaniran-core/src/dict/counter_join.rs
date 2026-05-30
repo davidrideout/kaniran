@@ -44,7 +44,7 @@ use crate::characters::kana_class::KanaClass;
 use crate::characters::voicing::{rendaku, Voicing};
 use crate::dict::counter_text_class::{Counter, DigitOp, DigitOptKey};
 use crate::dict::get_digit::get_digit;
-use crate::numbers::constants::{DIGIT_TO_KANA, POWER_TO_KANA};
+use crate::numbers::num_class::{DIGIT_TO_KANA, POWER_TO_KANA};
 
 pub fn counter_join(
     counter: &Counter,
