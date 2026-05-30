@@ -20,8 +20,8 @@
 //! `:null` return sentinel maps to `None`; a successful kana lookup
 //! returns `Some(String)`.
 
-use crate::characters::kanji_cross_match::kanji_cross_match;
-use crate::characters::kanji_regex::kanji_regex;
+use crate::characters::kanji::kanji_cross_match;
+use crate::characters::kanji::kanji_regex;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kanji_text_dao::KanjiText;
 use crate::dict::query_parents_kanji::query_parents_kanji;

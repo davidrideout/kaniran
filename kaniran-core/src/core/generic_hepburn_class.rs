@@ -39,7 +39,7 @@ fn n_apos_consonant() -> &'static Regex {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::characters::kani_kana_class::KanaClass;
+    use crate::characters::kana_class::KanaClass;
 
     #[test]
     fn carries_a_copy_of_the_hepburn_table() {

@@ -11,8 +11,8 @@
 
 use super::kani_cc_item::CcItem;
 use super::kani_cc_tree::CcTree;
-use crate::characters::kana_class_tables::MODIFIER_CHARACTERS;
-use crate::characters::kani_kana_class::KanaClass;
+use crate::characters::kana_class::MODIFIER_CHARACTERS;
+use crate::characters::kana_class::KanaClass;
 
 pub fn process_modifiers(cc_list: &[CcItem]) -> Vec<CcTree> {
     let mut result: Vec<CcTree> = Vec::new();

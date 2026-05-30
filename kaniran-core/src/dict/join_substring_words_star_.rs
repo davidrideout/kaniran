@@ -43,8 +43,8 @@
 use std::sync::Arc;
 
 use crate::characters::char_classes::CharClass;
-use crate::characters::consecutive_char_groups::consecutive_char_groups;
-use crate::characters::sequential_kanji_positions::sequential_kanji_positions;
+use crate::characters::text_utils::consecutive_char_groups;
+use crate::characters::kanji::sequential_kanji_positions;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_force_kanji_break_star_::FORCE_KANJI_BREAK;
 use crate::dict::_star_max_word_length_star_::MAX_WORD_LENGTH;

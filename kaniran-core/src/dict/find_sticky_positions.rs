@@ -8,12 +8,12 @@
 //!
 //! Returned offsets are **character** positions per CONVENTIONS §4.5.
 
-use crate::characters::kana_class_tables::{
+use crate::characters::kana_class::{
     ITERATION_CHARACTERS, KANA_CHARACTERS, MODIFIER_CHARACTERS,
 };
-use crate::characters::kana_class_tables::get_char_class;
-use crate::characters::kani_kana_class::KanaClass;
-use crate::characters::long_vowel_modifier_p::long_vowel_modifier_p;
+use crate::characters::kana_class::get_char_class;
+use crate::characters::kana_class::KanaClass;
+use crate::characters::kana_class::long_vowel_modifier_p;
 
 pub fn find_sticky_positions(str: &str) -> Vec<usize> {
     let chars: Vec<char> = str.chars().collect();

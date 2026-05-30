@@ -21,7 +21,7 @@
 //! everything out.
 
 use crate::characters::char_classes::CharClass;
-use crate::characters::test_word::test_word;
+use crate::characters::char_classes::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kani_word::KaniWordDispatchEnum;

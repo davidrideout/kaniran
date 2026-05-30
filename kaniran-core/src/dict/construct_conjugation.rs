@@ -11,7 +11,7 @@
 
 use super::conjugation_rule_struct::ConjugationRule;
 use crate::characters::char_classes::CharClass;
-use crate::characters::test_word::test_word;
+use crate::characters::char_classes::test_word;
 
 pub fn construct_conjugation(word: &str, rule: &ConjugationRule) -> String {
     let chars: Vec<char> = word.chars().collect();

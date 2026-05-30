@@ -22,7 +22,7 @@ mod common;
 use serde_json::Value;
 
 use kaniran_core::characters::normalize::normalize;
-use kaniran_core::characters::to_normal_char::NormalizationContext;
+use kaniran_core::characters::normalize::NormalizationContext;
 
 use common::{single_result, CapturedRow};
 

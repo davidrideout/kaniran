@@ -8,7 +8,7 @@
 //! no named type for this; it is a keyword-or-character cons element.
 //! Modeled as a closed two-shape enum.
 
-use crate::characters::kani_kana_class::KanaClass;
+use crate::characters::kana_class::KanaClass;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CcItem {

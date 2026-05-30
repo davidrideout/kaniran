@@ -8,7 +8,7 @@
 //! from simplified-hepburn (no override on this subclass).
 
 use super::simplified_hepburn_class::SimplifiedHepburn;
-use crate::characters::kani_kana_class::KanaClass;
+use crate::characters::kana_class::KanaClass;
 
 #[derive(Debug, Clone)]
 pub struct ModifiedHepburn(pub SimplifiedHepburn);

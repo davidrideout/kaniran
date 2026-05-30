@@ -7,7 +7,7 @@
 //! which downcases the class's printed name.
 
 use super::generic_romanization_class::RomanizationMethod;
-use crate::characters::kani_kana_class::KanaClass;
+use crate::characters::kana_class::KanaClass;
 
 pub fn r_base(method: RomanizationMethod<'_>, item: KanaClass) -> String {
     match method.kana_table().get(&item) {

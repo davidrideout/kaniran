@@ -32,7 +32,7 @@ use std::io::Write;
 use clap::Parser;
 use serde_json::{json, Value};
 
-use kaniran_core::characters::join::join;
+use kaniran_core::characters::text_utils::join;
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::core::_star_hepburn_traditional_star_::hepburn_traditional;
 use kaniran_core::core::generic_romanization_class::RomanizationMethod;

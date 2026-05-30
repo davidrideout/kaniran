@@ -1,40 +1,26 @@
 //! Port of the `ichiran/characters` Lisp package.
 //!
-//! One file per ported symbol. Rust-only sidecars (no Lisp counterpart)
-//! use a `kani_<name>.rs` filename to distinguish them from
-//! `_star_<name>_star_.rs` (global ports) and `<name>_<kind>.rs`
-//! (typed-Lisp ports). Currently: [`kani_kana_class`].
+//! Upstream `characters.lisp` is one file; the Rust port splits it into
+//! six modules that mirror the upstream's internal section order:
+//!
+//! - [`kana_class`] — `KanaClass`, kana/sokuon/iteration/modifier
+//!   tables, the per-glyph reverse lookup, `long-vowel-modifier-p`.
+//! - [`voicing`] — dakuten/handakuten/undakuten tables, dakuten-join,
+//!   `voice-char`, `rendaku`, `unrendaku`, `geminate`.
+//! - [`char_classes`] — string/regex constants, punctuation pairs,
+//!   `CharClass`, the three scanner caches, `basic-split-regex`,
+//!   `count-char-class`, `test-word`.
+//! - [`kanji`] — `kanji-mask`, `kanji-regex`, `kanji-match`,
+//!   `kanji-cross-match`, `kanji-prefix`, `sequential-kanji-positions`.
+//! - [`normalize`] — `to-normal-char`, `normalize`, `simplify-ngrams`,
+//!   `as-hiragana`, `as-katakana`.
+//! - [`text_utils`] — `split-by-regex`, `basic-split`,
+//!   `consecutive-char-groups`, `mora-length`, `destem`, `match-diff`,
+//!   `safe-subseq`, `join`.
 
 pub mod char_classes;
-pub mod constants;
-pub mod kana_class_tables;
-pub mod kani_char_class_bare_scanners;
-pub mod kani_kana_class;
-pub mod voicing_tables;
-
-pub mod as_hiragana;
-pub mod as_katakana;
-pub mod basic_split;
-pub mod consecutive_char_groups;
-pub mod dakuten_join;
-pub mod destem;
-pub mod geminate;
-pub mod join;
-pub mod kanji_cross_match;
-pub mod kanji_mask;
-pub mod kanji_match;
-pub mod kanji_prefix;
-pub mod kanji_regex;
-pub mod long_vowel_modifier_p;
-pub mod match_diff;
-pub mod mora_length;
+pub mod kana_class;
+pub mod kanji;
 pub mod normalize;
-pub mod rendaku;
-pub mod safe_subseq;
-pub mod sequential_kanji_positions;
-pub mod simplify_ngrams;
-pub mod split_by_regex;
-pub mod test_word;
-pub mod to_normal_char;
-pub mod unrendaku;
-pub mod voice_char;
+pub mod text_utils;
+pub mod voicing;

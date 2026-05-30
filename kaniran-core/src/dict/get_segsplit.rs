@@ -17,7 +17,7 @@
 //! [`SEGSPLIT_TABLE`] in the same seq order `get-split*` does
 //! (`dict-split.lisp:70-75`).
 
-use crate::characters::join::join;
+use crate::characters::text_utils::join;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_segsplit_map_star_::{SegSplitDef, SEGSPLIT_TABLE};
 use crate::dict::calc_score::calc_score;

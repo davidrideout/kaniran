@@ -57,7 +57,7 @@
 //! reachable callsite (`score` is declared `(integer 0 1000000)` in
 //! `calc-score`, `ratio` is `2`).
 
-use crate::characters::mora_length::mora_length;
+use crate::characters::text_utils::mora_length;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_no_kanji_break_penalty_star_::NO_KANJI_BREAK_PENALTY;
 use crate::dict::_star_score_cutoff_star_::SCORE_CUTOFF;

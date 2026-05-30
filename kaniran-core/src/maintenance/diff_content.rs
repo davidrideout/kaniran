@@ -33,7 +33,7 @@
 //! the boundary explicit at the function signature and in the
 //! [`Option::is_none`] checks below.
 
-use crate::characters::split_by_regex::split_by_regex;
+use crate::characters::text_utils::split_by_regex;
 use fancy_regex::Regex;
 use similar::TextDiff;
 use std::sync::OnceLock;

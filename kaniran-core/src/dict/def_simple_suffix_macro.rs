@@ -51,7 +51,7 @@
 //!   not yet exist on `KaniranContext`.
 
 use crate::characters::char_classes::CharClass;
-use crate::characters::destem::destem;
+use crate::characters::text_utils::destem;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::adjoin_word::adjoin_word;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

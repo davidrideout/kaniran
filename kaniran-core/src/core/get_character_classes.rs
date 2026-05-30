@@ -6,7 +6,7 @@
 //! and `process-modifiers`.
 
 use super::kani_cc_item::CcItem;
-use crate::characters::kana_class_tables::char_class_hash;
+use crate::characters::kana_class::char_class_hash;
 
 pub fn get_character_classes(word: &str) -> Vec<CcItem> {
     word.chars()
@@ -20,7 +20,7 @@ pub fn get_character_classes(word: &str) -> Vec<CcItem> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::characters::kani_kana_class::KanaClass;
+    use crate::characters::kana_class::KanaClass;
 
     fn class(kana: KanaClass) -> CcItem {
         CcItem::Class(kana)

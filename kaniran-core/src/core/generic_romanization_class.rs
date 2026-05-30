@@ -11,7 +11,7 @@ use super::kunrei_siki_class::KunreiSiki;
 use super::modified_hepburn_class::ModifiedHepburn;
 use super::simplified_hepburn_class::SimplifiedHepburn;
 use super::traditional_hepburn_class::TraditionalHepburn;
-use crate::characters::kani_kana_class::KanaClass;
+use crate::characters::kana_class::KanaClass;
 
 #[derive(Debug, Clone)]
 pub struct GenericRomanization {

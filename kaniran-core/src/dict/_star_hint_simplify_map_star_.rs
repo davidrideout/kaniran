@@ -2,7 +2,7 @@
 //!
 //! Ordered (from, to) substitution table consumed by
 //! [`super::process_hints`] via
-//! [`crate::characters::simplify_ngrams::simplify_ngrams`]. Folds
+//! [`crate::characters::normalize::simplify_ngrams`]. Folds
 //! the hint sentinels back into reader-facing characters:
 //!
 //! - `*kana-hint-space*` → ASCII space `" "`

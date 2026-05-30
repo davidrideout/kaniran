@@ -6,7 +6,7 @@
 //! `:initform nil` maps to an empty list.
 
 use super::generic_hepburn_class::GenericHepburn;
-use crate::characters::simplify_ngrams::simplify_ngrams;
+use crate::characters::normalize::simplify_ngrams;
 
 #[derive(Debug, Clone)]
 pub struct SimplifiedHepburn {

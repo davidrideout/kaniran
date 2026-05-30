@@ -77,7 +77,7 @@ fn fmt_idxs(idxs: &[i64]) -> String {
 use serde::Deserialize;
 use serde_json::Value;
 
-use kaniran_core::characters::kani_kana_class::KanaClass;
+use kaniran_core::characters::kana_class::KanaClass;
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::core::generic_hepburn_class::GenericHepburn;
 use kaniran_core::core::generic_romanization_class::RomanizationMethod;

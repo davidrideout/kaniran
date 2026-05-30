@@ -20,7 +20,7 @@
 use super::get_normal_readings::get_normal_readings;
 use super::get_reading_alternatives::ReadingTag;
 use super::kani_kanji_reading::KanjiReading;
-use crate::characters::constants::KANJI_REGEX;
+use crate::characters::char_classes::KANJI_REGEX;
 use crate::conn::kani_context::KaniranContext;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

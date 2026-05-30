@@ -28,8 +28,8 @@
 //! (CONVENTIONS §4.4); the upstream `:fresh t` semantic at every
 //! callsite here is reproduced by cloning before the call.
 
-use crate::characters::geminate::geminate;
-use crate::characters::rendaku::{rendaku as voice_rendaku, Voicing};
+use crate::characters::voicing::geminate;
+use crate::characters::voicing::{rendaku as voice_rendaku, Voicing};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReadingTag {

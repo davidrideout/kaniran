@@ -20,7 +20,7 @@ pub fn leftmost_atom(cc_list: &[CcTree]) -> Option<CcItem> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::characters::kani_kana_class::KanaClass;
+    use crate::characters::kana_class::KanaClass;
 
     fn atom(kana: KanaClass) -> CcTree {
         CcTree::Atom(CcItem::Class(kana))

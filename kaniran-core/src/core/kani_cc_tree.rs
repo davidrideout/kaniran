@@ -13,7 +13,7 @@
 //! keyword onto a tail.
 
 use super::kani_cc_item::CcItem;
-use crate::characters::kani_kana_class::KanaClass;
+use crate::characters::kana_class::KanaClass;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CcTree {

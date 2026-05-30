@@ -21,8 +21,8 @@
 //! initial `last-class = nil`); the Lisp dispatch falls through to the
 //! default method on `nil`, which the `_` arm replicates.
 
-use crate::characters::geminate::geminate;
-use crate::characters::rendaku::{rendaku, Voicing};
+use crate::characters::voicing::geminate;
+use crate::characters::voicing::{rendaku, Voicing};
 
 use super::kani_num_class::NumClass;
 

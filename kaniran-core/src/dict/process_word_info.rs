@@ -18,8 +18,8 @@
 //! [`is_nan_class`].
 
 use super::word_info_class::{WordInfo, WordInfoKana};
-use crate::characters::kana_class_tables::get_char_class;
-use crate::characters::kani_kana_class::KanaClass;
+use crate::characters::kana_class::get_char_class;
+use crate::characters::kana_class::KanaClass;
 
 pub fn process_word_info(mut wi_list: Vec<WordInfo>) -> Vec<WordInfo> {
     for i in 0..wi_list.len() {

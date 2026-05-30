@@ -30,7 +30,7 @@ pub fn romanize_core(method: RomanizationMethod<'_>, cc_tree: &[CcTree]) -> Stri
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::characters::kani_kana_class::KanaClass;
+    use crate::characters::kana_class::KanaClass;
     use crate::core::generic_hepburn_class::GenericHepburn;
 
     #[test]

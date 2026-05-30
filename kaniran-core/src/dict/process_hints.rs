@@ -8,7 +8,7 @@
 //! rules.
 
 use super::_star_hint_simplify_map_star_::hint_simplify_map;
-use crate::characters::simplify_ngrams::simplify_ngrams;
+use crate::characters::normalize::simplify_ngrams;
 
 pub fn process_hints(word: &str) -> String {
     simplify_ngrams(word, hint_simplify_map())

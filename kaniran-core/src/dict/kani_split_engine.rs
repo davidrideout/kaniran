@@ -25,8 +25,8 @@
 //! macro doc-comment in `dict-split.lisp:13` for the reference
 //! expansion shape.
 
-use crate::characters::safe_subseq::safe_subseq;
-use crate::characters::unrendaku::unrendaku as unrendaku_fn;
+use crate::characters::text_utils::safe_subseq;
+use crate::characters::voicing::unrendaku as unrendaku_fn;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::find_word_conj_of::find_word_conj_of;
 use crate::dict::find_word_seq::find_word_seq;

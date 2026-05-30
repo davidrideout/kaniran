@@ -14,7 +14,7 @@
 
 use super::simplify_reading_list::simplify_reading_list;
 use super::word_info_class::{WordInfo, WordInfoKana};
-use crate::characters::join::join;
+use crate::characters::text_utils::join;
 
 pub fn map_word_info_kana<F>(fn_: F, word_info: &WordInfo, separator: &str) -> String
 where

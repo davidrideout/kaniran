@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use crate::characters::kani_kana_class::KanaClass;
+use crate::characters::kana_class::KanaClass;
 
 static CACHE: OnceLock<HashMap<KanaClass, &'static str>> = OnceLock::new();
 

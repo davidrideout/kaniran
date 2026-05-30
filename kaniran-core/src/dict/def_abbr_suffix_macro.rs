@@ -53,7 +53,7 @@
 //!   callsite passes `None`.
 
 use crate::characters::char_classes::CharClass;
-use crate::characters::destem::destem;
+use crate::characters::text_utils::destem;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_kana::get_kana;
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};

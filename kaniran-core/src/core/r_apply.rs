@@ -12,7 +12,7 @@ use super::kani_cc_item::CcItem;
 use super::kani_cc_tree::CcTree;
 use super::leftmost_atom::leftmost_atom;
 use super::romanize_core::romanize_core;
-use crate::characters::kani_kana_class::KanaClass;
+use crate::characters::kana_class::KanaClass;
 
 pub fn r_apply(modifier: KanaClass, method: RomanizationMethod<'_>, cc_tree: &[CcTree]) -> String {
     // The hepburn-specialized methods (sokuon-before-chi, :+ya/:+yu/:+yo)

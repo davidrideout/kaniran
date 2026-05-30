@@ -38,7 +38,7 @@ use std::future::Future;
 
 use serde_json::{Map, Value};
 
-use crate::characters::join::join;
+use crate::characters::text_utils::join;
 use crate::conn::kani_context::KaniranContext;
 
 use super::get_senses::get_senses;

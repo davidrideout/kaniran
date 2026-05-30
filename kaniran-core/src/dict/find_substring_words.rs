@@ -29,7 +29,7 @@
 //! before invoking the nested-find loop.
 
 use crate::characters::char_classes::CharClass;
-use crate::characters::test_word::test_word;
+use crate::characters::char_classes::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_max_word_length_star_::MAX_WORD_LENGTH;
 use crate::dict::_star_substring_hash_star_::SubstringHash;

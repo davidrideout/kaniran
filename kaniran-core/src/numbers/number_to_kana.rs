@@ -20,7 +20,7 @@
 //!   with its three table / flag args (`DIGIT_KANJI_DEFAULT`,
 //!   `POWER_KANJI`, `false`).
 
-use crate::characters::join::join;
+use crate::characters::text_utils::join;
 
 use super::_star_char_number_class_hash_star_::char_number_class_hash;
 use super::constants::{DIGIT_TO_KANA, POWER_TO_KANA};

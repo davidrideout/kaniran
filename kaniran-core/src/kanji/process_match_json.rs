@@ -47,7 +47,7 @@ use serde_json::{Map, Value};
 use super::get_reading_alternatives::ReadingTag;
 use super::kanji_reading_json::kanji_reading_json;
 use super::match_readings::MatchedSegment;
-use crate::characters::constants::KANJI_CHAR_REGEX;
+use crate::characters::char_classes::KANJI_CHAR_REGEX;
 use crate::conn::kani_context::KaniranContext;
 
 static KANJI_CHAR_SCANNER: OnceLock<Regex> = OnceLock::new();

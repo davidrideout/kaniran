@@ -20,7 +20,7 @@
 //!   [`super::super::characters::unrendaku`] are reproduced by cloning
 //!   `rtext` upfront and mutating the clone.
 
-use crate::characters::unrendaku::unrendaku;
+use crate::characters::voicing::unrendaku;
 
 pub fn get_original_reading(
     rtext: &str,

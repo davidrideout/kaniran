@@ -18,7 +18,7 @@ use super::generic_romanization_class::RomanizationMethod;
 use super::get_character_classes::get_character_classes;
 use super::r_special::r_special;
 use super::romanize_list::romanize_list;
-use crate::characters::to_normal_char::NormalizationContext;
+use crate::characters::normalize::NormalizationContext;
 use crate::dict::process_hints::process_hints;
 
 pub fn romanize_word(

@@ -158,7 +158,7 @@ use std::borrow::Cow;
 
 use crate::characters::char_classes::CharClass;
 use crate::characters::char_classes::count_char_class;
-use crate::characters::mora_length::mora_length;
+use crate::characters::text_utils::mora_length;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_copulae_star_::COPULAE;
 use crate::dict::_star_final_prt_star_::FINAL_PRT;

@@ -38,10 +38,10 @@
 //! `counter_kana` as `String` and concatenates them at each return,
 //! producing the same result.
 
-use crate::characters::kana_class_tables::char_class_hash;
-use crate::characters::geminate::geminate;
-use crate::characters::kani_kana_class::KanaClass;
-use crate::characters::rendaku::{rendaku, Voicing};
+use crate::characters::kana_class::char_class_hash;
+use crate::characters::voicing::geminate;
+use crate::characters::kana_class::KanaClass;
+use crate::characters::voicing::{rendaku, Voicing};
 use crate::dict::counter_text_class::{Counter, DigitOp, DigitOptKey};
 use crate::dict::get_digit::get_digit;
 use crate::numbers::constants::{DIGIT_TO_KANA, POWER_TO_KANA};

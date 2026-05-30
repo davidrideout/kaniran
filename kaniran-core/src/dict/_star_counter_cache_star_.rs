@@ -11,7 +11,7 @@
 //! seqs), then `:accepts` suffix expansion and `目` ordinal pass.
 
 use crate::characters::char_classes::CharClass;
-use crate::characters::test_word::test_word;
+use crate::characters::char_classes::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_counter_accepts_star_::COUNTER_ACCEPTS;
 use crate::dict::_star_counter_foreign_star_::COUNTER_FOREIGN;

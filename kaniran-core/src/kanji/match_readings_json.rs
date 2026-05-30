@@ -26,7 +26,7 @@ use serde_json::Value;
 
 use super::match_readings::match_readings;
 use super::process_match_json::process_match_json;
-use crate::characters::constants::KANJI_REGEX;
+use crate::characters::char_classes::KANJI_REGEX;
 use crate::conn::kani_context::KaniranContext;
 
 static KANJI_SCANNER: OnceLock<Regex> = OnceLock::new();

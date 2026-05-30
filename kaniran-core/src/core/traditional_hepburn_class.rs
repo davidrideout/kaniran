@@ -47,7 +47,7 @@ fn n_before_mbp() -> &'static Regex {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::characters::kani_kana_class::KanaClass;
+    use crate::characters::kana_class::KanaClass;
 
     #[test]
     fn redefined_simplifications_initform() {

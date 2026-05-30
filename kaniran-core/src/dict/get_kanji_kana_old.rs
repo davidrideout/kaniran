@@ -21,7 +21,7 @@
 //!   its seq); the Rust port surfaces that as [`None`] so callers can
 //!   propagate without a panic.
 
-use crate::characters::kanji_regex::kanji_regex;
+use crate::characters::kanji::kanji_regex;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kanji_text_dao::KanjiText;

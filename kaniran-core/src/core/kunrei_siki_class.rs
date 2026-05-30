@@ -10,7 +10,7 @@ use fancy_regex::Regex;
 
 use super::_star_kunrei_siki_kana_table_star_::kunrei_siki_kana_table;
 use super::generic_romanization_class::GenericRomanization;
-use crate::characters::simplify_ngrams::simplify_ngrams;
+use crate::characters::normalize::simplify_ngrams;
 
 #[derive(Debug, Clone)]
 pub struct KunreiSiki(pub GenericRomanization);
@@ -44,7 +44,7 @@ fn n_apos_consonant() -> &'static Regex {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::characters::kani_kana_class::KanaClass;
+    use crate::characters::kana_class::KanaClass;
 
     #[test]
     fn carries_a_copy_of_the_kunrei_table() {
