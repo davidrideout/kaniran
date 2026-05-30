@@ -18,7 +18,7 @@
 //! sole caller [`super::match_sense_restrictions`] uses it as a
 //! predicate via `some`.
 
-use super::kani_word::KaniWordDispatchEnum;
+use super::kani::KaniWordDispatchEnum;
 use super::nokanji::nokanji;
 use super::text::text;
 

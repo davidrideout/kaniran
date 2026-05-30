@@ -60,7 +60,7 @@ pub async fn suffix_desu(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:desu` cache `kf` for "です", REPL pinned: id=71736, seq=1628500,

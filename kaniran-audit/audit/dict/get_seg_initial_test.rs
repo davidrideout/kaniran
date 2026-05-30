@@ -31,8 +31,8 @@ use serde_json::Value;
 
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::get_seg_initial::get_seg_initial;
-use kaniran_core::dict::kani_lite_segment_list::KaniLiteSegmentList;
-use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
+use kaniran_core::dict::kani::KaniLiteSegmentList;
+use kaniran_core::dict::kani::KaniWordDispatchEnum;
 use kaniran_core::dict::segment_list_struct::SegmentList;
 use kaniran_core::dict::segment_struct::{
     KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment,

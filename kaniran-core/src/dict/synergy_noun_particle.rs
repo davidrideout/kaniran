@@ -22,7 +22,7 @@ use super::_star_noun_particles_star_::NOUN_PARTICLES;
 use super::def_generic_synergy_macro::{def_generic_synergy_body, DefGenericSynergyOpts};
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::filter_is_noun::filter_is_noun;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 use super::synergy_struct::Synergy;
 
 pub fn synergy_noun_particle(
@@ -50,7 +50,7 @@ mod tests {
     use super::*;
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

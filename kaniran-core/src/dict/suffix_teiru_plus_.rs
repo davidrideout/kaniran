@@ -43,7 +43,7 @@ pub async fn suffix_teiru_plus_(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:teiru+` suffix-cache `kf` for "いる", REPL pinned via the

@@ -66,7 +66,7 @@ use crate::dict::find_counter::find_counter;
 use crate::dict::find_word::{find_word, FindWordRows};
 use crate::dict::find_word_as_hiragana::find_word_as_hiragana;
 use crate::dict::find_word_suffix::find_word_suffix;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::subseq_slice::subseq_slice;
 
 /// Closed shape of the upstream `:counter` keyword. Per CONVENTIONS

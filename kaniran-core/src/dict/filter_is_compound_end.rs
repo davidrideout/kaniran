@@ -20,7 +20,7 @@
 
 use std::sync::Arc;
 
-use super::kani_lite_segment::KaniLiteSegment;
+use super::kani::KaniLiteSegment;
 
 pub fn filter_is_compound_end(seqs: Vec<i32>) -> impl Fn(&Arc<KaniLiteSegment>) -> bool {
     move |segment| -> bool {

@@ -24,7 +24,7 @@
 
 use crate::dict::counter_text_class::{Counter, CounterSource};
 use crate::dict::compound_text_class::CompoundText;
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::word_info_class::WordInfoSeq;
 
 pub fn seq(obj: &KaniWordDispatchEnum) -> Option<WordInfoSeq> {

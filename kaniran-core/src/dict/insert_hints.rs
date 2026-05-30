@@ -16,7 +16,7 @@
 //! input unchanged when `hints` is empty.
 
 use super::_star_hint_char_map_star_::HINT_CHAR_MAP;
-use super::kani_hint_kind::KaniHintKind;
+use super::kani::KaniHintKind;
 
 pub fn insert_hints(s: &str, hints: &[(KaniHintKind, usize)]) -> String {
     if hints.is_empty() {

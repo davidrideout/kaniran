@@ -75,7 +75,7 @@ use crate::dict::_star_suffix_class_star_::suffix_class;
 use crate::dict::_star_suffix_list_star_::lookup_suffix_fn;
 use crate::dict::get_suffixes::get_suffixes;
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::match_unique::match_unique;
 use crate::dict::subseq_slice::subseq_slice;
 

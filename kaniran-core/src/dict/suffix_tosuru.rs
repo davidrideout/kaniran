@@ -47,7 +47,7 @@ pub async fn suffix_tosuru(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:tosuru` suffix-cache `kf` for "とする" — the root kana-text of

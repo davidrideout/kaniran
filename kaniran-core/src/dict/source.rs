@@ -26,7 +26,7 @@
 
 use crate::dict::counter_text_class::CounterSource;
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::kanji_text_dao::KanjiText;
 
 /// Borrowed view of whatever a word's `source` slot holds. The two
@@ -62,7 +62,7 @@ mod tests {
     use crate::dict::counter_text_class::{Common, Counter, CounterSource, CounterText};
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kanji_text_dao::KanjiText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::proxy_text_class::ProxyText;
     use crate::dict::simple_text_class::SimpleText;
 

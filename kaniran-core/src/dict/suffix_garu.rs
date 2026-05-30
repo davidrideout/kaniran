@@ -74,7 +74,7 @@ pub async fn suffix_garu(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:garu` cache `kf` for "がる", REPL pinned: id=72111, seq=1631750,

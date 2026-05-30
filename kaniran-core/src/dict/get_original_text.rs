@@ -23,7 +23,7 @@
 //! Polymorphic surface: only the simple-text union
 //! ([`KaniSimpleTextDispatchEnum`]) reaches this generic upstream —
 //! the two methods are defined on `simple-text` and `proxy-text`.
-//! Callers holding the wider [`crate::dict::kani_word::KaniWordDispatchEnum`]
+//! Callers holding the wider [`crate::dict::kani::KaniWordDispatchEnum`]
 //! don't invoke `get-original-text` (no methods for compound-text or
 //! counter-text).
 
@@ -32,7 +32,7 @@ use crate::dict::conj_data_struct::ConjData;
 use crate::dict::get_conj_data::{get_conj_data, FromOrConjIds};
 use crate::dict::get_original_text_star_::get_original_text_star_;
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
+use crate::dict::kani::KaniSimpleTextDispatchEnum;
 use crate::dict::kanji_text_dao::KanjiText;
 use crate::dict::simple_text_class::WordConjugations;
 use crate::dict::word_type::WordType;

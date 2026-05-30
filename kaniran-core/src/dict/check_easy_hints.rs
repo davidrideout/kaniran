@@ -44,7 +44,7 @@
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_easy_hints_seqs_star_::easy_hints_seqs;
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::true_kana::true_kana;
 use crate::dict::true_kanji::true_kanji;
 use crate::kanji::matching::match_readings;

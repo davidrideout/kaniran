@@ -24,7 +24,7 @@
 
 use std::sync::Arc;
 
-use super::kani_lite_segment::KaniLiteSegment;
+use super::kani::KaniLiteSegment;
 
 pub fn filter_in_seq_set(seqs: Vec<i32>) -> impl Fn(&Arc<KaniLiteSegment>) -> bool {
     move |segment| -> bool { seqs.iter().any(|s| segment.seq_set.contains(s)) }
@@ -35,7 +35,7 @@ mod tests {
     use super::*;
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
 

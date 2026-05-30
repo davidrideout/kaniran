@@ -67,7 +67,7 @@ pub async fn or_as_hiragana<'a>(
 mod tests {
     use super::*;
     use crate::dict::find_word_with_pos::{find_word_with_pos, WordWithPosRows};
-    use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
+    use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
     // dict-grammar.lisp:506 (or-as-hiragana 'find-word-with-pos root …)
     fn make_pos_finder<'a>(

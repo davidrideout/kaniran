@@ -32,7 +32,7 @@
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::best_kanji_conj::best_kanji_conj;
 use crate::dict::entry_dao::Entry;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 use crate::numbers::num_class::{DIGIT_KANJI_DEFAULT, POWER_KANJI};
 use crate::numbers::kanji_form::number_to_kanji;
 

@@ -82,7 +82,7 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};
 use crate::dict::get_kana::get_kana;
 use crate::dict::get_text::get_text;
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 
 pub async fn adjoin_word(
     ctx: &KaniranContext,

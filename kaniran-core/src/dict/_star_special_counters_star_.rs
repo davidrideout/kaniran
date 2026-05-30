@@ -12,10 +12,10 @@
 
 use crate::dict::counter_text_class::{Common, DigitOp, DigitOp as D, DigitOptKey as K};
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_counter_args::{
+use crate::dict::kani::{
     args, args_multi, args_suffix, digit_opts, CounterArgs, CounterClass as C,
 };
-use crate::dict::kani_suffix_kind::SuffixKind;
+use crate::dict::kani::SuffixKind;
 use crate::dict::kanji_text_dao::KanjiText;
 use std::collections::HashMap;
 use std::sync::OnceLock;

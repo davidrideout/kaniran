@@ -32,7 +32,7 @@
 
 use std::borrow::Cow;
 
-use super::kani_word::KaniWordDispatchEnum;
+use super::kani::KaniWordDispatchEnum;
 
 pub fn text<'a>(obj: &'a KaniWordDispatchEnum) -> Cow<'a, str> {
     match obj {

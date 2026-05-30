@@ -23,7 +23,7 @@ use crate::dict::find_word::FindWordRows;
 use crate::dict::find_word_seq::{find_word_seq, WordSeqRows};
 use crate::dict::find_word_with_pos::{find_word_with_pos, WordWithPosRows};
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::or_as_hiragana::{or_as_hiragana, OrAsHiraganaFinder, OrAsHiraganaRows};
 use std::sync::Arc;
 

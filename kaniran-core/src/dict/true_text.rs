@@ -19,7 +19,7 @@
 
 use std::borrow::Cow;
 
-use super::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use super::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use super::proxy_text_class::ProxyText;
 use super::text::text;
 

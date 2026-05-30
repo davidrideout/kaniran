@@ -49,7 +49,7 @@ mod common;
 use serde_json::Value;
 
 use kaniran_core::dict::cull_segments::cull_segments;
-use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
+use kaniran_core::dict::kani::KaniWordDispatchEnum;
 use kaniran_core::dict::segment_struct::{
     KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment,
 };

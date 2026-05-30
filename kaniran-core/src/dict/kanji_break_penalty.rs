@@ -64,7 +64,7 @@ use crate::dict::_star_score_cutoff_star_::SCORE_CUTOFF;
 use crate::dict::calc_score::calc_score;
 use crate::dict::compound_text_class::ScoreMod;
 use crate::dict::get_suffixes::get_suffixes;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::segment_struct::KaniSegmentInfo;
 
 /// The three Lisp `(cond ((cdr kanji-break) :both) ((eql (car kanji-break) 0) :beg) (t :end))`
@@ -263,7 +263,7 @@ mod tests {
     #[tokio::test]
     async fn info_fall_through_penalty() {
         use crate::dict::calc_score::calc_score;
-        use crate::dict::kani_word::KaniWordDispatchEnum;
+        use crate::dict::kani::KaniWordDispatchEnum;
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let rows: Vec<crate::dict::kanji_text_dao::KanjiText> = sqlx::query_as(
             "SELECT * FROM kanji_text WHERE seq = 1467640 AND text = '猫' ORDER BY id LIMIT 1",
@@ -288,7 +288,7 @@ mod tests {
     #[tokio::test]
     async fn no_penalty_list_short_circuit() {
         use crate::dict::calc_score::calc_score;
-        use crate::dict::kani_word::KaniWordDispatchEnum;
+        use crate::dict::kani::KaniWordDispatchEnum;
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let rows: Vec<crate::dict::kanji_text_dao::KanjiText> = sqlx::query_as(
             "SELECT * FROM kanji_text WHERE seq = 1169870 AND text = '飲む' ORDER BY id LIMIT 1",
@@ -315,7 +315,7 @@ mod tests {
     #[tokio::test]
     async fn suki_seq_short_circuit() {
         use crate::dict::calc_score::calc_score;
-        use crate::dict::kani_word::KaniWordDispatchEnum;
+        use crate::dict::kani::KaniWordDispatchEnum;
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let rows: Vec<crate::dict::kanji_text_dao::KanjiText> = sqlx::query_as(
             "SELECT * FROM kanji_text WHERE seq = 1277450 AND text = '好き' ORDER BY id LIMIT 1",

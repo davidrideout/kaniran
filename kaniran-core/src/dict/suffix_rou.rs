@@ -47,7 +47,7 @@ pub async fn suffix_rou(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:rou` suffix-cache `kf`, REPL pinned: `(get-kana-form 1928670

@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 use super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body;
 use super::filter_in_seq_set::filter_in_seq_set;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 
 const WO_SEQ: i32 = 2029010;
 const KARASU_SEQS: &[i32] = &[2087020];
@@ -38,7 +38,7 @@ pub fn segfilter_wokarasu(
 mod tests {
     use super::*;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

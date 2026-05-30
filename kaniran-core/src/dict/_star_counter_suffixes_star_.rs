@@ -11,7 +11,7 @@
 //! list. Looked up by kind via `(cdr (assoc suf *counter-suffixes*))`
 //! in the populator — linear scan over three rows.
 
-use crate::dict::kani_suffix_kind::SuffixKind;
+use crate::dict::kani::SuffixKind;
 
 pub static COUNTER_SUFFIXES: &[(SuffixKind, &str, &str, &str)] = &[
     (SuffixKind::Kan, "間", "かん", "[duration]"),

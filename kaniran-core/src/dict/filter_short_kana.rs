@@ -20,8 +20,8 @@
 //!   is required (upstream's caching is moot when the data is already
 //!   on the lite layer).
 
-use super::kani_lite_segment::KPCL_K;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KPCL_K;
+use super::kani::KaniLiteSegmentList;
 
 pub fn filter_short_kana(
     len: usize,
@@ -50,7 +50,7 @@ mod tests {
     use super::*;
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

@@ -12,7 +12,7 @@ use std::sync::Arc;
 use super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body;
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::filter_is_compound_end::filter_is_compound_end;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 
 const HA_SEQ: i32 = 2028920;
 const JANAI_SEQS: &[i32] = &[1529520, 1296400, 2139720];
@@ -36,7 +36,7 @@ mod tests {
     use super::*;
     use crate::dict::compound_text_class::{CompoundText, ScoreMod};
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

@@ -11,8 +11,8 @@
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_split_star_::get_split_star_;
-use crate::dict::kani_split_part::SplitPart;
-use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
+use crate::dict::kani::SplitPart;
+use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
 pub async fn get_split(
     ctx: &KaniranContext,

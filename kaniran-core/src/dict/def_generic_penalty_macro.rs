@@ -23,7 +23,7 @@
 //! - The `defpenalty` `pushnew` registration lives in
 //!   [`PENALTY_LIST`](super::_star_penalty_list_star_::PENALTY_LIST).
 
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 use super::synergy_struct::Synergy;
 
 pub struct DefGenericPenaltyOpts<'a> {

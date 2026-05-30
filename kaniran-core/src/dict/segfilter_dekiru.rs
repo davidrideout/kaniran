@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body;
 use super::filter_in_seq_set::filter_in_seq_set;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 
 const DE_SEQS: &[i32] = &[1896380, 2422860];
 const KURU_SEQS: &[i32] = &[2830009, 1547720];
@@ -35,7 +35,7 @@ pub fn segfilter_dekiru(
 mod tests {
     use super::*;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

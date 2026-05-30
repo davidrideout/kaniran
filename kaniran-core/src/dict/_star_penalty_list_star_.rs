@@ -17,7 +17,7 @@
 //!
 //! [`get_penalties`]: super::get_penalties::get_penalties
 
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 use super::penalty_semi_final::penalty_semi_final;
 use super::penalty_short::penalty_short;
 use super::synergy_struct::Synergy;

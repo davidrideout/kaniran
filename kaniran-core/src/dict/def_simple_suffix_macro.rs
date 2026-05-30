@@ -57,7 +57,7 @@ use crate::dict::adjoin_word::adjoin_word;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};
 use crate::dict::get_kana::get_kana;
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 
 /// Mirrors the macro's `(when (listp pw) (setf score-base (second pw)
 /// pw (first pw)))` two-shape input. A bare word is `Bare(w)`; a

@@ -42,7 +42,7 @@ pub async fn suffix_te_plus_space(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:te+space` suffix-cache `kf` for "くれる", REPL pinned via

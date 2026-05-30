@@ -12,7 +12,7 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;
 use crate::dict::find_word_full::find_word_full;
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_shimasho(
     ctx: &KaniranContext,
@@ -47,7 +47,7 @@ mod tests {
     /// (dict-grammar.lisp:575-578 only `setf`s `stext` and `skana`).
     #[tokio::test]
     async fn shimasho1_benkyou_shimasho_compound_branch() {
-        use crate::dict::kani_word::KaniWordDispatchEnum as W;
+        use crate::dict::kani::KaniWordDispatchEnum as W;
         let ctx = ctx().await;
         let result = abbr_shimasho(&ctx, "勉強", "しましょ", None).await.unwrap();
         assert_eq!(result.len(), 1);

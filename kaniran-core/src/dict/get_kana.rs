@@ -79,7 +79,7 @@
 //!   `sqlx::Error` arm.
 
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 
 pub async fn get_kana(
     ctx: &KaniranContext,

@@ -52,7 +52,7 @@
 //! `word-conjugations` for compound-text all land with the wave-158
 //! SCC.
 
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 
 #[derive(Debug, Clone)]
 pub struct CompoundText {

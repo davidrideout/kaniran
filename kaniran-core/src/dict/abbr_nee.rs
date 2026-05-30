@@ -18,7 +18,7 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;
 use crate::dict::find_word_with_conj_prop::find_word_with_conj_prop;
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_nee(
     ctx: &KaniranContext,
@@ -51,7 +51,7 @@ pub async fn abbr_nee(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
+    use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()

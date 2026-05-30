@@ -21,8 +21,8 @@
 //! [`get_penalties`]: super::get_penalties::get_penalties
 
 use super::_star_synergy_list_star_::SYNERGY_LIST;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
-use super::kani_lite_top_array_item::KaniLitePathElement;
+use super::kani::KaniLiteSegmentList;
+use super::kani::KaniLitePathElement;
 
 pub fn get_synergies(
     segment_list_left: &KaniLiteSegmentList,
@@ -47,7 +47,7 @@ mod tests {
     use super::*;
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

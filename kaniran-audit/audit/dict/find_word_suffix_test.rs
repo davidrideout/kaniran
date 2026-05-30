@@ -78,7 +78,7 @@ use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::compound_text_class::{CompoundText, ScoreMod};
 use kaniran_core::dict::find_word_suffix::find_word_suffix;
 use kaniran_core::dict::kana_text_dao::KanaText;
-use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
+use kaniran_core::dict::kani::KaniWordDispatchEnum;
 use kaniran_core::dict::kanji_text_dao::KanjiText;
 use kaniran_core::dict::proxy_text_class::ProxyText;
 
@@ -208,8 +208,8 @@ fn fp_proxy(p: &ProxyText) -> String {
     )
 }
 
-fn fp_simple_text(s: &kaniran_core::dict::kani_word::KaniSimpleTextDispatchEnum) -> String {
-    use kaniran_core::dict::kani_word::KaniSimpleTextDispatchEnum;
+fn fp_simple_text(s: &kaniran_core::dict::kani::KaniSimpleTextDispatchEnum) -> String {
+    use kaniran_core::dict::kani::KaniSimpleTextDispatchEnum;
     match s {
         KaniSimpleTextDispatchEnum::Kana(k) => fp_kana(k),
         KaniSimpleTextDispatchEnum::Kanji(k) => fp_kanji(k),

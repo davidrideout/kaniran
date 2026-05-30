@@ -43,7 +43,7 @@ pub async fn suffix_kudasai(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:kudasai` suffix-cache `kf` for "ください", REPL pinned via

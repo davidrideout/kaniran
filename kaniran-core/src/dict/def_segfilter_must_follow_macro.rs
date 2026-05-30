@@ -54,8 +54,8 @@
 use std::sync::Arc;
 
 use super::classify::classify;
-use super::kani_lite_segment::KaniLiteSegment;
-use super::kani_lite_segment_list::{
+use super::kani::KaniLiteSegment;
+use super::kani::{
     make_kani_lite_segment_list_from, KaniLiteSegmentList,
 };
 
@@ -144,7 +144,7 @@ mod tests {
 
     use super::*;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

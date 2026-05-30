@@ -29,7 +29,7 @@
 //! Rust port (slot is non-optional), so the synergy arm always yields
 //! [`Some`].
 
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 use super::segment_list_struct::SegmentList;
 use super::segment_struct::Segment;
 use super::synergy_struct::Synergy;
@@ -69,7 +69,7 @@ mod tests {
     //! `/tmp/probe_gss.lisp` 2026-05-17 run.
     use super::*;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {

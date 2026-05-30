@@ -26,7 +26,7 @@
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::find_word_with_conj_type::find_word_with_conj_type;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn te_check(
     ctx: &KaniranContext,

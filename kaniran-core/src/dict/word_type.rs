@@ -22,7 +22,7 @@
 
 use crate::characters::char_classes::CharClass;
 use crate::characters::char_classes::count_char_class;
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::text::text;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

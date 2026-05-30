@@ -31,7 +31,7 @@
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::conj_data_struct::ConjData;
 use crate::dict::get_conj_data::{get_conj_data, FromOrConjIds};
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::proxy_text_class::ProxyText;
 use crate::dict::simple_text_class::WordConjugations;
 

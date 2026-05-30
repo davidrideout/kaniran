@@ -6,8 +6,8 @@
 //! `None`) drop out of the result — the upstream `if new-pos
 //! collect` only collects on non-nil.
 
-use super::kani_hint_kind::KaniHintKind;
-use super::kani_match_part::KaniMatchPart;
+use super::kani::KaniHintKind;
+use super::kani::KaniMatchPart;
 use super::translate_hint_position::translate_hint_position;
 
 pub fn translate_hints(

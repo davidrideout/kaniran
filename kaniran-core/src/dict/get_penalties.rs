@@ -25,8 +25,8 @@
 use std::sync::Arc;
 
 use super::_star_penalty_list_star_::PENALTY_LIST;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
-use super::kani_lite_top_array_item::KaniLitePathElement;
+use super::kani::KaniLiteSegmentList;
+use super::kani::KaniLitePathElement;
 
 pub fn get_penalties(
     seg_left: &Arc<KaniLiteSegmentList>,
@@ -55,7 +55,7 @@ mod tests {
     use crate::dict::_star_semi_final_prt_star_::semi_final_prt;
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

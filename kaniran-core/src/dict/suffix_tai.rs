@@ -53,7 +53,7 @@ pub async fn suffix_tai(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:tai` suffix-cache `kf`, REPL pinned: `(get-kana-form 2017560

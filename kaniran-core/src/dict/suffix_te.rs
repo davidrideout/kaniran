@@ -43,7 +43,7 @@ pub async fn suffix_te(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:te` suffix-cache `kf` for "も", REPL pinned: `(get-kana-form

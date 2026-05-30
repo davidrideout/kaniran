@@ -81,7 +81,7 @@ pub fn cull_segments(mut segments: Vec<Segment>) -> Vec<Segment> {
 #[cfg(test)]
 mod tests {
     use super::super::kana_text_dao::KanaText;
-    use super::super::kani_word::KaniWordDispatchEnum;
+    use super::super::kani::KaniWordDispatchEnum;
     use super::super::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo};
     use super::super::simple_text_class::SimpleText;
     use super::*;

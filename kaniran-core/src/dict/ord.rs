@@ -32,7 +32,7 @@
 //! callsites — same precedent as [`super::text`].
 
 use crate::dict::counter_text_class::CounterSource;
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 
 fn ord_simple(obj: &KaniSimpleTextDispatchEnum) -> i32 {
     match obj {

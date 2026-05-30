@@ -22,14 +22,14 @@
 //!   memoization of `text(segment.word)` into the
 //!   [`Segment::text`] cache slot.
 //!
-//! [`KaniWordDispatchEnum`]: super::kani_word::KaniWordDispatchEnum
+//! [`KaniWordDispatchEnum`]: super::kani::KaniWordDispatchEnum
 //! [`Entry::get_text`]: super::entry_dao::Entry::get_text
 //! [`Segment::get_text`]: super::segment_struct::Segment::get_text
 //! [`Segment::text`]: super::segment_struct::Segment#structfield.text
 
 use std::borrow::Cow;
 
-use super::kani_word::KaniWordDispatchEnum;
+use super::kani::KaniWordDispatchEnum;
 use super::text::text;
 
 pub fn get_text<'a>(obj: &'a KaniWordDispatchEnum) -> Cow<'a, str> {

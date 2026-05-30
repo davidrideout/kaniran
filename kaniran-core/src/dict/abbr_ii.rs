@@ -12,7 +12,7 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;
 use crate::dict::find_word_full::find_word_full;
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_ii(
     ctx: &KaniranContext,

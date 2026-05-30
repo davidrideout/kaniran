@@ -25,7 +25,7 @@
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_kanji::get_kanji;
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::proxy_text_class::ProxyText;
 
 pub async fn true_kanji(

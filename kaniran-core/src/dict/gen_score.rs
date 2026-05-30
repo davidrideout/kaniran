@@ -61,7 +61,7 @@ pub async fn gen_score<'a>(
 mod tests {
     use super::*;
     use crate::dict::find_word::{find_word, FindWordRows};
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_struct::{KaniSplitInfo, Segment};
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {

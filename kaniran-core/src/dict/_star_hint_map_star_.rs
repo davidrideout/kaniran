@@ -13,7 +13,7 @@
 //!
 //! - [`EASY_HINTS`] — 431 rows, one per `def-easy-hint` callsite.
 //!   Each row carries the literal kanji-split string; the shared
-//!   body lives in [`super::kani_hint_engine::run_easy_hint`].
+//!   body lives in [`super::kani::run_easy_hint`].
 //! - 17 inline `match`-arm groups, one per `def-simple-hint`
 //!   callsite — bodies vary per group (different positional
 //!   computations, different `:test`/`let*`-binding shapes).
@@ -53,12 +53,12 @@ use std::collections::HashMap;
 use std::sync::OnceLock;
 
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::kani_hint_engine::{
+use crate::dict::kani::{
     ends_with_char, finish_simple_hint, run_easy_hint, safe_hint, search_chars,
     true_kana_and_len, EasyHint,
 };
-use crate::dict::kani_hint_kind::KaniHintKind;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniHintKind;
+use crate::dict::kani::KaniWordDispatchEnum;
 
 /// Static dispatch table for the 431 `def-easy-hint` callsites at
 /// `dict-split.lisp:1389-1859`. Source order is preserved (the

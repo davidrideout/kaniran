@@ -10,11 +10,11 @@
 //!
 //! A cell `:any` always matches; otherwise compare with `EQL`.
 //! The Rust port models the closed cell vocabulary as
-//! [`super::kani_conj_form::FormToken`] and dispatches on the
-//! [`super::kani_conj_form::ConjForm`] variant.
+//! [`super::kani::FormToken`] and dispatches on the
+//! [`super::kani::ConjForm`] variant.
 
 use super::conj_prop_dao::ConjProp;
-use super::kani_conj_form::{ConjForm, FormToken};
+use super::kani::{ConjForm, FormToken};
 
 pub fn test_conj_prop(prop: &ConjProp, forms: &[ConjForm]) -> bool {
     forms.iter().any(|form| match form {

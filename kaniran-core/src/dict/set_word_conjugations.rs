@@ -9,7 +9,7 @@
 //!
 //! Companion getter: [`super::word_conjugations`].
 
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::simple_text_class::WordConjugations;
 
 pub fn set_word_conjugations(

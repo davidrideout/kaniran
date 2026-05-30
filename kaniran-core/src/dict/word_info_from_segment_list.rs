@@ -129,7 +129,7 @@ mod tests {
 
     use super::*;
     use crate::dict::find_word::{find_word, FindWordRows};
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_struct::Segment;
     use crate::dict::word_info_class::WordInfoType;
 

@@ -34,7 +34,7 @@
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::find_word_with_conj_prop::find_word_with_conj_prop;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn find_word_with_conj_type(
     ctx: &KaniranContext,
@@ -74,7 +74,7 @@ mod tests {
         let ctx = ctx().await;
         let r = find_word_with_conj_type(&ctx, "食べて", &[3]).await.unwrap();
         assert_eq!(r.len(), 1);
-        let crate::dict::kani_word::KaniWordDispatchEnum::Kanji(k) = &r[0] else {
+        let crate::dict::kani::KaniWordDispatchEnum::Kanji(k) = &r[0] else {
             panic!("expected KANJI-TEXT");
         };
         assert_eq!(k.seq, 10092233);
@@ -91,7 +91,7 @@ mod tests {
         let ctx = ctx().await;
         let r = find_word_with_conj_type(&ctx, "食べ", &[13]).await.unwrap();
         assert_eq!(r.len(), 1);
-        let crate::dict::kani_word::KaniWordDispatchEnum::Kanji(k) = &r[0] else {
+        let crate::dict::kani::KaniWordDispatchEnum::Kanji(k) = &r[0] else {
             panic!("expected KANJI-TEXT");
         };
         assert_eq!(k.seq, 10092273);

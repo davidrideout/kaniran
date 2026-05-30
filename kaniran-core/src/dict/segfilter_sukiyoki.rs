@@ -14,7 +14,7 @@
 //! - The lambda's `(get-text segment)` upstream goes through the
 //!   `((segment))` method (`dict.lisp:677-679`) which lazily caches
 //!   the result back into `segment-text`. The Rust port reads through
-//!   the lite-precomputed [`super::kani_lite_segment::KaniLiteSegment::text`]
+//!   the lite-precomputed [`super::kani::KaniLiteSegment::text`]
 //!   directly. Functionally identical.
 //! - `+conj-adjective-literary+` (`dict-errata.lisp:1240`) is a plain
 //!   `defconstant` with value `54`; no standalone Rust port file
@@ -25,8 +25,8 @@ use std::sync::Arc;
 
 use super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body;
 use super::filter_is_conjugation::filter_is_conjugation;
-use super::kani_lite_segment::KaniLiteSegment;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegment;
+use super::kani::KaniLiteSegmentList;
 
 const SUKI_SUFFIX: &str = "好き";
 
@@ -51,7 +51,7 @@ mod tests {
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::conj_prop_dao::ConjProp;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

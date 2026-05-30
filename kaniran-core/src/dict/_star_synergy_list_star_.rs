@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 use super::synergy_kanji_prefix::synergy_kanji_prefix;
 use super::synergy_na_adjectives::synergy_na_adjectives;
 use super::synergy_no_adjectives::synergy_no_adjectives;

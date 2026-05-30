@@ -20,7 +20,7 @@ use super::reading_str_star_::reading_str_star_;
 use super::word_info_class::WordInfo;
 use super::word_info_reading_str::word_info_reading_str;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
+use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
 impl WordInfo {
     // dict.lisp:1739-1743 (defmethod reading-str ((word-info word-info)) / ((word-info list)))

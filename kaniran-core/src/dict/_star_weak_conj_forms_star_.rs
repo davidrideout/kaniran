@@ -19,7 +19,7 @@
 //! `conj_prop` row in the live database — they cannot drift without
 //! a wholesale dictionary rebuild.
 
-use super::kani_conj_form::{ConjForm, FormToken};
+use super::kani::{ConjForm, FormToken};
 
 pub static WEAK_CONJ_FORMS: &[ConjForm] = &[
     ConjForm::Triple(FormToken::Int(51), FormToken::Any,         FormToken::Any), // +conj-adjective-stem+

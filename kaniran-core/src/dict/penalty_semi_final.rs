@@ -13,7 +13,7 @@
 use super::_star_semi_final_prt_star_::semi_final_prt;
 use super::def_generic_penalty_macro::{def_generic_penalty_body, DefGenericPenaltyOpts};
 use super::filter_in_seq_set::filter_in_seq_set;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 use super::synergy_struct::Synergy;
 
 pub fn penalty_semi_final(l: &KaniLiteSegmentList, r: &KaniLiteSegmentList) -> Option<Synergy> {
@@ -39,7 +39,7 @@ mod tests {
     use super::*;
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

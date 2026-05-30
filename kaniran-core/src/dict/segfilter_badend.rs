@@ -10,8 +10,8 @@ use std::sync::Arc;
 
 use super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body;
 use super::filter_is_compound_end_text::filter_is_compound_end_text;
-use super::kani_lite_segment::KaniLiteSegment;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegment;
+use super::kani::KaniLiteSegmentList;
 
 fn badend_texts() -> Vec<String> {
     vec![
@@ -44,7 +44,7 @@ mod tests {
     use super::*;
     use crate::dict::compound_text_class::{CompoundText, ScoreMod};
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::Segment;
     use crate::dict::simple_text_class::SimpleText;

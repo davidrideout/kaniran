@@ -87,7 +87,7 @@ use crate::dict::abbr_seba::abbr_seba;
 use crate::dict::abbr_shimasho::abbr_shimasho;
 use crate::dict::abbr_teba::abbr_teba;
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::suffix_adv::suffix_adv;
 use crate::dict::suffix_chau::suffix_chau;
 use crate::dict::suffix_desho::suffix_desho;

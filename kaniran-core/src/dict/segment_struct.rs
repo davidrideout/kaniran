@@ -41,7 +41,7 @@
 //!   outer `Option<KaniSegmentInfo>`.
 
 use super::conj_data_struct::ConjData;
-use super::kani_word::KaniWordDispatchEnum;
+use super::kani::KaniWordDispatchEnum;
 use super::top_array_class::TopArray;
 
 #[derive(Debug, Clone)]

@@ -22,7 +22,7 @@
 //! reading-getter) dispatch over it as upstream does over the bare DAO.
 
 use super::kana_text_dao::KanaText;
-use super::kani_word::KaniWordDispatchEnum;
+use super::kani::KaniWordDispatchEnum;
 use super::kanji_text_dao::KanjiText;
 use super::word_info_class::{WordInfo, WordInfoType};
 use crate::conn::kani_context::KaniranContext;

@@ -48,7 +48,7 @@ pub async fn suffix_kurai(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:kurai` suffix-cache `kf` for "くらい", REPL pinned: `(get-kana-

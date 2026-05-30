@@ -52,7 +52,7 @@ pub async fn suffix_adv(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:adv` suffix-cache `kf` for "なる" — the root kana-text of seq

@@ -19,7 +19,7 @@
 //! `te_check` result unchanged in the non-excluded path.
 
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::te_check::te_check;
 
 pub async fn teiru_check(
@@ -76,7 +76,7 @@ mod tests {
         let ctx = ctx().await;
         let r = teiru_check(&ctx, "食べて").await.unwrap();
         assert_eq!(r.len(), 1);
-        let crate::dict::kani_word::KaniWordDispatchEnum::Kanji(k) = &r[0] else {
+        let crate::dict::kani::KaniWordDispatchEnum::Kanji(k) = &r[0] else {
             panic!("expected KANJI-TEXT");
         };
         assert_eq!(k.seq, 10092233);

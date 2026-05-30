@@ -39,7 +39,7 @@ use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::compound_text_class::CompoundText;
 use kaniran_core::dict::counter_text_class::{Counter, CounterSource, CounterText};
 use kaniran_core::dict::join_substring_words_star_::join_substring_words_star_;
-use kaniran_core::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use kaniran_core::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use kaniran_core::dict::proxy_text_class::ProxyText;
 use kaniran_core::dict::segment_struct::Segment;
 

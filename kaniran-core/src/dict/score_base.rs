@@ -10,7 +10,7 @@
 //! `&CompoundText` rather than a CONVENTIONS §4.7 family-dispatcher.
 
 use super::compound_text_class::CompoundText;
-use super::kani_word::KaniWordDispatchEnum;
+use super::kani::KaniWordDispatchEnum;
 
 pub fn score_base(word: &CompoundText) -> &KaniWordDispatchEnum {
     word.score_base.as_deref().unwrap_or(&*word.primary)

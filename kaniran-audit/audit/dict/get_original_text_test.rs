@@ -30,7 +30,7 @@ use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::conj_prop_dao::ConjProp;
 use kaniran_core::dict::get_original_text::get_original_text;
 use kaniran_core::dict::kana_text_dao::KanaText;
-use kaniran_core::dict::kani_word::KaniSimpleTextDispatchEnum;
+use kaniran_core::dict::kani::KaniSimpleTextDispatchEnum;
 use kaniran_core::dict::kanji_text_dao::KanjiText;
 
 use common::{

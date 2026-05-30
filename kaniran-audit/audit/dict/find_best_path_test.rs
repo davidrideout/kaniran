@@ -46,7 +46,7 @@ use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::find_best_path::find_best_path;
 use kaniran_core::dict::get_segsplit::get_segsplit;
-use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
+use kaniran_core::dict::kani::KaniWordDispatchEnum;
 use kaniran_core::dict::segment_list_struct::SegmentList;
 use kaniran_core::dict::segment_struct::{
     KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment,
@@ -225,9 +225,9 @@ fn compound_primary_seq(w: &KaniWordDispatchEnum) -> Result<i32, String> {
             KaniWordDispatchEnum::Kanji(k) => Ok(k.seq),
             KaniWordDispatchEnum::Kana(k) => Ok(k.seq),
             KaniWordDispatchEnum::Proxy(p) => match p.source.as_ref() {
-                kaniran_core::dict::kani_word::KaniSimpleTextDispatchEnum::Kanji(k) => Ok(k.seq),
-                kaniran_core::dict::kani_word::KaniSimpleTextDispatchEnum::Kana(k) => Ok(k.seq),
-                kaniran_core::dict::kani_word::KaniSimpleTextDispatchEnum::Proxy(_) => {
+                kaniran_core::dict::kani::KaniSimpleTextDispatchEnum::Kanji(k) => Ok(k.seq),
+                kaniran_core::dict::kani::KaniSimpleTextDispatchEnum::Kana(k) => Ok(k.seq),
+                kaniran_core::dict::kani::KaniSimpleTextDispatchEnum::Proxy(_) => {
                     Err("nested proxy primary".into())
                 }
             },
@@ -755,7 +755,7 @@ async fn main() {
     common::run_async_streaming_with_post_hook(
         EXPECTED_FQN,
         audit_one,
-        kaniran_core::dict::kani_lite_segment::assert_field_coverage,
+        kaniran_core::dict::kani::assert_field_coverage,
     )
     .await;
 }

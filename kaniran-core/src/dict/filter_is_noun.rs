@@ -20,7 +20,7 @@
 
 use std::sync::Arc;
 
-use super::kani_lite_segment::{KaniLiteSegment, KPCL_C, KPCL_K, KPCL_L, KPCL_P, POS_NOUN};
+use super::kani::{KaniLiteSegment, KPCL_C, KPCL_K, KPCL_L, KPCL_P, POS_NOUN};
 
 pub fn filter_is_noun(segment: &Arc<KaniLiteSegment>) -> bool {
     let kpcl = segment.kpcl;

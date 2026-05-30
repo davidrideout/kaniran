@@ -38,7 +38,7 @@ use super::segfilter_toomou::segfilter_toomou;
 use super::segfilter_totte::segfilter_totte;
 use super::segfilter_tsu_iru::segfilter_tsu_iru;
 use super::segfilter_wokarasu::segfilter_wokarasu;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 
 pub type SegFilter = fn(
     Option<&Arc<KaniLiteSegmentList>>,

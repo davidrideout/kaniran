@@ -53,7 +53,7 @@ pub async fn suffix_neg(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:neg` suffix-cache `kf`, REPL pinned: `(car (find-word-conj-of

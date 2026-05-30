@@ -6,7 +6,7 @@
 //! `def-do-split` / `def-shi-split` form. The Rust transliteration
 //! collapses the runtime hashtable into a static [`SPLIT_TABLE`] of
 //! data rows. Each row is interpreted by
-//! [`super::kani_split_engine::run_split`]. Returning `None` from
+//! [`super::kani::run_split`]. Returning `None` from
 //! [`split_map_dispatch`] for unregistered seqs preserves the upstream
 //! `(gethash seq *split-map*)` semantics that
 //! [`super::get_split_star_::get_split_star_`] depends on.
@@ -27,11 +27,11 @@
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_segsplit_map_star_::SEGSPLIT_TABLE;
-use crate::dict::kani_split_engine::{
+use crate::dict::kani::{
     run_split, Finder, Len, Modify, PartSeq, Pred, ScorePush, SplitDef, Step, WordPart,
 };
-use crate::dict::kani_split_part::SplitPart;
-use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
+use crate::dict::kani::SplitPart;
+use crate::dict::kani::KaniSimpleTextDispatchEnum;
 use crate::dict::word_type::WordType;
 
 /// Selector for the active `*split-map*` binding. Diverges from

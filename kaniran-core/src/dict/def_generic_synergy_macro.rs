@@ -31,8 +31,8 @@
 
 use std::sync::Arc;
 
-use super::kani_lite_segment::KaniLiteSegment;
-use super::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
+use super::kani::KaniLiteSegment;
+use super::kani::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 use super::synergy_struct::Synergy;
 
 pub struct DefGenericSynergyOpts<'a> {

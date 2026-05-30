@@ -23,7 +23,7 @@
 //! `get-kana` / `word-type` / etc.) are NOT ported here — they land
 //! alongside `find-counter` in a later wave.
 //!
-//! [`CounterArgs::class`]: crate::dict::kani_counter_args::CounterArgs#structfield.class
+//! [`CounterArgs::class`]: crate::dict::kani::CounterArgs#structfield.class
 //! [`CounterHifumi::digit_set`]: crate::dict::counter_hifumi_class::CounterHifumi#structfield.digit_set
 //!
 //! ## Family dispatch
@@ -80,8 +80,8 @@ use crate::dict::counter_tsu_class::CounterTsu;
 use crate::dict::counter_wari_class::CounterWari;
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kanji_text_dao::KanjiText;
-use crate::dict::kani_counter_args::{CounterArgs, CounterClass};
-use crate::dict::kani_suffix_kind::SuffixKind;
+use crate::dict::kani::{CounterArgs, CounterClass};
+use crate::dict::kani::SuffixKind;
 use crate::dict::number_text_class::NumberText;
 use crate::numbers::num_class::{DIGIT_KANJI_DEFAULT, POWER_KANJI};
 use crate::numbers::kanji_form::NotANumber;
@@ -295,8 +295,8 @@ impl Counter {
     /// `not-a-number` at the call site; here that surfaces as
     /// `Err(NotANumber)` for the caller to drop.
     ///
-    /// [`CounterArgs::class`]: crate::dict::kani_counter_args::CounterArgs#structfield.class
-    /// [`CounterArgs::digit_set`]: crate::dict::kani_counter_args::CounterArgs#structfield.digit_set
+    /// [`CounterArgs::class`]: crate::dict::kani::CounterArgs#structfield.class
+    /// [`CounterArgs::digit_set`]: crate::dict::kani::CounterArgs#structfield.digit_set
     /// [`CounterHifumi::digit_set`]: crate::dict::counter_hifumi_class::CounterHifumi#structfield.digit_set
     pub fn new(args: &CounterArgs, number_text: impl Into<String>) -> Result<Self, NotANumber> {
         // dict-counters.lisp:278 (find-counter — apply make-instance over recipe)
@@ -427,7 +427,7 @@ mod tests {
     //! upstream `find-counter` flow (lookup recipe by text key + verify)
     //! is not under test here — that lands with its own port.
     use super::*;
-    use crate::dict::kani_counter_args::CounterArgs;
+    use crate::dict::kani::CounterArgs;
 
     #[test]
     fn base_text_arm() {

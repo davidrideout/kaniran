@@ -31,7 +31,7 @@
 //! `get-original-text`) all dispatch on `simple-text` / `proxy-text`
 //! and land alongside the wave-158 SCC port.
 
-use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
+use crate::dict::kani::KaniSimpleTextDispatchEnum;
 use crate::dict::simple_text_class::SimpleText;
 
 #[derive(Debug, Clone)]

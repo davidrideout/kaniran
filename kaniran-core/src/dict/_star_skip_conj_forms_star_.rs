@@ -11,7 +11,7 @@
 //! | `(3 t t)` | Triple | conj-type 3 (negative), neg=`T`, fml=`T` |
 //! | `("vs-s" 5 :any :any)` | Quadruple | pos `vs-s`, conj-type 5, any neg, any fml |
 
-use super::kani_conj_form::{ConjForm, FormToken};
+use super::kani::{ConjForm, FormToken};
 
 pub static SKIP_CONJ_FORMS: &[ConjForm] = &[
     ConjForm::Triple(FormToken::Int(10), FormToken::Bool(true), FormToken::Any),

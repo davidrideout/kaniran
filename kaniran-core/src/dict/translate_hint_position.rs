@@ -19,13 +19,13 @@
 //!
 //! The Lisp consumes the raw output of `match-diff` /
 //! `match-readings` and dispatches by `(if (atom part) ...)`. The
-//! Rust port consumes [`super::kani_match_part::KaniMatchPart`], an
+//! Rust port consumes [`super::kani::KaniMatchPart`], an
 //! explicit two-variant enum carrying pre-computed character
 //! lengths — the function only ever calls `length` on the
 //! substrings, so the substrings themselves are dropped at
 //! conversion time. Observable behavior is identical.
 
-use super::kani_match_part::KaniMatchPart;
+use super::kani::KaniMatchPart;
 
 pub fn translate_hint_position(matched: &[KaniMatchPart], position: usize) -> Option<usize> {
     let mut off: usize = 0;

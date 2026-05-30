@@ -43,7 +43,7 @@ pub fn make_segment_list_from(old_segment_list: &SegmentList, segments: Vec<Segm
 #[cfg(test)]
 mod tests {
     use super::super::kana_text_dao::KanaText;
-    use super::super::kani_word::KaniWordDispatchEnum;
+    use super::super::kani::KaniWordDispatchEnum;
     use super::super::simple_text_class::SimpleText;
     use super::*;
 

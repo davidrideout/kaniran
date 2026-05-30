@@ -21,7 +21,7 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::CompoundText;
 use crate::dict::get_kana::get_kana;
 use crate::dict::get_text::get_text;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::segment_struct::Segment;
 use crate::dict::seq::seq;
 use crate::dict::true_text::true_text;

@@ -17,7 +17,7 @@ use super::_star_aux_verbs_star_::AUX_VERBS;
 use super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body;
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::filter_is_conjugation::filter_is_conjugation;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 
 pub fn segfilter_aux_verb(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
@@ -38,7 +38,7 @@ mod tests {
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::conj_prop_dao::ConjProp;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

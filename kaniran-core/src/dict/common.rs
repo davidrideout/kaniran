@@ -42,7 +42,7 @@
 //! gf runs, it's already collapsed.
 
 use crate::dict::counter_text_class::{Common, Counter, CounterSource};
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 
 pub fn common(obj: &KaniWordDispatchEnum) -> Common {
     match obj {

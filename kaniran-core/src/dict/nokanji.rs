@@ -23,7 +23,7 @@
 //! `Some(false)`.
 
 use crate::dict::counter_text_class::{Counter, CounterSource};
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 
 pub fn nokanji(obj: &KaniWordDispatchEnum) -> Option<bool> {
     match obj {

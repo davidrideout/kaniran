@@ -40,7 +40,7 @@ use std::pin::Pin;
 use crate::characters::normalize::as_hiragana;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::find_word::{find_word, FindWordRows};
-use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
+use crate::dict::kani::KaniSimpleTextDispatchEnum;
 use crate::dict::proxy_text_class::ProxyText;
 use crate::dict::simple_text_class::SimpleText;
 

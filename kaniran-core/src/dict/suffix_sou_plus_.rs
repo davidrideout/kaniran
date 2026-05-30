@@ -43,7 +43,7 @@ pub async fn suffix_sou_plus_(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:sou+` cache `kf` for "そう". The :sou+ entry shares the cache

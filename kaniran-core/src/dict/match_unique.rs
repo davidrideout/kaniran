@@ -49,7 +49,7 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_suffix_unique_only_star_::{
     SuffixUniqueOnly, SUFFIX_UNIQUE_ONLY,
 };
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::seq::seq;
 use crate::dict::word_info_class::WordInfoSeq;
 

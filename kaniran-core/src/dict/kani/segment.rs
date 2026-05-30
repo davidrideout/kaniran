@@ -1,25 +1,53 @@
-//! Kaniran sidecar (no Lisp FQN). Pre-computed predicate inputs for a
-//! [`Segment`] — read by the `find-best-path` inner loop's segfilter
-//! / synergy / penalty predicates. One [`KaniLiteSegment`] is built
-//! per source [`Segment`] at `find-best-path` entry and shared via
-//! [`Arc`] across every filtered sub-list that mentions it; the
-//! `source` back-ref lets `find-best-path` materialize a full
-//! [`Segment`] at exit for each surviving path.
+//! Kaniran sidecars — Rust-only lite mirrors of the segmentation
+//! structs used inside the `find-best-path` inner loop. No Lisp FQNs.
 //!
-//! The field set is the union of everything the 16 segfilter +
-//! 17 synergy + 2 penalty bodies actually read off a segment (see
-//! `find_best_path.md` session-2 discovery pass). Anything not read by
-//! those predicates — `info.common`, `info.score_info`, `segment.top`
-//! — is left on the source `Segment` and never duplicated here.
+//! Folds four per-symbol sidecars into one module:
+//!
+//! - [`KaniLiteSegment`] — pre-computed predicate inputs for a
+//!   [`crate::dict::segment_struct::Segment`], read by the
+//!   `find-best-path` segfilter / synergy / penalty predicates. One
+//!   `KaniLiteSegment` is built per source `Segment` at `find-best-path`
+//!   entry and shared via [`Arc`] across every filtered sub-list; the
+//!   `source` back-ref lets `find-best-path` materialize a full
+//!   `Segment` at exit for each surviving path. Field set is the union
+//!   of everything the 16 segfilter + 17 synergy + 2 penalty bodies
+//!   actually read off a segment (see session-2 discovery pass in
+//!   `find_best_path.md`).
+//!
+//! - [`KaniLiteSegmentList`] — lite mirror of
+//!   [`crate::dict::segment_list_struct::SegmentList`]; carries
+//!   `Arc<KaniLiteSegment>`s and a per-list lite [`KaniLiteTopArray`].
+//!   Full materialization happens at `find-best-path` exit, by
+//!   deep-cloning each `KaniLiteSegment.source` for the surviving top-K
+//!   paths.
+//!
+//! - [`KaniLiteTopArray`] — lite mirror of
+//!   [`crate::dict::top_array_class::TopArray`] +
+//!   [`crate::dict::register_item::register_item`] +
+//!   [`crate::dict::get_array::get_array`]; logic identical, only the
+//!   item type changes.
+//!
+//! - [`KaniLiteTopArrayItem`] / [`KaniLitePathElement`] — lite mirror
+//!   of [`crate::dict::top_array_item_struct::TopArrayItem`]. Payload
+//!   is `Arc<[_]>` so the `(register-item ...) / (register-item ...)`
+//!   pair at `dict.lisp:1226-1227` becomes a refcount bump instead of a
+//!   `Vec` clone (the "Option C" fold-in from `find_best_path.md`
+//!   session-2).
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-use super::kani_word::KaniWordDispatchEnum;
-use super::seq::seq;
-use super::segment_struct::Segment;
-use super::text::text;
-use super::word_info_class::WordInfoSeq;
+use super::word::KaniWordDispatchEnum;
+use crate::dict::segment_list_struct::SegmentList;
+use crate::dict::segment_struct::Segment;
+use crate::dict::seq::seq;
+use crate::dict::synergy_struct::Synergy;
+use crate::dict::text::text;
+use crate::dict::word_info_class::WordInfoSeq;
+
+// =========================================================================
+// KaniLiteSegment + field-coverage telemetry
+// =========================================================================
 
 /// Per-field "ever observed non-default value" counters, bumped in
 /// [`KaniLiteSegment::from_segment`]. Used by the find_best_path
@@ -97,8 +125,8 @@ pub const KPCL_L: u8 = 1 << 3;
 /// (`n`, `n-adv`, `n-t`, `adj-na`, `n-suf`, `pn`, `adj-no`, `ctr`,
 /// `adv-to`). [`POS_NOUN`] is the precomputed union of the 6 tags
 /// filter_is_noun checks (per `NOUN_POS_TAGS` in
-/// [`super::filter_is_noun`]); test it with a single `&` instead of
-/// six string compares.
+/// [`crate::dict::filter_is_noun`]); test it with a single `&` instead
+/// of six string compares.
 pub const POS_N: u16 = 1 << 0;
 pub const POS_N_ADV: u16 = 1 << 1;
 pub const POS_N_T: u16 = 1 << 2;
@@ -118,8 +146,8 @@ pub struct KaniLiteSegment {
     /// per segment regardless of `Segment`'s internal size.
     pub source: Arc<Segment>,
 
-    /// Score read by [`super::get_segment_score::get_segment_score`]
-    /// off `segments[0]` of a [`super::kani_lite_segment_list::KaniLiteSegmentList`].
+    /// Score read by [`crate::dict::get_segment_score::get_segment_score`]
+    /// off `segments[0]` of a [`KaniLiteSegmentList`].
     pub score: Option<i32>,
 
     /// `info.seq_set` — used by `filter_in_seq_set`,
@@ -295,4 +323,154 @@ impl KaniLiteSegment {
             text,
         }
     }
+}
+
+// =========================================================================
+// KaniLiteSegmentList
+// =========================================================================
+
+#[derive(Debug, Clone)]
+pub struct KaniLiteSegmentList {
+    pub start: usize,
+    pub end: usize,
+    pub matches: usize,
+    pub segments: Vec<Arc<KaniLiteSegment>>,
+    pub top: Option<Arc<KaniLiteTopArray>>,
+}
+
+impl KaniLiteSegmentList {
+    /// Build a [`KaniLiteSegmentList`] from a source [`SegmentList`].
+    /// Each contained [`Segment`] is `Arc`-wrapped once and converted
+    /// into a [`KaniLiteSegment`] with precomputed predicate inputs.
+    pub fn from_segment_list(source: &SegmentList) -> Self {
+        let segments = source
+            .segments
+            .iter()
+            .map(|s| Arc::new(KaniLiteSegment::from_segment(Arc::new(s.clone()))))
+            .collect();
+        Self {
+            start: source.start,
+            end: source.end,
+            matches: source.matches,
+            segments,
+            top: None,
+        }
+    }
+
+    /// Materialize a full [`SegmentList`] for export at
+    /// `find-best-path` exit. Deep-clones each
+    /// `KaniLiteSegment.source` because the lite layer doesn't own
+    /// the full `Segment` — it borrows it via `Arc<Segment>`.
+    pub fn to_segment_list(&self) -> SegmentList {
+        let segments: Vec<Segment> =
+            self.segments.iter().map(|s| (*s.source).clone()).collect();
+        SegmentList {
+            segments,
+            start: self.start,
+            end: self.end,
+            top: None,
+            matches: self.matches,
+        }
+    }
+}
+
+/// Sidecar mirror of [`crate::dict::make_segment_list_from::make_segment_list_from`]
+/// for the lite layer. Builds a fresh [`KaniLiteSegmentList`] with
+/// the given filtered segments, inheriting `start` / `end` /
+/// `matches` / `top` from `old`. Matches the upstream
+/// `(copy-segment-list source)` + slot-overwrite pattern.
+pub fn make_kani_lite_segment_list_from(
+    old: &KaniLiteSegmentList,
+    segments: Vec<Arc<KaniLiteSegment>>,
+) -> KaniLiteSegmentList {
+    KaniLiteSegmentList {
+        segments,
+        start: old.start,
+        end: old.end,
+        top: old.top.clone(),
+        matches: old.matches,
+    }
+}
+
+// =========================================================================
+// KaniLiteTopArray
+// =========================================================================
+
+#[derive(Debug, Clone)]
+pub struct KaniLiteTopArray {
+    pub array: Vec<Option<KaniLiteTopArrayItem>>,
+    pub count: usize,
+}
+
+impl KaniLiteTopArray {
+    pub fn new(limit: usize) -> Self {
+        Self {
+            array: vec![None; limit],
+            count: 0,
+        }
+    }
+}
+
+/// Mirror of `register-item` (`dict.lisp:1148`) for the lite item
+/// type — same insertion-sort by score with bounded array.
+pub fn kani_lite_register_item(
+    obj: &mut KaniLiteTopArray,
+    score: i32,
+    payload: Arc<[KaniLitePathElement]>,
+) {
+    let mut item: Option<KaniLiteTopArrayItem> = Some(KaniLiteTopArrayItem { score, payload });
+    let len = obj.array.len();
+    let start = obj.count.min(len);
+    let mut idx = start;
+    loop {
+        let prev_score = if idx > 0 {
+            obj.array[idx - 1].as_ref().map(|prev| prev.score)
+        } else {
+            None
+        };
+        let done = match prev_score {
+            None => true,
+            Some(prev) => prev >= score,
+        };
+        if idx < len {
+            obj.array[idx] = if done {
+                item.take()
+            } else {
+                obj.array[idx - 1].take()
+            };
+        }
+        if done {
+            break;
+        }
+        idx -= 1;
+    }
+    obj.count += 1;
+}
+
+/// Mirror of `get-array` (`dict.lisp:1145`) for the lite array — the
+/// first `count` slots filled by insertion.
+pub fn kani_lite_get_array(top: &KaniLiteTopArray) -> &[Option<KaniLiteTopArrayItem>] {
+    let used = top.count.min(top.array.len());
+    &top.array[..used]
+}
+
+// =========================================================================
+// KaniLiteTopArrayItem / KaniLitePathElement
+// =========================================================================
+
+#[derive(Debug, Clone)]
+pub struct KaniLiteTopArrayItem {
+    pub score: i32,
+    pub payload: Arc<[KaniLitePathElement]>,
+}
+
+/// Lite mirror of [`crate::dict::top_array_item_struct::PathElement`].
+/// The inner loop builds these; `find-best-path` reconstructs full
+/// [`PathElement`]s from them at exit.
+///
+/// [`PathElement`]: crate::dict::top_array_item_struct::PathElement
+#[derive(Debug, Clone)]
+pub enum KaniLitePathElement {
+    SegmentList(Arc<KaniLiteSegmentList>),
+    Synergy(Synergy),
 }

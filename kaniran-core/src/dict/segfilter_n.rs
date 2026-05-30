@@ -13,7 +13,7 @@ use super::_star_noun_particles_star_::NOUN_PARTICLES;
 use super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body;
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::filter_in_seq_set_simple::filter_in_seq_set_simple;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 
 const N_SEQS: &[i32] = &[2139720, 2849370, 2849387];
 
@@ -36,7 +36,7 @@ mod tests {
     use super::*;
     use crate::dict::compound_text_class::{CompoundText, ScoreMod};
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

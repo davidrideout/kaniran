@@ -22,7 +22,7 @@ use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::conj_prop_dao::ConjProp;
 use kaniran_core::dict::get_segsplit::get_segsplit;
 use kaniran_core::dict::kana_text_dao::KanaText;
-use kaniran_core::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use kaniran_core::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use kaniran_core::dict::kanji_text_dao::KanjiText;
 use kaniran_core::dict::proxy_text_class::ProxyText;
 use kaniran_core::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};

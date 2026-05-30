@@ -1,26 +1,52 @@
-//! Top-level dispatcher enums for the `ichiran/dict` word polymorphism.
+//! Kaniran sidecars — Rust-only types with no Lisp counterpart.
 //!
-//! Sidecar (no Lisp FQN). Lisp `word` is the ad-hoc union of the
-//! reading and tokenization types that segmentation and scoring
-//! generic functions (`get-kana`, `text`, `seq`, `common`, `ord`,
-//! `word-type`, `word-conj-data`, ...) dispatch over. The
-//! [`KaniWordDispatchEnum`] names that union;
-//! [`KaniSimpleTextDispatchEnum`] names the `simple-text` sub-family
-//! used by [`super::proxy_text_class::ProxyText::source`].
+//! Folds six per-symbol sidecars into one module: the word-polymorphism
+//! dispatcher enums plus five small token/tag enums shared across the
+//! `ichiran/dict` port (hint kind, suffix kind, conj-form token,
+//! split-part token, match-part).
 //!
-//! Counter is wrapped through its existing family enum
-//! [`super::counter_text_class::Counter`], which already dispatches
-//! across the 11 counter-text subclasses.
+//! - [`KaniWordDispatchEnum`] / [`KaniSimpleTextDispatchEnum`] —
+//!   top-level dispatchers for the `ichiran/dict` word polymorphism.
+//!   Lisp `word` is the ad-hoc union of the reading and tokenization
+//!   types over which segmentation / scoring generic functions
+//!   (`get-kana`, `text`, `seq`, `common`, `ord`, `word-type`,
+//!   `word-conj-data`, ...) dispatch. `entry` is **not** a member:
+//!   upstream gfs define methods on `entry`, but every upstream
+//!   callsite passing an entry is locally Entry-typed
+//!   (`entry-digest` at `dict.lisp:67` is canonical) — none route
+//!   through polymorphic dispatch.
 //!
-//! `entry` is **not** a member of this enum. Upstream's gfs
-//! (`common`, `get-kana`, `get-text`, `get-kanji`) define methods
-//! specialized on `entry`, but every upstream callsite that passes
-//! an entry is locally Entry-typed (`entry-digest` at
-//! `dict.lisp:67` is the canonical one) — none route through
-//! polymorphic dispatch. The Rust port mirrors that: locally-typed
-//! callsites invoke `Entry::get_text(ctx)` /
-//! `Entry::get_kana(ctx)` directly; the dispatcher enums never
-//! carry an entry instance.
+//! - [`KaniMatchPart`] — closed two-variant enum for the heterogeneous
+//!   match list consumed by [`crate::dict::translate_hint_position`] /
+//!   [`crate::dict::translate_hints`]. CL feeds these as the raw output
+//!   of `match-diff` (atoms or `(s1 s2)` pairs — `characters.lisp:326`)
+//!   and `match-readings` (bare strings or `(kanji-char reading-text)`
+//!   pairs — `kanji.lisp:296`); callers only ever read length, so the
+//!   variants carry pre-computed character counts.
+//!
+//! - [`KaniHintKind`] — closed enum for the `(:space :mod)` keyword
+//!   tags of the kana-hint system; used inline by the upstream as
+//!   `*hint-char-map*` keys (`dict-split.lisp:816`) and as the first
+//!   element of each emitted hint pair.
+//!
+//! - [`SuffixKind`] — closed enum for the counter suffix tags
+//!   (`:kan`, `:kango`, `:chuu`); REPL-verified exhaustive against
+//!   `:accepts` values in the populated `*counter-cache*`.
+//!
+//! - [`FormToken`] / [`ConjForm`] — typed match cells for the
+//!   conjugation-form data registered in `*skip-conj-forms*` /
+//!   `*weak-conj-forms*` and consumed by `test-conj-prop`. The CL form
+//!   uses untyped lists with heterogeneous `pos` / `conj-type` / `:any`
+//!   / `T` / `NIL` / `:null` cells; the Rust enum pins the closed
+//!   vocabulary so the data tables can be `pub static` and the matcher
+//!   dispatches without runtime type checks.
+//!
+//! - [`SplitPart`] — heterogeneous parts list element pushed by
+//!   `def-simple-split` (`dict-split.lisp:13`). `calc-score`
+//!   (`dict.lisp:940-974`) discriminates by `(member :score split)` /
+//!   `(member :pscore split)` before iterating the word elements.
+//!   Failed lookups are pushed as Lisp `nil` and modeled as
+//!   `Option<SplitPart>` at the call site.
 
 use crate::dict::compound_text_class::CompoundText;
 use crate::dict::counter_text_class::Counter;
@@ -28,6 +54,64 @@ use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kanji_text_dao::KanjiText;
 use crate::dict::proxy_text_class::ProxyText;
 use crate::dict::word_type::WordType;
+
+// =========================================================================
+// KaniMatchPart
+// =========================================================================
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KaniMatchPart {
+    Atom(usize),
+    Pair(usize, usize),
+}
+
+// =========================================================================
+// KaniHintKind
+// =========================================================================
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum KaniHintKind {
+    Space,
+    Mod,
+}
+
+// =========================================================================
+// KaniSuffixKind
+// =========================================================================
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SuffixKind {
+    Kan,
+    Kango,
+    Chuu,
+}
+
+// =========================================================================
+// FormToken / ConjForm
+// =========================================================================
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FormToken {
+    Any,
+    Int(i32),
+    Str(&'static str),
+    Bool(bool),
+    DbNull,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ConjForm {
+    /// `(conj-type neg fml)` — matched against `prop.conj_type`,
+    /// `prop.neg`, `prop.fml`.
+    Triple(FormToken, FormToken, FormToken),
+    /// `(pos conj-type neg fml)` — matched against `prop.pos`,
+    /// `prop.conj_type`, `prop.neg`, `prop.fml`.
+    Quadruple(FormToken, FormToken, FormToken, FormToken),
+}
+
+// =========================================================================
+// KaniSimpleTextDispatchEnum / KaniWordDispatchEnum
+// =========================================================================
 
 #[derive(Debug, Clone)]
 pub enum KaniSimpleTextDispatchEnum {
@@ -40,7 +124,7 @@ impl KaniSimpleTextDispatchEnum {
     /// Family-level dispatcher for `seq` (cross-family gf). Mirrors
     /// the `Counter::get_kana` pattern from CONVENTIONS §4.7
     /// ("A sibling enum in the base file dispatches"): this narrows
-    /// the wider [`super::seq::seq`] free fn to the simple-text
+    /// the wider [`crate::dict::seq::seq`] free fn to the simple-text
     /// subset so split / synergy callers can borrow a
     /// `&KaniSimpleTextDispatchEnum` without round-tripping through
     /// [`KaniWordDispatchEnum`].
@@ -92,8 +176,8 @@ impl KaniSimpleTextDispatchEnum {
 
     /// Clone-wrap into [`KaniWordDispatchEnum`] for callers that
     /// need the wider type. Used by [`Self::get_kana`] to invoke
-    /// [`super::get_hint::get_hint`], which dispatches on the wider
-    /// enum.
+    /// [`crate::dict::get_hint::get_hint`], which dispatches on the
+    /// wider enum.
     pub fn to_word(&self) -> KaniWordDispatchEnum {
         match self {
             Self::Kanji(k) => KaniWordDispatchEnum::Kanji(k.clone()),
@@ -109,7 +193,7 @@ impl KaniSimpleTextDispatchEnum {
     /// `dict.lisp:150-151` for kana-text,
     /// `dict.lisp:552` slot reader for proxy-text). Per
     /// CONVENTIONS §4.7, each family handles its own `:around`
-    /// internally; the top-level [`super::get_kana::get_kana`]
+    /// internally; the top-level [`crate::dict::get_kana::get_kana`]
     /// dispatcher just delegates here for the simple-text arms.
     pub async fn get_kana(
         &self,
@@ -123,7 +207,7 @@ impl KaniSimpleTextDispatchEnum {
             // dict.lisp:82 (let ((*disable-hints* t)) (get-hint obj))
             let ctx2 = ctx.with_disable_hints(true);
             if let Some(hint_result) =
-                super::get_hint::get_hint(&ctx2, &wrapped).await?
+                crate::dict::get_hint::get_hint(&ctx2, &wrapped).await?
             {
                 return Ok(Some(hint_result));
             }
@@ -148,9 +232,9 @@ impl KaniSimpleTextDispatchEnum {
             // would raise no-applicable-method; Rust surfaces
             // it as Ok(None).
             Self::Kanji(k) => {
-                match super::best_kana_conj::best_kana_conj(ctx, k).await? {
+                match crate::dict::best_kana_conj::best_kana_conj(ctx, k).await? {
                     Some(s) => Ok(Some(s)),
-                    None => super::get_kanji_kana_old::get_kanji_kana_old(ctx, k).await,
+                    None => crate::dict::get_kanji_kana_old::get_kanji_kana_old(ctx, k).await,
                 }
             }
             // dict.lisp:150-151 (defmethod get-kana ((obj kana-text))) — (text obj)
@@ -168,4 +252,15 @@ pub enum KaniWordDispatchEnum {
     Proxy(ProxyText),
     Compound(CompoundText),
     Counter(Counter),
+}
+
+// =========================================================================
+// SplitPart
+// =========================================================================
+
+#[derive(Debug, Clone)]
+pub enum SplitPart {
+    Word(KaniWordDispatchEnum),
+    Score,
+    PScore,
 }

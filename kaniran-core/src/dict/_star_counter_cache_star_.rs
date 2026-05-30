@@ -20,8 +20,8 @@ use crate::dict::_star_special_counters_star_::special_counters;
 use crate::dict::counter_text_class::CounterSource;
 use crate::dict::get_counter_readings::get_counter_readings;
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_counter_args::{CounterArgs, CounterClass};
-use crate::dict::kani_suffix_kind::SuffixKind;
+use crate::dict::kani::{CounterArgs, CounterClass};
+use crate::dict::kani::SuffixKind;
 use crate::dict::kanji_text_dao::KanjiText;
 use std::collections::HashMap;
 
@@ -142,7 +142,7 @@ fn build_default_entry(
 }
 
 /// Mirrors `add-args*`. Multi-text was already pre-expanded in
-/// [`super::kani_counter_args::args_multi`] so the upstream's outer
+/// [`super::kani::args_multi`] so the upstream's outer
 /// `add-args` list-text branch has nothing to do here.
 ///
 /// `Vec::insert(0, …)` mirrors Lisp's `(push x list)` — newest

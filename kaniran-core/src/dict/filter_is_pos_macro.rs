@@ -36,7 +36,7 @@
 
 use std::sync::Arc;
 
-use super::kani_lite_segment::{KaniLiteSegment, KPCL_C, KPCL_K, KPCL_L, KPCL_P};
+use super::kani::{KaniLiteSegment, KPCL_C, KPCL_K, KPCL_L, KPCL_P};
 
 pub fn filter_is_pos(
     pos_mask: u16,
@@ -56,10 +56,10 @@ mod tests {
     use super::*;
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_lite_segment::{
+    use crate::dict::kani::{
         POS_ADJ_NA, POS_ADJ_NO, POS_ADV_TO, POS_CTR, POS_N,
     };
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
 

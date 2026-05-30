@@ -57,7 +57,7 @@ pub async fn suffix_desho(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:desho` cache `kf` for "でしょう", REPL pinned: id=1122,

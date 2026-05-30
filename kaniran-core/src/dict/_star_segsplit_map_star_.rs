@@ -23,12 +23,12 @@
 //! to data rows here rather than per-file ports, same rationale as
 //! [`super::_star_split_map_star_`].
 
-use crate::dict::kani_split_engine::{
+use crate::dict::kani::{
     Finder, Len, Modify, PartSeq, Pred, SplitDef, Step, WordPart,
 };
 
 /// One registered segsplit callsite. Wraps [`SplitDef`] (run by
-/// [`super::kani_split_engine::run_split`] via
+/// [`super::kani::run_split`] via
 /// [`super::_star_split_map_star_::split_map_dispatch`] when
 /// [`crate::dict::_star_split_map_star_::SplitMapKind::SegSplit`] is
 /// active) with the keyword attrs destructured at

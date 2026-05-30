@@ -196,7 +196,7 @@ mod tests {
     //! Run with `cargo test ... -- --test-threads=1` per the DB-test
     //! convention.
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()

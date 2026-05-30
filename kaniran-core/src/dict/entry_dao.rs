@@ -55,7 +55,7 @@ impl Entry {
     /// otherwise from `kana_text`. Reached only from locally-typed
     /// callsites (`dict.lisp:67` `entry-digest`, `dict-load.lisp:135`);
     /// `entry` is not a variant of
-    /// [`crate::dict::kani_word::KaniWordDispatchEnum`] (see that
+    /// [`crate::dict::kani::KaniWordDispatchEnum`] (see that
     /// module's header) so no polymorphic `get-text` dispatch flows
     /// here.
     ///
@@ -91,7 +91,7 @@ impl Entry {
     /// `ord = 0`. Reached only from locally-typed callsites
     /// (`entry-digest` at `dict.lisp:67` is the canonical one);
     /// `entry` is not a variant of
-    /// [`super::kani_word::KaniWordDispatchEnum`] (see that module's
+    /// [`super::kani::KaniWordDispatchEnum`] (see that module's
     /// header) so no polymorphic `get-kana` dispatch flows here.
     ///
     /// Diverges from the upstream lambda list `(obj)` only by:

@@ -42,7 +42,7 @@ use crate::characters::text_utils::join;
 use crate::conn::kani_context::KaniranContext;
 
 use super::get_senses::get_senses;
-use super::kani_word::KaniWordDispatchEnum;
+use super::kani::KaniWordDispatchEnum;
 use super::match_sense_restrictions::match_sense_restrictions;
 use super::split_pos::split_pos;
 

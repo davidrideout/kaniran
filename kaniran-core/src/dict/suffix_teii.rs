@@ -58,7 +58,7 @@ pub async fn suffix_teii(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:teii` suffix-cache `kf` for "いい", REPL pinned via

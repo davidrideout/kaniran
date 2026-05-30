@@ -36,11 +36,11 @@ use crate::dict::gap_penalty::gap_penalty;
 use crate::dict::get_seg_initial::get_seg_initial;
 use crate::dict::get_seg_splits::get_seg_splits;
 use crate::dict::get_segment_score::{get_segment_score, KaniSegmentScoreArg};
-use crate::dict::kani_lite_segment_list::KaniLiteSegmentList;
-use crate::dict::kani_lite_top_array::{
+use crate::dict::kani::KaniLiteSegmentList;
+use crate::dict::kani::{
     kani_lite_get_array, kani_lite_register_item, KaniLiteTopArray,
 };
-use crate::dict::kani_lite_top_array_item::{KaniLitePathElement, KaniLiteTopArrayItem};
+use crate::dict::kani::{KaniLitePathElement, KaniLiteTopArrayItem};
 use crate::dict::segment_list_struct::SegmentList;
 use crate::dict::top_array_item_struct::PathElement;
 

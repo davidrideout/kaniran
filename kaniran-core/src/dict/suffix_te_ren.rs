@@ -72,7 +72,7 @@ pub async fn suffix_te_ren(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:teren` suffix-cache `kf` for "やがって", REPL pinned via the

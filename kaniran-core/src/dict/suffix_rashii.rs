@@ -74,7 +74,7 @@ pub async fn suffix_rashii(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::simple_text_class::SimpleText;
 
     /// `:rashii` cache `kf` for "らしい", REPL pinned: id=1812,

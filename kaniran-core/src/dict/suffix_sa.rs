@@ -23,7 +23,7 @@ use crate::dict::def_simple_suffix_macro::{
 use crate::dict::find_word_with_conj_type::find_word_with_conj_type;
 use crate::dict::find_word_with_pos::{find_word_with_pos, WordWithPosRows};
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn suffix_sa(
     ctx: &KaniranContext,

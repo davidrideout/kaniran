@@ -16,7 +16,7 @@
 use std::sync::Arc;
 
 use super::_star_segfilter_list_star_::SEGFILTER_LIST;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 
 pub fn apply_segfilters(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
@@ -44,8 +44,8 @@ mod tests {
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::conj_prop_dao::ConjProp;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_lite_segment::KaniLiteSegment;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniLiteSegment;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

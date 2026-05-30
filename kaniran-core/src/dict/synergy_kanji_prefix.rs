@@ -21,8 +21,8 @@ use std::sync::Arc;
 use super::def_generic_synergy_macro::{def_generic_synergy_body, DefGenericSynergyOpts};
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::filter_is_pos_macro::filter_is_pos;
-use super::kani_lite_segment::POS_N;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::POS_N;
+use super::kani::KaniLiteSegmentList;
 use super::synergy_struct::Synergy;
 
 pub fn synergy_kanji_prefix(
@@ -48,7 +48,7 @@ mod tests {
     use super::*;
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;

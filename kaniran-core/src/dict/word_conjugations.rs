@@ -12,7 +12,7 @@
 //! more than one method body — so it lives in its own module per
 //! CONVENTIONS §1.
 
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::proxy_text_class::ProxyText;
 use crate::dict::simple_text_class::WordConjugations;
 

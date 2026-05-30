@@ -53,7 +53,7 @@ use super::find_words_seqs::find_words_seqs;
 use super::get_conj_data::{get_conj_data, FromOrConjIds};
 use super::get_original_text_once::get_original_text_once;
 use super::get_senses_json::get_senses_json;
-use super::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
+use super::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use super::reading_str_seq::reading_str_seq;
 use super::select_conjs_and_props::select_conjs_and_props;
 use super::simple_text_class::WordConjugations;

@@ -59,7 +59,7 @@
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::conj_data_struct::ConjData;
 use crate::dict::find_word_full::find_word_full;
-use crate::dict::kani_word::KaniWordDispatchEnum;
+use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::set_word_conjugations::set_word_conjugations;
 use crate::dict::simple_text_class::WordConjugations;
 use crate::dict::word_conj_data::word_conj_data;

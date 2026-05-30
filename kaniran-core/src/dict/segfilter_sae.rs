@@ -11,7 +11,7 @@
 //! - The lambda's `(get-text segment)` upstream goes through the
 //!   `((segment))` method (`dict.lisp:677-679`) which lazily caches
 //!   the result back into `segment-text`. The Rust port reads through
-//!   the lite-precomputed [`super::kani_lite_segment::KaniLiteSegment::text`]
+//!   the lite-precomputed [`super::kani::KaniLiteSegment::text`]
 //!   directly. Functionally identical — text() is the default delegate
 //!   of the cache path.
 
@@ -19,7 +19,7 @@ use std::sync::Arc;
 
 use super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body;
 use super::filter_is_compound_end::filter_is_compound_end;
-use super::kani_lite_segment_list::KaniLiteSegmentList;
+use super::kani::KaniLiteSegmentList;
 
 const SAE_SEQ: i32 = 2029120;
 const E_CHAR: char = 'え';
@@ -44,7 +44,7 @@ mod tests {
     use super::*;
     use crate::dict::compound_text_class::{CompoundText, ScoreMod};
     use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kani_word::KaniWordDispatchEnum;
+    use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
