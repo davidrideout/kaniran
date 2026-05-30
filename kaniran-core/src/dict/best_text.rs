@@ -419,16 +419,10 @@ impl Entry {
     /// ```
     ///
     /// Returns the `text` of the entry's headword kanji row at
-    /// `ord = 0` when the entry has any kanji writings; `None`
-    /// otherwise.
-    ///
-    /// Diverges from the upstream lambda list `(obj)` only by taking
-    /// `&KaniranContext` for the database handle, replacing the
-    /// upstream dynamic `*connection*` per
-    /// [`crate::conn::kani_context`]. `None` mirrors upstream falling
-    /// off the `when` when `n-kanji = 0`; a missing `ord = 0` row
-    /// propagates as [`sqlx::Error::RowNotFound`], matching upstream
-    /// erroring on `(text nil)`.
+    /// `ord = 0` when the entry has any kanji writings; `None` when
+    /// `n-kanji = 0`. A missing `ord = 0` row propagates as
+    /// [`sqlx::Error::RowNotFound`], matching upstream erroring on
+    /// `(text nil)`.
     pub async fn get_kanji(&self, ctx: &KaniranContext) -> Result<Option<String>, sqlx::Error> {
         if self.n_kanji <= 0 {
             return Ok(None);

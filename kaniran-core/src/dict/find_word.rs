@@ -42,15 +42,11 @@ pub async fn find_word(
     word: &str,
     root_only: bool,
 ) -> Result<FindWordRows, sqlx::Error> {
-    // Mirror upstream evaluation order — `(when (<= (length word)
-    // *max-word-length*) ...)` short-circuits before `test-word`
-    // runs, so the over-length path returns an empty result without
-    // touching the kana/kanji predicate. Lisp returns plain nil; the
-    // Rust shape (closed 2-variant per CONVENTIONS §4.3) demands a
-    // tag, so we hardcode `Kanji(Vec::new())` — every consumer
-    // iterates the variant as a list and observes only the (empty)
-    // contents, never the tag, so the choice is arbitrary and a
-    // fixed value avoids the spurious `test_word` call.
+    // dict.lisp short-circuits `(when (<= (length word)
+    // *max-word-length*) ...)` before `test-word` runs. Every
+    // consumer iterates `FindWordRows` as a list and observes only
+    // the (empty) contents, never the tag, so `Kanji(Vec::new())`
+    // is arbitrary.
     if word.chars().count() > MAX_WORD_LENGTH {
         return Ok(FindWordRows::Kanji(Vec::new()));
     }
@@ -109,9 +105,8 @@ pub async fn find_substring_words(
     let mut kana_keys: Vec<String> = Vec::new();
     let mut kanji_keys: Vec<String> = Vec::new();
 
-    // dict.lisp:504-512 (loop for start ... loop for end ...). CONVENTIONS
-    // §4.5: cl-ppcre / subseq index by character — collect the chars
-    // once so the inner slice uses character offsets.
+    // dict.lisp:504-512 (loop for start ... loop for end ...) — SBCL
+    // `subseq` is character-indexed; collect chars once and slice by index.
     let chars: Vec<char> = str.chars().collect();
     let n = chars.len();
 
@@ -125,7 +120,7 @@ pub async fn find_substring_words(
             if sticky.contains(&end) {
                 continue;
             }
-            // (subseq str start end) — character offsets per §4.5.
+            // (subseq str start end) — character offsets.
             let part: String = chars[start..end].iter().collect();
             // dict.lisp:510 — pre-populate hash with an empty entry,
             // then classify by kana vs. kanji.
@@ -288,11 +283,10 @@ pub async fn find_word_as_hiragana(
     Ok(proxies)
 }
 
-/// Closed shape of the upstream `:counter` keyword. Per CONVENTIONS
-/// §4.3: the Lisp value is `nil` (absent), the keyword `:auto`, or a
-/// character-index integer. `Option<CounterArg>` carries the
-/// nil-vs-present distinction; the enum carries the auto-vs-integer
-/// distinction.
+/// Closed shape of the upstream `:counter` keyword. The Lisp value
+/// is `nil` (absent), the keyword `:auto`, or a character-index
+/// integer. `Option<CounterArg>` carries the nil-vs-present
+/// distinction; the enum carries the auto-vs-integer distinction.
 #[derive(Debug, Clone, Copy)]
 pub enum CounterArg {
     Auto,

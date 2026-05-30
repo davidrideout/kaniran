@@ -79,13 +79,6 @@ pub static FINAL_PRT: &[i32] = &[
 
 /// "Particles that are final, but also have other uses" — built as
 /// `(append *final-prt* '(2029120 2086640 2029110 2029080 2029100))`.
-/// Read by `calc-score` (`dict.lisp:832`) via `(member seq
-/// *semi-final-prt*)` and by `dict-grammar.lisp:1005` through
-/// `(apply 'filter-in-seq-set *semi-final-prt*)`.
-///
-/// Derived lazily from [`FINAL_PRT`] at first call (CONVENTIONS §5.2)
-/// so it tracks any future change to the source list without a
-/// hand-copy.
 pub fn semi_final_prt() -> &'static [i32] {
     static CACHE: OnceLock<Vec<i32>> = OnceLock::new();
     CACHE

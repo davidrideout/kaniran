@@ -121,11 +121,9 @@ pub enum KaniSimpleTextDispatchEnum {
 }
 
 impl KaniSimpleTextDispatchEnum {
-    /// Family-level dispatcher for `seq` (cross-family gf). Mirrors
-    /// the `Counter::get_kana` pattern from CONVENTIONS §4.7
-    /// ("A sibling enum in the base file dispatches"): this narrows
-    /// the wider [`crate::dict::counters::dispatchers::seq`] free fn to the simple-text
-    /// subset so split / synergy callers can borrow a
+    /// Family-level dispatcher for `seq`. Narrows the wider
+    /// [`crate::dict::counters::dispatchers::seq`] free fn to the
+    /// simple-text subset so split / synergy callers can borrow a
     /// `&KaniSimpleTextDispatchEnum` without round-tripping through
     /// [`KaniWordDispatchEnum`].
     pub fn seq(&self) -> i32 {
@@ -191,10 +189,7 @@ impl KaniSimpleTextDispatchEnum {
     /// followed by the family's primary methods
     /// (`dict.lisp:111-115` for kanji-text,
     /// `dict.lisp:150-151` for kana-text,
-    /// `dict.lisp:552` slot reader for proxy-text). Per
-    /// CONVENTIONS §4.7, each family handles its own `:around`
-    /// internally; the top-level [`crate::dict::best_text::get_kana`]
-    /// dispatcher just delegates here for the simple-text arms.
+    /// `dict.lisp:552` slot reader for proxy-text).
     pub async fn get_kana(
         &self,
         ctx: &crate::conn::kani_context::KaniranContext,

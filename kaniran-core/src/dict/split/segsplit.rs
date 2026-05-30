@@ -18,10 +18,6 @@
 //! alongside the [`SplitDef`] on [`SegSplitDef`]; the integer score
 //! lives on `SplitDef.score`. `get-segsplit` recovers the keyword
 //! attrs via a direct [`SEGSPLIT_TABLE`] walk.
-//!
-//! Diverges from CONVENTIONS §1: the 18 `split-*` callsites collapse
-//! to data rows here rather than per-file ports, same rationale as
-//! [`super::_star_split_map_star_`].
 
 use crate::dict::kani::{
     Finder, Len, Modify, PartSeq, Pred, SplitDef, Step, WordPart,
@@ -536,15 +532,11 @@ use crate::dict::word_info::word_conj_data;
 /// word/text/score/info on the copy. Returns `None` for non-`simple-text`
 /// words and for readings with no matching segsplit entry.
 ///
-/// Diverges from the upstream lambda list `(segment)` by taking
-/// `&KaniranContext` per CONVENTIONS §4.8; the special `*split-map*`
-/// rebind at `dict-split.lisp:786` becomes the
-/// [`KaniranContext::with_segsplit_map`] sibling-context call per
-/// CONVENTIONS §4.10. The Lisp `(values split attrs)` pair from
-/// `get-split` is collapsed in [`get_split`] to `(parts, score-int)` —
-/// the keyword-arg portion of `attrs` (`:primary`, `:connector`,
-/// `:root`) is recovered here by walking [`SEGSPLIT_TABLE`] in the
-/// same seq order `get-split*` does (`dict-split.lisp:70-75`).
+/// `get-split` returns `(values split attrs)` upstream; here the call
+/// returns `(parts, score-int)` and the keyword-arg portion of `attrs`
+/// (`:primary`, `:connector`, `:root`) is recovered by walking
+/// [`SEGSPLIT_TABLE`] in the same seq order `get-split*` does
+/// (`dict-split.lisp:70-75`).
 pub async fn get_segsplit(
     ctx: &KaniranContext,
     segment: &Segment,

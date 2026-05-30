@@ -18,16 +18,6 @@
 //!   callsite — bodies vary per group (different positional
 //!   computations, different `:test`/`let*`-binding shapes).
 //!
-//! ## Divergence from CONVENTIONS §1
-//!
-//! CONVENTIONS §1 (one Lisp symbol per Rust file) is intentionally
-//! relaxed here, mirroring the [`super::_star_split_map_star_`]
-//! precedent. The 17 `def-simple-hint` and 431 `def-easy-hint`
-//! callsites would otherwise need 448 separate files. Putting them
-//! here keeps the data and dispatcher together. The macros
-//! themselves (`defhint`, `def-simple-hint`, `def-easy-hint`) are
-//! marked `skip` with reason pointing at this file per §4.6 case (a).
-//!
 //! ## Order semantics
 //!
 //! Upstream `(setf (gethash ...) ...)` repeats: later calls override
@@ -997,9 +987,8 @@ mod tests {
         }
     }
 
-    // (`EASY_HINTS_SEQS` ↔ `EASY_HINTS` agreement is now structural —
-    // `easy_hints_seqs()` derives directly from `EASY_HINTS` via
-    // OnceLock per CONVENTIONS §5.2, so they cannot disagree.)
+    // `easy_hints_seqs()` derives directly from `EASY_HINTS`, so the
+    // two cannot disagree.
 
     #[test]
     fn search_chars_finds_first() {

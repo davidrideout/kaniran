@@ -539,7 +539,7 @@ pub async fn fill_segment_path(
 
 // dict.lisp:1391-1395 (flet make-substr-gap)
 fn make_substr_gap(str: &str, start: usize, end: usize) -> WordInfo {
-    // (subseq str start end) — char-indexed in SBCL (CONVENTIONS §4.5)
+    // (subseq str start end) — char-indexed in SBCL
     let substr: String = str.chars().skip(start).take(end - start).collect();
     WordInfo {
         kind: WordInfoType::Gap,

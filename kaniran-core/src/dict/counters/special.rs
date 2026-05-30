@@ -570,10 +570,6 @@ pub fn build_special_counters() -> HashMap<i32, SpecialCounterFn> {
 mod tests {
     use super::*;
 
-    /// Build-loop regression (CONVENTIONS §6): the registry should
-    /// hold exactly one entry per `def-special-counter` callsite in
-    /// upstream `dict-counters.lisp`. Drift here means a duplicate
-    /// `m.insert` (silently overwriting) or a missing one.
     #[test]
     fn builds_91_entries_one_per_upstream_callsite() {
         let map = build_special_counters();

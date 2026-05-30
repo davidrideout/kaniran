@@ -195,36 +195,10 @@ pub fn translate_hints(
 /// `get-kana :around` method on `simple-text` falls through to
 /// `(call-next-method)`.
 ///
-/// ## Divergences
-///
-/// Diverges from the upstream lambda list `(reading)` by:
-/// - taking `&KaniranContext` for the database handle (transitively,
-///   via [`word_conj_data`] and the hint-fn bodies), replacing the
-///   upstream dynamic `*connection*` per
-///   [`crate::conn::kani_context`]. The ctx also carries the
-///   `*disable-hints*` binding (see
-///   [`crate::dict::best_text::get_kana`] for the rationale);
-///   callers invoke `get_hint` after rebinding via
-///   [`crate::conn::kani_context::KaniranContext::with_disable_hints`]`(true)`.
-/// - returning `Result<Option<String>, sqlx::Error>` — hint-fn bodies
-///   reach the database (via [`crate::dict::best_text::true_kana`] /
-///   [`crate::dict::best_text::true_kanji`] /
-///   [`crate::kanji::matching::match_readings`]), so errors propagate;
-/// - the hint-fn invocation itself dispatches through
-///   [`hint_map_dispatch`] (the static table replacing the upstream
-///   runtime hashtable per CONVENTIONS §5.4 + the `*split-map*`
-///   precedent).
-///
-/// ## Upstream gf cross-dispatch
-///
-/// Upstream `(seq reading)` is itself a generic function with five
-/// method bodies (proxy / compound / counter-text / simple-text
-/// slot reader / entry). Since `get-hint` is called from the
-/// `simple-text :around` method on `get-kana` (`dict.lisp:80-84`),
-/// the receiver here is always a `kanji-text`, `kana-text`, or
-/// `proxy-text`. For proxy-text, `(seq proxy)` is
-/// `(seq (source proxy))`, which the Rust dispatcher routes through
-/// [`crate::dict::counters::dispatchers::seq`].
+/// Hint-fn invocation dispatches through [`hint_map_dispatch`];
+/// `(seq reading)` for the proxy receiver routes through
+/// [`crate::dict::counters::dispatchers::seq`] to follow
+/// `(seq (source proxy))`.
 pub async fn get_hint(
     ctx: &KaniranContext,
     reading: &KaniWordDispatchEnum,
@@ -302,25 +276,10 @@ pub static HINTS_CHECKED: &[i32] = &[
 // *easy-hints-seqs* (dict-split.lisp:904) — audit-only
 // =========================================================================
 
-/// Cumulative list of JMdict sequence ids registered by every
-/// `def-easy-hint` form in `dict-split.lisp` (lines 1389-1859). The
-/// upstream `defparameter` starts at `nil`; each `def-easy-hint`
-/// call expands into a `(push ,seq *easy-hints-seqs*)` plus a
-/// `(defhint (,seq) ...)` registration into
-/// [`super::hint_map::EASY_HINTS`]. Since the same callsite populates
-/// both globals, this port derives the seq list from
-/// [`super::hint_map::EASY_HINTS`] via [`std::sync::OnceLock`] per
-/// CONVENTIONS §5.2 — "build it from them, don't hand-copy."
-///
-/// Only consumer is [`check_easy_hints`] — a test-only sanity-scan.
-/// Upstream marks the symbol "Only used for testing"
-/// (`dict-split.lisp:904` docstring), so this fn is gated under
-/// `#[cfg(test)]` and absent from release binaries.
-///
-/// Order matches the upstream `push` semantics (reverse of
-/// source-file order). The check_easy_hints SQL `:in` filter
-/// consumes the list as a set, so order doesn't affect behavior;
-/// the test below pins the entry count.
+/// JMdict sequence ids registered by every `def-easy-hint` form in
+/// `dict-split.lisp` (lines 1389-1859), derived from
+/// [`super::hint_map::EASY_HINTS`]. Upstream marks the symbol "Only
+/// used for testing" (`dict-split.lisp:904`).
 #[cfg(test)]
 pub fn easy_hints_seqs() -> &'static [i32] {
     use std::sync::OnceLock;
@@ -350,31 +309,15 @@ pub fn easy_hints_seqs() -> &'static [i32] {
 /// at `dict-split.lisp:904`). The Rust port mirrors that — this fn
 /// is gated under `#[cfg(test)]` and absent from release binaries.
 ///
-/// Returns the rows that failed alignment as `(reading, kanji,
-/// kana)` triples — same shape as the upstream
-/// `(list reading kanji kana)` collected element.
-///
-/// ## Divergences
-///
-/// Diverges from the upstream lambda list `()` by:
-/// - taking `&KaniranContext` for the database handle (replacing the
-///   upstream `(with-db nil ...)` dynamic binding) per
-///   [`crate::conn::kani_context`];
-/// - returning `Vec<CheckEasyHintsFailure>` rather than a raw list of
-///   3-element sub-lists. Each failure carries the unaltered
-///   `KanaText` row plus the computed `kanji` (which can be `None`
-///   when [`crate::dict::best_text::true_kanji`] returned `:null`)
-///   and `kana` strings.
+/// Returns the rows that failed alignment as `CheckEasyHintsFailure`
+/// records (`reading`, `kanji`, `kana`) — same shape as the upstream
+/// `(list reading kanji kana)` collected element. `kanji` is `None`
+/// when [`crate::dict::best_text::true_kanji`] returned `:null`.
 ///
 /// The upstream `(let ((*disable-hints* t)))` binding wraps the
-/// entire loop body — `true-kanji`, `true-kana`, and
-/// `match-readings` are all evaluated under the same rebind. The
-/// Rust port mirrors that by rebinding the ctx once before the
-/// loop via [`KaniranContext::with_disable_hints`]`(true)` and
-/// passing `&ctx2` into all three calls (per the
-/// [`crate::dict::best_text::get_kana`] divergence rationale:
-/// ctx-slot beats task-local because the rebind survives rayon /
-/// `tokio::spawn` boundaries the parallel pipeline introduces).
+/// entire loop body; the ctx is rebound once before the loop via
+/// [`KaniranContext::with_disable_hints`]`(true)` and the same `&ctx2`
+/// is passed into `true-kanji`, `true-kana`, and `match-readings`.
 #[cfg(test)]
 #[derive(Debug, Clone)]
 pub struct CheckEasyHintsFailure {

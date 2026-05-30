@@ -5,18 +5,10 @@
 //! summarize JMdict entry-content changes between two database
 //! snapshots.
 //!
-//! Divergences from Lisp:
-//! - "Missing" inputs are modeled as [`Option<&str>`] rather than
-//!   `nil`, separating the absent case from an explicit empty string.
-//! - The `(or simple-string (member :gone :new))` return type collapses
-//!   to the [`DiffResult`] enum (CONVENTIONS §4.3).
-//! - The `&key short` keyword stays a [`bool`]: the parameter name
-//!   reads as "short-circuit when one side is absent" at the callsite,
-//!   so the polarity is clear without an enum (CONVENTIONS §4.4).
-//! - Diff library: [`similar`] is the closest Rust equivalent of
-//!   upstream `cl-diff`'s unified-diff renderer. Output text is not
-//!   guaranteed byte-identical with cl-diff; tests pin behavior, not
-//!   literal output.
+//! - The `(or simple-string (member :gone :new))` return type
+//!   collapses to the [`DiffResult`] enum.
+//! - Diff library: [`similar`] replaces `cl-diff`'s unified-diff
+//!   renderer; output text is not byte-identical, tests pin behavior.
 //!
 //! ## `None` vs `Some("")`
 //!

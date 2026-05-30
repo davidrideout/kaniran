@@ -20,14 +20,8 @@ use crate::dict::split::split_map::split_map_dispatch;
 /// Look up a split function in [`super::split_map`] by `(seq reading)`;
 /// if absent, walk `conj-of` left-to-right and return the first
 /// registered split. Returns `None` when no entry matches on either
-/// path.
-///
-/// Diverges from the upstream lambda list `(reading &optional conj-of)`
-/// by taking `&KaniranContext` for the database handle (replacing
-/// Lisp's dynamic `*connection*` per [`crate::conn::kani_context`])
-/// and threading it into the dispatched split function. The upstream
-/// `&optional conj-of` becomes `conj_of: &[i32]` — empty slice for
-/// the unspecified case.
+/// path. The upstream `&optional conj-of` becomes `conj_of: &[i32]`
+/// — empty slice for the unspecified case.
 pub async fn get_split_star_(
     ctx: &KaniranContext,
     reading: &KaniSimpleTextDispatchEnum,
@@ -52,10 +46,6 @@ pub async fn get_split_star_(
 /// and score only when a split function ran AND every part resolved
 /// to a non-`nil` word object. Mirrors
 /// `(when (and split (every 'identity split)) (values split score))`.
-///
-/// Diverges from the upstream lambda list `(reading &optional conj-of)`
-/// identically to [`get_split_star_`] — see that fn's doc-comment for
-/// the ctx-injection rationale.
 pub async fn get_split(
     ctx: &KaniranContext,
     reading: &KaniSimpleTextDispatchEnum,

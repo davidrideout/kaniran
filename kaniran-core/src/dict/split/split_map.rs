@@ -11,15 +11,6 @@
 //! `(gethash seq *split-map*)` semantics that
 //! [`super::split::get_split_star_`] depends on.
 //!
-//! Diverges from CONVENTIONS §1 (one Lisp symbol per Rust file): the
-//! 174 `split-*` callsites would otherwise need 174 separate
-//! `dict/split_*.rs` files containing nothing but data rows. Putting
-//! them here keeps the data and dispatcher together and removes the
-//! file-per-callsite scaffolding that previously templated future
-//! `def-simple-split` ports into per-file copies of the same
-//! interpreter loop. `audit-signatures` will report each `split-*`
-//! FQN as `port file not found` — those entries are this convention.
-//!
 //! Rebound to `*segsplit-map*` inside `get-segsplit`
 //! (`dict-split.lisp:786`). Selector lives on
 //! [`crate::conn::kani_context::KaniranContext::split_map`]; rebind

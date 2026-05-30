@@ -1,4 +1,4 @@
-//! Rust-only sidecar (CONVENTIONS §1, §2): the port-wide context.
+//! Rust-only sidecar: the port-wide context.
 //!
 //! Replaces three layers of upstream globals:
 //! - `*connection*` → [`KaniranContext::pool`].
@@ -10,9 +10,8 @@
 //!   state. Multi-DB use (`with-db` / `let-db`) = construct another
 //!   `KaniranContext`.
 //!
-//! `Error` failures are also `eprintln!`ed before propagating; mirrors
-//! upstream's `dp` / `*debug*`. Will move to `tracing` when query-level
-//! logging lands.
+//! `Error` failures are `eprintln!`ed before propagating; mirrors
+//! upstream's `dp` / `*debug*`.
 
 use crate::conn::_star_connection_env_var_star_::DATABASE_URL;
 use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;

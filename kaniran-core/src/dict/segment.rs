@@ -65,17 +65,7 @@ impl Segment {
 /// Sidecar (no Lisp FQN). Typed model of the property-list value
 /// `calc-score` returns and `gen-score` stores in [`Segment::info`]
 /// (`dict.lisp:976-980`). The Lisp slot type is `t`; the port pins
-/// the six plist keys calc-score actually writes so downstream
-/// consumers (the `def-generic-penalty` / `defsynergy` machinery in
-/// `dict-grammar.lisp`, `cull-segments` in `dict.lisp:1024`) get a
-/// checked field rather than a `getf` against an untyped list.
-///
-/// Closed-variant note (CONVENTIONS §4.3): the field set is
-/// exhaustive against the current `calc-score` terminal `let`. If a
-/// future calc-score change adds a `(setf (getf info :NEW-KEY) …)`
-/// or extends the terminal `let`, this struct must grow a matching
-/// field — silent drop would corrupt the segment.info contract that
-/// every penalty / synergy rule reads.
+/// the six plist keys calc-score actually writes.
 #[derive(Debug, Clone)]
 pub struct KaniSegmentInfo {
     /// `:posi` — part-of-speech tags. `("ctr",)` for counter
