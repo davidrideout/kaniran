@@ -2,7 +2,7 @@
 //!
 //! Per-character lookup from any numeric glyph to its `(NumClass, u8)`
 //! classification. Built lazily on first access by exploding every
-//! group in [`super::_star_char_number_class_star_::CHAR_NUMBER_CLASS`]
+//! group in [`super::constants::CHAR_NUMBER_CLASS`]
 //! — same shape and order as the upstream `loop ... do ... do` builder.
 //! Used by [`super::parse_number::parse_number`] and
 //! [`super::number_to_kana::number_to_kana`] to classify a single glyph.
@@ -10,7 +10,7 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use super::_star_char_number_class_star_::CHAR_NUMBER_CLASS;
+use super::constants::CHAR_NUMBER_CLASS;
 use super::kani_num_class::NumClass;
 
 static CACHE: OnceLock<HashMap<char, (NumClass, u8)>> = OnceLock::new();

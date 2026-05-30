@@ -14,8 +14,7 @@
 
 use crate::dict::_star_kana_hint_space_star_::KANA_HINT_SPACE;
 use crate::dict::counter_text_class::CounterText;
-use crate::numbers::_star_digit_kanji_default_star_::DIGIT_KANJI_DEFAULT;
-use crate::numbers::_star_power_kanji_star_::POWER_KANJI;
+use crate::numbers::constants::{DIGIT_KANJI_DEFAULT, POWER_KANJI};
 use crate::numbers::number_to_kana::{number_to_kana, NumberToKanaOutput};
 use crate::numbers::number_to_kanji::number_to_kanji;
 

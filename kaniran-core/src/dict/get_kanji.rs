@@ -33,8 +33,7 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::best_kanji_conj::best_kanji_conj;
 use crate::dict::entry_dao::Entry;
 use crate::dict::kani_word::KaniWordDispatchEnum;
-use crate::numbers::_star_digit_kanji_default_star_::DIGIT_KANJI_DEFAULT;
-use crate::numbers::_star_power_kanji_star_::POWER_KANJI;
+use crate::numbers::constants::{DIGIT_KANJI_DEFAULT, POWER_KANJI};
 use crate::numbers::number_to_kanji::number_to_kanji;
 
 pub async fn get_kanji(

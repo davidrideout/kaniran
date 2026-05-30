@@ -3,9 +3,9 @@
 //! Render a non-negative integer as a kanji number string —
 //! `1234` → `千二百三十四`, `0` → `〇`. The `digits` and `powers`
 //! parameters are the per-digit and per-power glyph tables (see
-//! [`super::_star_digit_kanji_default_star_::DIGIT_KANJI_DEFAULT`],
-//! [`super::_star_digit_kanji_legal_star_::DIGIT_KANJI_LEGAL`],
-//! [`super::_star_power_kanji_star_::POWER_KANJI`]); `one_sen` is the
+//! [`super::constants::DIGIT_KANJI_DEFAULT`],
+//! [`super::constants::DIGIT_KANJI_LEGAL`],
+//! [`super::constants::POWER_KANJI`]); `one_sen` is the
 //! recursion flag controlling whether a leading `一` is suppressed
 //! before `千` (`one_sen = false`) or only before `百` (`one_sen =
 //! true`).
@@ -58,8 +58,7 @@ pub fn number_to_kanji(n: u64, digits: &str, powers: &str, one_sen: bool) -> Str
 
 #[cfg(test)]
 mod tests {
-    use super::super::_star_digit_kanji_default_star_::DIGIT_KANJI_DEFAULT;
-    use super::super::_star_power_kanji_star_::POWER_KANJI;
+    use super::super::constants::{DIGIT_KANJI_DEFAULT, POWER_KANJI};
     use super::*;
 
     fn n2k(n: u64) -> String {
@@ -121,7 +120,7 @@ mod tests {
         // 123 → 百 + 弐 + 十 + 参. The "十" comes from the powers
         // table (POWER_KANJI), which we deliberately don't swap for
         // the legal form; only digit glyphs are substituted.
-        use super::super::_star_digit_kanji_legal_star_::DIGIT_KANJI_LEGAL;
+        use super::super::constants::DIGIT_KANJI_LEGAL;
         assert_eq!(
             number_to_kanji(123, DIGIT_KANJI_LEGAL, POWER_KANJI, false),
             "百弐十参"

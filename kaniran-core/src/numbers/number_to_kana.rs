@@ -23,8 +23,7 @@
 use crate::characters::join::join;
 
 use super::_star_char_number_class_hash_star_::char_number_class_hash;
-use super::_star_digit_to_kana_star_::DIGIT_TO_KANA;
-use super::_star_power_to_kana_star_::POWER_TO_KANA;
+use super::constants::{DIGIT_TO_KANA, POWER_TO_KANA};
 use super::group_to_kana::group_to_kana;
 use super::kani_num_class::NumClass;
 
@@ -80,8 +79,7 @@ pub fn number_to_kana(
 
 #[cfg(test)]
 mod tests {
-    use super::super::_star_digit_kanji_default_star_::DIGIT_KANJI_DEFAULT;
-    use super::super::_star_power_kanji_star_::POWER_KANJI;
+    use super::super::constants::{DIGIT_KANJI_DEFAULT, POWER_KANJI};
     use super::super::number_to_kanji::number_to_kanji;
     use super::*;
 

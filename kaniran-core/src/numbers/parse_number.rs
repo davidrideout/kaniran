@@ -58,8 +58,7 @@ mod tests {
     #[test]
     fn roundtrips_against_number_to_kanji() {
         // Mirrors `parse-number-test` in `tests.lisp:640-644`.
-        use super::super::_star_digit_kanji_default_star_::DIGIT_KANJI_DEFAULT;
-        use super::super::_star_power_kanji_star_::POWER_KANJI;
+        use super::super::constants::{DIGIT_KANJI_DEFAULT, POWER_KANJI};
         use super::super::number_to_kanji::number_to_kanji;
         for &n in &[0u64, 10001, 20020001, 12_423_000_430] {
             let s = number_to_kanji(n, DIGIT_KANJI_DEFAULT, POWER_KANJI, false);

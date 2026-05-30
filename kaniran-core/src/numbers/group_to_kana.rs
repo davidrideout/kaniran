@@ -10,8 +10,8 @@
 //! Diverges from the Lisp's `&key class-to-kana` plist (`(:jd ,table
 //! :p ,table)`) by taking two explicit `&[&str]` / `&[(u8, &str)]`
 //! parameters — Rust callers can swap either table independently. Top-
-//! level callers pass [`super::_star_digit_to_kana_star_::DIGIT_TO_KANA`]
-//! and [`super::_star_power_to_kana_star_::POWER_TO_KANA`].
+//! level callers pass [`super::constants::DIGIT_TO_KANA`]
+//! and [`super::constants::POWER_TO_KANA`].
 //!
 //! [`NumClass::Ad`] is mapped to the supplied `digit_table` (both
 //! `Jd` and `Ad` carry `0..=9` values); upstream this would crash
@@ -55,8 +55,7 @@ fn lookup<'a>(
 
 #[cfg(test)]
 mod tests {
-    use super::super::_star_digit_to_kana_star_::DIGIT_TO_KANA;
-    use super::super::_star_power_to_kana_star_::POWER_TO_KANA;
+    use super::super::constants::{DIGIT_TO_KANA, POWER_TO_KANA};
     use super::*;
     use NumClass::*;
 

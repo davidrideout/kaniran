@@ -4,6 +4,7 @@
 //! holds the closed `NumClass` enum (the Lisp uses inline `:jd` /
 //! `:p` / `:ad` keywords without a named type).
 
+pub mod constants;
 pub mod kani_num_class;
 
 pub mod group_to_kana;
@@ -15,9 +16,3 @@ pub mod parse_number;
 pub mod parse_number_star_;
 
 pub mod _star_char_number_class_hash_star_;
-pub mod _star_char_number_class_star_;
-pub mod _star_digit_kanji_default_star_;
-pub mod _star_digit_kanji_legal_star_;
-pub mod _star_digit_to_kana_star_;
-pub mod _star_power_kanji_star_;
-pub mod _star_power_to_kana_star_;
