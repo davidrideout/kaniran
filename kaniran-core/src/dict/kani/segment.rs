@@ -4,7 +4,7 @@
 //! Folds four per-symbol sidecars into one module:
 //!
 //! - [`KaniLiteSegment`] — pre-computed predicate inputs for a
-//!   [`crate::dict::segment_struct::Segment`], read by the
+//!   [`crate::dict::segment::Segment`], read by the
 //!   `find-best-path` segfilter / synergy / penalty predicates. One
 //!   `KaniLiteSegment` is built per source `Segment` at `find-best-path`
 //!   entry and shared via [`Arc`] across every filtered sub-list; the
@@ -15,20 +15,20 @@
 //!   `find_best_path.md`).
 //!
 //! - [`KaniLiteSegmentList`] — lite mirror of
-//!   [`crate::dict::segment_list_struct::SegmentList`]; carries
+//!   [`crate::dict::segment::SegmentList`]; carries
 //!   `Arc<KaniLiteSegment>`s and a per-list lite [`KaniLiteTopArray`].
 //!   Full materialization happens at `find-best-path` exit, by
 //!   deep-cloning each `KaniLiteSegment.source` for the surviving top-K
 //!   paths.
 //!
 //! - [`KaniLiteTopArray`] — lite mirror of
-//!   [`crate::dict::top_array_class::TopArray`] +
-//!   [`crate::dict::register_item::register_item`] +
-//!   [`crate::dict::get_array::get_array`]; logic identical, only the
+//!   [`crate::dict::segment::TopArray`] +
+//!   [`crate::dict::word_info::register_item`] +
+//!   [`crate::dict::best_text::get_array`]; logic identical, only the
 //!   item type changes.
 //!
 //! - [`KaniLiteTopArrayItem`] / [`KaniLitePathElement`] — lite mirror
-//!   of [`crate::dict::top_array_item_struct::TopArrayItem`]. Payload
+//!   of [`crate::dict::segment::TopArrayItem`]. Payload
 //!   is `Arc<[_]>` so the `(register-item ...) / (register-item ...)`
 //!   pair at `dict.lisp:1226-1227` becomes a refcount bump instead of a
 //!   `Vec` clone (the "Option C" fold-in from `find_best_path.md`
@@ -38,12 +38,12 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use super::word::KaniWordDispatchEnum;
-use crate::dict::segment_list_struct::SegmentList;
-use crate::dict::segment_struct::Segment;
+use crate::dict::segment::SegmentList;
+use crate::dict::segment::Segment;
 use crate::dict::counters::dispatchers::seq;
 use crate::dict::grammar::synergy::Synergy;
 use crate::dict::counters::dispatchers::text;
-use crate::dict::word_info_class::WordInfoSeq;
+use crate::dict::word_info::WordInfoSeq;
 
 // =========================================================================
 // KaniLiteSegment + field-coverage telemetry
@@ -146,7 +146,7 @@ pub struct KaniLiteSegment {
     /// per segment regardless of `Segment`'s internal size.
     pub source: Arc<Segment>,
 
-    /// Score read by [`crate::dict::get_segment_score::get_segment_score`]
+    /// Score read by [`crate::dict::segment::get_segment_score`]
     /// off `segments[0]` of a [`KaniLiteSegmentList`].
     pub score: Option<i32>,
 
@@ -464,11 +464,11 @@ pub struct KaniLiteTopArrayItem {
     pub payload: Arc<[KaniLitePathElement]>,
 }
 
-/// Lite mirror of [`crate::dict::top_array_item_struct::PathElement`].
+/// Lite mirror of [`crate::dict::segment::PathElement`].
 /// The inner loop builds these; `find-best-path` reconstructs full
 /// [`PathElement`]s from them at exit.
 ///
-/// [`PathElement`]: crate::dict::top_array_item_struct::PathElement
+/// [`PathElement`]: crate::dict::segment::PathElement
 #[derive(Debug, Clone)]
 pub enum KaniLitePathElement {
     SegmentList(Arc<KaniLiteSegmentList>),

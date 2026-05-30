@@ -19,9 +19,9 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::counters::classes::{Counter, CounterSource, DigitOp, DigitOptKey};
 use crate::dict::counters::find_counter::{get_counter_readings, get_digit};
 use crate::dict::counters::special::special_counters;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::{CounterArgs, CounterClass, SuffixKind};
-use crate::dict::kanji_text_dao::KanjiText;
+use crate::dict::dao::KanjiText;
 use crate::numbers::num_class::{DIGIT_TO_KANA, POWER_TO_KANA};
 use std::collections::HashMap;
 

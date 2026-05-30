@@ -32,7 +32,7 @@ use crate::dict::kani::{
 };
 use crate::dict::kani::SplitPart;
 use crate::dict::kani::KaniSimpleTextDispatchEnum;
-use crate::dict::word_type::WordType;
+use crate::dict::word_info::WordType;
 
 /// Selector for the active `*split-map*` binding. Diverges from
 /// upstream "any hashtable" value space — closed to the two tables

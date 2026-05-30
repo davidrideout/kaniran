@@ -18,14 +18,14 @@
 
 use crate::characters::normalize::simplify_ngrams;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::conj_data_from::conj_data_from;
+use crate::dict::conj_data::conj_data_from;
 use crate::dict::kani::{KaniHintKind, KaniMatchPart, KaniWordDispatchEnum};
 use crate::dict::counters::dispatchers::seq as word_seq;
 use crate::dict::split::hint_map::{
     hint_map_dispatch, hint_simplify_map, HintDispatch, HINT_CHAR_MAP,
 };
-use crate::dict::word_conj_data::word_conj_data;
-use crate::dict::word_info_class::WordInfoSeq;
+use crate::dict::word_info::word_conj_data;
+use crate::dict::word_info::WordInfoSeq;
 
 // =========================================================================
 // process-hints (dict-split.lisp:826)
@@ -203,12 +203,12 @@ pub fn translate_hints(
 ///   upstream dynamic `*connection*` per
 ///   [`crate::conn::kani_context`]. The ctx also carries the
 ///   `*disable-hints*` binding (see
-///   [`crate::dict::get_kana::get_kana`] for the rationale);
+///   [`crate::dict::best_text::get_kana`] for the rationale);
 ///   callers invoke `get_hint` after rebinding via
 ///   [`crate::conn::kani_context::KaniranContext::with_disable_hints`]`(true)`.
 /// - returning `Result<Option<String>, sqlx::Error>` — hint-fn bodies
-///   reach the database (via [`crate::dict::true_kana::true_kana`] /
-///   [`crate::dict::true_kanji::true_kanji`] /
+///   reach the database (via [`crate::dict::best_text::true_kana`] /
+///   [`crate::dict::best_text::true_kanji`] /
 ///   [`crate::kanji::matching::match_readings`]), so errors propagate;
 /// - the hint-fn invocation itself dispatches through
 ///   [`hint_map_dispatch`] (the static table replacing the upstream
@@ -363,7 +363,7 @@ pub fn easy_hints_seqs() -> &'static [i32] {
 /// - returning `Vec<CheckEasyHintsFailure>` rather than a raw list of
 ///   3-element sub-lists. Each failure carries the unaltered
 ///   `KanaText` row plus the computed `kanji` (which can be `None`
-///   when [`crate::dict::true_kanji::true_kanji`] returned `:null`)
+///   when [`crate::dict::best_text::true_kanji`] returned `:null`)
 ///   and `kana` strings.
 ///
 /// The upstream `(let ((*disable-hints* t)))` binding wraps the
@@ -372,13 +372,13 @@ pub fn easy_hints_seqs() -> &'static [i32] {
 /// Rust port mirrors that by rebinding the ctx once before the
 /// loop via [`KaniranContext::with_disable_hints`]`(true)` and
 /// passing `&ctx2` into all three calls (per the
-/// [`crate::dict::get_kana::get_kana`] divergence rationale:
+/// [`crate::dict::best_text::get_kana`] divergence rationale:
 /// ctx-slot beats task-local because the rebind survives rayon /
 /// `tokio::spawn` boundaries the parallel pipeline introduces).
 #[cfg(test)]
 #[derive(Debug, Clone)]
 pub struct CheckEasyHintsFailure {
-    pub reading: crate::dict::kana_text_dao::KanaText,
+    pub reading: crate::dict::dao::KanaText,
     pub kanji: Option<String>,
     /// `None` mirrors upstream's `(text nil)` no-kana-row case
     /// (`get-kana` raises CL condition; Rust port surfaces None).
@@ -391,9 +391,9 @@ pub struct CheckEasyHintsFailure {
 pub async fn check_easy_hints(
     ctx: &KaniranContext,
 ) -> Result<Vec<CheckEasyHintsFailure>, sqlx::Error> {
-    use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::true_kana::true_kana;
-    use crate::dict::true_kanji::true_kanji;
+    use crate::dict::dao::KanaText;
+    use crate::dict::best_text::true_kana;
+    use crate::dict::best_text::true_kanji;
     use crate::kanji::matching::match_readings;
     // dict-split.lisp:908 — (select-dao 'kana-text (:in 'seq (:set *easy-hints-seqs*)))
     // Upstream uses a single `:in (:set ...)` clause. Postgres parameterized arrays

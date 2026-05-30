@@ -85,9 +85,9 @@ use kaniran_core::core::methods::CcItem;
 use kaniran_core::core::methods::CcTree;
 use kaniran_core::core::methods::KunreiSiki;
 use kaniran_core::core::methods::TraditionalHepburn;
-use kaniran_core::dict::compound_text_class::{CompoundText, ScoreMod};
-use kaniran_core::dict::conj_data_struct::ConjData;
-use kaniran_core::dict::conj_prop_dao::ConjProp;
+use kaniran_core::dict::text_classes::{CompoundText, ScoreMod};
+use kaniran_core::dict::conj_data::ConjData;
+use kaniran_core::dict::dao::ConjProp;
 use kaniran_core::dict::counters::subclasses::CounterAge;
 use kaniran_core::dict::counters::subclasses::CounterDaysKun;
 use kaniran_core::dict::counters::subclasses::CounterDaysOn;
@@ -100,19 +100,19 @@ use kaniran_core::dict::counters::classes::{
 };
 use kaniran_core::dict::counters::subclasses::CounterTsu;
 use kaniran_core::dict::counters::subclasses::CounterWari;
-use kaniran_core::dict::entry_dao::Entry;
-use kaniran_core::dict::kana_text_dao::KanaText;
+use kaniran_core::dict::dao::Entry;
+use kaniran_core::dict::dao::KanaText;
 use kaniran_core::dict::kani::SuffixKind;
 use kaniran_core::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use kaniran_core::dict::kanji_text_dao::KanjiText;
+use kaniran_core::dict::dao::KanjiText;
 use kaniran_core::dict::counters::subclasses::NumberText;
-use kaniran_core::dict::proxy_text_class::ProxyText;
-use kaniran_core::dict::segment_list_struct::SegmentList;
-use kaniran_core::dict::segment_struct::{KaniScoreInfo, KaniSplitInfo, Segment};
-use kaniran_core::dict::simple_text_class::{SimpleText, WordConjugations};
+use kaniran_core::dict::text_classes::ProxyText;
+use kaniran_core::dict::segment::SegmentList;
+use kaniran_core::dict::segment::{KaniScoreInfo, KaniSplitInfo, Segment};
+use kaniran_core::dict::text_classes::{SimpleText, WordConjugations};
 use kaniran_core::dict::grammar::synergy::Synergy;
-use kaniran_core::dict::top_array_item_struct::PathElement;
-use kaniran_core::dict::word_info_class::{WordInfo, WordInfoKana, WordInfoSeq, WordInfoType};
+use kaniran_core::dict::segment::PathElement;
+use kaniran_core::dict::word_info::{WordInfo, WordInfoKana, WordInfoSeq, WordInfoType};
 
 
 // --- captured-row envelope --------------------------------------------------

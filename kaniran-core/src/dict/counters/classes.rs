@@ -70,9 +70,9 @@
 
 
 use crate::dict::counters::subclasses::{CounterAge, CounterDaysKun, CounterDaysOn, CounterHalfhour, CounterHifumi, CounterMonths, CounterPeople, CounterTsu, CounterWari, NumberText};
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::{CounterArgs, CounterClass, SuffixKind};
-use crate::dict::kanji_text_dao::KanjiText;
+use crate::dict::dao::KanjiText;
 use crate::dict::split::hint_map::KANA_HINT_SPACE;
 use crate::numbers::kana_form::{NumberToKanaOutput, number_to_kana};
 use crate::numbers::kanji_form::{NotANumber, number_to_kanji, parse_number};
@@ -381,7 +381,7 @@ impl Counter {
     /// `get_kana` (if any returns `Some`); on `None` it falls back
     /// to [`CounterText::primary_get_kana_for`]. Per CONVENTIONS §4.7,
     /// each family handles its own `:around` internally; the
-    /// top-level [`crate::dict::get_kana::get_kana`] dispatcher
+    /// top-level [`crate::dict::best_text::get_kana`] dispatcher
     /// just delegates here for the counter arm.
     pub fn get_kana(&self) -> String {
         let primary = match self {

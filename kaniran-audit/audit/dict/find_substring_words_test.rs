@@ -40,10 +40,10 @@ use std::collections::HashMap;
 use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::find_substring_words::find_substring_words;
+use kaniran_core::dict::find_word::find_substring_words;
 use kaniran_core::dict::find_word::FindWordRows;
-use kaniran_core::dict::kana_text_dao::KanaText;
-use kaniran_core::dict::kanji_text_dao::KanjiText;
+use kaniran_core::dict::dao::KanaText;
+use kaniran_core::dict::dao::KanjiText;
 
 use common::{single_result, CapturedRow};
 

@@ -163,11 +163,11 @@ mod tests {
     //! specification.
 
     use super::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -409,13 +409,13 @@ pub fn segfilter_aux_verb(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::conj_prop_dao::ConjProp;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::ConjProp;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -695,11 +695,11 @@ pub fn segfilter_tsu_iru(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -829,12 +829,12 @@ pub fn segfilter_n(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::compound_text_class::{CompoundText, ScoreMod};
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::text_classes::{CompoundText, ScoreMod};
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn kana(seq: i32) -> KanaText {
         KanaText {
@@ -1077,11 +1077,11 @@ pub fn segfilter_wokarasu(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -1286,12 +1286,12 @@ pub fn segfilter_badend(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::compound_text_class::{CompoundText, ScoreMod};
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::text_classes::{CompoundText, ScoreMod};
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::Segment;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::Segment;
+    use crate::dict::text_classes::SimpleText;
 
     fn kana(text: &str, seq: i32) -> KanaText {
         KanaText {
@@ -1466,13 +1466,13 @@ pub fn segfilter_sukiyoki(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::conj_prop_dao::ConjProp;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::ConjProp;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn kana(text: &str, seq: i32) -> KanaText {
         KanaText {
@@ -1694,12 +1694,12 @@ pub fn segfilter_roku(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::compound_text_class::{CompoundText, ScoreMod};
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::text_classes::{CompoundText, ScoreMod};
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::Segment;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::Segment;
+    use crate::dict::text_classes::SimpleText;
 
     fn kana(text: &str, seq: i32) -> KanaText {
         KanaText {
@@ -1880,12 +1880,12 @@ pub fn segfilter_sae(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::compound_text_class::{CompoundText, ScoreMod};
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::text_classes::{CompoundText, ScoreMod};
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn kana(text: &str, seq: i32) -> KanaText {
         KanaText {
@@ -2060,12 +2060,12 @@ pub fn segfilter_janai(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::compound_text_class::{CompoundText, ScoreMod};
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::text_classes::{CompoundText, ScoreMod};
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn kana(text: &str, seq: i32) -> KanaText {
         KanaText {
@@ -2290,11 +2290,11 @@ pub fn segfilter_nohayamete(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -2462,11 +2462,11 @@ pub fn segfilter_toomou(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -2600,11 +2600,11 @@ pub fn segfilter_totte(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -2739,11 +2739,11 @@ pub fn segfilter_dashi(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -2966,11 +2966,11 @@ pub fn segfilter_dekiru(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -3189,11 +3189,11 @@ pub fn segfilter_honorific(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -3413,11 +3413,11 @@ pub fn segfilter_mononi(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -3559,14 +3559,14 @@ pub fn apply_segfilters(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::conj_prop_dao::ConjProp;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::ConjProp;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniLiteSegment;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {

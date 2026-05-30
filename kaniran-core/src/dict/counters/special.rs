@@ -11,9 +11,9 @@
 //! the data is pure compile-time, no DB or runtime input.
 
 use crate::dict::counters::classes::{Common, DigitOp, DigitOp as D, DigitOptKey as K};
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::SuffixKind;
-use crate::dict::kanji_text_dao::KanjiText;
+use crate::dict::dao::KanjiText;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 

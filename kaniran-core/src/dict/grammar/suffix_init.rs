@@ -11,7 +11,7 @@ pub use get_suffix_description_inner::*;
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod _star_suffix_cache_star__inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use std::collections::HashMap;
 
 pub type SuffixCache = HashMap<String, Vec<(String, Option<KanaText>)>>;
@@ -165,8 +165,8 @@ use crate::dict::grammar::find_word::find_word_conj_of;
 use crate::dict::grammar::find_word::WordSeqRows;
 use crate::dict::grammar::find_word::get_kana_form;
 use crate::dict::grammar::find_word::get_kana_forms;
-use crate::dict::kana_text_dao::KanaText;
-use crate::dict::simple_text_class::WordConjugations;
+use crate::dict::dao::KanaText;
+use crate::dict::text_classes::WordConjugations;
 
 #[derive(Default)]
 struct SuffixCacheBuilder {
@@ -460,7 +460,7 @@ use crate::dict::grammar::abbr::abbr_reba;
 use crate::dict::grammar::abbr::abbr_seba;
 use crate::dict::grammar::abbr::abbr_shimasho;
 use crate::dict::grammar::abbr::abbr_teba;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::grammar::suffix_rules::suffix_adv;
 use crate::dict::grammar::suffix_rules::suffix_chau;

@@ -20,11 +20,11 @@
 mod common;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::conj_prop_dao::ConjProp;
-use kaniran_core::dict::conjugation_dao::Conjugation;
-use kaniran_core::dict::filter_props::FilterPropsText;
-use kaniran_core::dict::select_conjs_and_props::select_conjs_and_props;
-use kaniran_core::dict::simple_text_class::WordConjugations;
+use kaniran_core::dict::dao::ConjProp;
+use kaniran_core::dict::dao::Conjugation;
+use kaniran_core::dict::conj_data::FilterPropsText;
+use kaniran_core::dict::conj_data::select_conjs_and_props;
+use kaniran_core::dict::text_classes::WordConjugations;
 
 use common::{single_result, CapturedRow};
 use serde_json::Value;

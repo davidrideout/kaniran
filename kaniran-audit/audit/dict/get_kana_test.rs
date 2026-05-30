@@ -20,7 +20,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-use kaniran_core::dict::get_kana::get_kana;
+use kaniran_core::dict::best_text::get_kana;
 
 use common::{
     describe_word, extract_disable_hints_meta, parse_captured_word, single_result, CapturedRow,

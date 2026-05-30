@@ -29,8 +29,8 @@ use kaniran_core::dict::kani::KaniSimpleTextDispatchEnum;
 use kaniran_core::dict::grammar::find_word::{
     or_as_hiragana, OrAsHiraganaFinder, OrAsHiraganaRows,
 };
-use kaniran_core::dict::proxy_text_class::ProxyText;
-use kaniran_core::dict::simple_text_class::WordConjugations;
+use kaniran_core::dict::text_classes::ProxyText;
+use kaniran_core::dict::text_classes::WordConjugations;
 
 use common::{captured_class, get_string, CapturedKanaText, CapturedKanjiText, CapturedRow};
 

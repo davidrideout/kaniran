@@ -17,9 +17,9 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::kana_text_dao::KanaText;
+use kaniran_core::dict::dao::KanaText;
 use kaniran_core::dict::kani::KaniSimpleTextDispatchEnum;
-use kaniran_core::dict::kanji_text_dao::KanjiText;
+use kaniran_core::dict::dao::KanjiText;
 use kaniran_core::dict::counters::dispatchers::{source, SourceRef};
 
 use common::{

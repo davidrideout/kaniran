@@ -75,12 +75,12 @@ mod common;
 use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::compound_text_class::{CompoundText, ScoreMod};
+use kaniran_core::dict::text_classes::{CompoundText, ScoreMod};
 use kaniran_core::dict::grammar::suffix_lookup::find_word_suffix;
-use kaniran_core::dict::kana_text_dao::KanaText;
+use kaniran_core::dict::dao::KanaText;
 use kaniran_core::dict::kani::KaniWordDispatchEnum;
-use kaniran_core::dict::kanji_text_dao::KanjiText;
-use kaniran_core::dict::proxy_text_class::ProxyText;
+use kaniran_core::dict::dao::KanjiText;
+use kaniran_core::dict::text_classes::ProxyText;
 
 use common::{parse_captured_word, CapturedRow};
 

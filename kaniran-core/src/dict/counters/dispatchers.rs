@@ -6,14 +6,14 @@
 //! kana-text / kanji-text / proxy-text / compound-text arms.
 
 
-use crate::dict::compound_text_class::CompoundText;
+use crate::dict::text_classes::CompoundText;
 use crate::dict::counters::classes::{Common, Counter, CounterSource};
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::kanji_text_dao::KanjiText;
-use crate::dict::proxy_text_class::ProxyText;
-use crate::dict::simple_text_class::WordConjugations;
-use crate::dict::word_info_class::WordInfoSeq;
+use crate::dict::dao::KanjiText;
+use crate::dict::text_classes::ProxyText;
+use crate::dict::text_classes::WordConjugations;
+use crate::dict::word_info::WordInfoSeq;
 use std::borrow::Cow;
 
 // ----- was common.rs -----
@@ -67,12 +67,12 @@ fn simple_common_from_option(v: Option<i32>) -> Common {
 #[cfg(test)]
 mod common_tests {
     use super::*;
-    use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+    use crate::dict::text_classes::{CompoundText, ScoreMod};
     use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText};
-    use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kanji_text_dao::KanjiText;
-    use crate::dict::proxy_text_class::ProxyText;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::KanaText;
+    use crate::dict::dao::KanjiText;
+    use crate::dict::text_classes::ProxyText;
+    use crate::dict::text_classes::SimpleText;
 
     fn kanji_with_common(c: Option<i32>) -> KanjiText {
         KanjiText {
@@ -225,11 +225,11 @@ fn proxy_chain_conjugations(p: &ProxyText) -> Option<WordConjugations> {
 #[cfg(test)]
 mod word_conjugations_tests {
     use super::*;
-    use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+    use crate::dict::text_classes::{CompoundText, ScoreMod};
     use crate::dict::find_word::{find_word, FindWordRows};
-    use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kanji_text_dao::KanjiText;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::KanaText;
+    use crate::dict::dao::KanjiText;
+    use crate::dict::text_classes::SimpleText;
     use crate::conn::kani_context::KaniranContext;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -315,7 +315,7 @@ mod word_conjugations_tests {
 
     #[test]
     fn proxy_recurses_through_source_chain() {
-        use crate::dict::proxy_text_class::ProxyText;
+        use crate::dict::text_classes::ProxyText;
         let leaf =
             KaniSimpleTextDispatchEnum::Kana(kana_with_conj(99, Some(WordConjugations::Root)));
         let inner = ProxyText {
@@ -415,12 +415,12 @@ fn seq_compound(c: &CompoundText) -> Vec<Option<WordInfoSeq>> {
 #[cfg(test)]
 mod seq_tests {
     use super::*;
-    use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+    use crate::dict::text_classes::{CompoundText, ScoreMod};
     use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText};
-    use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kanji_text_dao::KanjiText;
-    use crate::dict::proxy_text_class::ProxyText;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::KanaText;
+    use crate::dict::dao::KanjiText;
+    use crate::dict::text_classes::ProxyText;
+    use crate::dict::text_classes::SimpleText;
 
     fn kanji(seq: i32) -> KanjiText {
         KanjiText {
@@ -599,11 +599,11 @@ pub fn source(obj: &KaniWordDispatchEnum) -> Option<SourceRef<'_>> {
 mod source_tests {
     use super::*;
     use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText};
-    use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kanji_text_dao::KanjiText;
+    use crate::dict::dao::KanaText;
+    use crate::dict::dao::KanjiText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::proxy_text_class::ProxyText;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::ProxyText;
+    use crate::dict::text_classes::SimpleText;
 
     fn kanji(seq: i32) -> KanjiText {
         KanjiText {

@@ -10,13 +10,13 @@ use super::rules::{
 use crate::characters::normalize::{normalize as char_normalize, NormalizationContext};
 use crate::characters::text_utils::{basic_split, SegmentKind};
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::dict_segment::dict_segment;
-use crate::dict::map_word_info_kana::map_word_info_kana;
+use crate::dict::segment::dict_segment;
+use crate::dict::best_text::map_word_info_kana;
 use crate::dict::split::hint::process_hints;
-use crate::dict::simple_segment::simple_segment;
+use crate::dict::segment::simple_segment;
 use crate::dict::split::hint::strip_hints;
-use crate::dict::word_info_class::{WordInfo, WordInfoKana};
-use crate::dict::word_info_str::word_info_str;
+use crate::dict::word_info::{WordInfo, WordInfoKana};
+use crate::dict::best_text::word_info_str;
 
 /// `romanize-list` (`romanize.lisp:205-208`). Expand iteration markers,
 /// fold modifiers into a tree, romanize it, then simplify per the
@@ -215,7 +215,7 @@ mod tests {
     };
     use crate::dict::split::hint_map::KANA_HINT_MOD;
     use crate::dict::split::hint_map::KANA_HINT_SPACE;
-    use crate::dict::word_info_class::WordInfoType;
+    use crate::dict::word_info::WordInfoType;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()

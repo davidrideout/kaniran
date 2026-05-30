@@ -44,8 +44,8 @@
 //! from the `simple-text :around` method on `get-kana` under a ctx
 //! rebound via
 //! [`crate::conn::kani_context::KaniranContext::with_disable_hints`]`(true)`.
-//! Hint bodies in turn call [`crate::dict::get_kana::get_kana`] and
-//! [`crate::dict::true_kana::true_kana`]; the inner `:around` reads
+//! Hint bodies in turn call [`crate::dict::best_text::get_kana`] and
+//! [`crate::dict::best_text::true_kana`]; the inner `:around` reads
 //! `ctx.disable_hints = true` and skips the hint branch (matches the
 //! upstream `*disable-hints*` rebind at `dict.lisp:82`).
 

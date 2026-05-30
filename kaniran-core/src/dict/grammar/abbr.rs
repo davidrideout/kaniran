@@ -22,10 +22,10 @@ mod def_abbr_suffix_macro_inner {
 use crate::characters::char_classes::CharClass;
 use crate::characters::text_utils::destem;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::get_kana::get_kana;
+use crate::dict::best_text::get_kana;
 use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::proxy_text_class::ProxyText;
-use crate::dict::simple_text_class::SimpleText;
+use crate::dict::text_classes::ProxyText;
+use crate::dict::text_classes::SimpleText;
 
 pub async fn def_abbr_suffix_body(
     ctx: &KaniranContext,
@@ -114,7 +114,7 @@ mod abbr_nee_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
 use crate::dict::grammar::find_word::find_word_with_conj_prop;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_nee(
@@ -270,7 +270,7 @@ use crate::dict::grammar::abbr::def_abbr_suffix_body;
 use crate::dict::grammar::find_word::find_word_conj_of;
 use crate::dict::grammar::find_word::WordSeqRows;
 use crate::dict::grammar::find_word::find_word_with_conj_prop;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_nx(
@@ -421,7 +421,7 @@ mod abbr_n_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
 use crate::dict::grammar::find_word::find_word_with_conj_prop;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_n(
@@ -551,8 +551,8 @@ mod tests {
 mod abbr_nakereba_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::find_word::find_word_full;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_nakereba(
@@ -652,8 +652,8 @@ mod tests {
 mod abbr_shimasho_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::find_word::find_word_full;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_shimasho(
@@ -724,8 +724,8 @@ mod tests {
 mod abbr_dewanai_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::find_word::find_word_full;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_dewanai(
@@ -767,8 +767,8 @@ mod tests {
 mod abbr_teba_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::find_word::find_word_full;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_teba(
@@ -838,8 +838,8 @@ mod tests {
 mod abbr_reba_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::find_word::find_word_full;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_reba(
@@ -891,8 +891,8 @@ mod tests {
 mod abbr_keba_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::find_word::find_word_full;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_keba(
@@ -944,8 +944,8 @@ mod tests {
 mod abbr_geba_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::find_word::find_word_full;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_geba(
@@ -997,8 +997,8 @@ mod tests {
 mod abbr_neba_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::find_word::find_word_full;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_neba(
@@ -1050,8 +1050,8 @@ mod tests {
 mod abbr_beba_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::find_word::find_word_full;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_beba(
@@ -1129,8 +1129,8 @@ mod tests {
 mod abbr_meba_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::find_word::find_word_full;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_meba(
@@ -1182,8 +1182,8 @@ mod tests {
 mod abbr_seba_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::find_word::find_word_full;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_seba(
@@ -1235,8 +1235,8 @@ mod tests {
 mod abbr_ii_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::abbr::def_abbr_suffix_body;
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::find_word::find_word_full;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn abbr_ii(

@@ -29,12 +29,12 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use kaniran_core::dict::conj_data_struct::ConjData;
-use kaniran_core::dict::get_seg_initial::get_seg_initial;
+use kaniran_core::dict::conj_data::ConjData;
+use kaniran_core::dict::segment::get_seg_initial;
 use kaniran_core::dict::kani::KaniLiteSegmentList;
 use kaniran_core::dict::kani::KaniWordDispatchEnum;
-use kaniran_core::dict::segment_list_struct::SegmentList;
-use kaniran_core::dict::segment_struct::{
+use kaniran_core::dict::segment::SegmentList;
+use kaniran_core::dict::segment::{
     KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment,
 };
 

@@ -13,7 +13,7 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::find_sticky_positions::find_sticky_positions;
+use kaniran_core::dict::segment::find_sticky_positions;
 
 use common::{single_result, CapturedRow};
 

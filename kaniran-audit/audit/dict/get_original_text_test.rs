@@ -26,12 +26,12 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::conj_data_struct::ConjData;
-use kaniran_core::dict::conj_prop_dao::ConjProp;
-use kaniran_core::dict::get_original_text::get_original_text;
-use kaniran_core::dict::kana_text_dao::KanaText;
+use kaniran_core::dict::conj_data::ConjData;
+use kaniran_core::dict::dao::ConjProp;
+use kaniran_core::dict::best_text::get_original_text;
+use kaniran_core::dict::dao::KanaText;
 use kaniran_core::dict::kani::KaniSimpleTextDispatchEnum;
-use kaniran_core::dict::kanji_text_dao::KanjiText;
+use kaniran_core::dict::dao::KanjiText;
 
 use common::{
     captured_class, parse_captured_simple_text, CapturedKanaText, CapturedKanjiText, CapturedRow,

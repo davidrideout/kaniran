@@ -21,7 +21,7 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::query_parents_kana::query_parents_kana;
+use kaniran_core::dict::best_text::query_parents_kana;
 
 use common::CapturedRow;
 

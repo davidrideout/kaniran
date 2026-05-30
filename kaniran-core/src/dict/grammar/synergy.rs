@@ -93,8 +93,8 @@ pub static SYNERGY_LIST: &[SynergyFn] = &[
 
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod make_segment_list_from_inner {
-use crate::dict::segment_list_struct::SegmentList;
-use crate::dict::segment_struct::Segment;
+use crate::dict::segment::SegmentList;
+use crate::dict::segment::Segment;
 
 pub fn make_segment_list_from(old_segment_list: &SegmentList, segments: Vec<Segment>) -> SegmentList {
     // Lisp `copy-segment-list` is a shallow defstruct copy that then
@@ -113,9 +113,9 @@ pub fn make_segment_list_from(old_segment_list: &SegmentList, segments: Vec<Segm
 
 #[cfg(test)]
 mod tests {
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
     use super::*;
 
     fn dummy_word() -> KaniWordDispatchEnum {
@@ -266,12 +266,12 @@ pub fn synergy_noun_particle(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -420,12 +420,12 @@ pub fn synergy_noun_da(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -560,12 +560,12 @@ pub fn synergy_no_da(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -716,12 +716,12 @@ pub fn synergy_sou_nanda(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -855,12 +855,12 @@ pub fn synergy_no_adjectives(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -1017,12 +1017,12 @@ pub fn synergy_na_adjectives(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -1159,12 +1159,12 @@ pub fn synergy_to_adverbs(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -1373,12 +1373,12 @@ pub fn synergy_suffix_chu(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -1565,12 +1565,12 @@ pub fn synergy_suffix_tachi(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -1768,12 +1768,12 @@ pub fn synergy_suffix_buri(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -1943,12 +1943,12 @@ pub fn synergy_suffix_sei(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -2120,12 +2120,12 @@ pub fn synergy_o_prefix(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -2273,12 +2273,12 @@ pub fn synergy_kanji_prefix(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -2433,13 +2433,13 @@ pub fn synergy_shicha_ikenai(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::compound_text_class::{CompoundText, ScoreMod};
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::text_classes::{CompoundText, ScoreMod};
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn kana(text: &str, seq: i32) -> KanaText {
         KanaText {
@@ -2593,13 +2593,13 @@ pub fn synergy_shika_negative(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::conj_prop_dao::ConjProp;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::ConjProp;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -2838,12 +2838,12 @@ pub fn synergy_no_toori(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -2986,12 +2986,12 @@ pub fn synergy_oki(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -3134,12 +3134,12 @@ pub fn get_synergies(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::conj_data_struct::ConjData;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::conj_data::ConjData;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::segment::SegmentList;
+    use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::text_classes::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {

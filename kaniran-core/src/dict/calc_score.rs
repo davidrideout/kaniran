@@ -1,159 +1,13 @@
-//! Port of `ichiran/dict:calc-score` (`dict.lisp:775`).
-//!
-//! Computes the segmenter's word-candidate score and the
-//! [`KaniSegmentInfo`] property bag that the downstream scoring loop
-//! (penalties, synergies, kanji-break) reads. Three dispatch arms:
-//!
-//! 1. **compound-text** — recurse on the compound's `score-base`,
-//!    overwriting `:conj` with the compound's own `word-conj-data`.
-//!    The recursive call gets `:use-length = mora-length(text)` /
-//!    `:score-mod = (score-mod compound)`.
-//! 2. **counter-text** — set the `ctr-mode` flag and fall through to
-//!    the simple-text body, which special-cases `posi=("ctr")` and
-//!    skips the split branch.
-//! 3. **simple-text** (kanji-text / kana-text / proxy-text) — full
-//!    body: DB lookups for `entry`, `prefer-kana`, `get-non-arch-posi`,
-//!    `is-arch`, the conj-of-data block, primary-p computation,
-//!    common-bonus / long-p / kanji-p / katakana-p scoring, length
-//!    multipliers, the optional split-branch recursion, and the final
-//!    kanji-break-penalty application.
-//!
-//! ## Divergences from Lisp
-//!
-//! - **Ctx-injection** per CONVENTIONS §4.8. The Lisp lambda list is
-//!   `(reading &key final use-length (score-mod 0) kanji-break)`; the
-//!   Rust signature prepends `ctx: &KaniranContext` for the SQL
-//!   dependencies (`SELECT … entry`, `sense_prop`, `sense`,
-//!   `get-non-arch-posi`, `get-original-text`, `get-split`,
-//!   `kanji-break-penalty`'s suru-suffix recursion). `audit-signatures`
-//!   reports the Rust arity as `7 ≠ Lisp 5 … (ctx-injected; +1
-//!   absorbed; +1 for the inlined `text` argument — see below)`.
-//! - **`async fn` + `sqlx::Error` Result** for the same reason.
-//! - **`&key` → positional** (CONVENTIONS §4.4). The four upstream
-//!   keywords are passed positionally:
-//!   - `final` → `final_: bool` (rename only — `final` is a reserved
-//!     identifier in Rust).
-//!   - `use-length` → `use_length: Option<i32>` (`(or null (integer 0
-//!     10000))` upstream, where `nil` means "no use-length applied").
-//!   - `score-mod` → `score_mod: Option<&ScoreMod>` (`None`
-//!     short-circuits the `apply-score-mod` contribution to zero,
-//!     matching upstream's `(score-mod 0)` default semantics — the
-//!     integer-method `0 × prop-score × len = 0` and the list-method
-//!     `reduce '+ nil = 0` both yield the same effect).
-//!   - `kanji-break` → `kanji_break: &[usize]` (empty slice → upstream
-//!     `nil` → no penalty applied).
-//! - **Return type: `(i32, Option<KaniSegmentInfo>)`** mirroring the
-//!   Lisp `(values score info)` shape. The early-return-0 branch at
-//!   `dict.lisp:858` returns just `0` (no second value); the Rust
-//!   port maps that to `(0, None)`. Every other branch returns
-//!   `(score, Some(info))` — including the compound branch when the
-//!   inner recursive call hits the skip-path: upstream's
-//!   `(setf (getf info :conj) X)` on a nil `info` binding is CL's
-//!   setf-getf-on-nil idiom, which synthesizes a one-key plist
-//!   `(:conj X)`. The Rust port mirrors that by unwrapping the inner
-//!   `None` into a zero/empty `KaniSegmentInfo` before overwriting
-//!   `conj`, so the compound never propagates the inner's `None`.
-//!
-//!   **Structural divergence on the compound synthesis path.** Upstream
-//!   produces a 2-element plist `(:CONJ X)` — every other key is
-//!   structurally absent and `(getf info :KEY) = nil` for those reads.
-//!   The Rust synthesis materialises all six fields with zero/empty
-//!   values (empty `Vec`, `None`, `KaniScoreInfo { 0, [], 0,
-//!   KaniSplitInfo::None }`, `(false, false, false, false)`). This is
-//!   provably inert under upstream's actual usage pattern — see the
-//!   per-key audit below — so the type-level divergence carries no
-//!   behavioural risk.
-//!
-//!   Per-key consumer audit (every `(getf (segment-info …) :KEY)` site
-//!   in the upstream codebase):
-//!   - **`:score-info`** is set at `dict.lisp:979` and **never read**
-//!     anywhere. It's a debug/introspection slot — every quantity
-//!     inside it (`prop-score`, `kanji-break`, `use-length-bonus`,
-//!     `split-info`) already participates in the `score` value itself
-//!     through the arithmetic that builds it. The synthesis stores
-//!     `KaniScoreInfo { 0, [], 0, KaniSplitInfo::None }` and no
-//!     consumer ever observes those zeros.
-//!   - **`:kpcl`** has three readers in `dict-grammar.lisp`. Two
-//!     (`filter-is-noun` at L749, `filter-is-pos` macro at L759) call
-//!     `(destructuring-bind (k p c l) … )` which **would error** on
-//!     `nil`. The third (`filter-short-kana` at L993) calls
-//!     `(car …)` which tolerates nil. The destructure-bind sites are
-//!     unreachable for partial-info segments because of the cull
-//!     invariant below; the Rust `(false, false, false, false)`
-//!     default is what the destructure would yield if it reached this
-//!     case, matching the soft-predicate semantics every downstream
-//!     test applies (`(or l k (and p c))` → `false`).
-//!   - **`:posi`** / **`:seq-set`** / **`:conj`** / **`:common`** are
-//!     read by soft consumers — `(intersection …)`, `(member …)`,
-//!     `(some …)`, and `cull-segments`' `compare-common` sort key.
-//!     For all of these, empty `Vec` and `Option::None` produce the
-//!     same observable result as Lisp `nil`.
-//!
-//!   **Cull invariant** (`dict.lisp:1125`):
-//!
-//!   ```lisp
-//!   if (>= (segment-score segment) *score-cutoff*)   ; *score-cutoff* = 5
-//!      collect segment
-//!   ```
-//!
-//!   Segments scoring below 5 are dropped before `cull-segments` /
-//!   `find-synergies` / `find-penalties` / `filter-is-noun` /
-//!   `filter-is-pos` ever see them. The compound-skipword path
-//!   produces `(0, partial-info)` by construction — score is the
-//!   inner skip-path's `0`, optionally adjusted by
-//!   `kanji-break-penalty` which can only lower it. The segment is
-//!   dead-on-arrival in every downstream pipeline that would care
-//!   about the partial plist's missing keys. Upstream relies on this
-//!   to get away with the laziness; the Rust port inherits the
-//!   guarantee as long as the cull step is faithfully ported.
-//!
-//!   **One genuine edge case** — `dict-split.lisp:805` (`get-segsplit`):
-//!
-//!   ```lisp
-//!   (segment-info new-seg) (nth-value 1 (calc-score (primary word)))
-//!   (getf (segment-info new-seg) :conj) (word-conj-data word)
-//!   ```
-//!
-//!   `new-seg`'s score is `(+ original-score split-score)`, which
-//!   survives the score-cutoff filter, AND its info can be a partial
-//!   plist if `(primary word)` is itself a skipword. The cull
-//!   invariant doesn't protect this path. Whether it ever fires
-//!   depends on whether any registered `def-simple-split` rule has a
-//!   skipword as its primary slot — not currently verified. **When
-//!   `get-segsplit` is ported**, audit `*segsplit-map*` rules: if no
-//!   rule produces a skipword primary, the inert-divergence argument
-//!   stands; if one does, the partial-info synthesis needs to be
-//!   reconsidered (likely by lifting `score_info` / `kpcl` into
-//!   `Option`s on `KaniSegmentInfo` so the type system forces the
-//!   destructure consumer to handle absence explicitly).
-//! - **`KaniSegmentInfo` sidecar** (CONVENTIONS §4.3) is the typed
-//!   image of the upstream `:posi :seq-set :conj :common :score-info
-//!   :kpcl` plist. See [`crate::dict::segment_struct::KaniSegmentInfo`].
-//! - **`KaniSplitInfo` sidecar** mirrors the four shapes that
-//!   `split-info` can hold in the upstream code: `nil` (no split, or
-//!   `:pscore` branch), integer (`:score` branch), or
-//!   `(cons score-mod-split part-scores)` (third branch).
-//! - **Numeric width.** Internal arithmetic stays in `i32` to match
-//!   the upstream `(declare (type (integer 0 1000000) score prop-score
-//!   use-length-bonus))` declarations. The two crossings into
-//!   `i64`-typed helpers ([`apply_score_mod`], [`length_multiplier_coeff`])
-//!   widen on the way in and narrow on the way out — observed values
-//!   in fixture replay (`calc_score_2026_05_11`) stay well below
-//!   `i32::MAX` so the `as i32` truncation never bites in practice.
-//! - **`text` argument to `kanji_break_penalty` in the compound
-//!   branch** uses `text(score-base(reading))` per upstream
-//!   `(text (car args))` at `dict.lisp:788`, NOT the compound's text.
-//!   This is the text of the underlying scored word, used for the
-//!   `(alexandria:starts-with #\す text)` check in
-//!   [`kanji_break_penalty`].
-//! - **`get-original-text` arm widening.** The conj-of-data block at
-//!   `dict.lisp:859-870` only fires when `conj-data` is non-empty. For
-//!   counter-text `(word-conj-data counter-text) = nil` so the block
-//!   skips entirely; for compound-text the function returned early on
-//!   the typecase. Thus `reading` is always simple-text inside the
-//!   block, and the Rust port narrows to
-//!   [`KaniSimpleTextDispatchEnum`] there by cloning the variant.
+//! Port of the dict.lisp scoring layer — calc-score (the single
+//! large defun from dict.lisp:775-985) plus gen-score and
+//! apply-score-mod.
 
+pub use calc_score_inner::*;
+pub use gen_score_inner::*;
+pub use apply_score_mod_inner::*;
+
+#[allow(clippy::module_inception, dead_code, unused_imports)]
+mod calc_score_inner {
 use std::borrow::Cow;
 
 use crate::characters::char_classes::CharClass;
@@ -162,39 +16,39 @@ use crate::characters::text_utils::mora_length;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::errata::COPULAE;
 use crate::dict::errata::FINAL_PRT;
-use crate::dict::_star_length_coeff_sequences_star_::KaniLengthClass;
+use crate::dict::segment::KaniLengthClass;
 use crate::dict::errata::NON_FINAL_PRT;
 use crate::dict::errata::semi_final_prt;
 use crate::dict::errata::SKIP_WORDS;
 use crate::dict::errata::WEAK_CONJ_FORMS;
-use crate::dict::apply_score_mod::apply_score_mod;
+use crate::dict::calc_score::apply_score_mod;
 use crate::dict::counters::dispatchers::common as common_fn;
-use crate::dict::compare_common::compare_common;
-use crate::dict::compound_text_class::ScoreMod;
-use crate::dict::conj_data_struct::ConjData;
+use crate::dict::segment::compare_common;
+use crate::dict::text_classes::ScoreMod;
+use crate::dict::conj_data::ConjData;
 use crate::dict::counters::classes::Common;
-use crate::dict::entry_dao::Entry;
-use crate::dict::get_non_arch_posi::get_non_arch_posi;
-use crate::dict::get_original_text::get_original_text;
+use crate::dict::dao::Entry;
+use crate::dict::find_word::get_non_arch_posi;
+use crate::dict::best_text::get_original_text;
 use crate::dict::split::split::get_split;
-use crate::dict::is_arch::is_arch as is_arch_fn;
+use crate::dict::find_word::is_arch as is_arch_fn;
 use crate::dict::kani::SplitPart;
 use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::kanji_break_penalty::kanji_break_penalty;
-use crate::dict::length_multiplier_coeff::length_multiplier_coeff;
+use crate::dict::segment::kanji_break_penalty;
+use crate::dict::segment::length_multiplier_coeff;
 use crate::dict::counters::find_counter::nokanji;
 use crate::dict::counters::find_counter::ord as ord_fn;
-use crate::dict::proxy_text_class::ProxyText;
-use crate::dict::score_base::score_base;
-use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo};
-use crate::dict::simple_text_class::{SimpleText, WordConjugations};
+use crate::dict::text_classes::ProxyText;
+use crate::dict::word_info::score_base;
+use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo};
+use crate::dict::text_classes::{SimpleText, WordConjugations};
 use crate::dict::errata::skip_by_conj_data;
 use crate::dict::errata::test_conj_prop;
 use crate::dict::counters::dispatchers::text as text_fn;
-use crate::dict::true_text::true_text;
-use crate::dict::word_conj_data::word_conj_data;
+use crate::dict::best_text::true_text;
+use crate::dict::word_info::word_conj_data;
 use crate::dict::counters::dispatchers::word_conjugations;
-use crate::dict::word_type::{word_type, WordType};
+use crate::dict::word_info::{word_type, WordType};
 
 pub async fn calc_score(
     ctx: &KaniranContext,
@@ -339,7 +193,7 @@ pub async fn calc_score(
     // silently dropping a nil-prop entry (which would also drop the
     // matching `conj-of` value out of sync).
     let conj_of: Vec<i32> = conj_data.iter().filter_map(|cd| cd.from).collect();
-    let conj_props: Vec<&crate::dict::conj_prop_dao::ConjProp> = conj_data
+    let conj_props: Vec<&crate::dict::dao::ConjProp> = conj_data
         .iter()
         .map(|cd| {
             cd.prop
@@ -848,7 +702,7 @@ fn ceiling_div(a: i32, b: i32) -> i32 {
 mod tests {
     use super::*;
     use crate::dict::find_word::{find_word, FindWordRows};
-    use crate::dict::segment_struct::KaniSplitInfo;
+    use crate::dict::segment::KaniSplitInfo;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -871,7 +725,7 @@ mod tests {
         seq: i32,
         text: &str,
     ) -> KaniWordDispatchEnum {
-        let rows: Vec<crate::dict::kana_text_dao::KanaText> = sqlx::query_as(
+        let rows: Vec<crate::dict::dao::KanaText> = sqlx::query_as(
             "SELECT * FROM kana_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
         )
         .bind(seq)
@@ -1156,9 +1010,9 @@ mod tests {
     //       arm at line 167 returns `(0, None)`, so both tests fail
     //       on `info.expect(...)`.
 
-    use crate::dict::compound_text_class::CompoundText;
-    use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::CompoundText;
+    use crate::dict::dao::KanaText;
+    use crate::dict::text_classes::SimpleText;
 
     /// Row 279 of chunk_b calc_score parquet. Compound `れちゃう`,
     /// `score_base = null` (falls back to primary), `score_mod = 5`.
@@ -1359,4 +1213,458 @@ mod tests {
         assert!(matches!(info.score_info.split_info, KaniSplitInfo::None));
         assert_eq!(info.kpcl, (false, false, false, false));
     }
+}
+}
+
+#[allow(clippy::module_inception, dead_code, unused_imports)]
+mod gen_score_inner {
+use crate::conn::kani_context::KaniranContext;
+use crate::dict::calc_score::calc_score;
+use crate::dict::segment::Segment;
+
+pub async fn gen_score<'a>(
+    ctx: &KaniranContext,
+    segment: &'a mut Segment,
+    final_: bool,
+    kanji_break: &[usize],
+) -> Result<&'a mut Segment, sqlx::Error> {
+    // dict.lisp:986-987 — (setf (values (segment-score segment) (segment-info segment))
+    //                       (calc-score (segment-word segment) :final final :kanji-break kanji-break))
+    let (score, info) = calc_score(
+        ctx,
+        &segment.word,
+        final_,
+        /* use_length */ None,
+        /* score_mod */ None,
+        kanji_break,
+    )
+    .await?;
+    segment.score = Some(score);
+    segment.info = info;
+    // dict.lisp:988 — segment (the function returns the same segment).
+    Ok(segment)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dict::find_word::{find_word, FindWordRows};
+    use crate::dict::kani::KaniWordDispatchEnum;
+    use crate::dict::segment::{KaniSplitInfo, Segment};
+
+    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .await
+            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    }
+
+    async fn first_kana_for(ctx: &KaniranContext, s: &str) -> KaniWordDispatchEnum {
+        match find_word(ctx, s, false).await.unwrap() {
+            FindWordRows::Kana(mut v) => KaniWordDispatchEnum::Kana(v.remove(0)),
+            FindWordRows::Kanji(mut v) => KaniWordDispatchEnum::Kanji(v.remove(0)),
+        }
+    }
+
+    /// Deterministic single-row fetch — `find-word`'s SQL has no
+    /// ORDER BY, so the same lookup can rotate first rows between
+    /// runs / databases.
+    async fn kana_by_seq_text(
+        ctx: &KaniranContext,
+        seq: i32,
+        text: &str,
+    ) -> KaniWordDispatchEnum {
+        let rows: Vec<crate::dict::dao::KanaText> = sqlx::query_as(
+            "SELECT * FROM kana_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
+        )
+        .bind(seq)
+        .bind(text)
+        .fetch_all(&ctx.pool)
+        .await
+        .expect("query");
+        KaniWordDispatchEnum::Kana(rows.into_iter().next().expect("row exists"))
+    }
+
+    async fn kanji_by_seq_text(
+        ctx: &KaniranContext,
+        seq: i32,
+        text: &str,
+    ) -> KaniWordDispatchEnum {
+        let rows: Vec<crate::dict::dao::KanjiText> = sqlx::query_as(
+            "SELECT * FROM kanji_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
+        )
+        .bind(seq)
+        .bind(text)
+        .fetch_all(&ctx.pool)
+        .await
+        .expect("query");
+        KaniWordDispatchEnum::Kanji(rows.into_iter().next().expect("row exists"))
+    }
+
+    fn make_segment(word: KaniWordDispatchEnum, end: usize, text: &str) -> Segment {
+        Segment {
+            start: 0,
+            end,
+            word,
+            score: None,
+            info: None,
+            top: None,
+            text: Some(text.to_string()),
+        }
+    }
+
+    // ----- REPL-pinned cases (.103, 2026-05-16). Captured by running
+    //       `(gen-score (make-segment :start 0 :end <n> :word w :text "<txt>"))`
+    //       followed by `(segment-score s) / (segment-info s)`. -----
+
+    /// REPL: GEN-SCORE 'ねこ': score=16
+    /// info=(:POSI ("n") :SEQ-SET (1467640) :CONJ NIL :COMMON 7
+    ///       :SCORE-INFO (4 NIL 0 NIL) :KPCL (NIL NIL T NIL))
+    #[tokio::test]
+    async fn neko_baseline_writes_score_and_info() {
+        let ctx = ctx_from_env().await;
+        let w = first_kana_for(&ctx, "ねこ").await;
+        let mut seg = make_segment(w, 2, "ねこ");
+        gen_score(&ctx, &mut seg, false, &[]).await.unwrap();
+        assert_eq!(seg.score, Some(16));
+        let info = seg.info.as_ref().unwrap();
+        assert_eq!(info.posi, vec!["n".to_string()]);
+        assert_eq!(info.seq_set, vec![1467640]);
+        assert!(info.conj.is_empty());
+        assert_eq!(info.common, Some(7));
+        assert_eq!(info.score_info.prop_score, 4);
+        assert!(info.score_info.kanji_break.is_empty());
+        assert_eq!(info.score_info.use_length_bonus, 0);
+        assert!(matches!(info.score_info.split_info, KaniSplitInfo::None));
+        assert_eq!(info.kpcl, (false, false, true, false));
+    }
+
+    /// REPL: with row `(select-dao 'kanji-text (:and (:= 'seq 2698030) (:= 'text "猫")))` →
+    ///   `(gen-score (make-segment :start 0 :end 1 :word w :text "猫") :kanji-break '(0))` →
+    ///   score=3, info=(:POSI NIL :SEQ-SET (2698030) :CONJ NIL :COMMON NIL
+    ///                  :SCORE-INFO (3 (0) 0 NIL) :KPCL (T NIL NIL NIL))
+    ///
+    /// Deterministic-row helper avoids `find-word`'s no-ORDER-BY
+    /// nondeterminism.
+    #[tokio::test]
+    async fn neko_kanji_break_propagates_through_calc_score() {
+        let ctx = ctx_from_env().await;
+        let w = kanji_by_seq_text(&ctx, 2698030, "猫").await;
+        let mut seg = make_segment(w, 1, "猫");
+        gen_score(&ctx, &mut seg, false, &[0]).await.unwrap();
+        assert_eq!(seg.score, Some(3));
+        let info = seg.info.as_ref().unwrap();
+        assert!(info.posi.is_empty());
+        assert_eq!(info.seq_set, vec![2698030]);
+        assert!(info.conj.is_empty());
+        assert_eq!(info.common, None);
+        assert_eq!(info.score_info.prop_score, 3);
+        assert_eq!(info.score_info.kanji_break, vec![0]);
+        assert_eq!(info.score_info.use_length_bonus, 0);
+        assert!(matches!(info.score_info.split_info, KaniSplitInfo::None));
+        assert_eq!(info.kpcl, (true, false, false, false));
+    }
+
+    /// REPL: with row `(select-dao 'kana-text (:and (:= 'seq 1290020) (:= 'text "ね")))` →
+    ///   `(gen-score (make-segment :start 0 :end 1 :word w :text "ね") :final t)` →
+    ///   score=4, info=(:POSI ("n") :SEQ-SET (1290020) :CONJ NIL :COMMON 5
+    ///                  :SCORE-INFO (4 NIL 0 NIL) :KPCL (NIL NIL T NIL))
+    #[tokio::test]
+    async fn ne_final_common_n_branch() {
+        let ctx = ctx_from_env().await;
+        let w = kana_by_seq_text(&ctx, 1290020, "ね").await;
+        let mut seg = make_segment(w, 1, "ね");
+        gen_score(&ctx, &mut seg, true, &[]).await.unwrap();
+        assert_eq!(seg.score, Some(4));
+        let info = seg.info.as_ref().unwrap();
+        assert_eq!(info.posi, vec!["n".to_string()]);
+        assert_eq!(info.seq_set, vec![1290020]);
+        assert!(info.conj.is_empty());
+        assert_eq!(info.common, Some(5));
+        assert_eq!(info.score_info.prop_score, 4);
+        assert!(info.score_info.kanji_break.is_empty());
+        assert_eq!(info.score_info.use_length_bonus, 0);
+        assert!(matches!(info.score_info.split_info, KaniSplitInfo::None));
+        assert_eq!(info.kpcl, (false, false, true, false));
+    }
+}
+}
+
+#[allow(clippy::module_inception, dead_code, unused_imports)]
+mod apply_score_mod_inner {
+use crate::dict::text_classes::ScoreMod;
+
+pub fn apply_score_mod(score_mod: &ScoreMod, score: i64, len: i64) -> i64 {
+    match score_mod {
+        // dict.lisp:737-738 — (:method ((score-mod integer) score len)
+        //                       (* score score-mod len))
+        ScoreMod::Single(n) => score * n * len,
+        // dict.lisp:739-740 — (:method ((score-mod function) score len)
+        //                       (funcall score-mod score)).
+        // Every reachable upstream value is (constantly N), which
+        // ignores its argument and returns N.
+        ScoreMod::Constant(n) => *n,
+        // dict.lisp:741-742 — (:method ((score-mod list) score len)
+        //                       (reduce '+ score-mod
+        //                         :key (lambda (sm) (apply-score-mod sm score len))))
+        ScoreMod::Stack(stack) => stack
+            .iter()
+            .map(|sm| apply_score_mod(sm, score, len))
+            .sum(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // All assertions REPL-pinned against upstream ichiran.
+    #[test]
+    fn integer_method_positive() {
+        // (apply-score-mod 3 10 4) = 120
+        assert_eq!(apply_score_mod(&ScoreMod::Single(3), 10, 4), 120);
+    }
+
+    #[test]
+    fn integer_method_zero_score_mod() {
+        // (apply-score-mod 0 10 4) = 0
+        assert_eq!(apply_score_mod(&ScoreMod::Single(0), 10, 4), 0);
+    }
+
+    #[test]
+    fn integer_method_negative_score_mod() {
+        // (apply-score-mod -2 5 3) = -30
+        assert_eq!(apply_score_mod(&ScoreMod::Single(-2), 5, 3), -30);
+    }
+
+    #[test]
+    fn integer_method_zero_score() {
+        // (apply-score-mod 7 0 5) = 0
+        assert_eq!(apply_score_mod(&ScoreMod::Single(7), 0, 5), 0);
+    }
+
+    #[test]
+    fn integer_method_zero_len() {
+        // (apply-score-mod 1 100 0) = 0
+        assert_eq!(apply_score_mod(&ScoreMod::Single(1), 100, 0), 0);
+    }
+
+    // ----- function method, reached via (constantly N) -----
+
+    #[test]
+    fn constant_method_positive() {
+        // (apply-score-mod (constantly 360) 10 4) = 360
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(360), 10, 4), 360);
+    }
+
+    #[test]
+    fn constant_method_zero_args() {
+        // (apply-score-mod (constantly 200) 0 0) = 200
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(200), 0, 0), 200);
+    }
+
+    #[test]
+    fn constant_method_ignores_score_and_len() {
+        // (apply-score-mod (constantly 300) 50 7) = 300
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(300), 50, 7), 300);
+    }
+
+    #[test]
+    fn constant_method_negative() {
+        // (apply-score-mod (constantly -5) 10 4) = -5
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(-5), 10, 4), -5);
+    }
+
+    #[test]
+    fn constant_method_zero_value() {
+        // (apply-score-mod (constantly 0) 10 4) = 0
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(0), 10, 4), 0);
+    }
+
+    // ----- list method -----
+
+    #[test]
+    fn list_method_two_integer_elements() {
+        // (apply-score-mod '(3 4) 10 2) = 140
+        // = (3*10*2) + (4*10*2) = 60 + 80 = 140
+        assert_eq!(
+            apply_score_mod(
+                &ScoreMod::Stack(vec![ScoreMod::Single(3), ScoreMod::Single(4)]),
+                10,
+                2
+            ),
+            140
+        );
+    }
+
+    #[test]
+    fn list_method_empty() {
+        // (apply-score-mod '() 10 2) = 0
+        assert_eq!(apply_score_mod(&ScoreMod::Stack(vec![]), 10, 2), 0);
+    }
+
+    #[test]
+    fn list_method_mixed_signs() {
+        // (apply-score-mod '(5 -2 1) 10 3) = 120
+        // = (5*10*3) + (-2*10*3) + (1*10*3) = 150 - 60 + 30 = 120
+        assert_eq!(
+            apply_score_mod(
+                &ScoreMod::Stack(vec![
+                    ScoreMod::Single(5),
+                    ScoreMod::Single(-2),
+                    ScoreMod::Single(1),
+                ]),
+                10,
+                3
+            ),
+            120
+        );
+    }
+
+    #[test]
+    fn list_method_single_integer() {
+        // (apply-score-mod '(1) 10 5) = 50
+        assert_eq!(
+            apply_score_mod(&ScoreMod::Stack(vec![ScoreMod::Single(1)]), 10, 5),
+            50
+        );
+    }
+
+    #[test]
+    fn list_method_all_zeros() {
+        // (apply-score-mod '(0 0 0) 10 5) = 0
+        assert_eq!(
+            apply_score_mod(
+                &ScoreMod::Stack(vec![
+                    ScoreMod::Single(0),
+                    ScoreMod::Single(0),
+                    ScoreMod::Single(0),
+                ]),
+                10,
+                5
+            ),
+            0
+        );
+    }
+
+    // ----- list method, mixed function + integer elements -----
+
+    #[test]
+    fn list_constant_then_integer() {
+        // (apply-score-mod (list (constantly 360) 5) 10 2) = 460
+        // = 360 + (5*10*2) = 360 + 100
+        assert_eq!(
+            apply_score_mod(
+                &ScoreMod::Stack(vec![ScoreMod::Constant(360), ScoreMod::Single(5)]),
+                10,
+                2
+            ),
+            460
+        );
+    }
+
+    #[test]
+    fn list_integer_then_constant() {
+        // (apply-score-mod (list 3 (constantly 100)) 10 2) = 160
+        // = (3*10*2) + 100 = 60 + 100
+        assert_eq!(
+            apply_score_mod(
+                &ScoreMod::Stack(vec![ScoreMod::Single(3), ScoreMod::Constant(100)]),
+                10,
+                2
+            ),
+            160
+        );
+    }
+
+    #[test]
+    fn list_two_constants() {
+        // (apply-score-mod (list (constantly 200) (constantly 300)) 10 2) = 500
+        assert_eq!(
+            apply_score_mod(
+                &ScoreMod::Stack(vec![
+                    ScoreMod::Constant(200),
+                    ScoreMod::Constant(300),
+                ]),
+                10,
+                2
+            ),
+            500
+        );
+    }
+
+    #[test]
+    fn list_constant_then_two_integers() {
+        // (apply-score-mod (cons (constantly 360) (list 5 7)) 10 2) = 600
+        // = 360 + (5*10*2) + (7*10*2) = 360 + 100 + 140
+        assert_eq!(
+            apply_score_mod(
+                &ScoreMod::Stack(vec![
+                    ScoreMod::Constant(360),
+                    ScoreMod::Single(5),
+                    ScoreMod::Single(7),
+                ]),
+                10,
+                2
+            ),
+            600
+        );
+    }
+
+    // ----- Constant method exercised by real ichiran segmentation -----
+    //
+    // The four upstream `(constantly N)` callsites
+    // (`suffix-kudasai`/`sou`/`desu`/`desho` at
+    // `dict-grammar.lisp:404, 448, 516, 532`) only fire on specific
+    // sentence shapes. The (score, len) arguments below were captured
+    // by hooking `apply-score-mod` via `sb-int:encapsulate` and
+    // running `(simple-segment <sentence>)` through the production
+    // segmenter; every recorded function-typed call is preserved
+    // verbatim so a regression on the Constant method's arithmetic is
+    // detectable end-to-end, not just on synthetic inputs.
+
+    #[test]
+    fn kudasai_real_sentence_taberu_te_kudasai() {
+        // "食べてください" → suffix-kudasai (dict-grammar.lisp:404)
+        //   (apply-score-mod (constantly 360) 14 4) = 360
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(360), 14, 4), 360);
+    }
+
+    #[test]
+    fn sou_real_sentence_omoshiroi_sou() {
+        // "面白そう" → suffix-sou default branch (root ∉ {から, い, 出来},
+        // dict-grammar.lisp:448-452 falls through to N=70)
+        //   (apply-score-mod (constantly 70) 14 2) = 70
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(70), 14, 2), 70);
+    }
+
+    #[test]
+    fn sou_real_sentence_dekiru_sou() {
+        // "出来そう" → suffix-sou produces two segmenter parses:
+        //   parse 1 (root not "出来"): (apply-score-mod (constantly 70) 14 2) = 70
+        //   parse 2 (root = "出来"):   (apply-score-mod (constantly 100) 9  2) = 100
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(70), 14, 2), 70);
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(100), 9, 2), 100);
+    }
+
+    #[test]
+    fn desu_real_sentence_tabenai_desu() {
+        // "食べないです" → suffix-desu (dict-grammar.lisp:516)
+        //   (apply-score-mod (constantly 200) 21 2) = 200
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(200), 21, 2), 200);
+    }
+
+    #[test]
+    fn desho_real_sentence_tabenai_deshou() {
+        // "食べないでしょう" → suffix-desho (dict-grammar.lisp:532).
+        // Segmenter explores 6 parses, all hitting the same compound
+        // but with different (score, len) pairs. All six return 300
+        // because the FUNCTION method ignores score and len.
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(300), 4, 3), 300);
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(300), 10, 3), 300);
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(300), 4, 2), 300);
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(300), 10, 2), 300);
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(300), 21, 3), 300);
+        assert_eq!(apply_score_mod(&ScoreMod::Constant(300), 21, 2), 300);
+    }
+}
 }

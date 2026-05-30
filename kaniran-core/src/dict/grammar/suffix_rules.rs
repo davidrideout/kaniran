@@ -40,10 +40,10 @@ mod def_simple_suffix_macro_inner {
 use crate::characters::char_classes::CharClass;
 use crate::characters::text_utils::destem;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::adjoin_word::adjoin_word;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
-use crate::dict::get_kana::get_kana;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::best_path::adjoin_word;
+use crate::dict::text_classes::{CompoundText, ScoreMod};
+use crate::dict::best_text::get_kana;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 
 /// Mirrors the macro's `(when (listp pw) (setf score-base (second pw)
@@ -128,12 +128,12 @@ pub async fn def_simple_suffix_body(
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_tai_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_tai(
     ctx: &KaniranContext,
@@ -167,7 +167,7 @@ pub async fn suffix_tai(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:tai` suffix-cache `kf`, REPL pinned: `(get-kana-form 2017560
     /// "たい")` → id=109172, seq=2017560, text="たい", common=0,
@@ -324,12 +324,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_ren_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_ren(
     ctx: &KaniranContext,
@@ -358,7 +358,7 @@ pub async fn suffix_ren(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:ren` suffix-cache `kf` for つつ, REPL pinned: `(get-kana-form
     /// 1008120 "つつ")` → id=1075, seq=1008120, text="つつ", common=0,
@@ -509,12 +509,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_ren__inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_ren_(
     ctx: &KaniranContext,
@@ -543,7 +543,7 @@ pub async fn suffix_ren_(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:ren-` suffix-cache `kf` for がい, REPL pinned:
     /// `(get-kana-form 2606690 "がい")` → id=177519, seq=2606690,
@@ -661,12 +661,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_neg_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_neg(
     ctx: &KaniranContext,
@@ -696,7 +696,7 @@ pub async fn suffix_neg(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:neg` suffix-cache `kf`, REPL pinned: `(car (find-word-conj-of
     /// "なく" 1529520))` → id=1030305, seq=10648808, text="なく",
@@ -925,7 +925,7 @@ mod tests {
         assert_eq!(k.seq, 10092233);
         assert_eq!(
             k.state.conjugations,
-            Some(crate::dict::simple_text_class::WordConjugations::Ids(vec![92707]))
+            Some(crate::dict::text_classes::WordConjugations::Ids(vec![92707]))
         );
     }
 
@@ -951,11 +951,11 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_te_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::grammar::suffix_rules::te_check;
 
 pub async fn suffix_te(
@@ -985,7 +985,7 @@ pub async fn suffix_te(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:te` suffix-cache `kf` for "も", REPL pinned: `(get-kana-form
     /// 2028940 "も")` → id=110365, seq=2028940, text="も", common=0,
@@ -1164,11 +1164,11 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_teiru_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::grammar::suffix_rules::teiru_check;
 
 pub async fn suffix_teiru(
@@ -1198,7 +1198,7 @@ pub async fn suffix_teiru(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:teiru` suffix-cache `kf` for "いる", REPL pinned via the
     /// いる(る) loop at `dict-grammar.lisp:210-215` against
@@ -1284,11 +1284,11 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_teiru_plus__inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::grammar::suffix_rules::teiru_check;
 
 pub async fn suffix_teiru_plus_(
@@ -1318,7 +1318,7 @@ pub async fn suffix_teiru_plus_(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:teiru+` suffix-cache `kf` for "いる", REPL pinned via the
     /// いる(る) loop at `dict-grammar.lisp:210-215`: id=65814,
@@ -1392,11 +1392,11 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_te_plus_space_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::grammar::suffix_rules::te_check;
 
 pub async fn suffix_te_plus_space(
@@ -1426,7 +1426,7 @@ pub async fn suffix_te_plus_space(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:te+space` suffix-cache `kf` for "くれる", REPL pinned via
     /// `(get-kana-form 1269130 …)`: id=33764, seq=1269130, text="くれる",
@@ -1504,11 +1504,11 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_kudasai_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::grammar::suffix_rules::te_check;
 
 pub async fn suffix_kudasai(
@@ -1538,7 +1538,7 @@ pub async fn suffix_kudasai(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:kudasai` suffix-cache `kf` for "ください", REPL pinned via
     /// `(get-kana-form 1184270 "ください" :conj :root)`: id=25048,
@@ -1627,12 +1627,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_te_ren_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_te_ren(
     ctx: &KaniranContext,
@@ -1687,7 +1687,7 @@ pub async fn suffix_te_ren(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:teren` suffix-cache `kf` for "やがって", REPL pinned via the
     /// `(load-conjs :teren 1012740 :yagaru)` populator: id=597027,
@@ -1813,12 +1813,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_teii_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_teii(
     ctx: &KaniranContext,
@@ -1859,7 +1859,7 @@ pub async fn suffix_teii(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:teii` suffix-cache `kf` for "いい", REPL pinned via
     /// `(get-kana-form 2820690 "いい")`: id=201742, seq=2820690,
@@ -1957,12 +1957,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_chau_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_chau(
     ctx: &KaniranContext,
@@ -2008,7 +2008,7 @@ pub async fn suffix_chau(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:chau` suffix-cache kf for "ちゃう", REPL pinned via
     /// `(postmodern:get-dao 'kana-text 108760)`: id=108760, seq=2013800,
@@ -2152,12 +2152,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_to_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_to(
     ctx: &KaniranContext,
@@ -2203,7 +2203,7 @@ pub async fn suffix_to(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:to` cache kf for "とく", REPL pinned via
     /// `(postmodern:get-dao 'kana-text 119112)`: id=119112, seq=2108590,
@@ -2378,12 +2378,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_suru_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::{find_word_with_pos, WordWithPosRows};
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn suffix_suru(
@@ -2417,7 +2417,7 @@ pub async fn suffix_suru(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// Construct the `:suru` suffix-cache `kf` REPL pinned for the
     /// test corpus: id=439727, seq=10152292, text="し",
@@ -2655,9 +2655,9 @@ pub async fn suffix_sou_base_body(
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_sou_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{def_simple_suffix_body, DefSimpleSuffixOpts};
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::grammar::suffix_rules::suffix_sou_base_body;
 
 pub async fn suffix_sou(
@@ -2693,7 +2693,7 @@ pub async fn suffix_sou(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:sou` suffix-cache `kf` for "そう", REPL pinned via
     /// `(gethash "そう" *suffix-cache*)`: id=876, seq=1006610, text="そう",
@@ -2884,9 +2884,9 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_sou_plus__inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{def_simple_suffix_body, DefSimpleSuffixOpts};
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::grammar::suffix_rules::suffix_sou_base_body;
 
 pub async fn suffix_sou_plus_(
@@ -2911,7 +2911,7 @@ pub async fn suffix_sou_plus_(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:sou+` cache `kf` for "そう". The :sou+ entry shares the cache
     /// row text "そう" with :sou (the `(load-conjs :sou+ 2141080)`
@@ -3037,12 +3037,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_rou_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_rou(
     ctx: &KaniranContext,
@@ -3071,7 +3071,7 @@ pub async fn suffix_rou(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:rou` suffix-cache `kf`, REPL pinned: `(get-kana-form 1928670
     /// "だろう")` → id=99986, seq=1928670, text="だろう", common=0,
@@ -3189,12 +3189,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_adv_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_adv(
     ctx: &KaniranContext,
@@ -3224,7 +3224,7 @@ pub async fn suffix_adv(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:adv` suffix-cache `kf` for "なる" — the root kana-text of seq
     /// 1375610. REPL pinned: id=44705, seq=1375610, text="なる",
@@ -3335,13 +3335,13 @@ mod tests {
 mod suffix_sugiru_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::suffix_rules::apply_patch;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_prop;
 use crate::dict::grammar::find_word::{find_word_with_pos, WordWithPosRows};
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn suffix_sugiru(
@@ -3409,7 +3409,7 @@ pub async fn suffix_sugiru(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:sugiru` cache `kf` for "すぎる", REPL pinned: id=26253,
     /// seq=1195970, text="すぎる", ord=0, common=34,
@@ -3612,13 +3612,13 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_sa_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
 use crate::dict::grammar::find_word::{find_word_with_pos, WordWithPosRows};
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 
 pub async fn suffix_sa(
@@ -3662,7 +3662,7 @@ pub async fn suffix_sa(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:sa` suffix-cache kf for "さ", REPL pinned via
     /// `(postmodern:get-dao 'kana-text 110392)`: id=110392, seq=2029120,
@@ -3857,12 +3857,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_iadj_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_iadj(
     ctx: &KaniranContext,
@@ -3892,7 +3892,7 @@ pub async fn suffix_iadj(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:iadj` suffix-cache `kf` for "げ", REPL pinned: `(get-kana-form
     /// 2006580 "げ")` → id=107976, seq=2006580, text="げ", common=:NULL,
@@ -4009,13 +4009,13 @@ mod tests {
 mod suffix_garu_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::suffix_rules::apply_patch;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
 use crate::dict::grammar::find_word::find_word_with_suffix;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_garu(
     ctx: &KaniranContext,
@@ -4064,7 +4064,7 @@ pub async fn suffix_garu(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:garu` cache `kf` for "がる", REPL pinned: id=72111, seq=1631750,
     /// text="がる", ord=0, common=:NULL, common_tags="[spec1]",
@@ -4266,14 +4266,14 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_ra_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::find_word::FindWordRows;
 use crate::dict::grammar::find_word::{find_word_seq, WordSeqRows};
 use crate::dict::grammar::find_word::{find_word_with_pos, WordWithPosRows};
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::grammar::find_word::{or_as_hiragana, OrAsHiraganaFinder, OrAsHiraganaRows};
 use std::sync::Arc;
@@ -4342,7 +4342,7 @@ pub async fn suffix_ra(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:ra` suffix-cache `kf`, REPL pinned: `(get-kana-form 2067770
     /// "ら")` → id=114553, seq=2067770, text="ら", common=:NULL,
@@ -4537,12 +4537,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_rashii_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::grammar::find_word::pair_words_by_conj;
 
 pub async fn suffix_rashii(
@@ -4591,7 +4591,7 @@ pub async fn suffix_rashii(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:rashii` cache `kf` for "らしい", REPL pinned: id=1812,
     /// seq=1013240, text="らしい", ord=0, common=0,
@@ -4767,12 +4767,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_desu_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_prop;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_desu(
     ctx: &KaniranContext,
@@ -4812,7 +4812,7 @@ pub async fn suffix_desu(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:desu` cache `kf` for "です", REPL pinned: id=71736, seq=1628500,
     /// text="です", ord=0, common=0, common_tags="[spec1]",
@@ -4961,12 +4961,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_desho_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_prop;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_desho(
     ctx: &KaniranContext,
@@ -5005,7 +5005,7 @@ pub async fn suffix_desho(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:desho` cache `kf` for "でしょう", REPL pinned: id=1122,
     /// seq=1008420, text="でしょう", ord=0, common=0,
@@ -5152,12 +5152,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_tosuru_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_tosuru(
     ctx: &KaniranContext,
@@ -5186,7 +5186,7 @@ pub async fn suffix_tosuru(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:tosuru` suffix-cache `kf` for "とする" — the root kana-text of
     /// seq 2136890. REPL pinned: id=122279, seq=2136890, text="とする",
@@ -5316,12 +5316,12 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod suffix_kurai_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::grammar::suffix_rules::{
     def_simple_suffix_body, DefSimpleSuffixOpts, PrimaryWord,
 };
 use crate::dict::grammar::find_word::find_word_with_conj_type;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn suffix_kurai(
     ctx: &KaniranContext,
@@ -5350,7 +5350,7 @@ pub async fn suffix_kurai(
 mod tests {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
 
     /// `:kurai` suffix-cache `kf` for "くらい", REPL pinned: `(get-kana-
     /// form 1154340 "くらい")` → id=21985, seq=1154340, text="くらい",
@@ -5465,7 +5465,7 @@ mod tests {
 
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod parse_suffix_val_inner {
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub fn parse_suffix_val<'a, 'b>(
     substr: &'a str,
@@ -5482,7 +5482,7 @@ pub fn parse_suffix_val<'a, 'b>(
 
 #[cfg(test)]
 mod tests {
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::text_classes::SimpleText;
     use super::*;
 
     fn kf(seq: i32, text: &str) -> KanaText {

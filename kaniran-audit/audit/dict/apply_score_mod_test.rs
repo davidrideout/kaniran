@@ -25,8 +25,8 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::apply_score_mod::apply_score_mod;
-use kaniran_core::dict::compound_text_class::ScoreMod;
+use kaniran_core::dict::calc_score::apply_score_mod;
+use kaniran_core::dict::text_classes::ScoreMod;
 
 use common::{single_result, CapturedRow};
 

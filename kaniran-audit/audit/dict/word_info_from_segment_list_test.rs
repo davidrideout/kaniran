@@ -14,7 +14,7 @@ mod common;
 use common::{
     compare_captured_word_info, parse_captured_segment_list, single_result, CapturedRow,
 };
-use kaniran_core::dict::word_info_from_segment_list::word_info_from_segment_list;
+use kaniran_core::dict::word_info::word_info_from_segment_list;
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:WORD-INFO-FROM-SEGMENT-LIST";
 

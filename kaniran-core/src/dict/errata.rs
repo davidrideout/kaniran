@@ -10,8 +10,8 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use super::conj_data_struct::ConjData;
-use super::conj_prop_dao::ConjProp;
+use super::conj_data::ConjData;
+use super::dao::ConjProp;
 use super::load::ConjugationRule;
 use super::load::get_pos;
 use super::load::get_pos_index;

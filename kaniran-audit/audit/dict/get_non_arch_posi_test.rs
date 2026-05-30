@@ -27,7 +27,7 @@ mod common;
 use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::get_non_arch_posi::get_non_arch_posi;
+use kaniran_core::dict::find_word::get_non_arch_posi;
 
 use common::CapturedRow;
 

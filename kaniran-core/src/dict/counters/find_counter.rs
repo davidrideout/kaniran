@@ -9,9 +9,9 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::counters::cache::{EXTRA_COUNTER_IDS, SKIP_COUNTER_IDS, counter_cache};
 use crate::dict::counters::classes::{Counter, CounterSource};
 use crate::dict::counters::dispatchers::verify;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::kanji_text_dao::KanjiText;
+use crate::dict::dao::KanjiText;
 use sqlx::Row;
 use std::collections::{HashMap, HashSet};
 
@@ -192,10 +192,10 @@ fn nokanji_counter(c: &Counter) -> bool {
 mod nokanji_tests {
     use super::*;
     use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText};
-    use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::kanji_text_dao::KanjiText;
-    use crate::dict::proxy_text_class::ProxyText;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::KanaText;
+    use crate::dict::dao::KanjiText;
+    use crate::dict::text_classes::ProxyText;
+    use crate::dict::text_classes::SimpleText;
 
     fn kanji_with(nokanji: bool) -> KanjiText {
         KanjiText {

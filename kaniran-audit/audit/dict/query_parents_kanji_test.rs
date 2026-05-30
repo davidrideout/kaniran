@@ -22,7 +22,7 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::query_parents_kanji::query_parents_kanji;
+use kaniran_core::dict::best_text::query_parents_kanji;
 
 use common::CapturedRow;
 

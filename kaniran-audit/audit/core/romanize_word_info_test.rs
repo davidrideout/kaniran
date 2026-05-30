@@ -16,7 +16,7 @@ mod common;
 
 use kaniran_core::core::methods::KaniRomanizeMethod;
 use kaniran_core::core::romanize::romanize_word_info;
-use kaniran_core::dict::word_info_class::WordInfo;
+use kaniran_core::dict::word_info::WordInfo;
 
 use common::{
     get_string, parse_captured_kana, run_sync_streaming, single_result, with_captured_method,

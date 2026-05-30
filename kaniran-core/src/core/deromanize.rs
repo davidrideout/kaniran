@@ -8,7 +8,7 @@ use serde_json::{Map, Value};
 
 use crate::characters::normalize::as_katakana;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::find_kanji_for_pattern::find_kanji_for_pattern;
+use crate::dict::find_word::find_kanji_for_pattern;
 
 // -- data shapes ----------------------------------------------------------
 

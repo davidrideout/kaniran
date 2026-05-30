@@ -18,8 +18,8 @@ use serde_json::Value;
 
 use common::{compare_captured_word_info, single_result, CapturedRow};
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::dict_segment::dict_segment;
-use kaniran_core::dict::word_info_class::WordInfo;
+use kaniran_core::dict::segment::dict_segment;
+use kaniran_core::dict::word_info::WordInfo;
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:DICT-SEGMENT";
 

@@ -47,15 +47,15 @@ use crate::dict::counters::classes::{
 };
 use crate::dict::grammar::find_word::find_word_conj_of;
 use crate::dict::grammar::find_word::find_word_seq;
-use crate::dict::get_kana::get_kana;
+use crate::dict::best_text::get_kana;
 use crate::dict::split::hint::insert_hints;
-use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kanji_text_dao::KanjiText;
+use crate::dict::dao::KanaText;
+use crate::dict::dao::KanjiText;
 use crate::dict::split::split::optprefix;
 use crate::dict::split::hint::translate_hints;
-use crate::dict::true_kana::true_kana;
-use crate::dict::true_kanji::true_kanji;
-use crate::dict::word_type::WordType;
+use crate::dict::best_text::true_kana;
+use crate::dict::best_text::true_kanji;
+use crate::dict::word_info::WordType;
 use crate::kanji::matching::{match_readings, MatchedSegment};
 
 // =========================================================================

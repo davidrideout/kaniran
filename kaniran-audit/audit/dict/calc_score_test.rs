@@ -29,8 +29,8 @@ use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::calc_score::calc_score;
-use kaniran_core::dict::compound_text_class::ScoreMod;
-use kaniran_core::dict::segment_struct::{KaniSegmentInfo, KaniScoreInfo, KaniSplitInfo};
+use kaniran_core::dict::text_classes::ScoreMod;
+use kaniran_core::dict::segment::{KaniSegmentInfo, KaniScoreInfo, KaniSplitInfo};
 
 use common::{
     captured_class, parse_captured_word, parse_opt_bool, parse_opt_i32, short_plist, CapturedRow,
@@ -434,7 +434,7 @@ fn compare_kpcl(
 }
 
 fn compare_conj(
-    actual: &[kaniran_core::dict::conj_data_struct::ConjData],
+    actual: &[kaniran_core::dict::conj_data::ConjData],
     val: &Value,
 ) -> Result<(), String> {
     let arr = match val {
@@ -456,7 +456,7 @@ fn compare_conj(
 }
 
 fn compare_conj_data(
-    actual: &kaniran_core::dict::conj_data_struct::ConjData,
+    actual: &kaniran_core::dict::conj_data::ConjData,
     val: &Value,
 ) -> Result<(), String> {
     let class = captured_class(val)?;
@@ -524,7 +524,7 @@ fn compare_conj_data(
 }
 
 fn compare_conj_prop(
-    actual: &kaniran_core::dict::conj_prop_dao::ConjProp,
+    actual: &kaniran_core::dict::dao::ConjProp,
     val: &Value,
 ) -> Result<(), String> {
     let class = captured_class(val)?;

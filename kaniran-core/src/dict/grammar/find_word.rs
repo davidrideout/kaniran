@@ -16,7 +16,7 @@ pub use find_word_with_suffix_inner::*;
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod get_kana_forms_conj_data_filter_inner {
 use crate::dict::errata::WEAK_CONJ_FORMS;
-use crate::dict::conj_data_struct::ConjData;
+use crate::dict::conj_data::ConjData;
 use crate::dict::errata::skip_by_conj_data;
 use crate::dict::errata::test_conj_prop;
 
@@ -41,10 +41,10 @@ pub fn get_kana_forms_conj_data_filter(conj_data: &[ConjData]) -> Vec<i32> {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod get_kana_forms_star__inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::get_conj_data::{get_conj_data, FromOrConjIds};
+use crate::dict::conj_data::{get_conj_data, FromOrConjIds};
 use super::get_kana_forms_conj_data_filter;
-use crate::dict::kana_text_dao::KanaText;
-use crate::dict::simple_text_class::WordConjugations;
+use crate::dict::dao::KanaText;
+use crate::dict::text_classes::WordConjugations;
 
 pub async fn get_kana_forms_star_(
     ctx: &KaniranContext,
@@ -83,7 +83,7 @@ pub async fn get_kana_forms_star_(
 mod get_kana_forms_inner {
 use crate::conn::kani_context::KaniranContext;
 use super::get_kana_forms_star_;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 
 pub async fn get_kana_forms(
     ctx: &KaniranContext,
@@ -100,8 +100,8 @@ pub async fn get_kana_forms(
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod get_kana_form_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::kana_text_dao::KanaText;
-use crate::dict::simple_text_class::WordConjugations;
+use crate::dict::dao::KanaText;
+use crate::dict::text_classes::WordConjugations;
 
 pub async fn get_kana_form(
     ctx: &KaniranContext,
@@ -130,12 +130,12 @@ pub async fn get_kana_form(
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod find_word_with_conj_prop_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::conj_data_struct::ConjData;
-use crate::dict::find_word_full::find_word_full;
+use crate::dict::conj_data::ConjData;
+use crate::dict::find_word::find_word_full;
 use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::set_word_conjugations::set_word_conjugations;
-use crate::dict::simple_text_class::WordConjugations;
-use crate::dict::word_conj_data::word_conj_data;
+use crate::dict::text_classes::set_word_conjugations;
+use crate::dict::text_classes::WordConjugations;
+use crate::dict::word_info::word_conj_data;
 
 pub async fn find_word_with_conj_prop<F>(
     ctx: &KaniranContext,
@@ -360,7 +360,7 @@ mod tests {
         assert_eq!(k.seq, 10092233);
         assert_eq!(
             k.state.conjugations,
-            Some(crate::dict::simple_text_class::WordConjugations::Ids(vec![92707]))
+            Some(crate::dict::text_classes::WordConjugations::Ids(vec![92707]))
         );
     }
 
@@ -436,10 +436,10 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::conjugation_dao::Conjugation;
+use crate::dict::dao::Conjugation;
 use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::load::lex_compare;
-use crate::dict::simple_text_class::WordConjugations;
+use crate::dict::text_classes::WordConjugations;
 use crate::dict::counters::dispatchers::word_conjugations;
 
 pub async fn pair_words_by_conj(
@@ -515,8 +515,8 @@ async fn compute_key(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::KanaText;
+    use crate::dict::text_classes::SimpleText;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -676,9 +676,9 @@ mod find_word_seq_inner {
 use crate::characters::char_classes::CharClass;
 use crate::characters::char_classes::test_word;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::kanji_text_dao::KanjiText;
+use crate::dict::dao::KanjiText;
 
 #[derive(Debug, Clone)]
 pub enum WordSeqRows {
@@ -743,8 +743,8 @@ use crate::characters::char_classes::CharClass;
 use crate::characters::char_classes::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::find_word::{find_word_seq, WordSeqRows};
-use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kanji_text_dao::KanjiText;
+use crate::dict::dao::KanaText;
+use crate::dict::dao::KanjiText;
 use std::collections::HashSet;
 
 pub async fn find_word_conj_of(
@@ -824,8 +824,8 @@ mod find_word_with_pos_inner {
 use crate::characters::char_classes::CharClass;
 use crate::characters::char_classes::test_word;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kanji_text_dao::KanjiText;
+use crate::dict::dao::KanaText;
+use crate::dict::dao::KanjiText;
 
 #[derive(Debug, Clone)]
 pub enum WordWithPosRows {
@@ -1108,8 +1108,8 @@ use std::sync::Arc;
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::find_word::FindWordRows;
-use crate::dict::find_word_as_hiragana::{find_word_as_hiragana, HiraganaFinder};
-use crate::dict::proxy_text_class::ProxyText;
+use crate::dict::find_word::{find_word_as_hiragana, HiraganaFinder};
+use crate::dict::text_classes::ProxyText;
 
 /// Cloneable async closure called both directly and as the
 /// `:finder` re-entry through [`find_word_as_hiragana`].
@@ -1350,10 +1350,10 @@ mod tests {
 mod find_word_with_suffix_inner {
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::suffix_init::suffix_class;
-use crate::dict::find_word_full::find_word_full;
+use crate::dict::find_word::find_word_full;
 use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::counters::dispatchers::seq;
-use crate::dict::word_info_class::WordInfoSeq;
+use crate::dict::word_info::WordInfoSeq;
 
 pub async fn find_word_with_suffix(
     ctx: &KaniranContext,

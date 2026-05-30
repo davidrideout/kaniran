@@ -8,9 +8,9 @@ pub use find_word_suffix_inner::*;
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod get_suffix_map_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::grammar::suffix_rules::parse_suffix_val;
-use crate::dict::subseq_slice::subseq_slice;
+use crate::dict::segment::subseq_slice;
 use std::collections::HashMap;
 
 pub fn get_suffix_map<'a, 'b>(
@@ -274,9 +274,9 @@ mod tests {
 #[allow(clippy::module_inception, dead_code, unused_imports)]
 mod get_suffixes_inner {
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::grammar::suffix_rules::parse_suffix_val;
-use crate::dict::subseq_slice::subseq_slice;
+use crate::dict::segment::subseq_slice;
 
 pub fn get_suffixes<'a, 'b>(
     ctx: &'a KaniranContext,
@@ -445,7 +445,7 @@ use crate::dict::grammar::suffix_init::{
 };
 use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::counters::dispatchers::seq;
-use crate::dict::word_info_class::WordInfoSeq;
+use crate::dict::word_info::WordInfoSeq;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MatchUniqueResult {
@@ -542,8 +542,8 @@ fn collect_seqs(matches: &[KaniWordDispatchEnum]) -> Vec<i32> {
 mod tests {
     use super::*;
     use crate::conn::kani_context::KaniranContext;
-    use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::KanaText;
+    use crate::dict::text_classes::SimpleText;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -738,7 +738,7 @@ mod tests {
     #[tokio::test]
     #[should_panic(expected = "compound-text seq returned WordInfoSeq::Multi")]
     async fn sa_with_compound_text_match_panics() {
-        use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+        use crate::dict::text_classes::{CompoundText, ScoreMod};
         let c = ctx().await;
         let child1 = synthetic_kana(1586010);
         let child2 = synthetic_kana(10597478);
@@ -758,7 +758,7 @@ mod tests {
     #[tokio::test]
     #[should_panic(expected = "compound-text seq returned WordInfoSeq::Multi")]
     async fn desu_with_compound_text_match_panics() {
-        use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+        use crate::dict::text_classes::{CompoundText, ScoreMod};
         let c = ctx().await;
         let child1 = synthetic_kana(1586010);
         let child2 = synthetic_kana(10597478);
@@ -781,10 +781,10 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::grammar::suffix_init::suffix_class;
 use crate::dict::grammar::suffix_init::lookup_suffix_fn;
 use crate::dict::grammar::suffix_lookup::get_suffixes;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::grammar::suffix_lookup::match_unique;
-use crate::dict::subseq_slice::subseq_slice;
+use crate::dict::segment::subseq_slice;
 
 pub async fn find_word_suffix(
     ctx: &KaniranContext,
@@ -998,7 +998,7 @@ mod tests {
     /// `get_suffixes` path would have returned 3.
     #[tokio::test]
     async fn t8_map_path_position_sensitive() {
-        use crate::dict::_star_suffix_map_temp_star_::SuffixMapTemp;
+        use crate::dict::best_path::SuffixMapTemp;
         use crate::dict::grammar::suffix_lookup::get_suffix_map;
         use std::sync::Arc;
 

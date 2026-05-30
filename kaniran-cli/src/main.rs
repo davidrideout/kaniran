@@ -39,7 +39,7 @@ use kaniran_core::core::methods::RomanizationMethod;
 use kaniran_core::core::methods::KaniRomanizeMethod;
 use kaniran_core::core::romanize::romanize;
 use kaniran_core::core::romanize::{romanize_star_, RomanizeStarSegment};
-use kaniran_core::dict::word_info_gloss_json::word_info_gloss_json;
+use kaniran_core::dict::word_info::word_info_gloss_json;
 
 // cli.lisp:8-31 (opts:define-opts) — :eval (cli.lisp:13) omitted; :help
 // (cli.lisp:9) is clap's built-in.

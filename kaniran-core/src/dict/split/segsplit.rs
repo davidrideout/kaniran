@@ -520,15 +520,15 @@ mod tests {
 use crate::characters::text_utils::join;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::calc_score::calc_score;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
-use crate::dict::get_kana::get_kana;
-use crate::dict::get_text::get_text;
+use crate::dict::text_classes::{CompoundText, ScoreMod};
+use crate::dict::best_text::get_kana;
+use crate::dict::best_text::get_text;
 use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum, SplitPart};
-use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-use crate::dict::set_word_conjugations::set_word_conjugations;
-use crate::dict::simple_text_class::WordConjugations;
+use crate::dict::segment::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+use crate::dict::text_classes::set_word_conjugations;
+use crate::dict::text_classes::WordConjugations;
 use crate::dict::split::split::get_split;
-use crate::dict::word_conj_data::word_conj_data;
+use crate::dict::word_info::word_conj_data;
 
 /// When `segment.word` is a `simple-text`, dispatch through
 /// `*segsplit-map*` for a split that decomposes the reading; on a hit,
@@ -706,7 +706,7 @@ fn find_segsplit_def(seq: i32, conj_of: &[i32]) -> Option<&'static SegSplitDef> 
 mod get_segsplit_tests {
     use super::*;
     use crate::dict::find_word::{find_word, FindWordRows};
-    use crate::dict::gen_score::gen_score;
+    use crate::dict::calc_score::gen_score;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -1097,8 +1097,8 @@ mod get_segsplit_tests {
     // compound-text; get-segsplit returns nil immediately.
     #[tokio::test]
     async fn compound_text_input_returns_none() {
-        use crate::dict::kana_text_dao::KanaText;
-        use crate::dict::simple_text_class::SimpleText;
+        use crate::dict::dao::KanaText;
+        use crate::dict::text_classes::SimpleText;
         let ctx = ctx_from_env().await;
         let kana = KanaText {
             id: 0,
