@@ -13,8 +13,7 @@
 //! `Error` failures are `eprintln!`ed before propagating; mirrors
 //! upstream's `dp` / `*debug*`.
 
-use crate::conn::_star_connection_env_var_star_::DATABASE_URL;
-use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;
+use crate::conn::kani_config::KaniConfig;
 use crate::dict::counters::cache::{build_counter_cache, CounterCache};
 use crate::dict::find_word::build_is_arch;
 use crate::dict::conj_data::build_no_conj_data;
@@ -43,23 +42,17 @@ pub enum Error {
 #[derive(Clone)]
 pub struct KaniranContext {
     pub pool: PgPool,
-    /// Upstream `*no-conj-data*` (`dict.lisp:329`). See
-    /// [`crate::dict::_star_no_conj_data_star_`].
+    /// Upstream `*no-conj-data*` (`dict.lisp:329`).
     pub no_conj_data: Arc<HashSet<i32>>,
-    /// Upstream `*is-arch-cache*` (`dict.lisp:745`). See
-    /// [`crate::dict::_star_is_arch_cache_star_`].
+    /// Upstream `*is-arch-cache*` (`dict.lisp:745`).
     pub is_arch: Arc<HashSet<i32>>,
-    /// Upstream `*counter-cache*` (`dict-counters.lisp:221`). See
-    /// [`crate::dict::_star_counter_cache_star_`].
+    /// Upstream `*counter-cache*` (`dict-counters.lisp:221`).
     pub counter_cache: Arc<CounterCache>,
-    /// Upstream `*suffix-cache*` (`dict-grammar.lisp:5`). See
-    /// [`crate::dict::_star_suffix_cache_star_`].
+    /// Upstream `*suffix-cache*` (`dict-grammar.lisp:5`).
     pub suffix_cache: Arc<SuffixCache>,
-    /// Upstream `*suffix-class*` (`dict-grammar.lisp:6`). See
-    /// [`crate::dict::_star_suffix_class_star_`].
+    /// Upstream `*suffix-class*` (`dict-grammar.lisp:6`).
     pub suffix_class: Arc<SuffixClass>,
-    /// Upstream `*reading-cache*` (`kanji.lisp:199`). See
-    /// [`crate::kanji::_star_reading_cache_star_`].
+    /// Upstream `*reading-cache*` (`kanji.lisp:199`).
     pub reading_cache: Arc<ReadingCache>,
 
     /// Upstream `*disable-hints*` (`dict.lisp:78`) — recursion guard
@@ -86,8 +79,7 @@ pub struct KaniranContext {
     pub substring_hash: Option<Arc<SubstringHash>>,
 
     /// Upstream `*suffix-map-temp*` (`dict.lisp:1049`) — caller-scoped
-    /// suffix-candidate cache keyed by end-position. See
-    /// [`crate::dict::_star_suffix_map_temp_star_`]. Rebound by
+    /// suffix-candidate cache keyed by end-position. Rebound by
     /// `join-substring-words*` (`dict.lisp:1090`), `find-word-info`
     /// (`dict.lisp:1851`), and the `def-simple-suffix` /
     /// `def-abbr-suffix` / `suffix-sou-base` / `suffix-garu` bodies in
@@ -97,10 +89,10 @@ pub struct KaniranContext {
 
     /// Upstream `*suffix-next-end*` (`dict.lisp:1050`) — caller-scoped
     /// character end-position used as the [`SuffixMapTemp`] lookup
-    /// key. See [`crate::dict::_star_suffix_next_end_star_`]. Rebound
-    /// at `dict.lisp:1091`, `dict.lisp:1852`, and `find-word-suffix`'s
-    /// recursion at `dict-grammar.lisp:706`. `None` outside those
-    /// scopes matches the upstream `(defvar … nil)` initform.
+    /// key. Rebound at `dict.lisp:1091`, `dict.lisp:1852`, and
+    /// `find-word-suffix`'s recursion at `dict-grammar.lisp:706`.
+    /// `None` outside those scopes matches the upstream
+    /// `(defvar … nil)` initform.
     ///
     /// Signed because `find-word-suffix`'s recursion subtracts
     /// `(length suffix)` off the current binding and can pass below
@@ -152,11 +144,19 @@ impl KaniranContext {
     }
 }
 
+type Caches = (
+    Arc<HashSet<i32>>,
+    Arc<HashSet<i32>>,
+    Arc<CounterCache>,
+    Arc<SuffixCache>,
+    Arc<SuffixClass>,
+);
+
 impl KaniranContext {
     /// Connect the pool and run every cache populator before returning.
     pub async fn from_url(url: &str) -> Result<Arc<Self>, Error> {
         let pool = PgPoolOptions::new()
-            .max_connections(60)
+            .max_connections(100)
             .acquire_timeout(Duration::from_secs(10))
             .connect(url)
             .await
@@ -164,137 +164,83 @@ impl KaniranContext {
                 eprintln!("kaniran: failed to connect to database at `{url}`: {e}");
                 Error::from(e)
             })?;
-        // The DB-derived caches are identical across every context built
-        // in a single test process and dominate build time (~5s of table
-        // scans each). During the crate's own tests, build them once and
-        // share the Arcs; each context still gets its own runtime-bound
-        // pool (a shared pool's connections die when a per-test runtime is
-        // torn down) and a fresh reading-cache. Production builds fresh.
-        #[cfg(test)]
-        {
-            let (no_conj_data, is_arch, counter_cache, suffix_cache, suffix_class) =
-                test_support::shared_caches(&pool).await?;
-            return Ok(Arc::new(Self {
-                pool,
-                no_conj_data,
-                is_arch,
-                counter_cache,
-                suffix_cache,
-                suffix_class,
-                reading_cache: Arc::new(new_reading_cache()),
-                disable_hints: false,
-                substring_hash: None,
-                suffix_map_temp: None,
-                suffix_next_end: None,
-                split_map: SplitMapKind::Default,
-            }));
-        }
-        #[cfg(not(test))]
-        {
-            let no_conj_data = Arc::new(build_no_conj_data(&pool).await?);
-            let is_arch = Arc::new(build_is_arch(&pool).await?);
-            // counter_cache + suffix_cache populators call DB-touching fns
-            // that take &KaniranContext — build a partial ctx first, then
-            // swap the populated maps in.
-            let mut ctx = Self {
-                pool,
-                no_conj_data,
-                is_arch,
-                counter_cache: Arc::new(CounterCache::new()),
-                suffix_cache: Arc::new(SuffixCache::new()),
-                suffix_class: Arc::new(SuffixClass::new()),
-                reading_cache: Arc::new(new_reading_cache()),
-                disable_hints: false,
-                substring_hash: None,
-                suffix_map_temp: None,
-                suffix_next_end: None,
-                split_map: SplitMapKind::Default,
-            };
-            ctx.counter_cache = Arc::new(build_counter_cache(&ctx).await?);
-            let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;
-            ctx.suffix_cache = Arc::new(suffix_cache);
-            ctx.suffix_class = Arc::new(suffix_class);
-            Ok(Arc::new(ctx))
-        }
-    }
-
-    /// Read a Postgres URL via [`config::Config`] (file + env layered)
-    /// and build the context.
-    pub async fn from_env() -> Result<Arc<Self>, Error> {
-        let url = match get_ichiran_connection_env() {
-            Ok(Some(u)) => u,
-            Ok(None) => {
-                eprintln!(
-                    "kaniran: database URL is not set — define env var `{DATABASE_URL}`"
-                );
-                return Err(Error::MissingConnection(DATABASE_URL));
-            }
-            Err(e) => {
-                eprintln!("kaniran: failed to read database URL from config: {e}");
-                return Err(e);
-            }
-        };
-        Self::from_url(&url).await
-    }
-}
-
-/// Shared cache builder for the crate's own test runs. The five
-/// DB-derived caches are deterministic from database content, so they
-/// are built once per test process and reused across every
-/// `#[tokio::test]` context. The cache maps are plain runtime-independent
-/// data — sharing them across the per-test tokio runtimes is sound,
-/// unlike the `PgPool` whose connections are bound to the runtime that
-/// opened them. Not compiled into production builds.
-#[cfg(test)]
-mod test_support {
-    use super::*;
-    use tokio::sync::OnceCell;
-
-    type Caches = (
-        Arc<HashSet<i32>>,
-        Arc<HashSet<i32>>,
-        Arc<CounterCache>,
-        Arc<SuffixCache>,
-        Arc<SuffixClass>,
-    );
-
-    static SHARED: OnceCell<Caches> = OnceCell::const_new();
-
-    pub(super) async fn shared_caches(pool: &PgPool) -> Result<Caches, Error> {
-        let caches = SHARED.get_or_try_init(|| build_once(pool)).await?;
-        Ok(caches.clone())
-    }
-
-    /// Mirrors the cache-build sequence in
-    /// [`KaniranContext::from_url`]'s production path, run against a
-    /// throwaway context whose pool belongs to the first test that
-    /// triggers the build. Only the resulting cache Arcs are retained.
-    async fn build_once(pool: &PgPool) -> Result<Caches, Error> {
-        let no_conj_data = Arc::new(build_no_conj_data(pool).await?);
-        let is_arch = Arc::new(build_is_arch(pool).await?);
-        let mut ctx = KaniranContext {
-            pool: pool.clone(),
-            no_conj_data: no_conj_data.clone(),
-            is_arch: is_arch.clone(),
-            counter_cache: Arc::new(CounterCache::new()),
-            suffix_cache: Arc::new(SuffixCache::new()),
-            suffix_class: Arc::new(SuffixClass::new()),
+        let (no_conj_data, is_arch, counter_cache, suffix_cache, suffix_class) =
+            caches_for_pool(&pool).await?;
+        Ok(Arc::new(Self {
+            pool,
+            no_conj_data,
+            is_arch,
+            counter_cache,
+            suffix_cache,
+            suffix_class,
             reading_cache: Arc::new(new_reading_cache()),
             disable_hints: false,
             substring_hash: None,
             suffix_map_temp: None,
             suffix_next_end: None,
             split_map: SplitMapKind::Default,
-        };
-        let counter_cache = Arc::new(build_counter_cache(&ctx).await?);
-        ctx.counter_cache = counter_cache.clone();
-        let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;
-        Ok((
-            no_conj_data,
-            is_arch,
-            counter_cache,
-            Arc::new(suffix_cache),
-            Arc::new(suffix_class),
-        ))
+        }))
     }
+
+    /// Build the context from a populated [`KaniConfig`].
+    pub async fn from_config(cfg: &KaniConfig) -> Result<Arc<Self>, Error> {
+        Self::from_url(&cfg.database_url).await
+    }
+
+    /// Load [`KaniConfig::from_env`] then [`Self::from_config`].
+    pub async fn from_env() -> Result<Arc<Self>, Error> {
+        let cfg = KaniConfig::from_env().inspect_err(|e| {
+            eprintln!("kaniran: failed to load config: {e}");
+        })?;
+        Self::from_config(&cfg).await
+    }
+}
+
+async fn build_caches(pool: &PgPool) -> Result<Caches, Error> {
+    let no_conj_data = Arc::new(build_no_conj_data(pool).await?);
+    let is_arch = Arc::new(build_is_arch(pool).await?);
+    // build_counter_cache + build_suffix_caches take &KaniranContext —
+    // construct a skeleton ctx with empty caches first.
+    let mut ctx = KaniranContext {
+        pool: pool.clone(),
+        no_conj_data: no_conj_data.clone(),
+        is_arch: is_arch.clone(),
+        counter_cache: Arc::new(CounterCache::new()),
+        suffix_cache: Arc::new(SuffixCache::new()),
+        suffix_class: Arc::new(SuffixClass::new()),
+        reading_cache: Arc::new(new_reading_cache()),
+        disable_hints: false,
+        substring_hash: None,
+        suffix_map_temp: None,
+        suffix_next_end: None,
+        split_map: SplitMapKind::Default,
+    };
+    let counter_cache = Arc::new(build_counter_cache(&ctx).await?);
+    ctx.counter_cache = counter_cache.clone();
+    let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;
+    Ok((
+        no_conj_data,
+        is_arch,
+        counter_cache,
+        Arc::new(suffix_cache),
+        Arc::new(suffix_class),
+    ))
+}
+
+#[cfg(not(test))]
+async fn caches_for_pool(pool: &PgPool) -> Result<Caches, Error> {
+    build_caches(pool).await
+}
+
+// The DB-derived caches dominate test-run time (~5s of table scans each)
+// and are deterministic across every context built in the same process.
+// Memoize them per-process so each `#[tokio::test]` reuses the Arcs while
+// still getting its own runtime-bound pool (shared pools die when a
+// per-test runtime is torn down) and a fresh reading-cache.
+#[cfg(test)]
+async fn caches_for_pool(pool: &PgPool) -> Result<Caches, Error> {
+    use tokio::sync::OnceCell;
+    static SHARED: OnceCell<Caches> = OnceCell::const_new();
+    let caches = SHARED.get_or_try_init(|| build_caches(pool)).await?;
+    Ok(caches.clone())
 }

@@ -668,14 +668,20 @@ pub async fn get_non_arch_posi(
     .await
 }
 
+/// True when `seq` is archaic — i.e. present in the [`build_is_arch`]
+/// cache.
 pub fn is_arch(ctx: &KaniranContext, seq: i32) -> bool {
     ctx.is_arch.contains(&seq)
 }
 
+/// Borrow the archaic-seq cache (see [`build_is_arch`]).
 pub fn is_arch_cache(ctx: &KaniranContext) -> &HashSet<i32> {
     &ctx.is_arch
 }
 
+/// Build the "archaic" cache: JMdict seqs whose every sense is tagged
+/// `misc IN ('arch','obsc','rare')`, unioned with the seqs they
+/// conjugate into (via `conjugation."from"`).
 pub async fn build_is_arch(pool: &PgPool) -> Result<HashSet<i32>, sqlx::Error> {
     let a1: Vec<i32> = sqlx::query_scalar(
         "SELECT sense.seq FROM sense \

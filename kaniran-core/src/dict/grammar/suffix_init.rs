@@ -691,8 +691,7 @@ abbr_suffix_dispatch!(abbr_ii_dispatch, abbr_ii);
 
 /// Full port of `*suffix-list*`: 43 of 43 upstream entries (28
 /// def-simple-suffix + 15 def-abbr-suffix). Keys are the lowercase
-/// keyword strings already used by the suffix cache
-/// (`super::_star_suffix_cache_star_`). Linear scan via
+/// keyword strings already used by [`SuffixCache`]. Linear scan via
 /// [`lookup_suffix_fn`] mirrors the upstream `(assoc keyword
 /// *suffix-list*)`; with N = 43, the constant factor is negligible.
 pub static SUFFIX_LIST: &[(&str, SuffixFn)] = &[
