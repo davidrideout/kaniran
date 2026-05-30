@@ -19,7 +19,7 @@
 //! (CONVENTIONS §4.4).
 
 use super::voicing_tables::{dakuten_hash, handakuten_hash};
-use super::get_char_class::get_char_class;
+use super::kana_class_tables::get_char_class;
 use super::unrendaku::transpose;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

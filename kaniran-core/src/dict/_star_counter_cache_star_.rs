@@ -10,7 +10,7 @@
 //! counter-text construction over kanji + katakana-kana for foreign
 //! seqs), then `:accepts` suffix expansion and `目` ordinal pass.
 
-use crate::characters::char_class_type::CharClass;
+use crate::characters::char_classes::CharClass;
 use crate::characters::test_word::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_counter_accepts_star_::COUNTER_ACCEPTS;

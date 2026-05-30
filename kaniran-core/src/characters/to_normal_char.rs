@@ -15,8 +15,7 @@
 //! preferred to a `bool` so call sites read clearly without consulting
 //! the function signature.
 
-use super::_star_normal_chars_star_::normal_chars;
-use super::constants::{ABNORMAL_CHARS, FULL_WIDTH_KANA, HALF_WIDTH_KANA};
+use super::constants::{ABNORMAL_CHARS, FULL_WIDTH_KANA, HALF_WIDTH_KANA, NORMAL_CHARS};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NormalizationContext {
@@ -27,7 +26,7 @@ pub enum NormalizationContext {
 pub fn to_normal_char(c: char, context: NormalizationContext) -> Option<char> {
     let (src, dst): (&str, &str) = match context {
         NormalizationContext::Kana => (HALF_WIDTH_KANA, FULL_WIDTH_KANA),
-        NormalizationContext::Default => (ABNORMAL_CHARS, normal_chars()),
+        NormalizationContext::Default => (ABNORMAL_CHARS, NORMAL_CHARS),
     };
     let pos = src.chars().position(|x| x == c)?;
     dst.chars().nth(pos)

@@ -1,17 +1,6 @@
-//! KanaClass voicing maps and the derived `(combining → precomposed)`
-//! pair list.
-//!
-//! Originally three `defparameter` files (`*dakuten-hash*`,
-//! `*handakuten-hash*`, `*undakuten-hash*`) plus the derived
-//! `*dakuten-join*` under `ichiran/characters`
-//! (`characters.lisp:62-104`); consolidated here during phase 2
-//! cleanup.
-//!
-//! [`dakuten_hash`] / [`handakuten_hash`] go unvoiced → (semi-)voiced;
-//! [`undakuten_hash`] is the lossy inverse (both `Ba` and `Pa`
-//! collapse to `Ha`). [`dakuten_join`] folds dakuten and handakuten
-//! into one `(input-with-combining-mark, single-precomposed-char)`
-//! table consumed by `simplify-ngrams` to normalize decomposed forms.
+//! KanaClass voicing maps from `characters.lisp:62-104`.
+//! [`undakuten_hash`] is the lossy inverse of [`dakuten_hash`] +
+//! [`handakuten_hash`] — both `Ba`/`Pa` collapse to `Ha`.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -19,9 +8,7 @@ use std::sync::OnceLock;
 use super::dakuten_join::dakuten_join as build_join;
 use super::kani_kana_class::KanaClass;
 
-/// `*dakuten-hash*` — unvoiced mora → voiced counterpart (`Ka → Ga`,
-/// `Shi → Ji`, `Ha → Ba`, `U → Vu`, …). 21 entries. Consumed by
-/// [`super::voice_char::voice_char`].
+/// `*dakuten-hash*` — unvoiced → voiced.
 pub fn dakuten_hash() -> &'static HashMap<KanaClass, KanaClass> {
     static CACHE: OnceLock<HashMap<KanaClass, KanaClass>> = OnceLock::new();
     CACHE.get_or_init(|| {
@@ -38,10 +25,7 @@ pub fn dakuten_hash() -> &'static HashMap<KanaClass, KanaClass> {
     })
 }
 
-/// `*handakuten-hash*` — unvoiced mora → handakuten (semi-voiced "p")
-/// counterpart (`Ha → Pa`, `Hi → Pi`, …). 5 entries; only the H-row
-/// has a handakuten form. Used by `dakuten-join` and by `rendaku`
-/// with `:handakuten t`.
+/// `*handakuten-hash*` — H-row → P-row.
 pub fn handakuten_hash() -> &'static HashMap<KanaClass, KanaClass> {
     static CACHE: OnceLock<HashMap<KanaClass, KanaClass>> = OnceLock::new();
     CACHE.get_or_init(|| {
@@ -52,11 +36,8 @@ pub fn handakuten_hash() -> &'static HashMap<KanaClass, KanaClass> {
     })
 }
 
-/// `*undakuten-hash*` — voiced or semi-voiced mora → unvoiced base
-/// (`Ga → Ka`, `Ji → Shi`, `Ba → Ha`, `Pa → Ha`, `Vu → U`, …). 26
-/// entries. Not a perfect inverse of [`dakuten_hash`]: both `Ba` and
-/// `Pa` collapse to `Ha`, both `Bi` and `Pi` to `Hi`, etc. — so
-/// unvoicing throws away the b/p distinction.
+/// `*undakuten-hash*` — voiced or semi-voiced → unvoiced base
+/// (lossy: `Ba` and `Pa` both collapse to `Ha`).
 pub fn undakuten_hash() -> &'static HashMap<KanaClass, KanaClass> {
     static CACHE: OnceLock<HashMap<KanaClass, KanaClass>> = OnceLock::new();
     CACHE.get_or_init(|| {
@@ -74,12 +55,8 @@ pub fn undakuten_hash() -> &'static HashMap<KanaClass, KanaClass> {
     })
 }
 
-/// `*dakuten-join*` — pairs of `(input-with-combining-mark,
-/// single-precomposed-char)` for both dakuten (`゛`) and handakuten
-/// (`゜`). Derived at first use by calling
-/// [`super::dakuten_join::dakuten_join`] on the dakuten and
-/// handakuten hashes and concatenating the results — exact upstream
-/// construction.
+/// `*dakuten-join*` — `(input+combining-mark, precomposed)` pairs for
+/// `゛` and `゜`.
 pub fn dakuten_join() -> &'static Vec<(String, String)> {
     static CACHE: OnceLock<Vec<(String, String)>> = OnceLock::new();
     CACHE.get_or_init(|| {
@@ -93,11 +70,8 @@ pub fn dakuten_join() -> &'static Vec<(String, String)> {
 mod tests {
     use super::*;
 
-    /// Captured by the introspector running
-    /// `(append (dakuten-join *dakuten-hash* #\゛) (dakuten-join *handakuten-hash* #\゜))`
-    /// against the upstream image. SBCL's `hash-table-alist` order is
-    /// implementation-defined, so the upstream pair order itself is
-    /// not stable — the comparison sorts both sides.
+    /// SBCL hash-table iteration order is implementation-defined; the
+    /// test sorts both sides before comparing.
     static INTROSPECTED: &[(&str, &str)] = &[
         ("う゛", "ゔ"), ("ウ゛", "ヴ"),
         ("ほ゛", "ぼ"), ("ホ゛", "ボ"),

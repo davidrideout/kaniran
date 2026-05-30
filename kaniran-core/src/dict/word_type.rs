@@ -20,8 +20,8 @@
 //! dispatcher's surface; it remains in the [`WordType`] enum for
 //! callers that need to represent the unmatched fallback.
 
-use crate::characters::char_class_type::CharClass;
-use crate::characters::count_char_class::count_char_class;
+use crate::characters::char_classes::CharClass;
+use crate::characters::char_classes::count_char_class;
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::text::text;
 

@@ -9,7 +9,7 @@
 //! The Lisp builds the matcher from a flat plist of alternating
 //! `from`/`to`; the Rust port takes a paired `&[(S, T)]` slice generic
 //! over `AsRef<str>` so both static `&[(&str, &str)]` (e.g.
-//! [`super::_star_punctuation_marks_star_::PUNCTUATION_MARKS`]) and
+//! [`super::constants::PUNCTUATION_MARKS`]) and
 //! the runtime `Vec<(String, String)>` from
 //! [`super::voicing_tables::dakuten_join`] work without
 //! conversion. Keys are passed through `fancy_regex::escape` before

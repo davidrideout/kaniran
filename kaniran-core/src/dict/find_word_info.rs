@@ -41,7 +41,7 @@
 
 use std::sync::Arc;
 
-use crate::characters::char_class_type::CharClass;
+use crate::characters::char_classes::CharClass;
 use crate::characters::test_word::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_suffix_map_temp_star_::SuffixMapTemp;

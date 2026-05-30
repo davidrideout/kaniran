@@ -27,7 +27,7 @@
 //! - returning `Vec<KaniWordDispatchEnum>`, tagging each heterogeneous
 //!   `(nconc kw rw)` element as its kanji-text / kana-text variant.
 
-use crate::characters::char_class_type::CharClass;
+use crate::characters::char_classes::CharClass;
 use crate::characters::test_word::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kana_text_dao::KanaText;

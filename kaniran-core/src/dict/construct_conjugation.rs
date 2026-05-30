@@ -10,7 +10,7 @@
 //! `chars()` so offsets stay character-based for multi-byte readings.
 
 use super::conjugation_rule_struct::ConjugationRule;
-use crate::characters::char_class_type::CharClass;
+use crate::characters::char_classes::CharClass;
 use crate::characters::test_word::test_word;
 
 pub fn construct_conjugation(word: &str, rule: &ConjugationRule) -> String {

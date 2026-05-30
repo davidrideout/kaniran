@@ -1,31 +1,19 @@
-//! Source-of-truth numeric glyph / reading tables for the `numbers`
-//! module.
-//!
-//! Originally one Lisp `defparameter` per file under `ichiran/numbers`
-//! (`numbers.lisp:3-28`); consolidated here during phase 2 cleanup.
-//! The derived per-character lookup [`super::_star_char_number_class_hash_star_`]
-//! is built from [`CHAR_NUMBER_CLASS`] on first access.
+//! Numeric glyph / reading tables from `numbers.lisp:3-28`.
 
 use super::kani_num_class::NumClass;
 
-/// `*digit-kanji-default*` — default 0–9 kanji glyph table, indexed by
-/// digit value. Consumed by
-/// [`super::number_to_kanji::number_to_kanji`] for the everyday form.
+/// `*digit-kanji-default*` — everyday 0–9 kanji, indexed by digit.
 pub const DIGIT_KANJI_DEFAULT: &str = "〇一二三四五六七八九";
 
-/// `*digit-kanji-legal*` — legal / financial 0–10 kanji glyph table
-/// (`壱`, `弐`, `参`, `拾`, …) used in contracts and formal contexts
-/// where the simpler forms could be altered.
+/// `*digit-kanji-legal*` — financial 0–10 kanji (`壱 弐 参 拾`…) used
+/// in contracts where the everyday forms could be altered.
 pub const DIGIT_KANJI_LEGAL: &str = "〇壱弐参四五六七八九拾";
 
-/// `*power-kanji*` — power-of-ten kanji glyph table indexed by
-/// exponent. Slot `i` holds the kanji for `10^i`, with ASCII spaces
-/// filling exponents (`5..=7`, `9..=11`, `13..=15`) where Japanese has
-/// no single-character form.
+/// `*power-kanji*` — `10^i` kanji indexed by exponent; ASCII spaces
+/// fill exponents `5..=7`, `9..=11`, `13..=15` (no single-char form).
 pub const POWER_KANJI: &str = "一十百千万   億   兆   京";
 
-/// `*digit-to-kana*` — hiragana reading for each digit `0..=9`. Indexed
-/// by digit value.
+/// `*digit-to-kana*` — hiragana reading for digits 0..=9.
 pub const DIGIT_TO_KANA: &[&str] = &[
     "れい",   // 0
     "いち",   // 1
@@ -39,9 +27,8 @@ pub const DIGIT_TO_KANA: &[&str] = &[
     "きゅう", // 9
 ];
 
-/// `*power-to-kana*` — reading for each power-of-ten kanji that has a
-/// single-character form, keyed by exponent. Sparse — only
-/// `1, 2, 3, 4, 8, 12, 16` appear.
+/// `*power-to-kana*` — reading per exponent, sparse (only the
+/// single-char powers: 1, 2, 3, 4, 8, 12, 16).
 pub const POWER_TO_KANA: &[(u8, &str)] = &[
     (1, "じゅう"),  // 十
     (2, "ひゃく"),  // 百
@@ -52,11 +39,9 @@ pub const POWER_TO_KANA: &[(u8, &str)] = &[
     (16, "けい"),   // 京
 ];
 
-/// `*char-number-class*` — source-of-truth table mapping each numeric
-/// character to its [`NumClass`] tag and value. The first column groups
-/// characters that share the same classification (e.g. `"〇零"` are
-/// both `(NumClass::Jd, 0)`); the per-character map is built from this
-/// by exploding each group.
+/// `*char-number-class*` — numeric glyph → `(NumClass, value)`. First
+/// column groups glyphs that share a classification (`"〇零"` are both
+/// `(Jd, 0)`).
 pub const CHAR_NUMBER_CLASS: &[(&str, NumClass, u8)] = &[
     ("〇零", NumClass::Jd, 0),
     ("一壱", NumClass::Jd, 1),

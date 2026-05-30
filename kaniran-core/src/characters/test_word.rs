@@ -6,8 +6,8 @@
 //! match start position (truthy) or nil (falsy); every caller treats
 //! it as a predicate, so the Rust signature is `bool`.
 
-use super::_star_char_scanners_star_::char_scanners;
-use super::char_class_type::CharClass;
+use super::char_classes::char_scanners;
+use super::char_classes::CharClass;
 
 pub fn test_word(word: &str, char_class: CharClass) -> bool {
     char_scanners()

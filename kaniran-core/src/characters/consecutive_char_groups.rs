@@ -9,8 +9,8 @@
 //! converts to byte offsets internally to drive the regex, then
 //! converts back.
 
-use super::_star_char_scanners_inner_star_::char_scanners_inner;
-use super::char_class_type::CharClass;
+use super::char_classes::char_scanners_inner;
+use super::char_classes::CharClass;
 
 pub fn consecutive_char_groups(
     char_class: CharClass,

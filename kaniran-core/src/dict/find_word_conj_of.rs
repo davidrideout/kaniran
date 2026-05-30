@@ -25,7 +25,7 @@
 //! taking `&KaniranContext` and `seqs: &[i32]`, identical to
 //! [`crate::dict::find_word_seq::find_word_seq`].
 
-use crate::characters::char_class_type::CharClass;
+use crate::characters::char_classes::CharClass;
 use crate::characters::test_word::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::find_word_seq::{find_word_seq, WordSeqRows};

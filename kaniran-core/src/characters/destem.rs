@@ -14,7 +14,7 @@
 //! argument (the Lisp `&optional` defaulted to `:kana`); both upstream
 //! call-sites pass the default explicitly under this convention.
 
-use super::char_class_type::CharClass;
+use super::char_classes::CharClass;
 use super::kani_char_class_bare_scanners::char_class_bare_scanners;
 
 pub fn destem(word: &str, stem: usize, char_class: CharClass) -> String {

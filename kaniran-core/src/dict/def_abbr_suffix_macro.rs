@@ -52,7 +52,7 @@
 //!   mutated lexical). Only `abbr-nx` ever sets it; every other
 //!   callsite passes `None`.
 
-use crate::characters::char_class_type::CharClass;
+use crate::characters::char_classes::CharClass;
 use crate::characters::destem::destem;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_kana::get_kana;

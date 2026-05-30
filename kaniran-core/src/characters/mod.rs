@@ -5,7 +5,7 @@
 //! `_star_<name>_star_.rs` (global ports) and `<name>_<kind>.rs`
 //! (typed-Lisp ports). Currently: [`kani_kana_class`].
 
-pub mod char_class_type;
+pub mod char_classes;
 pub mod constants;
 pub mod kana_class_tables;
 pub mod kani_char_class_bare_scanners;
@@ -15,13 +15,10 @@ pub mod voicing_tables;
 pub mod as_hiragana;
 pub mod as_katakana;
 pub mod basic_split;
-pub mod collect_char_class;
 pub mod consecutive_char_groups;
-pub mod count_char_class;
 pub mod dakuten_join;
 pub mod destem;
 pub mod geminate;
-pub mod get_char_class;
 pub mod join;
 pub mod kanji_cross_match;
 pub mod kanji_mask;
@@ -41,10 +38,3 @@ pub mod test_word;
 pub mod to_normal_char;
 pub mod unrendaku;
 pub mod voice_char;
-
-pub mod _star_basic_split_regex_star_;
-pub mod _star_char_class_regex_mapping_star_;
-pub mod _star_char_scanners_inner_star_;
-pub mod _star_char_scanners_star_;
-pub mod _star_normal_chars_star_;
-pub mod _star_punctuation_marks_star_;

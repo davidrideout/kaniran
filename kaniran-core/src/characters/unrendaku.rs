@@ -17,7 +17,7 @@
 
 use super::kana_class_tables::KANA_CHARACTERS;
 use super::voicing_tables::undakuten_hash;
-use super::get_char_class::get_char_class;
+use super::kana_class_tables::get_char_class;
 use super::kani_kana_class::KanaClass;
 
 pub fn unrendaku(txt: &mut String) {

@@ -42,7 +42,7 @@
 
 use std::sync::Arc;
 
-use crate::characters::char_class_type::CharClass;
+use crate::characters::char_classes::CharClass;
 use crate::characters::consecutive_char_groups::consecutive_char_groups;
 use crate::characters::sequential_kanji_positions::sequential_kanji_positions;
 use crate::conn::kani_context::KaniranContext;

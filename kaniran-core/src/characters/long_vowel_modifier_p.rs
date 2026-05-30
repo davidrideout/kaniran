@@ -12,7 +12,7 @@
 //! `(keywordp char-class)` guard is subsumed by [`get_char_class`]
 //! returning `Option<KanaClass>` (CONVENTIONS §4.2).
 
-use super::get_char_class::get_char_class;
+use super::kana_class_tables::get_char_class;
 use super::kani_kana_class::KanaClass;
 
 pub fn long_vowel_modifier_p(modifier: KanaClass, prev_char: char) -> bool {

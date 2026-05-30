@@ -1,38 +1,22 @@
-//! Kana-class character tables and the lookup tables derived from
-//! them.
-//!
-//! Originally four `defparameter` files (sokuon / iteration / modifier
-//! / kana) plus the two derivations (`*all-characters*`,
-//! `*char-class-hash*`) under `ichiran/characters` (`characters.lisp:3-37`);
-//! consolidated here during phase 2 cleanup.
-//!
-//! Layout:
-//! - [`SOKUON_CHARACTERS`], [`ITERATION_CHARACTERS`],
-//!   [`MODIFIER_CHARACTERS`], [`KANA_CHARACTERS`] — the four
-//!   constituent `&[(KanaClass, &str)]` tables.
-//! - [`all_characters`] — lazy concatenation of the four constituents,
-//!   matching the upstream `(append ...)` order.
-//! - [`char_class_hash`] — lazy per-character reverse lookup built by
-//!   walking [`all_characters`] and exploding each `chars` string.
+//! Kana-class character tables and the two lookups derived from them,
+//! from `characters.lisp:3-37`.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
 use super::kani_kana_class::KanaClass;
 
-/// `*sokuon-characters*` — the geminating mark (small tsu, hiragana
-/// `っ` / katakana `ッ`).
+/// `*sokuon-characters*` — geminating mark (small tsu).
 pub static SOKUON_CHARACTERS: &[(KanaClass, &str)] = &[(KanaClass::Sokuon, "っッ")];
 
-/// `*iteration-characters*` — plain (`ゝヽ`) and voiced (`ゞヾ`)
-/// iteration marks.
+/// `*iteration-characters*` — plain and voiced iteration marks.
 pub static ITERATION_CHARACTERS: &[(KanaClass, &str)] = &[
     (KanaClass::Iter, "ゝヽ"),
     (KanaClass::IterV, "ゞヾ"),
 ];
 
-/// `*modifier-characters*` — small-form vowels and y-glides used as
-/// modifiers (e.g. `ぁ` in `きゃ`), plus the long-vowel mark `ー`.
+/// `*modifier-characters*` — small-form vowels, y-glides, long-vowel
+/// mark.
 pub static MODIFIER_CHARACTERS: &[(KanaClass, &str)] = &[
     (KanaClass::PlusA, "ぁァ"),
     (KanaClass::PlusI, "ぃィ"),
@@ -46,9 +30,7 @@ pub static MODIFIER_CHARACTERS: &[(KanaClass, &str)] = &[
     (KanaClass::LongVowel, "ー"),
 ];
 
-/// `*kana-characters*` — all regular morae: vowels, k/s/t/n/h/m/y/r/w-
-/// rows, `n`, the voiced and semi-voiced rows, and `vu`. 74 entries;
-/// each value pairs the hiragana glyph with the katakana glyph.
+/// `*kana-characters*` — every regular mora, hiragana then katakana.
 pub static KANA_CHARACTERS: &[(KanaClass, &str)] = &[
     (KanaClass::A, "あア"),
     (KanaClass::I, "いイ"),
@@ -126,9 +108,7 @@ pub static KANA_CHARACTERS: &[(KanaClass, &str)] = &[
     (KanaClass::Vu, "ゔヴ"),
 ];
 
-/// `*all-characters*` — flat concatenation of the four constituents in
-/// upstream `(append sokuon iteration modifier kana)` order. Built
-/// once on first access.
+/// `*all-characters*` — `(append sokuon iteration modifier kana)`.
 pub fn all_characters() -> &'static [(KanaClass, &'static str)] {
     static CACHE: OnceLock<Vec<(KanaClass, &'static str)>> = OnceLock::new();
     CACHE.get_or_init(|| {
@@ -146,10 +126,7 @@ pub fn all_characters() -> &'static [(KanaClass, &'static str)] {
     })
 }
 
-/// `*char-class-hash*` — reverse map from individual kana glyphs to
-/// their [`KanaClass`] (e.g. `'っ' → KanaClass::Sokuon`). Built once
-/// on first access by walking [`all_characters`] and exploding each
-/// `chars` string into per-character entries. Misses return `None`.
+/// `*char-class-hash*` — per-glyph reverse lookup into [`KanaClass`].
 pub fn char_class_hash() -> &'static HashMap<char, KanaClass> {
     static CACHE: OnceLock<HashMap<char, KanaClass>> = OnceLock::new();
     CACHE.get_or_init(|| {
@@ -163,13 +140,20 @@ pub fn char_class_hash() -> &'static HashMap<char, KanaClass> {
     })
 }
 
+/// `get-char-class` (`characters.lisp:44-45`) — lookup into
+/// [`char_class_hash`]. Lisp returns the input char on a miss; per
+/// CONVENTIONS §4.2 the Rust port returns `Option<KanaClass>` and
+/// lets the caller fall back to the input it already has.
+pub fn get_char_class(c: char) -> Option<KanaClass> {
+    char_class_hash().get(&c).copied()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use KanaClass::*;
 
-    /// Pinned to the value the Lisp introspector captured. Any drift
-    /// in the four constituent slices surfaces as a failure here.
+    /// Pinned against the Lisp introspector's captured value.
     #[test]
     fn all_characters_matches_introspected_value() {
         let expected: &[(KanaClass, &str)] = &[
@@ -207,9 +191,7 @@ mod tests {
         assert_eq!(all_characters(), expected);
     }
 
-    /// Guards the derive-from-`all_characters` build logic. 173
-    /// entries is what the Lisp introspection captured; mismatches
-    /// flag a regression in the loop, not a typo in the data.
+    /// 173 entries per the Lisp introspector.
     #[test]
     fn char_class_hash_build_logic_produces_173_entries() {
         assert_eq!(char_class_hash().len(), 173);

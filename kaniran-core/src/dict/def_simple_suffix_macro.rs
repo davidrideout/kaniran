@@ -50,7 +50,7 @@
 //!   all use `stem = 0` (the no-op rebind branch), so the slot does
 //!   not yet exist on `KaniranContext`.
 
-use crate::characters::char_class_type::CharClass;
+use crate::characters::char_classes::CharClass;
 use crate::characters::destem::destem;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::adjoin_word::adjoin_word;

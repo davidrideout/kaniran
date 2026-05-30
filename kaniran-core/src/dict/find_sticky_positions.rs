@@ -11,7 +11,7 @@
 use crate::characters::kana_class_tables::{
     ITERATION_CHARACTERS, KANA_CHARACTERS, MODIFIER_CHARACTERS,
 };
-use crate::characters::get_char_class::get_char_class;
+use crate::characters::kana_class_tables::get_char_class;
 use crate::characters::kani_kana_class::KanaClass;
 use crate::characters::long_vowel_modifier_p::long_vowel_modifier_p;
 

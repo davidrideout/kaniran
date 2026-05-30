@@ -11,8 +11,8 @@ use std::sync::OnceLock;
 
 use fancy_regex::Regex;
 
-use super::_star_basic_split_regex_star_::basic_split_regex;
-use super::char_class_type::CharClass;
+use super::char_classes::basic_split_regex;
+use super::char_classes::CharClass;
 use super::split_by_regex::split_by_regex;
 use super::test_word::test_word;
 
