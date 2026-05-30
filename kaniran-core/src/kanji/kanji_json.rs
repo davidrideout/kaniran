@@ -4,9 +4,9 @@ use serde_json::{Map, Value};
 
 use super::dao::{Kanji, Meaning, Reading};
 use crate::conn::kani_context::KaniranContext;
-use crate::core::_star_hepburn_basic_star_::hepburn_basic;
-use crate::core::generic_romanization_class::RomanizationMethod;
-use crate::core::romanize_word::romanize_word;
+use crate::core::methods::hepburn_basic;
+use crate::core::methods::RomanizationMethod;
+use crate::core::romanize::romanize_word;
 
 /// `calculate-perc` (`kanji.lisp:349`). `sample/total` as a fixed-width
 /// percentage with two fractional digits. `total = 0` yields `--.--%`,

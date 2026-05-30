@@ -13,7 +13,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-use kaniran_core::core::romanize_list::romanize_list;
+use kaniran_core::core::romanize::romanize_list;
 
 use common::{parse_cc_list, single_result, with_captured_method, CapturedRow};
 

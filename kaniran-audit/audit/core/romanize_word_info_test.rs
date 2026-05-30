@@ -14,8 +14,8 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-use kaniran_core::core::kani_romanize_method::KaniRomanizeMethod;
-use kaniran_core::core::romanize_word_info::romanize_word_info;
+use kaniran_core::core::methods::KaniRomanizeMethod;
+use kaniran_core::core::romanize::romanize_word_info;
 use kaniran_core::dict::word_info_class::WordInfo;
 
 use common::{

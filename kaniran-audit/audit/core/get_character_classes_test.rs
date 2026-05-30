@@ -13,7 +13,7 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::core::get_character_classes::get_character_classes;
+use kaniran_core::core::rules::get_character_classes;
 
 use common::{parse_cc_list, single_result, CapturedRow};
 

@@ -79,12 +79,12 @@ use serde_json::Value;
 
 use kaniran_core::characters::kana_class::KanaClass;
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::core::generic_hepburn_class::GenericHepburn;
-use kaniran_core::core::generic_romanization_class::RomanizationMethod;
-use kaniran_core::core::kani_cc_item::CcItem;
-use kaniran_core::core::kani_cc_tree::CcTree;
-use kaniran_core::core::kunrei_siki_class::KunreiSiki;
-use kaniran_core::core::traditional_hepburn_class::TraditionalHepburn;
+use kaniran_core::core::methods::GenericHepburn;
+use kaniran_core::core::methods::RomanizationMethod;
+use kaniran_core::core::methods::CcItem;
+use kaniran_core::core::methods::CcTree;
+use kaniran_core::core::methods::KunreiSiki;
+use kaniran_core::core::methods::TraditionalHepburn;
 use kaniran_core::dict::compound_text_class::{CompoundText, ScoreMod};
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::conj_prop_dao::ConjProp;

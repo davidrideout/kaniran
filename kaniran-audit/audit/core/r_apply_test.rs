@@ -11,7 +11,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-use kaniran_core::core::r_apply::r_apply;
+use kaniran_core::core::rules::r_apply;
 
 use common::{parse_cc_tree, parse_kana_class, single_result, with_captured_method, CapturedRow};
 

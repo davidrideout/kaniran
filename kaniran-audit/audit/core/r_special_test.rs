@@ -11,7 +11,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-use kaniran_core::core::r_special::r_special;
+use kaniran_core::core::rules::r_special;
 
 use common::{single_result, with_captured_method, CapturedRow};
 

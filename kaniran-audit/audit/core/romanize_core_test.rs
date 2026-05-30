@@ -11,7 +11,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-use kaniran_core::core::romanize_core::romanize_core;
+use kaniran_core::core::rules::romanize_core;
 
 use common::{parse_cc_tree, single_result, with_captured_method, CapturedRow};
 

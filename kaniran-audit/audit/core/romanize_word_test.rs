@@ -13,7 +13,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-use kaniran_core::core::romanize_word::romanize_word;
+use kaniran_core::core::romanize::romanize_word;
 
 use common::{run_sync_streaming, single_result, with_captured_method, CapturedRow};
 use serde_json::Value;
