@@ -440,7 +440,7 @@ pub fn get_synergies(
 }
 
 #[cfg(test)]
-mod make_segment_list_from_tests {
+mod test_make_segment_list_from {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -500,7 +500,7 @@ mod make_segment_list_from_tests {
 }
 
 #[cfg(test)]
-mod synergy_noun_particle_tests {
+mod test_synergy_noun_particle {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -663,7 +663,7 @@ mod synergy_noun_particle_tests {
 }
 
 #[cfg(test)]
-mod synergy_noun_da_tests {
+mod test_synergy_noun_da {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -805,7 +805,7 @@ mod synergy_noun_da_tests {
 }
 
 #[cfg(test)]
-mod synergy_no_da_tests {
+mod test_synergy_no_da {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -935,7 +935,7 @@ mod synergy_no_da_tests {
 }
 
 #[cfg(test)]
-mod synergy_sou_nanda_tests {
+mod test_synergy_sou_nanda {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -1045,7 +1045,7 @@ mod synergy_sou_nanda_tests {
 }
 
 #[cfg(test)]
-mod synergy_no_adjectives_tests {
+mod test_synergy_no_adjectives {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -1222,7 +1222,7 @@ mod synergy_no_adjectives_tests {
 }
 
 #[cfg(test)]
-mod synergy_na_adjectives_tests {
+mod test_synergy_na_adjectives {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -1352,7 +1352,7 @@ mod synergy_na_adjectives_tests {
 }
 
 #[cfg(test)]
-mod synergy_to_adverbs_tests {
+mod test_synergy_to_adverbs {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -1619,7 +1619,7 @@ mod synergy_to_adverbs_tests {
 }
 
 #[cfg(test)]
-mod synergy_suffix_chu_tests {
+mod test_synergy_suffix_chu {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -1808,7 +1808,7 @@ mod synergy_suffix_chu_tests {
 }
 
 #[cfg(test)]
-mod synergy_suffix_tachi_tests {
+mod test_synergy_suffix_tachi {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -2002,7 +2002,7 @@ mod synergy_suffix_tachi_tests {
 }
 
 #[cfg(test)]
-mod synergy_suffix_buri_tests {
+mod test_synergy_suffix_buri {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -2168,7 +2168,7 @@ mod synergy_suffix_buri_tests {
 }
 
 #[cfg(test)]
-mod synergy_suffix_sei_tests {
+mod test_synergy_suffix_sei {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -2334,7 +2334,7 @@ mod synergy_suffix_sei_tests {
 }
 
 #[cfg(test)]
-mod synergy_o_prefix_tests {
+mod test_synergy_o_prefix {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -2494,7 +2494,7 @@ mod synergy_o_prefix_tests {
 }
 
 #[cfg(test)]
-mod synergy_kanji_prefix_tests {
+mod test_synergy_kanji_prefix {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -2671,7 +2671,7 @@ mod synergy_kanji_prefix_tests {
 }
 
 #[cfg(test)]
-mod synergy_shicha_ikenai_tests {
+mod test_synergy_shicha_ikenai {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -2815,7 +2815,7 @@ mod synergy_shicha_ikenai_tests {
 }
 
 #[cfg(test)]
-mod synergy_shika_negative_tests {
+mod test_synergy_shika_negative {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::{ConjProp, KanaText};
@@ -3033,7 +3033,7 @@ mod synergy_shika_negative_tests {
 }
 
 #[cfg(test)]
-mod synergy_no_toori_tests {
+mod test_synergy_no_toori {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -3152,7 +3152,7 @@ mod synergy_no_toori_tests {
 }
 
 #[cfg(test)]
-mod synergy_oki_tests {
+mod test_synergy_oki {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -3312,7 +3312,7 @@ mod synergy_oki_tests {
 }
 
 #[cfg(test)]
-mod get_synergies_tests {
+mod test_get_synergies {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;

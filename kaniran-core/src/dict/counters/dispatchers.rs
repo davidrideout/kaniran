@@ -65,7 +65,7 @@ fn simple_common_from_option(v: Option<i32>) -> Common {
 }
 
 #[cfg(test)]
-mod common_tests {
+mod test_common {
     use super::*;
     use crate::dict::text_classes::{CompoundText, ScoreMod};
     use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText};
@@ -223,7 +223,7 @@ fn proxy_chain_conjugations(p: &ProxyText) -> Option<WordConjugations> {
 }
 
 #[cfg(test)]
-mod word_conjugations_tests {
+mod test_word_conjugations {
     use super::*;
     use crate::dict::text_classes::{CompoundText, ScoreMod};
     use crate::dict::find_word::{find_word, FindWordRows};
@@ -413,7 +413,7 @@ fn seq_compound(c: &CompoundText) -> Vec<Option<WordInfoSeq>> {
 }
 
 #[cfg(test)]
-mod seq_tests {
+mod test_seq {
     use super::*;
     use crate::dict::text_classes::{CompoundText, ScoreMod};
     use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText};
@@ -596,7 +596,7 @@ pub fn source(obj: &KaniWordDispatchEnum) -> Option<SourceRef<'_>> {
 }
 
 #[cfg(test)]
-mod source_tests {
+mod test_source {
     use super::*;
     use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText};
     use crate::dict::dao::KanaText;
@@ -705,7 +705,7 @@ pub fn verify(counter: &Counter, unique: bool) -> bool {
 }
 
 #[cfg(test)]
-mod verify_tests {
+mod test_verify {
     //! Unit coverage targets the three dispatch arms (Tsu, DaysOn,
     //! default) at the boundary values that distinguish them. Bulk
     //! behavioural coverage lives in
@@ -815,7 +815,7 @@ pub fn value_string(counter: &Counter) -> String {
 }
 
 #[cfg(test)]
-mod value_string_tests {
+mod test_value_string {
     //! Unit coverage targets the four dispatch arms at the boundaries
     //! that distinguish them. Bulk behavioural coverage lives in
     //! `corpus/extracted_counter_2026_05_08/dict/value_string.parquet`

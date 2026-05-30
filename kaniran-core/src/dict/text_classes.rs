@@ -94,7 +94,7 @@ fn set_simple_text(simple: &mut KaniSimpleTextDispatchEnum, value: Option<WordCo
 }
 
 #[cfg(test)]
-mod set_word_conjugations_tests {
+mod test_set_word_conjugations {
     use super::*;
     use crate::dict::dao::{KanaText, KanjiText};
     use crate::dict::text_classes::{CompoundText, ProxyText, ScoreMod, SimpleText};

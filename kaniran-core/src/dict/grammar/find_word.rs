@@ -474,7 +474,7 @@ pub async fn find_word_with_suffix(
 }
 
 #[cfg(test)]
-mod find_word_with_conj_prop_tests {
+mod test_find_word_with_conj_prop {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -607,7 +607,7 @@ mod find_word_with_conj_prop_tests {
 }
 
 #[cfg(test)]
-mod find_word_with_conj_type_tests {
+mod test_find_word_with_conj_type {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -705,7 +705,7 @@ mod find_word_with_conj_type_tests {
 }
 
 #[cfg(test)]
-mod pair_words_by_conj_tests {
+mod test_pair_words_by_conj {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::text_classes::SimpleText;
@@ -867,7 +867,7 @@ mod pair_words_by_conj_tests {
 }
 
 #[cfg(test)]
-mod find_word_with_pos_tests {
+mod test_find_word_with_pos {
     use super::*;
 
     /// Kanji input → `kanji_text` dispatch with a single matching row.
@@ -1105,7 +1105,7 @@ mod find_word_with_pos_tests {
 }
 
 #[cfg(test)]
-mod or_as_hiragana_tests {
+mod test_or_as_hiragana {
     use super::*;
     use crate::dict::grammar::find_word::{find_word_with_pos, WordWithPosRows};
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
@@ -1296,7 +1296,7 @@ mod or_as_hiragana_tests {
 }
 
 #[cfg(test)]
-mod find_word_with_suffix_tests {
+mod test_find_word_with_suffix {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {

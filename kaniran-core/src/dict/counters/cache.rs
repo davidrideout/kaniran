@@ -370,7 +370,7 @@ fn digit_kana_char_len(digit: i64) -> usize {
 }
 
 #[cfg(test)]
-mod counter_join_tests {
+mod test_counter_join {
     //! Tests cover the per-branch logic that fixture replay alone
     //! wouldn't pin clearly: the `:c` mod-counter sequencing, the
     //! `:off` early-out, the digit-stem replacement char-length math.

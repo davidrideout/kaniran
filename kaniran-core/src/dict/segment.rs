@@ -704,7 +704,7 @@ pub async fn simple_segment(
 }
 
 #[cfg(test)]
-mod top_array_class_tests {
+mod test_top_array_class {
     use super::*;
 
     #[test]
@@ -717,7 +717,7 @@ mod top_array_class_tests {
 }
 
 #[cfg(test)]
-mod length_multiplier_tests {
+mod test_length_multiplier {
     use super::*;
 
     // REPL fixtures (.103, ichiran/dict::length-multiplier), 2026-05-25.
@@ -750,7 +750,7 @@ mod length_multiplier_tests {
 }
 
 #[cfg(test)]
-mod length_multiplier_coeff_tests {
+mod test_length_multiplier_coeff {
     use super::*;
 
     // All assertions REPL-pinned against upstream ichiran.
@@ -836,7 +836,7 @@ mod length_multiplier_coeff_tests {
 }
 
 #[cfg(test)]
-mod _star_length_coeff_sequences_star_tests {
+mod test__star_length_coeff_sequences_star {
     use super::*;
 
     // REPL-pinned (.103 SBCL, 2026-05-13):
@@ -868,7 +868,7 @@ mod _star_length_coeff_sequences_star_tests {
 }
 
 #[cfg(test)]
-mod kanji_break_penalty_tests {
+mod test_kanji_break_penalty {
     use super::*;
 
     // ----- pure-arithmetic cases (no info, no DB) -----
@@ -1022,7 +1022,7 @@ mod kanji_break_penalty_tests {
 }
 
 #[cfg(test)]
-mod gap_penalty_tests {
+mod test_gap_penalty {
     use super::*;
 
     // REPL-pinned (.103 SBCL 2.2.9, 2026-05-14):
@@ -1042,7 +1042,7 @@ mod gap_penalty_tests {
 }
 
 #[cfg(test)]
-mod find_sticky_positions_tests {
+mod test_find_sticky_positions {
     use super::find_sticky_positions;
 
     #[test]
@@ -1156,7 +1156,7 @@ mod find_sticky_positions_tests {
 }
 
 #[cfg(test)]
-mod make_slice_tests {
+mod test_make_slice {
     use super::*;
 
     /// REPL: `(length (make-slice))` → 0, `(string= (make-slice) "")` → T
@@ -1169,7 +1169,7 @@ mod make_slice_tests {
 }
 
 #[cfg(test)]
-mod subseq_slice_tests {
+mod test_subseq_slice {
     use super::*;
 
     /// REPL: `(subseq-slice nil "あいうえお" 1 3)` → `"いう"` (length 2).
@@ -1269,7 +1269,7 @@ mod subseq_slice_tests {
 }
 
 #[cfg(test)]
-mod compare_common_tests {
+mod test_compare_common {
     use super::*;
     use CompareCommonResult::*;
 
@@ -1367,7 +1367,7 @@ mod compare_common_tests {
 }
 
 #[cfg(test)]
-mod cull_segments_tests {
+mod test_cull_segments {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -1574,7 +1574,7 @@ mod cull_segments_tests {
 }
 
 #[cfg(test)]
-mod get_seg_initial_tests {
+mod test_get_seg_initial {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -1702,7 +1702,7 @@ mod get_seg_initial_tests {
 }
 
 #[cfg(test)]
-mod get_seg_splits_tests {
+mod test_get_seg_splits {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::{ConjProp, KanaText};
@@ -2028,7 +2028,7 @@ mod get_seg_splits_tests {
 }
 
 #[cfg(test)]
-mod get_segment_score_tests {
+mod test_get_segment_score {
     //! All assertions back-checked via REPL on the .103 SBCL — see
     //! `/tmp/probe_gss.lisp` 2026-05-17 run.
     use super::*;
@@ -2162,7 +2162,7 @@ mod get_segment_score_tests {
 }
 
 #[cfg(test)]
-mod dict_segment_tests {
+mod test_dict_segment {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //! Expected paths / scores captured from `ichiran/dict:dict-segment` on
     //! the capture host. Coverage:
@@ -2247,7 +2247,7 @@ mod dict_segment_tests {
 }
 
 #[cfg(test)]
-mod simple_segment_tests {
+mod test_simple_segment {
     //! Mirror of the upstream `segmentation-test` (`tests.lisp:39`), the
     //! canonical unit test for `simple-segment`. Each case maps the
     //! returned word-infos to their text (or `GAP` for gap segments) and

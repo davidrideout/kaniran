@@ -327,7 +327,7 @@ pub async fn abbr_ii(
 }
 
 #[cfg(test)]
-mod abbr_nee_tests {
+mod test_abbr_nee {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -444,7 +444,7 @@ mod abbr_nee_tests {
 }
 
 #[cfg(test)]
-mod abbr_nx_tests {
+mod test_abbr_nx {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -545,7 +545,7 @@ mod abbr_nx_tests {
 }
 
 #[cfg(test)]
-mod abbr_n_tests {
+mod test_abbr_n {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -641,7 +641,7 @@ mod abbr_n_tests {
 }
 
 #[cfg(test)]
-mod abbr_nakereba_tests {
+mod test_abbr_nakereba {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -721,7 +721,7 @@ mod abbr_nakereba_tests {
 }
 
 #[cfg(test)]
-mod abbr_shimasho_tests {
+mod test_abbr_shimasho {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -772,7 +772,7 @@ mod abbr_shimasho_tests {
 }
 
 #[cfg(test)]
-mod abbr_dewanai_tests {
+mod test_abbr_dewanai {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -794,7 +794,7 @@ mod abbr_dewanai_tests {
 }
 
 #[cfg(test)]
-mod abbr_teba_tests {
+mod test_abbr_teba {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -844,7 +844,7 @@ mod abbr_teba_tests {
 }
 
 #[cfg(test)]
-mod abbr_reba_tests {
+mod test_abbr_reba {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -876,7 +876,7 @@ mod abbr_reba_tests {
 }
 
 #[cfg(test)]
-mod abbr_keba_tests {
+mod test_abbr_keba {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -908,7 +908,7 @@ mod abbr_keba_tests {
 }
 
 #[cfg(test)]
-mod abbr_geba_tests {
+mod test_abbr_geba {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -940,7 +940,7 @@ mod abbr_geba_tests {
 }
 
 #[cfg(test)]
-mod abbr_neba_tests {
+mod test_abbr_neba {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -972,7 +972,7 @@ mod abbr_neba_tests {
 }
 
 #[cfg(test)]
-mod abbr_beba_tests {
+mod test_abbr_beba {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -1030,7 +1030,7 @@ mod abbr_beba_tests {
 }
 
 #[cfg(test)]
-mod abbr_meba_tests {
+mod test_abbr_meba {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -1062,7 +1062,7 @@ mod abbr_meba_tests {
 }
 
 #[cfg(test)]
-mod abbr_seba_tests {
+mod test_abbr_seba {
     use super::*;
     use crate::dict::kani::KaniSimpleTextDispatchEnum;
 
@@ -1094,7 +1094,7 @@ mod abbr_seba_tests {
 }
 
 #[cfg(test)]
-mod abbr_ii_tests {
+mod test_abbr_ii {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {

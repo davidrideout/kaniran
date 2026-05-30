@@ -704,7 +704,7 @@ pub fn apply_score_mod(score_mod: &ScoreMod, score: i64, len: i64) -> i64 {
 }
 
 #[cfg(test)]
-mod calc_score_tests {
+mod test_calc_score {
     use super::*;
     use crate::dict::find_word::{find_word, FindWordRows};
     use crate::dict::segment::KaniSplitInfo;
@@ -1222,7 +1222,7 @@ mod calc_score_tests {
 }
 
 #[cfg(test)]
-mod gen_score_tests {
+mod test_gen_score {
     use super::*;
     use crate::dict::find_word::{find_word, FindWordRows};
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -1357,7 +1357,7 @@ mod gen_score_tests {
 }
 
 #[cfg(test)]
-mod apply_score_mod_tests {
+mod test_apply_score_mod {
     use super::*;
 
     // All assertions REPL-pinned against upstream ichiran.

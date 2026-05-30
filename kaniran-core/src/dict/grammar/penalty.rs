@@ -99,7 +99,7 @@ pub fn get_penalties(
 }
 
 #[cfg(test)]
-mod penalty_short_tests {
+mod test_penalty_short {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -227,7 +227,7 @@ mod penalty_short_tests {
 }
 
 #[cfg(test)]
-mod penalty_semi_final_tests {
+mod test_penalty_semi_final {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -346,7 +346,7 @@ mod penalty_semi_final_tests {
 }
 
 #[cfg(test)]
-mod get_penalties_tests {
+mod test_get_penalties {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;

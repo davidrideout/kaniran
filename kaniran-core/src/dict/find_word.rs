@@ -746,7 +746,7 @@ pub async fn word_readings(
 }
 
 #[cfg(test)]
-mod find_substring_words_tests {
+mod test_find_substring_words {
     //! Per-key buckets cross-checked against the local ichiran Postgres
     //! (2026-05-25), the same DB these tests query. Each bucket is
     //! compared as a sorted `(seq, ord, common)` list: the populating
@@ -975,7 +975,7 @@ mod find_substring_words_tests {
 }
 
 #[cfg(test)]
-mod find_words_seqs_tests {
+mod test_find_words_seqs {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -1097,7 +1097,7 @@ mod find_words_seqs_tests {
 }
 
 #[cfg(test)]
-mod find_word_full_tests {
+mod test_find_word_full {
     use super::*;
     use crate::dict::text_classes::ScoreMod;
 
@@ -1302,7 +1302,7 @@ mod find_word_full_tests {
 }
 
 #[cfg(test)]
-mod find_word_info_tests {
+mod test_find_word_info {
     //! Ground truth captured from `ichiran/dict:find-word-info` on .103
     //! (2026-05-25) with `(init-suffixes t t)` forced first so the suffix
     //! cache is fully populated — matching `KaniranContext::from_env`'s
@@ -1620,7 +1620,7 @@ mod find_word_info_tests {
 }
 
 #[cfg(test)]
-mod find_word_info_json_tests {
+mod test_find_word_info_json {
     //! Ground truth from `(jsown:to-json (find-word-info-json …))` on .103
     //! (2026-05-25) after `(init-suffixes t t)`. jsown's `\uXXXX` decoded to
     //! the raw-UTF-8 serde_json emits. Local DB per project policy.
@@ -1684,7 +1684,7 @@ mod find_word_info_json_tests {
 }
 
 #[cfg(test)]
-mod find_word_kana_pattern_tests {
+mod test_find_word_kana_pattern {
     use super::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -1745,7 +1745,7 @@ mod find_word_kana_pattern_tests {
 }
 
 #[cfg(test)]
-mod find_kanji_for_pattern_tests {
+mod test_find_kanji_for_pattern {
     use super::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -1794,7 +1794,7 @@ mod find_kanji_for_pattern_tests {
 }
 
 #[cfg(test)]
-mod exists_reading_tests {
+mod test_exists_reading {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -1832,7 +1832,7 @@ mod exists_reading_tests {
 }
 
 #[cfg(test)]
-mod get_candidates_tests {
+mod test_get_candidates {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //! REPL probe pinned 2026-05-22 covers both branches and the no-row
     //! cases:
@@ -1890,7 +1890,7 @@ mod get_candidates_tests {
 }
 
 #[cfg(test)]
-mod get_non_arch_posi_tests {
+mod test_get_non_arch_posi {
     use super::*;
     use crate::conn::kani_context::KaniranContext;
 
@@ -2032,7 +2032,7 @@ mod get_non_arch_posi_tests {
 }
 
 #[cfg(test)]
-mod word_readings_tests {
+mod test_word_readings {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //! REPL fixtures (.103, ichiran/dict:word-readings), 2026-05-25.
     use super::*;

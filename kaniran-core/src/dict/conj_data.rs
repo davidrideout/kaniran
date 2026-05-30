@@ -545,7 +545,7 @@ pub async fn print_conj_info(
 }
 
 #[cfg(test)]
-mod conj_info_short_tests {
+mod test_conj_info_short {
     use super::*;
 
     fn prop(pos: &str, conj_type: i32, neg: Option<bool>, fml: Option<bool>) -> ConjProp {
@@ -611,7 +611,7 @@ mod conj_info_short_tests {
 }
 
 #[cfg(test)]
-mod conj_info_json_tests {
+mod test_conj_info_json {
     use super::*;
     use std::sync::Arc;
 
@@ -700,7 +700,7 @@ mod conj_info_json_tests {
 }
 
 #[cfg(test)]
-mod conj_info_json_star_tests {
+mod test_conj_info_json_star {
     use super::*;
     use std::sync::Arc;
 
@@ -848,7 +848,7 @@ mod conj_info_json_star_tests {
 }
 
 #[cfg(test)]
-mod conj_prop_json_tests {
+mod test_conj_prop_json {
     use super::*;
 
     fn prop(conj_type: i32, pos: &str, neg: Option<bool>, fml: Option<bool>) -> ConjProp {
@@ -921,7 +921,7 @@ mod conj_prop_json_tests {
 }
 
 #[cfg(test)]
-mod conj_type_order_tests {
+mod test_conj_type_order {
     use super::*;
 
     /// REPL fixtures (.103, `ichiran/dict::conj-type-order`), 2026-05-24.
@@ -940,7 +940,7 @@ mod conj_type_order_tests {
 }
 
 #[cfg(test)]
-mod select_conjs_tests {
+mod test_select_conjs {
     use super::*;
     use std::sync::Arc;
 
@@ -1022,7 +1022,7 @@ mod select_conjs_tests {
 }
 
 #[cfg(test)]
-mod select_conjs_and_props_tests {
+mod test_select_conjs_and_props {
     use super::*;
     use std::sync::Arc;
 
@@ -1188,7 +1188,7 @@ mod select_conjs_and_props_tests {
 }
 
 #[cfg(test)]
-mod filter_props_tests {
+mod test_filter_props {
     use super::*;
 
     fn prop(conj_id: i32, conj_type: i32, pos: &str) -> ConjProp {
@@ -1242,7 +1242,7 @@ mod filter_props_tests {
 }
 
 #[cfg(test)]
-mod print_conj_info_tests {
+mod test_print_conj_info {
     use super::*;
     use std::sync::Arc;
 

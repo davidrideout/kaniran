@@ -597,7 +597,7 @@ pub fn is_rareru(text: &str) -> bool {
 }
 
 #[cfg(test)]
-mod get_senses_tests {
+mod test_get_senses {
     //! All expected values pinned against .103 REPL runs of
     //! `(ichiran/dict::get-senses <seq>)`. Run with `--test-threads=1`.
     use super::*;
@@ -695,7 +695,7 @@ mod get_senses_tests {
 }
 
 #[cfg(test)]
-mod get_senses_raw_tests {
+mod test_get_senses_raw {
     //! All expected values pinned against .103 REPL runs of
     //! `(get-senses-raw <seq>)`. Test threads must be 1 —
     //! `cargo test --test-threads=1` per the project's DB-test
@@ -888,7 +888,7 @@ mod get_senses_raw_tests {
 }
 
 #[cfg(test)]
-mod get_senses_str_tests {
+mod test_get_senses_str {
     //! All expected values pinned against .103 REPL runs of
     //! `(ichiran/dict::get-senses-str <seq>)`. Run with `--test-threads=1`.
     use super::*;
@@ -1005,7 +1005,7 @@ mod get_senses_str_tests {
 }
 
 #[cfg(test)]
-mod get_senses_json_tests {
+mod test_get_senses_json {
     use super::*;
     use crate::dict::dao::{KanaText, KanjiText};
     use std::future::Ready;
@@ -1227,7 +1227,7 @@ mod get_senses_json_tests {
 }
 
 #[cfg(test)]
-mod match_kana_kanji_tests {
+mod test_match_kana_kanji {
     use super::*;
     use crate::dict::dao::{KanaText, KanjiText};
     use crate::dict::text_classes::SimpleText;
@@ -1340,7 +1340,7 @@ mod match_kana_kanji_tests {
 }
 
 #[cfg(test)]
-mod match_sense_restrictions_tests {
+mod test_match_sense_restrictions {
     use super::*;
     use crate::dict::senses::get_senses_raw;
     use std::sync::Arc;
@@ -1560,7 +1560,7 @@ mod match_sense_restrictions_tests {
 }
 
 #[cfg(test)]
-mod split_pos_tests {
+mod test_split_pos {
     use super::*;
 
     /// REPL fixtures (.103, `ichiran/dict::split-pos`), 2026-05-24.
@@ -1581,7 +1581,7 @@ mod split_pos_tests {
 }
 
 #[cfg(test)]
-mod short_sense_str_tests {
+mod test_short_sense_str {
     use super::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -1622,7 +1622,7 @@ mod short_sense_str_tests {
 }
 
 #[cfg(test)]
-mod reading_str_tests {
+mod test_reading_str {
     use super::*;
     use crate::dict::find_word::{find_word, FindWordRows};
 
@@ -1692,7 +1692,7 @@ mod reading_str_tests {
 }
 
 #[cfg(test)]
-mod reading_str_seq_tests {
+mod test_reading_str_seq {
     use super::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -1726,7 +1726,7 @@ mod reading_str_seq_tests {
 }
 
 #[cfg(test)]
-mod reading_str_star_tests {
+mod test_reading_str_star {
     use super::*;
 
     /// REPL fixtures (.103, `ichiran/dict::reading-str*`), 2026-05-24.
@@ -1751,7 +1751,7 @@ mod reading_str_star_tests {
 }
 
 #[cfg(test)]
-mod entry_info_short_tests {
+mod test_entry_info_short {
     use super::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -1788,7 +1788,7 @@ mod entry_info_short_tests {
 }
 
 #[cfg(test)]
-mod entry_info_long_tests {
+mod test_entry_info_long {
     use super::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -1828,7 +1828,7 @@ mod entry_info_long_tests {
 }
 
 #[cfg(test)]
-mod get_glosses_tests {
+mod test_get_glosses {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //! REPL probe pinned 2026-05-22 using `(get-glosses ...)` after
     //! `(ichiran/conn:with-db nil ...)`. Verifies the upstream
@@ -1905,7 +1905,7 @@ mod get_glosses_tests {
 }
 
 #[cfg(test)]
-mod match_glosses_tests {
+mod test_match_glosses {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //! REPL probe pinned 2026-05-22 against `(match-glosses ...)` after
     //! `(ichiran/conn:with-db nil ...)`. Coverage:
@@ -2048,7 +2048,7 @@ mod match_glosses_tests {
 }
 
 #[cfg(test)]
-mod is_rareru_tests {
+mod test_is_rareru {
     use super::*;
 
     /// REPL fixtures (.103, `ichiran/dict::is-rareru`), 2026-05-24.

@@ -340,7 +340,7 @@ pub async fn recalc_entry_stats_all(ctx: &KaniranContext) -> Result<u64, sqlx::E
 }
 
 #[cfg(test)]
-mod entry_digest_tests {
+mod test_entry_digest {
     use super::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -385,7 +385,7 @@ mod entry_digest_tests {
 }
 
 #[cfg(test)]
-mod recalc_entry_stats_tests {
+mod test_recalc_entry_stats {
     use super::*;
 
     // Idempotent on a consistent dictionary: the UPDATE rewrites each
@@ -477,7 +477,7 @@ mod recalc_entry_stats_tests {
 }
 
 #[cfg(test)]
-mod recalc_entry_stats_all_tests {
+mod test_recalc_entry_stats_all {
     use super::*;
 
     // Idempotent on a consistent dictionary: every entry's stored

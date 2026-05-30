@@ -415,7 +415,7 @@ pub fn apply_segfilters(
 }
 
 #[cfg(test)]
-mod def_segfilter_must_follow_macro_tests {
+mod test_def_segfilter_must_follow_macro {
     //! Synthetic-filter tests pinning each branch of the macro
     //! expansion independent of any specific dictionary lookup. The
     //! per-callsite segfilter_*.rs files cover the full pipeline with
@@ -617,7 +617,7 @@ mod def_segfilter_must_follow_macro_tests {
 }
 
 #[cfg(test)]
-mod segfilter_aux_verb_tests {
+mod test_segfilter_aux_verb {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::{ConjProp, KanaText};
@@ -877,7 +877,7 @@ mod segfilter_aux_verb_tests {
 }
 
 #[cfg(test)]
-mod segfilter_tsu_iru_tests {
+mod test_segfilter_tsu_iru {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -993,7 +993,7 @@ mod segfilter_tsu_iru_tests {
 }
 
 #[cfg(test)]
-mod segfilter_n_tests {
+mod test_segfilter_n {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -1313,7 +1313,7 @@ mod segfilter_n_tests {
 }
 
 #[cfg(test)]
-mod segfilter_wokarasu_tests {
+mod test_segfilter_wokarasu {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -1498,7 +1498,7 @@ mod segfilter_wokarasu_tests {
 }
 
 #[cfg(test)]
-mod segfilter_badend_tests {
+mod test_segfilter_badend {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -1649,7 +1649,7 @@ mod segfilter_badend_tests {
 }
 
 #[cfg(test)]
-mod segfilter_sukiyoki_tests {
+mod test_segfilter_sukiyoki {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::{ConjProp, KanaText};
@@ -1894,7 +1894,7 @@ mod segfilter_sukiyoki_tests {
 }
 
 #[cfg(test)]
-mod segfilter_roku_tests {
+mod test_segfilter_roku {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -2048,7 +2048,7 @@ mod segfilter_roku_tests {
 }
 
 #[cfg(test)]
-mod segfilter_sae_tests {
+mod test_segfilter_sae {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -2217,7 +2217,7 @@ mod segfilter_sae_tests {
 }
 
 #[cfg(test)]
-mod segfilter_janai_tests {
+mod test_segfilter_janai {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -2456,7 +2456,7 @@ mod segfilter_janai_tests {
 }
 
 #[cfg(test)]
-mod segfilter_nohayamete_tests {
+mod test_segfilter_nohayamete {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -2596,7 +2596,7 @@ mod segfilter_nohayamete_tests {
 }
 
 #[cfg(test)]
-mod segfilter_toomou_tests {
+mod test_segfilter_toomou {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -2717,7 +2717,7 @@ mod segfilter_toomou_tests {
 }
 
 #[cfg(test)]
-mod segfilter_totte_tests {
+mod test_segfilter_totte {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -2833,7 +2833,7 @@ mod segfilter_totte_tests {
 }
 
 #[cfg(test)]
-mod segfilter_dashi_tests {
+mod test_segfilter_dashi {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -3071,7 +3071,7 @@ mod segfilter_dashi_tests {
 }
 
 #[cfg(test)]
-mod segfilter_dekiru_tests {
+mod test_segfilter_dekiru {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -3294,7 +3294,7 @@ mod segfilter_dekiru_tests {
 }
 
 #[cfg(test)]
-mod segfilter_honorific_tests {
+mod test_segfilter_honorific {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -3521,7 +3521,7 @@ mod segfilter_honorific_tests {
 }
 
 #[cfg(test)]
-mod segfilter_mononi_tests {
+mod test_segfilter_mononi {
     use super::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;
@@ -3660,7 +3660,7 @@ mod segfilter_mononi_tests {
 }
 
 #[cfg(test)]
-mod apply_segfilters_tests {
+mod test_apply_segfilters {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::{ConjProp, KanaText};

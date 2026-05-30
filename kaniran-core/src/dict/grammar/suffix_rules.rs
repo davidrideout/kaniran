@@ -1081,7 +1081,7 @@ pub fn parse_suffix_val<'a, 'b>(
 }
 
 #[cfg(test)]
-mod suffix_tai_tests {
+mod test_suffix_tai {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -1238,7 +1238,7 @@ mod suffix_tai_tests {
 }
 
 #[cfg(test)]
-mod suffix_ren_tests {
+mod test_suffix_ren {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -1390,7 +1390,7 @@ mod suffix_ren_tests {
 
 #[cfg(test)]
 #[allow(non_snake_case)]
-mod suffix_ren__tests {
+mod test_suffix_ren_ {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -1508,7 +1508,7 @@ mod suffix_ren__tests {
 }
 
 #[cfg(test)]
-mod suffix_neg_tests {
+mod test_suffix_neg {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -1649,7 +1649,7 @@ mod suffix_neg_tests {
 }
 
 #[cfg(test)]
-mod te_check_tests {
+mod test_te_check {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -1736,7 +1736,7 @@ mod te_check_tests {
 }
 
 #[cfg(test)]
-mod suffix_te_tests {
+mod test_suffix_te {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -1830,7 +1830,7 @@ mod suffix_te_tests {
 }
 
 #[cfg(test)]
-mod teiru_check_tests {
+mod test_teiru_check {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -1899,7 +1899,7 @@ mod teiru_check_tests {
 }
 
 #[cfg(test)]
-mod suffix_teiru_tests {
+mod test_suffix_teiru {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -1985,7 +1985,7 @@ mod suffix_teiru_tests {
 }
 
 #[cfg(test)]
-mod suffix_teiru_plus_tests {
+mod test_suffix_teiru_plus {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -2061,7 +2061,7 @@ mod suffix_teiru_plus_tests {
 }
 
 #[cfg(test)]
-mod suffix_te_plus_space_tests {
+mod test_suffix_te_plus_space {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -2139,7 +2139,7 @@ mod suffix_te_plus_space_tests {
 }
 
 #[cfg(test)]
-mod suffix_kudasai_tests {
+mod test_suffix_kudasai {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -2228,7 +2228,7 @@ mod suffix_kudasai_tests {
 }
 
 #[cfg(test)]
-mod suffix_te_ren_tests {
+mod test_suffix_te_ren {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -2352,7 +2352,7 @@ mod suffix_te_ren_tests {
 }
 
 #[cfg(test)]
-mod suffix_teii_tests {
+mod test_suffix_teii {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -2450,7 +2450,7 @@ mod suffix_teii_tests {
 }
 
 #[cfg(test)]
-mod suffix_chau_tests {
+mod test_suffix_chau {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -2594,7 +2594,7 @@ mod suffix_chau_tests {
 }
 
 #[cfg(test)]
-mod suffix_to_tests {
+mod test_suffix_to {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -2769,7 +2769,7 @@ mod suffix_to_tests {
 }
 
 #[cfg(test)]
-mod suffix_suru_tests {
+mod test_suffix_suru {
     use super::*;
     use crate::dict::text_classes::SimpleText;
 
@@ -2879,7 +2879,7 @@ mod suffix_suru_tests {
 }
 
 #[cfg(test)]
-mod apply_patch_tests {
+mod test_apply_patch {
     use super::*;
 
     /// REPL: `(ichiran/dict::apply-patch "なさ" (cons "い" "さ"))` → `"ない"`.
@@ -2939,7 +2939,7 @@ mod apply_patch_tests {
 }
 
 #[cfg(test)]
-mod suffix_sou_tests {
+mod test_suffix_sou {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -3130,7 +3130,7 @@ mod suffix_sou_tests {
 }
 
 #[cfg(test)]
-mod suffix_sou_plus_tests {
+mod test_suffix_sou_plus {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -3256,7 +3256,7 @@ mod suffix_sou_plus_tests {
 }
 
 #[cfg(test)]
-mod suffix_rou_tests {
+mod test_suffix_rou {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -3374,7 +3374,7 @@ mod suffix_rou_tests {
 }
 
 #[cfg(test)]
-mod suffix_adv_tests {
+mod test_suffix_adv {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -3484,7 +3484,7 @@ mod suffix_adv_tests {
 }
 
 #[cfg(test)]
-mod suffix_sugiru_tests {
+mod test_suffix_sugiru {
     use super::*;
     use crate::dict::text_classes::SimpleText;
 
@@ -3690,7 +3690,7 @@ mod suffix_sugiru_tests {
 }
 
 #[cfg(test)]
-mod suffix_sa_tests {
+mod test_suffix_sa {
     use super::*;
     use crate::dict::text_classes::SimpleText;
 
@@ -3884,7 +3884,7 @@ mod suffix_sa_tests {
 }
 
 #[cfg(test)]
-mod suffix_iadj_tests {
+mod test_suffix_iadj {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -4000,7 +4000,7 @@ mod suffix_iadj_tests {
 }
 
 #[cfg(test)]
-mod suffix_garu_tests {
+mod test_suffix_garu {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -4193,7 +4193,7 @@ mod suffix_garu_tests {
 }
 
 #[cfg(test)]
-mod suffix_ra_tests {
+mod test_suffix_ra {
     use super::*;
     use crate::dict::text_classes::SimpleText;
 
@@ -4397,7 +4397,7 @@ mod suffix_ra_tests {
 }
 
 #[cfg(test)]
-mod suffix_rashii_tests {
+mod test_suffix_rashii {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -4573,7 +4573,7 @@ mod suffix_rashii_tests {
 }
 
 #[cfg(test)]
-mod suffix_desu_tests {
+mod test_suffix_desu {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -4722,7 +4722,7 @@ mod suffix_desu_tests {
 }
 
 #[cfg(test)]
-mod suffix_desho_tests {
+mod test_suffix_desho {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -4869,7 +4869,7 @@ mod suffix_desho_tests {
 }
 
 #[cfg(test)]
-mod suffix_tosuru_tests {
+mod test_suffix_tosuru {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -4999,7 +4999,7 @@ mod suffix_tosuru_tests {
 }
 
 #[cfg(test)]
-mod suffix_kurai_tests {
+mod test_suffix_kurai {
     use super::*;
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::text_classes::SimpleText;
@@ -5115,7 +5115,7 @@ mod suffix_kurai_tests {
 }
 
 #[cfg(test)]
-mod parse_suffix_val_tests {
+mod test_parse_suffix_val {
     use super::*;
     use crate::dict::text_classes::SimpleText;
 

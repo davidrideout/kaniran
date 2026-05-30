@@ -473,7 +473,7 @@ mod tests {
         }
     }
 
-    mod construct_conjugation_tests {
+    mod test_construct_conjugation {
         use super::*;
 
         fn rule(stem: i32, okuri: &str, euphr: &str, euphk: &str) -> ConjugationRule {
@@ -529,7 +529,7 @@ mod tests {
         }
     }
 
-    mod lex_compare_tests {
+    mod test_lex_compare {
         use super::*;
 
         /// REPL: `(funcall (lex-compare #'<) #(1 2 3) #(1 2 4))` → `T`.

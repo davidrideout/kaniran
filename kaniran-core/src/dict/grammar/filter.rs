@@ -122,7 +122,7 @@ where
 }
 
 #[cfg(test)]
-mod filter_is_pos_macro_tests {
+mod test_filter_is_pos_macro {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -380,7 +380,7 @@ mod filter_is_pos_macro_tests {
 }
 
 #[cfg(test)]
-mod filter_in_seq_set_tests {
+mod test_filter_in_seq_set {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -474,7 +474,7 @@ mod filter_in_seq_set_tests {
 }
 
 #[cfg(test)]
-mod filter_short_kana_tests {
+mod test_filter_short_kana {
     use super::*;
     use crate::dict::conj_data::ConjData;
     use crate::dict::dao::KanaText;
@@ -692,7 +692,7 @@ mod filter_short_kana_tests {
 }
 
 #[cfg(test)]
-mod classify_tests {
+mod test_classify {
     use super::*;
 
     #[test]

@@ -876,7 +876,7 @@ fn leaf_slots(leaf: &KaniSimpleTextDispatchEnum) -> (i32, &Option<WordConjugatio
 }
 
 #[cfg(test)]
-mod word_info_from_segment_tests {
+mod test_word_info_from_segment {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //! Each test exercises one branch of the segment-word dispatch and
     //! confirms the slot mapping against REPL-captured ground truth.
@@ -1033,7 +1033,7 @@ mod word_info_from_segment_tests {
 }
 
 #[cfg(test)]
-mod word_info_from_segment_list_tests {
+mod test_word_info_from_segment_list {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //!
     //! Per-branch coverage:
@@ -1212,7 +1212,7 @@ mod word_info_from_segment_list_tests {
 }
 
 #[cfg(test)]
-mod word_info_from_text_tests {
+mod test_word_info_from_text {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //!
     //! Every case is a single-survivor result (`skipped = 0`, i.e.
@@ -1338,7 +1338,7 @@ mod word_info_from_text_tests {
 }
 
 #[cfg(test)]
-mod simple_word_info_tests {
+mod test_simple_word_info {
     use super::*;
 
     /// REPL fixture (.103, `simple-word-info ... :as :json`), 2026-05-25.
@@ -1383,7 +1383,7 @@ mod simple_word_info_tests {
 }
 
 #[cfg(test)]
-mod simplify_reading_list_tests {
+mod test_simplify_reading_list {
     use super::*;
 
     fn srl(readings: &[&str]) -> Vec<String> {
@@ -1427,7 +1427,7 @@ mod simplify_reading_list_tests {
 }
 
 #[cfg(test)]
-mod word_info_json_tests {
+mod test_word_info_json {
     use super::*;
 
     fn single_kana(s: &str) -> Option<WordInfoKana> {
@@ -1576,7 +1576,7 @@ mod word_info_json_tests {
 }
 
 #[cfg(test)]
-mod word_info_gloss_json_tests {
+mod test_word_info_gloss_json {
     //! Ground truth captured from `(jsown:to-json (word-info-gloss-json …))`
     //! and `find-word-info-json` on .103 (2026-05-25) after `(init-suffixes t t)`.
     //! jsown emits `\uXXXX`; the expected strings below are the
@@ -1704,7 +1704,7 @@ mod word_info_gloss_json_tests {
 }
 
 #[cfg(test)]
-mod def_reader_for_json_macro_tests {
+mod test_def_reader_for_json_macro {
     use super::*;
     use serde_json::json;
 
@@ -1783,7 +1783,7 @@ mod def_reader_for_json_macro_tests {
 }
 
 #[cfg(test)]
-mod register_item_tests {
+mod test_register_item {
     use super::*;
     use crate::dict::segment::SegmentList;
 
@@ -1950,7 +1950,7 @@ mod register_item_tests {
 }
 
 #[cfg(test)]
-mod word_type_tests {
+mod test_word_type {
     use super::*;
     use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText};
     use crate::dict::dao::{KanaText, KanjiText};

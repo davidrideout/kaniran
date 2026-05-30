@@ -239,7 +239,7 @@ pub async fn find_word_suffix(
 }
 
 #[cfg(test)]
-mod get_suffix_map_tests {
+mod test_get_suffix_map {
     use super::*;
     use crate::conn::kani_context::KaniranContext;
 
@@ -471,7 +471,7 @@ mod get_suffix_map_tests {
 }
 
 #[cfg(test)]
-mod get_suffixes_tests {
+mod test_get_suffixes {
     use super::*;
     use crate::conn::kani_context::KaniranContext;
 
@@ -602,7 +602,7 @@ mod get_suffixes_tests {
 }
 
 #[cfg(test)]
-mod match_unique_tests {
+mod test_match_unique {
     use super::*;
     use crate::conn::kani_context::KaniranContext;
     use crate::dict::dao::KanaText;
@@ -841,7 +841,7 @@ mod match_unique_tests {
 }
 
 #[cfg(test)]
-mod find_word_suffix_tests {
+mod test_find_word_suffix {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {

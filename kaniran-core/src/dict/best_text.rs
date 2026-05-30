@@ -734,7 +734,7 @@ fn word_info_seq_single(word_info: &WordInfo) -> Option<i32> {
 }
 
 #[cfg(test)]
-mod get_original_text_once_tests {
+mod test_get_original_text_once {
     use super::*;
     use crate::dict::conj_data::make_conj_data;
 
@@ -805,7 +805,7 @@ mod get_original_text_once_tests {
 }
 
 #[cfg(test)]
-mod get_kanji_words_tests {
+mod test_get_kanji_words {
     //! Every assertion is REPL-verified against the .103 SBCL via
     //! `(ichiran/dict::get-kanji-words …)` (2026-05-25 probe).
     //! Run with `-- --test-threads=1` per the DB-test convention.
@@ -871,7 +871,7 @@ mod get_kanji_words_tests {
 }
 
 #[cfg(test)]
-mod get_array_tests {
+mod test_get_array {
     use super::*;
     use crate::dict::segment::{PathElement, SegmentList, TopArrayItem};
 
@@ -945,7 +945,7 @@ mod get_array_tests {
 }
 
 #[cfg(test)]
-mod map_word_info_kana_tests {
+mod test_map_word_info_kana {
     use super::*;
 
     fn wi(kana: Option<WordInfoKana>) -> WordInfo {
@@ -1007,7 +1007,7 @@ mod map_word_info_kana_tests {
 }
 
 #[cfg(test)]
-mod word_info_reading_tests {
+mod test_word_info_reading {
     use super::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -1095,7 +1095,7 @@ mod word_info_reading_tests {
 }
 
 #[cfg(test)]
-mod word_info_reading_str_tests {
+mod test_word_info_reading_str {
     use super::*;
     use crate::dict::word_info::WordInfoSeq;
 
@@ -1207,7 +1207,7 @@ mod word_info_reading_str_tests {
 }
 
 #[cfg(test)]
-mod word_info_str_tests {
+mod test_word_info_str {
     use super::*;
     use crate::dict::word_info::{WordInfoKana, WordInfoType};
     use std::sync::Arc;

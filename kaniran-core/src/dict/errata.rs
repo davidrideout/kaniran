@@ -422,7 +422,7 @@ fn match_bool(token: FormToken, value: Option<bool>) -> bool {
 mod tests {
     use super::*;
 
-    mod errata_conj_rules_hook_tests {
+    mod test_errata_conj_rules_hook {
         use super::*;
 
         type RuleTuple = (i32, i32, bool, bool, i32, i32, String, String, String);
@@ -503,7 +503,7 @@ mod tests {
         }
     }
 
-    mod test_conj_prop_tests {
+    mod test_test_conj_prop {
         use super::*;
 
         fn prop(pos: &str, conj_type: i32, neg: Option<bool>, fml: Option<bool>) -> ConjProp {

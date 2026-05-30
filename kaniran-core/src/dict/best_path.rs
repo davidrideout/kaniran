@@ -686,7 +686,7 @@ pub const SEGMENT_SCORE_CUTOFF: (i64, i64) = (2, 3);
 pub type SuffixMapTemp = HashMap<usize, Vec<(String, String, Option<KanaText>)>>;
 
 #[cfg(test)]
-mod find_best_path_tests {
+mod test_find_best_path {
     //! Empty-input unit tests pinned against `.103` REPL probes
     //! (SBCL 2.2.9, 2026-05-19). The DB-dependent non-empty paths
     //! (outer loop, get-seg-initial, get-seg-splits accumulation) are
@@ -743,7 +743,7 @@ mod find_best_path_tests {
 }
 
 #[cfg(test)]
-mod adjoin_word_tests {
+mod test_adjoin_word {
     use super::*;
     use crate::dict::dao::{KanaText, KanjiText};
     use crate::dict::text_classes::SimpleText;
@@ -1280,7 +1280,7 @@ mod adjoin_word_tests {
 }
 
 #[cfg(test)]
-mod join_substring_words_tests {
+mod test_join_substring_words {
     //! Every assertion is REPL-verified against the .103 SBCL via
     //! `(ichiran/dict::join-substring-words …)` (2026-05-23 probe runs).
     //! Run with `cargo test ... -- --test-threads=1` per the DB-test
@@ -1426,7 +1426,7 @@ mod join_substring_words_tests {
 }
 
 #[cfg(test)]
-mod join_substring_words_star_tests {
+mod test_join_substring_words_star {
     //! Every assertion is REPL-verified against the .103 SBCL via
     //! `(ichiran/dict::join-substring-words* …)` (2026-05-23 probe runs).
     //! Run with `cargo test ... -- --test-threads=1` per the DB-test
@@ -1601,7 +1601,7 @@ mod join_substring_words_star_tests {
 }
 
 #[cfg(test)]
-mod substring_index_tests {
+mod test_substring_index {
     //! Every assertion is REPL-verified against the .103 SBCL via
     //! `(ichiran/dict::substring-index …)` (2026-05-25 probe).
     //! Run with `-- --test-threads=1` per the DB-test convention.
@@ -1677,7 +1677,7 @@ mod substring_index_tests {
 }
 
 #[cfg(test)]
-mod fill_segment_path_tests {
+mod test_fill_segment_path {
     //! Unit tests against the real .103 PG via `KaniranContext::from_env()`.
     //! Coverage:
     //! - leading / internal / trailing gap insertion
@@ -1846,7 +1846,7 @@ mod fill_segment_path_tests {
 }
 
 #[cfg(test)]
-mod word_info_rec_find_tests {
+mod test_word_info_rec_find {
     //! REPL fixtures (.103, ichiran/dict:word-info-rec-find), 2026-05-25.
     //! Each case runs `word-info-rec-find` over a synthetic word-info
     //! tree (parent `P` with components `こ` / `ねこ`, sibling `S`) and
@@ -1924,7 +1924,7 @@ mod word_info_rec_find_tests {
 }
 
 #[cfg(test)]
-mod process_word_info_tests {
+mod test_process_word_info {
     use super::*;
     use crate::dict::word_info::WordInfoType;
 

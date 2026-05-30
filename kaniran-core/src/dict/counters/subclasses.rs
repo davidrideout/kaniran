@@ -143,7 +143,7 @@ impl CounterHifumi {
 }
 
 #[cfg(test)]
-mod counter_hifumi_class_tests {
+mod test_counter_hifumi_class {
     use super::*;
     use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText};
 

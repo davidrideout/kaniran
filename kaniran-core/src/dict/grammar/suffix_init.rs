@@ -788,7 +788,7 @@ pub fn get_suffix_description(ctx: &KaniranContext, seq: i32) -> Option<&'static
 }
 
 #[cfg(test)]
-mod _star_suffix_description_star_tests {
+mod test__star_suffix_description_star {
     use super::*;
 
     /// Cardinality and spot-check against the live image. Probed
@@ -860,7 +860,7 @@ mod _star_suffix_description_star_tests {
 }
 
 #[cfg(test)]
-mod _star_suffix_list_star_tests {
+mod test__star_suffix_list_star {
     use super::*;
 
     /// Every upstream-published keyword resolves through `lookup_suffix_fn`.
@@ -910,7 +910,7 @@ mod _star_suffix_list_star_tests {
 }
 
 #[cfg(test)]
-mod get_suffix_description_tests {
+mod test_get_suffix_description {
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {

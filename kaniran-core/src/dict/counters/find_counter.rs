@@ -189,7 +189,7 @@ fn nokanji_counter(c: &Counter) -> bool {
 }
 
 #[cfg(test)]
-mod nokanji_tests {
+mod test_nokanji {
     use super::*;
     use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText};
     use crate::dict::dao::KanaText;
@@ -304,7 +304,7 @@ pub fn ordinal_str(n: i64) -> String {
 }
 
 #[cfg(test)]
-mod ordinal_str_tests {
+mod test_ordinal_str {
     //! Unit tests cover the three teen-band edges plus a sample of
     //! each digit-suffix case. Bulk behavioural coverage lives in
     //! `corpus/extracted_counter_2026_05_08/dict/ordinal_str.parquet`

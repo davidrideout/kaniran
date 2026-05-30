@@ -703,7 +703,7 @@ fn find_segsplit_def(seq: i32, conj_of: &[i32]) -> Option<&'static SegSplitDef> 
 }
 
 #[cfg(test)]
-mod get_segsplit_tests {
+mod test_get_segsplit {
     use super::*;
     use crate::dict::find_word::{find_word, FindWordRows};
     use crate::dict::calc_score::gen_score;
