@@ -6,6 +6,7 @@
 //! (typed-Lisp ports). Currently: [`kani_kana_class`].
 
 pub mod char_class_type;
+pub mod constants;
 pub mod kani_char_class_bare_scanners;
 pub mod kani_kana_class;
 
@@ -39,7 +40,6 @@ pub mod to_normal_char;
 pub mod unrendaku;
 pub mod voice_char;
 
-pub mod _star_abnormal_chars_star_;
 pub mod _star_all_characters_star_;
 pub mod _star_basic_split_regex_star_;
 pub mod _star_char_class_hash_star_;
@@ -48,24 +48,11 @@ pub mod _star_char_scanners_inner_star_;
 pub mod _star_char_scanners_star_;
 pub mod _star_dakuten_hash_star_;
 pub mod _star_dakuten_join_star_;
-pub mod _star_decimal_point_regex_star_;
-pub mod _star_digit_regex_star_;
-pub mod _star_full_width_kana_star_;
-pub mod _star_half_width_kana_star_;
 pub mod _star_handakuten_hash_star_;
-pub mod _star_hiragana_regex_star_;
 pub mod _star_iteration_characters_star_;
 pub mod _star_kana_characters_star_;
-pub mod _star_kanji_char_regex_star_;
-pub mod _star_kanji_regex_star_;
-pub mod _star_katakana_regex_star_;
-pub mod _star_katakana_uniq_regex_star_;
 pub mod _star_modifier_characters_star_;
-pub mod _star_nonword_regex_star_;
 pub mod _star_normal_chars_star_;
-pub mod _star_num_word_regex_star_;
-pub mod _star_numeric_regex_star_;
 pub mod _star_punctuation_marks_star_;
 pub mod _star_sokuon_characters_star_;
 pub mod _star_undakuten_hash_star_;
-pub mod _star_word_regex_star_;

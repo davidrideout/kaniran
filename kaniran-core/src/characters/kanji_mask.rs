@@ -9,7 +9,7 @@ use std::sync::OnceLock;
 
 use fancy_regex::Regex;
 
-use super::_star_kanji_regex_star_::KANJI_REGEX;
+use super::constants::KANJI_REGEX;
 
 static SCANNER: OnceLock<Regex> = OnceLock::new();
 

@@ -3,7 +3,7 @@
 //!
 //! Target side of the abnormal→normal character map: standard ASCII
 //! printables and full-width katakana, paired index-by-index with
-//! [`ABNORMAL_CHARS`][super::_star_abnormal_chars_star_::ABNORMAL_CHARS].
+//! [`ABNORMAL_CHARS`][super::constants::ABNORMAL_CHARS].
 //!
 //! Upstream constructs this as
 //! `(concatenate 'string "<85-char ASCII prefix>" *full-width-kana*)`.
@@ -18,7 +18,7 @@
 
 use std::sync::OnceLock;
 
-use super::_star_full_width_kana_star_::FULL_WIDTH_KANA;
+use super::constants::FULL_WIDTH_KANA;
 
 const ASCII_PREFIX: &str =
     "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#$%&()*+/<=>?@[]^_`{|}~";

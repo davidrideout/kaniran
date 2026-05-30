@@ -15,10 +15,8 @@
 //! preferred to a `bool` so call sites read clearly without consulting
 //! the function signature.
 
-use super::_star_abnormal_chars_star_::ABNORMAL_CHARS;
-use super::_star_full_width_kana_star_::FULL_WIDTH_KANA;
-use super::_star_half_width_kana_star_::HALF_WIDTH_KANA;
 use super::_star_normal_chars_star_::normal_chars;
+use super::constants::{ABNORMAL_CHARS, FULL_WIDTH_KANA, HALF_WIDTH_KANA};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NormalizationContext {
