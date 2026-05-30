@@ -18,8 +18,7 @@
 //! `:handakuten` boolean becomes a 2-variant [`Voicing`] enum
 //! (CONVENTIONS §4.4).
 
-use super::_star_dakuten_hash_star_::dakuten_hash;
-use super::_star_handakuten_hash_star_::handakuten_hash;
+use super::voicing_tables::{dakuten_hash, handakuten_hash};
 use super::get_char_class::get_char_class;
 use super::unrendaku::transpose;
 

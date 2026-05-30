@@ -16,7 +16,7 @@
 //! context` becomes a required [`NormalizationContext`] argument; pass
 //! `Default` at call sites that previously omitted the keyword.
 
-use super::_star_dakuten_join_star_::dakuten_join;
+use super::voicing_tables::dakuten_join;
 use super::_star_punctuation_marks_star_::PUNCTUATION_MARKS;
 use super::simplify_ngrams::simplify_ngrams;
 use super::to_normal_char::{to_normal_char, NormalizationContext};

@@ -7,8 +7,7 @@
 //! replaced with the hiragana glyph for that class (the first char of
 //! the class's `*all-characters*` string).
 
-use super::_star_all_characters_star_::all_characters;
-use super::_star_char_class_hash_star_::char_class_hash;
+use super::kana_class_tables::{all_characters, char_class_hash};
 use super::kani_kana_class::KanaClass;
 use super::to_normal_char::{to_normal_char, NormalizationContext};
 

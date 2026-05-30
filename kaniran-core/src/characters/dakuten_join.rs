@@ -8,12 +8,12 @@
 //! The Lisp returns a flat plist `(in1 out1 in2 out2 ...)`; the Rust
 //! port returns paired `Vec<(String, String)>` directly — the only
 //! consumer of the Lisp output is
-//! [`super::_star_dakuten_join_star_::dakuten_join`], which uses the
+//! [`super::voicing_tables::dakuten_join`], which uses the
 //! pairs as alternation entries.
 
 use std::collections::HashMap;
 
-use super::_star_kana_characters_star_::KANA_CHARACTERS;
+use super::kana_class_tables::KANA_CHARACTERS;
 use super::kani_kana_class::KanaClass;
 
 pub fn dakuten_join(hash: &HashMap<KanaClass, KanaClass>, mark: char) -> Vec<(String, String)> {

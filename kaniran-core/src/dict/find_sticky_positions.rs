@@ -8,9 +8,9 @@
 //!
 //! Returned offsets are **character** positions per CONVENTIONS §4.5.
 
-use crate::characters::_star_iteration_characters_star_::ITERATION_CHARACTERS;
-use crate::characters::_star_kana_characters_star_::KANA_CHARACTERS;
-use crate::characters::_star_modifier_characters_star_::MODIFIER_CHARACTERS;
+use crate::characters::kana_class_tables::{
+    ITERATION_CHARACTERS, KANA_CHARACTERS, MODIFIER_CHARACTERS,
+};
 use crate::characters::get_char_class::get_char_class;
 use crate::characters::kani_kana_class::KanaClass;
 use crate::characters::long_vowel_modifier_p::long_vowel_modifier_p;

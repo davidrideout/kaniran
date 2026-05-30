@@ -2,7 +2,7 @@
 //!
 //! Returns the voiced form of a [`KanaClass`], or the input itself if
 //! the class has no voiced counterpart in
-//! [`super::_star_dakuten_hash_star_::dakuten_hash`]. Only the dakuten
+//! [`super::voicing_tables::dakuten_hash`]. Only the dakuten
 //! mapping is consulted — handakuten (`Ha → Pa` etc.) is not.
 //!
 //! The Lisp idiom `(gethash cc *dakuten-hash* cc)` falls back to the
@@ -10,7 +10,7 @@
 //! collapses directly to `unwrap_or` — no `Option` shape needed,
 //! because input and output are both `KanaClass`.
 
-use super::_star_dakuten_hash_star_::dakuten_hash;
+use super::voicing_tables::dakuten_hash;
 use super::kani_kana_class::KanaClass;
 
 pub fn voice_char(cc: KanaClass) -> KanaClass {

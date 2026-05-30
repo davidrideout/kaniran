@@ -7,8 +7,10 @@
 
 pub mod char_class_type;
 pub mod constants;
+pub mod kana_class_tables;
 pub mod kani_char_class_bare_scanners;
 pub mod kani_kana_class;
+pub mod voicing_tables;
 
 pub mod as_hiragana;
 pub mod as_katakana;
@@ -40,19 +42,9 @@ pub mod to_normal_char;
 pub mod unrendaku;
 pub mod voice_char;
 
-pub mod _star_all_characters_star_;
 pub mod _star_basic_split_regex_star_;
-pub mod _star_char_class_hash_star_;
 pub mod _star_char_class_regex_mapping_star_;
 pub mod _star_char_scanners_inner_star_;
 pub mod _star_char_scanners_star_;
-pub mod _star_dakuten_hash_star_;
-pub mod _star_dakuten_join_star_;
-pub mod _star_handakuten_hash_star_;
-pub mod _star_iteration_characters_star_;
-pub mod _star_kana_characters_star_;
-pub mod _star_modifier_characters_star_;
 pub mod _star_normal_chars_star_;
 pub mod _star_punctuation_marks_star_;
-pub mod _star_sokuon_characters_star_;
-pub mod _star_undakuten_hash_star_;

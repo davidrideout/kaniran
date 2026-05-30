@@ -2,7 +2,7 @@
 //!
 //! Unvoice the first character of `txt`: maps `がガ → かカ`,
 //! `ばバ/ぱパ → はハ`, `ゔヴ → うウ`, etc. via
-//! [`super::_star_undakuten_hash_star_::undakuten_hash`]. The script
+//! [`super::voicing_tables::undakuten_hash`]. The script
 //! (hiragana vs. katakana) of the first glyph is preserved by aligning
 //! by index inside the input class's `*kana-characters*` entry.
 //!
@@ -15,8 +15,8 @@
 //! mutates in place — equivalent to `:fresh nil`. Callers that need
 //! `:fresh t` semantics clone before calling.
 
-use super::_star_kana_characters_star_::KANA_CHARACTERS;
-use super::_star_undakuten_hash_star_::undakuten_hash;
+use super::kana_class_tables::KANA_CHARACTERS;
+use super::voicing_tables::undakuten_hash;
 use super::get_char_class::get_char_class;
 use super::kani_kana_class::KanaClass;
 

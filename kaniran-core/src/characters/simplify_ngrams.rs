@@ -11,7 +11,7 @@
 //! over `AsRef<str>` so both static `&[(&str, &str)]` (e.g.
 //! [`super::_star_punctuation_marks_star_::PUNCTUATION_MARKS`]) and
 //! the runtime `Vec<(String, String)>` from
-//! [`super::_star_dakuten_join_star_::dakuten_join`] work without
+//! [`super::voicing_tables::dakuten_join`] work without
 //! conversion. Keys are passed through `fancy_regex::escape` before
 //! alternation — cl-ppcre's parse-tree DSL already treats string
 //! elements as literal character sequences (verified: `(:alternation
@@ -52,7 +52,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::_star_dakuten_join_star_::dakuten_join;
+    use super::super::voicing_tables::dakuten_join;
 
     /// The runtime-derived `dakuten_join()` map feeds into
     /// `simplify_ngrams` correctly — `"か゛"` (ka + combining dakuten)
