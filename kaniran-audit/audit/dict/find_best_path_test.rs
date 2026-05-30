@@ -45,7 +45,7 @@ use serde_json::Value;
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::find_best_path::find_best_path;
-use kaniran_core::dict::get_segsplit::get_segsplit;
+use kaniran_core::dict::split::segsplit::get_segsplit;
 use kaniran_core::dict::kani::KaniWordDispatchEnum;
 use kaniran_core::dict::segment_list_struct::SegmentList;
 use kaniran_core::dict::segment_struct::{

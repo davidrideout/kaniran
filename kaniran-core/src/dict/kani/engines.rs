@@ -19,9 +19,9 @@
 //!   (`dict-split.lisp:860`) expand into. The macros each yield the
 //!   same shape per callsite (type-check `simple-text`, compute
 //!   `match-diff` / `match-readings`, translate hint positions, splice
-//!   sentinels via [`crate::dict::insert_hints::insert_hints`]); this
+//!   sentinels via [`crate::dict::split::hint::insert_hints`]); this
 //!   engine holds the shared helpers, and the per-callsite data lives
-//!   in [`crate::dict::_star_hint_map_star_`].
+//!   in [`crate::dict::split::hint_map`].
 //!
 //! - **split-engine** ([`run_split`] + [`SplitDef`] / [`Step`] /
 //!   [`Pred`] / [`Modify`] / etc.) — the interpreter for every
@@ -30,7 +30,7 @@
 //!   `def-shi-split`). Each macro expands every callsite into the same
 //!   `prog*`-skeleton template; the engine factors that template out so
 //!   each registered split is a single [`SplitDef`] data row in
-//!   [`crate::dict::_star_split_map_star_`] / [`crate::dict::_star_segsplit_map_star_`].
+//!   [`crate::dict::split::split_map`] / [`crate::dict::split::segsplit`].
 
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -48,11 +48,11 @@ use crate::dict::counter_text_class::{
 use crate::dict::find_word_conj_of::find_word_conj_of;
 use crate::dict::find_word_seq::find_word_seq;
 use crate::dict::get_kana::get_kana;
-use crate::dict::insert_hints::insert_hints;
+use crate::dict::split::hint::insert_hints;
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kanji_text_dao::KanjiText;
-use crate::dict::optprefix::optprefix;
-use crate::dict::translate_hints::translate_hints;
+use crate::dict::split::split::optprefix;
+use crate::dict::split::hint::translate_hints;
 use crate::dict::true_kana::true_kana;
 use crate::dict::true_kanji::true_kanji;
 use crate::dict::word_type::WordType;
@@ -341,7 +341,7 @@ struct ParsedEasyHint {
 fn parsed_easy_hint(hint: &EasyHint) -> &'static ParsedEasyHint {
     static CACHE: OnceLock<HashMap<i32, ParsedEasyHint>> = OnceLock::new();
     let map = CACHE.get_or_init(|| {
-        crate::dict::_star_hint_map_star_::EASY_HINTS
+        crate::dict::split::hint_map::EASY_HINTS
             .iter()
             .map(|e| {
                 let (text, hints) = parse_kanji_split(e.kanji_split);

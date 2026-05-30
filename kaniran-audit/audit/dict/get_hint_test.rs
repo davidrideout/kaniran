@@ -23,7 +23,7 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::get_hint::get_hint;
+use kaniran_core::dict::split::hint::get_hint;
 
 use common::{
     describe_word, extract_disable_hints_meta, parse_captured_word, single_result, CapturedRow,

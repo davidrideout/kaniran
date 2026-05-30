@@ -6,10 +6,10 @@
 //! `def-do-split` / `def-shi-split` form. The Rust transliteration
 //! collapses the runtime hashtable into a static [`SPLIT_TABLE`] of
 //! data rows. Each row is interpreted by
-//! [`super::kani::run_split`]. Returning `None` from
+//! [`crate::dict::kani::run_split`]. Returning `None` from
 //! [`split_map_dispatch`] for unregistered seqs preserves the upstream
 //! `(gethash seq *split-map*)` semantics that
-//! [`super::get_split_star_::get_split_star_`] depends on.
+//! [`super::split::get_split_star_`] depends on.
 //!
 //! Diverges from CONVENTIONS §1 (one Lisp symbol per Rust file): the
 //! 174 `split-*` callsites would otherwise need 174 separate
@@ -26,7 +26,7 @@
 //! helper is `with_segsplit_map`.
 
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::_star_segsplit_map_star_::SEGSPLIT_TABLE;
+use crate::dict::split::segsplit::SEGSPLIT_TABLE;
 use crate::dict::kani::{
     run_split, Finder, Len, Modify, PartSeq, Pred, ScorePush, SplitDef, Step, WordPart,
 };
@@ -42,7 +42,7 @@ pub enum SplitMapKind {
     /// `*split-map*` (`dict-split.lisp:5`) — [`SPLIT_TABLE`].
     Default,
     /// `*segsplit-map*` (`dict-split.lisp:704`) —
-    /// [`super::_star_segsplit_map_star_::SEGSPLIT_TABLE`].
+    /// [`super::segsplit::SEGSPLIT_TABLE`].
     SegSplit,
 }
 

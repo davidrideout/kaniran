@@ -36,7 +36,7 @@
 //! body operate under a ctx rebound via
 //! [`KaniranContext::with_disable_hints`]`(true)` (the
 //! `simple-text :around` method in [`get_kana`] does this when
-//! invoking [`super::get_hint::get_hint`]). The recursive `get_kana`
+//! invoking [`super::split::hint::get_hint`]). The recursive `get_kana`
 //! call on the leaf reads `ctx.disable_hints = true` and skips the
 //! hint branch, matching upstream's `(let ((*disable-hints* t)) …)`.
 

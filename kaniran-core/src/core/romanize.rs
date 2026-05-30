@@ -12,9 +12,9 @@ use crate::characters::text_utils::{basic_split, SegmentKind};
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::dict_segment::dict_segment;
 use crate::dict::map_word_info_kana::map_word_info_kana;
-use crate::dict::process_hints::process_hints;
+use crate::dict::split::hint::process_hints;
 use crate::dict::simple_segment::simple_segment;
-use crate::dict::strip_hints::strip_hints;
+use crate::dict::split::hint::strip_hints;
 use crate::dict::word_info_class::{WordInfo, WordInfoKana};
 use crate::dict::word_info_str::word_info_str;
 
@@ -213,8 +213,8 @@ mod tests {
         hepburn_simple, hepburn_traditional, GenericHepburn, KunreiSiki, SimplifiedHepburn,
         TraditionalHepburn,
     };
-    use crate::dict::_star_kana_hint_mod_star_::KANA_HINT_MOD;
-    use crate::dict::_star_kana_hint_space_star_::KANA_HINT_SPACE;
+    use crate::dict::split::hint_map::KANA_HINT_MOD;
+    use crate::dict::split::hint_map::KANA_HINT_SPACE;
     use crate::dict::word_info_class::WordInfoType;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {

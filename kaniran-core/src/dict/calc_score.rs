@@ -176,7 +176,7 @@ use crate::dict::counter_text_class::Common;
 use crate::dict::entry_dao::Entry;
 use crate::dict::get_non_arch_posi::get_non_arch_posi;
 use crate::dict::get_original_text::get_original_text;
-use crate::dict::get_split::get_split;
+use crate::dict::split::split::get_split;
 use crate::dict::is_arch::is_arch as is_arch_fn;
 use crate::dict::kani::SplitPart;
 use crate::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};

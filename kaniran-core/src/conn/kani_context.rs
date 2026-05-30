@@ -19,7 +19,7 @@ use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;
 use crate::dict::_star_counter_cache_star_::{build_counter_cache, CounterCache};
 use crate::dict::_star_is_arch_cache_star_::build_is_arch;
 use crate::dict::_star_no_conj_data_star_::build_no_conj_data;
-use crate::dict::_star_split_map_star_::SplitMapKind;
+use crate::dict::split::split_map::SplitMapKind;
 use crate::dict::_star_substring_hash_star_::SubstringHash;
 use crate::dict::_star_suffix_cache_star_::SuffixCache;
 use crate::dict::_star_suffix_class_star_::SuffixClass;

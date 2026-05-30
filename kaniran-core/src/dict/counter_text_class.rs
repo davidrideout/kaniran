@@ -68,7 +68,7 @@
 //!   counter (kanji-text or kana-text), or [`None`] for synthesized
 //!   `number_text` rows. Modeled as enum [`CounterSource`] per §4.3.
 
-use crate::dict::_star_kana_hint_space_star_::KANA_HINT_SPACE;
+use crate::dict::split::hint_map::KANA_HINT_SPACE;
 use crate::dict::counter_age_class::CounterAge;
 use crate::dict::counter_days_kun_class::CounterDaysKun;
 use crate::dict::counter_days_on_class::CounterDaysOn;

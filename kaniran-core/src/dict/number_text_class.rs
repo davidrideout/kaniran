@@ -12,7 +12,7 @@
 //! `find-counter` in a later wave. This file only mirrors the slot
 //! shape; the shared fields live on the wrapped `CounterText`.
 
-use crate::dict::_star_kana_hint_space_star_::KANA_HINT_SPACE;
+use crate::dict::split::hint_map::KANA_HINT_SPACE;
 use crate::dict::counter_text_class::CounterText;
 use crate::numbers::num_class::{DIGIT_KANJI_DEFAULT, POWER_KANJI};
 use crate::numbers::kana_form::{number_to_kana, NumberToKanaOutput};

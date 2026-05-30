@@ -13,7 +13,7 @@
 //!
 //! - [`EASY_HINTS`] — 431 rows, one per `def-easy-hint` callsite.
 //!   Each row carries the literal kanji-split string; the shared
-//!   body lives in [`super::kani::run_easy_hint`].
+//!   body lives in [`crate::dict::kani::run_easy_hint`].
 //! - 17 inline `match`-arm groups, one per `def-simple-hint`
 //!   callsite — bodies vary per group (different positional
 //!   computations, different `:test`/`let*`-binding shapes).
@@ -40,12 +40,12 @@
 //!
 //! ## Hint-state contract
 //!
-//! Called from [`super::get_hint::get_hint`], which is itself called
+//! Called from [`super::hint::get_hint`], which is itself called
 //! from the `simple-text :around` method on `get-kana` under a ctx
 //! rebound via
 //! [`crate::conn::kani_context::KaniranContext::with_disable_hints`]`(true)`.
-//! Hint bodies in turn call [`super::get_kana::get_kana`] and
-//! [`super::true_kana::true_kana`]; the inner `:around` reads
+//! Hint bodies in turn call [`crate::dict::get_kana::get_kana`] and
+//! [`crate::dict::true_kana::true_kana`]; the inner `:around` reads
 //! `ctx.disable_hints = true` and skips the hint branch (matches the
 //! upstream `*disable-hints*` rebind at `dict.lisp:82`).
 
@@ -893,6 +893,86 @@ async fn simple_hint_dispatch(
     Ok(HintDispatch::Registered(result))
 }
 
+// =========================================================================
+// *kana-hint-space* (dict-split.lisp:814)
+// =========================================================================
+
+/// Sentinel character marking hint-injected spaces in kana strings.
+/// Used by [`HINT_CHAR_MAP`] and [`hint_simplify_map`] to distinguish
+/// hint-introduced separators from real spaces in the source text.
+pub const KANA_HINT_SPACE: char = '\u{200b}';
+
+// =========================================================================
+// *kana-hint-mod* (dict-split.lisp:813)
+// =========================================================================
+
+/// Sentinel character marking a kana-particle boundary that the
+/// romanizer should rewrite (`は → wa`, `へ → e`, …). Inserted by the
+/// hint system and consumed by [`hint_simplify_map`] during
+/// romanization.
+pub const KANA_HINT_MOD: char = '\u{200c}';
+
+// =========================================================================
+// *hint-char-map* (dict-split.lisp:816)
+// =========================================================================
+
+/// Plist mapping each [`crate::dict::kani::KaniHintKind`] tag to the
+/// sentinel character the hint system splices into a kana string at
+/// that tag's position. Looked up by [`super::hint::insert_hints`]
+/// (mirrors `(getf *hint-char-map* character-kw)`) and scanned by
+/// [`super::hint::strip_hints`] (removes any char appearing as a
+/// value here).
+///
+/// The Lisp `defparameter` is a flat plist
+/// `(:space ,*kana-hint-space* :mod ,*kana-hint-mod*)`. The Rust port
+/// holds the same key/value pairs as a typed slice of
+/// `(KaniHintKind, char)` rather than a heterogeneous plist; both
+/// consumers (`insert-hints`, `strip-hints`) only ever scan it
+/// pairwise.
+pub const HINT_CHAR_MAP: [(KaniHintKind, char); 2] = [
+    (KaniHintKind::Space, KANA_HINT_SPACE),
+    (KaniHintKind::Mod, KANA_HINT_MOD),
+];
+
+// =========================================================================
+// *hint-simplify-map* (dict-split.lisp:818-824)
+// =========================================================================
+
+/// Ordered (from, to) substitution table consumed by
+/// [`super::hint::process_hints`] via
+/// [`crate::characters::normalize::simplify_ngrams`]. Folds the hint
+/// sentinels back into reader-facing characters:
+///
+/// - `*kana-hint-space*` → ASCII space `" "`
+/// - `*kana-hint-mod*` + `は` → `わ` (and `ハ` → `ワ`)
+/// - `*kana-hint-mod*` + `へ` → `え` (and `ヘ` → `エ`)
+/// - lone `*kana-hint-mod*` → empty string (drop)
+///
+/// Order is load-bearing: the 2-char sentinel+kana entries must
+/// precede the lone-sentinel entry so `simplify_ngrams`' alternation
+/// prefers the longer match at the same starting offset.
+///
+/// The Lisp `defparameter` builds the value at load time from
+/// `*kana-hint-space*` / `*kana-hint-mod*` via `string` / `coerce`.
+/// The Rust port mirrors that derivation under `OnceLock` rather than
+/// freezing the result, so the table stays tracked against the source
+/// character constants.
+pub fn hint_simplify_map() -> &'static [(String, &'static str)] {
+    static CACHE: OnceLock<Vec<(String, &'static str)>> = OnceLock::new();
+    CACHE
+        .get_or_init(|| {
+            let mut map: Vec<(String, &'static str)> = Vec::with_capacity(6);
+            map.push((KANA_HINT_SPACE.to_string(), " "));
+            map.push(([KANA_HINT_MOD, 'は'].iter().collect(), "わ"));
+            map.push(([KANA_HINT_MOD, 'ハ'].iter().collect(), "ワ"));
+            map.push(([KANA_HINT_MOD, 'へ'].iter().collect(), "え"));
+            map.push(([KANA_HINT_MOD, 'ヘ'].iter().collect(), "エ"));
+            map.push((KANA_HINT_MOD.to_string(), ""));
+            map
+        })
+        .as_slice()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -953,5 +1033,19 @@ mod tests {
         assert_eq!(safe_hint(KaniHintKind::Mod, -1), None);
         assert_eq!(safe_hint(KaniHintKind::Mod, 0), Some((KaniHintKind::Mod, 0)));
         assert_eq!(safe_hint(KaniHintKind::Space, 5), Some((KaniHintKind::Space, 5)));
+    }
+
+    /// Pin the build output against the introspected upstream value —
+    /// catches drift in the source character constants.
+    #[test]
+    fn hint_simplify_map_matches_introspected_value() {
+        let map = hint_simplify_map();
+        assert_eq!(map.len(), 6);
+        assert_eq!(map[0], ("\u{200b}".to_string(), " "));
+        assert_eq!(map[1], ("\u{200c}は".to_string(), "わ"));
+        assert_eq!(map[2], ("\u{200c}ハ".to_string(), "ワ"));
+        assert_eq!(map[3], ("\u{200c}へ".to_string(), "え"));
+        assert_eq!(map[4], ("\u{200c}ヘ".to_string(), "エ"));
+        assert_eq!(map[5], ("\u{200c}".to_string(), ""));
     }
 }

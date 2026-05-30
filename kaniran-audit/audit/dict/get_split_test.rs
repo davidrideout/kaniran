@@ -15,7 +15,7 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::get_split::get_split;
+use kaniran_core::dict::split::split::get_split;
 use kaniran_core::dict::kani::SplitPart;
 use kaniran_core::dict::kani::KaniWordDispatchEnum;
 

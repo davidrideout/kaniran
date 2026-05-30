@@ -14,7 +14,7 @@
 //! - **`((obj simple-text)) :around`** at `dict.lisp:80-84` —
 //!   the hint dispatcher. If `*disable-hints*` is unset and the
 //!   reading isn't already hinted, rebind `*disable-hints*` to T
-//!   and try [`super::get_hint::get_hint`]; a non-nil hint result
+//!   and try [`super::split::hint::get_hint`]; a non-nil hint result
 //!   shortcuts the return, otherwise fall through to the primary
 //!   method (call-next-method).
 //! - **`((obj kanji-text))`** at `dict.lisp:111-115` — try

@@ -9,14 +9,14 @@
 //!
 //! Diverges from the upstream lambda list `(segment-list)` by taking
 //! `&KaniranContext` per CONVENTIONS §4.8 (the descendant
-//! [`super::get_segsplit::get_segsplit`] talks to Postgres) and by
+//! [`super::split::segsplit::get_segsplit`] talks to Postgres) and by
 //! mutating through `&mut SegmentList` — the Lisp `setf` returns the
 //! new segments list, but every caller (`find-best-path`
 //! `dict.lisp:1196`) consumes the slot, not the return value, so the
 //! Rust port returns `Result<(), sqlx::Error>` instead.
 
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::get_segsplit::get_segsplit;
+use crate::dict::split::segsplit::get_segsplit;
 use crate::dict::segment_list_struct::SegmentList;
 use crate::dict::segment_struct::Segment;
 

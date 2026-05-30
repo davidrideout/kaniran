@@ -17,8 +17,8 @@
 //!   through polymorphic dispatch.
 //!
 //! - [`KaniMatchPart`] — closed two-variant enum for the heterogeneous
-//!   match list consumed by [`crate::dict::translate_hint_position`] /
-//!   [`crate::dict::translate_hints`]. CL feeds these as the raw output
+//!   match list consumed by [`crate::dict::split::hint::translate_hint_position`] /
+//!   [`crate::dict::split::hint::translate_hints`]. CL feeds these as the raw output
 //!   of `match-diff` (atoms or `(s1 s2)` pairs — `characters.lisp:326`)
 //!   and `match-readings` (bare strings or `(kanji-char reading-text)`
 //!   pairs — `kanji.lisp:296`); callers only ever read length, so the
@@ -176,7 +176,7 @@ impl KaniSimpleTextDispatchEnum {
 
     /// Clone-wrap into [`KaniWordDispatchEnum`] for callers that
     /// need the wider type. Used by [`Self::get_kana`] to invoke
-    /// [`crate::dict::get_hint::get_hint`], which dispatches on the
+    /// [`crate::dict::split::hint::get_hint`], which dispatches on the
     /// wider enum.
     pub fn to_word(&self) -> KaniWordDispatchEnum {
         match self {
@@ -207,7 +207,7 @@ impl KaniSimpleTextDispatchEnum {
             // dict.lisp:82 (let ((*disable-hints* t)) (get-hint obj))
             let ctx2 = ctx.with_disable_hints(true);
             if let Some(hint_result) =
-                crate::dict::get_hint::get_hint(&ctx2, &wrapped).await?
+                crate::dict::split::hint::get_hint(&ctx2, &wrapped).await?
             {
                 return Ok(Some(hint_result));
             }

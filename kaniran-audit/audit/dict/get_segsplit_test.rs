@@ -20,7 +20,7 @@ use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::compound_text_class::{CompoundText, ScoreMod};
 use kaniran_core::dict::conj_data_struct::ConjData;
 use kaniran_core::dict::conj_prop_dao::ConjProp;
-use kaniran_core::dict::get_segsplit::get_segsplit;
+use kaniran_core::dict::split::segsplit::get_segsplit;
 use kaniran_core::dict::kana_text_dao::KanaText;
 use kaniran_core::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use kaniran_core::dict::kanji_text_dao::KanjiText;
