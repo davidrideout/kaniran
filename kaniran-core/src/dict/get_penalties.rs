@@ -52,7 +52,7 @@ pub fn get_penalties(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dict::_star_semi_final_prt_star_::semi_final_prt;
+    use crate::dict::errata::semi_final_prt;
     use crate::dict::conj_data_struct::ConjData;
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kani::KaniWordDispatchEnum;

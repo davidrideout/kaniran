@@ -8,10 +8,10 @@
 //! `cd.prop = None` rows are silently dropped (defensive; upstream
 //! never produces them).
 
-use super::_star_weak_conj_forms_star_::WEAK_CONJ_FORMS;
+use super::errata::WEAK_CONJ_FORMS;
 use super::conj_data_struct::ConjData;
-use super::skip_by_conj_data::skip_by_conj_data;
-use super::test_conj_prop::test_conj_prop;
+use super::errata::skip_by_conj_data;
+use super::errata::test_conj_prop;
 
 pub fn get_kana_forms_conj_data_filter(conj_data: &[ConjData]) -> Vec<i32> {
     if skip_by_conj_data(conj_data) {
