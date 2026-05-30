@@ -23,7 +23,7 @@
 use serde_json::{Map, Value};
 
 use super::conj_prop_dao::ConjProp;
-use super::get_conj_description::get_conj_description;
+use super::load::get_conj_description;
 
 pub fn conj_prop_json(obj: &ConjProp) -> Value {
     let mut js = Map::new();

@@ -5,7 +5,7 @@
 //! by the nullable `neg`/`fml` flags (`db-null` → omitted).
 
 use super::conj_prop_dao::ConjProp;
-use super::get_conj_description::get_conj_description;
+use super::load::get_conj_description;
 
 pub fn conj_info_short(obj: &ConjProp) -> String {
     // dict.lisp:277 — "[~a] ~a~@[~[ Affirmative~; Negative~]~]~@[~[ Plain~; Formal~]~]"

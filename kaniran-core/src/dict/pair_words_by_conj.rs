@@ -26,7 +26,7 @@ use std::collections::HashMap;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::conjugation_dao::Conjugation;
 use crate::dict::kani::KaniWordDispatchEnum;
-use crate::dict::lex_compare::lex_compare;
+use crate::dict::load::lex_compare;
 use crate::dict::simple_text_class::WordConjugations;
 use crate::dict::word_conjugations::word_conjugations;
 

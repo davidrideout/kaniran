@@ -12,9 +12,9 @@ use std::sync::OnceLock;
 
 use super::conj_data_struct::ConjData;
 use super::conj_prop_dao::ConjProp;
-use super::conjugation_rule_struct::ConjugationRule;
-use super::get_pos::get_pos;
-use super::get_pos_index::get_pos_index;
+use super::load::ConjugationRule;
+use super::load::get_pos;
+use super::load::get_pos_index;
 use super::kani::{ConjForm, FormToken};
 
 // =========================================================================
