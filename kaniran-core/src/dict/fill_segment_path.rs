@@ -2,7 +2,7 @@
 //!
 //! Walks a `find-best-path` result (heterogeneous list of
 //! [`PathElement`]s — each is a [`SegmentList`] or a
-//! [`super::synergy_struct::Synergy`]) and builds the flat
+//! [`super::grammar::synergy::Synergy`]) and builds the flat
 //! [`WordInfo`] sequence the JSON / display pipeline consumes:
 //! gap-typed word-infos fill the runs between segment-list slices,
 //! and each segment-list lifts via [`word_info_from_segment_list`].
@@ -90,7 +90,7 @@ mod tests {
     use crate::dict::kani::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::Segment;
-    use crate::dict::synergy_struct::Synergy;
+    use crate::dict::grammar::synergy::Synergy;
     use crate::dict::word_info_class::WordInfoSeq;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {

@@ -32,7 +32,7 @@
 use super::kani::KaniLiteSegmentList;
 use super::segment_list_struct::SegmentList;
 use super::segment_struct::Segment;
-use super::synergy_struct::Synergy;
+use super::grammar::synergy::Synergy;
 
 #[derive(Debug, Clone)]
 pub enum KaniSegmentScoreArg<'a> {

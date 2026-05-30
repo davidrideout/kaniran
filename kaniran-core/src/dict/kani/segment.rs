@@ -41,7 +41,7 @@ use super::word::KaniWordDispatchEnum;
 use crate::dict::segment_list_struct::SegmentList;
 use crate::dict::segment_struct::Segment;
 use crate::dict::counters::dispatchers::seq;
-use crate::dict::synergy_struct::Synergy;
+use crate::dict::grammar::synergy::Synergy;
 use crate::dict::counters::dispatchers::text;
 use crate::dict::word_info_class::WordInfoSeq;
 
@@ -374,7 +374,7 @@ impl KaniLiteSegmentList {
     }
 }
 
-/// Sidecar mirror of [`crate::dict::make_segment_list_from::make_segment_list_from`]
+/// Sidecar mirror of [`crate::dict::grammar::synergy::make_segment_list_from`]
 /// for the lite layer. Builds a fresh [`KaniLiteSegmentList`] with
 /// the given filtered segments, inheriting `start` / `end` /
 /// `matches` / `top` from `old`. Matches the upstream

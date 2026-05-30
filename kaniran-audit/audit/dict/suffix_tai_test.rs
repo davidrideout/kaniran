@@ -43,7 +43,7 @@ use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::compound_text_class::CompoundText;
 use kaniran_core::dict::kana_text_dao::KanaText;
 use kaniran_core::dict::kani::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use kaniran_core::dict::suffix_tai::suffix_tai;
+use kaniran_core::dict::grammar::suffix_rules::suffix_tai;
 
 use common::{parse_captured_simple_text, parse_captured_word, CapturedRow};
 

@@ -45,8 +45,8 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::counters::classes::{
     Common, CounterSource, DigitOp, DigitOptEntry, DigitOptKey,
 };
-use crate::dict::find_word_conj_of::find_word_conj_of;
-use crate::dict::find_word_seq::find_word_seq;
+use crate::dict::grammar::find_word::find_word_conj_of;
+use crate::dict::grammar::find_word::find_word_seq;
 use crate::dict::get_kana::get_kana;
 use crate::dict::split::hint::insert_hints;
 use crate::dict::kana_text_dao::KanaText;

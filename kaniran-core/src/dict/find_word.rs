@@ -24,7 +24,7 @@
 //! The polymorphic Lisp return — a list of `kana-text` xor
 //! `kanji-text` rows depending on the table chosen — is wrapped in a
 //! 2-variant enum per CONVENTIONS §4.3. Same shape as
-//! [`super::find_word_seq::WordSeqRows`] but kept as its own type
+//! [`super::grammar::find_word::WordSeqRows`] but kept as its own type
 //! because the two functions have distinct semantics
 //! (`find-word-seq` filters by `seq IN (...)`; `find-word` does not),
 //! and each type stays local to the function that owns it per §1.

@@ -63,7 +63,7 @@ use crate::dict::errata::NO_KANJI_BREAK_PENALTY;
 use crate::dict::_star_score_cutoff_star_::SCORE_CUTOFF;
 use crate::dict::calc_score::calc_score;
 use crate::dict::compound_text_class::ScoreMod;
-use crate::dict::get_suffixes::get_suffixes;
+use crate::dict::grammar::suffix_lookup::get_suffixes;
 use crate::dict::kani::KaniWordDispatchEnum;
 use crate::dict::segment_struct::KaniSegmentInfo;
 

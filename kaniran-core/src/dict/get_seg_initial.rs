@@ -8,7 +8,7 @@
 
 use std::sync::Arc;
 
-use super::apply_segfilters::apply_segfilters;
+use super::grammar::segfilter::apply_segfilters;
 use super::kani::KaniLiteSegmentList;
 
 pub fn get_seg_initial(seg: &Arc<KaniLiteSegmentList>) -> Vec<Arc<KaniLiteSegmentList>> {

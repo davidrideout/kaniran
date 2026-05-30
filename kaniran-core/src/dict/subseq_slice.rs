@@ -34,7 +34,7 @@
 //! Each call walks `s.char_indices()` to resolve character → byte
 //! offsets, making the port `O(|s|)` versus the upstream's `O(1)`
 //! pointer-math `adjust-array`. The Lisp consumers
-//! ([`super::parse_suffix_val::parse_suffix_val`] dependents
+//! ([`super::grammar::suffix_rules::parse_suffix_val`] dependents
 //! `get-suffix-map` / `get-suffixes` / `find-word-suffix`) call it
 //! inside an `O(n²)` substring loop, so the asymptotic shape diverges.
 //! Revisit once those consumers are ported (e.g. caching

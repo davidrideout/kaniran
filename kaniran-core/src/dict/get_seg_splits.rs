@@ -16,14 +16,14 @@
 //! - Each "split" element is `Vec<KaniLitePathElement>` — the same
 //!   closed enum that [`get_penalties`] and [`get_synergies`] produce.
 //!
-//! [`get_penalties`]: super::get_penalties::get_penalties
-//! [`get_synergies`]: super::get_synergies::get_synergies
+//! [`get_penalties`]: super::grammar::penalty::get_penalties
+//! [`get_synergies`]: super::grammar::synergy::get_synergies
 
 use std::sync::Arc;
 
-use super::apply_segfilters::apply_segfilters;
-use super::get_penalties::get_penalties;
-use super::get_synergies::get_synergies;
+use super::grammar::segfilter::apply_segfilters;
+use super::grammar::penalty::get_penalties;
+use super::grammar::synergy::get_synergies;
 use super::kani::KaniLiteSegmentList;
 use super::kani::KaniLitePathElement;
 
@@ -59,7 +59,7 @@ mod tests {
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
-    use crate::dict::synergy_struct::Synergy;
+    use crate::dict::grammar::synergy::Synergy;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {

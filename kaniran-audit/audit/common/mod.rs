@@ -110,7 +110,7 @@ use kaniran_core::dict::proxy_text_class::ProxyText;
 use kaniran_core::dict::segment_list_struct::SegmentList;
 use kaniran_core::dict::segment_struct::{KaniScoreInfo, KaniSplitInfo, Segment};
 use kaniran_core::dict::simple_text_class::{SimpleText, WordConjugations};
-use kaniran_core::dict::synergy_struct::Synergy;
+use kaniran_core::dict::grammar::synergy::Synergy;
 use kaniran_core::dict::top_array_item_struct::PathElement;
 use kaniran_core::dict::word_info_class::{WordInfo, WordInfoKana, WordInfoSeq, WordInfoType};
 

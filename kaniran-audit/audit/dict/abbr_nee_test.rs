@@ -61,7 +61,7 @@ mod common;
 use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::abbr_nee::abbr_nee;
+use kaniran_core::dict::grammar::abbr::abbr_nee;
 use kaniran_core::dict::kani::KaniWordDispatchEnum;
 
 use common::{parse_captured_simple_text, parse_captured_word, CapturedRow};

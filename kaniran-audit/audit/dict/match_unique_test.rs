@@ -9,7 +9,7 @@
 //!
 //! - `args[0]` — suffix class as a Lisp keyword (`":IRU"`, `":SA"`,
 //!   `":DESU"`, …). The Rust port stores classes lowercase without
-//!   the leading colon ([`super::super::_star_suffix_unique_only_star_::SUFFIX_UNIQUE_ONLY`]
+//!   the leading colon ([`super::super::grammar::suffix_init::SUFFIX_UNIQUE_ONLY`]
 //!   uses `"sa"`, `"desu"`, …), so the runner strips `:` and
 //!   lowercases before lookup. Mirrors the same convention used for
 //!   `*suffix-cache*` keys.
@@ -59,7 +59,7 @@ use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::kani::KaniWordDispatchEnum;
-use kaniran_core::dict::match_unique::{match_unique, MatchUniqueResult};
+use kaniran_core::dict::grammar::suffix_lookup::{match_unique, MatchUniqueResult};
 
 use common::{parse_captured_word, CapturedRow};
 

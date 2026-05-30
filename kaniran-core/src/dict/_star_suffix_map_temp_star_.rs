@@ -40,10 +40,10 @@
 //! Values mirror the upstream `(substr keyword kf)` triples: the
 //! suffix surface text, the suffix-class keyword, and the optional
 //! [`super::kana_text_dao::KanaText`] DAO row carrying it. This is
-//! [`super::_star_suffix_cache_star_::SuffixCache`]'s
+//! [`super::grammar::suffix_init::SuffixCache`]'s
 //! `(class, row)` pair prefixed with the substring key, threaded into
 //! per-end-position buckets by
-//! [`super::_star_suffix_cache_star_::parse_suffix_val`]'s eventual
+//! [`super::grammar::suffix_init::parse_suffix_val`]'s eventual
 //! port (`dict-grammar.lisp:665`).
 
 use crate::dict::kana_text_dao::KanaText;
