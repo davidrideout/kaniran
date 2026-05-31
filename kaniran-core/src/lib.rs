@@ -7,6 +7,7 @@
 
 pub mod characters;
 pub mod conn;
+pub mod kani_schema_filter;
 pub mod core;
 pub mod custom;
 pub mod dict;

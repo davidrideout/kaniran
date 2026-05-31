@@ -8,12 +8,14 @@
 pub mod _star_kanjidic_path_star_;
 pub mod _star_reading_cache_star_;
 pub mod calculate_perc;
+pub mod first_node_text;
 pub mod get_normal_readings;
 pub mod get_original_reading;
 pub mod get_reading_alternatives;
 pub mod get_reading_stats;
 pub mod get_readings;
 pub mod get_readings_cache;
+pub mod init_tables;
 pub mod kani_kanji_reading;
 pub mod kanji_dao;
 pub mod kanji_info_json;

@@ -239,6 +239,58 @@ impl KaniranContext {
     }
 }
 
+#[cfg(test)]
+impl KaniranContext {
+    /// Test-only constructor for DDL / schema-touching tests. Connects
+    /// a pool but leaves every cache empty — no `build_no_conj_data` /
+    /// `build_counter_cache` / etc. run, so it survives an empty
+    /// schema where the production populators would fail.
+    ///
+    /// Refuses to run unless `KANIRAN_TEST_DATABASE_URL` is set and
+    /// differs from `DATABASE_URL`. This guards `init_tables` (and any
+    /// other DDL test) from ever wiping the production corpus.
+    pub(crate) async fn pool_only_test_ctx() -> Self {
+        use crate::dict::_star_split_map_star_::SplitMapKind;
+        use std::collections::HashMap;
+
+        let test_url = std::env::var("KANIRAN_TEST_DATABASE_URL").expect(
+            "KANIRAN_TEST_DATABASE_URL must be set for #[ignore]d DDL tests \
+             (e.g. postgres://localhost/kaniran_test)",
+        );
+        // Cross-check against the resolved production URL the same way
+        // `from_env` resolves it (config file layered under env vars),
+        // not just `std::env::var(DATABASE_URL)` — a kaniran.toml setting
+        // would otherwise sneak past the guard.
+        if let Ok(Some(prod_url)) = get_ichiran_connection_env() {
+            assert_ne!(
+                test_url, prod_url,
+                "KANIRAN_TEST_DATABASE_URL must differ from the resolved \
+                 production database URL — refusing to run DDL against production",
+            );
+        }
+        let pool = PgPoolOptions::new()
+            .max_connections(4)
+            .acquire_timeout(Duration::from_secs(5))
+            .connect(&test_url)
+            .await
+            .expect("connect to kaniran_test");
+        KaniranContext {
+            pool,
+            no_conj_data: Arc::new(HashSet::new()),
+            is_arch: Arc::new(HashSet::new()),
+            counter_cache: Arc::new(HashMap::new()),
+            suffix_cache: Arc::new(HashMap::new()),
+            suffix_class: Arc::new(HashMap::new()),
+            reading_cache: Arc::new(new_reading_cache()),
+            disable_hints: false,
+            substring_hash: None,
+            suffix_map_temp: None,
+            suffix_next_end: None,
+            split_map: SplitMapKind::Default,
+        }
+    }
+}
+
 /// Shared cache builder for the crate's own test runs. The five
 /// DB-derived caches are deterministic from database content, so they
 /// are built once per test process and reused across every

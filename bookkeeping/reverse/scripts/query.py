@@ -37,7 +37,7 @@ SYMBOLS_CSV = HERE / "symbols.csv"
 EDGES_CSV = HERE / "edges.csv"
 SIGNATURES_JSON = HERE / "signatures.json"
 DIVERGENCES_MD = HERE / "divergences.md"
-KANIRAN_CORE_SRC = HERE.parent.parent / "kaniran-core" / "src"
+KANIRAN_CORE_SRC = HERE.parent.parent.parent / "kaniran-core" / "src"
 
 
 def load() -> tuple[dict[str, dict], dict[str, set[str]], dict[str, set[str]]]:
@@ -1215,7 +1215,7 @@ def cmd_audit_signatures(args, syms, callees, callers):
     print(f"audit-signatures: {checked} fn/gf checked, {skipped_macros} macro(s) file-only, "
           f"{len(divergences)} divergence(s) total")
     if not args.no_write:
-        rel = os.path.relpath(DIVERGENCES_MD, HERE.parent.parent)
+        rel = os.path.relpath(DIVERGENCES_MD, HERE.parent.parent.parent)
         print(f"  wrote {rel}")
     if only:
         print(f"  filtered to {sorted(only)}: {len(shown)} shown")

@@ -12,9 +12,9 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 329 fn/gf
+- Checked: 335 fn/gf
 - Macros (file-existence only): 8
-- Divergences: 26
+- Divergences: 27
 
 ## Divergences
 
@@ -132,6 +132,11 @@ captured Lisp lambda list. New entries should be either:
 
 - file: `kaniran-core/src/dict/split_pos.rs`
 - drift: return-arity 1 ≠ Lisp (values …) required=2 (rust='Vec<&str>', lisp='(values list unsigned-byte &rest t)')
+
+### `ichiran/kanji:first-node-text`
+
+- file: `kaniran-core/src/kanji/first_node_text.rs`
+- drift: arity 2 ≠ Lisp 3 (req=1, opt=0, keys=['default', 'wrapper'])
 
 ### `ichiran/kanji:match-readings*`
 

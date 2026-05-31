@@ -16,3 +16,4 @@ tokio = { workspace = true }
 config = { workspace = true }
 thiserror = { workspace = true }
 unicode-properties = { workspace = true }
+roxmltree = { workspace = true }

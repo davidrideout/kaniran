@@ -625,18 +625,18 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  555. `ichiran/custom:*municipality-types-description*`  — global, dict-custom.lisp:107  *[ported]*
  556. `ichiran/custom:*municipality-types-order*`  — global, dict-custom.lisp:118  *[ported]*
  557. `ichiran/custom:*silent-p*`  — global, dict-custom.lisp:5  *[skip — stdout verbosity flag for load-custom-data progress prints; Rust port uses log/tracing levels instead of a global dynamic var]*
- 558. `ichiran/custom:as-xml-simple`  — fn, dict-custom.lisp:225  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 558. `ichiran/custom:as-xml-simple`  — fn, dict-custom.lisp:225
  559. `ichiran/custom:municipality`  — struct, dict-custom.lisp:140  *[ported]*
  560. `ichiran/custom:ward`  — struct, dict-custom.lisp:269  *[ported]*
- 561. `ichiran/custom:as-xml`  — gf, dict-custom.lisp:0  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 562. `ichiran/custom:custom-source`  — class, dict-custom.lisp:54  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 563. `ichiran/custom:csv-loader`  — class, dict-custom.lisp:82  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 564. `ichiran/custom:municipality-csv`  — class, dict-custom.lisp:93  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 565. `ichiran/custom:source-path`  — fn, dict-custom.lisp:318  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 566. `ichiran/custom:ward-csv`  — class, dict-custom.lisp:266  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 567. `ichiran/custom:xml-loader`  — class, dict-custom.lisp:59  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 568. `ichiran/custom:get-custom-data`  — fn, dict-custom.lisp:322  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 569. `ichiran/custom:get-words`  — gf, dict-custom.lisp:0  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 561. `ichiran/custom:as-xml`  — gf, dict-custom.lisp:0
+ 562. `ichiran/custom:custom-source`  — class, dict-custom.lisp:54
+ 563. `ichiran/custom:csv-loader`  — class, dict-custom.lisp:82
+ 564. `ichiran/custom:municipality-csv`  — class, dict-custom.lisp:93
+ 565. `ichiran/custom:source-path`  — fn, dict-custom.lisp:318
+ 566. `ichiran/custom:ward-csv`  — class, dict-custom.lisp:266
+ 567. `ichiran/custom:xml-loader`  — class, dict-custom.lisp:59
+ 568. `ichiran/custom:get-custom-data`  — fn, dict-custom.lisp:322
+ 569. `ichiran/custom:get-words`  — gf, dict-custom.lisp:0
  570. `ichiran/dict:*pos-with-conj-rules*`  — global, dict-load.lisp:307  *[ported]*
  571. `ichiran/dict:*do-not-conjugate*`  — global, dict-load.lisp:303  *[ported]*
  572. `ichiran/dict:conjugate-p`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
@@ -647,45 +647,45 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  577. `ichiran/dict:load-pos-index`  — fn, dict-load.lisp:247  *[ported]*
  578. `ichiran/dict:get-pos-index`  — fn, dict-load.lisp:247  *[ported]*
  579. `ichiran/dict:errata-conj-rules-hook`  — fn, dict-errata.lisp:1329  *[ported]*
- 580. `ichiran/dict:load-conj-rules`  — fn, dict-load.lisp:265  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 581. `ichiran/dict:get-conj-rules`  — fn, dict-load.lisp:265  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 582. `ichiran/dict:conjugate-entry-inner`  — fn, dict-load.lisp:314  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 583. `ichiran/dict:get-all-readings`  — fn, dict-errata.lisp:257  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 580. `ichiran/dict:load-conj-rules`  — fn, dict-load.lisp:265
+ 581. `ichiran/dict:get-conj-rules`  — fn, dict-load.lisp:265
+ 582. `ichiran/dict:conjugate-entry-inner`  — fn, dict-load.lisp:314
+ 583. `ichiran/dict:get-all-readings`  — fn, dict-errata.lisp:257
  584. `ichiran/dict:*secondary-conjugation-types-from*`  — global, dict-load.lisp:312  *[ported]*
- 585. `ichiran/dict:insert-conjugation`  — fn, dict-load.lisp:375  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 586. `ichiran/dict:next-seq`  — fn, dict-load.lisp:110  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 587. `ichiran/dict:conjugate-entry-outer`  — fn, dict-load.lisp:342  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 588. `ichiran/dict:do-node-list-ord`  — macro, dict-load.lisp:26  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 589. `ichiran/dict:node-text`  — fn, dict-load.lisp:14  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 590. `ichiran/dict:insert-readings`  — fn, dict-load.lisp:32  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 591. `ichiran/dict:insert-sense-traits`  — fn, dict-load.lisp:66  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 592. `ichiran/dict:insert-senses`  — fn, dict-load.lisp:71  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 585. `ichiran/dict:insert-conjugation`  — fn, dict-load.lisp:375
+ 586. `ichiran/dict:next-seq`  — fn, dict-load.lisp:110  *[ported]*
+ 587. `ichiran/dict:conjugate-entry-outer`  — fn, dict-load.lisp:342
+ 588. `ichiran/dict:do-node-list-ord`  — macro, dict-load.lisp:26  *[skip — CONVENTIONS §4.6 case (b): syntactic helper expanding to (dom:do-node-list … (incf ord-var)); Rust callsites iterate a roxmltree Node slice with .enumerate(), so no port file.]*
+ 589. `ichiran/dict:node-text`  — fn, dict-load.lisp:14  *[ported]*
+ 590. `ichiran/dict:insert-readings`  — fn, dict-load.lisp:32
+ 591. `ichiran/dict:insert-sense-traits`  — fn, dict-load.lisp:66
+ 592. `ichiran/dict:insert-senses`  — fn, dict-load.lisp:71
  593. `ichiran/dict:*secondary-conjugation-types*`  — global, dict-load.lisp:314  *[ported]*
- 594. `ichiran/dict:load-secondary-conjugations`  — fn, dict-load.lisp:457  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 595. `ichiran/dict:load-entry`  — fn, dict-load.lisp:113  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 596. `ichiran/custom:insert-entry`  — gf, dict-custom.lisp:0  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 597. `ichiran/custom:normalize-geo`  — fn, dict-custom.lisp:176  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 594. `ichiran/dict:load-secondary-conjugations`  — fn, dict-load.lisp:457
+ 595. `ichiran/dict:load-entry`  — fn, dict-load.lisp:113
+ 596. `ichiran/custom:insert-entry`  — gf, dict-custom.lisp:0
+ 597. `ichiran/custom:normalize-geo`  — fn, dict-custom.lisp:176
  598. `ichiran/dict:get-candidates`  — fn, dict.lisp:1904  *[ported]*
  599. `ichiran/dict:get-glosses`  — fn, dict.lisp:1892  *[ported]*
  600. `ichiran/dict:match-glosses`  — fn, dict.lisp:1921  *[ported]*
- 601. `ichiran/custom:test-entry`  — gf, dict-custom.lisp:0  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 602. `ichiran/dict:sense-exists-p`  — fn, dict-load.lisp:80  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 603. `ichiran/dict:add-new-sense`  — fn, dict-load.lisp:91  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 604. `ichiran/custom:update-entry`  — gf, dict-custom.lisp:0  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 605. `ichiran/custom:update-entry-gloss`  — gf, dict-custom.lisp:0  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 606. `ichiran/custom:xml-entry`  — struct, dict-custom.lisp:63  *[skip — XML reader out of scope per project decision (HANDOFF Resolved 2026-05-03); content slot holds a DOM document that cannot be constructed without an XML reader]*
- 607. `ichiran/custom:insert`  — gf, dict-custom.lisp:0  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 608. `ichiran/custom:municipality-short`  — fn, dict-custom.lisp:123  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 601. `ichiran/custom:test-entry`  — gf, dict-custom.lisp:0
+ 602. `ichiran/dict:sense-exists-p`  — fn, dict-load.lisp:80
+ 603. `ichiran/dict:add-new-sense`  — fn, dict-load.lisp:91
+ 604. `ichiran/custom:update-entry`  — gf, dict-custom.lisp:0
+ 605. `ichiran/custom:update-entry-gloss`  — gf, dict-custom.lisp:0
+ 606. `ichiran/custom:xml-entry`  — struct, dict-custom.lisp:63
+ 607. `ichiran/custom:insert`  — gf, dict-custom.lisp:0
+ 608. `ichiran/custom:municipality-short`  — fn, dict-custom.lisp:123
  609. `ichiran:*hepburn-simple*`  — global, romanize.lisp:146  *[ported]*
  610. `ichiran:romanize-word-geo`  — fn, romanize.lisp:232  *[ported]*
- 611. `ichiran/custom:romanize-municipality`  — fn, dict-custom.lisp:133  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 612. `ichiran/custom:process-entry`  — gf, dict-custom.lisp:0  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 613. `ichiran/custom:source-file`  — gf, dict-custom.lisp:0  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 614. `ichiran/custom:slurp`  — gf, dict-custom.lisp:0  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 615. `ichiran/custom:load-custom-data`  — fn, dict-custom.lisp:329  *[skip — custom-source dictionary load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 611. `ichiran/custom:romanize-municipality`  — fn, dict-custom.lisp:133
+ 612. `ichiran/custom:process-entry`  — gf, dict-custom.lisp:0
+ 613. `ichiran/custom:source-file`  — gf, dict-custom.lisp:0
+ 614. `ichiran/custom:slurp`  — gf, dict-custom.lisp:0
+ 615. `ichiran/custom:load-custom-data`  — fn, dict-custom.lisp:329
  616. `ichiran/dict:*aux-verbs*`  — global, dict-grammar.lisp:1072  *[ported]*
  617. `ichiran/dict:*conj-description*`  — global, dict-load.lisp:0  *[ported]*
- 618. `ichiran/dict:*conj-rules*`  — global, dict-load.lisp:0  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 618. `ichiran/dict:*conj-rules*`  — global, dict-load.lisp:0
  619. `ichiran/dict:*do-not-conjugate-seq*`  — global, dict-load.lisp:305  *[ported]*
  620. `ichiran/dict:*easy-hints-seqs*`  — global, dict-split.lisp:904  *[ported]*
  621. `ichiran/dict:*hints-checked*`  — global, dict-split.lisp:947  *[ported]*
@@ -696,51 +696,51 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  626. `ichiran/dict:*noun-particles*`  — global, dict-grammar.lisp:801  *[ported]*
  627. `ichiran/dict:*pos-by-index*`  — global, dict-load.lisp:0  *[ported]*
  628. `ichiran/dict:*pos-index*`  — global, dict-load.lisp:0  *[ported]*
- 629. `ichiran/dict:find-conj`  — fn, dict-errata.lisp:1  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 630. `ichiran/dict:add-conj`  — fn, dict-errata.lisp:15  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 631. `ichiran/dict:root-diff`  — fn, dict-errata.lisp:95  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 632. `ichiran/dict:root-diff-fn`  — fn, dict-errata.lisp:104  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 633. `ichiran/dict:add-conj-reading`  — fn, dict-errata.lisp:109  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 634. `ichiran/dict:add-reading`  — fn, dict-errata.lisp:35  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 635. `ichiran/dict:add-deha-ja-readings`  — fn, dict-errata.lisp:171  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 636. `ichiran/dict:add-sense-prop`  — fn, dict-errata.lisp:140  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 637. `ichiran/dict:set-reading`  — gf, dict-load.lisp:0  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 638. `ichiran/dict:reset-readings`  — fn, dict-errata.lisp:70  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 639. `ichiran/dict:delete-reading`  — fn, dict-errata.lisp:76  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 640. `ichiran/dict:set-common`  — fn, dict-errata.lisp:166  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 641. `ichiran/dict:set-primary-nokanji`  — fn, dict-errata.lisp:224  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 642. `ichiran/dict:add-errata-apr19`  — fn, dict-errata.lisp:847  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 643. `ichiran/dict:add-new-sense*`  — fn, dict-errata.lisp:153  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 644. `ichiran/dict:add-errata-apr20`  — fn, dict-errata.lisp:932  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 645. `ichiran/dict:do-readings`  — macro, dict-errata.lisp:246  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 646. `ichiran/dict:add-primary-nokanji`  — fn, dict-errata.lisp:251  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 647. `ichiran/dict:delete-sense-prop`  — fn, dict-errata.lisp:136  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 648. `ichiran/dict:add-errata-aug18`  — fn, dict-errata.lisp:803  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 649. `ichiran/dict:add-gloss`  — fn, dict-errata.lisp:156  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 650. `ichiran/dict:add-errata-counters`  — fn, dict-errata.lisp:1159  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 651. `ichiran/dict:add-errata-dec23`  — fn, dict-errata.lisp:1028  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 652. `ichiran/dict:add-errata-feb17`  — fn, dict-errata.lisp:608  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 653. `ichiran/dict:add-errata-jan18`  — fn, dict-errata.lisp:697  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 654. `ichiran/dict:add-errata-jan19`  — fn, dict-errata.lisp:823  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 655. `ichiran/dict:add-errata-jan20`  — fn, dict-errata.lisp:867  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 656. `ichiran/dict:replace-reading`  — fn, dict-errata.lisp:49  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 657. `ichiran/dict:add-errata-jan21`  — fn, dict-errata.lisp:979  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 658. `ichiran/dict:add-errata-jan22`  — fn, dict-errata.lisp:1017  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 659. `ichiran/dict:replace-reading-conj`  — fn, dict-errata.lisp:60  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 660. `ichiran/dict:add-errata-jan25`  — fn, dict-errata.lisp:1055  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 661. `ichiran/dict:add-errata-jan26`  — fn, dict-errata.lisp:1077  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 662. `ichiran/dict:rearrange-readings`  — fn, dict-errata.lisp:229  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 663. `ichiran/dict:rearrange-readings-conj`  — fn, dict-errata.lisp:241  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 664. `ichiran/dict:add-errata-jul20`  — fn, dict-errata.lisp:961  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 665. `ichiran/dict:add-errata-mar18`  — fn, dict-errata.lisp:764  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 666. `ichiran/dict:add-errata-may21`  — fn, dict-errata.lisp:1006  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 667. `ichiran/dict:delete-conjugation`  — fn, dict-errata.lisp:198  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 668. `ichiran/dict:add-gozaimasu-conjs`  — fn, dict-errata.lisp:263  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 669. `ichiran/dict:conjugate-da`  — fn, dict-errata.lisp:281  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 670. `ichiran/dict:delete-senses`  — fn, dict-errata.lisp:129  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 671. `ichiran/dict:remove-hiragana-nokanji`  — fn, dict-errata.lisp:217  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 672. `ichiran/dict:add-errata`  — fn, dict-errata.lisp:289  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
- 673. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146  *[skip — add-errata cluster: build-time JMdict DB mutations, already applied to the ichiran DB in use; no runtime port needed]*
+ 629. `ichiran/dict:find-conj`  — fn, dict-errata.lisp:1
+ 630. `ichiran/dict:add-conj`  — fn, dict-errata.lisp:15
+ 631. `ichiran/dict:root-diff`  — fn, dict-errata.lisp:95
+ 632. `ichiran/dict:root-diff-fn`  — fn, dict-errata.lisp:104
+ 633. `ichiran/dict:add-conj-reading`  — fn, dict-errata.lisp:109
+ 634. `ichiran/dict:add-reading`  — fn, dict-errata.lisp:35
+ 635. `ichiran/dict:add-deha-ja-readings`  — fn, dict-errata.lisp:171
+ 636. `ichiran/dict:add-sense-prop`  — fn, dict-errata.lisp:140
+ 637. `ichiran/dict:set-reading`  — gf, dict-load.lisp:0
+ 638. `ichiran/dict:reset-readings`  — fn, dict-errata.lisp:70
+ 639. `ichiran/dict:delete-reading`  — fn, dict-errata.lisp:76
+ 640. `ichiran/dict:set-common`  — fn, dict-errata.lisp:166
+ 641. `ichiran/dict:set-primary-nokanji`  — fn, dict-errata.lisp:224
+ 642. `ichiran/dict:add-errata-apr19`  — fn, dict-errata.lisp:847
+ 643. `ichiran/dict:add-new-sense*`  — fn, dict-errata.lisp:153
+ 644. `ichiran/dict:add-errata-apr20`  — fn, dict-errata.lisp:932
+ 645. `ichiran/dict:do-readings`  — macro, dict-errata.lisp:246
+ 646. `ichiran/dict:add-primary-nokanji`  — fn, dict-errata.lisp:251
+ 647. `ichiran/dict:delete-sense-prop`  — fn, dict-errata.lisp:136
+ 648. `ichiran/dict:add-errata-aug18`  — fn, dict-errata.lisp:803
+ 649. `ichiran/dict:add-gloss`  — fn, dict-errata.lisp:156
+ 650. `ichiran/dict:add-errata-counters`  — fn, dict-errata.lisp:1159
+ 651. `ichiran/dict:add-errata-dec23`  — fn, dict-errata.lisp:1028
+ 652. `ichiran/dict:add-errata-feb17`  — fn, dict-errata.lisp:608
+ 653. `ichiran/dict:add-errata-jan18`  — fn, dict-errata.lisp:697
+ 654. `ichiran/dict:add-errata-jan19`  — fn, dict-errata.lisp:823
+ 655. `ichiran/dict:add-errata-jan20`  — fn, dict-errata.lisp:867
+ 656. `ichiran/dict:replace-reading`  — fn, dict-errata.lisp:49
+ 657. `ichiran/dict:add-errata-jan21`  — fn, dict-errata.lisp:979
+ 658. `ichiran/dict:add-errata-jan22`  — fn, dict-errata.lisp:1017
+ 659. `ichiran/dict:replace-reading-conj`  — fn, dict-errata.lisp:60
+ 660. `ichiran/dict:add-errata-jan25`  — fn, dict-errata.lisp:1055
+ 661. `ichiran/dict:add-errata-jan26`  — fn, dict-errata.lisp:1077
+ 662. `ichiran/dict:rearrange-readings`  — fn, dict-errata.lisp:229
+ 663. `ichiran/dict:rearrange-readings-conj`  — fn, dict-errata.lisp:241
+ 664. `ichiran/dict:add-errata-jul20`  — fn, dict-errata.lisp:961
+ 665. `ichiran/dict:add-errata-mar18`  — fn, dict-errata.lisp:764
+ 666. `ichiran/dict:add-errata-may21`  — fn, dict-errata.lisp:1006
+ 667. `ichiran/dict:delete-conjugation`  — fn, dict-errata.lisp:198
+ 668. `ichiran/dict:add-gozaimasu-conjs`  — fn, dict-errata.lisp:263
+ 669. `ichiran/dict:conjugate-da`  — fn, dict-errata.lisp:281
+ 670. `ichiran/dict:delete-senses`  — fn, dict-errata.lisp:129
+ 671. `ichiran/dict:remove-hiragana-nokanji`  — fn, dict-errata.lisp:217
+ 672. `ichiran/dict:add-errata`  — fn, dict-errata.lisp:289
+ 673. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146
  674. `ichiran/dict:true-kana`  — gf, dict.lisp:0  *[ported]*  *[extracted: hint_2026_05_13]*  *[audited 442/442]*
  675. `ichiran/dict:true-kanji`  — gf, dict.lisp:0  *[ported]*
  676. `ichiran/kanji:reading`  — dao, kanji.lisp:42  *[ported]*
@@ -764,8 +764,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  694. **CYCLE (2 symbols — port together)**
         - `ichiran/dict:conj-info-json`  — fn, dict.lisp:1698  *[ported]*  *[extracted: conj_json_2026_05_25]*  *[audited 166212/166212]*
         - `ichiran/dict:conj-info-json*`  — fn, dict.lisp:1665  *[ported]*  *[extracted: conj_json_2026_05_25]*  *[audited 166212/166212]*
- 695. `ichiran/dict:conjugate-word`  — fn, dict-load.lisp:294  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 696. `ichiran/dict:csv-hash`  — macro, dict-load.lisp:201  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 695. `ichiran/dict:conjugate-word`  — fn, dict-load.lisp:294
+ 696. `ichiran/dict:csv-hash`  — macro, dict-load.lisp:201
  697. `ichiran/dict:defsuffix`  — macro, dict-grammar.lisp:342  *[skip — CONVENTIONS §4.6 case (a): DSL definer that registers (key . fn-name) pairs into *suffix-list*. The registry itself is the data store; per-callsite ports (suffix-tai, suffix-te, abbr-nee, …) live as standalone functions in the same Lisp file and will be transliterated alongside the CYCLE 484 unit (PORT_PLAN #484). No port file.]*
  698. `ichiran/dict:def-abbr-suffix`  — macro, dict-grammar.lisp:557  *[skip — CONVENTIONS §4.6 case (a): DSL definer expanding to (defsuffix ...) for abbreviated-form suffixes; populates *suffix-list* and wraps each per-callsite body which becomes a standalone function in the CYCLE 484 unit. No port file.]*
  699. `ichiran/dict:defsplit`  — macro, dict-split.lisp:5  *[skip — DSL definer; expansion only registers a per-seq fn in *split-map*. The Rust transliteration collapses *split-map* into the static split_map_dispatch match in _star_split_map_star_, and each registered fn is its own sibling split_*.rs module — nothing left to translate.]*
@@ -790,7 +790,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  718. `ichiran/dict:def-special-counter`  — macro, dict-counters.lisp:361  *[skip — Code-emitting DSL definer (CONVENTIONS §4.6 case (c)); 91 callsites captured as closures in build_special_counters (_star_special_counters_star_.rs); args/args-suffix/args-multi helpers ported in kani_counter_args.rs.]*
  719. `ichiran/dict:def-toori-split`  — macro, dict-split.lisp:143  *[skip — DSL definer (CONVENTIONS §4.6 case (a)); 13 callsites captured as data rows in SPLIT_TABLE (_star_split_map_star_.rs).]*
  720. `ichiran/dict:delete-duplicate-props`  — fn, dict.lisp:295  *[skip — Build-time DB cleanup: deletes duplicate conj_prop rows produced by load-conjugations (dict-load.lisp:447); conj_prop is populated by the load pipeline, not at runtime. No programmatic caller (invoked manually during DB construction). Using the provided pre-built/deduplicated ichiran DB dump, so no runtime port needed — same bucket as drop-extras and the add-errata delete-* cluster.]*
- 721. `ichiran/dict:drop-extras`  — fn, dict-load.lisp:194  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 721. `ichiran/dict:drop-extras`  — fn, dict-load.lisp:194
  722. `ichiran/dict:entry-digest`  — fn, dict.lisp:64  *[ported]*
  723. `ichiran/dict:entry-info-long`  — fn, dict.lisp:1601  *[ported]*
  724. `ichiran/dict:exists-reading`  — fn, dict.lisp:1847  *[ported]*
@@ -801,15 +801,15 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  729. `ichiran/dict:word-info-reading`  — fn, dict.lisp:1445  *[ported]*
  730. `ichiran/dict:word-info-gloss-json`  — fn, dict.lisp:1784  *[ported]*
  731. `ichiran/dict:find-word-info-json`  — fn, dict.lisp:1872  *[ported]*
- 732. `ichiran/dict:fix-entities`  — fn, dict-load.lisp:159  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 732. `ichiran/dict:fix-entities`  — fn, dict-load.lisp:159  *[ported]*
  733. `ichiran/dict:get-kanji-words`  — fn, dict.lisp:1836  *[ported]*
- 734. `ichiran/dict:init-tables`  — fn, dict-load.lisp:3  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 734. `ichiran/dict:init-tables`  — fn, dict-load.lisp:3  *[ported]*
  735. `ichiran/dict:length-multiplier`  — fn, dict.lisp:681  *[ported]*
- 736. `ichiran/dict:load-best-readings`  — fn, dict-load.lisp:530  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 737. `ichiran/dict:load-conjugations`  — fn, dict-load.lisp:445  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 736. `ichiran/dict:load-best-readings`  — fn, dict-load.lisp:530
+ 737. `ichiran/dict:load-conjugations`  — fn, dict-load.lisp:445
  738. `ichiran/dict:recalc-entry-stats-all`  — fn, dict.lisp:59  *[ported]*
- 739. `ichiran/dict:load-extras`  — fn, dict-load.lisp:183  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 740. `ichiran/dict:load-jmdict`  — fn, dict-load.lisp:168  *[skip — JMdict XML load + conjugation-generation pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 739. `ichiran/dict:load-extras`  — fn, dict-load.lisp:183
+ 740. `ichiran/dict:load-jmdict`  — fn, dict-load.lisp:168
  741. `ichiran/dict:recalc-entry-stats`  — fn, dict.lisp:53  *[ported]*
  742. `ichiran/dict:word-info-json`  — fn, dict.lisp:1262  *[ported]*
  743. `ichiran/dict:simple-word-info`  — fn, dict.lisp:1282  *[ported]*
@@ -821,14 +821,14 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  749. `ichiran/dict:word-readings`  — fn, dict.lisp:536  *[ported]*
  750. `ichiran/kanji:*kanjidic-path*`  — global, settings.lisp:16  *[ported]*
  751. `ichiran/kanji:calculate-perc`  — fn, kanji.lisp:349  *[ported]*
- 752. `ichiran/kanji:first-node-text`  — fn, kanji.lisp:106  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 752. `ichiran/kanji:first-node-text`  — fn, kanji.lisp:106  *[ported]*
  753. `ichiran/kanji:get-original-reading`  — fn, kanji.lisp:308  *[ported]*
  754. `ichiran/kanji:get-reading-stats`  — fn, kanji.lisp:399  *[ported]*
  755. `ichiran/kanji:get-readings`  — fn, kanji.lisp:211  *[ported]*
  756. `ichiran/kanji:meaning`  — dao, kanji.lisp:83  *[ported]*
  757. `ichiran/kanji:okurigana`  — dao, kanji.lisp:67  *[ported]*
  758. `ichiran/kanji:id`  — gf, kanji.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
- 759. `ichiran/kanji:init-tables`  — fn, kanji.lisp:98  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 759. `ichiran/kanji:init-tables`  — fn, kanji.lisp:98  *[ported]*
  760. `ichiran/kanji:kanji-id`  — gf, kanji.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  761. `ichiran/kanji:stat-common`  — gf, kanji.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
  762. `ichiran:*hepburn-basic*`  — global, romanize.lisp:144  *[ported]*
@@ -836,11 +836,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  764. `ichiran/kanji:to-json`  — gf, kanji.lisp:0  *[ported]*
  765. `ichiran/kanji:kanji-info-json`  — fn, kanji.lisp:392  *[ported]*
  766. `ichiran/kanji:kanji-reading-json`  — fn, kanji.lisp:410  *[ported]*
- 767. `ichiran/kanji:kanji-word-stats`  — fn, kanji.lisp:316  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 768. `ichiran/kanji:load-readings`  — fn, kanji.lisp:114  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 769. `ichiran/kanji:load-kanji`  — fn, kanji.lisp:152  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 770. `ichiran/kanji:load-kanji-stats`  — fn, kanji.lisp:332  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
- 771. `ichiran/kanji:load-kanjidic`  — fn, kanji.lisp:185  *[skip — kanjidic XML load pipeline (build-time DB population); using the provided ichiran DB dump, so no runtime port needed]*
+ 767. `ichiran/kanji:kanji-word-stats`  — fn, kanji.lisp:316
+ 768. `ichiran/kanji:load-readings`  — fn, kanji.lisp:114
+ 769. `ichiran/kanji:load-kanji`  — fn, kanji.lisp:152
+ 770. `ichiran/kanji:load-kanji-stats`  — fn, kanji.lisp:332
+ 771. `ichiran/kanji:load-kanjidic`  — fn, kanji.lisp:185
  772. `ichiran/kanji:process-match-json`  — fn, kanji.lisp:428  *[ported]*
  773. `ichiran/kanji:match-readings-json`  — fn, kanji.lisp:452  *[ported]*
  774. `ichiran/kanji:query-kanji-json`  — macro, kanji.lisp:458  *[ported]*
