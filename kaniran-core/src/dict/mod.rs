@@ -86,6 +86,7 @@ pub mod add_deha_ja_readings;
 pub mod add_errata_apr19;
 pub mod add_errata_apr20;
 pub mod add_errata_aug18;
+pub mod add_errata_counters;
 pub mod add_errata_dec23;
 pub mod add_errata_feb17;
 pub mod add_errata_jan18;

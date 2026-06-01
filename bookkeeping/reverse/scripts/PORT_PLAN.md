@@ -717,7 +717,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  647. `ichiran/dict:delete-sense-prop`  — fn, dict-errata.lisp:136  *[ported]*
  648. `ichiran/dict:add-errata-aug18`  — fn, dict-errata.lisp:803  *[ported]*
  649. `ichiran/dict:add-gloss`  — fn, dict-errata.lisp:156  *[ported]*
- 650. `ichiran/dict:add-errata-counters`  — fn, dict-errata.lisp:1159
+ 650. `ichiran/dict:add-errata-counters`  — fn, dict-errata.lisp:1159  *[ported]*
  651. `ichiran/dict:add-errata-dec23`  — fn, dict-errata.lisp:1028  *[ported]*
  652. `ichiran/dict:add-errata-feb17`  — fn, dict-errata.lisp:608  *[ported]*
  653. `ichiran/dict:add-errata-jan18`  — fn, dict-errata.lisp:697  *[ported]*
