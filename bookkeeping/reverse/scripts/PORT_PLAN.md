@@ -836,11 +836,11 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  764. `ichiran/kanji:to-json`  — gf, kanji.lisp:0  *[ported]*
  765. `ichiran/kanji:kanji-info-json`  — fn, kanji.lisp:392  *[ported]*
  766. `ichiran/kanji:kanji-reading-json`  — fn, kanji.lisp:410  *[ported]*
- 767. `ichiran/kanji:kanji-word-stats`  — fn, kanji.lisp:316
- 768. `ichiran/kanji:load-readings`  — fn, kanji.lisp:114
- 769. `ichiran/kanji:load-kanji`  — fn, kanji.lisp:152
- 770. `ichiran/kanji:load-kanji-stats`  — fn, kanji.lisp:332
- 771. `ichiran/kanji:load-kanjidic`  — fn, kanji.lisp:185
+ 767. `ichiran/kanji:kanji-word-stats`  — fn, kanji.lisp:316  *[ported]*
+ 768. `ichiran/kanji:load-readings`  — fn, kanji.lisp:114  *[ported]*
+ 769. `ichiran/kanji:load-kanji`  — fn, kanji.lisp:152  *[ported]*
+ 770. `ichiran/kanji:load-kanji-stats`  — fn, kanji.lisp:332  *[ported]*
+ 771. `ichiran/kanji:load-kanjidic`  — fn, kanji.lisp:185  *[ported]*
  772. `ichiran/kanji:process-match-json`  — fn, kanji.lisp:428  *[ported]*
  773. `ichiran/kanji:match-readings-json`  — fn, kanji.lisp:452  *[ported]*
  774. `ichiran/kanji:query-kanji-json`  — macro, kanji.lisp:458  *[ported]*
