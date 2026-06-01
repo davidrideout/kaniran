@@ -661,8 +661,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  591. `ichiran/dict:insert-sense-traits`  — fn, dict-load.lisp:66  *[ported]*
  592. `ichiran/dict:insert-senses`  — fn, dict-load.lisp:71  *[ported]*
  593. `ichiran/dict:*secondary-conjugation-types*`  — global, dict-load.lisp:314  *[ported]*
- 594. `ichiran/dict:load-secondary-conjugations`  — fn, dict-load.lisp:457
- 595. `ichiran/dict:load-entry`  — fn, dict-load.lisp:113
+ 594. `ichiran/dict:load-secondary-conjugations`  — fn, dict-load.lisp:457  *[ported]*
+ 595. `ichiran/dict:load-entry`  — fn, dict-load.lisp:113  *[ported]*
  596. `ichiran/custom:insert-entry`  — gf, dict-custom.lisp:0
  597. `ichiran/custom:normalize-geo`  — fn, dict-custom.lisp:176
  598. `ichiran/dict:get-candidates`  — fn, dict.lisp:1904  *[ported]*
@@ -704,7 +704,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  634. `ichiran/dict:add-reading`  — fn, dict-errata.lisp:35
  635. `ichiran/dict:add-deha-ja-readings`  — fn, dict-errata.lisp:171
  636. `ichiran/dict:add-sense-prop`  — fn, dict-errata.lisp:140
- 637. `ichiran/dict:set-reading`  — gf, dict-load.lisp:0
+ 637. `ichiran/dict:set-reading`  — gf, dict-load.lisp:0  *[ported]*
  638. `ichiran/dict:reset-readings`  — fn, dict-errata.lisp:70
  639. `ichiran/dict:delete-reading`  — fn, dict-errata.lisp:76
  640. `ichiran/dict:set-common`  — fn, dict-errata.lisp:166
@@ -805,8 +805,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  733. `ichiran/dict:get-kanji-words`  — fn, dict.lisp:1836  *[ported]*
  734. `ichiran/dict:init-tables`  — fn, dict-load.lisp:3  *[ported]*
  735. `ichiran/dict:length-multiplier`  — fn, dict.lisp:681  *[ported]*
- 736. `ichiran/dict:load-best-readings`  — fn, dict-load.lisp:530
- 737. `ichiran/dict:load-conjugations`  — fn, dict-load.lisp:445
+ 736. `ichiran/dict:load-best-readings`  — fn, dict-load.lisp:530  *[ported]*
+ 737. `ichiran/dict:load-conjugations`  — fn, dict-load.lisp:445  *[ported]*
  738. `ichiran/dict:recalc-entry-stats-all`  — fn, dict.lisp:59  *[ported]*
  739. `ichiran/dict:load-extras`  — fn, dict-load.lisp:183
  740. `ichiran/dict:load-jmdict`  — fn, dict-load.lisp:168
