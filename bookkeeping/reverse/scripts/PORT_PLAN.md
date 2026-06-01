@@ -657,9 +657,9 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  587. `ichiran/dict:conjugate-entry-outer`  — fn, dict-load.lisp:342
  588. `ichiran/dict:do-node-list-ord`  — macro, dict-load.lisp:26  *[skip — CONVENTIONS §4.6 case (b): syntactic helper expanding to (dom:do-node-list … (incf ord-var)); Rust callsites iterate a roxmltree Node slice with .enumerate(), so no port file.]*
  589. `ichiran/dict:node-text`  — fn, dict-load.lisp:14  *[ported]*
- 590. `ichiran/dict:insert-readings`  — fn, dict-load.lisp:32
- 591. `ichiran/dict:insert-sense-traits`  — fn, dict-load.lisp:66
- 592. `ichiran/dict:insert-senses`  — fn, dict-load.lisp:71
+ 590. `ichiran/dict:insert-readings`  — fn, dict-load.lisp:32  *[ported]*
+ 591. `ichiran/dict:insert-sense-traits`  — fn, dict-load.lisp:66  *[ported]*
+ 592. `ichiran/dict:insert-senses`  — fn, dict-load.lisp:71  *[ported]*
  593. `ichiran/dict:*secondary-conjugation-types*`  — global, dict-load.lisp:314  *[ported]*
  594. `ichiran/dict:load-secondary-conjugations`  — fn, dict-load.lisp:457
  595. `ichiran/dict:load-entry`  — fn, dict-load.lisp:113
@@ -669,8 +669,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  599. `ichiran/dict:get-glosses`  — fn, dict.lisp:1892  *[ported]*
  600. `ichiran/dict:match-glosses`  — fn, dict.lisp:1921  *[ported]*
  601. `ichiran/custom:test-entry`  — gf, dict-custom.lisp:0
- 602. `ichiran/dict:sense-exists-p`  — fn, dict-load.lisp:80
- 603. `ichiran/dict:add-new-sense`  — fn, dict-load.lisp:91
+ 602. `ichiran/dict:sense-exists-p`  — fn, dict-load.lisp:80  *[ported]*
+ 603. `ichiran/dict:add-new-sense`  — fn, dict-load.lisp:91  *[ported]*
  604. `ichiran/custom:update-entry`  — gf, dict-custom.lisp:0
  605. `ichiran/custom:update-entry-gloss`  — gf, dict-custom.lisp:0
  606. `ichiran/custom:xml-entry`  — struct, dict-custom.lisp:63
