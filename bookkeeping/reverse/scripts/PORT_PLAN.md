@@ -635,7 +635,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  565. `ichiran/custom:source-path`  — fn, dict-custom.lisp:318  *[ported]*
  566. `ichiran/custom:ward-csv`  — class, dict-custom.lisp:266  *[ported]*
  567. `ichiran/custom:xml-loader`  — class, dict-custom.lisp:59  *[ported]*
- 568. `ichiran/custom:get-custom-data`  — fn, dict-custom.lisp:322
+ 568. `ichiran/custom:get-custom-data`  — fn, dict-custom.lisp:322  *[ported]*
  569. `ichiran/custom:get-words`  — gf, dict-custom.lisp:0  *[ported]*
  570. `ichiran/dict:*pos-with-conj-rules*`  — global, dict-load.lisp:307  *[ported]*
  571. `ichiran/dict:*do-not-conjugate*`  — global, dict-load.lisp:303  *[ported]*
@@ -682,7 +682,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  612. `ichiran/custom:process-entry`  — gf, dict-custom.lisp:0  *[ported]*
  613. `ichiran/custom:source-file`  — gf, dict-custom.lisp:0  *[skip — Pure :reader slot accessor (xml-loader / csv-loader source-file slot) with only locally-typed callsites — slot data lives as XmlLoader::source_file / CsvLoader::source_file fields per the feedback_skip_pure_slot_reader_gfs rule.]*
  614. `ichiran/custom:slurp`  — gf, dict-custom.lisp:0  *[ported]*
- 615. `ichiran/custom:load-custom-data`  — fn, dict-custom.lisp:329
+ 615. `ichiran/custom:load-custom-data`  — fn, dict-custom.lisp:329  *[ported]*
  616. `ichiran/dict:*aux-verbs*`  — global, dict-grammar.lisp:1072  *[ported]*
  617. `ichiran/dict:*conj-description*`  — global, dict-load.lisp:0  *[ported]*
  618. `ichiran/dict:*conj-rules*`  — global, dict-load.lisp:0  *[ported]*

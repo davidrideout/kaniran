@@ -12,7 +12,7 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 366 fn/gf
+- Checked: 368 fn/gf
 - Macros (file-existence only): 8
 - Divergences: 27
 
