@@ -625,18 +625,18 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  555. `ichiran/custom:*municipality-types-description*`  — global, dict-custom.lisp:107  *[ported]*
  556. `ichiran/custom:*municipality-types-order*`  — global, dict-custom.lisp:118  *[ported]*
  557. `ichiran/custom:*silent-p*`  — global, dict-custom.lisp:5  *[skip — stdout verbosity flag for load-custom-data progress prints; Rust port uses log/tracing levels instead of a global dynamic var]*
- 558. `ichiran/custom:as-xml-simple`  — fn, dict-custom.lisp:225
+ 558. `ichiran/custom:as-xml-simple`  — fn, dict-custom.lisp:225  *[ported]*
  559. `ichiran/custom:municipality`  — struct, dict-custom.lisp:140  *[ported]*
  560. `ichiran/custom:ward`  — struct, dict-custom.lisp:269  *[ported]*
- 561. `ichiran/custom:as-xml`  — gf, dict-custom.lisp:0
- 562. `ichiran/custom:custom-source`  — class, dict-custom.lisp:54
- 563. `ichiran/custom:csv-loader`  — class, dict-custom.lisp:82
- 564. `ichiran/custom:municipality-csv`  — class, dict-custom.lisp:93
- 565. `ichiran/custom:source-path`  — fn, dict-custom.lisp:318
- 566. `ichiran/custom:ward-csv`  — class, dict-custom.lisp:266
- 567. `ichiran/custom:xml-loader`  — class, dict-custom.lisp:59
+ 561. `ichiran/custom:as-xml`  — gf, dict-custom.lisp:0  *[ported]*
+ 562. `ichiran/custom:custom-source`  — class, dict-custom.lisp:54  *[ported]*
+ 563. `ichiran/custom:csv-loader`  — class, dict-custom.lisp:82  *[ported]*
+ 564. `ichiran/custom:municipality-csv`  — class, dict-custom.lisp:93  *[ported]*
+ 565. `ichiran/custom:source-path`  — fn, dict-custom.lisp:318  *[ported]*
+ 566. `ichiran/custom:ward-csv`  — class, dict-custom.lisp:266  *[ported]*
+ 567. `ichiran/custom:xml-loader`  — class, dict-custom.lisp:59  *[ported]*
  568. `ichiran/custom:get-custom-data`  — fn, dict-custom.lisp:322
- 569. `ichiran/custom:get-words`  — gf, dict-custom.lisp:0
+ 569. `ichiran/custom:get-words`  — gf, dict-custom.lisp:0  *[ported]*
  570. `ichiran/dict:*pos-with-conj-rules*`  — global, dict-load.lisp:307  *[ported]*
  571. `ichiran/dict:*do-not-conjugate*`  — global, dict-load.lisp:303  *[ported]*
  572. `ichiran/dict:conjugate-p`  — gf, dict.lisp:0  *[skip — Slot-reader gf with no polymorphic callsites; auto-generated :reader / :accessor on a ported DAO/condition. Each Rust struct exposes the slot as a pub field directly per CONVENTIONS §4.7.]*
@@ -663,25 +663,25 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  593. `ichiran/dict:*secondary-conjugation-types*`  — global, dict-load.lisp:314  *[ported]*
  594. `ichiran/dict:load-secondary-conjugations`  — fn, dict-load.lisp:457  *[ported]*
  595. `ichiran/dict:load-entry`  — fn, dict-load.lisp:113  *[ported]*
- 596. `ichiran/custom:insert-entry`  — gf, dict-custom.lisp:0
- 597. `ichiran/custom:normalize-geo`  — fn, dict-custom.lisp:176
+ 596. `ichiran/custom:insert-entry`  — gf, dict-custom.lisp:0  *[ported]*
+ 597. `ichiran/custom:normalize-geo`  — fn, dict-custom.lisp:176  *[ported]*
  598. `ichiran/dict:get-candidates`  — fn, dict.lisp:1904  *[ported]*
  599. `ichiran/dict:get-glosses`  — fn, dict.lisp:1892  *[ported]*
  600. `ichiran/dict:match-glosses`  — fn, dict.lisp:1921  *[ported]*
- 601. `ichiran/custom:test-entry`  — gf, dict-custom.lisp:0
+ 601. `ichiran/custom:test-entry`  — gf, dict-custom.lisp:0  *[ported]*
  602. `ichiran/dict:sense-exists-p`  — fn, dict-load.lisp:80  *[ported]*
  603. `ichiran/dict:add-new-sense`  — fn, dict-load.lisp:91  *[ported]*
- 604. `ichiran/custom:update-entry`  — gf, dict-custom.lisp:0
- 605. `ichiran/custom:update-entry-gloss`  — gf, dict-custom.lisp:0
- 606. `ichiran/custom:xml-entry`  — struct, dict-custom.lisp:63
- 607. `ichiran/custom:insert`  — gf, dict-custom.lisp:0
- 608. `ichiran/custom:municipality-short`  — fn, dict-custom.lisp:123
+ 604. `ichiran/custom:update-entry`  — gf, dict-custom.lisp:0  *[ported]*
+ 605. `ichiran/custom:update-entry-gloss`  — gf, dict-custom.lisp:0  *[ported]*
+ 606. `ichiran/custom:xml-entry`  — struct, dict-custom.lisp:63  *[ported]*
+ 607. `ichiran/custom:insert`  — gf, dict-custom.lisp:0  *[ported]*
+ 608. `ichiran/custom:municipality-short`  — fn, dict-custom.lisp:123  *[ported]*
  609. `ichiran:*hepburn-simple*`  — global, romanize.lisp:146  *[ported]*
  610. `ichiran:romanize-word-geo`  — fn, romanize.lisp:232  *[ported]*
- 611. `ichiran/custom:romanize-municipality`  — fn, dict-custom.lisp:133
- 612. `ichiran/custom:process-entry`  — gf, dict-custom.lisp:0
- 613. `ichiran/custom:source-file`  — gf, dict-custom.lisp:0
- 614. `ichiran/custom:slurp`  — gf, dict-custom.lisp:0
+ 611. `ichiran/custom:romanize-municipality`  — fn, dict-custom.lisp:133  *[ported]*
+ 612. `ichiran/custom:process-entry`  — gf, dict-custom.lisp:0  *[ported]*
+ 613. `ichiran/custom:source-file`  — gf, dict-custom.lisp:0  *[skip — Pure :reader slot accessor (xml-loader / csv-loader source-file slot) with only locally-typed callsites — slot data lives as XmlLoader::source_file / CsvLoader::source_file fields per the feedback_skip_pure_slot_reader_gfs rule.]*
+ 614. `ichiran/custom:slurp`  — gf, dict-custom.lisp:0  *[ported]*
  615. `ichiran/custom:load-custom-data`  — fn, dict-custom.lisp:329
  616. `ichiran/dict:*aux-verbs*`  — global, dict-grammar.lisp:1072  *[ported]*
  617. `ichiran/dict:*conj-description*`  — global, dict-load.lisp:0  *[ported]*
