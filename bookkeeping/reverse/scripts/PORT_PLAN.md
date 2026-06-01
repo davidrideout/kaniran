@@ -647,14 +647,14 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  577. `ichiran/dict:load-pos-index`  — fn, dict-load.lisp:247  *[ported]*
  578. `ichiran/dict:get-pos-index`  — fn, dict-load.lisp:247  *[ported]*
  579. `ichiran/dict:errata-conj-rules-hook`  — fn, dict-errata.lisp:1329  *[ported]*
- 580. `ichiran/dict:load-conj-rules`  — fn, dict-load.lisp:265
- 581. `ichiran/dict:get-conj-rules`  — fn, dict-load.lisp:265
- 582. `ichiran/dict:conjugate-entry-inner`  — fn, dict-load.lisp:314
- 583. `ichiran/dict:get-all-readings`  — fn, dict-errata.lisp:257
+ 580. `ichiran/dict:load-conj-rules`  — fn, dict-load.lisp:265  *[ported]*
+ 581. `ichiran/dict:get-conj-rules`  — fn, dict-load.lisp:265  *[ported]*
+ 582. `ichiran/dict:conjugate-entry-inner`  — fn, dict-load.lisp:314  *[ported]*
+ 583. `ichiran/dict:get-all-readings`  — fn, dict-errata.lisp:257  *[ported]*
  584. `ichiran/dict:*secondary-conjugation-types-from*`  — global, dict-load.lisp:312  *[ported]*
- 585. `ichiran/dict:insert-conjugation`  — fn, dict-load.lisp:375
+ 585. `ichiran/dict:insert-conjugation`  — fn, dict-load.lisp:375  *[ported]*
  586. `ichiran/dict:next-seq`  — fn, dict-load.lisp:110  *[ported]*
- 587. `ichiran/dict:conjugate-entry-outer`  — fn, dict-load.lisp:342
+ 587. `ichiran/dict:conjugate-entry-outer`  — fn, dict-load.lisp:342  *[ported]*
  588. `ichiran/dict:do-node-list-ord`  — macro, dict-load.lisp:26  *[skip — CONVENTIONS §4.6 case (b): syntactic helper expanding to (dom:do-node-list … (incf ord-var)); Rust callsites iterate a roxmltree Node slice with .enumerate(), so no port file.]*
  589. `ichiran/dict:node-text`  — fn, dict-load.lisp:14  *[ported]*
  590. `ichiran/dict:insert-readings`  — fn, dict-load.lisp:32  *[ported]*
@@ -685,7 +685,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  615. `ichiran/custom:load-custom-data`  — fn, dict-custom.lisp:329
  616. `ichiran/dict:*aux-verbs*`  — global, dict-grammar.lisp:1072  *[ported]*
  617. `ichiran/dict:*conj-description*`  — global, dict-load.lisp:0  *[ported]*
- 618. `ichiran/dict:*conj-rules*`  — global, dict-load.lisp:0
+ 618. `ichiran/dict:*conj-rules*`  — global, dict-load.lisp:0  *[ported]*
  619. `ichiran/dict:*do-not-conjugate-seq*`  — global, dict-load.lisp:305  *[ported]*
  620. `ichiran/dict:*easy-hints-seqs*`  — global, dict-split.lisp:904  *[ported]*
  621. `ichiran/dict:*hints-checked*`  — global, dict-split.lisp:947  *[ported]*
@@ -764,8 +764,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  694. **CYCLE (2 symbols — port together)**
         - `ichiran/dict:conj-info-json`  — fn, dict.lisp:1698  *[ported]*  *[extracted: conj_json_2026_05_25]*  *[audited 166212/166212]*
         - `ichiran/dict:conj-info-json*`  — fn, dict.lisp:1665  *[ported]*  *[extracted: conj_json_2026_05_25]*  *[audited 166212/166212]*
- 695. `ichiran/dict:conjugate-word`  — fn, dict-load.lisp:294
- 696. `ichiran/dict:csv-hash`  — macro, dict-load.lisp:201
+ 695. `ichiran/dict:conjugate-word`  — fn, dict-load.lisp:294  *[ported]*
+ 696. `ichiran/dict:csv-hash`  — macro, dict-load.lisp:201  *[skip — Pure DSL definer (CONVENTIONS §4.6 case (a)): the macro expands to a defparameter + per-call loader + lazy accessor that ports as three Rust files. The four call-sites — *pos-index* / *pos-by-index* / *conj-description* / *conj-rules* — each port to their own trio of files (_star_<name>_star_.rs OnceLock + load_<name>.rs + get_<name>.rs); no shared per-macro helper to extract.]*
  697. `ichiran/dict:defsuffix`  — macro, dict-grammar.lisp:342  *[skip — CONVENTIONS §4.6 case (a): DSL definer that registers (key . fn-name) pairs into *suffix-list*. The registry itself is the data store; per-callsite ports (suffix-tai, suffix-te, abbr-nee, …) live as standalone functions in the same Lisp file and will be transliterated alongside the CYCLE 484 unit (PORT_PLAN #484). No port file.]*
  698. `ichiran/dict:def-abbr-suffix`  — macro, dict-grammar.lisp:557  *[skip — CONVENTIONS §4.6 case (a): DSL definer expanding to (defsuffix ...) for abbreviated-form suffixes; populates *suffix-list* and wraps each per-callsite body which becomes a standalone function in the CYCLE 484 unit. No port file.]*
  699. `ichiran/dict:defsplit`  — macro, dict-split.lisp:5  *[skip — DSL definer; expansion only registers a per-seq fn in *split-map*. The Rust transliteration collapses *split-map* into the static split_map_dispatch match in _star_split_map_star_, and each registered fn is its own sibling split_*.rs module — nothing left to translate.]*
