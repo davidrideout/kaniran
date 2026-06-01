@@ -696,27 +696,27 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  626. `ichiran/dict:*noun-particles*`  — global, dict-grammar.lisp:801  *[ported]*
  627. `ichiran/dict:*pos-by-index*`  — global, dict-load.lisp:0  *[ported]*
  628. `ichiran/dict:*pos-index*`  — global, dict-load.lisp:0  *[ported]*
- 629. `ichiran/dict:find-conj`  — fn, dict-errata.lisp:1
- 630. `ichiran/dict:add-conj`  — fn, dict-errata.lisp:15
+ 629. `ichiran/dict:find-conj`  — fn, dict-errata.lisp:1  *[ported]*
+ 630. `ichiran/dict:add-conj`  — fn, dict-errata.lisp:15  *[ported]*
  631. `ichiran/dict:root-diff`  — fn, dict-errata.lisp:95  *[ported]*
  632. `ichiran/dict:root-diff-fn`  — fn, dict-errata.lisp:104  *[ported]*
  633. `ichiran/dict:add-conj-reading`  — fn, dict-errata.lisp:109  *[ported]*
  634. `ichiran/dict:add-reading`  — fn, dict-errata.lisp:35  *[ported]*
  635. `ichiran/dict:add-deha-ja-readings`  — fn, dict-errata.lisp:171
- 636. `ichiran/dict:add-sense-prop`  — fn, dict-errata.lisp:140
+ 636. `ichiran/dict:add-sense-prop`  — fn, dict-errata.lisp:140  *[ported]*
  637. `ichiran/dict:set-reading`  — gf, dict-load.lisp:0  *[ported]*
  638. `ichiran/dict:reset-readings`  — fn, dict-errata.lisp:70  *[ported]*
  639. `ichiran/dict:delete-reading`  — fn, dict-errata.lisp:76  *[ported]*
- 640. `ichiran/dict:set-common`  — fn, dict-errata.lisp:166
+ 640. `ichiran/dict:set-common`  — fn, dict-errata.lisp:166  *[ported]*
  641. `ichiran/dict:set-primary-nokanji`  — fn, dict-errata.lisp:224
  642. `ichiran/dict:add-errata-apr19`  — fn, dict-errata.lisp:847
- 643. `ichiran/dict:add-new-sense*`  — fn, dict-errata.lisp:153
+ 643. `ichiran/dict:add-new-sense*`  — fn, dict-errata.lisp:153  *[ported]*
  644. `ichiran/dict:add-errata-apr20`  — fn, dict-errata.lisp:932
  645. `ichiran/dict:do-readings`  — macro, dict-errata.lisp:246  *[skip — Syntactic-helper macro per CONVENTIONS §4.6 (b); expands to (dolist (rvar (select-dao …)) body). Sole upstream callsite is add-primary-nokanji at dict-errata.lisp:251 — to be inlined when that fn is ported.]*
  646. `ichiran/dict:add-primary-nokanji`  — fn, dict-errata.lisp:251
- 647. `ichiran/dict:delete-sense-prop`  — fn, dict-errata.lisp:136
+ 647. `ichiran/dict:delete-sense-prop`  — fn, dict-errata.lisp:136  *[ported]*
  648. `ichiran/dict:add-errata-aug18`  — fn, dict-errata.lisp:803
- 649. `ichiran/dict:add-gloss`  — fn, dict-errata.lisp:156
+ 649. `ichiran/dict:add-gloss`  — fn, dict-errata.lisp:156  *[ported]*
  650. `ichiran/dict:add-errata-counters`  — fn, dict-errata.lisp:1159
  651. `ichiran/dict:add-errata-dec23`  — fn, dict-errata.lisp:1028
  652. `ichiran/dict:add-errata-feb17`  — fn, dict-errata.lisp:608
@@ -734,13 +734,13 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  664. `ichiran/dict:add-errata-jul20`  — fn, dict-errata.lisp:961
  665. `ichiran/dict:add-errata-mar18`  — fn, dict-errata.lisp:764
  666. `ichiran/dict:add-errata-may21`  — fn, dict-errata.lisp:1006
- 667. `ichiran/dict:delete-conjugation`  — fn, dict-errata.lisp:198
+ 667. `ichiran/dict:delete-conjugation`  — fn, dict-errata.lisp:198  *[ported]*
  668. `ichiran/dict:add-gozaimasu-conjs`  — fn, dict-errata.lisp:263
  669. `ichiran/dict:conjugate-da`  — fn, dict-errata.lisp:281
- 670. `ichiran/dict:delete-senses`  — fn, dict-errata.lisp:129
+ 670. `ichiran/dict:delete-senses`  — fn, dict-errata.lisp:129  *[ported]*
  671. `ichiran/dict:remove-hiragana-nokanji`  — fn, dict-errata.lisp:217
  672. `ichiran/dict:add-errata`  — fn, dict-errata.lisp:289
- 673. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146
+ 673. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146  *[ported]*
  674. `ichiran/dict:true-kana`  — gf, dict.lisp:0  *[ported]*  *[extracted: hint_2026_05_13]*  *[audited 442/442]*
  675. `ichiran/dict:true-kanji`  — gf, dict.lisp:0  *[ported]*
  676. `ichiran/kanji:reading`  — dao, kanji.lisp:42  *[ported]*

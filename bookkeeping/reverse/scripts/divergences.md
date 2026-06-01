@@ -12,9 +12,9 @@ captured Lisp lambda list. New entries should be either:
 
 ## Summary
 
-- Checked: 376 fn/gf
+- Checked: 386 fn/gf
 - Macros (file-existence only): 8
-- Divergences: 28
+- Divergences: 31
 
 ## Divergences
 
@@ -47,6 +47,21 @@ captured Lisp lambda list. New entries should be either:
 
 - file: `kaniran-core/src/characters/voice_char.rs`
 - drift: return-arity 1 ≠ Lisp (values …) required=2 (rust='KanaClass', lisp='(values t boolean &optional)')
+
+### `ichiran/dict:add-gloss`
+
+- file: `kaniran-core/src/dict/add_gloss.rs`
+- drift: arity 4 ≠ Lisp 2 (req=2, opt=0, keys=[]) (ctx-injected; +1 absorbed)
+
+### `ichiran/dict:add-new-sense*`
+
+- file: `kaniran-core/src/dict/add_new_sense_star_.rs`
+- drift: arity 4 ≠ Lisp 2 (req=2, opt=0, keys=[]) (ctx-injected; +1 absorbed)
+
+### `ichiran/dict:add-sense`
+
+- file: `kaniran-core/src/dict/add_sense.rs`
+- drift: arity 4 ≠ Lisp 2 (req=2, opt=0, keys=[]) (ctx-injected; +1 absorbed)
 
 ### `ichiran/dict:compare-common`
 
