@@ -715,13 +715,13 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  645. `ichiran/dict:do-readings`  — macro, dict-errata.lisp:246  *[skip — Syntactic-helper macro per CONVENTIONS §4.6 (b); expands to (dolist (rvar (select-dao …)) body). Sole upstream callsite is add-primary-nokanji at dict-errata.lisp:251 — to be inlined when that fn is ported.]*
  646. `ichiran/dict:add-primary-nokanji`  — fn, dict-errata.lisp:251  *[ported]*
  647. `ichiran/dict:delete-sense-prop`  — fn, dict-errata.lisp:136  *[ported]*
- 648. `ichiran/dict:add-errata-aug18`  — fn, dict-errata.lisp:803
+ 648. `ichiran/dict:add-errata-aug18`  — fn, dict-errata.lisp:803  *[ported]*
  649. `ichiran/dict:add-gloss`  — fn, dict-errata.lisp:156  *[ported]*
  650. `ichiran/dict:add-errata-counters`  — fn, dict-errata.lisp:1159
  651. `ichiran/dict:add-errata-dec23`  — fn, dict-errata.lisp:1028
- 652. `ichiran/dict:add-errata-feb17`  — fn, dict-errata.lisp:608
- 653. `ichiran/dict:add-errata-jan18`  — fn, dict-errata.lisp:697
- 654. `ichiran/dict:add-errata-jan19`  — fn, dict-errata.lisp:823
+ 652. `ichiran/dict:add-errata-feb17`  — fn, dict-errata.lisp:608  *[ported]*
+ 653. `ichiran/dict:add-errata-jan18`  — fn, dict-errata.lisp:697  *[ported]*
+ 654. `ichiran/dict:add-errata-jan19`  — fn, dict-errata.lisp:823  *[ported]*
  655. `ichiran/dict:add-errata-jan20`  — fn, dict-errata.lisp:867
  656. `ichiran/dict:replace-reading`  — fn, dict-errata.lisp:49  *[ported]*
  657. `ichiran/dict:add-errata-jan21`  — fn, dict-errata.lisp:979
@@ -732,7 +732,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  662. `ichiran/dict:rearrange-readings`  — fn, dict-errata.lisp:229  *[ported]*
  663. `ichiran/dict:rearrange-readings-conj`  — fn, dict-errata.lisp:241  *[ported]*
  664. `ichiran/dict:add-errata-jul20`  — fn, dict-errata.lisp:961
- 665. `ichiran/dict:add-errata-mar18`  — fn, dict-errata.lisp:764
+ 665. `ichiran/dict:add-errata-mar18`  — fn, dict-errata.lisp:764  *[ported]*
  666. `ichiran/dict:add-errata-may21`  — fn, dict-errata.lisp:1006
  667. `ichiran/dict:delete-conjugation`  — fn, dict-errata.lisp:198  *[ported]*
  668. `ichiran/dict:add-gozaimasu-conjs`  — fn, dict-errata.lisp:263  *[ported]*
