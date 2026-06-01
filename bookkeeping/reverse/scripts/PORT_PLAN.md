@@ -718,17 +718,17 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  648. `ichiran/dict:add-errata-aug18`  — fn, dict-errata.lisp:803  *[ported]*
  649. `ichiran/dict:add-gloss`  — fn, dict-errata.lisp:156  *[ported]*
  650. `ichiran/dict:add-errata-counters`  — fn, dict-errata.lisp:1159
- 651. `ichiran/dict:add-errata-dec23`  — fn, dict-errata.lisp:1028
+ 651. `ichiran/dict:add-errata-dec23`  — fn, dict-errata.lisp:1028  *[ported]*
  652. `ichiran/dict:add-errata-feb17`  — fn, dict-errata.lisp:608  *[ported]*
  653. `ichiran/dict:add-errata-jan18`  — fn, dict-errata.lisp:697  *[ported]*
  654. `ichiran/dict:add-errata-jan19`  — fn, dict-errata.lisp:823  *[ported]*
  655. `ichiran/dict:add-errata-jan20`  — fn, dict-errata.lisp:867  *[ported]*
  656. `ichiran/dict:replace-reading`  — fn, dict-errata.lisp:49  *[ported]*
  657. `ichiran/dict:add-errata-jan21`  — fn, dict-errata.lisp:979  *[ported]*
- 658. `ichiran/dict:add-errata-jan22`  — fn, dict-errata.lisp:1017
+ 658. `ichiran/dict:add-errata-jan22`  — fn, dict-errata.lisp:1017  *[ported]*
  659. `ichiran/dict:replace-reading-conj`  — fn, dict-errata.lisp:60  *[ported]*
- 660. `ichiran/dict:add-errata-jan25`  — fn, dict-errata.lisp:1055
- 661. `ichiran/dict:add-errata-jan26`  — fn, dict-errata.lisp:1077
+ 660. `ichiran/dict:add-errata-jan25`  — fn, dict-errata.lisp:1055  *[ported]*
+ 661. `ichiran/dict:add-errata-jan26`  — fn, dict-errata.lisp:1077  *[ported]*
  662. `ichiran/dict:rearrange-readings`  — fn, dict-errata.lisp:229  *[ported]*
  663. `ichiran/dict:rearrange-readings-conj`  — fn, dict-errata.lisp:241  *[ported]*
  664. `ichiran/dict:add-errata-jul20`  — fn, dict-errata.lisp:961  *[ported]*
