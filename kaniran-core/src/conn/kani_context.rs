@@ -219,6 +219,42 @@ impl KaniranContext {
         }
     }
 
+    /// Connect the pool and return a context with every cache empty.
+    /// Rust-only sidecar — no Lisp counterpart. The cache populators
+    /// touch JMdict tables that may be absent or empty (e.g. on a fresh
+    /// schema that the kanjidic loaders are about to populate); this
+    /// constructor skips them so the e2e tooling can run against such
+    /// shells. Callers must not invoke functions that read these caches
+    /// (`find-word` / `get-counter-ids` / suffix dispatch / …) — they
+    /// would silently see empty maps.
+    pub async fn pool_only_from_url(url: &str) -> Result<Arc<Self>, Error> {
+        use std::collections::HashMap;
+
+        let pool = PgPoolOptions::new()
+            .max_connections(60)
+            .acquire_timeout(Duration::from_secs(10))
+            .connect(url)
+            .await
+            .map_err(|e| {
+                eprintln!("kaniran: failed to connect to database at `{url}`: {e}");
+                Error::from(e)
+            })?;
+        Ok(Arc::new(Self {
+            pool,
+            no_conj_data: Arc::new(HashSet::new()),
+            is_arch: Arc::new(HashSet::new()),
+            counter_cache: Arc::new(HashMap::new()),
+            suffix_cache: Arc::new(HashMap::new()),
+            suffix_class: Arc::new(HashMap::new()),
+            reading_cache: Arc::new(new_reading_cache()),
+            disable_hints: false,
+            substring_hash: None,
+            suffix_map_temp: None,
+            suffix_next_end: None,
+            split_map: SplitMapKind::Default,
+        }))
+    }
+
     /// Read a Postgres URL via [`config::Config`] (file + env layered)
     /// and build the context.
     pub async fn from_env() -> Result<Arc<Self>, Error> {

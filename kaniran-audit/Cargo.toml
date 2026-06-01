@@ -16,6 +16,7 @@ parquet = "55"
 arrow = "55"
 futures = "0.3"
 pprof = { version = "0.13", features = ["flamegraph"] }
+clap = { version = "4", features = ["derive"] }
 
 # Per-FQN fixture-replay runners. Each lives at audit/<pkg>/<fqn>_test.rs
 # mirroring kaniran-core/src/<pkg>/<fqn>.rs. Run manually from the repo root with:
@@ -419,3 +420,7 @@ path = "audit/dict/conj_info_json_star_test.rs"
 [[bin]]
 name = "select_conjs_and_props_test"
 path = "audit/dict/select_conjs_and_props_test.rs"
+
+[[bin]]
+name = "e2e_load_kanjidic"
+path = "audit/kanji/e2e_load_kanjidic.rs"

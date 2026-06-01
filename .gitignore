@@ -17,6 +17,8 @@ __pycache__/
 
 # Captured fixture data — local only, regenerated on demand
 /corpus/
+/bookkeeping/e2e/fixtures/
+/bookkeeping/e2e/last_run.md
 
 # Working scratchpad — local notes, not authoritative
 HANDOFF.md

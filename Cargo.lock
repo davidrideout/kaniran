@@ -1395,6 +1395,7 @@ name = "kaniran-audit"
 version = "0.1.0"
 dependencies = [
  "arrow",
+ "clap",
  "futures",
  "kaniran-core",
  "parquet",
