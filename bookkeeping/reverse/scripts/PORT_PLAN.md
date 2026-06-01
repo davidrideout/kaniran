@@ -739,7 +739,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  669. `ichiran/dict:conjugate-da`  — fn, dict-errata.lisp:281  *[ported]*
  670. `ichiran/dict:delete-senses`  — fn, dict-errata.lisp:129  *[ported]*
  671. `ichiran/dict:remove-hiragana-nokanji`  — fn, dict-errata.lisp:217  *[ported]*
- 672. `ichiran/dict:add-errata`  — fn, dict-errata.lisp:289
+ 672. `ichiran/dict:add-errata`  — fn, dict-errata.lisp:289  *[ported]*
  673. `ichiran/dict:add-sense`  — fn, dict-errata.lisp:146  *[ported]*
  674. `ichiran/dict:true-kana`  — gf, dict.lisp:0  *[ported]*  *[extracted: hint_2026_05_13]*  *[audited 442/442]*
  675. `ichiran/dict:true-kanji`  — gf, dict.lisp:0  *[ported]*
@@ -790,7 +790,7 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  718. `ichiran/dict:def-special-counter`  — macro, dict-counters.lisp:361  *[skip — Code-emitting DSL definer (CONVENTIONS §4.6 case (c)); 91 callsites captured as closures in build_special_counters (_star_special_counters_star_.rs); args/args-suffix/args-multi helpers ported in kani_counter_args.rs.]*
  719. `ichiran/dict:def-toori-split`  — macro, dict-split.lisp:143  *[skip — DSL definer (CONVENTIONS §4.6 case (a)); 13 callsites captured as data rows in SPLIT_TABLE (_star_split_map_star_.rs).]*
  720. `ichiran/dict:delete-duplicate-props`  — fn, dict.lisp:295  *[skip — Build-time DB cleanup: deletes duplicate conj_prop rows produced by load-conjugations (dict-load.lisp:447); conj_prop is populated by the load pipeline, not at runtime. No programmatic caller (invoked manually during DB construction). Using the provided pre-built/deduplicated ichiran DB dump, so no runtime port needed — same bucket as drop-extras and the add-errata delete-* cluster.]*
- 721. `ichiran/dict:drop-extras`  — fn, dict-load.lisp:194
+ 721. `ichiran/dict:drop-extras`  — fn, dict-load.lisp:194  *[ported]*
  722. `ichiran/dict:entry-digest`  — fn, dict.lisp:64  *[ported]*
  723. `ichiran/dict:entry-info-long`  — fn, dict.lisp:1601  *[ported]*
  724. `ichiran/dict:exists-reading`  — fn, dict.lisp:1847  *[ported]*
@@ -808,8 +808,8 @@ _skipped packages: ichiran/maintenance, ichiran/test_
  736. `ichiran/dict:load-best-readings`  — fn, dict-load.lisp:530  *[ported]*
  737. `ichiran/dict:load-conjugations`  — fn, dict-load.lisp:445  *[ported]*
  738. `ichiran/dict:recalc-entry-stats-all`  — fn, dict.lisp:59  *[ported]*
- 739. `ichiran/dict:load-extras`  — fn, dict-load.lisp:183
- 740. `ichiran/dict:load-jmdict`  — fn, dict-load.lisp:168
+ 739. `ichiran/dict:load-extras`  — fn, dict-load.lisp:183  *[ported]*
+ 740. `ichiran/dict:load-jmdict`  — fn, dict-load.lisp:168  *[ported]*
  741. `ichiran/dict:recalc-entry-stats`  — fn, dict.lisp:53  *[ported]*
  742. `ichiran/dict:word-info-json`  — fn, dict.lisp:1262  *[ported]*
  743. `ichiran/dict:simple-word-info`  — fn, dict.lisp:1282  *[ported]*
