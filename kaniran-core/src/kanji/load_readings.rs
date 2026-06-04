@@ -24,17 +24,21 @@
 //! upstream `:initform 0` on the `stat-common` slot of `reading`, which
 //! `make-dao` would otherwise apply implicitly).
 //!
-//! Iteration order over the deduplicated `readings` map is unspecified
-//! — upstream uses `cl:hash-table` whose iteration order is
-//! implementation-defined; the Rust `HashMap` mirrors that and
-//! callers must not rely on the order of generated row IDs.
+//! `IndexMap` keeps the deduplicated readings in kanjidic2 `<reading>`
+//! order, so each row's `reading.id` is assigned in that order. The
+//! ordering is load-bearing: `get_readings_cache` reads the rows back
+//! `ORDER BY r.id` and `get_normal_readings` breaks ambiguous-gemination
+//! ties by first occurrence, so kanjidic2 order decides which reading
+//! wins. Upstream uses a `cl:hash-table` (implementation-defined order);
+//! pinning the order here makes `reading.stat_common` deterministic
+//! run-to-run.
 
 use super::reading_dao::Reading;
 use crate::characters::as_hiragana::as_hiragana;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::node_text::node_text;
+use indexmap::IndexMap;
 use roxmltree::Node;
-use std::collections::HashMap;
 
 struct ReadingInfo {
     okuri: Vec<String>,
@@ -48,7 +52,7 @@ pub async fn load_readings(
     nodes: &[Node<'_, '_>],
     kanji_id: i32,
 ) -> Result<(), sqlx::Error> {
-    let mut readings: HashMap<String, ReadingInfo> = HashMap::new();
+    let mut readings: IndexMap<String, ReadingInfo> = IndexMap::new();
     // kanji.lisp:118-143 (dom:do-node-list (node nodes) …)
     for node in nodes {
         let r#type = node.attribute("r_type").unwrap_or("");

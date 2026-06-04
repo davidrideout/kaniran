@@ -19,9 +19,12 @@ pub fn as_xml_simple(text: &str, reading: &str, definition: &str) -> String {
             xml_escape(reading),
         )
     };
+    // ichiran serializes each entry through cxml's string sink, which prepends
+    // the XML 1.0 prolog and drops the `xml:lang="eng"` attribute (no DTD here
+    // to default it).
     // dict-custom.lisp:225-244 (cxml:with-element "entry" (cxml:with-element "ent_seq" (cxml:text "")) ... (cxml:with-element "sense" (cxml:with-element "pos" (cxml:text "n")) (cxml:with-element "gloss" (cxml:attribute "xml:lang" "eng") (cxml:text definition))))
     format!(
-        "<entry><ent_seq></ent_seq>{body}<sense><pos>n</pos><gloss xml:lang=\"eng\">{}</gloss></sense></entry>",
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<entry><ent_seq></ent_seq>{body}<sense><pos>n</pos><gloss>{}</gloss></sense></entry>",
         xml_escape(definition),
     )
 }
@@ -44,40 +47,45 @@ fn xml_escape(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     //! REPL fixtures (.103, ichiran/custom::as-xml-simple +
-    //! dom:map-document), 2026-05-31. The cxml serializer drops the
-    //! `xml:lang="eng"` attribute; the Rust port emits it because
-    //! `load-entry` re-parses and ignores it.
+    //! dom:map-document), 2026-05-31. cxml prepends the XML 1.0 prolog
+    //! and drops `xml:lang="eng"`; the port mirrors both for byte parity
+    //! in `entry.content`.
     use super::*;
 
     #[test]
     fn as_xml_simple_fixtures() {
         assert_eq!(
             as_xml_simple("とうきょう", "とうきょう", "Tokyo"),
-            "<entry><ent_seq></ent_seq><r_ele><reb>とうきょう</reb></r_ele>\
-             <sense><pos>n</pos><gloss xml:lang=\"eng\">Tokyo</gloss></sense></entry>",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+             <entry><ent_seq></ent_seq><r_ele><reb>とうきょう</reb></r_ele>\
+             <sense><pos>n</pos><gloss>Tokyo</gloss></sense></entry>",
         );
         assert_eq!(
             as_xml_simple("コーヒー", "こーひー", "coffee"),
-            "<entry><ent_seq></ent_seq><r_ele><reb>コーヒー</reb></r_ele>\
-             <sense><pos>n</pos><gloss xml:lang=\"eng\">coffee</gloss></sense></entry>",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+             <entry><ent_seq></ent_seq><r_ele><reb>コーヒー</reb></r_ele>\
+             <sense><pos>n</pos><gloss>coffee</gloss></sense></entry>",
         );
         assert_eq!(
             as_xml_simple("東京", "とうきょう", "Tokyo Metropolis"),
-            "<entry><ent_seq></ent_seq><k_ele><keb>東京</keb></k_ele>\
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+             <entry><ent_seq></ent_seq><k_ele><keb>東京</keb></k_ele>\
              <r_ele><reb>とうきょう</reb></r_ele>\
-             <sense><pos>n</pos><gloss xml:lang=\"eng\">Tokyo Metropolis</gloss></sense></entry>",
+             <sense><pos>n</pos><gloss>Tokyo Metropolis</gloss></sense></entry>",
         );
         assert_eq!(
             as_xml_simple("横浜", "よこはま", "Yokohama (city)"),
-            "<entry><ent_seq></ent_seq><k_ele><keb>横浜</keb></k_ele>\
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+             <entry><ent_seq></ent_seq><k_ele><keb>横浜</keb></k_ele>\
              <r_ele><reb>よこはま</reb></r_ele>\
-             <sense><pos>n</pos><gloss xml:lang=\"eng\">Yokohama (city)</gloss></sense></entry>",
+             <sense><pos>n</pos><gloss>Yokohama (city)</gloss></sense></entry>",
         );
         assert_eq!(
             as_xml_simple("鎌倉市", "かまくらし", "Kamakura (city)"),
-            "<entry><ent_seq></ent_seq><k_ele><keb>鎌倉市</keb></k_ele>\
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+             <entry><ent_seq></ent_seq><k_ele><keb>鎌倉市</keb></k_ele>\
              <r_ele><reb>かまくらし</reb></r_ele>\
-             <sense><pos>n</pos><gloss xml:lang=\"eng\">Kamakura (city)</gloss></sense></entry>",
+             <sense><pos>n</pos><gloss>Kamakura (city)</gloss></sense></entry>",
         );
     }
 
@@ -87,7 +95,7 @@ mod tests {
         assert!(out.contains("<keb>A&amp;B</keb>"), "got {out}");
         assert!(
             out.contains(
-                "<gloss xml:lang=\"eng\">A &lt; B &amp; C &gt; &apos;apos&apos; &quot;quot&quot;</gloss>"
+                "<gloss>A &lt; B &amp; C &gt; &apos;apos&apos; &quot;quot&quot;</gloss>"
             ),
             "got {out}",
         );

@@ -64,8 +64,13 @@ impl XmlLoader {
                 Err(_) => XmlEntrySeq::String(seq.clone()),
             };
             // dict-custom.lisp:71 (push (make-xml-entry :seq nseq :content (rune-dom:create-document entry)) (entries loader))
+            // ichiran stores a Document and serializes it later through cxml,
+            // which prepends the XML 1.0 prolog.
             let range = entry.range();
-            let xml_content = content[range].to_string();
+            let xml_content = format!(
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n{}",
+                &content[range],
+            );
             entries.push(CustomEntry::Xml(XmlEntry {
                 seq: nseq,
                 content: xml_content,

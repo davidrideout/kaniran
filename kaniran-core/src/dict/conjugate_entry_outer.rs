@@ -2,18 +2,6 @@
 //!
 //! Drive [`insert_conjugation`] over every cell of the conjugation
 //! matrix built by [`conjugate_entry_inner`]: for each
-//! `(pos-id, conj-id)` key it walks the 2×2 matrix in row-major
-//! (`[neg][fml]`) order, drops rows whose conj-text matches one of the
-//! entry's original readings, and calls `insert-conjugation` with
-//! `neg` / `fml` collapsed to `:null` when the entry has no rows in
-//! the corresponding row/column of the matrix.
-//!
-//! Diverges from the upstream lambda list
-//! `(seq* &key via conj-types as-posi)` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`], and by
-//! representing the keyword arguments as `Option<…>` (`None` = absent
-//! → upstream defaults: `nil`).
 
 use crate::conn::kani_context::KaniranContext;
 
@@ -39,8 +27,12 @@ pub async fn conjugate_entry_outer(
     // dict-load.lisp:348 — (next-seq)
     let mut next_seq_val = next_seq(ctx).await?;
 
-    // dict-load.lisp:349 — iterate hash-key (pos-id conj-id) / hash-value matrix
-    for ((pos_id, conj_id), matrix) in &conj_matrix {
+    // dict-load.lisp:349 — iterate hash-key (pos-id conj-id) / hash-value matrix.
+    // Sort by (pos_id, conj_id) so iteration is deterministic. Order matters
+    // downstream
+    let mut entries: Vec<_> = conj_matrix.iter().collect();
+    entries.sort_by_key(|((pos_id, conj_id), _)| (*pos_id, *conj_id));
+    for ((pos_id, conj_id), matrix) in entries {
         // dict-load.lisp:350-351 — ignore-neg / ignore-fml flags
         let ignore_neg = matrix[1][0].is_empty() && matrix[1][1].is_empty();
         let ignore_fml = matrix[0][1].is_empty() && matrix[1][1].is_empty();

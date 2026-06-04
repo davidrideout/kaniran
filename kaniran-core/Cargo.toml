@@ -17,3 +17,4 @@ config = { workspace = true }
 thiserror = { workspace = true }
 unicode-properties = { workspace = true }
 roxmltree = { workspace = true }
+indexmap = { workspace = true }

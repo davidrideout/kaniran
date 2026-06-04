@@ -59,13 +59,17 @@ pub async fn load_jmdict(
     for entry_node in jmdict.children().filter(|n| n.is_element() && n.has_tag_name("entry")) {
         cnt += 1;
         let content = serialize_entry(entry_node);
+        // Upstream `(load-entry content)` passes no :conjugate-p (defaults nil):
+        // conjugation runs later in one pass via load-extras → load-conjugations.
+        // Conjugating per-entry here would call next-seq (MAX+1) for synthetic
+        // forms that then collide with later JMdict ent_seqs.
         load_entry(
             ctx,
             &content,
             LoadEntryIfExists::None,
             None,
             LoadEntrySeq::None,
-            true,
+            false,
         )
         .await?;
         if cnt % 1000 == 0 {
@@ -81,15 +85,43 @@ pub async fn load_jmdict(
     Ok(())
 }
 
-/// Walks an `<entry>` subtree and produces an XML string suitable for
-/// [`super::load_entry`] — every entity reference has already been
-/// resolved to its short name by [`fix_entities`], so the output is
-/// standalone XML with no DTD attached.
+/// Walks an `<entry>` subtree and produces an XML string matching the
+/// byte shape `(klacks:serialize-element source (cxml:make-string-sink))`
+/// emits in upstream `load-jmdict`. Every entity reference has already
+/// been resolved to its short name by [`fix_entities`], so the output
+/// is standalone XML with no DTD attached.
+///
+/// Two cxml behaviors that the raw walk needs to reproduce:
+/// 1. Prepend the XML prolog `<?xml version="1.0" encoding="UTF-8"?>\n`
+///    that `make-string-sink` adds in front of the element body. The
+///    body ends at `</entry>` with no trailing newline — verified
+///    against `ichiran_260118.entry.content` (`octet_length` matches
+///    the no-newline length exactly).
+/// 2. Inject DTD-default attributes that the JMdict DTD declares on
+///    `<gloss>` / `<lsource>` / `<ex_sent>` (`xml:lang CDATA "eng"`).
+///    cxml's DOM build applies the DTD defaults at parse time, then
+///    the sink emits them back out alongside source-specified attrs;
+///    roxmltree does not, so the port injects them explicitly.
 fn serialize_entry(node: Node<'_, '_>) -> String {
-    let mut out = String::new();
+    let mut out = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     write_node(node, &mut out);
     out
 }
+
+/// DTD-default attribute decl: `<!ATTLIST $0 $1 CDATA "$2">`. cxml emits
+/// the default as the first attribute on the element when the source
+/// XML didn't supply one explicitly — putting it before any
+/// source-specified attrs (e.g. `<gloss xml:lang="eng" g_type="expl">`).
+const DTD_DEFAULT_ATTRS: &[(&str, &str, &str)] = &[
+    ("gloss", "xml:lang", "eng"),
+    ("lsource", "xml:lang", "eng"),
+    ("ex_sent", "xml:lang", "eng"),
+];
+
+// The W3C XML namespace — `xml:lang`, `xml:space` etc. roxmltree exposes
+// these with namespace=this URI and a bare local name; the original
+// source uses the `xml:` prefix and the serializer has to reconstruct it.
+const XML_NAMESPACE_URI: &str = "http://www.w3.org/XML/1998/namespace";
 
 fn write_node(node: Node<'_, '_>, out: &mut String) {
     match node.node_type() {
@@ -97,8 +129,20 @@ fn write_node(node: Node<'_, '_>, out: &mut String) {
             let name = node.tag_name().name();
             out.push('<');
             out.push_str(name);
+            for (elem, attr_name, default_val) in DTD_DEFAULT_ATTRS {
+                if *elem == name && !has_attr(node, attr_name) {
+                    out.push(' ');
+                    out.push_str(attr_name);
+                    out.push_str("=\"");
+                    write_escaped_attr(default_val, out);
+                    out.push('"');
+                }
+            }
             for attr in node.attributes() {
                 out.push(' ');
+                if attr.namespace() == Some(XML_NAMESPACE_URI) {
+                    out.push_str("xml:");
+                }
                 out.push_str(attr.name());
                 out.push_str("=\"");
                 write_escaped_attr(attr.value(), out);
@@ -122,6 +166,19 @@ fn write_node(node: Node<'_, '_>, out: &mut String) {
             }
         }
         _ => {}
+    }
+}
+
+/// True if `node` already declares an attribute matching `attr_name`,
+/// where `attr_name` may be a namespaced `xml:foo` form. Used to skip
+/// DTD-default injection when the source supplied the attribute itself.
+fn has_attr(node: Node<'_, '_>, attr_name: &str) -> bool {
+    if let Some(local) = attr_name.strip_prefix("xml:") {
+        node.attributes().any(|a| {
+            a.namespace() == Some(XML_NAMESPACE_URI) && a.name() == local
+        })
+    } else {
+        node.attributes().any(|a| a.name() == attr_name && a.namespace().is_none())
     }
 }
 
@@ -184,11 +241,13 @@ mod tests {
         let serialized = serialize_entry(entry);
         assert_eq!(
             serialized,
-            "<entry>\
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+<entry>\
 <ent_seq>1582710</ent_seq>\
 <k_ele><keb>陶器市</keb></k_ele>\
 <r_ele><reb>とうきいち</reb></r_ele>\
-<sense><pos>n</pos><pos>adj-na</pos><gloss>pottery fair</gloss></sense>\
+<sense><pos>n</pos><pos>adj-na</pos>\
+<gloss xml:lang=\"eng\">pottery fair</gloss></sense>\
 </entry>"
         );
         // re-parse: the serialized form must stand alone (no DTD attached)
@@ -235,7 +294,8 @@ mod tests {
         let serialized = serialize_entry(entry);
         assert_eq!(
             serialized,
-            "<entry><sense><gloss>a &lt; b &amp; c</gloss></sense></entry>"
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+<entry><sense><gloss xml:lang=\"eng\">a &lt; b &amp; c</gloss></sense></entry>"
         );
         let reparsed = Document::parse(&serialized).expect("reparse standalone");
         let gloss = reparsed
@@ -253,14 +313,86 @@ mod tests {
         let serialized = serialize_entry(doc.root_element());
         assert_eq!(
             serialized,
-            "<entry><r_ele><reb>カラ</reb><re_nokanji/></r_ele></entry>"
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+<entry><r_ele><reb>カラ</reb><re_nokanji/></r_ele></entry>"
         );
         let explicit = "<entry><r_ele><reb>カラ</reb><re_nokanji></re_nokanji></r_ele></entry>";
         let doc2 = Document::parse(explicit).unwrap();
         let serialized2 = serialize_entry(doc2.root_element());
         assert_eq!(
             serialized2,
-            "<entry><r_ele><reb>カラ</reb><re_nokanji/></r_ele></entry>"
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+<entry><r_ele><reb>カラ</reb><re_nokanji/></r_ele></entry>"
+        );
+    }
+
+    // Ref-DB byte fixture from `ichiran_260118.entry` (seq=1000000), 2026-06-01.
+    // Pin the three cxml behaviors that broke entry.content parity in the
+    // 2026-06-01 e2e run: XML prolog, DTD-default xml:lang on gloss, and
+    // a trailing newline after </entry>.
+    #[test]
+    fn serialize_entry_matches_ref_db_byte_shape() {
+        let xml = "<?xml version='1.0' encoding='UTF-8'?>\
+<!DOCTYPE JMdict [\
+]>\
+<JMdict>\n\
+<entry>\n\
+<ent_seq>1000000</ent_seq>\n\
+<r_ele>\n\
+<reb>ヽ</reb>\n\
+</r_ele>\n\
+<sense>\n\
+<pos>unc</pos>\n\
+<xref>一の字点</xref>\n\
+<gloss>repetition mark in katakana</gloss>\n\
+</sense>\n\
+</entry>\n\
+</JMdict>";
+        let fixed = fix_entities(xml);
+        let doc = Document::parse_with_options(
+            &fixed,
+            ParsingOptions { allow_dtd: true, ..Default::default() },
+        )
+        .unwrap();
+        let entry = doc
+            .descendants()
+            .find(|n| n.is_element() && n.has_tag_name("entry"))
+            .unwrap();
+        assert_eq!(
+            serialize_entry(entry),
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+<entry>\n\
+<ent_seq>1000000</ent_seq>\n\
+<r_ele>\n\
+<reb>ヽ</reb>\n\
+</r_ele>\n\
+<sense>\n\
+<pos>unc</pos>\n\
+<xref>一の字点</xref>\n\
+<gloss xml:lang=\"eng\">repetition mark in katakana</gloss>\n\
+</sense>\n\
+</entry>"
+        );
+    }
+
+    // DTD-default xml:lang must come BEFORE any source-specified attribute
+    // on the same element. Ref-DB pattern from seq=1427400 (a g_type=expl
+    // gloss): `<gloss xml:lang="eng" g_type="expl">`, not the reverse.
+    #[test]
+    fn serialize_entry_injects_xml_lang_before_other_attrs() {
+        let xml = "<entry><sense>\
+<gloss g_type=\"expl\">explanation</gloss>\
+<gloss xml:lang=\"deu\">Erklärung</gloss>\
+</sense></entry>";
+        let doc = Document::parse(xml).unwrap();
+        let serialized = serialize_entry(doc.root_element());
+        assert_eq!(
+            serialized,
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+<entry><sense>\
+<gloss xml:lang=\"eng\" g_type=\"expl\">explanation</gloss>\
+<gloss xml:lang=\"deu\">Erklärung</gloss>\
+</sense></entry>"
         );
     }
 }

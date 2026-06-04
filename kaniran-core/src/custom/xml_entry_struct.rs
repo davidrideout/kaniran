@@ -14,7 +14,7 @@ pub enum XmlEntrySeq {
 /// ```text
 /// XmlEntry {
 ///     seq: XmlEntrySeq::Int(1234567),
-///     content: "<entry><ent_seq>1234567</ent_seq>...</entry>".to_string(),
+///     content: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<entry><ent_seq>1234567</ent_seq>...</entry>".to_string(),
 /// }
 /// ```
 #[derive(Debug, Clone)]

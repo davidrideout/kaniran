@@ -1,20 +1,4 @@
 //! Port of `ichiran/kanji:get-readings-cache` (`kanji.lisp:201`).
-//!
-//! Returns the readings of `text` whose `type` is not in `typeset`,
-//! caching the result in [`KaniranContext::reading_cache`] keyed by
-//! `(text, typeset)`. On cache miss, joins `kanji` and `reading` on
-//! `kanji.id` and filters by `kanji.text = text` and
-//! `reading.type NOT IN typeset`.
-//!
-//! Empty `typeset` returns no rows: upstream's
-//! `(:not (:in 'r.type (:set typeset)))` expands to
-//! `r.type NOT IN (NULL)` which is UNKNOWN for every row. The Rust
-//! port short-circuits to an empty `Vec` and still records the
-//! `(text, [])` → `[]` entry so subsequent calls hit the cache.
-//!
-//! Diverges from the upstream lambda list `(str typeset)` only by
-//! taking `&KaniranContext` for the database handle, replacing the
-//! upstream dynamic `*connection*` per [`crate::conn::kani_context`].
 
 use crate::conn::kani_context::KaniranContext;
 
@@ -34,10 +18,16 @@ pub async fn get_readings_cache(
         Vec::new()
     } else {
         // kanji.lisp:206 ((:select 'r.text 'r.type :from (:as 'kanji 'k) ...))
+        // ORDER BY r.id diverges from upstream's unordered SELECT: it returns
+        // each kanji's readings in load_readings insertion order (= kanjidic2
+        // order), so get_normal_readings' first-occurrence dedup breaks
+        // ambiguous-gemination ties deterministically. Without it the JOIN
+        // order is unstable and reading.stat_common drifts run-to-run.
         sqlx::query_as::<_, (String, String)>(
             "SELECT r.text, r.type FROM kanji k \
              INNER JOIN reading r ON r.kanji_id = k.id \
-             WHERE k.text = $1 AND r.type <> ALL($2)",
+             WHERE k.text = $1 AND r.type <> ALL($2) \
+             ORDER BY r.id",  // order by is added and not in the original
         )
         .bind(text)
         .bind(typeset)

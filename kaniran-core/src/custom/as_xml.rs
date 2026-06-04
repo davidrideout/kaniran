@@ -43,9 +43,10 @@ mod tests {
         };
         assert_eq!(
             as_xml(&CustomEntry::Municipality(m)),
-            "<entry><ent_seq></ent_seq><k_ele><keb>東京</keb></k_ele>\
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+             <entry><ent_seq></ent_seq><k_ele><keb>東京</keb></k_ele>\
              <r_ele><reb>とうきょう</reb></r_ele>\
-             <sense><pos>n</pos><gloss xml:lang=\"eng\">Tokyo Metropolis</gloss></sense></entry>",
+             <sense><pos>n</pos><gloss>Tokyo Metropolis</gloss></sense></entry>",
         );
     }
 
@@ -59,9 +60,10 @@ mod tests {
         };
         assert_eq!(
             as_xml(&CustomEntry::Ward(w)),
-            "<entry><ent_seq></ent_seq><k_ele><keb>中央</keb></k_ele>\
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+             <entry><ent_seq></ent_seq><k_ele><keb>中央</keb></k_ele>\
              <r_ele><reb>ちゅうおう</reb></r_ele>\
-             <sense><pos>n</pos><gloss xml:lang=\"eng\">Chuo Ward, Tokyo</gloss></sense></entry>",
+             <sense><pos>n</pos><gloss>Chuo Ward, Tokyo</gloss></sense></entry>",
         );
     }
 }
