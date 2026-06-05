@@ -1,7 +1,6 @@
-//! End-to-end runner for the complete kaniran data-loader chain
-//! (JMdict + kanjidic + kanji stats), used by
-//! `bookkeeping/e2e/full_loader_e2e.py` to diff every populated table
-//! against the canonical `ichiran_260118` reference DB.
+//! Loads a kaniran database from source: runs the complete data-loader
+//! chain (JMdict + kanjidic + kanji stats) end to end against a fresh
+//! schema.
 //!
 //! Order matches `ichiran/maintenance:full-init` (`dict-load.lisp` /
 //! `kanji.lisp`):
@@ -15,7 +14,7 @@
 //!      JMdict tables populated, hence the strict order.
 //!
 //! Run:
-//!   cargo run --release -p kaniran-audit --bin full_e2e_load -- \
+//!   cargo run --release -p kaniran-cli --bin full_e2e_load -- \
 //!       --db-url postgres:///ichiran_full_e2e \
 //!       --jmdict-path bookkeeping/e2e/fixtures/JMdict_e_2026-02-22.xml \
 //!       --kanjidic-path bookkeeping/e2e/fixtures/kanjidic2_2015-03-17.xml

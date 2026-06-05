@@ -426,9 +426,5 @@ name = "e2e_load_kanjidic"
 path = "audit/kanji/e2e_load_kanjidic.rs"
 
 [[bin]]
-name = "full_e2e_load"
-path = "audit/e2e/full_e2e_load.rs"
-
-[[bin]]
 name = "multiset_compare"
 path = "audit/e2e/multiset_compare.rs"

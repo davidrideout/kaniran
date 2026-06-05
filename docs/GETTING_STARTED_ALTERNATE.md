@@ -87,7 +87,7 @@ One command runs the whole chain — JMdict entries, conjugations, errata +
 custom data, best kanji/kana links, then kanjidic2 and the kanji stats:
 
 ```sh
-cargo run --release -p kaniran-audit --bin full_e2e_load -- \
+cargo run --release -p kaniran-cli --bin full_e2e_load -- \
     --db-url postgres:///kaniran \
     --jmdict-path   /path/to/JMdict_e.xml \
     --kanjidic-path /path/to/kanjidic2.xml
@@ -110,34 +110,4 @@ What the loader does, in order:
 
 Useful flags: `--skip-kanji` (JMdict only), `--skip-extras` (no errata /
 secondary conjugations). Recovery flags for resuming a crashed load are
-documented in `kaniran-audit/audit/e2e/full_e2e_load.rs`.
-
-## 4. Verify
-
-```sh
-psql -d kaniran -c "
-  SELECT 'entry' t, count(*) FROM entry
-  UNION ALL SELECT 'kanji_text', count(*) FROM kanji_text
-  UNION ALL SELECT 'kana_text',  count(*) FROM kana_text
-  UNION ALL SELECT 'conj_source_reading', count(*) FROM conj_source_reading
-  UNION ALL SELECT 'kanji', count(*) FROM kanji;"
-```
-
-A current full load lands around 2.5M `entry` rows, 5.5M `kanji_text`,
-3.3M `kana_text`, 8.5M `conj_source_reading`, and ~13K `kanji`.
-
-To diff a freshly loaded database against a reference, use the multiset
-comparator:
-
-```sh
-cargo run --release -p kaniran-audit --bin multiset_compare -- \
-    --ichiran-db postgres:///ichiran_latest \
-    --new-db     postgres:///kaniran \
-    --report     bookkeeping/e2e/multiset_run.md
-```
-
-A handful of rows differ by design: conjugated entries are assigned
-non-root `seq` ids via `MAX(seq)+1` with no fixed ordering, so their exact
-ids (and a few `ord` / `conj_source_reading` values that ride on them)
-vary between independent loads. These are internal keys and do not affect
-romanization output.
+documented in `kaniran-cli/src/bin/full_e2e_load.rs`.

@@ -32,6 +32,8 @@ kaniran needs ichiran's dictionary database. The easiest way is to restore the p
 
    Replace `ichiran-XXXXXX.pgdump` with the file you downloaded. This takes a while and the database ends up around 5 GB. A few warnings during restore are normal.
 
+Alternatively, you can build the database yourself from the source JMdict + kanjidic2 data instead of restoring the prebuilt dump — see [docs/GETTING_STARTED_ALTERNATE.md](docs/GETTING_STARTED_ALTERNATE.md).
+
 ## 2. Configure the connection
 
 kaniran finds the database via a `database_url` in `kaniran.toml` (in the directory you run from), or the `DATABASE_URL` environment variable. The env var wins if both are set.
