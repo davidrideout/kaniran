@@ -67,3 +67,25 @@ processing order. Where an ichiran session has narrowed a row, kaniran
 lists the complete set. For 出てけ, kaniran lists いけ as both the
 imperative of 行く and the potential continuative; a narrowed ichiran run
 lists only one.
+
+## Conjugated-entry writing order (`ord`)
+
+When the loader builds a conjugated entry, it gives each writing an `ord`
+(its position within the entry) by sorting the generated writings — but
+the source readings come from a `UNION` with no `ORDER BY`, finished with
+a non-stable sort. So when an entry has several writings of the same kind,
+their `ord` is effectively whatever order the database returned.
+Source-entry `ord` is unaffected: it follows JMdict XML order and is
+deterministic.
+
+```lisp
+;; readings pulled by an ORDER BY-less UNION, then a non-stable sort
+(sort readings (lex-compare #'<) :key #'cdddr)
+```
+
+**kaniran** assigns `ord` the same way. The six conjugated forms of
+ございます each carry four writings (御座いません, 御座居ません, ご座いません,
+厶いません, and so on); kaniran numbers them differently from a given
+ichiran build. The writing, reading, gloss, and romanization are
+identical — only the internal `ord` (which writing is "first") differs,
+and no output path reads it.

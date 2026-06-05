@@ -1423,6 +1423,7 @@ version = "0.1.0"
 dependencies = [
  "config",
  "fancy-regex",
+ "indexmap",
  "roxmltree",
  "serde",
  "serde_json",

@@ -29,6 +29,8 @@ pub fn as_xml_simple(text: &str, reading: &str, definition: &str) -> String {
     )
 }
 
+// Only <, >, & need escaping in XML text content; ' and " are left literal
+// to match ichiran's serializer (verified on .103).
 fn xml_escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
@@ -36,8 +38,6 @@ fn xml_escape(s: &str) -> String {
             '<' => out.push_str("&lt;"),
             '>' => out.push_str("&gt;"),
             '&' => out.push_str("&amp;"),
-            '"' => out.push_str("&quot;"),
-            '\'' => out.push_str("&apos;"),
             other => out.push(other),
         }
     }
@@ -47,9 +47,7 @@ fn xml_escape(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     //! REPL fixtures (.103, ichiran/custom::as-xml-simple +
-    //! dom:map-document), 2026-05-31. cxml prepends the XML 1.0 prolog
-    //! and drops `xml:lang="eng"`; the port mirrors both for byte parity
-    //! in `entry.content`.
+    //! dom:map-document), 2026-05-31.
     use super::*;
 
     #[test]
@@ -89,15 +87,29 @@ mod tests {
         );
     }
 
+    // Verified on .103: XML text content escapes only <, >, &; ' and " stay literal.
     #[test]
     fn as_xml_simple_escapes_metachars() {
         let out = as_xml_simple("A&B", "えーびー", "A < B & C > 'apos' \"quot\"");
         assert!(out.contains("<keb>A&amp;B</keb>"), "got {out}");
         assert!(
             out.contains(
-                "<gloss>A &lt; B &amp; C &gt; &apos;apos&apos; &quot;quot&quot;</gloss>"
+                "<gloss>A &lt; B &amp; C &gt; 'apos' \"quot\"</gloss>"
             ),
             "got {out}",
+        );
+    }
+
+    // Real ichiran_latest fixture (seq 12316624, 南陽市): the apostrophe in
+    // the romanized name is stored literally, not as &apos;.
+    #[test]
+    fn as_xml_simple_apostrophe_is_literal() {
+        assert_eq!(
+            as_xml_simple("南陽市", "なんようし", "Nan'Yo (city), Yamagata Prefecture"),
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+             <entry><ent_seq></ent_seq><k_ele><keb>南陽市</keb></k_ele>\
+             <r_ele><reb>なんようし</reb></r_ele>\
+             <sense><pos>n</pos><gloss>Nan'Yo (city), Yamagata Prefecture</gloss></sense></entry>",
         );
     }
 }
