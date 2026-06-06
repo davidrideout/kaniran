@@ -1,9 +1,7 @@
 //! Port of `ichiran/characters:kanji-mask` (`characters.lisp:185-188`).
 //!
 //! Replace every run of one or more kanji-ish characters in `word`
-//! with a single `%`, producing a SQL LIKE-style mask. The underlying
-//! pattern is `*kanji-regex*` repeated one-or-more times; the compiled
-//! scanner is cached.
+//! with a single `%`, producing a SQL LIKE-style mask.
 
 use std::sync::OnceLock;
 

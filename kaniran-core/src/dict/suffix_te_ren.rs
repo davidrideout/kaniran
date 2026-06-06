@@ -1,16 +1,8 @@
 //! Port of `ichiran/dict:suffix-te-ren` (`dict-grammar.lisp:407`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-te-ren :teren (:connector "" :score 4) (root)
-//!   (and (not (equal root "で"))
-//!        (cond ((find (char root (1- (length root))) "てで")
-//!               (find-word-with-conj-type root 3))
-//!              ((not (member root '("い") :test 'equal))
-//!               (find-word-with-conj-type root 13)))))
-//! ```
-//!
-//! `suf` typed `&KanaText`: `(load-conjs :teren 1012740 :yagaru)`
-//! materializes kana-texts.
+//! Handles a te-form continuative auxiliary: for a root other than で,
+//! looks up conj-type 3 if it ends in て/で, else conj-type 13 (unless
+//! the root is い).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

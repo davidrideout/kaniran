@@ -1,11 +1,7 @@
 //! Port of `ichiran/dict:reading-str-seq` (`dict.lisp:1584`).
 //!
-//! ```lisp
-//! (defun reading-str-seq (seq)
-//!   (let* ((kanji-text (car (query (:select 'text :from 'kanji-text :where (:and (:= 'seq seq) (:= 'ord 0))) :column)))
-//!          (kana-text (car (query (:select 'text :from 'kana-text :where (:and (:= 'seq seq) (:= 'ord 0))) :column))))
-//!     (reading-str* kanji-text kana-text)))
-//! ```
+//! Looks up the ord-0 kanji and kana surface forms for `seq` and formats
+//! them via `reading-str*`.
 
 use super::reading_str_star_::reading_str_star_;
 use crate::conn::kani_context::KaniranContext;

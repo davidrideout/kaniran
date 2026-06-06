@@ -1,54 +1,9 @@
 //! Port of `ichiran/dict:def-simple-suffix` (`dict-grammar.lisp:340-368`).
 //!
-//! ```lisp
-//! (defmacro def-simple-suffix (name keyword
-//!                              (&key (stem 0) (score 0) (connector ""))
-//!                                 (root-var &optional suf-var patch-var)
-//!                              &body get-primary-words)
-//!   …
-//!   `(defsuffix ,name ,keyword (,root-var ,suf-var ,suf)
-//!      (let* ((*suffix-map-temp* ,(if (= stem 0) '*suffix-map-temp* nil))
-//!             (,patch-var nil)
-//!             (,primary-words (progn ,@get-primary-words)))
-//!        (mapcar (lambda (pw &aux score-base)
-//!                  (when (listp pw)
-//!                    (setf score-base (second pw)
-//!                          pw (first pw)))
-//!                  (adjoin-word pw ,suf
-//!                               :text (concatenate 'string ,root-var ,suf-var)
-//!                               :kana (let ((k (get-kana pw)))
-//!                                       (concatenate 'string
-//!                                                    (if ,patch-var
-//!                                                        (concatenate 'string
-//!                                                                     (destem k (length (car ,patch-var)))
-//!                                                                     (cdr ,patch-var))
-//!                                                        (destem k ,stem))
-//!                                                    ,connector
-//!                                                    ,suf-var))
-//!                               :score-mod ,score
-//!                               :score-base score-base))
-//!                ,primary-words))))
-//! ```
-//!
-//! CONVENTIONS §4.6 case (c): a code-emitting DSL macro. [`PrimaryWord`]
-//! mirrors the `(when (listp pw) …)` two-shape input — bare word or
-//! `(word score-base)` pair (the latter produced by
-//! `pair-words-by-conj` callers like `suffix-rashii`). Each ported
-//! `(def-simple-suffix …)` callsite computes its `primary_words` then
-//! calls [`def_simple_suffix_body`] with a [`DefSimpleSuffixOpts`]
-//! carrying the macro's keyword arguments.
-//!
-//! ## Divergences from Lisp
-//!
-//! - **Ctx-injected** per CONVENTIONS §4.8.
-//! - **`*suffix-map-temp*` rebinding on `stem != 0` is the caller's
-//!   responsibility.** The Lisp `(let* ((*suffix-map-temp* nil)) …)`
-//!   wraps the primary-words producer; in Rust, callers with
-//!   `stem != 0` construct a rebound ctx (per CONVENTIONS §4.10) and
-//!   pass that rebound ctx to their primary-words producer before
-//!   handing the result to this helper. The currently-ported callsites
-//!   all use `stem = 0` (the no-op rebind branch), so the slot does
-//!   not yet exist on `KaniranContext`.
+//! Shared body for the simple-suffix definers: maps each primary word
+//! through `adjoin-word`, building a compound whose text/kana splice
+//! the root, destemmed reading, connector, and suffix, carrying the
+//! macro's `score` and optional `score-base`.
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::destem::destem;

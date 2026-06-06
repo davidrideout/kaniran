@@ -1,23 +1,9 @@
 //! Port of `ichiran/dict:get-counter-readings` (`dict-counters.lisp:332`).
 //!
-//! Builds the kanji + kana reading lists for every counter seq the
-//! cache will populate. Source set:
-//! [`crate::dict::get_counter_ids::get_counter_ids`] ∪
-//! [`crate::dict::_star_extra_counter_ids_star_::EXTRA_COUNTER_IDS`]
-//! minus
-//! [`crate::dict::_star_skip_counter_ids_star_::SKIP_COUNTER_IDS`].
-//! Per seq, kanji-text rows whose `text` is missing from the seq's
-//! `stagk` restriction list (when one exists) are dropped, and kana
-//! rows are filtered the same way against `stagr`. Surviving rows
-//! are sorted by `ord` ascending. Output value per seq is the pair
-//! `(kanji-rows, kana-rows)`.
-//!
-//! Diverges from the upstream lambda list `()` by taking
-//! `&KaniranContext` for the database handle (replacing the upstream
-//! dynamic `*connection*` per the [`crate::conn::kani_context`]
-//! module doc) and by returning a `HashMap<i32, (Vec<KanjiText>,
-//! Vec<KanaText>)>` in place of the Lisp `hash-table` of `(cons
-//! kanji-list kana-list)`.
+//! Builds the `(kanji-rows, kana-rows)` reading lists for every counter
+//! seq the cache will populate. Per seq, kanji rows whose `text` is
+//! missing from the seq's `stagk` restriction list are dropped (kana
+//! rows the same way against `stagr`); survivors sort by `ord`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_extra_counter_ids_star_::EXTRA_COUNTER_IDS;

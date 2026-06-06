@@ -1,21 +1,8 @@
 //! Port of `ichiran/dict:conj-info-json` (`dict.lisp:1697`).
 //!
-//! ```lisp
-//! (defun conj-info-json (seq &rest rest &key conjugations text has-gloss)
-//!   (declare (ignorable conjugations text has-gloss))
-//!   (let* ((cij (apply 'conj-info-json* seq rest))
-//!          (fcij (remove-if-not (lambda (c) (jsown:val c "readok")) cij)))
-//!     (or fcij cij)))
-//! ```
-//!
-//! Mutually recursive with
-//! [`super::conj_info_json_star_::conj_info_json_star_`]; threads the same
-//! arguments through and keeps the readok-true entries, falling back to the
-//! full list when none pass. Diverges by taking `&KaniranContext`, making
-//! the `&key` args positional, modeling `text` as [`FilterPropsText`], and
-//! returning [`serde_json::Value`] objects. jsown:val errors on an absent
-//! `readok`; the Rust predicate treats absent as falsy, unreachable with
-//! real data.
+//! Wraps [`super::conj_info_json_star_::conj_info_json_star_`], keeping
+//! only the `readok`-true entries and falling back to the full list
+//! when none pass.
 
 use serde_json::Value;
 

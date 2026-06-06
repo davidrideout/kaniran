@@ -1,11 +1,8 @@
 //! Fixture-replay runner for `ICHIRAN/DICT:CONJ-PROP-JSON` (`dict.lisp:285`).
 //!
-//! Pure, DB-free: reconstruct the captured `conj-prop` DAO and compare
-//! `conj_prop_json`'s JSON object to the captured `jsown:to-json` string.
-//! `neg`/`fml` arrive as `true` (t), `null` (nil, the projector renders a
-//! false boolean as JSON null) or `":NULL"` (db-null). Only the `t` state
-//! extends the object, so the nil/db-null distinction is immaterial to the
-//! output, but it is mapped faithfully onto `Some(false)` / `None`.
+//! Builds the JSON object describing one conjugation's properties (part
+//! of speech plus neg/fml flags). Reconstructs the captured `conj-prop`
+//! DAO and replays it.
 //!
 //! Run with:
 //!   cargo run --release --bin conj_prop_json_test -- \

@@ -1,26 +1,7 @@
 //! Polymorphic dispatcher for the upstream `seq` gf over the
-//! [`KaniWordDispatchEnum`] union. The four arms:
-//!
-//! - `kana-text` / `kanji-text` — slot reader on
-//!   [`super::kana_text_dao::KanaText::seq`] /
-//!   [`super::kanji_text_dao::KanjiText::seq`].
-//! - `proxy-text` (`dict.lisp:574`): `(seq (source obj))`.
-//! - `counter-text` (`dict-counters.lisp:79`):
-//!   `(and (source obj) (seq (source obj)))`.
-//! - `compound-text` (`dict.lisp:617`): `(mapcar #'seq (words obj))`.
-//!
-//! Wider gf surface (`entry`, `sense`, `sense-prop`,
-//! `restricted-readings`, `conjugation`, `conj-source-reading`) is out
-//! of scope here — those classes carry `seq` as a slot but are never
-//! dispatched through [`KaniWordDispatchEnum`] upstream; callsites
-//! hold a statically-known DAO and read `.seq` directly.
-//!
-//! Returns `Option<WordInfoSeq>` so the [`super::word_info_class::WordInfo::seq`]
-//! consumer can flow the value through without conversion.
-//! Compound-text returns `Some(Multi(Vec<Option<WordInfoSeq>>))` —
-//! each child's `seq` is preserved at its position, including `None`
-//! for sourceless counter-text children (mirroring `(mapcar #'seq …)`
-//! which puts `nil` in the list at that position).
+//! [`KaniWordDispatchEnum`] union: the sequence id of a word, recursing
+//! through proxy/counter source words and mapping over a compound's
+//! constituents.
 
 use crate::dict::counter_text_class::{Counter, CounterSource};
 use crate::dict::compound_text_class::CompoundText;

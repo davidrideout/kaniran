@@ -1,26 +1,8 @@
 //! Port of `ichiran/dict:*easy-hints-seqs*` (`dict-split.lisp:904`).
 //!
-//! Cumulative list of JMdict sequence ids registered by every
-//! `def-easy-hint` form in `dict-split.lisp` (lines 1389-1859). The
-//! upstream `defparameter` starts at `nil`; each `def-easy-hint`
-//! call expands into a `(push ,seq *easy-hints-seqs*)` plus a
-//! `(defhint (,seq) ...)` registration into
-//! [`super::_star_hint_map_star_::HINT_MAP`]. Since the same
-//! callsite populates both globals, this port derives the seq list
-//! from [`super::_star_hint_map_star_::EASY_HINTS`] via [`OnceLock`]
-//! per CONVENTIONS §5.2 — "build it from them, don't hand-copy."
-//!
-//! Only consumer is [`super::check_easy_hints::check_easy_hints`] —
-//! a test-only sanity-scan that selects `kana_text` rows by these
-//! seqs and verifies their `match-readings` shape with hints
-//! disabled. Upstream marks the symbol "Only used for testing"
-//! (`dict-split.lisp:904` docstring), so this module is gated under
-//! `#[cfg(test)]` and absent from release binaries.
-//!
-//! Order matches the upstream `push` semantics (reverse of
-//! source-file order). The check_easy_hints SQL `:in` filter
-//! consumes the list as a set, so order doesn't affect behavior;
-//! the test below pins the entry count.
+//! List of JMdict sequence ids registered by every `def-easy-hint`
+//! form. Upstream marks it "Only used for testing", so this module is
+//! gated under `#[cfg(test)]` and absent from release binaries.
 
 use std::sync::OnceLock;
 

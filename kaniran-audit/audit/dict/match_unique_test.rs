@@ -5,52 +5,10 @@
 //!   cargo run --bin match_unique_test -- \
 //!       --path corpus/<corpus_tag>/dict/match_unique.parquet
 //!
-//! ## Args (2 positional, no keywords)
-//!
-//! - `args[0]` — suffix class as a Lisp keyword (`":IRU"`, `":SA"`,
-//!   `":DESU"`, …). The Rust port stores classes lowercase without
-//!   the leading colon ([`super::super::_star_suffix_unique_only_star_::SUFFIX_UNIQUE_ONLY`]
-//!   uses `"sa"`, `"desu"`, …), so the runner strips `:` and
-//!   lowercases before lookup. Mirrors the same convention used for
-//!   `*suffix-cache*` keys.
-//! - `args[1]` — `(list <match> …)` where each match is a `KANA-TEXT`
-//!   or `KANJI-TEXT` DAO mirror. Smoke parquet (26,122 rows) contains
-//!   only those two classes — consistent with the runtime trace
-//!   verified in the source-under-test module doc.
-//!
-//! ## Result shapes (multi-value from postmodern's `query :column`)
-//!
-//! Lisp `(values …)` flattens to a top-level JSON array:
-//!
-//! - `[null]` — primary NIL. Either (a) class not in
-//!   `*suffix-unique-only*`, (b) `:sa` with empty `seqs` (closure
-//!   `(and nil _)` short-circuits, single value), or (c) `:desu`
-//!   returning NIL.
-//! - `[":KEYWORD"]` — bare-entry hit; primary is the matched keyword
-//!   itself (which equals the input suffix class on a bare hit).
-//! - `[true]` — `:desu` closure returned T.
-//! - `[[seq, …], <count>]` — `:sa` truthy path; primary is the list
-//!   of root seqs returned by `(:select 'seq :from 'entry …
-//!   :where 'root-p)`, secondary is postmodern's row count.
-//! - `[null, 0]` — `:sa` with non-empty `seqs` whose query returned
-//!   zero root rows. Primary NIL is observable; secondary 0 is the
-//!   postmodern row count, not part of the Rust return contract.
-//!
-//! ## Comparison policy
-//!
-//! - `None`  ⇔  `[null]`  *or*  `[null, 0]`. Rust collapses both
-//!   subcases of falsy `:sa` into a single `None` because the only
-//!   known caller is a predicate (`find-word-suffix` at
-//!   `dict-grammar.lisp:705`).
-//! - `Some(Bare)`  ⇔  `[":KEYWORD"]` where the keyword **must equal**
-//!   the input suffix class. Pinned because the Lisp `find` returns
-//!   the matched element by identity — if upstream ever returns a
-//!   different class for the same lookup, that's a real divergence.
-//! - `Some(Desu)`  ⇔  `[true]`.
-//! - `Some(Sa(rows))`  ⇔  `[[seq, …], <count>]`. The seq list is
-//!   compared as a sorted set (Postgres' row order is unspecified
-//!   without `ORDER BY`; both sides come from the same query but may
-//!   permute). The captured count must equal `rows.len()`.
+//! Replays a captured suffix class plus its matches through
+//! `match_unique` and compares the returned uniqueness verdict against
+//! the Lisp result (the `:sa` root-seq list compared as a sorted set,
+//! since its query has no ORDER BY).
 
 #[path = "../common/mod.rs"]
 mod common;

@@ -1,11 +1,7 @@
 //! Port of `ichiran/dict:strip-hints` (`dict-split.lisp:829-830`).
 //!
-//! Drops every occurrence of a hint sentinel character (i.e. the
-//! values held in [`super::_star_hint_char_map_star_::HINT_CHAR_MAP`])
-//! from `word`. The Lisp `(remove-if (lambda (c) (find c
-//! *hint-char-map*)) word)` treats the plist as a flat sequence and
-//! tests `c` against every element; only the value side ever
-//! collides because the keys are symbols, not characters.
+//! Drops every hint sentinel character (the values held in
+//! [`super::_star_hint_char_map_star_::HINT_CHAR_MAP`]) from `word`.
 
 use super::_star_hint_char_map_star_::HINT_CHAR_MAP;
 

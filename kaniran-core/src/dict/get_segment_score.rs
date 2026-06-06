@@ -1,33 +1,9 @@
 //! Port of `ichiran/dict:get-segment-score` (`dict.lisp:1040`).
 //!
 //! Generic-function dispatcher returning the segment-style score of a
-//! [`Segment`], [`SegmentList`], or [`Synergy`]. Upstream three-arm
-//! defgeneric:
-//!
-//! ```lisp
-//! (defgeneric get-segment-score (seg)
-//!   (:method ((seg segment))           (segment-score seg))
-//!   (:method ((seg-list segment-list))
-//!     (let ((seg (car (segment-list-segments seg-list))))
-//!       (if seg (segment-score seg) 0))))
-//! ;; dict-grammar.lisp:715
-//! (defmethod get-segment-score ((syn synergy)) (synergy-score syn))
-//! ```
-//!
-//! The three receiver types share no Lisp base class; the Rust
-//! dispatcher wraps them in a sidecar enum
-//! [`KaniSegmentScoreArg`] per CONVENTIONS §4.7 (per-type methods,
-//! sibling enum dispatcher). The enum is defined here rather than as a
-//! separate `kani_<name>.rs` sidecar because no other ported gf
-//! dispatches on the same union today.
-//!
-//! Return type is [`Option<i32>`] — the Lisp accessor
-//! `(segment-score seg)` may return [`nil`](Option::None) when the
-//! score slot is unset (segments before `gen-score` runs), an integer
-//! after scoring, or `0` for the empty-segment-list arm. The
-//! `synergy-score` accessor on [`Synergy`] is always an integer in the
-//! Rust port (slot is non-optional), so the synergy arm always yields
-//! [`Some`].
+//! [`Segment`], [`SegmentList`], or [`Synergy`]: the segment's own
+//! score, the first segment's score (or 0) for a list, or the synergy's
+//! score. `None` when the score slot is unset (before `gen-score`).
 
 use super::kani_lite_segment_list::KaniLiteSegmentList;
 use super::segment_list_struct::SegmentList;

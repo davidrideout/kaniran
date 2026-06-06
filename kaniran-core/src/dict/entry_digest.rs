@@ -1,12 +1,6 @@
 //! Port of `ichiran/dict:entry-digest` (`dict.lisp:64`).
 //!
-//! ```lisp
-//! (defun entry-digest (entry)
-//!   (list (seq entry) (get-text entry) (get-kana entry)))
-//! ```
-//!
-//! The 3-element list becomes a tuple; the text and kana elements are
-//! `Option<String>` per the [`Entry::get_text`] / [`Entry::get_kana`] ports.
+//! Returns `(seq, text, kana)` for an entry.
 
 use super::entry_dao::Entry;
 use crate::conn::kani_context::KaniranContext;

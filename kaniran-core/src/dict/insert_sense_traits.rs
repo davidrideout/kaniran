@@ -2,7 +2,7 @@
 //!
 //! For every descendant of `sense_node` whose element name matches
 //! `tag`, INSERTs a `sense_prop` row carrying that descendant's text
-//! content. Used by [`crate::dict::insert_senses`].
+//! content.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::node_text::node_text;

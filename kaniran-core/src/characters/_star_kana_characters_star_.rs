@@ -3,10 +3,7 @@
 //!
 //! All regular morae — vowels, k/s/t/n/h/m/y/r/w-rows, `n`, the voiced
 //! and semi-voiced rows, and `vu`. 74 entries. Each value pairs the
-//! hiragana glyph with the katakana glyph in that order. One of the
-//! four constituents that `*all-characters*` is built from, and the
-//! lookup table that `dakuten-join` consults to find the kana glyphs
-//! for a `KanaClass` keyword.
+//! hiragana glyph with the katakana glyph in that order.
 
 use super::kani_kana_class::KanaClass;
 

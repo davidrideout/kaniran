@@ -1,16 +1,8 @@
-//! Implicit gf created by the `:accessor word-conjugations` slot
-//! option on `simple-text` (`dict.lisp:70`), plus the three
-//! defmethod overrides:
+//! Port of the `word-conjugations` accessor on `simple-text`
+//! (`dict.lisp:70`), with proxy/counter/compound overrides.
 //!
-//! - `proxy-text` (`dict.lisp:568-569`): recurse on `(source obj)`.
-//! - `counter-text` (`dict-counters.lisp:85`): always nil.
-//! - `compound-text` (`dict.lisp:663-664`): recurse on `(car (last (words obj)))`.
-//!
-//! Not tracked as a separate `defgeneric` in `symbols.csv` (the
-//! introspector only captures `defgeneric` forms), but the call sites
-//! dispatch polymorphically over the word-shaped union and the gf has
-//! more than one method body — so it lives in its own module per
-//! CONVENTIONS §1.
+//! Returns a reading's `word-conjugations` slot — recursing through
+//! proxy chains and into a compound's last word, nil for counters.
 
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::proxy_text_class::ProxyText;

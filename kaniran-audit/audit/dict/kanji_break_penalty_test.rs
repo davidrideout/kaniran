@@ -5,20 +5,9 @@
 //!   cargo run --release --bin kanji_break_penalty_test -- \
 //!       --path corpus/extracted_chunk_b_segmentation_2026_05_14/dict/kanji_break_penalty.parquet
 //!
-//! Captured args shape (per `chunk_b_segmentation` corpus):
-//!   `[<kanji-break:int-list>, <score:int>,
-//!     ":INFO", <info-plist|null>,
-//!     ":TEXT", <text:string>,
-//!     ":USE-LENGTH", <int|null>,
-//!     ":SCORE-MOD", <int|int-list|null>]`
-//! All four keywords are present at every captured call site.
-//!
-//! Captured result: `[<score:int>]` — single integer.
-//!
-//! Streaming async runner because the parquet is 60K rows; the recursive
-//! `calc-score` call inside the `vs-s` / `v5s` suru-suffix branch hits the
-//! database. Use `run_async_streaming` rather than `run_async` to avoid
-//! the redundant group-by-args dedup pass for the deterministic function.
+//! Replays a captured kanji-break list (plus score, info, text,
+//! use-length, score-mod) through `kanji_break_penalty` and compares
+//! the returned penalized score against the Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

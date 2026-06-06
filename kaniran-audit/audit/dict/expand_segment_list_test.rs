@@ -5,35 +5,11 @@
 //!   cargo run --release --bin expand_segment_list_test -- \
 //!       --path corpus/extracted_chunk_b_segmentation_2026_05_14/dict/expand_segment_list.parquet
 //!
-//! Captured shapes (`extracted_chunk_b_segmentation_2026_05_14` corpus):
-//! - `args = [<segment-list>]` — single SegmentList input. **The tracer
-//!   projects args POST-call** (`trace_capture.lisp:179-194`), and
-//!   `expand-segment-list` mutates its argument via
-//!   `(setf (segment-list-segments …) …)` / `(incf (segment-list-matches …))`
-//!   (`dict.lisp:1181, 1187`). So `args[0]` is the segment-list **after**
-//!   expansion: `segments` is the new sorted/expanded list and
-//!   `matches` is the incremented counter.
-//! - `result = [<list-of-segments>]` — the value returned by `setf` is
-//!   the new segments list (the value being assigned). Equal to
-//!   `args[0].segments` by construction.
-//!
-//! Because args are post-state, the audit cannot just hand them to
-//! `expand_segment_list` and compare — it would re-run get-segsplit on
-//! the originals and duplicate the existing segsplits. The runner
-//! reconstructs the pre-call segment-list by removing any compound
-//! segment whose (start, end, score, text, kana) matches a segsplit
-//! produced by calling `get_segsplit` on some other segment in
-//! post-state, then replays the Rust port on that reconstructed input
-//! and compares the result against the captured post-state.
-//!
-//! All captured SegmentList/Segment slots are checked:
-//! - SegmentList: `segments` (length + per-segment deep compare),
-//!   `start`, `end`, `matches`.
-//! - Segment: `start`, `end`, `score`, `text`, `word` (via
-//!   `parse_captured_word` then Debug-format equality), `info` (plist
-//!   parsed into `KaniSegmentInfo` and compared field-by-field).
-//! - `top` is transient inside find-best-path's scoring loop; not
-//!   captured by the projector and not asserted.
+//! Expands each segment with its `get-segsplit` (compound split), then
+//! sorts the combined list by descending score, mutating the
+//! segment-list in place. Args are `[<segment-list>]` (captured
+//! post-call, so already expanded); the result is the new segments
+//! list.
 
 #[path = "../common/mod.rs"]
 mod common;

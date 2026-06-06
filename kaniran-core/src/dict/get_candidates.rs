@@ -1,19 +1,10 @@
 //! Port of `ichiran/dict:get-candidates` (`dict.lisp:1902`).
 //!
 //! Returns the `entry.seq` rows matching `(text, reading)`. When
-//! `text` is pure kana per [`crate::characters::test_word`], the
-//! query restricts to `root_p` kana-only entries (`k.text IS NULL`)
-//! whose primary kana row equals `text`. Otherwise the query treats
-//! `text` as a kanji writing and requires both the primary kanji row
-//! and the primary kana row to match.
-//!
-//! Diverges from the upstream lambda list `(text reading)` only by:
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
-//! - taking `reading: Option<&str>` to express the upstream `nil`
-//!   reading directly — the kanji branch then binds SQL NULL (no
-//!   rows, mirroring the upstream `(:= 'r.text nil)` form).
+//! `text` is pure kana, the query restricts to `root_p` kana-only
+//! entries (`k.text IS NULL`) whose primary kana row equals `text`;
+//! otherwise it treats `text` as a kanji writing and requires both the
+//! primary kanji row and the primary kana row to match.
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;

@@ -4,13 +4,7 @@
 //! `conjugation.from = seq` — and tags each row's runtime
 //! `state.conjugations`: original-entry rows get `Root`, derived rows
 //! get `Ids(...)` from [`get_kana_forms_conj_data_filter`]. Derived
-//! rows with an empty filter are dropped (Lisp `when conj-ids`).
-//!
-//! The `LEFT JOIN ... WHERE conj.from = $1` is Postgres-reduced to an
-//! inner join; reproduced verbatim so the dedupe (UNION) shape stays
-//! upstream-identical. Upstream's UNION has no `ORDER BY`, so row
-//! order is driver-dependent — a known upstream nondeterminism
-//! (docs/known_issues.md); reproduced as-is rather than pinned.
+//! rows with an empty filter are dropped.
 //!
 //! [`get_kana_forms_conj_data_filter`]: super::get_kana_forms_conj_data_filter::get_kana_forms_conj_data_filter
 

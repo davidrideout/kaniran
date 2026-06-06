@@ -3,11 +3,7 @@
 //! Find every run of consecutive characters in `char_class` within
 //! `s[start..end]` and return each as a `(start, end)` pair.
 //!
-//! Positions are *character* offsets, matching the upstream — not byte
-//! offsets — so callers can pass them through `chars().nth()` or
-//! compare against Lisp fixtures without translation. The function
-//! converts to byte offsets internally to drive the regex, then
-//! converts back.
+//! Positions are *character* offsets, not byte offsets.
 
 use super::_star_char_scanners_inner_star_::char_scanners_inner;
 use super::char_class_type::CharClass;
@@ -45,9 +41,7 @@ fn nth_char_byte(s: &str, char_pos: usize) -> usize {
 mod tests {
     use super::*;
 
-    /// Positions are character offsets, not byte offsets. With
-    /// 3-byte CJK chars this is the only behavior worth pinning;
-    /// everything else is delegated to the regex.
+    /// Positions are character offsets, not byte offsets.
     #[test]
     fn returns_character_offsets_not_byte_offsets() {
         let s = "あ12い34";

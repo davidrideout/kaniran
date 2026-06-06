@@ -5,22 +5,10 @@
 //!   cargo run --release --bin calc_score_test -- \
 //!       --path corpus/extracted_chunk_b_segmentation_2026_05_14/dict/calc_score.parquet
 //!
-//! Captured args shape (per `chunk_b_segmentation` corpus):
-//!   `[<word>, ":FINAL", <bool|null>, ":KANJI-BREAK", <int-list|null>]`
-//! plus optional `:USE-LENGTH <int|null>` and `:SCORE-MOD <int|int-list|null>`
-//! when the encapsulated capture catches calc-score's own recursive
-//! invocations (the compound branch at `dict.lisp:782-788` and the
-//! split branch at `dict.lisp:966-970` both pass those keywords).
-//!
-//! Captured result shape:
-//!   `[<score:int>, <info-plist>]` — `(values score info)`.
-//! When the early-return-0 branch fires (`dict.lisp:858`), the result
-//! is `[0]` (single value); info is absent — the audit accepts both
-//! shapes.
-//!
-//! Streaming async runner because the chunk_b parquet is 545K rows; the
-//! standard `run_async` buffers every row in RAM for the group-by-args
-//! dedup pass, which would OOM here.
+//! Captured args are `[<word>, ":FINAL", <bool|null>, ":KANJI-BREAK",
+//! <int-list|null>]` plus optional `:USE-LENGTH` and `:SCORE-MOD`; the
+//! result is `(values score info)` (or `[0]` when the early-return-0
+//! branch fires).
 
 #[path = "../common/mod.rs"]
 mod common;

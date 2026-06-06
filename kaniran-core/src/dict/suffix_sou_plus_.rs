@@ -1,20 +1,7 @@
 //! Port of `ichiran/dict:suffix-sou+` (`dict-grammar.lisp:468`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-sou+ :sou+ (:connector "" :score 1)
-//!     (root suf patch)
-//!   (suffix-sou-base root patch))
-//! ```
-//!
-//! Same body as [`super::suffix_sou::suffix_sou`] but with `:score 1`
-//! (an integer literal — [`ScoreMod::Single`]) instead of the
-//! `(constantly …)` cond. Mapcar tail delegated to
-//! [`def_simple_suffix_body`]; cond body delegated to
-//! [`suffix_sou_base_body`].
-//!
-//! [`def_simple_suffix_body`]: super::def_simple_suffix_macro::def_simple_suffix_body
-//! [`suffix_sou_base_body`]: super::suffix_sou_base_macro::suffix_sou_base_body
-//! [`ScoreMod::Single`]: super::compound_text_class::ScoreMod::Single
+//! Score-1 variant of the ～そう suffix, delegating to the shared
+//! `suffix-sou-base` body.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

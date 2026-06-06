@@ -1,29 +1,8 @@
 //! Port of `ichiran/dict:get-suffix-map` (`dict-grammar.lisp:671`).
 //!
-//! ```lisp
-//! (defun get-suffix-map (str)
-//!   (init-suffixes)
-//!   (let ((result (make-hash-table)))
-//!     (loop for start from 0 below (length str)
-//!          do (loop for end from (1+ start) upto (length str)
-//!                  do (let* ((substr (subseq-slice nil str start end))
-//!                            (val (gethash substr *suffix-cache*)))
-//!                       (loop for item in (parse-suffix-val substr val)
-//!                          do (push item (gethash end result nil))))))
-//!     result))
-//! ```
-//!
-//! ## Divergences from Lisp
-//!
-//! - `(init-suffixes)` dropped: the cache is populated eagerly during
-//!   [`KaniranContext::from_url`].
-//! - `(push item (gethash end result nil))` prepends each item to the
-//!   per-`end` vec, preserving upstream list order.
-//! - Character offsets for the loop bounds and `subseq-slice`.
-//!
-//! [`SuffixCache`]: super::_star_suffix_cache_star_::SuffixCache
-//! [`parse_suffix_val`]: super::parse_suffix_val::parse_suffix_val
-//! [`KaniranContext::from_url`]: crate::conn::kani_context::KaniranContext::from_url
+//! For every substring of `str`, looks up the suffix cache and maps
+//! each parsed suffix item under the substring's end position. Loop
+//! bounds and `subseq-slice` are character offsets, not byte offsets.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kana_text_dao::KanaText;

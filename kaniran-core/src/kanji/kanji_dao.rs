@@ -1,13 +1,8 @@
 //! Port of `ichiran/kanji:kanji` (`kanji.lisp:10`).
 //!
-//! Row representation of one kanjidic2 character record, mapped 1:1
-//! to the `public.kanji` Postgres table populated by ichiran's
-//! schema. `radical_c` is the classical (Kangxi) radical number;
-//! `radical_n` is the Nelson radical. `grade` (school grade where
-//! the character is taught) and `freq` (newspaper frequency rank)
-//! are nullable per kanjidic2. `stat_common` and `stat_irregular`
-//! are read-only counters maintained by the corpus loader; upstream
-//! `:initform 0` and have no `:initarg`.
+//! Row representation of one kanjidic2 character record. `radical_c` is
+//! the classical (Kangxi) radical number; `radical_n` is the Nelson
+//! radical.
 
 use sqlx::postgres::PgRow;
 use sqlx::{FromRow, Row};

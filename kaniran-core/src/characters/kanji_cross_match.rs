@@ -6,10 +6,6 @@
 //! diverging tail of `new_word`. Returns `None` when `word` and
 //! `new_word` are identical, share no prefix, or when the implied cut
 //! position falls outside `reading`.
-//!
-//! Char-position semantics throughout (CONVENTIONS §4.5). The Lisp's
-//! latent crash when `mismatch` returns `nil` (arithmetic on `nil`) is
-//! not propagated — equal inputs simply yield `None`.
 
 pub fn kanji_cross_match(word: &str, reading: &str, new_word: &str) -> Option<String> {
     let m = first_mismatch_chars(word, new_word)?;

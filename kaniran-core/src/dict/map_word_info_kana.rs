@@ -1,16 +1,9 @@
 //! Port of `ichiran/dict:map-word-info-kana` (`dict.lisp:1727`).
 //!
-//! Apply `fn_` to a word-info's kana. When the kana is a list, map
-//! `fn_` over each element, simplify the resulting readings, and join
-//! them with `separator`; when it is a single string, return `fn_`
-//! applied to it. A nil kana takes the list branch (`(listp nil)` is
-//! true) and yields the empty string.
-//!
-//! Diverges from the upstream lambda list `(fn word-info &key
-//! (separator "/"))`: the keyword `separator` becomes a required `&str`
-//! (Rust has no keyword defaults — callers pass `"/"`). `fn_` receives
-//! `&Option<WordInfoKana>`, the single type that covers both a bare kana
-//! string and an element of a kana list (string / nil / nested list).
+//! Apply `fn_` to a word-info's kana. When the kana is a list, map `fn_`
+//! over each element, simplify the readings, and join with `separator`;
+//! when it is a single string, return `fn_` of it. A nil kana takes the
+//! list branch and yields the empty string.
 
 use super::simplify_reading_list::simplify_reading_list;
 use super::word_info_class::{WordInfo, WordInfoKana};

@@ -2,20 +2,10 @@
 //!
 //! Lookup helper for the `calc-score` length-bonus formula
 //! (`dict.lisp:928, 933`). The first argument is a mora count and the
-//! second selects one of four pre-tabulated coefficient sequences
-//! ([`KaniLengthClass`] from [`super::_star_length_coeff_sequences_star_`]).
+//! second selects one of four pre-tabulated coefficient sequences.
 //! Inside the tabled range it returns the coefficient at that index;
 //! outside the range it linearly extrapolates from the last tabled
-//! value using `length * (last / (n - 1))` where `n` is the upstream
-//! `(length coeffs)` (Rust `coeffs.len() + 1` — upstream `coeffs`
-//! includes the class keyword as its first element, the Rust slice
-//! does not).
-//!
-//! Upstream lambda list `(length class)`; the Rust signature is
-//! identical apart from typing `class` to the closed
-//! [`KaniLengthClass`] enum that captures the
-//! `(member :strong :weak :tail :ltail)` ftype declared at
-//! `dict.lisp:693`.
+//! value.
 
 use crate::dict::_star_length_coeff_sequences_star_::{
     KaniLengthClass, LENGTH_COEFF_SEQUENCES,

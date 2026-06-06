@@ -5,68 +5,14 @@
 //!   cargo run --release --bin find_word_suffix_test -- \
 //!       --path corpus/extracted_find_word_layer_2026_05_21/dict/find_word_suffix.parquet
 //!
-//! Args shape (per `(defun find-word-suffix (word &key matches))` at
-//! `dict-grammar.lisp:695`, projected by `flatten-args-json`):
-//!   `[<word string>, ":MATCHES", <matches list | null>]`
-//! The middle `":MATCHES"` is the keyword marker emitted by the
-//! projector for the &key argument; the third element is its value —
-//! either JSON `null` (Lisp nil — the default) or a JSON array of word
-//! envelopes (KANA-TEXT / KANJI-TEXT only at upstream callsites, since
-//! `find-word-full` always passes `simple-words` from `find-word`).
+//! Replays captured words through `find_word_suffix` and compares the
+//! returned compound-text rows against the Lisp result.
 //!
-//! Result shape: `[<list> | null]`. `null` ↔ Lisp nil (no suffix
-//! triple cleared the offset/match-unique gates or no suffix-fn
-//! produced compounds); otherwise a JSON array of COMPOUND-TEXT
-//! envelopes — one per primary word the matched suffix-fn returned,
-//! per the outer `nconc`/`mapcar` in `def-simple-suffix` /
-//! `def-abbr-suffix` bodies.
-//!
-//! Comparison: every projected slot of every compound is compared via
-//! a structural fingerprint (text, kana, primary, words, score_base,
-//! score_mod — and recursively every simple-text seq/text/ord/common/
-//! common_tags/conjugate_p/nokanji/best_*/conjugations/hintedp).
-//! Compound order is unspecified upstream (suffix-fn /
-//! find-word-with-pos / etc. all dispatch SQL without an ORDER BY for
-//! the per-suffix lookup); the runner sorts fingerprints before
-//! comparing.
-//!
-//! ## id slot is normalized to 0 in fingerprints
-//!
-//! `simple-text.id` is intentionally omitted from the fingerprint.
-//! Reason: find-word-suffix is called from
-//! `join-substring-words* → find-word-full → find-word` (the substring
-//! cache path at `dict.lisp:493`). When `*substring-hash*` is bound,
-//! `find-word` reconstructs DAOs via `(apply 'make-instance init)`
-//! where `init` lacks `:id` (the kanji-text/kana-text id slot has no
-//! `:initarg`). The resulting DAOs have unbound id, which the projector
-//! emits as JSON null → audit-side struct `id = 0`. Rust replay calls
-//! the production codepath end-to-end, hitting the DB and returning
-//! DAOs with real ids. Strict-equality on id would fail every
-//! synthesized row. The match-via-other-fields strategy mirrors
-//! [`CapturedKanaText::matches`] semantics — "captured id None means
-//! skip id comparison" — applied uniformly here (no per-row id-was-
-//! present bookkeeping, since the parser collapsed the distinction at
-//! parse time).
-//!
-//! ## Dynamic-special context: NOT captured in args
-//!
-//! `find-word-suffix` reads two CL specials at call time:
-//! `*suffix-map-temp*` and `*suffix-next-end*`. At extraction time the
-//! outer driver (`join-substring-words*` → `find-word-full` →
-//! `find-word-suffix`) binds them via `(let …)` so the function looks
-//! up `(gethash *suffix-next-end* *suffix-map-temp*)` instead of
-//! calling `(get-suffixes word)`. The args projector does NOT emit
-//! these specials.
-//!
-//! Replay sets `ctx.suffix_map_temp = None`, which routes through
-//! `get_suffixes(ctx, word)`. The two paths return the SAME suffix
-//! triples for a given word: the map at end-position E (built by
-//! `get-suffix-map(str)`) holds triples for every substring of `str`
-//! ending at E; find-word-suffix's `(> offset 0)` guard filters out
-//! triples whose substr-length is ≥ word-length, which leaves exactly
-//! the proper suffixes of `word` — the same set `get-suffixes(word)`
-//! produces. Recursive suffix-fn invocations re-clear or preserve the
-//! map via their own let-rebinds, but the same equivalence applies at
+//! Replay sets `ctx.suffix_map_temp = None`, routing through
+//! `get_suffixes(ctx, word)`; the captured driver instead read the
+//! pre-bound `*suffix-map-temp*`, but both yield the same suffix
+//! triples for a given word — the `(> offset 0)` guard leaves exactly
+//! the proper suffixes of `word`. The same equivalence applies at
 //! each recursion level.
 
 #[path = "../common/mod.rs"]

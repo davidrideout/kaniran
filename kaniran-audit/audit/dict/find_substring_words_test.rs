@@ -5,32 +5,8 @@
 //!   cargo run --release --bin find_substring_words_test -- \
 //!       --path corpus/find_substring_words_2026_05_26/dict/find_substring_words.parquet
 //!
-//! Args shape: `[<str>, ":STICKY", null | [<usize>, ...]]` — the
-//! upstream `(str &key sticky)`; the keyword value is `nil` (captured
-//! null) when the caller passed no sticky positions.
-//!
-//! Result shape (one captured value): the `*substring-hash*` rendered as
-//! a JSON object mapping each enumerated substring to its bucket — `null`
-//! for an empty bucket, else an array of `kana-text` / `kanji-text` row
-//! objects. Each row carries `table`, `id`, `seq`, `text`, `ord`,
-//! `common`, `common_tags`, `conjugate_p`, `nokanji`, and `best_kanji`
-//! (kana-text) or `best_kana` (kanji-text). SQL NULL renders as the
-//! string `":NULL"`; a nil boolean slot renders as JSON `null`.
-//!
-//! ## comparison — ORDER-SENSITIVE within each bucket
-//!
-//! This runner is the gate for the prepend fix (`dict.lisp:517`: CL
-//! `push` builds each bucket as the reverse of the SQL fetch order).
-//! Bucket order is load-bearing — downstream homonym selection takes the
-//! last-iterated row — so each bucket's rows are compared
-//! element-by-element IN ORDER, not as a sorted multiset. The keys
-//! themselves are compared as a set (the hash is unordered).
-//!
-//! `id` is dropped from the comparison: it is a per-database serial that
-//! need not agree between the `.103` capture DB and the local audit DB.
-//! `(seq, ord)` identifies the JMdict reading, and every other data
-//! field (`common`, `common_tags`, `conjugate_p`, `nokanji`, `best_*`,
-//! `text`, table kind) is compared in full.
+//! Replays the substring-hash built by `find_substring_words` against
+//! the captured Lisp bucket map. Bucket rows are compared in order.
 
 #[path = "../common/mod.rs"]
 mod common;

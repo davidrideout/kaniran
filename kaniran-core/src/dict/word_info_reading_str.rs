@@ -1,17 +1,8 @@
 //! Port of `ichiran/dict:word-info-reading-str` (`dict.lisp:1733`).
 //!
-//! ```lisp
-//! (defun word-info-reading-str (word-info)
-//!   (cond ((or (eql (word-info-type word-info) :kanji)
-//!              (and (word-info-counter word-info) (word-info-seq word-info)))
-//!          (reading-str* (word-info-text word-info) (word-info-kana word-info)))
-//!         (t (reading-str* nil (word-info-text word-info)))))
-//! ```
-//!
-//! Upstream hands `(word-info-kana word-info)` — a string, a list, or nil
-//! — straight to `reading-str*`, which renders it via `~a`.
-//! [`reading_str_star_`] takes `Option<&str>`, so the `~a`/princ rendering
-//! of a [`WordInfoKana::Multi`] (and nil) is done here before the call.
+//! Renders a [`WordInfo`]'s text/kana into a reading string via
+//! [`reading_str_star_`] — kanji (or a counter with a seq) gets both
+//! sides; everything else passes only the text as the kana side.
 
 use super::reading_str_star_::reading_str_star_;
 use super::word_info_class::{WordInfo, WordInfoKana, WordInfoType};

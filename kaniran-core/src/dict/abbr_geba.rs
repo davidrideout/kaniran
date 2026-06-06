@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:abbr-geba` (`dict-grammar.lisp:635-636`).
 //!
-//! ```lisp
-//! (def-abbr-suffix abbr-geba :geba 2 (root)
-//!   (find-word-full (concatenate 'string root "げば")))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_abbr_suffix_body`] (CONVENTIONS
-//! §4.6 case (c)).
+//! `:geba` abbreviated suffix: looks up `root + "げば"` and produces
+//! the suffix candidates for it.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;

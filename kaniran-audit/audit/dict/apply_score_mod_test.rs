@@ -5,20 +5,9 @@
 //!   cargo run --bin apply_score_mod_test -- \
 //!       --path corpus/<corpus_tag>/dict/apply_score_mod.parquet
 //!
-//! Captured shapes (per `corpus/extracted_calc_score_2026_05_11/`):
-//! - `args = [int, int, int]` → Single (integer method).
-//! - `args = [[int, int, ...], int, int]` → Stack of Single
-//!   (list method, flat list of integers).
-//! - `result = [int]` — single-value return.
-//!
-//! The `((score-mod function) …)` method does not appear in this
-//! corpus because its callsites (`suffix-kudasai`/`sou`/`desu`/
-//! `desho`) are not present in calc-score's segmenter-focused
-//! sentence set, and the JSON projector does not yet emit
-//! function-typed score-mods (see audit/common/mod.rs's
-//! `parse_captured_score_mod` doc for the four-suffix audit blackout).
-//! A captured `null` or non-numeric inside the score-mod arg surfaces
-//! as a parse error and would need a projector + parser fix.
+//! Applies a score modifier: an integer mod multiplies `score * mod *
+//! len`; a list of mods sums each applied in turn. Args are `[score-mod,
+//! score, len]`; the one result value is the modified score.
 
 #[path = "../common/mod.rs"]
 mod common;

@@ -1,18 +1,7 @@
 //! Port of `ichiran/dict:filter-is-conjugation` (`dict-grammar.lisp:780`).
 //!
 //! Tests whether a segment's `:conj` records include one with the
-//! supplied `conj_type`. Upstream:
-//!
-//! ```lisp
-//! (declaim (inline filter-is-conjugation))
-//! (defun filter-is-conjugation (conj-type)
-//!   (lambda (segment)
-//!     (some (lambda (cdata) (eql (conj-type (conj-data-prop cdata)) conj-type))
-//!           (getf (segment-info segment) :conj))))
-//! ```
-//!
-//! The set of `conj_type`s is precomputed at lite construction into
-//! [`KaniLiteSegment::conj_types`].
+//! supplied `conj_type`.
 
 use std::sync::Arc;
 

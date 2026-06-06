@@ -1,16 +1,8 @@
 //! Port of `ichiran/dict:*skip-counter-ids*` (`dict-counters.lisp:315`).
 //!
-//! JMdict seqs that JMdict tags with `pos=ctr` but the project
-//! excludes from the counter cache. Two reasons:
-//! - Ambiguous or non-canonical readings that need disambiguation
-//!   (歳=とせ, 入=しお, 種=くさ, 杯=はた, etc.).
-//! - Mahjong terms with no canonical Japanese reading (荘, 翻,
-//!   萬, 索, 筒) — flagged in the upstream comment as needing
-//!   research.
-//!
-//! Subtracted from the union of the SQL "pos=ctr" sweep and
-//! [`crate::dict::_star_extra_counter_ids_star_::EXTRA_COUNTER_IDS`]
-//! by `get-counter-readings`.
+//! Seqs JMdict tags as `pos=ctr` but that are excluded from the
+//! counter cache (ambiguous readings, mahjong terms with no canonical
+//! reading).
 
 pub static SKIP_COUNTER_IDS: &[i32] = &[
     2426510, // 一個当り

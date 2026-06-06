@@ -1,20 +1,8 @@
 //! Port of `ichiran/dict:get-seg-splits` (`dict.lisp:1175`).
 //!
-//! ```lisp
-//! (defun get-seg-splits (seg-left seg-right)
-//!   (let ((splits (apply-segfilters seg-left seg-right)))
-//!     (loop for (seg-left seg-right) in splits
-//!          nconcing (cons (get-penalties seg-left seg-right) (get-synergies seg-left seg-right)))))
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `seg_left` is `&Arc<KaniLiteSegmentList>`, not `Option<...>`.
-//!   Every `find-best-path` callsite (`dict.lisp:1219`) destructures a
-//!   non-empty `tai-payload`; typing it non-optional lifts that
-//!   invariant to the borrow checker. `apply_segfilters` itself still
-//!   admits `None` for the `get-seg-initial` callsite.
-//! - Each "split" element is `Vec<KaniLitePathElement>` — the same
-//!   closed enum that [`get_penalties`] and [`get_synergies`] produce.
+//! Runs the `(seg_left, seg_right)` pair through [`apply_segfilters`]
+//! and, for each resulting split, concatenates [`get_penalties`] with
+//! [`get_synergies`].
 //!
 //! [`get_penalties`]: super::get_penalties::get_penalties
 //! [`get_synergies`]: super::get_synergies::get_synergies

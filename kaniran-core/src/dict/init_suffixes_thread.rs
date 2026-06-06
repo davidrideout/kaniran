@@ -1,29 +1,8 @@
 //! Transliteration of `ichiran/dict:init-suffixes-thread` (`dict-grammar.lisp:169`).
 //!
-//! Populator for [`SuffixCache`] / [`SuffixClass`] — runs ~50
+//! Populator for the suffix cache / suffix class maps — runs the
 //! `load_conjs` / `load_kf` / `load_abbr` callsites and returns the
-//! built maps. Mutex wrapper dropped; `KaniranContext::from_url` is
-//! single-threaded.
-//!
-//! ## Quirks worth noting
-//!
-//! - `update_suffix_cache` with `join=true` PREPENDS the new pair
-//!   onto the existing vec (Lisp's `(cons new old)` over a list-of-
-//!   lists). Order is load-bearing for downstream consumers.
-//! - The Lisp-level distinction between "single `(key kf)` pair" and
-//!   "list of pairs" collapses to `Vec<(String, Option<KanaText>)>`.
-//! - The 1577980 (いる) and 1578850 (いく/く) blocks bypass
-//!   `update_suffix_cache` and write the maps directly:
-//!     * いる: `:teiru+` for `chars > 1` else `:teiru`; the >1 case
-//!       also registers `text[1..]` under `:teiru`.
-//!     * いく/く: only rows whose first char is HIRAGANA_LETTER_I get
-//!       registered; `text[1..]` only if absent (`entry().or_insert`).
-//! - Synthetic seqs `900000` (たそう) / `900001` (もいい) are real
-//!   ichiran-injected DB rows; `require_kana_form` looks them up like
-//!   any other.
-//!
-//! [`SuffixCache`]: super::_star_suffix_cache_star_::SuffixCache
-//! [`SuffixClass`]: super::_star_suffix_class_star_::SuffixClass
+//! built maps.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_suffix_cache_star_::SuffixCache;

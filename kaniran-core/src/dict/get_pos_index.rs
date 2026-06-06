@@ -1,10 +1,7 @@
 //! Port of `ichiran/dict:get-pos-index` (`dict-load.lisp:249`, `csv-hash *pos-index*` accessor).
 //!
 //! Look up the numeric part-of-speech id for a tag string in
-//! `*pos-index*`, returning `nil`/`None` on a miss. The stored value is
-//! `(cons id description)`; the accessor returns `(car val)` = the id.
-//! The lazy `(unless *pos-index* (load-pos-index))` is the `OnceLock`
-//! in [`super::_star_pos_index_star_`].
+//! `*pos-index*`, returning `None` on a miss.
 
 use super::_star_pos_index_star_::pos_index;
 

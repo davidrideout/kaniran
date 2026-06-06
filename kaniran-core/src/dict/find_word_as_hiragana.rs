@@ -2,37 +2,10 @@
 //!
 //! When `str` is not strictly hiragana, looks up its hiragana
 //! equivalent through [`find_word`] root-only (or through the
-//! caller-provided `finder` override) and wraps each resulting
-//! reading in a [`ProxyText`] that carries the original surface
-//! form as both `text` and `kana` while delegating identity
-//! through to the underlying simple-text row.
-//!
-//! Diverges from the upstream lambda list
-//! `(str &key exclude finder)` only by:
-//!
-//! - taking `&KaniranContext` for the database handle, replacing
-//!   the upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
-//! - taking `exclude` as `&[i32]` (positional) rather than a `&key`
-//!   keyword. Both upstream callers
-//!   (`find-word-full` `dict.lisp:1057`, `or-as-hiragana`
-//!   `dict-grammar.lisp:97`) pass it with a computed list value;
-//!   there is no "absent vs explicit nil" distinction to preserve;
-//! - taking `finder` as
-//!   `Option<Box<dyn FnOnce(String) -> Pin<Box<dyn Future<...>>>>>`
-//!   ([`HiraganaFinder`]). Rust async closures + generic `Future`
-//!   bounds don't infer `None`'s `F` without a turbofish at the call
-//!   site; a boxed-trait object sidesteps that and matches the
-//!   upstream "callable or absent" shape exactly. `None` ↔
-//!   `:finder nil` (or absent — both fall to
-//!   `find_word(ctx, hira, true)`); `Some(boxed)` ↔ caller-provided
-//!   closure invoked with the hiragana form.
-//!
-//! Returns `Vec<ProxyText>` directly rather than the upstream
-//! list-of-`make-instance`-results: every callsite immediately
-//! consumes the rows as a homogeneous proxy-text sequence (`nconc`
-//! into the `find-word-full` simple-words pile, or wrapped through
-//! `or-as-hiragana`'s `or`).
+//! caller-provided `finder` override) and wraps each resulting reading
+//! in a [`ProxyText`] that carries the original surface form as both
+//! `text` and `kana` while delegating identity through to the
+//! underlying simple-text row.
 
 use std::future::Future;
 use std::pin::Pin;

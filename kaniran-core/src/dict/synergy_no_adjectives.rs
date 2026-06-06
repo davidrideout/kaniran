@@ -1,19 +1,7 @@
 //! Port of `ichiran/dict:synergy-no-adjectives` (`dict-grammar.lisp:863`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-no-adjectives (l r)
-//!   (filter-is-pos ("adj-no") (segment k p c l) (or k l (and p c)))
-//!   (filter-in-seq-set 1469800) ;; の
-//!   :description "no-adjective"
-//!   :score 15
-//!   :connector " ")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - The `filter-is-pos` filter (`dict-grammar.lisp:864`,
-//!   `(or k l (and p c))`) is built via [`filter_is_pos`].
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! "no-adjective" synergy: binds an adj-no on the left to の
+//! (seq 1469800) on the right.
 
 use std::sync::Arc;
 

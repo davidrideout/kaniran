@@ -1,14 +1,7 @@
 //! Port of `ichiran/dict:segfilter-honorific` (`dict-grammar.lisp:1160`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-honorific (l r)
-//!   (complement (apply 'filter-in-seq-set *noun-particles*))
-//!   (apply 'filter-in-seq-set *honorifics*))
-//! ```
-//!
-//! Body shared with the other `segfilter_*` callsites via
-//! [`super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body`].
-//! No `:allow-first` — l=nil falls through to clause-2 of the cond.
+//! Keeps an honorific (君) right segment only when the preceding left
+//! segment is not a noun particle.
 
 use std::sync::Arc;
 

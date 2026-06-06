@@ -1,7 +1,6 @@
-//! One-shot cache-cardinality inspector. Builds a `KaniranContext`
-//! against the configured DB and prints the size of every populated
-//! cache, plus a small sample, for cross-checking against the
-//! upstream Lisp `ensure :no-conj-data` etc. values.
+//! One-shot cache-cardinality inspector: prints the size of every
+//! populated `KaniranContext` cache plus a small sample, for
+//! cross-checking against the upstream Lisp values.
 
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::_star_special_counters_star_::special_counters;

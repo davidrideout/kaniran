@@ -1,46 +1,8 @@
 //! Port of `ichiran/dict:conj-info-json*` (`dict.lisp:1664`).
 //!
-//! ```lisp
-//! (defun conj-info-json* (seq &key conjugations text has-gloss)
-//!   (loop with via-used = nil
-//!      for (conj props) in (select-conjs-and-props seq conjugations text)
-//!      for via = (seq-via conj)
-//!      unless (member via via-used)
-//!      nconc (block outer
-//!              (let* ((conj-pos nil)
-//!                     (orig-text (get-original-text-once (get-conj-data seq (list (id conj))) text))
-//!                     (js (jsown:new-js
-//!                           ("prop" (loop for conj-prop in props
-//!                                      do (push (pos conj-prop) conj-pos)
-//!                                      collect (conj-prop-json conj-prop))))))
-//!                (if (eql via :null)
-//!                    (let ((orig-reading (when orig-text
-//!                                          (car (find-words-seqs orig-text (seq-from conj))))))
-//!                      (when (and has-gloss (not orig-reading))
-//!                        (return-from outer nil))
-//!                      (jsown:extend-js js
-//!                        ("reading" (reading-str (or orig-reading (seq-from conj))))
-//!                        ("gloss" (get-senses-json (seq-from conj)
-//!                                                  :pos-list conj-pos
-//!                                                  :reading-getter (lambda () orig-reading)))
-//!                        ("readok" (when orig-reading t))))
-//!                    (progn
-//!                      (let ((cij (conj-info-json via :text orig-text :has-gloss has-gloss)))
-//!                        (when cij
-//!                          (jsown:extend-js js
-//!                            ("via" cij)
-//!                            ("readok" (jsown:val (car cij) "readok")))))
-//!                      (push via via-used)))
-//!                (list js)))))
-//! ```
-//!
-//! Mutually recursive with [`super::conj_info_json::conj_info_json`]; the
-//! recursive call is boxed to break the async cycle. Diverges by taking
-//! `&KaniranContext` for the DB handle (upstream `*connection*`), making
-//! the `&key` args positional, modeling `text` as [`FilterPropsText`]
-//! (nil / string / list of strings), and returning
-//! [`serde_json::Value`] objects for the jsown JS (insertion order via
-//! `preserve_order`; jsown nil → `[]`).
+//! Builds the per-conjugation JSON objects (prop list, reading, gloss,
+//! and any `via` chain) for an entry's conjugation data, recursing into
+//! [`super::conj_info_json::conj_info_json`] for `via`-linked sources.
 
 use serde_json::{Map, Value};
 

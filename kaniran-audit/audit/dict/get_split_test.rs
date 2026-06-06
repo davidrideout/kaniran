@@ -5,10 +5,8 @@
 //!   cargo run --bin get_split_test -- \
 //!       --path corpus/<corpus_tag>/get_split.parquet
 //!
-//! The fixture parquet is produced by `:ICHI-PROJECTORS-JSON` on .103
-//! and carries `ichiran_extractor_fqn = "ICHIRAN/DICT:GET-SPLIT"` in its
-//! file metadata. Each row's `args` and `result` text columns hold one
-//! JSON value apiece per the schema documented in `audit/common/mod.rs`.
+//! Replays a captured reading (plus conj-of seqs) through `get_split`
+//! and compares the returned split parts against the Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

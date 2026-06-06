@@ -1,10 +1,6 @@
 //! Kaniran sidecar (no Lisp FQN). Lite mirror of
 //! [`super::top_array_item_struct::TopArrayItem`] used inside the
-//! `find-best-path` inner loop. Payload is [`Arc<[_]>`] so the
-//! `(register-item (segment-list-top seg2) accum path) /
-//! (register-item top (+ accum gap-right) path)` pair in
-//! `dict.lisp:1226-1227` becomes a refcount bump instead of a Vec
-//! clone (the "Option C" fold-in from `find_best_path.md` session-2).
+//! `find-best-path` inner loop, with an [`Arc<[_]>`] payload.
 
 use std::sync::Arc;
 

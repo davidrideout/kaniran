@@ -6,10 +6,7 @@
 //! success, `None` on `:skip` / upstream-text-match early-return.
 //!
 //! `content` is the serialized XML for a single entry (one `<entry>`
-//! element, entities already expanded by [`fix_entities`]). The
-//! upstream `content` parameter also accepted a `dom:node`; the Rust
-//! port keeps the [`&str`] case only — every reachable callsite in
-//! `load-jmdict` passes a serialized string.
+//! element, entities already expanded by [`fix_entities`]).
 //!
 //! [`fix_entities`]: super::fix_entities
 

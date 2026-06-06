@@ -3,11 +3,9 @@
 //!
 //! Inverse of dakuten + handakuten: maps a voiced or semi-voiced mora
 //! `KanaClass` back to its unvoiced base — `Ga → Ka`, `Ji → Shi`,
-//! `Ba → Ha`, `Pa → Ha`, `Vu → U`, etc. 26 entries. *This* table is
-//! not a perfect inverse of `*dakuten-hash*`: both `Ba` and `Pa`
-//! collapse to `Ha`, both `Bi` and `Pi` to `Hi`, and so on — so
-//! unvoicing throws away the b/p distinction. Going voiced→unvoiced
-//! is lossy in a way that voicing→voiced isn't.
+//! `Ba → Ha`, `Pa → Ha`, `Vu → U`, etc. 26 entries. Not a perfect
+//! inverse: both `Ba` and `Pa` collapse to `Ha`, so unvoicing throws
+//! away the b/p distinction.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

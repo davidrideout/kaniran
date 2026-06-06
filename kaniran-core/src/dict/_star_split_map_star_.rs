@@ -1,29 +1,7 @@
 //! Port of `ichiran/dict:*split-map*` (`dict-split.lisp:5`).
 //!
-//! Hashtable mapping JMdict seq → split function, registered upstream
-//! by `defsplit` (`dict-split.lisp:7`) which is in turn invoked by
-//! every `def-simple-split` / `def-de-split` / `def-toori-split` /
-//! `def-do-split` / `def-shi-split` form. The Rust transliteration
-//! collapses the runtime hashtable into a static [`SPLIT_TABLE`] of
-//! data rows. Each row is interpreted by
-//! [`super::kani_split_engine::run_split`]. Returning `None` from
-//! [`split_map_dispatch`] for unregistered seqs preserves the upstream
-//! `(gethash seq *split-map*)` semantics that
-//! [`super::get_split_star_::get_split_star_`] depends on.
-//!
-//! Diverges from CONVENTIONS §1 (one Lisp symbol per Rust file): the
-//! 174 `split-*` callsites would otherwise need 174 separate
-//! `dict/split_*.rs` files containing nothing but data rows. Putting
-//! them here keeps the data and dispatcher together and removes the
-//! file-per-callsite scaffolding that previously templated future
-//! `def-simple-split` ports into per-file copies of the same
-//! interpreter loop. `audit-signatures` will report each `split-*`
-//! FQN as `port file not found` — those entries are this convention.
-//!
-//! Rebound to `*segsplit-map*` inside `get-segsplit`
-//! (`dict-split.lisp:786`). Selector lives on
-//! [`crate::conn::kani_context::KaniranContext::split_map`]; rebind
-//! helper is `with_segsplit_map`.
+//! JMdict seq → split definition, used to split a single dictionary
+//! entry into its component words.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_segsplit_map_star_::SEGSPLIT_TABLE;

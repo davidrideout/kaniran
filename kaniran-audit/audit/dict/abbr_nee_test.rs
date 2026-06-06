@@ -5,55 +5,11 @@
 //!   cargo run --release --bin abbr_nee_test -- \
 //!       --path corpus/extracted_chunk_c_suffix_abbr_2026_05_16/dict/abbr_nee.parquet
 //!
-//! ```lisp
-//! (def-abbr-suffix abbr-nee :nai 2 (root)
-//!   (find-word-with-conj-prop
-//!    (concatenate 'string root "ない")
-//!    (lambda (cdata)
-//!      (and (not (find (conj-data-from cdata) '(1577980 1547720)))
-//!           (conj-neg (conj-data-prop cdata))))
-//!    :allow-root t))
-//! ```
-//!
-//! Args shape (the `def-abbr-suffix` macro signature is `(root sv suf)`
-//! at `dict-grammar.lisp:547-579`; the third `,suf` is `(declare
-//! (ignore ,suf))`d but still appears in the captured args):
-//!   `[<root>, <sv>, <suf KANA-TEXT envelope | null>]`
-//!
-//! Result shape: `[<list> | null]`. `null` ↔ Lisp nil (no primary
-//! word survived the conj-from blocklist + conj-neg predicate).
-//! Otherwise a list of word envelopes — PROXY-TEXT for simple-text
-//! primaries (wrapped `hintedp=T`), or the COMPOUND-TEXT itself with
-//! reassigned text/kana (`dict-grammar.lisp:568-578`). `:allow-root t`
-//! distinguishes abbr-nee from abbr-n (which omits it).
-//!
-//! Comparison covers every projected slot of every returned word
-//! recursively via `format!("{:?}", c)` Debug fingerprints, then
-//! `id: NNN,` substrings are stripped before equality. Debug derives
-//! on CompoundText / KanaText / KanjiText / ProxyText / SimpleText /
-//! WordConjugations / ScoreMod are complete, so the fingerprint covers
-//! every output field at every depth (including ProxyText's source
-//! recursion and each leaf simple-text's seq / text / ord / common /
-//! common_tags / conjugate_p / nokanji / best_* / state.conjugations /
-//! state.hintedp).
-//!
-//! ## id slot is stripped before comparison
-//!
-//! abbr-nee reaches `find-word` via `find-word-with-conj-prop` during
-//! extraction. When the segmenter has `*substring-hash*` bound, the
-//! synthesis path at `dict.lisp:493` reconstructs DAOs via
-//! `(apply 'make-instance init)` without `:id`. Captures emit JSON
-//! null → audit-side `id = 0`. Rust replay hits the production DB and
-//! returns real ids. Strict-equality on id would fail every
-//! synthesized row.
-//!
-//! ## suf is ignored upstream
-//!
-//! The `def-abbr-suffix` macro at `dict-grammar.lisp:553-554` emits
-//! `(declare (ignore ,suf))` — the captured third arg's content has
-//! no behavioral influence. We parse it (to verify the projector
-//! shape) but pass `None` to the function under test, mirroring the
-//! ignored-slot semantics.
+//! `ICHIRAN/DICT:ABBR-NEE` reconstructs `root + "ない"` and runs
+//! `find-word-with-conj-prop` (with `:allow-root t`) on it, keeping
+//! only negative-conjugation matches outside the 居ない/来ない blocklist.
+//! Captured args are `[<root>, <sv>, <suf | null>]`; the result is a
+//! list of word envelopes or `null`.
 
 #[path = "../common/mod.rs"]
 mod common;

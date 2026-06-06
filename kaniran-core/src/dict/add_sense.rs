@@ -2,13 +2,6 @@
 //!
 //! Inserts a new sense at `(seq, ord)` plus its glosses, unless a
 //! sense at `(seq, ord)` already exists.
-//!
-//! Diverges from the upstream lambda list `(seq ord &rest glosses)`
-//! by:
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
-//! - representing the variadic `&rest glosses` as `&[&str]`.
 
 use crate::conn::kani_context::KaniranContext;
 

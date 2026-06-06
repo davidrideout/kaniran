@@ -1,20 +1,9 @@
 //! Port of `ichiran:romaji-next` (`deromanize.lisp:46`).
 //!
-//! ```lisp
-//! (defun romaji-next (s)
-//!   (loop
-//!      for end from 1 to (length s)
-//!      for ss = (subseq s 0 end)
-//!      for rmi = (get-romaji-kana ss)
-//!      when rmi collect (apply-rmap-item s rmi)
-//!      while (gethash ss *romaji-kana-next*)))
-//! ```
-//!
 //! For each prefix `ss` of `s` (growing one character at a time),
-//! collects the applied romaji rule when one matches, stopping once
-//! `ss` is no longer a proper prefix of any romaji key. The `while`
-//! is checked after the collect, so the prefix that ends the scan
-//! still contributes its rule.
+//! collects the applied romaji rule when one matches, stopping once `ss`
+//! is no longer a proper prefix of any romaji key. The stop is checked
+//! after the collect, so the prefix that ends the scan still contributes.
 
 use super::_star_romaji_kana_next_star_::romaji_kana_next;
 use super::apply_rmap_item::apply_rmap_item;

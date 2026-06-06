@@ -2,8 +2,7 @@
 //! (`characters.lisp:7-9`).
 //!
 //! Small-form vowels and y-glides used as modifiers (e.g. `ぁ` in
-//! `きゃ`), plus the long-vowel mark `ー`. 10 entries. One of the
-//! four constituents that `*all-characters*` is built from.
+//! `きゃ`), plus the long-vowel mark `ー`. 10 entries.
 
 use super::kani_kana_class::KanaClass;
 

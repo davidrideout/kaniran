@@ -1,14 +1,7 @@
 //! Port of `ichiran/dict:penalty-semi-final` (`dict-grammar.lisp:1003-1009`).
 //!
-//! ```lisp
-//! (def-generic-penalty penalty-semi-final (l r)
-//!   (lambda (sl)
-//!     (some (lambda (s) (funcall (apply 'filter-in-seq-set *semi-final-prt*) s))
-//!           (segment-list-segments sl)))
-//!   (constantly t)
-//!   :description "semi-final not final"
-//!   :score -15)
-//! ```
+//! Scoring penalty (-15) applied when the left segment is a semi-final
+//! particle that isn't actually in final position.
 
 use super::_star_semi_final_prt_star_::semi_final_prt;
 use super::def_generic_penalty_macro::{def_generic_penalty_body, DefGenericPenaltyOpts};

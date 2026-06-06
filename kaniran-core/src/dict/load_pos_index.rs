@@ -1,14 +1,7 @@
 //! Port of `ichiran/dict:load-pos-index` (`dict-load.lisp:249`, `csv-hash *pos-index*` expansion).
 //!
-//! Build the part-of-speech → (id, description) map from the embedded
-//! kwpos.csv (tab-separated, header skipped — mirrors `cl-csv:read-csv
-//! :separator #\Tab :skip-first-p t`). The trailing `ents` column is
-//! dropped, as in the upstream `(pos-id pos description)` row binding.
-//!
-//! Diverges from upstream `(merge-pathnames *jmdict-data* "kwpos.csv")`:
-//! kwpos.csv is vendored into the crate and embedded with `include_str!`.
-//! Returns the built map; the upstream `setf` of `*pos-index*` lives on
-//! the `OnceLock` in [`super::_star_pos_index_star_`].
+//! Build the part-of-speech → (id, description) map from kwpos.csv
+//! (tab-separated, header skipped); the trailing `ents` column is dropped.
 
 use std::collections::HashMap;
 

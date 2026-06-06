@@ -5,10 +5,6 @@
 //! splits around it: `left * 10^exponent + right`. If no power token is
 //! present, the slice is treated as a sequence of digits and reduced
 //! left-to-right (`a, b, c → a*100 + b*10 + c`).
-//!
-//! Diverges from the Lisp's `&key (start 0) (end (length na))` by
-//! taking a `&[(NumClass, u8)]` slice — Rust callers slice naturally
-//! without explicit start/end indices.
 
 use super::kani_num_class::NumClass;
 

@@ -1,18 +1,6 @@
 //! Port of `ichiran/dict:ordinal-str` (`dict-counters.lisp:38`).
 //!
 //! Renders `n` as an English ordinal — "1st", "22nd", "113th", etc.
-//! Used by `value-string` (`dict-counters.lisp:46`) when the counter
-//! is flagged `ordinalp`.
-//!
-//! ## Modular arithmetic
-//!
-//! Lisp `mod` floors toward negative infinity, so `(mod -1 10)` → `9`.
-//! Rust's `%` truncates, so `-1 % 10` → `-1`. The Rust port uses
-//! [`i64::rem_euclid`] to match the Lisp semantics for negative input.
-//! In practice every captured caller passes a non-negative `number`
-//! slot from `counter-text`, so the two would coincide on the
-//! workload — but staying faithful keeps the port robust against
-//! any future negative-counter use site.
 
 pub fn ordinal_str(n: i64) -> String {
     let digit = n.rem_euclid(10);

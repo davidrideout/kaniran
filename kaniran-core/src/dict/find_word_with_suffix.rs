@@ -1,37 +1,8 @@
 //! Port of `ichiran/dict:find-word-with-suffix` (`dict-grammar.lisp:102`).
 //!
-//! ```lisp
-//! (defun find-word-with-suffix (wordstr &rest suffix-classes)
-//!   (loop for word in (find-word-full wordstr)
-//!      for seq = (seq word)
-//!      for suffix-class = (and (listp seq) (gethash (car (last seq)) *suffix-class*))
-//!      when (and suffix-class (find suffix-class suffix-classes)) collect word))
-//! ```
-//!
-//! Collects the [`find_word_full`] outputs whose `seq` is a list
-//! (Lisp `(listp seq)` is true only for compound-text via
-//! `(mapcar #'seq (words obj))`) and whose last element's seq maps to
-//! one of `suffix_classes` in [`SUFFIX_CLASS`]. Used by the suffix
-//! grammar (e.g. `suffix-sa`, `suffix-ren`) to recognize an existing
-//! compound formed against a particular suffix class without
-//! materializing the entire suffix expansion path again.
-//!
-//! ## Divergences from Lisp
-//!
-//! - **Ctx-injected** per CONVENTIONS §4.8.
-//! - **`suffix_classes` as `&[&str]`** instead of `&rest` packed
-//!   positional; suffix-class values are the lowercase keyword
-//!   strings the cache uses (`"ra"`, `"suru"`, …) per
-//!   [`super::_star_suffix_class_star_`].
-//! - **`(listp seq)`** maps to `WordInfoSeq::Multi(_)`: per the
-//!   [`super::seq::seq`] dispatcher, only compound-text yields a
-//!   `Multi` value. `Single` (simple-text / counter-text-with-source)
-//!   and `None` (sourceless counter-text) both skip the suffix-class
-//!   lookup, matching upstream's `(listp seq)` guard.
-//! - **Nested-compound `(car (last seq))`** would be a sublist in
-//!   Lisp (and the hash lookup misses); in Rust the `Multi` payload's
-//!   last element being itself `Some(Multi(_))` produces no lookup
-//!   key and the word is skipped — same observable outcome.
+//! Collects the [`find_word_full`] outputs whose `seq` is a compound
+//! (a list) and whose last element's seq maps to one of
+//! `suffix_classes` in [`SUFFIX_CLASS`].
 //!
 //! [`find_word_full`]: super::find_word_full::find_word_full
 //! [`SUFFIX_CLASS`]: super::_star_suffix_class_star_::suffix_class

@@ -4,10 +4,7 @@
 //! `ConjugationRule`: drop `stem` trailing characters (one extra when
 //! the applicable euphonic fragment is non-empty), then append the
 //! euphonic fragment (`euphr` when the last two characters are kana,
-//! `euphk` otherwise) and `okuri`.
-//!
-//! Lisp `length` / `subseq` index by character; the port collects
-//! `chars()` so offsets stay character-based for multi-byte readings.
+//! `euphk` otherwise) and `okuri`. Offsets are character-based.
 
 use super::conjugation_rule_struct::ConjugationRule;
 use crate::characters::char_class_type::CharClass;

@@ -1,17 +1,8 @@
 //! Port of `ichiran/dict:test-conj-prop` (`dict-errata.lisp:1336`).
 //!
-//! Predicate: does [`ConjProp`] match any element of `forms`? The
-//! Lisp builds `(pos conj-type conj-neg conj-fml)` and runs `some`
-//! over `forms`, dispatching on form length:
-//!
-//! * length 3 → match `(conj-type neg fml)` against the prop's last
-//!   three slots.
-//! * length 4 → match `(pos conj-type neg fml)` against all four.
-//!
-//! A cell `:any` always matches; otherwise compare with `EQL`.
-//! The Rust port models the closed cell vocabulary as
-//! [`super::kani_conj_form::FormToken`] and dispatches on the
-//! [`super::kani_conj_form::ConjForm`] variant.
+//! Predicate: does [`ConjProp`] match any element of `forms`? A
+//! 3-element form matches `(conj-type neg fml)`, a 4-element form adds
+//! `pos`; a `:any` cell always matches.
 
 use super::conj_prop_dao::ConjProp;
 use super::kani_conj_form::{ConjForm, FormToken};

@@ -1,15 +1,8 @@
 //! Port of `ichiran/characters:dakuten-join` (`characters.lisp:93-101`).
 //!
-//! Build a list of `(input-with-combining-mark, single-precomposed-char)`
-//! pairs: for each `(unvoiced, voiced)` mapping in `hash`, produce one
-//! pair per glyph (hiragana and katakana) of the form
-//! `(<unvoiced-glyph><mark>, <voiced-glyph>)`.
-//!
-//! The Lisp returns a flat plist `(in1 out1 in2 out2 ...)`; the Rust
-//! port returns paired `Vec<(String, String)>` directly — the only
-//! consumer of the Lisp output is
-//! [`super::_star_dakuten_join_star_::dakuten_join`], which uses the
-//! pairs as alternation entries.
+//! Build `(<unvoiced-glyph><mark>, <voiced-glyph>)` pairs for every
+//! glyph (hiragana and katakana) of each `(unvoiced, voiced)` mapping
+//! in `hash`.
 
 use std::collections::HashMap;
 

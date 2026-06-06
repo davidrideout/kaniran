@@ -1,10 +1,7 @@
 //! Port of `ichiran/custom:get-custom-data` (`dict-custom.lisp:318`).
 //!
-//! Returns the three built-in loaders, each tagged with the keyword the
-//! Lisp plist used (`:extra`, `:municipality`, `:ward`). The upstream
-//! mapcar over a flat plist collapses here to a list of pairs per
-//! CONVENTIONS §4.3 — every consumer already pairs the alternating
-//! keyword/loader cells via `(loop ... by #'cddr)`.
+//! Returns the three built-in loaders, each tagged with its keyword
+//! (`:extra`, `:municipality`, `:ward`).
 
 use super::custom_source_class::CustomLoader;
 use super::municipality_csv_class::MunicipalityCsv;

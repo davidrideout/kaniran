@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:segfilter-toomou` (`dict-grammar.lisp:1132`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-toomou (l r)
-//!   ;; split と before 思う 言う
-//!   (complement (filter-in-seq-set 2837117)) ;; 何だと
-//!   (filter-in-seq-set 1589350 1587040)
-//!   :allow-first t)
-//! ```
+//! Splits と before 思う/言う: keeps a 思う/言う right segment only when
+//! the preceding left segment is not 何だと (2837117).
 
 use std::sync::Arc;
 

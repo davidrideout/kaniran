@@ -2,18 +2,10 @@
 //!
 //! Render a non-negative integer as a kanji number string —
 //! `1234` → `千二百三十四`, `0` → `〇`. The `digits` and `powers`
-//! parameters are the per-digit and per-power glyph tables (see
-//! [`super::_star_digit_kanji_default_star_::DIGIT_KANJI_DEFAULT`],
-//! [`super::_star_digit_kanji_legal_star_::DIGIT_KANJI_LEGAL`],
-//! [`super::_star_power_kanji_star_::POWER_KANJI`]); `one_sen` is the
-//! recursion flag controlling whether a leading `一` is suppressed
-//! before `千` (`one_sen = false`) or only before `百` (`one_sen =
-//! true`).
-//!
-//! Diverges from the Lisp's `&key` defaults — Rust has no native
-//! keyword defaulting so each caller passes all four arguments
-//! explicitly. Top-level callers pass `(n, DIGIT_KANJI_DEFAULT,
-//! POWER_KANJI, false)`; the `one_sen = true` value is recursion-only.
+//! parameters are the per-digit and per-power glyph tables; `one_sen`
+//! is the recursion flag controlling whether a leading `一` is
+//! suppressed before `千` (`one_sen = false`) or only before `百`
+//! (`one_sen = true`).
 
 pub fn number_to_kanji(n: u64, digits: &str, powers: &str, one_sen: bool) -> String {
     let digit_chars: Vec<char> = digits.chars().collect();

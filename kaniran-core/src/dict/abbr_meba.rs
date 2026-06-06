@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:abbr-meba` (`dict-grammar.lisp:644-645`).
 //!
-//! ```lisp
-//! (def-abbr-suffix abbr-meba :meba 2 (root)
-//!   (find-word-full (concatenate 'string root "めば")))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_abbr_suffix_body`] (CONVENTIONS
-//! §4.6 case (c)).
+//! Matches the spoken abbreviation of `root + "めば"` (e.g. 飲みゃ
+//! for 飲めば).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;

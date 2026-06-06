@@ -5,55 +5,16 @@
 //!   cargo run --release --bin suffix_neg_test -- \
 //!       --path corpus/extracted_chunk_c_suffix_abbr_2026_05_16/dict/suffix_neg.parquet
 //!
-//! Args shape (`def-simple-suffix suffix-neg :neg (:connector ""
-//! :score 5) (root)` at `dict-grammar.lisp:381` — macro signature
-//! `(root sv kf)`):
-//!   `[<root>, <sv>, <kf KANA-TEXT envelope>]`
+//! Replays a captured `(root, sv, kf)` triple through the `suffix-neg`
+//! `def-simple-suffix` (`dict-grammar.lisp:381`) and compares the
+//! returned compound-text rows against the Lisp result (compound
+//! fingerprints sorted, since the bucket order is undefined).
 //!
-//! Result shape: `[<list> | null]`. `null` ↔ Lisp nil
-//! (find-word-with-conj-type returned no matches for conj-types
-//! `[13, 52]`, or pair-words-by-conj returned no buckets); otherwise a
-//! list of COMPOUND-TEXT envelopes per primary word the bucket sweep
-//! produced. `pair-words-by-conj` walks
-//! `alexandria:hash-table-values` whose order is undefined, so the
-//! runner sorts compound fingerprints before comparing.
-//!
-//! Comparison covers every projected slot recursively via
-//! `format!("{:?}", c)` Debug fingerprints; `id: NNN,` substrings are
-//! stripped before equality (see id-slot rationale below). Debug derives
-//! on CompoundText / KanaText / KanjiText / ProxyText / SimpleText /
-//! WordConjugations / ScoreMod are complete, so the Debug fingerprint
-//! covers: text, kana, primary (recursive word), words (recursive),
-//! score_base (recursive), score_mod — and at each leaf simple-text:
-//! seq, text, ord, common, common_tags, conjugate_p, nokanji,
-//! best_kanji / best_kana, state.conjugations, state.hintedp.
-//!
-//! ## id slot is stripped before comparison
-//!
-//! suffix-neg is reached via `find-word-with-conj-type → find-word`
-//! during extraction. When the segmenter has `*substring-hash*` bound
-//! (the substring cache path at `dict.lisp:493`), `find-word`
-//! reconstructs root-word DAOs via `(apply 'make-instance init)` where
-//! `init` lacks `:id`. The resulting unbound id surfaces in captures as
-//! JSON null → audit-side `id = 0`. Rust replay hits the production
-//! codepath end-to-end with real DB ids. Strict-equality on id would
-//! fail every row whose primary came through the synthesis path. Same
-//! treatment as `find_word_suffix_test` and `suffix_rashii_test`.
-//!
-//! ## naku cache-mutation pattern note
-//!
-//! Per `project_find_word_suffix_session_2026_05_22.md` and the
-//! cycle-484 investigation, suffix-neg's なく cache entry undergoes
-//! lazy mutation via aliased identity at `dict.lisp:667`:
-//! `(setf (word-conjugations (car (last (words …)))))`. Lisp's
-//! cached KanaText's `conjugations` slot is filled with [656991]
-//! after the first `find-word-with-conj-prop` call. Rust's cache
-//! holds owned KanaText; the setter at `set_word_conjugations.rs:21`
-//! never reaches the cache. Captures may show Lisp
-//! `conjugations=Some([656991])` while Rust replay returns
-//! `conjugations=None` (post-clear) — these are real, expected
-//! divergences this audit will surface so the cluster size is
-//! measurable.
+//! suffix-neg's なく cache entry undergoes lazy mutation via aliased
+//! identity upstream (`dict.lisp:667`); Rust's cache holds owned
+//! KanaText so the setter never reaches it, so some rows show Lisp
+//! `conjugations=Some([656991])` against Rust `None` — real, expected
+//! divergences this audit surfaces.
 
 #[path = "../common/mod.rs"]
 mod common;

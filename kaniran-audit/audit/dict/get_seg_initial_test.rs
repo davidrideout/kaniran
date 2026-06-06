@@ -5,22 +5,9 @@
 //!   cargo run --release --bin get_seg_initial_test -- \
 //!       --path corpus/extracted_chunk_b_segmentation_2026_05_14/dict/get_seg_initial.parquet
 //!
-//! Captured shapes (`extracted_chunk_b_segmentation_2026_05_14` corpus):
-//! - `args = [<segment-list>]` — single SegmentList input.
-//! - `result = [<list-of-segment-lists>]` — single-value return: the
-//!   list of right halves produced by `apply-segfilters`. May be `null`
-//!   (zero splits, e.g. aux-verb-only spans) or a JSON array.
-//!
-//! All captured SegmentList/Segment slots are checked against the Rust
-//! output:
-//! - SegmentList: `start`, `end`, `matches`, `segments` (length + per-
-//!   segment deep compare).
-//! - Segment: `start`, `end`, `score`, `text`, `word` (full DAO/CLOS
-//!   slot compare via `parse_captured_word` then Debug-format
-//!   equality), `info` (plist parsed into [`KaniSegmentInfo`] and
-//!   compared field-by-field).
-//! - `top` is transient inside find-best-path's scoring loop; not
-//!   captured by the projector and not asserted.
+//! Replays a captured segment-list through `get_seg_initial` and
+//! compares the returned list of right-half segment-lists against the
+//! Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

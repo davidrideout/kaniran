@@ -5,15 +5,10 @@
 //!   cargo run --bin or_as_hiragana_test -- \
 //!       --path corpus/<corpus_tag>/dict/or_as_hiragana.parquet
 //!
-//! Args: `(":FIND-WORD-WITH-POS" "<word>" "<pos>"...)` — the function
-//! symbol is captured by the projector as a `:KEYWORD` because
-//! `fn` is bound to a quoted symbol at the (sole) callsite
-//! `dict-grammar.lisp:506`. Only `:FIND-WORD-WITH-POS` is in scope;
-//! other dispatch targets are rejected.
-//!
-//! Result: NIL, a list of KANA-TEXT/KANJI-TEXT rows, or a list of
-//! PROXY-TEXT rows. Compared by `(seq, id, text)` for direct rows and
-//! by `(text, kana, source-id)` for proxy rows.
+//! Replays a captured finder symbol plus word/pos args through
+//! `or_as_hiragana` and compares the returned word rows against the
+//! Lisp result (direct rows by `(seq, id, text)`, proxy rows by
+//! `(text, kana, source-id)`).
 
 #[path = "../common/mod.rs"]
 mod common;

@@ -1,43 +1,8 @@
 //! Port of `ichiran/dict:find-word-info` (`dict.lisp:1849`).
 //!
-//! ```lisp
-//! (defun find-word-info (text &key reading root-only &aux (end (length text)))
-//!   (with-connection *connection*
-//!     (let* ((*suffix-map-temp* (get-suffix-map text))
-//!            (*suffix-next-end* end)
-//!            (all-words (if root-only
-//!                           (find-word text :root-only t)
-//!                           (find-word-full text :as-hiragana (test-word text :katakana) :counter :auto)))
-//!            (segments (loop for word in all-words
-//!                         collect (gen-score (make-segment :start 0 :end end :word word :text text))))
-//!            (segments (sort segments #'> :key #'segment-score))
-//!            (wis (mapcar #'word-info-from-segment segments)))
-//!       (when reading
-//!         (setf wis
-//!               (loop for wi in wis
-//!                  for seq = (word-info-seq wi)
-//!                  if (equal (word-info-kana wi) reading)
-//!                  collect wi
-//!                  else if (and seq (exists-reading seq reading))
-//!                  do (setf (word-info-kana wi) reading)
-//!                  and collect wi)))
-//!       wis)))
-//! ```
-//!
-//! ## Divergences from Lisp
-//!
-//! - Ctx-injected (`*connection*` → `ctx.pool`); the `*suffix-map-temp*`
-//!   / `*suffix-next-end*` rebinds become a sibling ctx built with
-//!   [`KaniranContext::with_suffix_map_temp`] /
-//!   [`KaniranContext::with_suffix_next_end`].
-//! - `reading: Option<&str>` for the `&key reading`; `root_only: bool`
-//!   for the `&key root-only`.
-//! - `all-words` is `Vec<KaniWordDispatchEnum>`: the root-only
-//!   [`find_word`] result ([`FindWordRows`]) is tagged into the same
-//!   union [`find_word_full`] already returns so both feed `make-segment`.
-//! - A compound's list seq reaching `(exists-reading seq reading)`
-//!   reproduces upstream's PostgreSQL `integer = record` error (see
-//!   [`exists_reading_seq`]).
+//! Finds every reading for `text`, scores and sorts each as a segment,
+//! converts to word-infos, and (when `reading` is given) keeps only
+//! those whose kana matches or that carry `reading` as an alternate.
 
 use std::sync::Arc;
 

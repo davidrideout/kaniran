@@ -1,23 +1,7 @@
 //! Port of `ichiran/dict:filter-props` (`dict.lisp:1627`).
 //!
-//! ```lisp
-//! (defun filter-props (props text)
-//!   " A hack to remove Passive conjugation on れる forms "
-//!   (loop for prop in props
-//!         unless (and text
-//!                     (= (conj-type prop) 6) ;; passive
-//!                     (find (pos prop) '("v1" "v1s" "vk") :test 'equal)
-//!                     (not
-//!                      (if (listp text)
-//!                          (some 'is-rareru text)
-//!                          (is-rareru text))))
-//!         collect prop))
-//! ```
-//!
-//! The Lisp `text` is nil, a single string, or a list of strings, branched
-//! on by `listp`; [`FilterPropsText`] carries the three shapes. An empty
-//! list is nil in Lisp, so [`FilterPropsText::Many`] over an empty slice
-//! is falsy like [`FilterPropsText::None`].
+//! Removes Passive (conj-type 6) props on `v1`/`v1s`/`vk` words whose
+//! text isn't a れる form. `text` may be nil, one string, or a list.
 
 use super::conj_prop_dao::ConjProp;
 use super::is_rareru::is_rareru;

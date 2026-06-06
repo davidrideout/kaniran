@@ -1,33 +1,7 @@
 //! Port of `ichiran/dict:get-kanji` (gf — `dict.lisp:15-16`).
 //!
-//! Generic function returning "most popular kanji representation"
-//! for a word. Four method bodies upstream:
-//!
-//! - **`((obj entry))`** at `dict.lisp:51-53` — ported on
-//!   [`Entry::get_kanji`] (in [`super::entry_dao`]); when `n_kanji > 0`,
-//!   selects the `kanji_text` row at `ord = 0` and returns its `text`.
-//! - **`((obj kanji-text))`** at `dict.lisp:108-109` — slot read,
-//!   `(text obj)`. The kanji-text holds the kanji surface itself.
-//! - **`((obj kana-text))`** at `dict.lisp:153-155` — calls
-//!   [`best_kanji_conj`] and unwraps the `:null` sentinel to `None`.
-//! - **`((obj counter-text))`** at `dict-counters.lisp:61-62` —
-//!   concatenates `(number-to-kanji (number-value obj))` with the
-//!   counter morpheme `(counter-text obj)` (the `text` slot on
-//!   counter-text).
-//!
-//! `proxy-text` and `compound-text` have no get-kanji method
-//! upstream; CLOS raises `no-applicable-method` when reached. The
-//! Rust dispatcher matches with `unreachable!` so the same logic
-//! invariant fails loud.
-//!
-//! Two distinct callable surfaces in Rust, mirroring the receiver
-//! polymorphism that the upstream gf collapses:
-//!
-//! - [`get_kanji`] free fn — dispatcher over [`KaniWordDispatchEnum`];
-//!   covers the kanji-text, kana-text, counter-text methods. Async
-//!   because the kana-text branch reaches the database through
-//!   [`best_kanji_conj`].
-//! - [`Entry::get_kanji`] inherent method — for the entry receiver.
+//! Generic function returning the most popular kanji representation
+//! for a word, dispatching over the word variant.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::best_kanji_conj::best_kanji_conj;

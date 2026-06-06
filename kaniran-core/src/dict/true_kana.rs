@@ -1,44 +1,7 @@
 //! Port of `ichiran/dict:true-kana` (`dict.lisp:560-562`).
 //!
-//! Returns the kana writing for a reading, descending through any
-//! `proxy-text` wrappers to the underlying source. The Lisp gf has
-//! two methods:
-//!
-//! ```lisp
-//! (defgeneric true-kana (obj)
-//!   (:method (obj) (get-kana obj))
-//!   (:method ((obj proxy-text)) (true-kana (source obj))))
-//! ```
-//!
-//! The Rust port dispatches on [`KaniWordDispatchEnum`]. The
-//! `proxy-text` branch unwraps through [`ProxyText::source`]
-//! iteratively (the source is itself a [`KaniSimpleTextDispatchEnum`]
-//! that may carry another `Proxy`) and then re-enters the
-//! [`super::get_kana::get_kana`] dispatcher for the terminal
-//! kanji-text / kana-text. Every non-proxy branch delegates directly
-//! to [`get_kana`].
-//!
-//! Diverges from the upstream lambda list `(obj)` by:
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
-//! - returning [`Result<Option<String>, sqlx::Error>`] — `None`
-//!   propagates from the inner [`get_kana`] when upstream would
-//!   raise via `(text nil)` (no headword kana row for entry, or no
-//!   sibling kana_text row for a kanji-text path). See [`get_kana`]
-//!   divergence notes; this fn is a thin proxy and inherits the
-//!   signaling shape.
-//!
-//! Async because [`get_kana`] reaches the database in the kanji-text
-//! arm via [`super::best_kana_conj::best_kana_conj`].
-//!
-//! Hint-state contract: callers of `true-kana` from inside a hint
-//! body operate under a ctx rebound via
-//! [`KaniranContext::with_disable_hints`]`(true)` (the
-//! `simple-text :around` method in [`get_kana`] does this when
-//! invoking [`super::get_hint::get_hint`]). The recursive `get_kana`
-//! call on the leaf reads `ctx.disable_hints = true` and skips the
-//! hint branch, matching upstream's `(let ((*disable-hints* t)) …)`.
+//! Returns the kana writing for a reading via [`get_kana`], descending
+//! through any `proxy-text` wrappers to the underlying source first.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_kana::get_kana;

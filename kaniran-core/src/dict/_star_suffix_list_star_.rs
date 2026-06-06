@@ -1,71 +1,7 @@
 //! Port of `ichiran/dict:*suffix-list*` (`dict-grammar.lisp:329`).
 //!
-//! ```lisp
-//! (defparameter *suffix-list* nil)
-//! ```
-//!
-//! Alist mapping a suffix keyword (the `:tag` cached alongside a
-//! reading in `*suffix-cache*`) to the function that materializes
-//! compound-text / proxy-text candidates for that suffix. Upstream is
-//! populated at load time by `(defsuffix ...)` / `(def-simple-suffix
-//! ...)` / `(def-abbr-suffix ...)` forms, each appending one
-//! `(cons keyword fn-name)` pair via `(pushnew (cons ,key ',name)
-//! *suffix-list*)`. The full Lisp table has 43 entries; this port now
-//! carries all 43 — the 28 `def-simple-suffix` bodies (suru / ra / tai
-//! / ren / ren- / neg / te / teiru / teiru+ / te+space / kudasai /
-//! teren / teii / rou / adv / iadj / tosuru / kurai / chau / to / sa
-//! / sou / sou+ / sugiru / garu / desu / desho / rashii) and the 15
-//! `def-abbr-suffix` bodies (nai / nai-x / nai-n / nakereba /
-//! shimashou / dewanai / teba / reba / keba / geba / neba / beba /
-//! meba / seba / ii).
-//!
-//! Consumed by `find-word-suffix` (`dict-grammar.lisp:695-707`):
-//! `(cdr (assoc keyword *suffix-list*))` returns the function (or
-//! `nil`); the loop's `(when suffix-fn …)` gate silently drops any
-//! suffix whose keyword has no entry — matching upstream behavior for
-//! a suffix-list missing rows.
-//!
-//! ## Divergences from Lisp
-//!
-//! - **Sidecar `fn` pointer table.** The Lisp value is an alist of
-//!   `(keyword . symbol-naming-a-fn)` pairs. The Rust mirror uses a
-//!   `&'static [(&'static str, SuffixFn)]` slice where each entry's
-//!   second element is a `fn` adapter that boxes the suffix-fn's
-//!   returned future. Keys are the lowercase keyword strings that
-//!   `*suffix-cache*` already stores (e.g. `"suru"`, `"ra"`, `"nai"`),
-//!   matching [`super::_star_suffix_cache_star_::SuffixCache`]'s value
-//!   shape.
-//! - **`SuffixFn` returns `Vec<KaniWordDispatchEnum>`.** Upstream's
-//!   defsuffix bodies return `(list of (or compound-text proxy-text))`
-//!   — `def-simple-suffix` always emits compound-text via `adjoin-word`
-//!   (`dict.lisp:643`), but `def-abbr-suffix`'s `etypecase` arm at
-//!   `dict-grammar.lisp:565-577` produces a `proxy-text`
-//!   (`make-instance 'proxy-text :source pw …`) when the primary word
-//!   is a simple-text. The Rust mirror flattens both arms into the
-//!   `KaniWordDispatchEnum::{Compound,Proxy}` polymorphic enum so
-//!   find-word-suffix can append heterogeneous rows without losing
-//!   shape.
-//! - **Adapter `kf` unwrap policy.** `def-simple-suffix` bodies were
-//!   ported with non-`Option<&KanaText>` `kf` parameters (the cache
-//!   invariant `(load-conjs :key …)` / `(load-kf :key …)` always
-//!   produces a kana-text under those keywords). The dispatch adapters
-//!   accept `Option<&KanaText>` to match the uniform
-//!   `(funcall suffix-fn root suf kf)` shape at the find-word-suffix
-//!   callsite (`dict-grammar.lisp:707`) and `.expect(...)` on the
-//!   simple-suffix branch — a `None` would mean a cache regression and
-//!   surfaces at the boundary rather than corrupting a downstream
-//!   lookup. `def-abbr-suffix` adapters pass through `Option<&KanaText>`
-//!   since the upstream `(load-abbr …)` populator routinely caches
-//!   abbreviated suffixes without a backing kana-text (the `kf`
-//!   parameter in `def-abbr-suffix` is `(declare (ignore ,suf))`).
-//!
-//! ## Future suffix-fn registrations
-//!
-//! All 43 upstream entries are wired today. If upstream adds another
-//! `defsuffix` / `def-simple-suffix` / `def-abbr-suffix`, add an
-//! adapter fn following one of the two patterns below (compound-only
-//! vs compound+proxy) and append a row to [`SUFFIX_LIST`] keyed by
-//! the lowercase keyword the upstream form passes as `key`.
+//! Suffix keyword → function that materializes compound-text /
+//! proxy-text candidates for that suffix.
 
 use std::future::Future;
 use std::pin::Pin;

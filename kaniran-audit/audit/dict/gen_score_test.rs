@@ -5,22 +5,9 @@
 //!   cargo run --release --bin gen_score_test -- \
 //!       --path corpus/extracted_chunk_b_segmentation_2026_05_14/dict/gen_score.parquet
 //!
-//! Captured args shape (per `chunk_b_segmentation` corpus):
-//!   `[<segment>, ":FINAL", <bool|null>, ":KANJI-BREAK", <int-list|null>]`
-//!
-//! Captured result shape:
-//!   `[<mutated-segment>]` — the same segment with `score` and `info`
-//!   populated by the recursive `calc-score` call. Every other slot
-//!   (start, end, word, text) is preserved by gen-score's setf and
-//!   passes through to the result. The audit validates ALL captured
-//!   slots: score / info as the function's outputs, and
-//!   start / end / word / text as passthrough invariants
-//!   (a divergence would indicate the Rust port accidentally mutated
-//!   a slot gen-score is supposed to leave alone).
-//!
-//! Streaming async runner because the parquet is 2.25M rows — the
-//! default `run_async` would OOM during its in-memory group-by-args
-//! dedup pass.
+//! Replays captured segments through `gen_score` and compares the
+//! segment's populated `score`/`info` (plus passthrough start/end/
+//! word/text) against the Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

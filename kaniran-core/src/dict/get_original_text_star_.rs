@@ -1,24 +1,10 @@
 //! Port of `ichiran/dict:get-original-text*` (`dict.lisp:380`).
 //!
 //! For each input [`ConjData`] and the surface `texts`, returns
-//! `(text, seq)` pairs that name the pre-conjugation reading rows the
-//! caller should look up. The algorithm: filter the conj-data's
-//! `src_map` to the entries whose `text` half is one of the input
-//! `texts`, then either pair the matched `src_text` with the
-//! conj-data's `from` (when `via` is nil) or recurse through
-//! [`get_conj_data`] with `via` as the seq and `from` as the
-//! `from/conj-ids` filter (when `via` is set), peeling one layer of
-//! secondary conjugation per recursive call.
-//!
-//! Diverges from the upstream lambda list `(conj-datas texts)` by:
-//! - taking `&KaniranContext` for the database handle (replacing
-//!   Lisp's `*connection*`) per [`crate::conn::kani_context`];
-//! - always taking slices — `&[ConjData]` and `&[&str]` — instead of
-//!   "list-or-single" polymorphism; callers wrap a single value in a
-//!   one-element slice and the Lisp `(unless (listp …))` normalization
-//!   is replaced by the static type;
-//! - returning `Vec<(String, i32)>` instead of a list of two-element
-//!   `(txt seq)` lists.
+//! `(text, seq)` pairs naming the pre-conjugation reading rows to look
+//! up: matched `src_text` paired with the conj-data's `from` when `via`
+//! is nil, else recursing through [`get_conj_data`] to peel one layer
+//! of secondary conjugation when `via` is set.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::conj_data_struct::ConjData;

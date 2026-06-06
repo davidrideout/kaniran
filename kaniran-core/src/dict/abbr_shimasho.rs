@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:abbr-shimasho` (`dict-grammar.lisp:615-616`).
 //!
-//! ```lisp
-//! (def-abbr-suffix abbr-shimasho :shimashou 5 (root)
-//!   (find-word-full (concatenate 'string root "しましょう")))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_abbr_suffix_body`] (CONVENTIONS
-//! §4.6 case (c)).
+//! Matches the spoken abbreviation of `root + "しましょう"` (e.g.
+//! 勉強しましょ for 勉強しましょう).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;

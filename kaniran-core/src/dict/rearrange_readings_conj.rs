@@ -1,8 +1,7 @@
 //! Port of `ichiran/dict:rearrange-readings-conj` (`dict-errata.lisp:241`).
 //!
 //! Runs [`rearrange_readings`] for `seq`, then runs it again for every
-//! distinct `conjugation.seq` whose `from = seq`. `table` is
-//! represented as [`KaniReadingTable`] in place of the Lisp class symbol.
+//! distinct `conjugation.seq` whose `from = seq`.
 
 use super::kani_reading_table::KaniReadingTable;
 use super::rearrange_readings::rearrange_readings;

@@ -1,14 +1,7 @@
 //! Port of `ichiran/dict:*counter-cache*` (`dict-counters.lisp:221`).
 //!
-//! Per-text registry of [`CounterArgs`] recipes that `find-counter`
-//! (unported) iterates and instantiates per query. Owned by
-//! [`KaniranContext::counter_cache`]; built once by
-//! [`build_counter_cache`] during `from_url`.
-//!
-//! Body mirrors `defcache :counters`: empty `""` seed for
-//! `number-text`, then `*special-counters*` dispatch (or default
-//! counter-text construction over kanji + katakana-kana for foreign
-//! seqs), then `:accepts` suffix expansion and `目` ordinal pass.
+//! Per-text registry of [`CounterArgs`] recipes used to instantiate
+//! counter words.
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;

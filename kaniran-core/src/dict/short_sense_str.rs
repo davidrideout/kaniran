@@ -1,23 +1,8 @@
 //! Port of `ichiran/dict:short-sense-str` (`dict.lisp:1562`).
 //!
-//! ```lisp
-//! (defun short-sense-str (seq &key with-pos)
-//!   (query
-//!    (sql-compile
-//!     `(:limit
-//!       (:order-by
-//!        (:select (:select (:raw "string_agg(gloss.text, '; ' ORDER BY gloss.ord)")
-//!                          :from gloss :where (:= gloss.sense-id sense.id))
-//!                 :from sense
-//!                 ,@(if with-pos
-//!                       `(:inner-join (:as sense-prop pos) :on (:and (:= pos.sense-id sense.id)
-//!                                                                    (:= pos.tag "pos")
-//!                                                                    (:= pos.text ,with-pos))))
-//!                 :where (:= 'sense.seq ,seq)
-//!                 :group-by 'sense.id)
-//!        'sense.ord)
-//!       1)) :single))
-//! ```
+//! Returns the joined gloss string of the first sense (lowest `ord`)
+//! for `seq`, optionally restricted to senses tagged with the given
+//! part of speech.
 
 use crate::conn::kani_context::KaniranContext;
 

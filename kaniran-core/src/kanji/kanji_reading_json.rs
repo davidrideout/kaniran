@@ -1,33 +1,8 @@
 //! Port of `ichiran/kanji:kanji-reading-json` (`kanji.lisp:410`).
 //!
-//! ```lisp
-//! (defun kanji-reading-json (kanji reading type &optional rendaku geminated)
-//!   (let ((js (jsown:new-js ("kanji" kanji) ("reading" reading) ("type" type))))
-//!     (when (ppcre:scan *kanji-char-regex* kanji)
-//!       (jsown:extend-js js ("link" t)))
-//!     (when rendaku (jsown:extend-js js ("rendaku" rendaku)))
-//!     (when geminated (jsown:extend-js js ("geminated" geminated)))
-//!     (let ((stats (get-reading-stats kanji (get-original-reading reading rendaku geminated) type)))
-//!       (when stats
-//!         (jsown:extend-js js ("stats" t))
-//!         (destructuring-bind (sample total perc grade) stats
-//!           (jsown:extend-js js ("sample" sample) ("total" total) ("perc" perc))
-//!           (when (not (eql grade :null)) (jsown:extend-js js ("grade" grade))))))
-//!     js))
-//! ```
-//!
-//! Returns a [`serde_json::Value`] object (insertion order via the crate's
-//! `preserve_order` feature).
-//!
-//! Diverges from the upstream lambda list `(kanji reading type &optional
-//! rendaku geminated)` by:
-//! - taking `&KaniranContext` first for the database handle (via
-//!   [`super::get_reading_stats`]), replacing the upstream dynamic
-//!   `*connection*` per [`crate::conn::kani_context`].
-//! - `rendaku` is a `bool` (the keyword is binary upstream: `:rendaku` or
-//!   nil). When set, jsown renders the `:rendaku` keyword value as the JSON
-//!   string `"RENDAKU"`, reproduced here.
-//! - `geminated` is `Option<&str>`.
+//! Builds a JSON object describing one kanji/reading/type triple, adding
+//! `link`, `rendaku`, `geminated`, and corpus `stats` fields when they
+//! apply.
 
 use std::sync::OnceLock;
 

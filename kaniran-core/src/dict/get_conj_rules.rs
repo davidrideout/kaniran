@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:get-conj-rules` (`dict-load.lisp:268`, `csv-hash *conj-rules*` accessor).
 //!
 //! Look up the conjugation rules for a numeric pos id and return them
-//! in CSV order. Missing keys produce an empty list (upstream returns
-//! `nil`; `(reverse nil)` = `nil`). The lazy `(unless *conj-rules*
-//! (load-conj-rules))` is the `OnceLock` in
-//! [`super::_star_conj_rules_star_`]. The stored list is in cons-prepend
-//! order (newest-first); the accessor reverses to give callers the
-//! original CSV order.
+//! in CSV order. Missing keys produce an empty list.
 
 use super::_star_conj_rules_star_::conj_rules;
 use super::conjugation_rule_struct::ConjugationRule;

@@ -1,16 +1,10 @@
 //! Port of `ichiran/dict:load-conj-rules` (`dict-load.lisp:268`, `csv-hash *conj-rules*` expansion).
 //!
-//! Build the pos-id → list-of-`ConjugationRule` map from the embedded
-//! conjo.csv (tab-separated, header skipped — mirrors `cl-csv:read-csv
-//! :separator #\Tab :skip-first-p t`), then apply
-//! [`errata_conj_rules_hook`].
-//!
-//! Diverges from upstream `(merge-pathnames *jmdict-data* "conjo.csv")`:
-//! conjo.csv is an external jmdictdb file, vendored into the crate and
-//! embedded with `include_str!`, so kaniran needs no jmdictdb checkout.
-//! Per-row values are CONS-prepended into the per-pos list (mirrors
-//! `(cons new-rule (gethash pos *conj-rules* nil))` at `dict-load.lisp:280`);
-//! [`super::get_conj_rules::get_conj_rules`] reverses on read.
+//! Builds the pos-id → list-of-`ConjugationRule` map by parsing the
+//! tab-separated conjo.csv (header skipped) and applying
+//! [`errata_conj_rules_hook`]. Per-row values are prepended into the
+//! per-pos list, so [`super::get_conj_rules::get_conj_rules`] reverses
+//! on read.
 
 use std::collections::HashMap;
 

@@ -1,29 +1,10 @@
-//! Transliteration of `ichiran/dict:find-word-with-pos` (`dict-grammar.lisp:89`).
+//! Port of `ichiran/dict:find-word-with-pos` (`dict-grammar.lisp:89`).
 //!
 //! Returns kana_text or kanji_text rows whose `text = word` and whose
 //! seq is the seq of a sense flagged with one of the given `pos` tags
 //! in `sense_prop`. The table is chosen by
 //! [`crate::characters::test_word`] against [`CharClass::Kana`] — kana
-//! inputs hit `kana_text`, anything else hits `kanji_text`. The
-//! polymorphic Lisp return — a list of `kana-text` xor `kanji-text`
-//! rows depending on the table chosen — is wrapped in a 2-variant enum
-//! per CONVENTIONS §4.3. Same shape as
-//! [`super::find_word_seq::WordSeqRows`] / [`super::find_word::FindWordRows`]
-//! but kept as its own type because the three functions have distinct
-//! semantics, and each type stays local to the function that owns it
-//! per §1.
-//!
-//! Diverges from the upstream lambda list `(word &rest posi)` by:
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
-//! - taking `posi` as `&[&str]` instead of `&rest` packed positional —
-//!   Rust has no `&rest` keyword.
-//!
-//! Empty `posi` returns the matching enum variant with an empty `Vec`.
-//! Postgres' `sp.text = ANY($2)` against an empty array yields no rows,
-//! mirroring the Lisp behavior where `(:in 'sp.text (:set))` filters
-//! everything out.
+//! inputs hit `kana_text`, anything else hits `kanji_text`.
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;

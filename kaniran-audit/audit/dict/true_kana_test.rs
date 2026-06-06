@@ -6,13 +6,7 @@
 //!       --path corpus/<corpus_tag>/dict/true_kana.parquet
 //!
 //! Args (post-projector): `(<word-row> {"_meta":{"context":
-//! {"disable_hints":<bool>}}})`. true-kana delegates to get-kana
-//! (on the leaf for proxy-text, on `obj` otherwise) so the inner
-//! get-kana's `:around` method consults the same `disable_hints`
-//! state — the trailing meta element captures the value at entry
-//! and the runner rebinds the audit ctx via
-//! [`KaniranContext::with_disable_hints`] before the impl call.
-//!
+//! {"disable_hints":<bool>}}})`.
 //! Result: `(<kana string>)` — single value, always a string.
 
 #[path = "../common/mod.rs"]

@@ -1,18 +1,9 @@
 //! Port of `ichiran/dict:delete-conjugation` (`dict-errata.lisp:198`).
 //!
 //! Drops every `conjugation` row from `from` to `seq` via `via`, plus
-//! its `conj-prop` and `conj-source-reading` children. Then drops the
+//! its `conj-prop` and `conj-source-reading` children, then drops the
 //! target `entry` itself unless it's a root entry or still has other
 //! conjugations.
-//!
-//! Diverges from the upstream lambda list
-//! `(seq from &optional (via :null))` by:
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
-//! - representing the `&optional (via :null)` slot as `Option<i32>`
-//!   (`None` mirrors the upstream `:null` default and matches the
-//!   `via IS NULL` branch).
 
 use super::entry_dao::Entry;
 use crate::conn::kani_context::KaniranContext;

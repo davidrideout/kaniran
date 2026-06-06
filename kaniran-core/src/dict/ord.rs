@@ -1,35 +1,7 @@
 //! Port of `ichiran/dict:ord` — generic function returning the
-//! ordinal position of a word inside its dictionary entry. Mostly
-//! auto-generated `:reader ord` slot accessors with three explicit
-//! overrides on the non-DAO classes:
-//!
-//! ```lisp
-//! ;; dict-counters.lisp:82
-//! (defmethod ord ((obj counter-text))
-//!   (if (source obj) (ord (source obj)) 0))
-//!
-//! ;; dict.lisp:580
-//! (defmethod ord ((obj proxy-text))
-//!   (ord (source obj)))
-//!
-//! ;; dict.lisp:627
-//! (defmethod ord ((obj compound-text))
-//!   (ord (primary obj)))
-//! ```
-//!
-//! Polymorphic surface: three callsites exercise the gf —
-//! `dict.lisp:802` inside `calc-score` (`for ord = (ord reading)`
-//! where `reading` is the loop's word-shaped binding),
-//! `dict.lisp:861` in calc-score's conj-of branch (`(ord ot)` where
-//! `ot` is from `get-original-text` — typically a kanji-text /
-//! kana-text DAO), and `dict.lisp:190` in `gloss`'s `print-object`
-//! (`(ord obj)` on the locally-known gloss instance). Only the
-//! first is genuinely polymorphic across the word union; the other
-//! two have locally-known DAO types and translate to direct `.ord`
-//! field reads in the Rust port. This dispatcher therefore covers
-//! [`KaniWordDispatchEnum`] only; `sense`, `gloss`, and `sense-prop`
-//! access their `.ord` field directly at their (locally-typed)
-//! callsites — same precedent as [`super::text`].
+//! ordinal position of a word inside its dictionary entry. A slot
+//! reader on the DAO classes; `counter-text`, `proxy-text`, and
+//! `compound-text` override it to recurse via `source`/`primary`.
 
 use crate::dict::counter_text_class::CounterSource;
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};

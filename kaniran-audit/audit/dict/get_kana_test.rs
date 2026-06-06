@@ -5,17 +5,8 @@
 //!   cargo run --bin get_kana_test -- \
 //!       --path corpus/<corpus_tag>/dict/get_kana.parquet
 //!
-//! Args (post-projector): `(<word-row> {"_meta":{"context":
-//! {"disable_hints":<bool>}}})`. The trailing meta element carries
-//! the `*disable-hints*` value at capture time — the
-//! `simple-text :around` method rebinds it to `T` before recursing,
-//! so half the rows are hint-active calls and half are
-//! hint-suppressed recursive ones. The runner rebinds the audit
-//! ctx via [`KaniranContext::with_disable_hints`] before calling
-//! `get_kana` so the replay observes the same branch.
-//!
-//! Result: `(<kana string>)` — single value, always a string per
-//! the upstream `get-kana` contract.
+//! Replays captured word rows through `get_kana` and compares the
+//! returned kana string against the Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

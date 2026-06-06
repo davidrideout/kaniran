@@ -1,14 +1,8 @@
 //! Port of `ichiran/dict:get-senses` (`dict.lisp:1487`).
 //!
-//! ```lisp
-//! (defun get-senses (seq)
-//!   (loop for sense in (get-senses-raw seq)
-//!        for props = (getf sense :props)
-//!        for gloss = (getf sense :gloss)
-//!        for pos = (cdr (assoc "pos" props :test 'equal))
-//!        for pos-str = (format nil "[~{~a~^,~}]" pos)
-//!        collect (list pos-str gloss props)))
-//! ```
+//! Turns each [`get_senses_raw`] sense into a `(pos-str, gloss, props)`
+//! tuple, where `pos-str` is the comma-joined pos values bracketed as
+//! `[...]`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_senses_raw::get_senses_raw;

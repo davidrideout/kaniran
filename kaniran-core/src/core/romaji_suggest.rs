@@ -1,28 +1,8 @@
 //! Port of `ichiran:romaji-suggest` (`deromanize.lisp:95`).
 //!
-//! ```lisp
-//! (defun romaji-suggest (s)
-//!   (multiple-value-bind (canon pattern) (romaji-kana s)
-//!     (when pattern
-//!       (multiple-value-bind (pkanji pkana) (find-kanji-for-pattern pattern)
-//!         (let ((hiragana (remove-duplicates (cons canon pkana) :test 'equal :from-end t)))
-//!           (jsown:new-js
-//!             ("hiragana" hiragana)
-//!             ("katakana" (mapcar 'as-katakana hiragana))
-//!             ("kanji" pkanji)))))))
-//! ```
-//!
 //! Deromanizes `s`, looks up the kanji and kana matching the resulting
 //! kana pattern, and returns a `{"hiragana", "katakana", "kanji"}`
-//! object. `hiragana` is the canonical kana followed by the pattern's
-//! kana readings with duplicates removed (first kept); `katakana` is
-//! each of those as katakana; `kanji` is the matched kanji. Returns
-//! `None` when `s` does not deromanize (upstream returns `nil`).
-//!
-//! Diverges from the upstream lambda list `(s)` by taking
-//! `&KaniranContext` for the database handle (via
-//! [`find_kanji_for_pattern`]), replacing the upstream dynamic
-//! `*connection*` per [`crate::conn::kani_context`].
+//! object (`None` when `s` does not deromanize).
 
 use std::collections::HashSet;
 

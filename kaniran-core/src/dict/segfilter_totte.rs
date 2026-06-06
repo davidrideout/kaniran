@@ -1,11 +1,7 @@
 //! Port of `ichiran/dict:segfilter-totte` (`dict-grammar.lisp:1138`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-totte (l r)
-//!   (complement (filter-in-seq-set 1008490))
-//!   (filter-in-seq-set 2086960)
-//!   :allow-first t)
-//! ```
+//! Keeps a とって (2086960) right segment only when the preceding left
+//! segment is not と (1008490).
 
 use std::sync::Arc;
 

@@ -1,18 +1,7 @@
 //! Port of `ichiran/dict:entry` (`dict.lisp:26`).
 //!
 //! Row representation of one JMdict entry, mapped 1:1 to the
-//! `public.entry` Postgres table populated by ichiran's schema.
-//! `seq` is the JMdict sequence number (primary key). `n_kanji` and
-//! `n_kana` cache the row counts of the entry's `kanji_text` and
-//! `kana_text` children — the upstream `recalc-entry-stats[-all]`
-//! refreshes them after a corpus reload. `root_p` flags entries
-//! retained as themselves through derivation pruning;
-//! `primary_nokanji` flags kana-only headwords with no kanji form.
-//!
-//! The methods upstream defines on this class (`get-kana`,
-//! `get-text`, `get-kanji`, `print-object`, `common`) belong to
-//! generic functions that have their own symbol entries in the port
-//! plan and land in their own files when those generics are ported.
+//! `public.entry` Postgres table.
 
 use crate::conn::kani_context::KaniranContext;
 use sqlx::postgres::PgRow;

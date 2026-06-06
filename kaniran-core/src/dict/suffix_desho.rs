@@ -1,17 +1,7 @@
 //! Port of `ichiran/dict:suffix-desho` (`dict-grammar.lisp:541`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-desho :desho (:connector " " :score (constantly 300)) (root)
-//!   (and (alexandria:ends-with-subseq "ない" root)
-//!        (find-word-with-conj-prop root (lambda (cdata)
-//!                                         (conj-neg (conj-data-prop cdata))))))
-//! ```
-//!
-//! Same shape as [`super::suffix_desu::suffix_desu`] but without the
-//! "なかった" alternative and with `:score (constantly 300)`. Mapcar tail
-//! delegated to [`def_simple_suffix_body`].
-//!
-//! [`def_simple_suffix_body`]: super::def_simple_suffix_macro::def_simple_suffix_body
+//! Handles ～でしょ after a negative: when the root ends in ない, looks
+//! up a word whose conjugation is negated.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

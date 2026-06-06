@@ -1,17 +1,7 @@
 //! Port of `ichiran/dict:suffix-tosuru` (`dict-grammar.lisp:537`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-tosuru :tosuru (:connector " " :score 3) (root)
-//!   (find-word-with-conj-type root 9))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_simple_suffix_body`]. Conj-type 9 is
-//! the volitional (e.g. 食べよう, 飲もう, 行こう).
-//!
-//! Divergences from `(root sv suf)`:
-//! - `suf` typed `&KanaText` (the `:tosuru` cache rows are loaded by
-//!   `(load-conjs :tosuru 2136890)` — all conjugations of とする
-//!   materialize as kana-texts).
+//! Handles ～とする: looks up the root as a volitional (conj-type 9, e.g.
+//! 食べよう, 飲もう, 行こう) conjugation.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

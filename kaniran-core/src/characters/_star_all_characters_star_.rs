@@ -5,15 +5,6 @@
 //! modifier / iteration mark recognized by ichiran. Each `chars` string
 //! holds the hiragana form followed by the katakana form, except
 //! [`KanaClass::LongVowel`] which has the single character `ー`.
-//!
-//! Built lazily on first access by appending the four constituents in
-//! the same order as the upstream `(append *sokuon-characters*
-//! *iteration-characters* *modifier-characters* *kana-characters*)`.
-//! A regression test pins the build output to the value the
-//! introspector captured — drift in any constituent surfaces there.
-//!
-//! The `KanaClass` enum lives in [`super::kani_kana_class`] (no Lisp
-//! counterpart — see that file for the rationale).
 
 use std::sync::OnceLock;
 
@@ -46,8 +37,6 @@ mod tests {
     use super::*;
     use KanaClass::*;
 
-    /// Pinned to the value the Lisp introspector captured. Any drift
-    /// in the four constituent slices surfaces as a failure here.
     #[test]
     fn matches_introspected_value() {
         let expected: &[(KanaClass, &str)] = &[

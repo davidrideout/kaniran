@@ -1,26 +1,8 @@
 //! Port of `ichiran/dict:verify` (`dict-counters.lisp:31`).
 //!
 //! Tells `find-counter` whether a freshly-constructed [`Counter`]
-//! recipe is a real match for the queried number string. Three
-//! method bodies upstream:
-//!
-//! - **default `(:method (counter unique) ...)`** at line 33-36 —
-//!   ported on [`CounterText::verify`]; checks `allowed` membership.
-//! - **`(counter-tsu unique)`** at line 499 — ported on
-//!   [`CounterTsu::verify`]; restricts to 1..=9.
-//! - **`(counter-days-on unique)`** at line 711 — ported on
-//!   [`CounterDaysOn::verify`]; gates on `n == 1 || n > 10`,
-//!   excludes 20, and chains back to the default via
-//!   `(call-next-method)`.
-//!
-//! Variants without an explicit override fall through the
-//! dispatcher to the default-method body. This file is the single
-//! entry point `find-counter` uses; see the per-variant doc-comments
-//! for body-level cites.
-//!
-//! [`CounterText::verify`]: crate::dict::counter_text_class::CounterText::verify
-//! [`CounterTsu::verify`]: crate::dict::counter_tsu_class::CounterTsu::verify
-//! [`CounterDaysOn::verify`]: crate::dict::counter_days_on_class::CounterDaysOn::verify
+//! recipe is a real match for the queried number string, dispatching
+//! to the counter-text default or a tsu / days-on override.
 
 use crate::dict::counter_text_class::Counter;
 

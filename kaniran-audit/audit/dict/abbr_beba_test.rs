@@ -5,41 +5,10 @@
 //!   cargo run --release --bin abbr_beba_test -- \
 //!       --path corpus/extracted_find_word_layer_2026_05_21/dict/abbr_beba.parquet
 //!
-//! `ICHIRAN/DICT:ABBR-BEBA` is a `def-abbr-suffix`
-//! (`dict-grammar.lisp:641`) that reconstructs `root + "べば"` and runs
-//! `find-word-full` on it (the びゃ←べば conditional contraction). The
-//! macro (`dict-grammar.lisp:547-579`) generates a `(root sv suf)`
-//! function; the third `,suf` is `(declare (ignore ,suf))`d but still
-//! appears in the captured args. So the captured args are `[<root>,
-//! <sv>, <suf KANA-TEXT envelope | null>]` and the result is `[<list> |
-//! null]` — `null` ↔ Lisp nil, else a list of word envelopes:
-//! PROXY-TEXT for simple-text primaries (wrapped `hintedp=T`) or the
-//! COMPOUND-TEXT itself with reassigned text/kana
-//! (`dict-grammar.lisp:568-578`).
-//!
-//! Comparison: every projected slot of every returned word is compared
-//! recursively via `format!("{:?}", w)` Debug fingerprints, then
-//! `id: NNN,` substrings are stripped before equality — identical to
-//! `abbr_ii_test`. The Debug derives on CompoundText / KanaText /
-//! KanjiText / ProxyText / SimpleText / WordConjugations / ScoreMod are
-//! complete, so the fingerprint covers every output field at every depth.
-//! Fingerprints are sorted before comparing; a length divergence still
-//! fails.
-//!
-//! ## id slot is stripped before comparison
-//!
-//! Same rationale as `abbr_ii_test`: the abbr reaches `find-word` during
-//! extraction with `*substring-hash*` bound, so synthesized DAOs
-//! (`dict.lisp:493`) carry no `:id`; captures emit JSON null → audit-side
-//! `id = 0`, while Rust replay hits the production DB for real ids.
-//! Strict-equality on id would fail every synthesized row.
-//!
-//! ## suf is ignored upstream
-//!
-//! The `def-abbr-suffix` macro at `dict-grammar.lisp:553-554` emits
-//! `(declare (ignore ,suf))` — the captured third arg has no behavioral
-//! influence. We parse it (to verify the projector shape) but pass
-//! `None` to the function under test.
+//! `ICHIRAN/DICT:ABBR-BEBA` reconstructs `root + "べば"` and runs
+//! `find-word-full` on it (the びゃ←べば conditional contraction).
+//! Captured args are `[<root>, <sv>, <suf | null>]`; the result is a
+//! list of word envelopes or `null`.
 
 #[path = "../common/mod.rs"]
 mod common;

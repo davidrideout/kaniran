@@ -1,21 +1,7 @@
 //! Port of `ichiran/dict:suffix-adv` (`dict-grammar.lisp:464`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-adv :adv (:connector "" :score 1) (root)
-//!   (find-word-with-conj-type root +conj-adverbial+))
-//! ```
-//!
-//! `+conj-adverbial+` is `50` (`dict-errata.lisp:1236`); the `&rest`
-//! conj-type set is `(50)`. Mapcar tail delegated to
-//! [`def_simple_suffix_body`].
-//!
-//! Divergences from `(root sv suf)`:
-//! - `suf` typed `&KanaText` (the `:adv` cache rows are loaded by
-//!   `(load-conjs :adv 1375610 :naru)` — all 211 conjugations of なる
-//!   materialize as kana-texts).
-//! - `+conj-adverbial+` is inlined as the literal `50` since the
-//!   constant has no Rust port file (precedent: `suffix_neg.rs` inlines
-//!   `52` for `+conj-negative-stem+`).
+//! `:adv` suffix handler: finds words derived from `root` by an
+//! adverbial conjugation (conj-type 50).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

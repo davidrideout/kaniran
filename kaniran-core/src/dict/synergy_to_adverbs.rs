@@ -1,21 +1,7 @@
 //! Port of `ichiran/dict:synergy-to-adverbs` (`dict-grammar.lisp:877`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-to-adverbs (l r)
-//!   (filter-is-pos ("adv-to") (segment k p c l) (or k l p))
-//!   (filter-in-seq-set 1008490)
-//!   :description "to-adverb"
-//!   :score (+ 10 (* 10 (- (segment-list-end l) (segment-list-start l))))
-//!   :connector " ")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - The `filter-is-pos` filter (`dict-grammar.lisp:878`) is built via
-//!   [`filter_is_pos`]; the kpcl-test here is `(or k l p)` (bare `p`
-//!   without `c`, unlike the sibling `synergy-no-adjectives` /
-//!   `synergy-na-adjectives` ports).
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! Scores an adv-to word followed by と (seq 1008490), with the score
+//! growing by the left span length.
 
 use std::sync::Arc;
 

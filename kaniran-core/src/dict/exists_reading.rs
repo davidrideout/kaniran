@@ -1,23 +1,7 @@
 //! Port of `ichiran/dict:exists-reading` (`dict.lisp:1846`).
 //!
-//! ```lisp
-//! (defun exists-reading (seq reading)
-//!   (query (:select 'seq :from 'kana-text :where (:and (:= 'seq seq) (:= 'text reading)))))
-//! ```
-//!
-//! Returns the `seq` of every `kana_text` row whose `seq` matches the
-//! argument and whose `text` is `reading` — a non-empty result means
-//! the reading is recorded for that entry. The sole upstream caller
-//! (`find-word-info`, `dict.lisp:1866`) uses it as a predicate.
-//!
-//! Divergences from Lisp:
-//! - Takes `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per [`crate::conn::kani_context`].
-//! - The postmodern `:rows` result for the single-column select is a
-//!   list of one-element rows (`((1376070))`); the port returns the
-//!   flat [`Vec<i32>`] of `seq` values. Every row carries the input
-//!   `seq`, so the flattening is lossless and non-emptiness is the
-//!   existence signal.
+//! Returns the `seq` of every `kana_text` row matching `(seq, reading)`
+//! — a non-empty result means the reading is recorded for that entry.
 
 use crate::conn::kani_context::KaniranContext;
 use sqlx::Row;

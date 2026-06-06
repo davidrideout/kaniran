@@ -1,26 +1,9 @@
 //! Port of `ichiran/dict:nokanji` (gf — `dict-counters.lisp:0`).
 //!
-//! Per-reading "kanji-blocked" flag — set when a kana reading should
-//! never be paired with a kanji form. Defined as a `:reader nokanji`
-//! slot accessor on `kanji-text` (`dict.lisp:94`) and `kana-text`
-//! (`dict.lisp:136`), both `:initform nil`. Two non-trivial methods
-//! delegate via `source`:
-//!
-//! - **counter-text** (`dict-counters.lisp:89-90`):
-//!   `(and (source obj) (nokanji (source obj)))` — `nil` when the
-//!   counter has no upstream, else recurse on source.
-//! - **proxy-text** (`dict.lisp:583-584`):
-//!   `(nokanji (source obj))` — recurse on source.
-//!
-//! `compound-text` has no method; `(nokanji compound)` errors in
-//! Lisp. Every upstream callsite (`match-kana-kanji`, `best-kanji-conj`,
-//! the find-word-full primary-p computation, dict-load's
-//! reading filter) holds a known kana-text or kanji-text and can
-//! read the slot directly. The dispatcher's Compound arm returns
-//! `None` to keep the match total — it's reachable only if a future
-//! polymorphic callsite extends the surface, and `None` propagates
-//! the upstream error contract rather than silently lying with
-//! `Some(false)`.
+//! Per-reading "kanji-blocked" flag — true when a kana reading should
+//! never be paired with a kanji form. A slot on `kanji-text`/`kana-text`;
+//! `counter-text` and `proxy-text` recurse via `source`; `compound-text`
+//! has no method (returns `None`).
 
 use crate::dict::counter_text_class::{Counter, CounterSource};
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};

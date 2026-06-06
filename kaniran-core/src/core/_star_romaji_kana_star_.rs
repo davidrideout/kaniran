@@ -1,10 +1,6 @@
 //! Port of `ichiran:*romaji-kana*` (`deromanize.lisp:7`, `csv-hash *romaji-kana*`).
 //!
-//! romaji prefix → [`RmapItem`] rule. Lazily built once by
-//! [`load_romaji_kana`] (vendored romaji-map.csv) and cached,
-//! mirroring the upstream `defparameter *romaji-kana* nil` that
-//! `load-romaji-kana` fills at load time and on first
-//! `get-romaji-kana`.
+//! Maps a romaji prefix to its [`RmapItem`] kana rule.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

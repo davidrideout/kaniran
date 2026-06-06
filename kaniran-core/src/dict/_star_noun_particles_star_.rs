@@ -1,8 +1,7 @@
 //! Port of `ichiran/dict:*noun-particles*` (`dict-grammar.lisp:801`).
 //!
-//! Order and duplicates are preserved from upstream: `1005120`
-//! appears twice (さえ and すら) because the entries are
-//! per-meaning-cluster, not per-seq.
+//! Seqs of particles that can follow a noun. `1005120` appears twice
+//! (さえ and すら) — entries are per-meaning-cluster, not per-seq.
 
 pub static NOUN_PARTICLES: &[i32] = &[
     2028920, // は

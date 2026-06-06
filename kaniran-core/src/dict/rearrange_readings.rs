@@ -2,8 +2,7 @@
 //!
 //! Reassigns `ord` so every row whose `text` starts with `prefix`
 //! lands first (0..offset) and the rest follow (offset..n), preserving
-//! the original ascending-`ord` order inside each group. `table` is
-//! represented as [`KaniReadingTable`] in place of the Lisp class symbol.
+//! the original ascending-`ord` order inside each group.
 
 use super::kani_reading_table::KaniReadingTable;
 use crate::conn::kani_context::KaniranContext;

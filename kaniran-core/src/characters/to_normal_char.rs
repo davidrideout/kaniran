@@ -8,12 +8,7 @@
 //! `*full-width-kana*` only — used by callers that want to normalize
 //! half-width katakana but leave ASCII decorations alone.
 //!
-//! Returns `None` when the input is not in the relevant source table,
-//! mirroring the Lisp's `(when pos ...)` semantics. The `context`
-//! parameter replaces the upstream `&key context` keyword (only ever
-//! `:kana` or absent); per §4.4 of `CONVENTIONS.md`, an enum is
-//! preferred to a `bool` so call sites read clearly without consulting
-//! the function signature.
+//! Returns `None` when the input is not in the relevant source table.
 
 use super::_star_abnormal_chars_star_::ABNORMAL_CHARS;
 use super::_star_full_width_kana_star_::FULL_WIDTH_KANA;

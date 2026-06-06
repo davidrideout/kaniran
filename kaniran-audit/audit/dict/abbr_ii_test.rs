@@ -5,43 +5,9 @@
 //!   cargo run --release --bin abbr_ii_test -- \
 //!       --path corpus/extracted_chunk_c_suffix_abbr_2026_05_16/dict/abbr_ii.parquet
 //!
-//! `ICHIRAN/DICT:ABBR-II` is a `def-abbr-suffix`
-//! (`dict-grammar.lisp:660`). The macro (`dict-grammar.lisp:547-579`)
-//! generates a `(root sv suf)` function; the third `,suf` is `(declare
-//! (ignore ,suf))`d but still appears in the captured args. So the
-//! captured args are `[<root>, <sv>, <suf KANA-TEXT envelope | null>]`
-//! and the result is `[<list> | null]` — `null` ↔ Lisp nil, else a list
-//! of word envelopes: PROXY-TEXT for simple-text primaries (wrapped
-//! `hintedp=T`) or the COMPOUND-TEXT itself with reassigned text/kana
-//! (`dict-grammar.lisp:568-578`).
-//!
-//! Comparison: every projected slot of every returned word is compared
-//! recursively via `format!("{:?}", w)` Debug fingerprints, then
-//! `id: NNN,` substrings are stripped before equality. Debug derives on
-//! CompoundText / KanaText / KanjiText / ProxyText / SimpleText /
-//! WordConjugations / ScoreMod are complete, so the fingerprint covers
-//! every output field at every depth (including ProxyText's source
-//! recursion and each leaf simple-text's seq / text / ord / common /
-//! common_tags / conjugate_p / nokanji / best_* / state.conjugations /
-//! state.hintedp). Fingerprints are sorted before comparing; a length
-//! divergence still fails.
-//!
-//! ## id slot is stripped before comparison
-//!
-//! This abbr reaches `find-word` during extraction. When the segmenter
-//! has `*substring-hash*` bound, the synthesis path at `dict.lisp:493`
-//! reconstructs DAOs via `(apply 'make-instance init)` without `:id`.
-//! Captures emit JSON null → audit-side `id = 0`. Rust replay hits the
-//! production DB and returns real ids. Strict-equality on id would fail
-//! every synthesized row.
-//!
-//! ## suf is ignored upstream
-//!
-//! The `def-abbr-suffix` macro at `dict-grammar.lisp:553-554` emits
-//! `(declare (ignore ,suf))` — the captured third arg has no behavioral
-//! influence. We parse it (to verify the projector shape) but pass
-//! `None` to the function under test, mirroring the ignored-slot
-//! semantics.
+//! `ICHIRAN/DICT:ABBR-II` reconstructs `root + "いい"` and runs
+//! `find-word-full` on it. Captured args are `[<root>, <sv>, <suf |
+//! null>]`; the result is a list of word envelopes or `null`.
 
 #[path = "../common/mod.rs"]
 mod common;

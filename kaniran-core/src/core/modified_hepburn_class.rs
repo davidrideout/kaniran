@@ -1,11 +1,8 @@
 //! Port of `ichiran:modified-hepburn` (`romanize.lisp:162`).
 //!
-//! Subclass of simplified-hepburn. Redefines the simplifications initform
-//! to `("oo" "ō" "ou" "ō" "uu" "ū" "aa" "ā" "ee" "ē")` and, via an
-//! `initialize-instance :after`, overrides the kana-table `:wo` entry to
-//! `"o"` (the inherited hepburn copy maps `:wo` to `"wo"`). Adds no slots —
-//! newtype over [`SimplifiedHepburn`]; `r-simplify` is inherited unchanged
-//! from simplified-hepburn (no override on this subclass).
+//! Hepburn variant with simplifications
+//! `("oo" "ō" "ou" "ō" "uu" "ū" "aa" "ā" "ee" "ē")` that also maps `:wo`
+//! to `"o"` instead of the inherited `"wo"`.
 
 use super::simplified_hepburn_class::SimplifiedHepburn;
 use crate::characters::kani_kana_class::KanaClass;

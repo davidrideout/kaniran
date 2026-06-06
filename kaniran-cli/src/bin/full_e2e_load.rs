@@ -1,17 +1,6 @@
 //! Loads a kaniran database from source: runs the complete data-loader
 //! chain (JMdict + kanjidic + kanji stats) end to end against a fresh
-//! schema.
-//!
-//! Order matches `ichiran/maintenance:full-init` (`dict-load.lisp` /
-//! `kanji.lisp`):
-//!   1. [`load_jmdict`] — entry / kanji_text / kana_text / sense /
-//!      gloss / sense_prop / conjugation / conj_prop /
-//!      conj_source_reading / restricted_readings, then `load_extras`
-//!      (errata + secondary conjugations).
-//!   2. [`load_kanjidic`] — kanji / reading / okurigana / meaning.
-//!   3. [`load_kanji_stats`] — `kanji.stat_common` /
-//!      `kanji.stat_irregular` / `reading.stat_common`. Requires the
-//!      JMdict tables populated, hence the strict order.
+//! schema, in the order of `ichiran/maintenance:full-init`.
 //!
 //! Run:
 //!   cargo run --release -p kaniran-cli --bin full_e2e_load -- \

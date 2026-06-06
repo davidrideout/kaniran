@@ -3,14 +3,10 @@
 //! True when a small modifier glyph (`ぁ ィ ぅ ェ ぉ`, classified as
 //! `+A/+I/+U/+E/+O`) extends the preceding character's vowel — e.g.
 //! `か` followed by `ぁ` produces a long `aa` rather than a `kya`-style
-//! fused mora. The check compares the modifier's vowel target against
-//! the last character of the previous glyph's `KanaClass` keyword name
-//! (e.g. `Ka` → `"KA"`, last char `'A'`).
+//! fused mora.
 //!
 //! Returns `false` when `modifier` isn't one of the five `+vowel`
-//! variants, or when `prev_char` has no known [`KanaClass`]. The Lisp's
-//! `(keywordp char-class)` guard is subsumed by [`get_char_class`]
-//! returning `Option<KanaClass>` (CONVENTIONS §4.2).
+//! variants, or when `prev_char` has no known [`KanaClass`].
 
 use super::get_char_class::get_char_class;
 use super::kani_kana_class::KanaClass;

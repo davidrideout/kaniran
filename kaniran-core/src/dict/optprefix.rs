@@ -1,9 +1,7 @@
 //! Port of `ichiran/dict:optprefix` (`dict-split.lisp:523`).
 //!
 //! Build a closure that prepends `prefix` to its argument when the
-//! argument doesn't already start with `prefix`. Used by
-//! `def-simple-split` entries (e.g. `split-1894260`) to optionally
-//! reattach a leading kana to the matched continuation.
+//! argument doesn't already start with `prefix`.
 
 pub fn optprefix(prefix: &str) -> impl Fn(&str) -> String {
     let prefix = prefix.to_string();

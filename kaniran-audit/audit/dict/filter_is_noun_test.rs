@@ -5,22 +5,10 @@
 //!   cargo run --release --bin filter_is_noun_test -- \
 //!       --path corpus/extracted_chunk_c_suffix_abbr_2026_05_16/dict/filter_is_noun.parquet
 //!
-//! Captured shapes (`extracted_chunk_c_suffix_abbr_2026_05_16` corpus):
-//! - `args = [<segment>]` — single Segment input; the captured Segment
-//!   carries a full info plist (`:posi`, `:seq-set`, `:conj`, `:common`,
-//!   `:score-info`, `:kpcl`) because gen-score runs upstream before any
-//!   synergy filter sees the segment.
-//! - `result = [<intersection-or-null>]` — single-value return. Upstream
-//!   returns either the truthy intersection / seq-set list (e.g.
-//!   `[["n"]]` or `[[1471510]]`) or `nil` (captured as `[null]`).
-//!
-//! ## Comparison policy
-//!
-//! The Rust port returns `bool` per CONVENTIONS §4.1's collapse
-//! exception (predicate-only callers across the synergy machinery —
-//! `filter_is_noun` is consumed via `#'filter-is-noun` reference by
-//! `synergy_noun_da` / `synergy_noun_particle` only, both of which use
-//! it as a filter predicate). Compare `actual_bool == !primary.is_null()`.
+//! Tests whether a segment is noun-like (a noun-ish part of speech under
+//! the right kpcl flags, or a counter-text with a seq-set). Args are
+//! `[<segment>]`; the result is the truthy intersection / seq-set list
+//! or `nil`.
 
 #[path = "../common/mod.rs"]
 mod common;

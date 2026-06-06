@@ -1,18 +1,7 @@
 //! Port of `ichiran/dict:suffix-tai` (`dict-grammar.lisp:370`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-tai :tai (:connector "" :score 5) (root)
-//!   (unless (member root '("い") :test 'equal)
-//!     (find-word-with-conj-type root 13)))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_simple_suffix_body`] per CONVENTIONS
-//! §4.6 case (c).
-//!
-//! Divergences from `(root sv suf)`:
-//! - `suf` typed `&KanaText` (the `:tai` cache rows are loaded by
-//!   `(load-conjs :tai 2017560)` / `(load-kf :tai (get-kana-form 900000
-//!   "たそう") …)` — both materialize kana-texts).
+//! Handles the desiderative ～たい on a root other than い: looks up the
+//! root as a conj-type 13 conjugation.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

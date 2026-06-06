@@ -1,11 +1,7 @@
 //! Port of `ichiran/kanji:init-tables` (`kanji.lisp:100`).
 //!
-//! Diverges from upstream's per-DAO `drop-table` + `create-table` pair:
-//! the Rust port assumes the schema is already in place (applied
-//! externally per a fresh-DB-per-run model) and just empties the four
-//! kanji tables atomically with one `TRUNCATE ... RESTART IDENTITY
-//! CASCADE`. Reset of the SERIAL sequences mirrors the upstream
-//! drop-and-recreate side effect.
+//! Empties the four kanji tables (kanji, reading, okurigana, meaning)
+//! and resets their identity sequences before a corpus load.
 
 use crate::conn::kani_context::KaniranContext;
 

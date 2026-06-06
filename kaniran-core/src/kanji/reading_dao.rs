@@ -2,14 +2,7 @@
 //!
 //! Row representation of one kanjidic2 reading record, mapped 1:1
 //! to the `public.reading` Postgres table populated by ichiran's
-//! schema. `kanji_id` foreign-keys to `kanji.id`. `reading_type`
-//! holds the kanjidic2 reading category (`ja_on`, `ja_kun`, etc.);
-//! the slot is named `type` in Lisp, but the upstream `:reader` is
-//! `reading-type` and the Rust field follows the reader. `suffixp`
-//! and `prefixp` mark readings that only attach as suffixes or
-//! prefixes (default `nil`). `stat_common` is a read-only counter
-//! maintained by the corpus loader; upstream `:initform 0` and has
-//! no `:initarg`.
+//! schema. `kanji_id` foreign-keys to `kanji.id`.
 
 use sqlx::postgres::PgRow;
 use sqlx::{FromRow, Row};

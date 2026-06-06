@@ -1,72 +1,11 @@
 //! Port of `ichiran/dict:counter-text` (`dict-counters.lisp:9`).
 //!
-//! Base type for every entry the `*counter-cache*` populator stores
-//! and that `find-counter` instantiates per-query. Carries the surface
-//! forms (`text`, `kana`, `number_text`) plus the metadata that drives
-//! `counter-join`'s euphonic transformations (`digit_opts`, `foreign`,
-//! `accepts_suffixes`) and `find-counter`'s filtering (`allowed`,
-//! `common`).
-//!
-//! Construction goes through [`Counter::new`], the single dispatcher
-//! that mirrors `find-counter`'s sole `make-instance` call site
-//! (`dict-counters.lisp:278`). It branches on [`CounterArgs::class`]
-//! to wrap the shared base into the right variant — populating
-//! subclass-specific slots like [`CounterHifumi::digit_set`] in the
-//! process — and runs the `initialize-instance :after`
-//! (`dict-counters.lisp:51`) that fills the `number` slot from
-//! `(parse-number number-text)` exactly once, the way CLOS inherits
-//! the `:after` down the hierarchy. The base-only construction step
-//! [`CounterText::from_args`] is kept private so callers can't
-//! bypass the dispatcher and forget a subclass slot.
-//!
-//! Other methods (`verify`, `value-string`, `counter-join`, `text` /
-//! `get-kana` / `word-type` / etc.) are NOT ported here — they land
-//! alongside `find-counter` in a later wave.
-//!
-//! [`CounterArgs::class`]: crate::dict::kani_counter_args::CounterArgs#structfield.class
-//! [`CounterHifumi::digit_set`]: crate::dict::counter_hifumi_class::CounterHifumi#structfield.digit_set
-//!
-//! ## Family dispatch
-//!
-//! Counter dispatch follows CONVENTIONS §4.9: each subclass is a
-//! distinct type in its own file, and the [`Counter`] enum below is
-//! the dispatcher. The cache populator stores [`CounterArgs`]
-//! recipes (one per text key) — instances are not constructed at
-//! cache-build time; `find-counter` (when ported) calls
-//! [`Counter::new`] per query to materialize a [`Counter`] from a
-//! recipe + the user-typed `number_text`. Per-generic dispatch
-//! methods on [`Counter`] match-and-delegate to the variant's own
-//! method.
-//!
-//! When the wider word-type dispatch surface lands (the simple-text /
-//! proxy-text / compound-text / counter-text cross-family generics:
-//! `get-kana`, `word-type`, `common`, `seq`, `ord`, etc.), the future
-//! top-level `Word` enum will hold this [`Counter`] as one variant.
-//! Inter-family `:around` methods stay local to their family
-//! dispatcher (counter-text's get-kana `:around` that appends
-//! [`CounterText::suffix`] lives on [`Counter::get_kana`]; simple-text's
-//! get-kana `:around` lives on the simple-text family dispatcher).
-//!
-//! [`Counter::get_kana`]: Counter
-//! [`CounterText::suffix`]: CounterText#structfield.suffix
-//!
-//! Slot-typing divergences from the Lisp:
-//! - `foreign`: every caller (`(when (counter-foreign obj) ...)` in
-//!   `counter-join`) treats it as a predicate, so [`bool`] per
-//!   CONVENTIONS §4.1, even though the populator passes the matching
-//!   `seq` integer or `t` upstream.
-//! - `common`: the slot accepts `nil` (delegate to source), `:null`
-//!   (explicitly null), or an integer score. Modeled as a 3-variant
-//!   enum [`Common`] per CONVENTIONS §4.3 rather than collapsing the
-//!   sentinel.
-//! - `digit_opts`: closed set of tagged ops (`:g`, `:r`, `:h`, `:c`,
-//!   plus literal-string replacements) keyed by digit or `:off`,
-//!   modeled as enums [`DigitOp`] / [`DigitOptKey`] per §4.3. Slot
-//!   docstring lists `:d` (dakuten) but no call site or method handles
-//!   it, so it is omitted; add it if the data ever uses it.
-//! - `source`: holds whichever JMdict reading row produced this
-//!   counter (kanji-text or kana-text), or [`None`] for synthesized
-//!   `number_text` rows. Modeled as enum [`CounterSource`] per §4.3.
+//! Base type for every counter entry the `*counter-cache*` populator
+//! stores and that `find-counter` instantiates per query, carrying the
+//! surface forms plus the metadata that drives `counter-join`'s
+//! euphonic transformations and `find-counter`'s filtering. The
+//! [`Counter`] enum below dispatches across the special-counter
+//! subclasses.
 
 use crate::dict::_star_kana_hint_space_star_::KANA_HINT_SPACE;
 use crate::dict::counter_age_class::CounterAge;

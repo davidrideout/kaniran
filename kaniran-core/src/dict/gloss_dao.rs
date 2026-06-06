@@ -1,9 +1,6 @@
 //! Port of `ichiran/dict:gloss` (`dict.lisp:178`).
 //!
-//! Row representation of one English gloss attached to a JMdict
-//! sense, mapped 1:1 to the `public.gloss` Postgres table populated
-//! by ichiran's schema. `sense_id` foreign-keys to `sense.id`; `ord`
-//! is the gloss's position within its parent sense.
+//! Row representation of one English gloss attached to a JMdict sense.
 
 use sqlx::postgres::PgRow;
 use sqlx::{FromRow, Row};

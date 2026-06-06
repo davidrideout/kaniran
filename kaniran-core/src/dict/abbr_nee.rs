@@ -1,18 +1,7 @@
 //! Port of `ichiran/dict:abbr-nee` (`dict-grammar.lisp:582-589`).
 //!
-//! ```lisp
-//! (def-abbr-suffix abbr-nee :nai 2 (root)
-//!   (find-word-with-conj-prop
-//!    (concatenate 'string root "ない")
-//!    (lambda (cdata)
-//!      ;; 居ない 来ない create problems so they are blocked
-//!      (and (not (find (conj-data-from cdata) '(1577980 1547720)))
-//!           (conj-neg (conj-data-prop cdata))))
-//!    :allow-root t))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_abbr_suffix_body`]
-//! (CONVENTIONS §4.6 case (c)).
+//! Matches the negative `root + "ない"` (allowing the bare root),
+//! blocking 居ない and 来ない which cause problems.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;

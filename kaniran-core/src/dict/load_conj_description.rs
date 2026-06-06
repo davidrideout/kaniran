@@ -1,15 +1,8 @@
 //! Port of `ichiran/dict:load-conj-description` (`dict-load.lisp:257`, `csv-hash *conj-description*` expansion).
 //!
-//! Build the conj-id → description map: parse the embedded conj.csv
-//! (tab-separated, header skipped — mirrors `cl-csv:read-csv
-//! :separator #\Tab :skip-first-p t`), then apply
+//! Builds the conj-id → description map by parsing the tab-separated
+//! conj.csv (header skipped) and applying
 //! [`errata_conj_description_hook`].
-//!
-//! Diverges from upstream `(merge-pathnames *jmdict-data* "conj.csv")`:
-//! conj.csv is an external jmdictdb file, vendored into the crate and
-//! embedded with `include_str!`, so kaniran needs no jmdictdb checkout.
-//! Returns the built map; the upstream `setf` of `*conj-description*`
-//! lives on the `OnceLock` in [`super::_star_conj_description_star_`].
 
 use std::collections::HashMap;
 

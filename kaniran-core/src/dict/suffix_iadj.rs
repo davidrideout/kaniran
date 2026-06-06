@@ -1,22 +1,7 @@
 //! Port of `ichiran/dict:suffix-iadj` (`dict-grammar.lisp:492`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-iadj :iadj (:connector "" :score 1) (root)
-//!   (find-word-with-conj-type root +conj-adjective-stem+))
-//! ```
-//!
-//! `+conj-adjective-stem+` is `51` (`dict-errata.lisp:1237`); the
-//! `&rest` conj-type set is `(51)`. Mapcar tail delegated to
-//! [`def_simple_suffix_body`].
-//!
-//! Divergences from `(root sv suf)`:
-//! - `suf` typed `&KanaText` (the `:iadj` cache rows are loaded by
-//!   `(load-kf :iadj (get-kana-form 2006580 "げ"))` /
-//!   `(load-kf :iadj (get-kana-form 1604890 "め") :class :me)` — both
-//!   materialize kana-texts).
-//! - `+conj-adjective-stem+` is inlined as the literal `51` since the
-//!   constant has no Rust port file (precedent: `suffix_neg.rs` inlines
-//!   `52` for `+conj-negative-stem+`).
+//! Handles i-adjective suffixes (げ/め): looks up the root as an
+//! adjective-stem conjugation (conj-type 51).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

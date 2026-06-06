@@ -5,37 +5,8 @@
 //!   cargo run --release --bin find_best_path_test -- \
 //!       --path corpus/extracted_chunk_b_segmentation_2026_05_14/dict/find_best_path.parquet
 //!
-//! Captured shapes (`extracted_chunk_b_segmentation_2026_05_14` corpus):
-//! - `args = [<segment-lists-or-nil>, <str-length>, ":LIMIT", <limit>]`.
-//!   `args[0]` is a JSON array of SEGMENT-LIST objects (or null when
-//!   the input list is empty). The tracer projects args POST-call
-//!   (`trace_capture.lisp:179-194`); `find-best-path` mutates each
-//!   segment-list via [`expand_segment_list`] (`segments`, `matches`)
-//!   and sets/clears the per-list `top` (`dict.lisp:1196-1197`,
-//!   `:1229-1230`), so `args[0][i].segments` is the post-expand sorted
-//!   list and `args[0][i].matches` is the post-increment counter.
-//! - `result = [<list-of-paths>]` — single-value return: a list of
-//!   `(reversed-path . score)` cons cells, one per `top-array-item`.
-//!   Each cons head is a list of SEGMENT-LIST / SYNERGY objects in
-//!   left-to-right (post-reverse) order; the tail is the integer score.
-//!   The all-gap seed (`dict.lisp:1193`) registers a nil payload —
-//!   its cons head is `null` and its score is `gap-penalty 0 str-length`.
-//!
-//! Full-field round-trip (matches the convention from
-//! `expand_segment_list_test` and `get_seg_splits_test`):
-//! - SegmentList: `segments` (deep), `start`, `end`, `matches`.
-//! - Segment: `start`, `end`, `score`, `text`, `word` (Debug-string
-//!   compare), `info` (plist parsed into `KaniSegmentInfo`).
-//! - Synergy: `description`, `connector`, `score`, `start`, `end`.
-//! - `top` slots are transient and not asserted.
-//!
-//! Pre-call reconstruction (same approach as `expand_segment_list_test`,
-//! kept inline per the audit-binary-independence convention): for each
-//! captured post-state SegmentList, call `get_segsplit` on every
-//! simple-text segment and identify which compound entry in the
-//! post-state was inserted by the previous expand-segment-list run.
-//! Filter those out to recover the pre-call segments list, then run
-//! `find_best_path` and compare against the captured result.
+//! Replays captured segment-lists through `find_best_path` and compares
+//! the returned scored paths against the Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

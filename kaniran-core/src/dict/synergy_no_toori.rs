@@ -1,17 +1,7 @@
 //! Port of `ichiran/dict:synergy-no-toori` (`dict-grammar.lisp:944`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-no-toori (l r)
-//!   (filter-in-seq-set 1469800)
-//!   (filter-in-seq-set 1432920)
-//!   :description "no toori"
-//!   :score 50
-//!   :connector " ")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! "no toori" synergy: binds の (seq 1469800) on the left to 通り
+//! (seq 1432920) on the right.
 
 use std::sync::Arc;
 

@@ -1,15 +1,7 @@
 //! Port of `ichiran/dict:find-conj` (`dict-errata.lisp:3`).
 //!
-//! Returns conjugation ids whose `(conj-type, pos, neg, fml)` quadruple
-//! matches `options`. Used by [`super::add_conj::add_conj`] to skip
-//! re-creating an existing conjugation.
-//!
-//! Diverges from the upstream lambda list `(seq-from options)` only by
-//! taking `&KaniranContext` for the database handle, replacing the
-//! upstream dynamic `*connection*` per [`crate::conn::kani_context`].
-//! `options` is the 4-tuple `(conj-type, pos, neg, fml)`; the upstream
-//! `:===` null-safe equality on `neg` / `fml` maps to `IS NOT DISTINCT
-//! FROM`.
+//! Returns conjugation ids from `seq_from` whose `(conj-type, pos, neg,
+//! fml)` quadruple matches `options`.
 
 use crate::conn::kani_context::KaniranContext;
 

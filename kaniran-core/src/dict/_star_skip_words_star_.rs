@@ -1,9 +1,7 @@
 //! Port of `ichiran/dict:*skip-words*` (`dict-errata.lisp:1155`).
 //!
-//! "seq of words that aren't really words, like suffixes etc." —
-//! `calc-score` (`dict.lisp:855`) returns 0 for any reading whose
-//! `seq-set` intersects this list, removing the candidate from
-//! segmentation.
+//! Seqs of words that aren't really words (suffixes, etc.); a candidate
+//! whose seq-set intersects this list scores 0 and is dropped.
 
 pub static SKIP_WORDS: &[i32] = &[
     2822120, // ても良い

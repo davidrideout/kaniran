@@ -5,11 +5,8 @@
 //!   cargo run --bin romanize_word_info_test -- \
 //!       --path corpus/<corpus_tag>/romanize_word_info.parquet
 //!
-//! Captured args are `[<word-info>, ":METHOD", <method>]`. romanize-word-info
-//! reads only the word-info's `text` and `kana` slots, so the replayed
-//! [`WordInfo`] reconstructs those two and defaults the rest. The method is
-//! either a captured romanization-method object or the keyword `:KANA`. The
-//! one result value is the romanized (or hint-stripped kana) string.
+//! Captured args are `[<word-info>, ":METHOD", <method>]`; the one result
+//! value is the romanized (or hint-stripped kana) string.
 
 #[path = "../common/mod.rs"]
 mod common;

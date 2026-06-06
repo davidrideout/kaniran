@@ -1,17 +1,6 @@
 //! Port of `ichiran/dict:synergy-suffix-tachi` (`dict-grammar.lisp:891`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-suffix-tachi (l r)
-//!   #'filter-is-noun
-//!   (filter-in-seq-set 1416220)
-//!   :description "suffix-tachi"
-//!   :score 10
-//!   :connector "-")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! Scores a noun on the left followed by the 達 (-tachi) suffix word.
 
 use std::sync::Arc;
 

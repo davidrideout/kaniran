@@ -1,16 +1,7 @@
 //! Port of `ichiran/dict:suffix-suru` (`dict-grammar.lisp:432`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-suru :suru (:connector " " :score 5) (root)
-//!   (find-word-with-pos root "vs"))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_simple_suffix_body`] per CONVENTIONS
-//! §4.6 case (c).
-//!
-//! Divergences from `(root sv suf)`:
-//! - `suf` typed `&KanaText` (the suffix-cache `kf` is always a
-//!   kana-text under `(load-conjs :suru …)`).
+//! Handles ～する on a suru-verb root: looks up the root as a "vs"
+//! part-of-speech word.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

@@ -1,26 +1,7 @@
 //! Port of `ichiran/dict:filter-in-seq-set` (`dict-grammar.lisp:767`).
 //!
-//! Returns a predicate that tests whether a segment's `info` plist
-//! `:seq-set` shares any seq with the supplied list. Upstream:
-//!
-//! ```lisp
-//! (declaim (inline filter-in-seq-set))
-//! (defun filter-in-seq-set (&rest seqs)
-//!   (lambda (segment)
-//!     (intersection seqs (getf (segment-info segment) :seq-set))))
-//! ```
-//!
-//! Used by the `def-generic-synergy` machinery
-//! (`dict-grammar.lisp:731-746`, e.g. `synergy-noun-particle` at
-//! `dict-grammar.lisp:827`) and the segfilter family
-//! (`dict-grammar.lisp:1077-` etc.).
-//!
-//! Divergences from Lisp:
-//! - Lisp `&rest seqs` (variadic) is taken as `Vec<i32>`.
-//! - The closure returns `bool` per CONVENTIONS §4.1.
-//! - When the source segment had no `info` plist, the lite layer's
-//!   precomputation leaves `seq_set` empty — the intersection is
-//!   therefore false, matching Lisp's `(getf nil :seq-set) = nil`.
+//! Returns a predicate that tests whether a segment's `:seq-set`
+//! shares any seq with the supplied list.
 
 use std::sync::Arc;
 

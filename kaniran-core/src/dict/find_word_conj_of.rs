@@ -1,29 +1,10 @@
-//! Transliteration of `ichiran/dict:find-word-conj-of` (`dict-grammar.lisp:79`).
+//! Port of `ichiran/dict:find-word-conj-of` (`dict-grammar.lisp:79`).
 //!
-//! Returns kana_text or kanji_text rows for `word` matching either:
-//! (a) any of `seqs` directly (= [`crate::dict::find_word_seq::find_word_seq`]),
-//!     or
-//! (b) any seq joined to `seqs` via the `conjugation.from` column.
-//!
-//! The two row sets are unioned and deduplicated by `id` per SBCL's
-//! `(union list1 list2 :key #'id)` semantics: SBCL's union picks the
-//! longer of the two lists (list1 on length-tie), starts the result
-//! as the shorter list, then iterates the longer list and prepends
-//! each non-duplicate (cons-prepend, so the longer list ends up
-//! reversed at the head). Net shape:
-//!
-//! `(reverse <longer-list's uniques>) ++ <shorter-list>`
-//!
-//! When list1 is empty (the typical kana-text-not-in-seqs case), the
-//! JOIN result is the longer list and gets reversed wholesale —
-//! matching the captured fixture order. SBCL's `union` does NOT
-//! deduplicate within either list, and the JOIN can emit the same
-//! `kt.*` row multiple times when a `kt.seq` carries several
-//! `conjugation.from` matches; we mirror that — no implicit DISTINCT.
-//!
-//! Diverges from the upstream lambda list `(word &rest seqs)` by
-//! taking `&KaniranContext` and `seqs: &[i32]`, identical to
-//! [`crate::dict::find_word_seq::find_word_seq`].
+//! Returns kana_text or kanji_text rows for `word` matching either any
+//! of `seqs` directly, or any seq joined to `seqs` via the
+//! `conjugation.from` column. The two row sets are unioned by `id`
+//! following SBCL's `union` ordering: `(reverse <longer list's
+//! uniques>) ++ <shorter list>`, with no de-dup within either list.
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;

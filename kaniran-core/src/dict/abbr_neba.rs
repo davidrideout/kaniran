@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:abbr-neba` (`dict-grammar.lisp:638-639`).
 //!
-//! ```lisp
-//! (def-abbr-suffix abbr-neba :neba 2 (root)
-//!   (find-word-full (concatenate 'string root "ねば")))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_abbr_suffix_body`] (CONVENTIONS
-//! §4.6 case (c)).
+//! Matches the spoken abbreviation of `root + "ねば"` (e.g. 死にゃ
+//! for 死ねば).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;

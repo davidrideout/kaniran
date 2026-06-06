@@ -8,14 +8,6 @@
 //! per-character literal for the abbreviation marks ヶ and 〆; and
 //! propagates the previous kanji's readings (with `rendaku=t`) for
 //! the iteration mark 々.
-//!
-//! Diverges from the upstream lambda list `(str)` only by taking
-//! `&KaniranContext` for the database handle (transitively, via
-//! [`super::get_normal_readings`]), replacing the upstream dynamic
-//! `*connection*` per [`crate::conn::kani_context`].
-//!
-//! Heterogeneous list crystallised into `enum RmapEntry`. The reading
-//! candidate shape lives in [`super::kani_kanji_reading::KanjiReading`].
 
 use super::get_normal_readings::get_normal_readings;
 use super::get_reading_alternatives::ReadingTag;

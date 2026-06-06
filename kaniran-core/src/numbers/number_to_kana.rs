@@ -1,24 +1,11 @@
 //! Port of `ichiran/numbers:number-to-kana` (`numbers.lisp:122`).
 //!
-//! Render an integer as its Japanese reading. Pipeline:
-//! integer → kanji string (via `kanji_method`) → split into number
-//! groups (each ending in a strictly-larger power-of-ten than its
-//! interior) → render each group via [`super::group_to_kana::group_to_kana`]
-//! → either join with `separator` or return the per-group readings.
-//!
-//! Diverges from the Lisp on two cosmetic axes (full surface preserved):
-//!
-//! - **Return type is an enum.** The Lisp's `&key separator` accepts
-//!   `nil` (return the un-joined list of group readings) or a char
-//!   (return a single joined string). Rust encodes the same dual-shape
-//!   return as [`NumberToKanaOutput`] — `Joined` for the char case,
-//!   `Groups` for the `nil` case.
-//! - **`kanji_method` is `impl Fn(u64) -> String`.** The Lisp
-//!   `&key (kanji-method 'number-to-kanji)` accepts any 1-arg callable.
-//!   `impl Fn` lets Rust callers pass either a bare fn pointer or a
-//!   closure that wraps [`super::number_to_kanji::number_to_kanji`]
-//!   with its three table / flag args (`DIGIT_KANJI_DEFAULT`,
-//!   `POWER_KANJI`, `false`).
+//! Render an integer as its Japanese reading: integer → kanji string
+//! (via `kanji_method`) → split into number groups (each ending in a
+//! strictly-larger power-of-ten than its interior) → render each group
+//! via [`super::group_to_kana::group_to_kana`] → either join with
+//! `separator` ([`NumberToKanaOutput::Joined`]) or return the per-group
+//! readings ([`NumberToKanaOutput::Groups`]).
 
 use crate::characters::join::join;
 

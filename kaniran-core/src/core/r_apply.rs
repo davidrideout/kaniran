@@ -1,11 +1,11 @@
 //! Port of `ichiran:r-apply` (gf — `romanize.lisp:44-55`, `69-77`, `106-130`).
 //!
-//! Applies a modifier to its wrapped character-class subtree. Dispatch is
-//! on the modifier value and the method class: `:sokuon` doubles the lead
-//! consonant (or prefixes `t` before `chi` under hepburn), `:long-vowel`
-//! returns the inner romanization, and the small-form vowel / y-glide
-//! modifiers consult the kana-table — with hepburn's `sha`/`cha`/`ja`
-//! family overriding the y-glides over `shi`/`chi`/`ji`.
+//! Applies a modifier to its wrapped character-class subtree: `:sokuon`
+//! doubles the lead consonant (or prefixes `t` before `chi` under
+//! hepburn), `:long-vowel` returns the inner romanization, and the
+//! small-form vowel / y-glide modifiers consult the kana-table — with
+//! hepburn's `sha`/`cha`/`ja` family overriding the y-glides over
+//! `shi`/`chi`/`ji`.
 
 use super::generic_romanization_class::RomanizationMethod;
 use super::kani_cc_item::CcItem;

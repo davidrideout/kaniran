@@ -1,13 +1,8 @@
 //! Transliteration of `ichiran/dict:get-senses-raw` (`dict.lisp:1458`).
 //!
-//! Returns one [`RawSense`] per `sense` row attached to `seq`,
-//! ordered by `sense.ord`. Each sense carries:
-//! - `ord` — the upstream `sense.ord` column.
-//! - `gloss` — `string_agg(gloss.text, '; ' ORDER BY gloss.ord)`
-//!   over LEFT-JOINed `gloss` rows; NULL maps to `""` per upstream
-//!   `(if (eql gloss :null) "" gloss)`.
-//! - `props` — alist of `(tag, texts)` for each `sense-prop` row
-//!   whose `tag` is one of `"pos" "s_inf" "stagk" "stagr" "field"`.
+//! Returns one [`RawSense`] per `sense` row attached to `seq`, ordered
+//! by `sense.ord`, carrying the joined gloss string and the `(tag,
+//! texts)` props (pos / s_inf / stagk / stagr / field).
 
 use crate::conn::kani_context::KaniranContext;
 use sqlx::Row;

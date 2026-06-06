@@ -1,18 +1,9 @@
 //! Port of `ichiran:load-romaji-kana` (`deromanize.lisp:7`, `csv-hash *romaji-kana*` expansion).
 //!
-//! Build the romaji-prefix → [`RmapItem`] map: parse the vendored
-//! romaji-map.csv (tab-separated, no header — mirrors `cl-csv:read-csv
-//! :separator #\Tab :skip-first-p nil`). Each row is `text<TAB>kana`
-//! with an optional third `next` column (present only on
-//! doubled-consonant gemination rows); absent → `None`. The `text`
-//! column is the key, so the duplicate `fu` row collapses to one
-//! entry (292 keys from 293 rows).
-//!
-//! Diverges from upstream `(asdf:system-relative-pathname :ichiran
-//! "data/romaji-map.csv")`: the CSV is vendored into the crate and
-//! embedded with `include_str!`. Returns the built map; the upstream
-//! `setf` of `*romaji-kana*` lives on the `OnceLock` in
-//! [`super::_star_romaji_kana_star_`].
+//! Builds the romaji-prefix → [`RmapItem`] map from romaji-map.csv
+//! (tab-separated `text<TAB>kana` rows, optional third `next` column on
+//! doubled-consonant gemination rows). The `text` column is the key, so
+//! the duplicate `fu` row collapses to one entry (292 keys from 293 rows).
 
 use std::collections::HashMap;
 

@@ -1,26 +1,8 @@
 //! Port of `ichiran/dict:get-kanji-words` (`dict.lisp:1834`).
 //!
-//! ```lisp
-//! (defun get-kanji-words (char)
-//!   (with-connection *connection*
-//!     (let* ((str (if (typep char 'character) (make-string 1 :initial-element char) char)))
-//!       (query (:select 'e.seq 'k.text 'r.text 'k.common
-//!                       :from (:as 'entry 'e) (:as 'kanji-text 'k) (:as 'kana-text 'r)
-//!                       :where (:and (:= 'e.seq 'k.seq)
-//!                                    (:= 'e.seq 'r.seq)
-//!                                    (:= 'r.text 'k.best-kana)
-//!                                    (:not-null 'k.common)
-//!                                    'e.root-p
-//!                                    (:like 'k.text (:|| "%" str "%"))))))))
-//! ```
-//!
 //! Returns `(seq, kanji-text, kana-text, common)` rows for every root
 //! entry whose kanji writing contains `char` as a substring, restricted
 //! to the best-kana reading with a non-null `common`.
-//!
-//! Divergence: the upstream char-or-string `char` argument is `&str`; the
-//! `(make-string 1 …)` single-char normalization is subsumed by the
-//! parameter type (a single-character caller passes `&c.to_string()`).
 
 use crate::conn::kani_context::KaniranContext;
 

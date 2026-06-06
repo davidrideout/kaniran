@@ -5,45 +5,12 @@
 //!   cargo run --release --bin suffix_desu_test -- \
 //!       --path corpus/extracted_chunk_c_suffix_abbr_2026_05_16/dict/suffix_desu.parquet
 //!
-//! `ICHIRAN/DICT:SUFFIX-DESU` is a `def-simple-suffix`
-//! (`dict-grammar.lisp:516`). The macro signature is `(root sv kf)`,
-//! so the captured args are `[<root>, <sv>, <kf KANA-TEXT envelope>]`
-//! and the result is `[<list> | null]` — `null` ↔ Lisp nil, else a
-//! list of COMPOUND-TEXT envelopes.
-//!
-//! Comparison: every projected slot of every compound is compared
-//! recursively via `format!("{:?}", c)` Debug fingerprints, then
-//! `id: NNN,` substrings are stripped before equality (see id rationale
-//! below). Debug derives on CompoundText / KanaText / KanjiText /
-//! ProxyText / SimpleText / WordConjugations / ScoreMod are complete,
-//! so the fingerprint covers every output field at every depth
-//! (recursive primary / words / score_base, and each leaf simple-text's
-//! seq / text / ord / common / common_tags / conjugate_p / nokanji /
-//! best_* / state.conjugations / state.hintedp). `pair-words-by-conj`
-//! walks `hash-table-values` (undefined order), so compound
-//! fingerprints are sorted before comparing — a length divergence still
-//! fails (sorted vecs of differing length are unequal).
-//!
-//! ## Constant score-mod path unexercised by this corpus
-//!
-//! This suffix's `:score` is a `(constantly 200)` closure, carried in
-//! the Rust port as [`ScoreMod::Constant`]. In the chunk-C corpus
-//! every captured call returns nil (the gate never produced a
-//! compound), so this audit only confirms empty == empty and never
-//! compares a `Constant(N)` score-mod. The JSON projector still has no
-//! clause for function-typed slot values, so if a future corpus
-//! captures a non-empty result here, `common::parse_captured_score_mod`
-//! would error on the closure rather than silently collapse it.
-//!
-//! ## id slot is stripped before comparison
-//!
-//! This suffix reaches `find-word` during extraction. When the
-//! segmenter has `*substring-hash*` bound, the synthesis path at
-//! `dict.lisp:493` reconstructs DAOs via `(apply 'make-instance init)`
-//! without `:id`. Captures emit JSON null → audit-side `id = 0`. Rust
-//! replay hits the production DB and returns real ids. Strict-equality
-//! on id would fail every synthesized row. Same treatment as
-//! `suffix_rashii_test`.
+//! Replays a captured `(root, sv, kf)` triple through the `suffix-desu`
+//! `def-simple-suffix` (`dict-grammar.lisp:516`) and compares the
+//! returned compound-text rows against the Lisp result (compound
+//! fingerprints sorted, since the bucket order is undefined). Every
+//! captured call in the chunk-C corpus returns nil, so the
+//! `Constant(200)` score-mod path is never actually compared.
 
 #[path = "../common/mod.rs"]
 mod common;

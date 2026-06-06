@@ -1,22 +1,7 @@
 //! Port of `ichiran/dict:suffix-neg` (`dict-grammar.lisp:381`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-neg :neg (:connector "" :score 5) (root)
-//!   (find-word-with-conj-type root 13 +conj-negative-stem+))
-//! ```
-//!
-//! `+conj-negative-stem+` is `52` (`dict-errata.lisp:1238`); the
-//! `&rest`-collected conj-type set is `(13 52)`. Mapcar tail delegated
-//! to [`def_simple_suffix_body`] per CONVENTIONS §4.6 case (c).
-//!
-//! Divergences from `(root sv suf)`:
-//! - `suf` typed `&KanaText` (the `:neg` cache row is loaded by
-//!   `(load-kf :neg (car (find-word-conj-of "なく" 1529520)) …)` — a
-//!   kana-text).
-//! - `+conj-negative-stem+` is inlined as the literal `52` since the
-//!   constant has no Rust port file (precedent:
-//!   `_star_weak_conj_forms_star_.rs` also inlines `52` for the same
-//!   constant).
+//! Handles ～なく (negative ～ない stem): looks up the root as a conjugation
+//! of type 13 or negative-stem (52).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

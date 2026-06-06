@@ -1,25 +1,7 @@
 //! Port of `ichiran/kanji:kanji-info-json` (`kanji.lisp:392`).
 //!
-//! ```lisp
-//! (defun kanji-info-json (char)
-//!   (with-connection *connection*
-//!     (let* ((str (if (typep char 'character) (make-string 1 :initial-element char) char))
-//!            (kanji (car (select-dao 'kanji (:= 'text str)))))
-//!       (when kanji
-//!         (to-json kanji)))))
-//! ```
-//!
 //! Looks up the `kanji` row whose `text` equals `char` and returns its
 //! [`Kanji::to_json`] object, or [`None`] when no row matches.
-//!
-//! Diverges from the upstream lambda list `(char)` by:
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per [`crate::conn::kani_context`];
-//! - taking `char: &str` rather than upstream's character-or-string —
-//!   the Rust value is the already-normalised string form (upstream's
-//!   `(if (typep char 'character) (make-string 1 …) char)` collapses a
-//!   single character into the same one-character string);
-//! - returning [`Option<Value>`] for the `(when kanji …)` guard.
 
 use serde_json::Value;
 

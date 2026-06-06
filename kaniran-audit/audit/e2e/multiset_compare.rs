@@ -1,18 +1,5 @@
-//! Multiset table-by-table compare between two DBs. Every row becomes a
-//! 64-bit hash of all non-`id`-PK columns (each cast to text in SQL so
-//! mixed-type tables share one code path). The multiset of hashes is
-//! built per side, then diffed: `matched = sum(min(ref[h], test[h]))`,
-//! `missing = sum(max(ref[h] - test[h], 0))`, similarly `extra`.
-//!
-//! Per table, peak memory is 2× (n_rows × ~24 B) — the HashMap entries
-//! are u64 → i64 with HashBrown's ~24 B per entry overhead. For the
-//! biggest table (~8.6M rows) that's ~400 MB; everything else is
-//! trivial.
-//!
-//! 64-bit hash: at ~10M rows the expected number of accidental
-//! collisions across the two sides is on the order of 10⁻¹¹, so the
-//! count is exact in practice. If you need byte-for-byte certainty,
-//! widen the hash (two AHasher rounds w/ different keys → 128 bits).
+//! Multiset table-by-table compare between two DBs, reporting matched /
+//! missing / extra row counts per table.
 //!
 //! Run:
 //!   cargo run --release --bin multiset_compare -- \

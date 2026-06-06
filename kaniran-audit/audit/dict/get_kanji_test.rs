@@ -5,14 +5,9 @@
 //!   cargo run --bin get_kanji_test -- \
 //!       --path corpus/<corpus_tag>/dict/get_kanji.parquet
 //!
-//! Args: `(<word-or-entry-row>)`.
-//! Result: `(<kanji string or nil>)` — single value; `nil` ↔ `None`.
-//!
-//! The runner is async because the KANA-TEXT branch reaches the
-//! database through [`best_kanji_conj`]. ENTRY input is skipped — the
-//! captured envelope for ENTRY doesn't yet have a typed deserializer
-//! in [`common`]; the ENTRY method is exercised separately when an
-//! Entry-targeted parquet is captured.
+//! Replays captured word rows through `get_kanji` and compares the
+//! returned kanji string against the Lisp result. ENTRY input is
+//! skipped (no typed deserializer yet).
 
 #[path = "../common/mod.rs"]
 mod common;

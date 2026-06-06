@@ -1,24 +1,8 @@
 //! Port of `ichiran/dict:suffix-sou-base` (`dict-grammar.lisp:445`).
 //!
-//! ```lisp
-//! (defmacro suffix-sou-base (root patch)
-//!   `(cond ((alexandria:ends-with-subseq "なさ" ,root)
-//!           (setf ,patch '("い" . "さ"))
-//!           (let ((root (apply-patch ,root ,patch))
-//!                 (*suffix-map-temp* nil))
-//!             (find-word-with-conj-prop root (lambda (cdata)
-//!                                              (conj-neg (conj-data-prop cdata))))))
-//!          ((not (member ,root '("な" "よ" "よさ" "に" "き") :test 'equal))
-//!           (find-word-with-conj-type ,root 13 +conj-adjective-stem+ +conj-adverbial+))))
-//! ```
-//!
-//! Shared body for `suffix-sou` (`dict-grammar.lisp:454`) and
-//! `suffix-sou+` (`dict-grammar.lisp:468`). Per CONVENTIONS §4.6 case (c),
-//! factored as a single helper rather than duplicated at each callsite.
-//!
-//! `+conj-adjective-stem+` is `51` and `+conj-adverbial+` is `50`
-//! (`dict-errata.lisp:1236-1237`); the `&rest` conj-type set is
-//! `(13 51 50)`.
+//! Shared body for the ～そう suffixes: for a root ending in なさ patches
+//! it to ～なさ and finds negated conjugations, otherwise (unless the root
+//! is one of な/よ/よさ/に/き) finds conj-types 13/51/50.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::apply_patch::apply_patch;

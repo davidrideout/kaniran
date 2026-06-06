@@ -1,37 +1,14 @@
 //! Shared helpers for fixture-replay audit binaries.
 //!
-//! Each per-FQN audit binary includes this via:
-//!
-//! ```ignore
-//! #[path = "../common/mod.rs"]
-//! mod common;
-//! ```
-//!
-//! Each runner uses only a subset of the helpers (the simple-text /
-//! DAO machinery doesn't apply to e.g. `normalize_test`), so dead-code
-//! warnings are silenced module-wide.
-//!
 //! Provides:
 //! - [`load_parquet`]: reads a `corpus/<corpus_tag>/<fqn>.parquet`
-//!   captured by the JSON projector. Each row has `args` and `result`
-//!   text columns holding one JSON value apiece (per the schema
-//!   documented below). The FQN is implied by the binary identity and
-//!   the parquet filename — no metadata assertion.
+//!   captured by the JSON projector, with `args` and `result` text
+//!   columns holding one JSON value apiece.
 //! - [`parse_path_arg`]: read `--path <file>` from `std::env::args`.
 //! - Sentinel-aware serde deserializers and captured-DAO mirrors
 //!   ([`CapturedKanaText`], [`CapturedKanjiText`]) that consume the
 //!   wire format and produce real production DAOs ready to feed back
 //!   into the function under test.
-//!
-//! JSON value encoding (matches `:ICHI-PROJECTORS-JSON` on .103):
-//! - `null` ← Lisp NIL (false / empty list / unset / missing)
-//! - `true` ← Lisp T
-//! - `":FOO"` ← Lisp keyword `:FOO`
-//! - `":NULL"` ← Lisp `:NULL` (DB null, distinct from NIL)
-//! - DAO / struct / class → `{"_meta": {"class": "KANA-TEXT"}, "id": ..., ...}`
-//! - `#\char` → `{"_meta": {"char": <codepoint>}}` (unused for get-split)
-//! - `(a . b)` cons → `{"_meta": {"cons": [a, b]}}` (unused for get-split)
-//! - proper list → JSON array
 
 #![allow(dead_code)]
 

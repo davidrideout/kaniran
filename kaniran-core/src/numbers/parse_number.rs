@@ -7,8 +7,7 @@
 //! [`super::parse_number_star__::parse_number_star_`].
 //!
 //! Returns [`Err`] with a [`NotANumber`] carrying the offending input
-//! and a per-character reason when any glyph is unclassifiable, matching
-//! the upstream `error 'not-a-number :text :reason` raise site.
+//! and a per-character reason when any glyph is unclassifiable.
 
 use super::_star_char_number_class_hash_star_::char_number_class_hash;
 use super::not_a_number_condition::NotANumber;

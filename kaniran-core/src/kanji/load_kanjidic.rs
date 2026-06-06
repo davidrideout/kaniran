@@ -7,22 +7,6 @@
 //! element back into an XML fragment, hands it to
 //! [`super::load_kanji::load_kanji`], emits a progress line every
 //! 500 entries, and finishes with `ANALYZE`.
-//!
-//! Diverges from the upstream lambda list `(&key path)` by:
-//!
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per [`crate::conn::kani_context`];
-//! - taking `path: &Path` as a required positional argument. Upstream
-//!   defaults to the dynamic `*kanjidic-path*`
-//!   ([`super::_star_kanjidic_path_star_::KANJIDIC_PATH`]), which is
-//!   only an empty placeholder in the Rust port; callers thread the
-//!   real path from their own configuration.
-//!
-//! The upstream uses CXML's klacks streaming pull-parser to walk the
-//! source one `<character>` at a time. The Rust port DOM-parses the
-//! whole file via [`roxmltree::Document`] (kaniran's only XML dep) and
-//! iterates the resulting tree; this mirrors the existing
-//! [`crate::dict::load_jmdict`] approach.
 
 use std::path::Path;
 

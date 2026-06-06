@@ -1,23 +1,10 @@
 //! Port of `ichiran/dict:fill-segment-path` (`dict.lisp:1390`).
 //!
-//! Walks a `find-best-path` result (heterogeneous list of
-//! [`PathElement`]s — each is a [`SegmentList`] or a
-//! [`super::synergy_struct::Synergy`]) and builds the flat
-//! [`WordInfo`] sequence the JSON / display pipeline consumes:
-//! gap-typed word-infos fill the runs between segment-list slices,
-//! and each segment-list lifts via [`word_info_from_segment_list`].
-//! Synergy elements are filtered out (upstream's
-//! `(typep _ 'segment-list)` guard). The flat output runs through
-//! [`super::process_word_info::process_word_info`] (the 何-reading
-//! fixup) before returning.
-//!
-//! Diverges from the upstream lambda list `(str path)` by taking
-//! `&KaniranContext` for the database handle per
-//! [`crate::conn::kani_context`]. `path` is `&mut [PathElement]` so
-//! `word_info_from_segment_list` can run the per-segment
-//! `(get-text segment)` memoization in place. Character offsets follow
-//! CONVENTIONS §4.5: `subseq str start end` is char-indexed in SBCL,
-//! and `make_substr_gap` slices via `chars().skip().take()`.
+//! Walks a `find-best-path` result and builds the flat [`WordInfo`]
+//! sequence: gap-typed word-infos fill the runs between segment-list
+//! slices, each segment-list lifts via [`word_info_from_segment_list`],
+//! and synergy elements are filtered out. Character offsets are
+//! char-indexed, not byte-indexed.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::process_word_info::process_word_info;

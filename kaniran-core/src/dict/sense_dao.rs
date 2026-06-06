@@ -1,11 +1,7 @@
 //! Port of `ichiran/dict:sense` (`dict.lisp:166`).
 //!
-//! Row representation of a single JMdict sense, mapped 1:1 to the
-//! `public.sense` Postgres table populated by ichiran's schema. A
-//! sense is a numbered meaning attached to an entry — the parent of
-//! gloss rows (the English definitions) and `sense-prop` rows (the
-//! tagged metadata such as `pos=ctr`). The ordering within an entry
-//! is held in the `ord` column.
+//! Row of the `public.sense` table — one numbered meaning attached to
+//! an entry, ordered within the entry by the `ord` column.
 
 use sqlx::postgres::PgRow;
 use sqlx::{FromRow, Row};

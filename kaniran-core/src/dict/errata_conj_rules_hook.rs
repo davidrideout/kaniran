@@ -1,16 +1,11 @@
 //! Port of `ichiran/dict:errata-conj-rules-hook` (`dict-errata.lisp:1250`).
 //!
 //! Post-load fixups on the conjugation-rules hash (pos-id → list of
-//! `conjugation-rule`) built by the `*conj-rules*` loader: adds
-//! adverbial / stem / literary rules for `adj-i` and `adj-ix`, a
-//! `v5aru` irregular, patches negative-formal okurigana for `v1`/`v1-s`
-//! and the negative-conditional for `v5u`, drops `vs-s` potential
-//! forms, and (over every entry) rewrites godan causative-su and adds
-//! a negative-stem rule for `v5*`. Mutates `hash` in place; returns nil.
-//!
-//! The `+conj-*+` ids (50–54) are inlined as integer literals — the
-//! upstream `defconstant`s aren't introspected (no symbol to depend
-//! on), matching [`super::_star_weak_conj_forms_star_`].
+//! `conjugation-rule`): adds adverbial / stem / literary rules for
+//! `adj-i` and `adj-ix`, a `v5aru` irregular, patches negative-formal
+//! okurigana for `v1`/`v1-s` and the negative-conditional for `v5u`,
+//! drops `vs-s` potential forms, and (over every entry) rewrites godan
+//! causative-su and adds a negative-stem rule for `v5*`.
 
 use std::collections::HashMap;
 

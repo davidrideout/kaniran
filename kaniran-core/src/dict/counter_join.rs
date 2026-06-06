@@ -5,38 +5,9 @@
 //! splicing `number_kana` and `counter_kana` and applying euphonic
 //! transformations (gemination, rendaku, handakuten) keyed by the
 //! decimal "digit" (`get-digit n`) and the kana class of
-//! `counter_kana`'s first glyph. Three alternative paths fire on a
-//! per-counter basis:
-//!
-//! 1. **Per-digit override** — if the counter has a `digit_opts` entry
-//!    matching the digit, or any `:off` entry, the override list is
-//!    walked verbatim (geminate / rendaku / handakuten / replace
-//!    number-stem / replace counter-kana once `:c` was seen) and the
-//!    standard rules are skipped.
-//! 2. **Foreign counter** — pure-katakana counters
-//!    (`counter.foreign == true`) only geminate before unvoiced
-//!    syllables, narrowed per digit (6 / 8 / 10: ka/sa/ta + p-row;
-//!    100: ka-row only).
-//! 3. **Standard rules** — the long `case digit` block at
-//!    `dict-counters.lisp:148-200` covering all digits 1-10000.
-//!
-//! The Lisp generic dispatches `(counter-text T T T)` to the body
-//! above and `(T T T T)` to a plain `concatenate` fallback. Every
-//! caller passes a `counter-text` (or subclass), so the (T T T T)
-//! method is unreachable in practice; its concatenation behavior is
-//! the implicit `format!("{}{}", ...)` returns at the end of every
-//! branch in the Rust port.
-//!
-//! ## Mutation contract
-//!
-//! [`geminate`] and [`rendaku`] mutate their string in place, mirroring
-//! the upstream `(geminate string)` / `(rendaku string)` calls (both
-//! default to `:fresh nil`). The Lisp method's `(call-next-method)`
-//! invocations rely on this — the `(T T T T)` fallback's
-//! `(concatenate 'string number-kana counter-kana)` reads whatever the
-//! body mutated in place. The Rust port owns `number_kana` /
-//! `counter_kana` as `String` and concatenates them at each return,
-//! producing the same result.
+//! `counter_kana`'s first glyph. Three alternative paths fire per
+//! counter: per-digit overrides, a foreign (katakana) counter rule,
+//! and the standard `case digit` block covering digits 1-10000.
 
 use crate::characters::_star_char_class_hash_star_::char_class_hash;
 use crate::characters::geminate::geminate;

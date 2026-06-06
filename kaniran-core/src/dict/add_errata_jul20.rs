@@ -1,8 +1,7 @@
 //! Port of `ichiran/dict:add-errata-jul20` (`dict-errata.lisp:878`).
 //!
-//! Diverges from the upstream lambda list `()` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
+//! Applies the July-2020 batch of JMdict corrections (common-flag
+//! adjustments, sense-prop tweaks, reading rearrangement).
 
 use super::add_primary_nokanji::add_primary_nokanji;
 use super::add_reading::add_reading;

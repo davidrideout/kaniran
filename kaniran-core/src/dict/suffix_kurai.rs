@@ -1,18 +1,7 @@
 //! Port of `ichiran/dict:suffix-kurai` (`dict-grammar.lisp:540`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-kurai :kurai (:connector " " :score 3) (root)
-//!   (find-word-with-conj-type root 2))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_simple_suffix_body`]. Conj-type 2 is
-//! past-plain (た-form).
-//!
-//! Divergences from `(root sv suf)`:
-//! - `suf` typed `&KanaText` (the `:kurai` cache rows are loaded by
-//!   `(load-kf :kurai (get-kana-form 1154340 "くらい"))` /
-//!   `(load-kf :kurai (get-kana-form 1154340 "ぐらい"))` — both
-//!   materialize kana-texts).
+//! Handles ～くらい/～ぐらい: looks up the root as a past-plain (た-form,
+//! conj-type 2) conjugation.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

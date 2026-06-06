@@ -1,11 +1,5 @@
 //! Port of the `ichiran/dict` package — JMdict DAO layer plus the
 //! morphology / segmentation logic built on top of it.
-//!
-//! Initial scope (2026-05-03): row representations for the JMdict
-//! kanji and kana surface forms — the leaf DAOs the counter cache
-//! populator (`*counter-cache*`, wave 73) consumes as `:source` row
-//! references. Further dao classes, helpers, and the populator
-//! itself land in subsequent waves.
 
 pub mod _star_aux_verbs_star_;
 pub mod _star_conj_description_star_;

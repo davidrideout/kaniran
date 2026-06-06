@@ -2,44 +2,9 @@
 //!
 //! Returns the JMdict commonness rank for a word — `0..n` for ranked
 //! entries (lower is more common), the `Null` sentinel for entries
-//! marked explicitly non-common, and the recursion-or-zero fallback
-//! the counter-text method codifies for synthesized counters. Five
-//! method bodies upstream:
-//!
-//! - **kana-text / kanji-text** — auto-generated `:reader common` slot
-//!   accessors. Slot type `(or db-null integer)`; the Rust DAOs store
-//!   it as `Option<i32>` where `None` ≡ `db-null` ≡ Lisp `:null`.
-//! - **counter-text** (`dict-counters.lisp:75-76`):
-//!   `(or (counter-common obj) (if (source obj) (common (source obj)) 0))`
-//!   — slot if truthy, else recurse on source, else 0.
-//! - **proxy-text** (`dict.lisp:577`): `(common (source obj))`.
-//! - **compound-text** (`dict.lisp:624`): `(common (primary obj))`.
-//! - **entry** (`dict.lisp:160-164`): SQL query computing `max(common)`
-//!   across the entry's kanji-text/kana-text rows. **Not in this
-//!   dispatcher** — every upstream `(common ...)` callsite passes a
-//!   simple-text / counter-text / proxy-text / compound-text. The
-//!   `defmethod common ((obj entry))` exists in CLOS but no
-//!   production callsite reaches it. If a locally-typed Entry
-//!   caller materializes in the Rust port, it will get its own
-//!   `Entry::common(ctx)` async method at that point.
-//!
-//! ## Return type — [`Common`]
-//!
-//! Reuses the existing 3-variant enum from
-//! [`super::counter_text_class`]. The mapping:
-//!
-//! | upstream value | Rust |
-//! |---|---|
-//! | integer | [`Common::Score`] |
-//! | `:null` | [`Common::Null`] |
-//! | `nil` (slot default, sourceless counter case) | [`Common::Score(0)`] |
-//!
-//! `Common::Inherit` (a Rust-only sentinel meaning "slot wasn't
-//! supplied at construction") is never produced by this dispatcher —
-//! the counter-text branch resolves Inherit to either source's common
-//! or `Score(0)` per the upstream `(or ... 0)` short-circuit. Inherit
-//! exists upstream only as the slot's pre-resolution state; once the
-//! gf runs, it's already collapsed.
+//! marked explicitly non-common, and a recursion-or-zero fallback for
+//! synthesized counters, dispatching across the simple-text,
+//! counter-text, proxy-text, and compound-text word kinds.
 
 use crate::dict::counter_text_class::{Common, Counter, CounterSource};
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};

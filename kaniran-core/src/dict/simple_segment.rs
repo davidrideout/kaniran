@@ -1,16 +1,7 @@
 //! Port of `ichiran/dict:simple-segment` (`dict.lisp:1455`).
 //!
-//! ```lisp
-//! (defun simple-segment (str &key (limit 5))
-//!   (caar (dict-segment str :limit limit)))
-//! ```
-//!
 //! Returns the word-info list of the best (first) path from
-//! [`dict_segment`] — `(caar ...)` is the head of the first
-//! `(word-info-list . score)` cons. No path (`(caar nil)` → nil)
-//! mirrors as an empty `Vec`. The `&key (limit 5)` becomes
-//! `Option<usize>`; `&KaniranContext` threads through to [`dict_segment`]
-//! per [`crate::conn::kani_context`].
+//! [`dict_segment`] (empty when there is no path).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::dict_segment::dict_segment;

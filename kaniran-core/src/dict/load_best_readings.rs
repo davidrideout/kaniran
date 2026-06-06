@@ -4,9 +4,6 @@
 //! every root entry's kanji/kana rows by streaming them through
 //! [`set_reading`]. With `reset`, every row's cached column is first
 //! NULLed so the second pass recomputes from scratch.
-//!
-//! The binary `&key reset` is taken as a plain `bool` (`true` ↔
-//! `:reset t`, `false` ↔ absent / `:reset nil`).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kana_text_dao::KanaText;

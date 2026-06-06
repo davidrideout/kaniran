@@ -2,17 +2,8 @@
 //!
 //! Calls `fn_(word)`; if non-empty, returns those rows as
 //! [`OrAsHiraganaRows::Direct`]. Otherwise re-enters through
-//! [`find_word_as_hiragana`] with `fn_` as the `:finder`, wrapping
-//! each result as a [`ProxyText`] carrying `word` as both `text` and
-//! `kana`.
-//!
-//! Diverges from the upstream lambda list `(fn word &rest args)` by:
-//!
-//! - taking `&KaniranContext` per [`crate::conn::kani_context`];
-//! - taking `fn_` as an [`OrAsHiraganaFinder`] — the caller pre-binds
-//!   `args` inside the closure;
-//! - returning `Option<OrAsHiraganaRows>` (`None` ↔ Lisp nil), with
-//!   distinct `Direct` / `AsHiragana` variants per §4.3.
+//! [`find_word_as_hiragana`] with `fn_` as the finder, wrapping each
+//! result as a [`ProxyText`] carrying `word` as both `text` and `kana`.
 
 use std::future::Future;
 use std::pin::Pin;

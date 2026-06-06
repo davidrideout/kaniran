@@ -1,24 +1,8 @@
 //! Port of `ichiran/dict:best-kana-conj` (`dict.lisp:430`).
 //!
 //! For a [`KanjiText`] reading row, return the kana surface form to
-//! display. The fast path returns the pre-baked `best_kana` slot when
-//! the row carries no conjugations or is itself a root. Otherwise the
-//! function walks the conjugation chain: it asks
-//! [`query_parents_kanji`] for each `(parent-kt.id, conj.id)` pair
-//! that produced this reading, recurses into the parent to obtain its
-//! best kana, and matches the parent's kana back to one of the
-//! reading rows on `conj_source_reading`. When multiple candidate
-//! readings remain, a tie-break uses [`kanji_cross_match`] to derive
-//! the expected kana from the parent's surface and prefers an exact
-//! match; failing that it sorts readings by closeness to the
-//! cross-match length and returns the first whose surface satisfies
-//! [`kanji_regex`] for the input text.
-//!
-//! Diverges from the upstream lambda list `(obj)` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`]. The Lisp
-//! `:null` return sentinel maps to `None`; a successful kana lookup
-//! returns `Some(String)`.
+//! display, walking the conjugation chain back through parent readings
+//! when the pre-baked `best_kana` slot doesn't apply.
 
 use crate::characters::kanji_cross_match::kanji_cross_match;
 use crate::characters::kanji_regex::kanji_regex;

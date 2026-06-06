@@ -1,20 +1,8 @@
 //! Port of `ichiran/dict:gap-penalty` (`dict.lisp:1168`).
 //!
-//! ```lisp
-//! (declaim (inline gap-penalty))
-//! (defun gap-penalty (start end)
-//!   (* (- end start) *gap-penalty*))
-//! ```
-//!
 //! Score contribution for the unconsumed-character gap between two
-//! segments (or between the input edge and the first/last segment).
-//! Called from `find-best-path` at `dict.lisp:1193`, `:1202-1203`,
-//! and `:1213-1214`. Negative result is the cost of a gap; a positive
-//! result corresponds to overlapping endpoints (`end < start` — used
-//! by the assembler to score overlapping splits).
-//!
-//! Subtraction is performed in `i64` so the negative-intermediate
-//! case (`end < start`) doesn't underflow `usize`.
+//! segments: `(end - start) * *gap-penalty*`. Negative is a gap cost;
+//! positive (`end < start`) scores overlapping endpoints.
 
 use crate::dict::_star_gap_penalty_star_::GAP_PENALTY;
 

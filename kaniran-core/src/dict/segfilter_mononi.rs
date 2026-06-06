@@ -1,11 +1,7 @@
 //! Port of `ichiran/dict:segfilter-mononi` (`dict-grammar.lisp:1165`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-mononi (l r)
-//!                            (complement (filter-in-seq-set 2028940))
-//!                            (filter-in-seq-set 1009980)
-//!                            :allow-first t)
-//! ```
+//! Keeps a に (1009980) right segment only when the preceding left
+//! segment is not もの (2028940).
 
 use std::sync::Arc;
 

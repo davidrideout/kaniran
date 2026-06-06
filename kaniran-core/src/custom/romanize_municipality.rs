@@ -1,7 +1,7 @@
 //! Port of `ichiran/custom:romanize-municipality` (`dict-custom.lisp:132`).
 //!
-//! `include_type` is `Option<bool>` so the upstream `&key (include-type t)`
-//! default lives at the boundary, not at every call site.
+//! Romanizes a municipality's reading, optionally appending its
+//! type description (e.g. "City", "Ward").
 
 use super::_star_municipality_types_description_star_::MUNICIPALITY_TYPES_DESCRIPTION;
 use super::municipality_short::municipality_short;

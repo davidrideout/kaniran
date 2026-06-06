@@ -1,9 +1,7 @@
 //! Port of `ichiran:has-successors` (`deromanize.lisp:13-19`).
 //!
-//! Collects every proper prefix (length 1 up to but not including the full
-//! length) of each input string. Upstream returns a `(make-hash-table :test
-//! 'equal)` whose values are all `t` and is consulted only as a membership
-//! test; the Rust port returns the equivalent `HashSet<String>`.
+//! Collects every proper prefix (char-wise, length 1 up to but not
+//! including the full length) of each input string into a membership set.
 
 use std::collections::HashSet;
 

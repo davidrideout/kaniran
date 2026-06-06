@@ -1,13 +1,8 @@
 //! Port of `ichiran/dict:get-split` (`dict-split.lisp:77`).
 //!
-//! Safety wrapper around [`super::get_split_star_::get_split_star_`]:
-//! returns the parts list and score only when a split function ran
-//! AND every part resolved to a non-`nil` word object. Mirrors
-//! `(when (and split (every 'identity split)) (values split score))`.
-//!
-//! Diverges from the upstream lambda list `(reading &optional conj-of)`
-//! identically to [`super::get_split_star_::get_split_star_`] — see that
-//! file's doc-comment for the ctx-injection rationale.
+//! Wrapper around [`super::get_split_star_::get_split_star_`]: returns
+//! the parts list and score only when a split function ran AND every
+//! part resolved to a non-`nil` word object.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_split_star_::get_split_star_;

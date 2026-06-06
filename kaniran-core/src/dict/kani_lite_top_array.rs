@@ -2,9 +2,7 @@
 //! [`super::top_array_class::TopArray`] +
 //! [`super::register_item::register_item`] +
 //! [`super::get_array::get_array`] used inside the `find-best-path`
-//! inner loop. Logic is identical; only the item type changes from
-//! [`super::top_array_item_struct::TopArrayItem`] to
-//! [`KaniLiteTopArrayItem`].
+//! inner loop, over the lite [`KaniLiteTopArrayItem`] type.
 
 use super::kani_lite_top_array_item::{KaniLitePathElement, KaniLiteTopArrayItem};
 

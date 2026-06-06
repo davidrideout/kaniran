@@ -2,17 +2,8 @@
 //!
 //! For a set of JMdict sequence numbers, returns two maps —
 //! `(stagks, stagrs)` — listing the kanji-restriction and
-//! kana-restriction texts attached to any sense whose `pos` is
-//! `ctr`. Empty entries are absent from each map (matching the
-//! upstream `gethash ... nil` default), so a caller treats "no key"
-//! and "empty list" identically — there are no restrictions for that
-//! seq.
-//!
-//! Diverges from the upstream lambda list `(seqs)` by taking
-//! `&KaniranContext` as a leading parameter for the database handle
-//! per the [`crate::conn::kani_context`] module doc, and by returning
-//! a `(HashMap, HashMap)` tuple in place of the Lisp `(cons stagks
-//! stagrs)`.
+//! kana-restriction texts attached to any sense whose `pos` is `ctr`.
+//! Seqs with no restrictions are absent from the maps.
 
 use crate::conn::kani_context::KaniranContext;
 use sqlx::Row;

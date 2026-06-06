@@ -5,12 +5,9 @@
 //!   cargo run --bin seq_test -- \
 //!       --path corpus/<corpus_tag>/dict/seq.parquet
 //!
-//! Lisp `seq` is a generic function — its dispatch reaches
-//! conjugation / sense / sense-prop / restricted-readings / entry /
-//! conj-source-reading too, but those are typed-known DAOs at every
-//! Rust callsite (the port reads `.seq` directly without going through
-//! the dispatcher). Auditing rows whose input class is one of those is
-//! a category error, so this runner skips them with `Ok(())`.
+//! Replays a captured word row through `seq` and compares the returned
+//! sequence id against the Lisp result. Input classes whose `.seq` the
+//! Rust port reads directly (conjugation/sense/entry/...) are skipped.
 
 #[path = "../common/mod.rs"]
 mod common;

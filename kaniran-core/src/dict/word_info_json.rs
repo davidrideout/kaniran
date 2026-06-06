@@ -1,30 +1,8 @@
 //! Port of `ichiran/dict:word-info-json` (`dict.lisp:1262`).
 //!
-//! ```lisp
-//! (defun word-info-json (word-info)
-//!   (with-slots (type text true-text kana seq conjugations score components
-//!                alternative primary start end counter skipped)
-//!       word-info
-//!     (jsown:new-js
-//!       ("type" (symbol-name type))
-//!       ("text" text)
-//!       ("truetext" true-text)
-//!       ("kana" kana)
-//!       ("seq" seq)
-//!       ("conjugations" (if (eql conjugations :root) "ROOT" conjugations))
-//!       ("score" score)
-//!       ("components" (mapcar #'word-info-json components))
-//!       ("alternative" alternative)
-//!       ("primary" primary)
-//!       ("start" start)
-//!       ("end" end)
-//!       ("counter" counter)
-//!       ("skipped" skipped))))
-//! ```
-//!
-//! Returns a [`serde_json::Value`] object with key order preserved (crate
-//! `preserve_order`). jsown renders CL `nil` as `[]`, so every absent/false
-//! slot serializes as an empty array; `t`→`true`; `:root`→`"ROOT"`.
+//! Serializes every [`WordInfo`] slot into a JSON object. jsown
+//! renders CL `nil` as `[]`, so every absent/false slot serializes as
+//! an empty array; `:root` serializes as `"ROOT"`.
 
 use serde_json::{Map, Number, Value};
 

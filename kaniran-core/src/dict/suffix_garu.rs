@@ -1,22 +1,8 @@
 //! Port of `ichiran/dict:suffix-garu` (`dict-grammar.lisp:504`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-garu :garu (:connector "" :score 0) (root suf patch)
-//!   (unless (member root '("な" "い" "よ") :test 'equal)
-//!     (or (find-word-with-conj-type root +conj-adjective-stem+)
-//!         (when (alexandria:ends-with-subseq "そ" root)
-//!           (setf patch '("う" . ""))
-//!           (let ((root (apply-patch root patch))
-//!                 (*suffix-map-temp* nil))
-//!             (find-word-with-suffix root :sou))))))
-//! ```
-//!
-//! `+conj-adjective-stem+` is `51` (`dict-errata.lisp:1237`). `:stem 0`
-//! → outer macro rebind is a no-op; the inner `(let ((*suffix-map-temp*
-//! nil)) …)` around `find-word-with-suffix` is scoped to that branch
-//! only. Mapcar tail delegated to [`def_simple_suffix_body`].
-//!
-//! [`def_simple_suffix_body`]: super::def_simple_suffix_macro::def_simple_suffix_body
+//! Handles ～がる on adjectives: for a root other than な/い/よ, looks up
+//! an adjective-stem conjugation, or for a root ending in そ patches it to
+//! ～そう and retries via the :sou suffix.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::apply_patch::apply_patch;
@@ -222,18 +208,6 @@ mod tests {
     /// `destem(compound-kana, length("う")=1) + "" + "" + suf` =
     /// destem("いきそう",1)+"がる"="いきそ"+"がる". Score-mod stacks the
     /// inner suffix-sou's constantly behind the integer 0.
-    ///
-    /// Ignored: depends on `:sou` being registered in
-    /// [`super::_star_suffix_list_star_::SUFFIX_LIST`] so that
-    /// [`super::find_word_with_suffix::find_word_with_suffix`]'s inner
-    /// `find-word-full` → `find-word-suffix` chain materializes the
-    /// 行き+そう compound. The Rust `*suffix-list*` is partially
-    /// populated (18/43 rows at wave-5 baseline) and does not yet carry
-    /// `:sou`; upstream's dispatch loop also returns nil when the
-    /// keyword is absent from `*suffix-list*`, so the behavior under the
-    /// current Rust registry matches upstream-with-an-empty-:sou-row.
-    /// Un-ignore once `:sou` is added to `SUFFIX_LIST`.
-    #[ignore]
     #[tokio::test]
     async fn garu7_so_patch_branch_kanji() {
         let ctx = ctx().await;

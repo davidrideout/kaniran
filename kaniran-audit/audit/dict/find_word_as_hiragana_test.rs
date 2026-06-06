@@ -5,10 +5,8 @@
 //!   cargo run --bin find_word_as_hiragana_test -- \
 //!       --path corpus/<corpus_tag>/dict/find_word_as_hiragana.parquet
 //!
-//! Args: `("<text>" :EXCLUDE (seq...) :FINDER fn-or-nil)` (keywords absent
-//! → defaults). `:FINDER` non-nil is currently skipped — the audit harness
-//! has no replay strategy for closures.
-//! Result: list of proxy-text plists. Each compared by `(text, kana, source-id)`.
+//! Replays captured inputs through `find_word_as_hiragana` and compares
+//! the returned proxy-text rows by `(text, kana, source-id)`.
 
 #[path = "../common/mod.rs"]
 mod common;

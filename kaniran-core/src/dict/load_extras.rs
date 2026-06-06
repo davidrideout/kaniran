@@ -2,13 +2,7 @@
 //!
 //! Build-time pipeline that rehydrates everything downstream of the
 //! raw JMdict load: conjugations, secondary conjugations, custom data,
-//! errata, and a final `entry` row-count refresh. Runs after
-//! [`super::load_jmdict`] or in place of it when re-applying the
-//! extras after [`super::drop_extras`].
-//!
-//! Diverges from the upstream lambda list `()` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
+//! errata, and a final `entry` row-count refresh.
 
 use super::add_errata::add_errata;
 use super::load_conjugations::load_conjugations;

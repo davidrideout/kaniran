@@ -1,11 +1,7 @@
 //! Port of `ichiran/dict:reading-str*` (`dict.lisp:1580`).
 //!
-//! ```lisp
-//! (defun reading-str* (kanji kana)
-//!   (if kanji
-//!       (format nil "~a 【~a】" kanji kana)
-//!       kana))
-//! ```
+//! Formats a `(kanji, kana)` pair as `"kanji 【kana】"`, or the bare kana
+//! when there's no kanji.
 
 pub fn reading_str_star_(kanji: Option<&str>, kana: Option<&str>) -> Option<String> {
     match kanji {

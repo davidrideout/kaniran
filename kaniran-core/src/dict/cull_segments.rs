@@ -1,40 +1,9 @@
 //! Port of `ichiran/dict:cull-segments` (`dict.lisp:1027`).
 //!
-//! ```lisp
-//! (defun cull-segments (segments)
-//!   (when segments
-//!     (let* ((segments (stable-sort segments #'compare-common
-//!                                   :key (lambda (s) (getf (segment-info s) :common))))
-//!            (segments (stable-sort segments #'> :key #'segment-score))
-//!            (max-score (segment-score (car segments)))
-//!            (cutoff (* max-score *identical-word-score-cutoff*)))
-//!       (loop for seg in segments
-//!            while (>= (segment-score seg) cutoff)
-//!            collect seg))))
-//! ```
-//!
-//! Two stable sorts followed by a head-take. Empty input returns
-//! empty. Otherwise sorts segments by [`compare_common`] over each
-//! segment's `info.common` key, then by descending [`Segment::score`],
-//! then keeps the leading run whose score is at least
-//! `max-score * 1/2`.
-//!
-//! Divergences from Lisp:
-//! - The cutoff comparison uses integer cross-multiplication
-//!   (`2 * s >= 1 * max`) against [`IDENTICAL_WORD_SCORE_CUTOFF`],
-//!   mirroring the upstream rational `(* max-score 1/2)` without
-//!   introducing `f64` rounding at boundary scores.
-//! - Owned `Vec<Segment>` in / out: upstream `stable-sort` is
-//!   destructive and the single callsite (`dict.lisp:1128`,
-//!   `(make-segment-list :segments (cull-segments sl) ...)`) consumes
-//!   the input list, so the Rust port takes ownership and reuses the
-//!   buffer. The audit replay (chunk_b_segmentation_2026_05_14, 1.29M
-//!   rows) clears at 97.83% (1,263,065 pass / 27,975 fail); the
-//!   residual failure mode is a tracer-side capture artifact —
-//!   `trace_capture.lisp` projects `args` post-call, and destructive
-//!   stable-sort can leave the captured head pointer mid-chain so the
-//!   recorded args is a truncated tail of the true input. Unit tests
-//!   below are pinned to direct REPL probes against ichiran on `.103`.
+//! Sorts segments by [`compare_common`] over each segment's
+//! `info.common` key, then by descending [`Segment::score`], then keeps
+//! the leading run whose score is at least `max-score * 1/2`. Empty
+//! input returns empty.
 
 use super::_star_identical_word_score_cutoff_star_::IDENTICAL_WORD_SCORE_CUTOFF;
 use super::compare_common::compare_common;

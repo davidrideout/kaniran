@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:suffix-te+space` (`dict-grammar.lisp:401`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-te+space :te+space (:connector " " :score 3) (root)
-//!   (te-check root))
-//! ```
-//!
-//! `suf` typed `&KanaText`: the `(load-conjs :te+space …)` populators
-//! for くれる / もらう / いただく materialize kana-texts.
+//! Handles a te-form followed by a space-joined auxiliary (くれる/もらう/
+//! いただく): looks up the root via `te-check`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

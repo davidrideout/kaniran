@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:abbr-keba` (`dict-grammar.lisp:632-633`).
 //!
-//! ```lisp
-//! (def-abbr-suffix abbr-keba :keba 2 (root)
-//!   (find-word-full (concatenate 'string root "けば")))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_abbr_suffix_body`] (CONVENTIONS
-//! §4.6 case (c)).
+//! Matches the spoken abbreviation of `root + "けば"` (e.g. 書きゃ
+//! for 書けば).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;

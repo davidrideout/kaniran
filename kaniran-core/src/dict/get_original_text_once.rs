@@ -1,23 +1,7 @@
 //! Transliteration of `ichiran/dict:get-original-text-once` (`dict.lisp:371`).
 //!
-//! ```lisp
-//! (defun get-original-text-once (conj-datas texts)
-//!   (unless (listp texts)
-//!     (setf texts (list texts)))
-//!   (unless (listp conj-datas)
-//!     (setf conj-datas (list conj-datas)))
-//!   (loop for conj-data in conj-datas
-//!        nconc (loop for (txt src-txt) in (conj-data-src-map conj-data)
-//!                 if (find txt texts :test 'equal) collect src-txt)))
-//! ```
-//!
 //! For each conj-data, collects the source-text of every `src-map` pair
 //! whose text is in `texts`, concatenated across all conj-datas in order.
-//!
-//! Diverges from the upstream lambda list `(conj-datas texts)` by taking
-//! both arguments as slices; the Lisp coerces a lone conj-data / text to a
-//! one-element list internally, the Rust caller wraps (matching
-//! [`super::get_conj_data`]'s `texts: &[&str]`).
 
 use super::conj_data_struct::ConjData;
 

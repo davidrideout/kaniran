@@ -1,9 +1,7 @@
 //! Port of `ichiran:possible-long-vowel-p` (`deromanize.lisp:32`).
 //!
-//! Returns the trailing `o` or `u` of `text`, or `None` when `text`
-//! is empty or ends in any other character. Upstream returns the
-//! matched character (`#\o` / `#\u`) or `nil`; the port keeps that as
-//! `Option<char>`.
+//! Returns the trailing `o` or `u` of `text`, or `None` when `text` is
+//! empty or ends in any other character.
 
 pub fn possible_long_vowel_p(text: &str) -> Option<char> {
     if text.is_empty() {

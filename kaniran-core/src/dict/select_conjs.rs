@@ -1,18 +1,7 @@
 //! Port of `ichiran/dict:select-conjs` (`dict.lisp:1603`).
 //!
-//! ```lisp
-//! (defun select-conjs (seq &optional conj-ids)
-//!   (if conj-ids
-//!       (unless (eql conj-ids :root)
-//!         (select-dao 'conjugation (:and (:= 'seq seq) (:in 'id (:set conj-ids)))))
-//!       (or
-//!        (select-dao 'conjugation (:and (:= 'seq seq) (:is-null 'via)))
-//!        (select-dao 'conjugation (:= 'seq seq)))))
-//! ```
-//!
-//! Diverges by taking `&KaniranContext` for the DB handle (upstream
-//! `*connection*`) and modeling `conj-ids` as `Option<&WordConjugations>`
-//! (`None` = nil, `Some(Root)` = `:root`, `Some(Ids)` = list).
+//! Selects the conjugation rows for `seq`: restricted to `conj_ids`
+//! when given, or the root (null-via) rows otherwise.
 
 use crate::conn::kani_context::KaniranContext;
 

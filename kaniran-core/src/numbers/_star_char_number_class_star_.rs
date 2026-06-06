@@ -3,12 +3,7 @@
 //! Source-of-truth table mapping each numeric character to its
 //! [`NumClass`] tag and value. The first column groups characters that
 //! share the same classification (e.g. `"〇零"` are both
-//! `(NumClass::Jd, 0)`, `"十拾"` are both `(NumClass::P, 1)`); the
-//! per-character map [`super::_star_char_number_class_hash_star_`] is
-//! built from this by exploding each group.
-//!
-//! Diverges from the Lisp's flat `(chars class-and-val ...)` plist into
-//! a `&[(&str, NumClass, u8)]` triple for type-safe iteration.
+//! `(NumClass::Jd, 0)`, `"十拾"` are both `(NumClass::P, 1)`).
 
 use super::kani_num_class::NumClass;
 

@@ -5,23 +5,9 @@
 //!   cargo run --release --bin get_seg_splits_test -- \
 //!       --path corpus/extracted_chunk_b_segmentation_2026_05_14/dict/get_seg_splits.parquet
 //!
-//! Captured shapes (`extracted_chunk_b_segmentation_2026_05_14` corpus):
-//! - `args = [<segment-list-left>, <segment-list-right>]` — two
-//!   SegmentList inputs; both non-nil at every callsite
-//!   (`find-best-path` at `dict.lisp:1219` destructures a non-empty
-//!   payload head).
-//! - `result = [<list-of-paths>]` — single-value return: a list of
-//!   "outer splits". Each outer split is itself a list whose elements
-//!   are SEGMENT-LIST or SYNERGY values (matching
-//!   [`PathElement`]).
-//!
-//! Per-segment info (the plist `(:POSI :SEQ-SET :CONJ :COMMON
-//! :SCORE-INFO :KPCL)`) is load-bearing on both input and output:
-//! apply-segfilters / get-penalties / get-synergies read kpcl/seq-set/
-//! conj/posi from each segment. The common
-//! `parse_captured_segment_list` helper drops `info`, so this runner
-//! mirrors the inline parser from
-//! `audit/dict/get_seg_initial_test.rs` to keep info round-trip.
+//! Replays a left/right segment-list pair through `get_seg_splits` and
+//! compares the returned outer splits (lists of segment-list/synergy
+//! values) against the Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

@@ -2,9 +2,7 @@
 //!
 //! True iff every character of `word` belongs to `char_class` — the
 //! scanner from `*char-scanners*` is anchored as `^pat+$`, so any
-//! non-class character makes the match fail. The Lisp returns the
-//! match start position (truthy) or nil (falsy); every caller treats
-//! it as a predicate, so the Rust signature is `bool`.
+//! non-class character makes the match fail.
 
 use super::_star_char_scanners_star_::char_scanners;
 use super::char_class_type::CharClass;

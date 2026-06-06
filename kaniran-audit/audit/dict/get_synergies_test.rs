@@ -5,28 +5,9 @@
 //!   cargo run --release --bin get_synergies_test -- \
 //!       --path corpus/extracted_chunk_d1a_synergy_2026_05_17/dict/get_synergies.parquet
 //!
-//! ## Captured shapes (`extracted_chunk_d1a_synergy_2026_05_17` corpus)
-//!
-//! - `args = [<segment-list>, <segment-list>]` — the left + right
-//!   neighbor `segment-list` pair `get-seg-splits` adjoins.
-//! - `result = [<value>]` — single-value return. Either `null` (no
-//!   synergy fired) or an array of `[right-sl, synergy, left-sl]`
-//!   triples, in `*synergy-list*` traversal order.
-//!
-//! ## Comparison policy
-//!
-//! The Rust port returns `Vec<Vec<PathElement>>` where each inner
-//! 3-element vec mirrors one captured triple. Compare the path count,
-//! then for each path:
-//!
-//! - `[0]` `PathElement::SegmentList(right_sl)` vs captured `right-sl`
-//! - `[1]` `PathElement::Synergy(synergy)` vs captured `synergy`
-//! - `[2]` `PathElement::SegmentList(left_sl)` vs captured `left-sl`
-//!
-//! All SegmentList / Segment / Synergy fields are exact-matched; per
-//! [`compare_info`] the segment passes through unchanged from the
-//! input so info / kpcl / posi / seq-set / conj / score-info / common
-//! round-trip.
+//! Replays a left/right segment-list pair through `get_synergies` and
+//! compares the returned `[right-sl, synergy, left-sl]` triples against
+//! the Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

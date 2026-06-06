@@ -4,25 +4,6 @@
 //! Run with:
 //!   cargo run --release --bin suffix_ra_test -- \
 //!       --path corpus/extracted_chunk_c_suffix_abbr_2026_05_16/dict/suffix_ra.parquet
-//!
-//! Args shape (per `def-simple-suffix` expansion at
-//! `dict-grammar.lisp:340-368`):
-//!   `[<root>, <sv>, <kf KANA-TEXT envelope>]`
-//!
-//! Result shape: `[<list> | null]`. `null` ↔ Lisp nil (empty
-//! result — either the UNLESS branch fired for a root ending in "ら"
-//! or both `or-as-hiragana` / `find-word-seq` missed); otherwise a
-//! list of COMPOUND-TEXT envelopes — one per primary word returned
-//! by the lookup. Mapcar preserves the upstream lookup order, which
-//! is unspecified by the SQL (no ORDER BY), so the runner sorts
-//! compound fingerprints before comparing.
-//!
-//! Comparison: every projected slot of every compound is compared
-//! via [`parse_captured_word`]-derived `Debug` fingerprints (text,
-//! kana, primary, words, score_base, score_mod — and recursively
-//! every simple-text slot id/seq/text/ord/common/common_tags/
-//! conjugate_p/nokanji/best_*/conjugations/hintedp; proxy-text rows
-//! include their wrapped source).
 
 #[path = "../common/mod.rs"]
 mod common;

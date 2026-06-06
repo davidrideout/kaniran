@@ -5,22 +5,9 @@
 //!   cargo run --release --bin suffix_adv_test -- \
 //!       --path corpus/extracted_chunk_c_suffix_abbr_2026_05_16/dict/suffix_adv.parquet
 //!
-//! Args shape (`def-simple-suffix suffix-adv :adv (:connector ""
-//! :score 1) (root)` at `dict-grammar.lisp:464` — macro signature
-//! `(root sv kf)`):
-//!   `[<root>, <sv>, <kf KANA-TEXT envelope>]`
-//!
-//! Result shape: `[<list> | null]`. `null` ↔ Lisp nil
-//! (find-word-with-conj-type returned no matches for conj-type `[50]`,
-//! or pair-words-by-conj returned no buckets); otherwise a list of
-//! COMPOUND-TEXT envelopes per primary word the bucket sweep produced.
-//! `pair-words-by-conj` walks `alexandria:hash-table-values` whose
-//! order is undefined, so the runner sorts compound fingerprints
-//! before comparing.
-//!
-//! Comparison: same Debug-fingerprint + id-strip approach as
-//! suffix_rashii_test (see that file's docstring for the
-//! synthesized-DAO id rationale).
+//! Replays a captured `(root, sv, kf)` triple through `suffix_adv` and
+//! compares the returned compound-text rows against the Lisp result
+//! (compound fingerprints sorted, since the bucket order is undefined).
 
 #[path = "../common/mod.rs"]
 mod common;

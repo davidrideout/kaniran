@@ -4,10 +4,6 @@
 //! adjustments, a `misc` "uk" add and delete, three new readings
 //! (two with companion `add-conj-reading` calls), five proverb
 //! readings dropped, one `primary-nokanji` flip, and one `arch` drop.
-//!
-//! Diverges from the upstream lambda list `()` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
 
 use super::add_conj_reading::add_conj_reading;
 use super::add_reading::add_reading;

@@ -1,22 +1,9 @@
 //! Port of `ichiran:process-iteration-characters` (`romanize.lisp:9-15`).
 //!
-//! Expands iteration markers in a sequence of character-class items.
-//! `Iter` (ゝヽ) repeats the previous item; `IterV` (ゞヾ) emits the
-//! voiced form of the previous item. The "previous" slot only updates
-//! on a non-iteration item, so a run of iteration markers all expand
-//! to the same source. An iteration marker at the start of the list
-//! (no previous item) drops out silently — matching the upstream's
-//! conditional-collect behavior.
-//!
-//! Input items are [`CcItem`]s — the per-character lookups produced by
-//! `get-character-classes` (a [`KanaClass`] when the glyph is recognized
-//! kana, else the plain [`char`]).
-//!
-//! Voicing for `IterV` only fires when the previous item is a
-//! [`KanaClass`]. The upstream `voice-char` falls through unchanged on
-//! characters (its hash lookup misses and the default-as-self idiom
-//! returns the input), so a [`CcItem::Char`] previous is emitted
-//! as-is, preserving Lisp behavior.
+//! Expands iteration markers in a character-class list: `Iter` (ゝヽ)
+//! repeats the previous item, `IterV` (ゞヾ) emits its voiced form. A run
+//! of markers all expand to the same source; a marker at the start (no
+//! previous item) drops out silently.
 
 use super::kani_cc_item::CcItem;
 use crate::characters::kani_kana_class::KanaClass;

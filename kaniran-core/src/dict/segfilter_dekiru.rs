@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:segfilter-dekiru` (`dict-grammar.lisp:1150`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-dekiru (l r)
-//!   ;; 出 followed by 来る or 来てる
-//!   (complement (filter-in-seq-set 1896380 2422860))
-//!   (filter-in-seq-set 2830009 1547720)
-//!   :allow-first t)
-//! ```
+//! Keeps a 来る/来てる right segment only when the preceding left
+//! segment is not 出.
 
 use std::sync::Arc;
 

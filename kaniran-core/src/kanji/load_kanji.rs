@@ -6,23 +6,6 @@
 //! list is handed off to [`super::load_readings`] for dedup +
 //! okurigana extraction; `<nanori>` and `<meaning>` are inserted in
 //! the order they appear in the source.
-//!
-//! `content` is the serialized XML for a single `<character>` element
-//! (the form produced by [`super::load_kanjidic::serialize_character`]
-//! when streaming the kanjidic2 dump).
-//!
-//! Diverges from the upstream lambda list `(content)` by:
-//!
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per [`crate::conn::kani_context`];
-//! - returning `Result<(), sqlx::Error>` since the Lisp form's
-//!   trailing `do-node-list` has no useful return value.
-//!
-//! Kanji row inserts hardcode `stat_common = 0` and
-//! `stat_irregular = 0` (the upstream `:initform 0` on those slots,
-//! which `make-dao` would otherwise apply implicitly). Nanori rows go
-//! through the `reading` table with `suffixp = false`, `prefixp =
-//! false`, `stat_common = 0` (the `reading` slot initforms).
 
 use super::load_readings::load_readings;
 use crate::characters::as_hiragana::as_hiragana;

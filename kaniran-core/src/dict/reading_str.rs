@@ -1,19 +1,7 @@
 //! Port of `ichiran/dict:reading-str` (gf — `dict.lisp:1588-1592`, `1739-1743`).
 //!
-//! ```lisp
-//! (defgeneric reading-str (obj)
-//!   (:method ((obj simple-text)) (reading-str* (get-kanji obj) (get-kana obj)))
-//!   (:method ((obj integer)) (reading-str-seq obj)))
-//! (defmethod reading-str ((word-info word-info)) (word-info-reading-str word-info))
-//! (defmethod reading-str ((word-info list)) (word-info-reading-str word-info))
-//! ```
-//!
-//! The `integer` method is the existing
-//! [`super::reading_str_seq::reading_str_seq`]; callers with an integer seq
-//! invoke it directly. The `list` method shares the `word-info` body (a
-//! jsown alist and a CLOS `word-info` are the same reading upstream, both
-//! the [`WordInfo`] struct in the port). The `simple-text` method takes
-//! `&KaniranContext` for the DB-backed `get-kanji` / `get-kana`.
+//! Formats the human-readable `"kanji 【kana】"` string for a reading,
+//! dispatching on a `simple-text`, an integer seq, or a `word-info`.
 
 use super::get_kanji::get_kanji;
 use super::reading_str_star_::reading_str_star_;

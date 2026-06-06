@@ -1,24 +1,8 @@
 //! Port of `ichiran/dict:get-synergies` (`dict-grammar.lisp:957`).
 //!
-//! Walks [`SYNERGY_LIST`] in order, gathering every synergy that fires
-//! between `segment_list_left` and `segment_list_right`. Each entry is
-//! a 3-element path `(seg_right, synergy, seg_left)` — distinct from
-//! [`get_penalties`] which returns at most one such path.
-//!
-//! ```lisp
-//! (defun get-synergies (segment-list-left segment-list-right)
-//!   (loop for fn in *synergy-list*
-//!      nconc (funcall fn segment-list-left segment-list-right)))
-//! ```
-//!
-//! Divergences from Lisp:
-//! - Each individual synergy fn returns `Vec<(Arc<KaniLiteSegmentList>,
-//!   Synergy, Arc<KaniLiteSegmentList>)>`; here each tuple is wrapped
-//!   into a `Vec<KaniLitePathElement>` matching the path-payload
-//!   variant set (CONVENTIONS §4.3).
-//!
-//! [`SYNERGY_LIST`]: super::_star_synergy_list_star_::SYNERGY_LIST
-//! [`get_penalties`]: super::get_penalties::get_penalties
+//! Gathers every synergy that fires between `segment_list_left` and
+//! `segment_list_right`, each as a 3-element path
+//! `(seg_right, synergy, seg_left)`.
 
 use super::_star_synergy_list_star_::SYNERGY_LIST;
 use super::kani_lite_segment_list::KaniLiteSegmentList;

@@ -1,34 +1,8 @@
 //! Port of `ichiran/dict:get-array` (`dict.lisp:1160`).
 //!
-//! Returns the populated prefix of a [`TopArray`]'s backing storage.
-//! Upstream:
-//!
-//! ```lisp
-//! (defgeneric get-array (collection)
-//!   (:method ((obj top-array))
-//!     (with-slots (array count) obj
-//!       (if (>= count (length array)) array (subseq array 0 count)))))
-//! ```
-//!
-//! The Lisp generic has a single method on `top-array`; with no
-//! polymorphic dispatch the Rust port is a free function taking
-//! `&TopArray` per CONVENTIONS §4.7 precedent (see `score_base`).
-//!
-//! When `count` is below the array length, only the first `count`
-//! slots are populated (`register-item` writes incrementally); the
-//! remaining slots stay at the `initialize-instance :after` `nil`
-//! fill. When `count` is at or above the array length, every slot is
-//! populated and the eviction loop in `register-item` keeps the
-//! highest scores. Either way callers (`find-best-path` at
-//! `dict.lisp:1215`, `:1232`) iterate `for tai across` the result and
-//! see only the populated entries.
-//!
-//! Divergences from Lisp:
-//! - Returns a borrowed slice `&[Option<TopArrayItem>]` rather than
-//!   either the underlying array or a freshly-allocated `subseq`. The
-//!   only consumers are `for tai across` iterations; the iteration
-//!   semantics are identical and the borrow avoids an unnecessary
-//!   allocation. Per CONVENTIONS §4.9.
+//! Returns the populated prefix of a [`TopArray`]'s backing storage:
+//! the whole array when `count` reaches its length, else the first
+//! `count` slots.
 
 use super::top_array_class::TopArray;
 use super::top_array_item_struct::TopArrayItem;

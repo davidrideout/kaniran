@@ -3,47 +3,12 @@
 //! Consults [`SUFFIX_UNIQUE_ONLY`] for `suffix_class`:
 //!
 //! - Not in the table → `None`.
-//! - Bare entry → `Some(MatchUniqueResult::Bare)` (mirrors Lisp
-//!   returning the matched keyword itself).
-//! - `:desu` entry → runs the closure body at
-//!   `dict-grammar.lisp:522-530`: a `conjugation` query for matches
-//!   derived from seq 2755350 (じゃない); returns
-//!   `Some(MatchUniqueResult::Desu)` when fewer rows come back than
-//!   `matches.len()` (i.e. at least one match is **not** a じゃない
-//!   conjugation), else `None`.
-//! - `:sa` entry → runs the closure body at
-//!   `dict-grammar.lisp:486-490`: an `entry` query for the matches'
-//!   seqs filtered by `root_p`; returns `Some(MatchUniqueResult::Sa(rows))`
-//!   when the query returns a non-empty list, else `None`.
-//!
-//! ## Divergences from Lisp
-//!
-//! - `suffix_class: &str` rather than a CL keyword — the cache shape
-//!   per [`super::_star_suffix_cache_star_`] already represents suffix
-//!   classes as lowercase strings.
-//! - Returns `Option<MatchUniqueResult>` instead of the Lisp-style
-//!   "keyword | list | T | nil" union per CONVENTIONS §4.1. Each Lisp
-//!   shape maps to a distinct variant so no fidelity is lost. The only
-//!   known caller (`find-word-suffix` at `dict-grammar.lisp:705`) uses
-//!   the result as a predicate via `(not (and matches (match-unique …)))`
-//!   — `.is_some()` mirrors that.
-//!
-//! ## Edge case: compound-text in `matches`
-//!
-//! For [`KaniWordDispatchEnum::Compound`], [`super::seq::seq`] returns
-//! `Some(WordInfoSeq::Multi(_))` — a list of children's seqs. In Lisp,
-//! `(seq compound-text)` returns the same list and the `loop … collect
-//! it` form collects it **as a single seqs element**, which then
-//! renders inside `(:in 'seq (:set …))` as a nested SQL row
-//! `(child_seq1, child_seq2, …)` — REPL-verified to error with
-//! Postgres `42883: operator does not exist: integer = record`.
-//! [`collect_seqs`] mirrors that failure mode by panicking on `Multi`:
-//! both Lisp and the port abort the call. Verified unreachable in
-//! practice by encapsulating upstream `match-unique` and running
-//! tatoeba_2000 through `romanize*`: 21,836 calls, only `KANA-TEXT`
-//! and `KANJI-TEXT` ever appear in `matches` (suffix-class fan-out
-//! includes `:sa` × 80 and `:desu` × 60, so the DB-querying branches
-//! are exercised).
+//! - Bare entry → `Some(MatchUniqueResult::Bare)`.
+//! - `:desu` entry → a `conjugation` query for matches derived from seq
+//!   2755350 (じゃない); `Desu` when at least one match is not a じゃない
+//!   conjugation, else `None`.
+//! - `:sa` entry → an `entry` query for the matches' seqs filtered by
+//!   `root_p`; `Sa(rows)` when non-empty, else `None`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_suffix_unique_only_star_::{

@@ -1,53 +1,8 @@
 //! Port of `ichiran/dict:*hint-map*` (`dict-split.lisp:850`).
 //!
-//! Hashtable mapping JMdict seq → hint function, registered
-//! upstream by the [`defhint`](`dict-split.lisp:852`) macro and its
-//! two callers [`def-simple-hint`](`dict-split.lisp:860`) and
-//! [`def-easy-hint`](`dict-split.lisp:916`). Each callsite expands
-//! into one or more `(setf (gethash ,seq *hint-map*) ,fn)` forms.
-//! The live image has 659 entries after `dict-split.lisp` loads
-//! (verified via REPL: `(hash-table-count *hint-map*) => 659`).
-//!
-//! The Rust transliteration collapses the runtime hashtable into a
-//! static dispatcher driven by two tables:
-//!
-//! - [`EASY_HINTS`] — 431 rows, one per `def-easy-hint` callsite.
-//!   Each row carries the literal kanji-split string; the shared
-//!   body lives in [`super::kani_hint_engine::run_easy_hint`].
-//! - 17 inline `match`-arm groups, one per `def-simple-hint`
-//!   callsite — bodies vary per group (different positional
-//!   computations, different `:test`/`let*`-binding shapes).
-//!
-//! ## Divergence from CONVENTIONS §1
-//!
-//! CONVENTIONS §1 (one Lisp symbol per Rust file) is intentionally
-//! relaxed here, mirroring the [`super::_star_split_map_star_`]
-//! precedent. The 17 `def-simple-hint` and 431 `def-easy-hint`
-//! callsites would otherwise need 448 separate files. Putting them
-//! here keeps the data and dispatcher together. The macros
-//! themselves (`defhint`, `def-simple-hint`, `def-easy-hint`) are
-//! marked `skip` with reason pointing at this file per §4.6 case (a).
-//!
-//! ## Order semantics
-//!
-//! Upstream `(setf (gethash ...) ...)` repeats: later calls override
-//! earlier ones for the same seq. In `dict-split.lisp`, all 17
-//! `def-simple-hint` forms (lines 1014-1382) precede all 431
-//! `def-easy-hint` forms (lines 1389-1859), so when a seq is
-//! registered by both, the easy-hint body wins. This dispatcher
-//! mirrors that: it checks [`EASY_HINTS`] before the simple-hint
-//! match arms.
-//!
-//! ## Hint-state contract
-//!
-//! Called from [`super::get_hint::get_hint`], which is itself called
-//! from the `simple-text :around` method on `get-kana` under a ctx
-//! rebound via
-//! [`crate::conn::kani_context::KaniranContext::with_disable_hints`]`(true)`.
-//! Hint bodies in turn call [`super::get_kana::get_kana`] and
-//! [`super::true_kana::true_kana`]; the inner `:around` reads
-//! `ctx.disable_hints = true` and skips the hint branch (matches the
-//! upstream `*disable-hints*` rebind at `dict.lisp:82`).
+//! Maps JMdict seq → hint function (659 entries upstream), dispatched
+//! here from the [`EASY_HINTS`] table and 17 `def-simple-hint` match
+//! arms.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

@@ -1,9 +1,6 @@
 //! Port of `ichiran/dict:*pos-by-index*` (`dict-load.lisp:253`, `csv-hash *pos-by-index*`).
 //!
-//! numeric id → part-of-speech tag. Lazily built once by
-//! [`load_pos_by_index`] (vendored kwpos.csv) and cached, mirroring the
-//! upstream `defparameter *pos-by-index* nil` that `load-pos-by-index`
-//! fills on first `get-pos`.
+//! numeric id → part-of-speech tag, from the vendored kwpos.csv.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

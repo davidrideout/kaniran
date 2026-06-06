@@ -3,10 +3,6 @@
 //! Applies the March-2018 batch of JMdict overrides: `common`
 //! adjustments on `kana-text` / `kanji-text` rows, sense-prop tweaks,
 //! one `primary-nokanji` flip, and a new sense for な.
-//!
-//! Diverges from the upstream lambda list `()` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
 
 use super::add_new_sense_star_::add_new_sense_star_;
 use super::add_sense_prop::add_sense_prop;

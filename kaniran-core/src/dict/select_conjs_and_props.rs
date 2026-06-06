@@ -1,21 +1,7 @@
 //! Port of `ichiran/dict:select-conjs-and-props` (`dict.lisp:1638`).
 //!
-//! ```lisp
-//! (defun select-conjs-and-props (seq &optional conj-ids text)
-//!   (sort
-//!    (loop for conj in (select-conjs seq conj-ids)
-//!          for props = (select-dao 'conj-prop (:= 'conj-id (id conj)))
-//!          for val = (loop for prop in props minimizing (conj-type-order (conj-type prop)))
-//!          for fprops = (filter-props props text)
-//!          collect (list conj fprops (list (if (eql (seq-via conj) :null) 0 1) val)))
-//!    (lex-compare '<)
-//!    :key 'third))
-//! ```
-//!
-//! Diverges by taking `&KaniranContext` for the DB handle (upstream
-//! `*connection*`), modeling `conj-ids` as `Option<&WordConjugations>`,
-//! and `text` as [`FilterPropsText`]. `val` is `unwrap_or(0)` because
-//! SBCL `(loop … minimizing)` over empty props yields 0.
+//! Looks up the conjugations for `seq`, pairs each with its filtered
+//! conjugation properties, and sorts by (root-vs-via, conj-type-order).
 
 use std::cmp::Ordering;
 

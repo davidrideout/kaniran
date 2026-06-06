@@ -1,21 +1,9 @@
 //! Port of `ichiran/dict:word-info-from-segment-list` (`dict.lisp:1353`).
 //!
-//! Maps [`word_info_from_segment`] across the captured segment-list,
-//! filters scores below `2/3 * (word-info-score wi1)` (where `wi1` is
-//! the FIRST pre-filter wi), then either:
-//!
-//! - returns `wi1` with `skipped = matches - 1` (one survivor); or
-//! - builds a synthetic `word-info` carrying `wi1`'s `type` / `text` /
-//!   `score`, the per-survivor `kana` / `seq` collected verbatim,
-//!   `alternative = t`, and `skipped = matches - kept`.
-//!
-//! Diverges from the upstream lambda list `(segment-list)` by taking
-//! `&KaniranContext` for the database handle (replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`]) and
-//! `&mut SegmentList` so the per-segment `(get-text segment)` lazy
-//! memoization (`dict.lisp:677-679`) runs in place.
-//!
-//! [`SEGMENT_SCORE_CUTOFF`]: crate::dict::_star_segment_score_cutoff_star_::SEGMENT_SCORE_CUTOFF
+//! Maps [`word_info_from_segment`] across a segment-list and drops
+//! scores below `2/3` of the first wi's score, returning either the
+//! lone survivor or a synthetic alternative-marked word-info collecting
+//! every survivor's kana / seq.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_segment_score_cutoff_star_::SEGMENT_SCORE_CUTOFF;

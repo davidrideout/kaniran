@@ -1,18 +1,7 @@
 //! Port of `ichiran/dict:get-senses-str` (`dict.lisp:1495`).
 //!
-//! ```lisp
-//! (defun get-senses-str (seq)
-//!   (with-output-to-string (s)
-//!     (loop for (pos gloss props) in (get-senses seq)
-//!           for i from 1
-//!           for rpos = pos then (if (equal pos "[]") rpos pos)
-//!           for inf = (cdr (assoc "s_inf" props :test 'equal))
-//!           for rinf = (when inf (join "; " inf))
-//!           for field = (cdr (assoc "field" props :test 'equal))
-//!           for rfield = (when field (join "," field))
-//!           when (> i 1) do (terpri s)
-//!           do (format s "~a. ~a ~@[{~a} ~]~@[《~a》 ~]~a" i rpos rfield rinf gloss))))
-//! ```
+//! Renders an entry's senses as a numbered, newline-separated string,
+//! each line showing the pos, optional field/info, and gloss.
 
 use std::fmt::Write;
 

@@ -1,9 +1,7 @@
 //! Port of `ichiran:leftmost-atom` (`romanize.lisp:27-29`).
 //!
 //! Descends the leftmost branch of a character-class tree and returns
-//! the first atom it reaches. `Option<CcItem>` collapses the upstream's
-//! atom-or-nil return: `nil` (empty list, or a nil leaf) becomes `None`;
-//! a keyword or character leaf becomes `Some`.
+//! the first atom it reaches (`None` for an empty list or nil leaf).
 
 use super::kani_cc_item::CcItem;
 use super::kani_cc_tree::CcTree;

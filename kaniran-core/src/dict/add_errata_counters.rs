@@ -1,8 +1,7 @@
 //! Port of `ichiran/dict:add-errata-counters` (`dict-errata.lisp:1068`).
 //!
-//! Diverges from the upstream lambda list `()` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
+//! Applies counter-word corrections to JMdict: reading edits, new
+//! senses/glosses, and `pos`=`ctr` sense-prop tagging.
 
 use super::add_gloss::add_gloss;
 use super::add_new_sense_star_::add_new_sense_star_;

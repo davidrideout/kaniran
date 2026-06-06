@@ -4,13 +4,7 @@
 //! `KanaClass` is the closed enumeration of the 87 mora / modifier /
 //! iteration tags that categorize a single kana glyph. The upstream
 //! uses keyword symbols (`:A`, `:KA`, `:SOKUON`, `:+YA`, `:LONG-VOWEL`,
-//! …) inline at hundreds of callsites without a named type — the tag
-//! set is implicitly defined by the keys of `*all-characters*` plus
-//! the same-shape `eql` callsites in `romanize.lisp` and `dict.lisp`.
-//!
-//! Naming convention: `kani_<snake_name>.rs` marks a Rust-only
-//! sidecar, distinguishing it from `_star_<name>_star_.rs` (global
-//! ports) and `<name>_<kind>.rs` (typed-Lisp ports).
+//! …) inline without a named type.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
@@ -105,13 +99,9 @@ pub enum KanaClass {
 }
 
 impl KanaClass {
-    /// The upstream Lisp keyword's printed name — what `(string :ka)`
-    /// would produce: uppercase, no leading colon, hyphenated where the
-    /// keyword is. `Ka` → `"KA"`, `PlusYa` → `"+YA"`, `LongVowel` →
-    /// `"LONG-VOWEL"`, `IterV` → `"ITER-V"`. Used by
-    /// [`super::long_vowel_modifier_p::long_vowel_modifier_p`], which
-    /// inspects the last character of the name to decide whether a
-    /// preceding glyph's vowel matches a `+a/+i/+u/+e/+o` modifier.
+    /// The upstream Lisp keyword's printed name: `Ka` → `"KA"`,
+    /// `PlusYa` → `"+YA"`, `LongVowel` → `"LONG-VOWEL"`, `IterV` →
+    /// `"ITER-V"`.
     pub fn lisp_name(&self) -> &'static str {
         match self {
             KanaClass::Sokuon => "SOKUON",

@@ -3,11 +3,6 @@
 //! Looks up the sense at `(seq, sense-ord)` and, when present, inserts
 //! one `sense-prop` row `(tag, text)` unless the same `(sense-id, tag,
 //! text)` triple already exists.
-//!
-//! Diverges from the upstream lambda list `(seq sense-ord tag text)`
-//! only by taking `&KaniranContext` for the database handle, replacing
-//! the upstream dynamic `*connection*` per
-//! [`crate::conn::kani_context`].
 
 use crate::conn::kani_context::KaniranContext;
 

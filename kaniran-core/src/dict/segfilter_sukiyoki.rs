@@ -1,21 +1,7 @@
 //! Port of `ichiran/dict:segfilter-sukiyoki` (`dict-grammar.lisp:1101`).
 //!
-//! ```lisp
-//! ;; some of adj-ix words end with 好い which produces a confusing 好き conjugation
-//! ;; this should disable it
-//! (def-segfilter-must-follow segfilter-sukiyoki (l r)
-//!   (constantly nil)
-//!   (lambda (segment)
-//!     (and (funcall (filter-is-conjugation +conj-adjective-literary+) segment)
-//!          (alexandria:ends-with-subseq "好き" (get-text segment)))))
-//! ```
-//!
-//! Divergences from Lisp:
-//! - The lambda's `(get-text segment)` upstream goes through the
-//!   `((segment))` method (`dict.lisp:677-679`) which lazily caches
-//!   the result back into `segment-text`. The Rust port reads through
-//!   the lite-precomputed [`super::kani_lite_segment::KaniLiteSegment::text`]
-//!   directly. Functionally identical.
+//! Drops a spurious 好き literary-adjective conjugation that some
+//! adj-ix words ending in 好い produce (the left filter is always false).
 //! - `+conj-adjective-literary+` (`dict-errata.lisp:1240`) is a plain
 //!   `defconstant` with value `54`; no standalone Rust port file
 //!   exists for it (`_star_weak_conj_forms_star_.rs` references the

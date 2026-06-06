@@ -5,17 +5,10 @@
 //!   cargo run --bin compare_common_test -- \
 //!       --path corpus/<corpus_tag>/dict/compare_common.parquet
 //!
-//! Captured shapes:
-//! - `args = [c1, c2]` — each `null` or an integer.
-//! - `result = [value]` — the raw upstream return, one of:
-//!     * JSON `null`     ↔ Lisp `NIL` ↔ [`CompareCommonResult::Nil`]
-//!     * JSON `true`     ↔ Lisp `T`   ↔ [`CompareCommonResult::True`]
-//!     * JSON integer    ↔ Lisp `c1`  ↔ [`CompareCommonResult::C1(n)`]
-//!
-//! The Rust port preserves all three shapes (no truthiness collapse),
-//! so the audit performs bit-for-bit equality: parses the captured
-//! `result[0]` into a `CompareCommonResult` and compares to the Rust
-//! return value via `==`.
+//! Sort predicate for two `common` ranking values: prefers the more
+//! common (lower positive) of `c1`/`c2`, treating nil and zero
+//! specially. Args are `[c1, c2]` (each null or an integer); the result
+//! is `null`, `true`, or `c1`.
 
 #[path = "../common/mod.rs"]
 mod common;

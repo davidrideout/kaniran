@@ -2,17 +2,8 @@
 //!
 //! Trim from the end of `word` the suffix that begins at the
 //! `stem`-th match of `char_class`'s pattern (counted from the end).
-//! `stem == 0` returns `word` unchanged. When `word` has fewer than
-//! `stem` matches of the class, the result is empty.
-//!
-//! Char-position semantics (CONVENTIONS §4.5): the cut is on a
-//! character boundary, so multi-byte code points pass through
-//! correctly. The compiled regex comes from
-//! [`super::kani_char_class_bare_scanners::char_class_bare_scanners`].
-//!
-//! Diverges from the Lisp by exposing `char_class` as a required
-//! argument (the Lisp `&optional` defaulted to `:kana`); both upstream
-//! call-sites pass the default explicitly under this convention.
+//! Fewer than `stem` matches yields an empty result; the cut falls on
+//! a character boundary.
 
 use super::char_class_type::CharClass;
 use super::kani_char_class_bare_scanners::char_class_bare_scanners;

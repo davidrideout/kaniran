@@ -1,26 +1,8 @@
 //! Port of `ichiran/dict:suffix-sou` (`dict-grammar.lisp:454`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-sou :sou (:score (constantly (cond
-//!                                                          ((equal root "から") 40)
-//!                                                          ((equal root "い") 0)
-//!                                                          ((equal root "出来") 100)
-//!                                                          (t 70)))
-//!                                     :connector "")
-//!     (root suf patch)
-//!   (suffix-sou-base root patch))
-//! ```
-//!
-//! `:score (constantly N)` per CONVENTIONS §4.4 / [`adjoin_word`] maps to
-//! [`ScoreMod::Constant`]; the cond resolves against `root` once per call.
-//! Mapcar tail delegated to [`def_simple_suffix_body`] per §4.6 case (c);
-//! the cond body delegated to [`suffix_sou_base_body`] (shared with
-//! [`super::suffix_sou_plus_::suffix_sou_plus_`]).
-//!
-//! [`adjoin_word`]: super::adjoin_word
-//! [`def_simple_suffix_body`]: super::def_simple_suffix_macro::def_simple_suffix_body
-//! [`suffix_sou_base_body`]: super::suffix_sou_base_macro::suffix_sou_base_body
-//! [`ScoreMod::Constant`]: super::compound_text_class::ScoreMod::Constant
+//! Handles ～そう (appearance), delegating to the shared
+//! `suffix-sou-base` body; the score depends on the root
+//! (から→40, い→0, 出来→100, else 70).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

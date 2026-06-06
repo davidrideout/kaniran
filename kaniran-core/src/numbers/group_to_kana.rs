@@ -6,17 +6,6 @@
 //! each pair's reading in the supplied tables and folding via
 //! [`super::num_sandhi::num_sandhi`] to apply euphonic changes between
 //! adjacent pairs.
-//!
-//! Diverges from the Lisp's `&key class-to-kana` plist (`(:jd ,table
-//! :p ,table)`) by taking two explicit `&[&str]` / `&[(u8, &str)]`
-//! parameters — Rust callers can swap either table independently. Top-
-//! level callers pass [`super::_star_digit_to_kana_star_::DIGIT_TO_KANA`]
-//! and [`super::_star_power_to_kana_star_::POWER_TO_KANA`].
-//!
-//! [`NumClass::Ad`] is mapped to the supplied `digit_table` (both
-//! `Jd` and `Ad` carry `0..=9` values); upstream this would crash
-//! because the plist has no `:ad` key — Rust handles it gracefully
-//! because the two share the table shape.
 
 use super::kani_num_class::NumClass;
 use super::num_sandhi::num_sandhi;

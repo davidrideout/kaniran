@@ -1,12 +1,9 @@
 //! Port of `ichiran/dict:sense-exists-p` (`dict-load.lisp:82`).
 //!
-//! Checks if a sense exists before
-//! [`crate::dict::add_new_sense::add_new_sense`] adds a new sense.
 //! Returns true when some sense in `senses` has the same parts of
-//! speech and the same glosses as the candidate.
-//!
-//! When a sense has no parts of speech of its own, it inherits the
-//! ones from the most recent earlier sense that did.
+//! speech and glosses as the candidate. A sense with no parts of
+//! speech of its own inherits them from the most recent earlier sense
+//! that had them.
 
 use crate::characters::join::join;
 use crate::dict::get_senses_raw::RawSense;

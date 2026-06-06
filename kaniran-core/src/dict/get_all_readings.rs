@@ -2,10 +2,6 @@
 //!
 //! Returns the union of `kanji_text.text` and `kana_text.text` for a
 //! single entry (by `seq`) as a list of strings.
-//!
-//! Diverges from the upstream lambda list `(seq)` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
 
 use crate::conn::kani_context::KaniranContext;
 

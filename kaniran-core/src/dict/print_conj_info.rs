@@ -1,28 +1,7 @@
 //! Port of `ichiran/dict:print-conj-info` (`dict.lisp:1648`).
 //!
-//! ```lisp
-//! (defun print-conj-info (seq &key conjugations (out *standard-output*))
-//!   (loop with via-used = nil
-//!      for (conj props) in (select-conjs-and-props seq conjugations)
-//!      for via = (seq-via conj)
-//!      unless (member via via-used)
-//!      do (loop for conj-prop in props
-//!            for first = t then nil
-//!            do (format out "~%~:[ ~;[~] Conjugation: ~a" first (conj-info-short conj-prop)))
-//!        (if (eql via :null)
-//!            (format out "~%  ~a" (entry-info-short (seq-from conj)))
-//!            (progn
-//!              (format out "~% --(via)--")
-//!              (print-conj-info via :out out)
-//!              (push via via-used)))
-//!        (princ " ]" out)))
-//! ```
-//!
-//! Diverges by taking `&KaniranContext` for the DB handle (upstream
-//! `*connection*`). The `:out` keyword (default `*standard-output*`)
-//! becomes a required `&mut String`; every upstream caller binds a
-//! string-output-stream. `conjugations` is `Option<&WordConjugations>`,
-//! threaded to `select-conjs-and-props` with nil text.
+//! Writes a human-readable conjugation chain for `seq` into `out`,
+//! recursing through each `via` source entry it hasn't already printed.
 
 use crate::conn::kani_context::KaniranContext;
 

@@ -1,29 +1,8 @@
 //! Port of `ichiran/dict:translate-hint-position` (`dict-split.lisp:882-897`).
 //!
-//! Walks `matched` — a heterogeneous alignment list whose elements
-//! are either an equal substring or a `(pre, post)` differing pair —
-//! and translates a character index `position` over the pre-image
-//! axis into a character index on the post-image axis. Returns
-//! `None` when `position` overshoots the alignment's total
-//! pre-image length (the upstream `loop` falls through and returns
-//! `nil`).
-//!
-//! The two diff-pair sub-cases mirror the upstream `cond` exactly:
-//! - `position` strictly inside a pair: snap to `off + min(1,
-//!   max(clen, rem))` — i.e. the start of the post-image segment
-//!   when either side is non-empty, or `off` when both are empty.
-//! - `position` at the trailing edge of a pair: snap to `off +
-//!   clen` (the end of the post-image segment).
-//!
-//! ## Divergence
-//!
-//! The Lisp consumes the raw output of `match-diff` /
-//! `match-readings` and dispatches by `(if (atom part) ...)`. The
-//! Rust port consumes [`super::kani_match_part::KaniMatchPart`], an
-//! explicit two-variant enum carrying pre-computed character
-//! lengths — the function only ever calls `length` on the
-//! substrings, so the substrings themselves are dropped at
-//! conversion time. Observable behavior is identical.
+//! Translates a character index over an alignment's pre-image axis
+//! into an index on the post-image axis, returning `None` when
+//! `position` overshoots the alignment's total pre-image length.
 
 use super::kani_match_part::KaniMatchPart;
 

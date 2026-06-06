@@ -1,20 +1,7 @@
 //! Port of `ichiran/dict:synergy-kanji-prefix` (`dict-grammar.lisp:920`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-kanji-prefix (l r)
-//!   (filter-in-seq-set 2242840 1922780 2423740) ;; 未 不
-//!   (filter-is-pos ("n") (segment k p c l) k)
-//!   :description "kanji prefix+noun"
-//!   :score 15
-//!   :connector "")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - The `filter-is-pos` filter (`dict-grammar.lisp:922`) is built via
-//!   [`filter_is_pos`]; the kpcl-test body is `k` alone — only the
-//!   kanji-or-katakana bit is consulted.
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! "kanji prefix+noun" synergy: binds a kanji prefix (未/不, seqs
+//! 2242840/1922780/2423740) on the left to a noun on the right.
 
 use std::sync::Arc;
 

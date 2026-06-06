@@ -1,32 +1,8 @@
 //! Port of `ichiran/dict:get-suffixes` (`dict-grammar.lisp:682`).
 //!
 //! Enumerates every grammatical-suffix match anchored at any non-zero
-//! offset of `word`. For each `start ∈ [(len-1) … 1]`, looks up the
-//! suffix `word[start..]` in [`SuffixCache`] and concatenates each
-//! cache entry into the result via [`parse_suffix_val`]. Order is
-//! load-bearing: matches at higher `start` (shorter suffixes) come
-//! first.
-//!
-//! ## Divergences from Lisp
-//!
-//! - **Ctx-injected** per CONVENTIONS §4.8. Diverges from the upstream
-//!   lambda list `(word)` only by taking `&KaniranContext` for the
-//!   suffix cache, replacing the upstream dynamic `*suffix-cache*` per
-//!   [`crate::conn::kani_context`].
-//! - **`init-suffixes` call dropped.** Upstream's first form is
-//!   `(init-suffixes)`; in Rust the cache is populated eagerly during
-//!   [`KaniranContext::from_url`] via
-//!   [`super::init_suffixes_thread::build_suffix_caches`] (wave 126),
-//!   so `init-suffixes` itself is marked `skip` and the call is
-//!   redundant here.
-//! - **Character offsets** for the `start` loop bound and the
-//!   `subseq-slice` call, per CONVENTIONS §4.5.
-//! - Returns `Vec<(&str, &str, Option<&KanaText>)>` mirroring the
-//!   `(suffix keyword kf)` triple shape from [`parse_suffix_val`].
-//!
-//! [`SuffixCache`]: super::_star_suffix_cache_star_::SuffixCache
-//! [`parse_suffix_val`]: super::parse_suffix_val::parse_suffix_val
-//! [`KaniranContext::from_url`]: crate::conn::kani_context::KaniranContext::from_url
+//! offset of `word`, ordered so that matches at higher `start`
+//! (shorter suffixes) come first.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kana_text_dao::KanaText;

@@ -1,19 +1,10 @@
 //! Port of `ichiran/dict:insert-hints` (`dict-split.lisp:834-848`).
 //!
-//! Splice hint sentinels into a kana string at the positions named
-//! by `hints`. Each `(kind, pos)` entry pushes the character looked
-//! up via [`super::_star_hint_char_map_star_::HINT_CHAR_MAP`] into a
-//! bucket at character index `pos` (where `pos` may equal the
-//! string's character length, meaning "after the last char"). Hints
-//! whose position exceeds the string length are silently dropped —
-//! the Lisp guard `(<= 0 position len)` covers both polarities; in
-//! Rust the lower bound is enforced by the `usize` type and the
-//! upper bound is checked explicitly.
-//!
-//! When two or more hints land at the same position, the resulting
-//! sentinels are emitted in the order the hints were supplied
-//! (mirroring the upstream `push` + `reverse` pair). Returns the
-//! input unchanged when `hints` is empty.
+//! Splice hint sentinel characters into a kana string at the
+//! character positions named by `hints`. A `pos` equal to the
+//! string's char length means "after the last char"; hints whose
+//! position exceeds the length are silently dropped. Multiple hints
+//! at the same position are emitted in supplied order.
 
 use super::_star_hint_char_map_star_::HINT_CHAR_MAP;
 use super::kani_hint_kind::KaniHintKind;

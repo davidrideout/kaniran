@@ -5,12 +5,6 @@
 //! conj rules, fetches the conjugatable kanji/kana readings, applies
 //! [`construct_conjugation`], and slots each result into a 2×2 array
 //! indexed by `[neg][fml]` under the `(pos-id, conj-id)` key.
-//!
-//! Diverges from the upstream lambda list `(seq &key conj-types as-posi)`
-//! only by taking `&KaniranContext` for the database handle, replacing
-//! the upstream dynamic `*connection*` per [`crate::conn::kani_context`],
-//! and by representing the keyword arguments as `Option<…>`
-//! (`None` = absent → upstream defaults: `nil`).
 
 use std::collections::HashMap;
 

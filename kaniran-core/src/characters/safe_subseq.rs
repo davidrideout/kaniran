@@ -1,12 +1,8 @@
 //! Port of `ichiran/characters:safe-subseq` (`characters.lisp:359-363`).
 //!
-//! Bounds-checked substring. Returns `None` when `start` or `end` would
-//! fall outside `[0, char-length(s)]`, or when `start > end`. Otherwise
-//! returns `Some(<chars start..end>)`. With `end = None`, slices to the
-//! end of the string.
-//!
-//! Positions are *character* offsets (CONVENTIONS §4.5) — matches the
-//! Lisp's `subseq` semantics on SBCL strings.
+//! Bounds-checked substring over *character* positions. Returns `None`
+//! on out-of-range or inverted (`start > end`) bounds; `end = None`
+//! slices to the end of the string.
 
 pub fn safe_subseq(s: &str, start: usize, end: Option<usize>) -> Option<String> {
     let len = s.chars().count();
@@ -25,9 +21,7 @@ pub fn safe_subseq(s: &str, start: usize, end: Option<usize>) -> Option<String> 
 mod tests {
     use super::*;
 
-    /// Slicing covers char-indexed CJK input correctly — without
-    /// pinning this, an accidental byte-index implementation passes
-    /// every ASCII test.
+    /// Slicing covers char-indexed CJK input correctly.
     #[test]
     fn slices_by_character_not_byte() {
         let s = "あいうえお";
@@ -35,8 +29,7 @@ mod tests {
         assert_eq!(safe_subseq(s, 0, None).as_deref(), Some("あいうえお"));
     }
 
-    /// Out-of-range `start`, `end`, or `start > end` all return None,
-    /// mirroring the Lisp's `(when ...)` guard.
+    /// Out-of-range `start`, `end`, or `start > end` all return None.
     #[test]
     fn rejects_out_of_range_or_inverted() {
         let s = "abc";

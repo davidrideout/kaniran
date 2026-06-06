@@ -1,9 +1,8 @@
 //! Port of `ichiran:r-simplify` (gf — `romanize.lisp:57-59`, `132-199`).
 //!
-//! Post-processes a romanized string per the method's orthography. The
-//! default `(method str)` is the identity; each method class overrides it
-//! on its own struct (apostrophe handling, long-vowel folding, the
-//! traditional `n-`/`m` rules). This dispatcher routes to the override.
+//! Post-processes a romanized string per the method's orthography
+//! (apostrophe handling, long-vowel folding, the traditional `n-`/`m`
+//! rules); the default is the identity.
 
 use super::generic_romanization_class::RomanizationMethod;
 

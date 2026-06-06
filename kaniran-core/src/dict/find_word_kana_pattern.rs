@@ -1,18 +1,8 @@
 //! Port of `ichiran/dict:find-word-kana-pattern` (`dict.lisp:1877`).
 //!
-//! ```lisp
-//! (defun find-word-kana-pattern (pattern)
-//!   (stable-sort (select-dao 'kana-text (:~ 'text pattern)) #'compare-common
-//!                :key (lambda (r) (and (not (eql (common r) :null)) (common r)))))
-//! ```
-//!
 //! Selects every `kana_text` row whose `text` matches the POSIX regex
 //! `pattern`, then stable-sorts the rows by [`compare_common`] over each
 //! row's `common` rank (the `:null` sentinel sorts last).
-//!
-//! Diverges from the upstream lambda list `(pattern)` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
 
 use std::cmp::Ordering;
 

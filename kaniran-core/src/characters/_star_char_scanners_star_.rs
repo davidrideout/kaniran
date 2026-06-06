@@ -2,12 +2,7 @@
 //! (`characters.lisp:151`).
 //!
 //! Per-`CharClass` compiled regex scanner anchored to the full string:
-//! each pattern from `*char-class-regex-mapping*` is wrapped as
-//! `^pattern+$`. Used by `test-word` (`characters.lisp:160`) to ask
-//! "is the entire string composed of one or more characters of this
-//! class?".
-//!
-//! Compilation is lazy — `fancy_regex::Regex` is not const-constructible.
+//! each pattern is wrapped as `^pattern+$`.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

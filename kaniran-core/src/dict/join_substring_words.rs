@@ -1,37 +1,9 @@
 //! Port of `ichiran/dict:join-substring-words` (`dict.lisp:1113`).
 //!
-//! ```lisp
-//! (defun join-substring-words (str)
-//!   (multiple-value-bind (result kanji-break) (join-substring-words* str)
-//!     (loop
-//!        with ends-with-lw = (alexandria:ends-with #\ー str)
-//!        for (start end segments) in result
-//!        for kb = (mapcar (lambda (n) (- n start)) (intersection (list start end) kanji-break))
-//!        for sl = (loop for segment in segments
-//!                    do (gen-score segment
-//!                                  :final (or (= (segment-end segment) (length str))
-//!                                             (and ends-with-lw
-//!                                                  (= (segment-end segment) (1- (length str)))))
-//!                                  :kanji-break kb)
-//!                    if (>= (segment-score segment) *score-cutoff*)
-//!                    collect segment)
-//!        when sl
-//!        collect (make-segment-list :segments (cull-segments sl) :start start :end end
-//!                                   :matches (length segments)))))
-//! ```
-//!
 //! Scores every segment [`join_substring_words_star_`] produced for each
 //! slice, drops those below [`SCORE_CUTOFF`], and wraps each surviving,
 //! [`cull_segments`]-filtered group in a [`SegmentList`] tagged with its
 //! pre-filter `matches` count.
-//!
-//! Divergences: `(values result kanji-break)` is destructured from the
-//! returned tuple; `(intersection (list start end) kanji-break)` follows
-//! SBCL's front-cons order (`end` before `start` when both are present).
-//!
-//! Audited 531,529/533,756; every failure is an inherited `find-word-full`
-//! divergence (non-deterministic suffix-compound reading selection), not
-//! this port's logic — see `docs/known_issues.md`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_score_cutoff_star_::SCORE_CUTOFF;

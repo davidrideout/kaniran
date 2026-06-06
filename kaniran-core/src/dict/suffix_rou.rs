@@ -1,17 +1,7 @@
 //! Port of `ichiran/dict:suffix-rou` (`dict-grammar.lisp:461`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-rou :rou (:connector "" :score 1) (root)
-//!   (find-word-with-conj-type root 2))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_simple_suffix_body`].
-//!
-//! Divergences from `(root sv suf)`:
-//! - `suf` typed `&KanaText` (the `:rou` cache row is loaded by
-//!   `(load-kf :rou (get-kana-form 1928670 "だろう") :text "ろう")` —
-//!   a kana-text). The cache key is the `:text` override `"ろう"`; the
-//!   kf object itself carries the source text `"だろう"`.
+//! Handles ～ろう (だろう volitional): looks up the root as a past-plain
+//! (た-form, conj-type 2) conjugation.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

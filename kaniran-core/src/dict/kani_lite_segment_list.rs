@@ -1,10 +1,7 @@
 //! Kaniran sidecar (no Lisp FQN). The lite mirror of
 //! [`super::segment_list_struct::SegmentList`] used inside the
-//! `find-best-path` inner loop. Carries [`Arc<KaniLiteSegment>`]s and
-//! a per-list lite [`KaniLiteTopArray`]; full `SegmentList` /
-//! `Segment` materialization happens only at `find-best-path` exit,
-//! by deep-cloning each `KaniLiteSegment.source` for the surviving
-//! top-K paths.
+//! `find-best-path` inner loop, carrying [`Arc<KaniLiteSegment>`]s and
+//! a per-list lite [`KaniLiteTopArray`].
 
 use std::sync::Arc;
 

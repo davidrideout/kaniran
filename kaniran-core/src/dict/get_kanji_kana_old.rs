@@ -1,25 +1,9 @@
 //! Port of `ichiran/dict:get-kanji-kana-old` (`dict.lisp:117-124`).
 //!
-//! Fallback `get-kana` body used by the kanji-text method
-//! (`dict.lisp:111-115`) when `best-kana-conj` returns the `:null`
-//! sentinel — the per-entry curated reading is unavailable. Builds a
-//! [`kanji_regex`] from the kanji-text's surface form, then walks the
-//! entry's `kana_text` rows in `ord` order and returns the first kana
-//! whose text matches; if none match, returns the first kana row's
-//! text outright.
-//!
-//! Diverges from the upstream lambda list `(obj)` only by:
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per [`crate::conn::kani_context`];
-//! - typing `obj` as [`KanjiText`] rather than the Lisp `t` — the sole
-//!   call site (`dict.lisp:114` inside `get-kana ((obj kanji-text))`)
-//!   passes a kanji-text, and the body only consumes `(text obj)` and
-//!   `(seq obj)`, both available as direct field reads on [`KanjiText`].
-//! - returning [`Option<String>`] rather than a raw string. Upstream
-//!   would error on `(text nil)` if `kts` is empty (data integrity
-//!   violation: a kanji_text row with no sibling kana_text rows for
-//!   its seq); the Rust port surfaces that as [`None`] so callers can
-//!   propagate without a panic.
+//! Fallback `get-kana` body for the kanji-text method. Builds a regex
+//! from the kanji-text's surface form, walks the entry's `kana_text`
+//! rows in `ord` order and returns the first kana whose text matches;
+//! if none match, returns the first kana row's text.
 
 use crate::characters::kanji_regex::kanji_regex;
 use crate::conn::kani_context::KaniranContext;

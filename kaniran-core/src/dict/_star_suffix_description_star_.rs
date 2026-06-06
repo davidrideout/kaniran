@@ -1,31 +1,7 @@
 //! Port of `ichiran/dict:*suffix-description*` (`dict-grammar.lisp:108`).
 //!
-//! Hashtable mapping a suffix-class keyword (`:chau`, `:ha`, `:tai`,
-//! …) **or** a JMdict seq integer (`2826528`, `2028980`, …) to a
-//! human-readable description string. Upstream builds it once at
-//! load time via `(hash-from-list *suffix-description* '(...))`
-//! against the literal payload at `dict-grammar.lisp:110-158`. There
-//! is no DB or other-global derivation — the value is a pure
-//! literal — and no later form extends it.
-//!
-//! Read by [`get-suffix-description`](`dict-grammar.lisp:160`)
-//! which dispatches on `(or (gethash seq *suffix-class*) seq)`: a
-//! seq that is registered to a class gets looked up under the
-//! class keyword, otherwise the seq integer itself is the key. The
-//! mixed-type key surface is the load-bearing shape of the table.
-//!
-//! ## Rust shape
-//!
-//! Mirrors the upstream single-hashtable shape by carrying mixed
-//! keys in an inline two-variant enum, per CONVENTIONS §4.3. Class
-//! keywords are stored as `String` without the Lisp leading `:`,
-//! matching how [`super::_star_suffix_class_star_::SuffixClass`]
-//! and [`super::init_suffixes_thread`] carry class strings (e.g.
-//! `:chau` → `"chau"`). Seq keys are plain `i32`.
-//!
-//! Built once under [`OnceLock`] from the literal payload. The
-//! integer-seq half of the literal corresponds to the upstream
-//! comment "these are used for splitsegs" (`dict-grammar.lisp:149`).
+//! Suffix-class keyword (`:chau`, `:ha`, …) **or** JMdict seq integer
+//! → human-readable description string.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

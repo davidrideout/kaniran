@@ -1,16 +1,7 @@
 //! Port of `ichiran/dict:recalc-entry-stats-all` (`dict.lisp:61`).
 //!
 //! Recomputes the `n_kanji` / `n_kana` row-count caches on every
-//! `entry` from its current `kanji_text` / `kana_text` children. Run
-//! after a corpus reload (`dict-load.lisp:182`, `:193`).
-//!
-//! Diverges from the upstream lambda list `()` by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`]. Upstream
-//! `query` returns `(values nil affected-count)` for a no-RETURNING
-//! UPDATE (REPL-pinned 2026-05-25); the port returns the affected-row
-//! count (`PgQueryResult::rows_affected`), postmodern's informative
-//! secondary value. Both callers discard it.
+//! `entry` from its current `kanji_text` / `kana_text` children.
 
 use crate::conn::kani_context::KaniranContext;
 

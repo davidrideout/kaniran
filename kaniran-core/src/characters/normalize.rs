@@ -2,19 +2,8 @@
 //!
 //! Convert abnormal-but-Japanese-rendered ASCII (full-width digits and
 //! punctuation, half-width katakana) back to plain ASCII / full-width
-//! katakana via [`super::to_normal_char::to_normal_char`], then collapse
-//! combining-mark sequences (`か゛ → が`) and — outside `:kana` mode —
-//! Japanese punctuation runs (`、 → ", "`).
-//!
-//! With [`NormalizationContext::Kana`] only the half-width-kana
-//! substitution and the dakuten-join folding run, leaving ASCII
-//! punctuation alone. With [`NormalizationContext::Default`] everything
-//! gets normalized.
-//!
-//! Per CONVENTIONS §4.6 the upstream's in-place `setf` mutation is
-//! replaced by always allocating a new `String`. The keyword `&key
-//! context` becomes a required [`NormalizationContext`] argument; pass
-//! `Default` at call sites that previously omitted the keyword.
+//! katakana, then collapse combining-mark sequences (`か゛ → が`) and —
+//! outside `:kana` mode — Japanese punctuation runs (`、 → ", "`).
 
 use super::_star_dakuten_join_star_::dakuten_join;
 use super::_star_punctuation_marks_star_::PUNCTUATION_MARKS;
@@ -43,8 +32,7 @@ pub fn normalize(s: &str, context: NormalizationContext) -> String {
 mod tests {
     use super::*;
 
-    /// Default mode: full-width digit normalizes to ASCII; combining
-    /// dakuten folds into a precomposed glyph; Japanese comma rewrites.
+    /// Default mode normalizes full-width digit, dakuten, and Japanese comma.
     #[test]
     fn default_mode_normalizes_punctuation_and_dakuten() {
         assert_eq!(normalize("０", NormalizationContext::Default), "0");
@@ -52,8 +40,7 @@ mod tests {
         assert_eq!(normalize("、", NormalizationContext::Default), ", ");
     }
 
-    /// Kana mode: half-width kana → full-width, dakuten still folds,
-    /// but ASCII-style punctuation is left alone.
+    /// Kana mode folds half-width kana and dakuten but leaves ASCII punctuation alone.
     #[test]
     fn kana_mode_only_kana_and_dakuten() {
         assert_eq!(normalize("ｱ", NormalizationContext::Kana), "ア");

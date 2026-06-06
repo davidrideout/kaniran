@@ -1,18 +1,8 @@
 //! Port of `ichiran/dict:conj-prop` (`dict.lisp:262`).
 //!
-//! Row representation of one tagged property attached to a
-//! [`Conjugation`] row — the `(pos, conj-type, neg, fml)` quadruple
-//! that identifies which conjugation form (past plain, negative
-//! formal, causative-passive, etc.) of which part-of-speech the row
-//! describes. Mapped 1:1 to the `public.conj_prop` Postgres table.
-//!
-//! The Lisp slot names `neg` and `fml` collide with predicate-style
-//! readers `conj-neg` / `conj-fml`; the Postgres column names remain
-//! `neg` / `fml`. Both are nullable booleans (`(or db-null boolean)`)
-//! because the upstream JMdict pipeline records "unspecified" — those
-//! land here as [`Option::None`].
-//!
-//! [`Conjugation`]: super::conjugation_dao::Conjugation
+//! Row of the `public.conj_prop` table — one tagged property attached
+//! to a conjugation, the `(pos, conj-type, neg, fml)` quadruple naming
+//! which conjugation form of which part-of-speech the row describes.
 
 use sqlx::postgres::PgRow;
 use sqlx::{FromRow, Row};

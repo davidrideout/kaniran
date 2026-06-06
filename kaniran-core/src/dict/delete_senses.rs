@@ -1,13 +1,9 @@
 //! Port of `ichiran/dict:delete-senses` (`dict-errata.lisp:131`).
 //!
 //! Drops every sense (and its glosses and remaining props) whose
-//! sense-props on `seq` include any that satisfy `prop_test`. The Lisp
-//! deletes all rows linked to the matched `sense-id`s, not just the
-//! matched props themselves.
-//!
-//! Diverges from the upstream lambda list `(seq prop-test)` only by
-//! taking `&KaniranContext` for the database handle, replacing the
-//! upstream dynamic `*connection*` per [`crate::conn::kani_context`].
+//! sense-props on `seq` include any that satisfy `prop_test`. Deletes
+//! all rows linked to the matched `sense-id`s, not just the matched
+//! props themselves.
 
 use super::sense_prop_dao::SenseProp;
 use crate::conn::kani_context::KaniranContext;

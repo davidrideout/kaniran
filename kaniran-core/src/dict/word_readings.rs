@@ -1,30 +1,9 @@
 //! Port of `ichiran/dict:word-readings` (`dict.lisp:536`).
 //!
-//! ```lisp
-//! (defun word-readings (word)
-//!   (let* ((kana-seq (query (:select 'seq :from 'kana-text :where (:= 'text word)) :column))
-//!          (readings
-//!           (if kana-seq (list word)
-//!               (let* ((kanji-seq (query (:select 'seq :from 'kanji-text
-//!                                                 :where (:= 'text word)) :column)))
-//!                 (query (:order-by
-//!                         (:select 'text :from 'kana-text :where
-//!                                  (:in 'seq (:set kanji-seq)))
-//!                         'id) :column)))))
-//!     (values readings (mapcar #'ichiran:romanize-word readings))))
-//! ```
-//!
 //! When `word` itself appears in `kana-text` the readings are just the
 //! word; otherwise the kana spellings of every `kanji-text` entry with
-//! that surface form, ordered by id. Returns each reading paired with
-//! its romanization.
-//!
-//! Diverges by taking `&KaniranContext` for the DB handle (replacing the
-//! upstream dynamic `*connection*` per [`crate::conn::kani_context`]),
-//! being `async`, and collapsing the two-value return to a tuple
-//! `(readings, romanizations)`. `(:in 'seq (:set kanji-seq))` becomes
-//! `seq = ANY($1)`; an empty `kanji-seq` yields no rows, mirroring the
-//! Lisp empty-set filter.
+//! that surface form, ordered by id. Returns the readings alongside
+//! their romanizations.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::core::_star_default_romanization_method_star_::default_romanization_method;

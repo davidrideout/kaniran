@@ -2,7 +2,7 @@
 //!
 //! Sets the entry's `primary_nokanji` flag and marks every matching
 //! `kana_text` row (same `seq`, exact `text` = `reading`) as
-//! `nokanji = TRUE`. The `do-readings` macro is inlined here.
+//! `nokanji = TRUE`.
 
 use super::kana_text_dao::KanaText;
 use super::set_primary_nokanji::set_primary_nokanji;

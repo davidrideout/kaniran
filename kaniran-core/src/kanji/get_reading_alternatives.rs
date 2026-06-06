@@ -1,32 +1,10 @@
 //! Port of `ichiran/kanji:get-reading-alternatives` (`kanji.lisp:218`).
 //!
-//! Expands a single `(reading, type)` kanjidic2 reading into the set of
-//! variant readings considered by the kanji-to-kana matcher. The base
-//! entry is always emitted; an additional entry with the trailing mora
-//! geminated (`っ`) is emitted when `type` is `"ja_on"` and the last
-//! character is one of つ/く/き/ち. With the `rendaku` flag set, every
-//! entry above is then duplicated twice — once dakuten-voiced, once
-//! handakuten-voiced — and appended after the originals.
-//!
-//! Diverges from the upstream lambda list `(reading type &key rendaku)`
-//! by:
-//!
-//! - taking `rendaku` as a plain `bool` per CONVENTIONS §4.4. The
-//!   keyword is binary (absent ↔ nil ↔ off, `t` ↔ on) and the only
-//!   in-tree caller (`get-normal-readings` `kanji.lisp:235`) threads its
-//!   own `rendaku` parameter through unchanged;
-//! - returning `Vec<ReadingAlternative>` rather than a heterogeneous
-//!   3-or-4 element cons list. Each upstream entry is `(rd type tag
-//!   gem?)` where `tag` is `nil` (base/geminate) or `:rendaku`, and
-//!   `gem` is absent on bare bases and a single-char string on
-//!   geminated/rendaku-of-geminated entries; the `tag` field is the
-//!   §4.3 enum for the closed `nil | :rendaku` shape, and the struct
-//!   names the four positions so consumers don't destructure
-//!   positionally.
-//!
-//! Geminate/rendaku take `&mut String` per their own `:fresh nil` port
-//! (CONVENTIONS §4.4); the upstream `:fresh t` semantic at every
-//! callsite here is reproduced by cloning before the call.
+//! Expands a single `(reading, type)` kanjidic2 reading into its variant
+//! readings. The base entry is always emitted; a trailing-mora geminated
+//! (`っ`) entry is added when `type` is `"ja_on"` and the last character
+//! is one of つ/く/き/ち; with `rendaku` set, every entry above is also
+//! duplicated dakuten- and handakuten-voiced.
 
 use crate::characters::geminate::geminate;
 use crate::characters::rendaku::{rendaku as voice_rendaku, Voicing};

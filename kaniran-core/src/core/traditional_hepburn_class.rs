@@ -1,9 +1,6 @@
 //! Port of `ichiran:traditional-hepburn` (`romanize.lisp:152`).
 //!
-//! Subclass of simplified-hepburn. Redefines the simplifications
-//! initform to `("oo" "ō" "ou" "ō" "uu" "ū")`. Adds no slots — newtype
-//! over [`SimplifiedHepburn`]; the kana-table stays the inherited
-//! hepburn copy.
+//! Hepburn variant with simplifications `("oo" "ō" "ou" "ō" "uu" "ū")`.
 
 use std::sync::OnceLock;
 

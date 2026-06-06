@@ -1,14 +1,7 @@
 //! Port of `ichiran/dict:length-multiplier` (`dict.lisp:681`).
 //!
-//! ```lisp
-//! (defun length-multiplier (length power len-lim)
-//!   "len^power until len-lim, goes linear after"
-//!   (cond ((<= length len-lim) (expt length power))
-//!         (t (* length (expt len-lim (1- power))))))
-//! ```
-//!
-//! `len^power until len-lim, goes linear after`: returns `length^power`
-//! while `length <= len-lim`, otherwise `length * len-lim^(power-1)`.
+//! Returns `length^power` while `length <= len-lim`, otherwise goes
+//! linear with `length * len-lim^(power-1)`.
 
 pub fn length_multiplier(length: i64, power: i64, len_lim: i64) -> i64 {
     if length <= len_lim {

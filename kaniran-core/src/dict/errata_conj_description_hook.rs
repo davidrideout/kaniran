@@ -2,13 +2,7 @@
 //!
 //! Adds the five ichiran-internal conjugation types
 //! (`+conj-adverbial+`=50 … `+conj-adjective-literary+`=54) to the
-//! conj-id → description map after it is loaded from conj.csv. Those
-//! defconstants aren't captured by the introspector; their integer
-//! values are inlined, matching [`super::_star_weak_conj_forms_star_`].
-//!
-//! Upstream returns the last `setf` value; its only caller
-//! (`load-conj-description`) discards it, so the port is a mutating
-//! hook returning `()`.
+//! conj-id → description map after it is loaded from conj.csv.
 
 use std::collections::HashMap;
 

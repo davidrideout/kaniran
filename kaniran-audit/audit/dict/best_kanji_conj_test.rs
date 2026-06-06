@@ -7,9 +7,6 @@
 //!
 //! Args: `(<KANA-TEXT row>)`.
 //! Result: `(<kanji string or :NULL>)` — single value, `:NULL` ↔ `None`.
-//!
-//! Mirror of [`best_kana_conj_test`] with the receiver class reversed
-//! (KANA-TEXT instead of KANJI-TEXT).
 
 #[path = "../common/mod.rs"]
 mod common;

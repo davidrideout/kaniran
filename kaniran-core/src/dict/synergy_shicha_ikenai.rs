@@ -1,17 +1,7 @@
 //! Port of `ichiran/dict:synergy-shicha-ikenai` (`dict-grammar.lisp:927`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-shicha-ikenai (l r)
-//!   (filter-is-compound-end 2028920) ;; は
-//!   (filter-in-seq-set 1000730 1612750 1409110 2829697 1587610) ;; いけない いけません だめ いかん いや
-//!   :description "shicha ikenai"
-//!   :score 50
-//!   :connector " ")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! "shicha ikenai" synergy: binds a compound ending in は (seq 2028920) on
+//! the left to いけない/いけません/だめ/いかん/いや on the right.
 
 use std::sync::Arc;
 

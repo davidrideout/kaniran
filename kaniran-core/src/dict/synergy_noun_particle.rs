@@ -1,20 +1,7 @@
 //! Port of `ichiran/dict:synergy-noun-particle` (`dict-grammar.lisp:827`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-noun-particle (l r)
-//!   #'filter-is-noun
-//!  (apply #'filter-in-seq-set *noun-particles*)
-//!   :description "noun+prt"
-//!   :score (+ 10 (* 4 (- (segment-list-end r) (segment-list-start r))))
-//!   :connector " ")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `(apply #'filter-in-seq-set *noun-particles*)` becomes a direct
-//!   call with the global's slice cloned into a `Vec` — Rust's
-//!   `filter_in_seq_set` takes `Vec<i32>` (see its file doc).
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! "noun+prt" synergy: binds a noun on the left to one of the
+//! `*noun-particles*` on the right, scoring higher for longer particles.
 
 use std::sync::Arc;
 

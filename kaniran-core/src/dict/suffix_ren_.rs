@@ -1,21 +1,7 @@
 //! Port of `ichiran/dict:suffix-ren-` (`dict-grammar.lisp:378`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-ren- :ren- (:connector "" :score 0) (root)
-//!   (find-word-with-conj-type root 13))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_simple_suffix_body`] per CONVENTIONS
-//! §4.6 case (c). Identical body to [`super::suffix_ren::suffix_ren`]
-//! except for the `:score 0` differentiator — kept as a separate fn
-//! so the upstream `*suffix-list*` row for `:ren-` resolves to the
-//! score-0 dispatch.
-//!
-//! Divergences from `(root sv suf)`:
-//! - `suf` typed `&KanaText` (the `:ren-` cache rows are loaded by
-//!   `(load-conjs :ren- 2772730 :nikui)` / `(load-conjs :ren- 2867504
-//!   :gatai)` / `(load-kf :ren- (get-kana-form 2606690 "がい") :class
-//!   :gai)` — all materialize kana-texts).
+//! Score-0 ren'youkei suffix variant: looks up the root as a conj-type 13
+//! conjugation (same body as `suffix-ren`, different score).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

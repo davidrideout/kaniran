@@ -1,34 +1,8 @@
 //! Port of `ichiran/dict:get-non-arch-posi` (`dict.lisp:762`).
 //!
-//! Returns the distinct list of `pos`-tagged property values
-//! (`sense_prop.text` where `tag = 'pos'`) for senses inside `seq_set`
-//! whose containing sense does NOT carry an `arch` / `obsc` / `rare`
-//! misc tag. The left-join + `sp2.id IS NULL` filter is the upstream
-//! anti-join: senses with a matching `sp2` row are dropped.
-//!
-//! ## Divergences from upstream
-//!
-//! - **Ctx-injection** (CONVENTIONS §4.8). Upstream takes the
-//!   lambda list `(seq-set)` and consults the dynamic special
-//!   `postmodern:*connection*`; the Rust port prepends
-//!   `ctx: &KaniranContext` as the first parameter and reads
-//!   `ctx.pool`. `audit-signatures` reports the Rust arity as
-//!   `2 ≠ Lisp 1 … (ctx-injected; +1 absorbed)`; the entry is the
-//!   audit's record that this convention applied.
-//! - **Result-wrapped return** (CONVENTIONS §4.8 / sqlx idiom).
-//!   Upstream returns the row list directly and signals through the
-//!   condition system on DB failure; the Rust port returns
-//!   `Result<Vec<String>, sqlx::Error>`, threading the failure as a
-//!   value the caller `?`s on. Universal across every DB-touching
-//!   port in this crate.
-//! - **`= ANY($1)` vs upstream `IN (:set …)`** (postmodern → sqlx
-//!   idiom shift). Upstream `(:in 'sp1.seq (:set seq-set))` expands
-//!   to `IN (v1, v2, …)` with seq-set inlined as literal values; the
-//!   Rust port binds `seq_set: &[i32]` to a single `$1::int4[]`
-//!   parameter and uses Postgres's `= ANY(ARRAY)` form. The two are
-//!   semantically equivalent for the integer-set case used here
-//!   (empty array → no rows, same as upstream's behavior on
-//!   `seq-set = nil` returning `NIL`, REPL-pinned 2026-05-15).
+//! Returns the distinct list of `pos`-tagged property values for senses
+//! inside `seq_set` whose containing sense does NOT carry an `arch` /
+//! `obsc` / `rare` misc tag (an anti-join via `sp2.id IS NULL`).
 
 use crate::conn::kani_context::KaniranContext;
 

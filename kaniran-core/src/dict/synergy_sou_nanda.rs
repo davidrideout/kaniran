@@ -1,18 +1,7 @@
 //! Port of `ichiran/dict:synergy-sou-nanda` (`dict-grammar.lisp:856`).
 //!
-//! ```lisp
-//! ;; TODO: remove this hack
-//! (def-generic-synergy synergy-sou-nanda (l r)
-//!   (filter-in-seq-set 2137720)
-//!   (filter-in-seq-set 2140410)
-//!   :description "sou na n da"
-//!   :score 50
-//!   :connector " ")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! "sou na n da" synergy: binds そう (seq 2137720) on the left to なんだ
+//! (seq 2140410) on the right.
 
 use std::sync::Arc;
 

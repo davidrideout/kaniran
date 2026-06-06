@@ -3,24 +3,11 @@
 //! Sidecar (no Lisp FQN). Lisp `word` is the ad-hoc union of the
 //! reading and tokenization types that segmentation and scoring
 //! generic functions (`get-kana`, `text`, `seq`, `common`, `ord`,
-//! `word-type`, `word-conj-data`, ...) dispatch over. The
+//! `word-type`, `word-conj-data`, ...) dispatch over.
 //! [`KaniWordDispatchEnum`] names that union;
-//! [`KaniSimpleTextDispatchEnum`] names the `simple-text` sub-family
-//! used by [`super::proxy_text_class::ProxyText::source`].
-//!
-//! Counter is wrapped through its existing family enum
-//! [`super::counter_text_class::Counter`], which already dispatches
-//! across the 11 counter-text subclasses.
-//!
-//! `entry` is **not** a member of this enum. Upstream's gfs
-//! (`common`, `get-kana`, `get-text`, `get-kanji`) define methods
-//! specialized on `entry`, but every upstream callsite that passes
-//! an entry is locally Entry-typed (`entry-digest` at
-//! `dict.lisp:67` is the canonical one) — none route through
-//! polymorphic dispatch. The Rust port mirrors that: locally-typed
-//! callsites invoke `Entry::get_text(ctx)` /
-//! `Entry::get_kana(ctx)` directly; the dispatcher enums never
-//! carry an entry instance.
+//! [`KaniSimpleTextDispatchEnum`] names the `simple-text` sub-family.
+//! `entry` is not a member: every upstream entry callsite is locally
+//! Entry-typed rather than polymorphic.
 
 use crate::dict::compound_text_class::CompoundText;
 use crate::dict::counter_text_class::Counter;

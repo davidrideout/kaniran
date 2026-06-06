@@ -5,25 +5,8 @@
 //!   cargo run --release --bin find_word_full_test -- \
 //!       --path corpus/extracted_find_word_layer_2026_05_21/dict/find_word_full.parquet
 //!
-//! Args shape (per `(find-word-full word &key as-hiragana counter)`):
-//!   `[<word>, ":AS-HIRAGANA", <bool-or-null>, ":COUNTER", <null|":AUTO"|int>]`
-//!
-//! Result shape: `[<list-or-null>]` — a heterogeneous list of KANA-TEXT
-//! / KANJI-TEXT / PROXY-TEXT / COMPOUND-TEXT / COUNTER-* rows, or `null`
-//! for the no-match case.
-//!
-//! ## id-stripping
-//!
-//! Top-level KANA-TEXT / KANJI-TEXT rows from `find-word` are produced
-//! via the `*substring-hash*` `make-instance` branch (`dict.lisp:491-493`)
-//! when find-word-full runs under `join-substring-words*` — those rows
-//! arrive with `id` slot unbound and the projector emits `"id": null`.
-//! The Rust port reads ctx.substring_hash and would follow the same
-//! branch, but the audit-side ctx is constructed via `from_env` with no
-//! substring_hash bound, so its find-word returns DB rows with real ids.
-//! The audit zeroes `id` on both sides before comparison so the
-//! id-source asymmetry doesn't fire false-positive divergences. The
-//! `seq + text + ord` triple already uniquely identifies the row.
+//! Replays captured words through `find_word_full` and compares the
+//! returned word rows against the Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

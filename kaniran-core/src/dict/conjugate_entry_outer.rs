@@ -1,7 +1,8 @@
 //! Port of `ichiran/dict:conjugate-entry-outer` (`dict-load.lisp:344`).
 //!
-//! Drive [`insert_conjugation`] over every cell of the conjugation
-//! matrix built by [`conjugate_entry_inner`]: for each
+//! Drives [`insert_conjugation`] over every cell of the conjugation
+//! matrix built by [`conjugate_entry_inner`], writing the new
+//! conjugated-reading rows for an entry.
 
 use crate::conn::kani_context::KaniranContext;
 

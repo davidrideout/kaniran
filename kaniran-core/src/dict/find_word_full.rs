@@ -1,53 +1,10 @@
 //! Port of `ichiran/dict:find-word-full` (`dict.lisp:1052`).
 //!
-//! ```lisp
-//! (defun find-word-full (word &key as-hiragana counter)
-//!   (let ((simple-words (find-word word)))
-//!     (nconc simple-words
-//!            (find-word-suffix word :matches simple-words)
-//!            (when as-hiragana
-//!              (find-word-as-hiragana word :exclude (mapcar 'seq simple-words)))
-//!            (when counter
-//!              (case counter
-//!                (:auto
-//!                 (let ((groups (consecutive-char-groups :number word)))
-//!                   (when groups
-//!                     (find-counter (subseq word (caar groups) (cdar groups))
-//!                                   (subseq word (cdar groups) (length word))))))
-//!                (t (let ((number (subseq word 0 counter))
-//!                         (counter (subseq word counter (length word))))
-//!                     (find-counter number counter :unique (not simple-words)))))))))
-//! ```
-//!
 //! Composes [`find_word`], [`find_word_suffix`],
 //! [`find_word_as_hiragana`], and [`find_counter`] into a single
-//! heterogeneous result list — the segmenter / scoring layer's main
-//! entry point for "give me every reading I can think of for this
-//! substring". Order is load-bearing (the upstream `nconc` preserves
-//! the simple-words first, suffix expansions second, hiragana proxy
-//! third, counter candidates last).
-//!
-//! ## Divergences from Lisp
-//!
-//! - **Ctx-injected** per CONVENTIONS §4.8.
-//! - **`as_hiragana: bool`** per CONVENTIONS §4.4. Caller-readable
-//!   at the callsite (`true` ↔ `:as-hiragana t`).
-//! - **`counter: Option<CounterArg>`** per CONVENTIONS §4.3 (closed
-//!   tagged shape: the upstream `:auto` keyword vs. integer index vs.
-//!   absent). [`CounterArg::Auto`] mirrors `:auto`; [`CounterArg::At`]
-//!   carries the character index where the number ends and the
-//!   counter unit begins.
-//! - **Return type `Vec<KaniWordDispatchEnum>`.** The four
-//!   sub-results — simple-text rows, suffix-expansion compounds,
-//!   hiragana proxies, counter-text candidates — are all wrapped
-//!   into the top-level enum so callers iterate uniformly.
-//!
-//! ## Counter argument
-//!
-//! `CounterArg::At(n)` interprets `n` as a **character** position per
-//! CONVENTIONS §4.5 — `word[0..n]` is the number text,
-//! `word[n..word_len]` the counter. `:unique` is passed as `Some(!
-//! simple_words.is_empty()` ↔ Lisp `:unique (not simple-words)`).
+//! ordered result list (simple words, suffix expansions, hiragana
+//! proxies, counter candidates). `CounterArg::At(n)` treats `n` as a
+//! character position splitting `word` into number and counter unit.
 //! `CounterArg::Auto` finds the first run of `:number` characters
 //! via [`consecutive_char_groups`] and uses the first group's
 //! `(start, end)` to slice the number; the counter is whatever

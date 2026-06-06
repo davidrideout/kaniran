@@ -1,13 +1,7 @@
 //! Port of `ichiran/dict:*is-arch-cache*` (`dict.lisp:745`).
 //!
-//! Per-seq marker for entries whose every sense is tagged
-//! `arch` / `obsc` / `rare`, plus every conjugation root whose
-//! `from` column points at such a seq. Owned by
-//! [`KaniranContext::is_arch`]; populated once by [`build_is_arch`]
-//! during `from_url`.
-//!
-//! Upstream `:in (:set a1)` becomes `= ANY($1)` in the second query;
-//! `from` stays quoted (SQL reserved word).
+//! Set of seqs whose every sense is tagged `arch`/`obsc`/`rare`, plus
+//! every conjugation root whose `from` column points at such a seq.
 
 use crate::conn::kani_context::KaniranContext;
 use sqlx::PgPool;

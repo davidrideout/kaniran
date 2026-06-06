@@ -1,8 +1,7 @@
 //! Port of `ichiran:generic-romanization` (`romanize.lisp:62`).
 //!
-//! Base romanization method. Carries a `kana-table` mapping each kana
-//! mora class to its Latin spelling; the base initform builds an empty
-//! table (`(make-hash-table)`). Subclasses redefine the initform.
+//! Base romanization method carrying a `kana-table` that maps each kana
+//! mora class to its Latin spelling.
 
 use std::collections::HashMap;
 

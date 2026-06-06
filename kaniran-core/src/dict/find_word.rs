@@ -7,42 +7,9 @@
 //! `entry` restricts results to entries flagged `root_p`
 //! (derivation-pruning survivors).
 //!
-//! Diverges from the upstream lambda list `(word &key root-only)`
-//! by:
-//!
-//! - taking `&KaniranContext` for the database handle, replacing
-//!   the upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
-//! - taking `root_only` as a plain `bool` rather than the upstream
-//!   `&key` keyword. Per CONVENTIONS §4.4 a 2-state keyword whose
-//!   default is the falsy value is interchangeable with `bool` —
-//!   the parameter name reads clearly at the call site
-//!   (`find_word(ctx, w, true)` ↔ `:root-only t`; `false` ↔
-//!   `:root-only nil` or absent, both resolving to the same upstream
-//!   behavior because the keyword defaults to `nil`).
-//!
-//! The polymorphic Lisp return — a list of `kana-text` xor
-//! `kanji-text` rows depending on the table chosen — is wrapped in a
-//! 2-variant enum per CONVENTIONS §4.3. Same shape as
-//! [`super::find_word_seq::WordSeqRows`] but kept as its own type
-//! because the two functions have distinct semantics
-//! (`find-word-seq` filters by `seq IN (...)`; `find-word` does not),
-//! and each type stays local to the function that owns it per §1.
-//!
-//! ## *substring-hash* short-circuit
-//!
-//! Upstream consults the dynamically-bound
-//! [`crate::dict::_star_substring_hash_star_`] cache before issuing
-//! the SQL query. The cache rides on the ctx as
-//! [`KaniranContext::substring_hash`]; populated by
-//! `find-substring-words` (and rebound via
-//! [`KaniranContext::with_substring_hash`] for the nested-find loop
-//! inside `find-word-full`), it's read back here for any `word`
-//! present as a key — root-only is excluded from the short-circuit
-//! because the upstream `if` routes root-only directly to the
-//! JOIN-against-`entry` branch. Today no producer wires up the
-//! cache, so the slot is `None` and the path is dead at runtime;
-//! the wire-up lands when wave 326 (`find-word-full`) ports.
+//! When the ctx's `*substring-hash*` cache holds `word` as a key, the
+//! cached rows short-circuit the SQL query (root-only is excluded from
+//! the short-circuit).
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;

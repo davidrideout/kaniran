@@ -1,82 +1,10 @@
 //! Port of `ichiran/dict:adjoin-word` (`dict.lisp:632`).
 //!
-//! Generic function that builds a compound word from two inputs. Two
-//! primary methods plus an `:around` that defaults the four keyword
-//! arguments:
-//!
-//! - **`:around (t t)`** at `dict.lisp:635-640` — defaults `:text` to
-//!   `(concatenate 'string (get-text word1) (get-text word2))`,
-//!   `:kana` to the same concatenation under `get-kana`, and
-//!   `:score-mod` to `0`. `:score-base` passes through unchanged.
-//! - **`(simple-text simple-text)`** at `dict.lisp:642-645` — fresh
-//!   `make-instance 'compound-text` with `:primary word1`,
-//!   `:words (list word1 word2)`, and the resolved keyword values.
-//! - **`(compound-text simple-text)`** at `dict.lisp:647-652` — in
-//!   place: overwrite word1's `text` / `kana` slots, append `word2`
-//!   to `words`, and update `score-mod` per the cons-vs-list switch
-//!   below. `score-base` is **not** rebound (the method's
-//!   `&allow-other-keys` drops it). Lisp returns word1 itself; the
-//!   Rust port consumes word1 by value and returns the mutated
-//!   inner [`CompoundText`].
-//!
-//! `score-mod`'s growth rule (`dict.lisp:651`):
-//!
-//! ```text
-//! (funcall (if (listp s-score-mod) 'cons 'list) score-mod s-score-mod)
-//! ```
-//!
-//! - If the existing slot already holds a list, `cons` the new value
-//!   onto the front.
-//! - Otherwise (the slot still holds the integer set by the
-//!   `(simple-text simple-text)` arm), wrap as `(list new old)`.
-//!
-//! Modeled here on the [`ScoreMod`] three-variant enum
-//! ([`crate::dict::compound_text_class::ScoreMod`]): `Single(n)` is
-//! the post-first-adjoin shape when the caller passed an integer
-//! literal; `Constant(n)` is the post-first-adjoin shape when the
-//! caller passed `(constantly N)` (`suffix-kudasai` / `suffix-sou` /
-//! `suffix-desu` / `suffix-desho` at `dict-grammar.lisp:404, 448, 516,
-//! 532`); `Stack(v)` after two or more adjoins, holding a flat
-//! `Vec<ScoreMod>` whose elements are themselves `Single` or
-//! `Constant` (matching the upstream's mixed-type list).
-//!
-//! ## Divergences from Lisp
-//!
-//! Diverges from the upstream lambda list `(word1 word2 &key text kana
-//! score-mod score-base &allow-other-keys)` by:
-//!
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per [`crate::conn::kani_context`]
-//!   (consumed by `get-kana` on simple-text via `best-kana-conj`);
-//! - taking `word1` as the wider word-shaped enum
-//!   [`KaniWordDispatchEnum`] and `word2` as the narrower
-//!   [`KaniSimpleTextDispatchEnum`] — `word2` is `simple-text`-only
-//!   in both upstream primary methods, so the narrower type pins the
-//!   dispatch at the call site rather than at runtime. The Counter
-//!   arm of `KaniWordDispatchEnum` is reachable from neither method
-//!   and maps to `unreachable!()` (matching the upstream
-//!   `no-applicable-method` condition);
-//! - taking each `&key` keyword as a positional `Option<T>` parameter
-//!   (`None` ↔ keyword absent or `nil`, matching the Lisp `(or k 0)`
-//!   default semantics — explicit `Some(0)` produces the same
-//!   resolved value as `None`, as verified by REPL probe of upstream
-//!   for `:score-mod nil` returning `0`);
-//! - returning [`Result<CompoundText, sqlx::Error>`]. The `Result`
-//!   wraps the `get-kana` SQL access for the kanji-text branch (only
-//!   reached when `:kana` is absent and word1 / word2 is kanji-text);
-//!   the bare [`CompoundText`] matches both primary methods' return
-//!   (the `(compound-text simple-text)` arm's `word1` identity-share
-//!   is replaced by ownership transfer — the caller receives the same
-//!   mutated record, just unwrapped from its enum variant);
-//! - the `(compound-text simple-text)` arm replaces upstream's
-//!   in-place `setf` mutation with consume-and-return: word1's inner
-//!   [`CompoundText`] is destructured, its fields updated, and
-//!   handed back as the return value. Identity-sharing across the
-//!   call (Lisp's `(eq c3 c3b)` returning `T`) is unreachable in
-//!   Rust's ownership model; the only known upstream caller
-//!   (`def-simple-suffix` at `dict-grammar.lisp:355`) consumes the
-//!   return through `mapcar` and never re-reads the input, so the
-//!   observable behavior is identical.
+//! Builds a compound word from `word1` and `word2`: when `word1` is a
+//! simple text it mints a fresh `compound-text`; when it is already a
+//! compound it extends that compound (concatenating text/kana and
+//! growing `score-mod`). Defaults `text`/`kana` to the concatenation
+//! of the two inputs and `score-mod` to `0`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

@@ -5,9 +5,8 @@
 //!   cargo run --bin common_test -- \
 //!       --path corpus/<corpus_tag>/dict/common.parquet
 //!
-//! Out-of-Rust-polymorphism input classes (entry, sense, conjugation
-//! et al.) are skipped — the Rust callsites for those hold a typed
-//! DAO and read `.common` directly without the dispatcher.
+//! Returns a word's `common` ranking value (the commonness score, or
+//! nil). Args are `(<word>)`; the one result value is that score.
 
 #[path = "../common/mod.rs"]
 mod common;

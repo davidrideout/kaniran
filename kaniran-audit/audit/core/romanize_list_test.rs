@@ -5,10 +5,8 @@
 //!   cargo run --bin romanize_list_test -- \
 //!       --path corpus/<corpus_tag>/romanize_list.parquet
 //!
-//! Args are `[<cc-list>, ":METHOD", <method>]` — the trace records the
-//! `&key` call with the `:method` keyword symbol kept as a literal arg, so
-//! the method object is at index 2. The one result value is the romanized
-//! string.
+//! Args are `[<cc-list>, ":METHOD", <method>]`; the one result value is
+//! the romanized string.
 
 #[path = "../common/mod.rs"]
 mod common;

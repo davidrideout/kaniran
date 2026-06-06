@@ -1,23 +1,8 @@
 //! Port of `ichiran/kanji:match-readings-json` (`kanji.lisp:452`).
 //!
-//! ```lisp
-//! (defun match-readings-json (str reading)
-//!   (and (ppcre:scan *kanji-regex* str)
-//!        (let ((match (match-readings str reading)))
-//!          (when match
-//!            (process-match-json match)))))
-//! ```
-//!
 //! Returns [`None`] when `str` holds no kanji-ish character, or when
 //! [`super::match_readings`] cannot align `reading` to it; otherwise the
-//! per-segment JSON list from [`super::process_match_json`]. The
-//! upstream `(when match …)` guard is subsumed by `match_readings`'s
-//! [`Option`] (its `:none`/NIL signal is already `None`).
-//!
-//! Diverges from the upstream lambda list `(str reading)` only by taking
-//! `&KaniranContext` for the database handle (via
-//! [`super::match_readings`] / [`super::process_match_json`]), replacing
-//! the upstream dynamic `*connection*` per [`crate::conn::kani_context`].
+//! per-segment JSON list from [`super::process_match_json`].
 
 use std::sync::OnceLock;
 

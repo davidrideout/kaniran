@@ -1,17 +1,7 @@
 //! Port of `ichiran/dict:synergy-noun-da` (`dict-grammar.lisp:841`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-noun-da (l r)
-//!   #'filter-is-noun
-//!   (filter-in-seq-set 2089020) ;; だ
-//!   :description "noun+da"
-//!   :score 10
-//!   :connector " ")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! "noun+da" synergy: binds a noun on the left to だ (seq 2089020) on the
+//! right.
 
 use std::sync::Arc;
 

@@ -1,11 +1,9 @@
 //! Port of `ichiran/dict:process-hints` (`dict-split.lisp:826-827`).
 //!
 //! Applies the hint-substitution table to a romanizer-ready kana
-//! string: collapses each `(*kana-hint-mod* + は|ハ|へ|ヘ)` digram
-//! into its rewritten reading and converts standalone sentinels
-//! back to user-visible characters (or drops them). See
-//! [`super::_star_hint_simplify_map_star_`] for the substitution
-//! rules.
+//! string: collapses each `(*kana-hint-mod* + は|ハ|へ|ヘ)` digram into
+//! its rewritten reading and converts standalone sentinels back to
+//! user-visible characters (or drops them).
 
 use super::_star_hint_simplify_map_star_::hint_simplify_map;
 use crate::characters::simplify_ngrams::simplify_ngrams;

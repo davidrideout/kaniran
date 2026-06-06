@@ -4,31 +4,6 @@
 //! Run with:
 //!   cargo run --release --bin synergy_noun_da_test -- \
 //!       --path corpus/extracted_chunk_d1a_synergy_2026_05_17/dict/synergy_noun_da.parquet
-//!
-//! ## Captured shapes (`extracted_chunk_d1a_synergy_2026_05_17` corpus)
-//!
-//! - `args = [<segment-list>, <segment-list>]` — the left + right
-//!   neighbor `segment-list` pair `find-best-path` adjoins. Each
-//!   captured `segment-list` carries `segments` whose info plists are
-//!   present (calc-score / gen-score run upstream).
-//! - `result = [<value>]` — single-value return. Either `null`
-//!   (`def-generic-synergy` returns nil when `start != end`, when
-//!   filter-left has no matches, or when filter-right has no matches)
-//!   or an array of `[right-sl, synergy, left-sl]` triples.
-//!
-//! ## Comparison policy
-//!
-//! For every captured input the Rust port produces a single
-//! `Vec<(SegmentList, Synergy, SegmentList)>`; the captured array is
-//! either zero-or-one elements wide in upstream practice (one synergy
-//! per adjacent left/right pair). Compare the result count, then for
-//! each triple:
-//!
-//! - `synergy` — description / connector / score / start / end exact.
-//! - `right_sl` / `left_sl` — start / end / matches exact; segment
-//!   count exact; per-segment kpcl, posi, seq_set, start, end, score,
-//!   text exact (the filter only inspects kpcl + posi + seq-set, but
-//!   the output segments are passed through unchanged from input).
 
 #[path = "../common/mod.rs"]
 mod common;

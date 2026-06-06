@@ -4,16 +4,7 @@
 //! walks `segments` once, asking `get-segsplit` for a compound-text
 //! decomposition per row; each non-nil result is appended next to the
 //! original and counted against `matches`. The whole list is then
-//! stable-sorted high-to-low by `segment-score` and assigned back to
-//! the `segments` slot.
-//!
-//! Diverges from the upstream lambda list `(segment-list)` by taking
-//! `&KaniranContext` per CONVENTIONS §4.8 (the descendant
-//! [`super::get_segsplit::get_segsplit`] talks to Postgres) and by
-//! mutating through `&mut SegmentList` — the Lisp `setf` returns the
-//! new segments list, but every caller (`find-best-path`
-//! `dict.lisp:1196`) consumes the slot, not the return value, so the
-//! Rust port returns `Result<(), sqlx::Error>` instead.
+//! stable-sorted high-to-low by `segment-score`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_segsplit::get_segsplit;

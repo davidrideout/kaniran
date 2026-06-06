@@ -2,11 +2,8 @@
 //! (`characters.lisp:70-71`).
 //!
 //! Maps an unvoiced mora `KanaClass` to its handakuten (semi-voiced /
-//! "p") counterpart — `Ha → Pa`, `Hi → Pi`, etc. 5 entries; only the
-//! H-row has a handakuten form. Used by `dakuten-join` to generate the
-//! precomposed form for a `゜` combining mark, and by `rendaku` when
-//! called with `:handakuten t`. (Note: `voice-char` itself only
-//! consults `*dakuten-hash*`, not this table.)
+//! "p") counterpart — `Ha → Pa`, `Hi → Pi`, etc. Only the H-row has a
+//! handakuten form.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

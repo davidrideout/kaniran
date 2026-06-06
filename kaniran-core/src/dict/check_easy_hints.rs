@@ -1,45 +1,8 @@
 //! Port of `ichiran/dict:check-easy-hints` (`dict-split.lisp:906-914`).
 //!
-//! Test helper. For every kana-text row whose seq is registered in
-//! [`super::_star_easy_hints_seqs_star_::EASY_HINTS_SEQS`] (one
-//! per `def-easy-hint` callsite), compute `(true-kanji reading)`
-//! and `(true-kana reading)`, run them through
-//! [`crate::kanji::match_readings::match_readings`], and collect
-//! the readings whose `match-readings` returned no alignment. Used
-//! upstream as a sanity-scan to surface easy-hint registrations
-//! that won't fire because their kanji and kana don't align.
-//!
-//! Upstream's only consumer is the test suite (the symbol's only
-//! input is `*easy-hints-seqs*`, declared "Only used for testing"
-//! at `dict-split.lisp:904`). The Rust port mirrors that — this
-//! module is gated under `#[cfg(test)]` and absent from release
-//! binaries.
-//!
-//! Returns the rows that failed alignment as `(reading, kanji,
-//! kana)` triples — same shape as the upstream
-//! `(list reading kanji kana)` collected element.
-//!
-//! ## Divergences
-//!
-//! Diverges from the upstream lambda list `()` by:
-//! - taking `&KaniranContext` for the database handle (replacing the
-//!   upstream `(with-db nil ...)` dynamic binding) per
-//!   [`crate::conn::kani_context`];
-//! - returning `Vec<CheckEasyHintsFailure>` rather than a raw list of
-//!   3-element sub-lists. Each failure carries the unaltered
-//!   `KanaText` row plus the computed `kanji` (which can be `None`
-//!   when [`super::true_kanji::true_kanji`] returned `:null`) and
-//!   `kana` strings.
-//!
-//! The upstream `(let ((*disable-hints* t)))` binding wraps the
-//! entire loop body — `true-kanji`, `true-kana`, and
-//! `match-readings` are all evaluated under the same rebind. The
-//! Rust port mirrors that by rebinding the ctx once before the
-//! loop via [`KaniranContext::with_disable_hints`]`(true)` and
-//! passing `&ctx2` into all three calls (per the
-//! [`super::get_kana::get_kana`] divergence rationale: ctx-slot
-//! beats task-local because the rebind survives rayon /
-//! `tokio::spawn` boundaries the parallel pipeline introduces).
+//! Test helper that scans every registered easy-hint kana row whose
+//! kanji and kana readings fail to align under `match-readings`, and
+//! returns those readings as `(reading, kanji, kana)` triples.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_easy_hints_seqs_star_::easy_hints_seqs;

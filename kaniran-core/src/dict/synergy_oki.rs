@@ -1,21 +1,7 @@
 //! Port of `ichiran/dict:synergy-oki` (`dict-grammar.lisp:951`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-oki (l r)
-//!   (filter-is-pos ("ctr") (segment k p c l) t)
-//!   (filter-in-seq-set 2854117 2084550)
-//!   :score 20
-//!   :connector "")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - The `filter-is-pos` filter (`dict-grammar.lisp:952`) is built via
-//!   [`filter_is_pos`]; the `kpcl-test` body is `t` (unconditional),
-//!   so only the posi membership decides.
-//! - The macro call omits `:description`, so the slot is `nil`, mapped
-//!   to `None`.
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! Synergy binding a counter (pos "ctr") on the left to おき
+//! (seqs 2854117/2084550) on the right.
 
 use std::sync::Arc;
 

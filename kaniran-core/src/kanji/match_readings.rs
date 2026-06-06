@@ -7,17 +7,6 @@
 //! consecutive non-kanji characters collapse into one
 //! `MatchedSegment::NonKanji(string)` item. Returns `None` when the
 //! reading does not match the character map at all.
-//!
-//! Diverges from the upstream lambda list `(str reading)` by:
-//!
-//! - taking `&KaniranContext` for the database handle (transitively,
-//!   via [`super::make_rmap`]), replacing the upstream dynamic
-//!   `*connection*` per [`crate::conn::kani_context`];
-//! - returning `Option<Vec<MatchedSegment>>` rather than the
-//!   upstream's heterogeneous list. The match-or-none signal moves
-//!   from `:none` / NIL to `Option`; the per-segment shape moves
-//!   from a 1-element string-or-list cons cell to the named-variant
-//!   enum.
 
 use super::kani_kanji_reading::KanjiReading;
 use super::make_rmap::make_rmap;

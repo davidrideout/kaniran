@@ -2,8 +2,6 @@
 //!
 //! Collect every non-overlapping match of `char_class`'s pattern from
 //! `*char-class-regex-mapping*` in `word`, in left-to-right order.
-//! The compiled regex is cached in
-//! [`super::kani_char_class_bare_scanners`].
 
 use super::char_class_type::CharClass;
 use super::kani_char_class_bare_scanners::char_class_bare_scanners;

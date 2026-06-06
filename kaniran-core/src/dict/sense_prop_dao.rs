@@ -1,12 +1,8 @@
 //! Port of `ichiran/dict:sense-prop` (`dict.lisp:197`).
 //!
-//! Row representation of one tagged property attached to a sense
-//! ("part of speech is counter", "applies only to reading X", etc.),
-//! mapped 1:1 to the `public.sense_prop` Postgres table populated by
-//! ichiran's schema. The same `(seq, sense_id)` pair gathers all
-//! properties for a single sense — `tag` discriminates the property
-//! kind (`pos`, `stagk`, `stagr`, `misc`, `field`, etc.) and `text`
-//! holds the property value.
+//! Row of the `public.sense_prop` table — one tagged property on a
+//! sense, where `tag` is the property kind (`pos`, `stagk`, `misc`, …)
+//! and `text` holds its value.
 
 use sqlx::postgres::PgRow;
 use sqlx::{FromRow, Row};

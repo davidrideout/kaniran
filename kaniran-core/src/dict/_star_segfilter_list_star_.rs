@@ -1,24 +1,6 @@
 //! Port of `ichiran/dict:*segfilter-list*` (`dict-grammar.lisp:1024`).
 //!
-//! Registry of segfilter fn pointers iterated by [`apply_segfilters`].
-//! In Lisp this is `(defparameter *segfilter-list* nil)` populated at
-//! load time by `pushnew` inside the `defsegfilter` macro
-//! (`dict-grammar.lisp:1026`); the order below mirrors the captured
-//! value of the global — pushnew prepends, so the last `defsegfilter`
-//! site appears first.
-//!
-//! Divergences from Lisp:
-//! - Encoded as a fixed `&[SegFilter]` instead of a mutable
-//!   `defparameter`. Per CONVENTIONS §4.6 the `defsegfilter` macro is
-//!   marked `skip` (DSL definer); its only effect was the
-//!   accumulation captured here.
-//! - Each filter is a Rust `fn` pointer that threads
-//!   `Arc<SegmentList>` so the pass-through paths inside
-//!   [`apply_segfilters`] reduce to refcount bumps; the Lisp
-//!   `(list seg-left seg-right)` is also pointer-shared. Modify
-//!   paths allocate a fresh `Arc<SegmentList>`.
-//!
-//! [`apply_segfilters`]: super::apply_segfilters::apply_segfilters
+//! Registry of segfilter functions applied to adjacent segment pairs.
 
 use std::sync::Arc;
 

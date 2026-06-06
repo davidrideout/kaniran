@@ -1,55 +1,10 @@
 //! Port of `ichiran/dict:def-segfilter-must-follow`
 //! (`dict-grammar.lisp:1039-1069`).
 //!
-//! ```lisp
-//! (defmacro def-segfilter-must-follow (name (segment-list-left segment-list-right)
-//!                                      filter-left filter-right &key allow-first)
-//!   …
-//!   `(defsegfilter ,name (,segment-list-left ,segment-list-right)
-//!      (multiple-value-bind (,satisfies-right ,contradicts-right)
-//!          (classify ,filter-right (segment-list-segments ,segment-list-right))
-//!        (cond
-//!          ((or (not ,satisfies-right) (and ,allow-first (not ,segment-list-left)))
-//!           (list (list ,segment-list-left ,segment-list-right)))
-//!          ((or (not ,segment-list-left)
-//!               (/= (segment-list-end ,segment-list-left) (segment-list-start ,segment-list-right)))
-//!           (when ,contradicts-right
-//!             (list (list ,segment-list-left
-//!                         (make-segment-list-from ,segment-list-right ,contradicts-right)))))
-//!          (t
-//!           (multiple-value-bind (,satisfies-left ,contradicts-left)
-//!               (classify ,filter-left (segment-list-segments ,segment-list-left))
-//!             (if ,contradicts-left
-//!                 (let ((,result (when ,contradicts-right
-//!                                  (list
-//!                                   (list ,segment-list-left
-//!                                         (make-segment-list-from ,segment-list-right ,contradicts-right))))))
-//!                   (when ,satisfies-left
-//!                     (push
-//!                      (list (make-segment-list-from ,segment-list-left ,satisfies-left)
-//!                            (make-segment-list-from ,segment-list-right ,satisfies-right))
-//!                      ,result))
-//!                   ,result)
-//!                 (list (list ,segment-list-left ,segment-list-right))))))))
-//! ```
-//!
-//! Each `(def-segfilter-must-follow …)` callsite in
-//! `dict-grammar.lisp` ports to its own `segfilter_*.rs` file that
-//! constructs the two filter closures and the `allow_first` flag,
-//! then delegates to [`def_segfilter_must_follow_body`].
-//!
-//! ## Divergences from Lisp
-//! - The inner `defsegfilter` macro (`dict-grammar.lisp:1026`) is
-//!   absorbed by the static slice
-//!   [`super::_star_segfilter_list_star_::SEGFILTER_LIST`]; the
-//!   per-callsite Rust function simply has the same name and the
-//!   slice references it. This helper emits the function body only,
-//!   not the registration.
-//! - `seg_left` is `Option<&Arc<KaniLiteSegmentList>>` (Lisp `nil` ⇒
-//!   `None`); `seg_right` is always non-nil. Lists threaded through
-//!   the segfilter pipeline are `Arc<KaniLiteSegmentList>` so the
-//!   pass-through paths reduce to refcount bumps; the Lisp `(list
-//!   seg-left seg-right)` is also pointer-shared.
+//! Shared body for the "must-follow" segment filters: partitions the
+//! right segment-list by `filter_right` and recombines it with the
+//! left list so that segments matching `filter_right` are kept only
+//! when preceded by a left segment matching `filter_left`.
 
 use std::sync::Arc;
 

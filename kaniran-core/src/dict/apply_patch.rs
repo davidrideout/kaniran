@@ -1,22 +1,9 @@
 //! Port of `ichiran/dict:apply-patch` (`dict-grammar.lisp:435`).
 //!
-//! Replaces the trailing portion of `root` matching the cdr of `patch`
-//! with the car of `patch`. Used by suffix definers (`suffix-sugiru`,
-//! `suffix-garu`, …) to rewrite a candidate root before re-querying
-//! the dictionary.
-//!
-//! ## Divergences from Lisp
-//!
-//! - The upstream `patch` is a dotted cons `(replacement . removed)`;
-//!   the Rust port takes it as a `(&str, &str)` tuple in the same
-//!   `(replacement, removed)` order. Per CONVENTIONS §4.3, a
-//!   fixed-shape cons cell maps to a Rust tuple in its port file.
-//! - Returns an owned [`String`] rather than the upstream
-//!   `(simple-array character (*))` since Rust `&str` cannot own
-//!   freshly-concatenated bytes.
-//! - Per CONVENTIONS §4.5, the trailing `removed` length is measured
-//!   in characters (not bytes) to match the upstream `length` /
-//!   `subseq` call which index by code point in SBCL.
+//! Replaces the trailing `removed` chars of `root` with `replacement`
+//! (patch = `(replacement, removed)`), used by suffix definers to
+//! rewrite a candidate root before re-querying the dictionary. Length
+//! is measured in characters, not bytes.
 
 pub fn apply_patch(root: &str, patch: (&str, &str)) -> String {
     let (replacement, removed) = patch;

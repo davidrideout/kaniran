@@ -1,13 +1,9 @@
 //! Port of `ichiran/characters:split-by-regex` (`characters.lisp:234-236`).
 //!
 //! Split `s` by `regex`, interleaving the captured groups with the
-//! between-match text and dropping any empty pieces. Mirrors
-//! cl-ppcre's `(ppcre:split regex str :with-registers-p t)`.
-//!
-//! With a regex that has a single outer capture group (the upstream
-//! usage in `*basic-split-regex*`), the result alternates
-//! "between-match text" with "the matched text" — exactly what
-//! `basic-split` relies on for its misc/word classification.
+//! between-match text and dropping any empty pieces. With a regex that
+//! has a single outer capture group, the result alternates
+//! "between-match text" with "the matched text".
 
 use fancy_regex::Regex;
 

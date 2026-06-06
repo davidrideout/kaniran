@@ -1,14 +1,7 @@
 //! Port of `ichiran/dict:*semi-final-prt*` (`dict-errata.lisp:1196`).
 //!
-//! "Particles that are final, but also have other uses" — built as
-//! `(append *final-prt* '(2029120 2086640 2029110 2029080 2029100))`.
-//! Read by `calc-score` (`dict.lisp:832`) via
-//! `(member seq *semi-final-prt*)` and by `dict-grammar.lisp:1005`
-//! through `(apply 'filter-in-seq-set *semi-final-prt*)`.
-//!
-//! Derived lazily from [`super::_star_final_prt_star_::FINAL_PRT`]
-//! at first call (CONVENTIONS §5.2) so it tracks any future change
-//! to the source list without a hand-copy.
+//! Particles that are final but also have other uses; the final-prt
+//! list plus さ/し/な/ね/わ.
 
 use std::sync::OnceLock;
 

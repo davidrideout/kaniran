@@ -5,30 +5,9 @@
 //!   cargo run --release --bin join_substring_words_star_test -- \
 //!       --path corpus/substring_2026_05_14/dict/join_substring_words_star_.parquet
 //!
-//! Args shape: `[<str>]`.
-//!
-//! Result shape (two captured values):
-//!   result[0] — list of `[start, end, [segment, ...]]` triples, each
-//!     segment `{"_meta":{"class":"SEGMENT"}, "start", "end", "word", ...}`.
-//!   result[1] — the kanji-break list (`[int, ...]` or null).
-//!
-//! ## id-stripping
-//!
-//! Under `join-substring-words*` the inner `find-word` reads the
-//! `*substring-hash*` `make-instance` branch (`dict.lisp:493`), which
-//! leaves the `id` slot unbound — the projector emits `"id": null`. The
-//! Rust port reads its `substring_hash` cache (rows from `SELECT *`,
-//! real ids). Both sides are zeroed before comparison; `seq + text +
-//! ord` already identifies the row. Same asymmetry handled by
-//! `find_word_full_test`.
-//!
-//! ## comparison
-//!
-//! The outer triple order is `(start, end)` ascending on both sides
-//! (the upstream nested loop), so triples compare positionally. Segment
-//! order within a triple follows `find-word`'s unordered SQL, so the
-//! per-triple segment word fingerprints are sorted before comparison.
-//! The kanji-break list is deterministic and compared in order.
+//! Replays a captured string through `join_substring_words_star_` and
+//! compares the returned `[start, end, [segment...]]` triples plus the
+//! kanji-break list against the Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

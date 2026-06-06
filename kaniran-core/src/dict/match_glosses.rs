@@ -1,33 +1,12 @@
 //! Port of `ichiran/dict:match-glosses` (`dict.lisp:1920`).
 //!
-//! Resolves `(text, reading)` to candidate entry seqs via
-//! [`super::get_candidates::get_candidates`], then for each candidate
-//! scans its glosses in DB order looking for either an `update_gloss`
-//! regex match (priority 1, returns the original gloss) or a match
-//! where every supplied `word` appears in the normalized gloss
-//! (priority 2). First hit across `(candidate, gloss)` wins; when
-//! nothing matches the upstream returns the first candidate with
-//! `found_p = false`. Empty candidates returns the upstream
-//! `(values nil)` shape as [`None`].
-//!
-//! Diverges from the upstream lambda list
-//! `(text reading words &key (normalize 'identity) update-gloss)` by:
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
-//! - taking `reading: Option<&str>` to express the upstream `nil`
-//!   reading directly;
-//! - taking `normalize: Option<&dyn Fn(&str) -> String>` — `None`
-//!   mirrors the upstream default `'identity`;
-//! - taking `update_gloss: Option<&fancy_regex::Regex>` — the
-//!   upstream accepts a `cl-ppcre` parse-tree or string; the Rust
-//!   port accepts a pre-compiled regex;
-//! - collapsing the multi-value `(values matched found-p)` return to
-//!   `Option<(MatchValue, bool)>` per CONVENTIONS §4.3: the closed
-//!   `matched` shape is the [`MatchValue`] enum (`Seq` for the
-//!   word-match / fallback arms, `SeqAndGloss` for the update-gloss
-//!   arm); the outer `Option` is `None` only for the empty-candidate
-//!   case where the upstream returns `(values nil)`.
+//! Resolves `(text, reading)` to candidate entry seqs, then for each
+//! candidate scans its glosses in DB order looking for either an
+//! `update_gloss` regex match (priority 1, returns the original gloss)
+//! or a match where every supplied `word` appears in the normalized
+//! gloss (priority 2). First hit across `(candidate, gloss)` wins; when
+//! nothing matches the first candidate is returned with `found_p =
+//! false`. Empty candidates returns [`None`].
 
 use crate::conn::kani_context::KaniranContext;
 

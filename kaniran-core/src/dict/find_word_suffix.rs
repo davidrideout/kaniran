@@ -1,72 +1,17 @@
 //! Port of `ichiran/dict:find-word-suffix` (`dict-grammar.lisp:695`).
 //!
-//! ```lisp
-//! (defun find-word-suffix (word &key matches)
-//!   (loop with suffixes = (if *suffix-map-temp*
-//!                             (gethash *suffix-next-end* *suffix-map-temp*)
-//!                             (get-suffixes word))
-//!        and slice = (make-slice)
-//!      for (suffix keyword kf) in suffixes
-//!      for suffix-fn = (cdr (assoc keyword *suffix-list*))
-//!      for suffix-class = (if kf (gethash (seq kf) *suffix-class*) keyword)
-//!      for offset = (- (length word) (length suffix))
-//!      when (and suffix-fn (> offset 0)
-//!                (not (and matches (match-unique suffix-class matches))))
-//!      nconc (let ((*suffix-next-end* (and *suffix-next-end* (- *suffix-next-end* (length suffix)))))
-//!              (funcall suffix-fn (subseq-slice slice word 0 offset) suffix kf))))
-//! ```
+//! Iterates over the suffix triples for `word` (from the precomputed
+//! suffix-map-temp when bound, else [`get_suffixes`]), dispatches each
+//! through [`SUFFIX_LIST`], and concatenates the resulting rows. Each
+//! suffix-fn runs with `suffix_next_end` decremented by the suffix's
+//! character length so a nested call can peel further. Offsets are
+//! character positions, not bytes.
 //!
-//! Iterates over the suffix triples for `word`, dispatches each
-//! through [`SUFFIX_LIST`], and concatenates the resulting compound-
-//! text rows. Two suffix sources:
-//!
-//! - When `ctx.suffix_map_temp` is bound, look up the precomputed
-//!   triples at `ctx.suffix_next_end` in that map.
-//! - Otherwise call [`get_suffixes`] to enumerate them on the fly.
-//!
-//! Each call to `suffix-fn` runs under a sibling ctx with
-//! `suffix_next_end` decremented by the suffix's character length —
-//! that lets a nested `find-word-suffix` invocation peel further with
-//! the same suffix-map-temp data (CONVENTIONS §4.10).
-//!
-//! ## Divergences from Lisp
-//!
-//! - **Ctx-injected** per CONVENTIONS §4.8 / §4.10. The dynamic
-//!   `*suffix-map-temp*` and `*suffix-next-end*` rebinds become
-//!   sibling ctx construction via
-//!   [`KaniranContext::with_suffix_next_end`].
-//! - **`matches: &[KaniWordDispatchEnum]`** instead of a `&key`
-//!   keyword. Empty slice mirrors the upstream `nil` default (no
-//!   match-unique gate).
-//! - **Return is `Vec<KaniWordDispatchEnum>`.** Upstream is a
-//!   `(list of (or compound-text proxy-text))`: `def-simple-suffix`
-//!   bodies emit compound-text via [`adjoin_word`], `def-abbr-suffix`
-//!   bodies emit proxy-text from the `etypecase` simple-text arm at
-//!   `dict-grammar.lisp:565-577`. The polymorphic enum carries both
-//!   without a lossy collapse; find-word-full just `.extend`s the
-//!   result without rewrapping.
-//! - **Character-length offsets** per CONVENTIONS §4.5 — the
-//!   `*suffix-next-end*` rebind arithmetic uses character positions,
-//!   not bytes.
-//!
-//! ## suffix-class for the match-unique gate
-//!
-//! When `kf` is present, the suffix-class is the value carried in
-//! [`SUFFIX_CLASS`] for `kf.seq`. When `kf` is absent (`(load-abbr
-//! …)` cache rows), upstream falls back to the keyword itself —
-//! mirrored by using the keyword string in that branch.
-//!
-//! ## Empty word
-//!
-//! `(length word)` = 0 makes `(- 0 (length suffix))` negative for any
-//! candidate suffix and the `(> offset 0)` guard drops them all. The
-//! [`get_suffixes`] / suffix-map-temp pre-fetch loops never visit a
-//! length-zero input (their `start` ranges are empty), so the outer
-//! iteration body is unreachable in practice.
+//! For the match-unique gate, the suffix-class is the value in
+//! [`SUFFIX_CLASS`] for `kf.seq` when `kf` is present, otherwise the
+//! keyword itself.
 //!
 //! [`SUFFIX_LIST`]: super::_star_suffix_list_star_::SUFFIX_LIST
-//! [`KaniranContext::with_suffix_next_end`]: crate::conn::kani_context::KaniranContext::with_suffix_next_end
-//! [`adjoin_word`]: super::adjoin_word::adjoin_word
 //! [`get_suffixes`]: super::get_suffixes::get_suffixes
 //! [`SUFFIX_CLASS`]: super::_star_suffix_class_star_::suffix_class
 

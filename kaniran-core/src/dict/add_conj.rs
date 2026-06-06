@@ -3,13 +3,8 @@
 //! If no conjugation matching `options` already links `seq-from`,
 //! mints a fresh entry plus its kana/kanji readings, conjugation row,
 //! `conj-prop` row, and `conj-source-reading` rows from `reading-map`.
-//!
-//! Diverges from the upstream lambda list
-//! `(seq-from options reading-map)` only by taking `&KaniranContext`
-//! for the database handle, replacing the upstream dynamic
-//! `*connection*` per [`crate::conn::kani_context`]. `options` is the
-//! 4-tuple `(conj-type, pos, neg, fml)`; `reading-map` is a slice of
-//! `(src-reading, reading)` pairs.
+//! `options` is the 4-tuple `(conj-type, pos, neg, fml)`; `reading-map`
+//! is a slice of `(src-reading, reading)` pairs.
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;

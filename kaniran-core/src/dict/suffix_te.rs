@@ -1,13 +1,6 @@
 //! Port of `ichiran/dict:suffix-te` (`dict-grammar.lisp:389`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-te :te (:connector "" :score 0) (root)
-//!   (te-check root))
-//! ```
-//!
-//! `suf` typed `&KanaText`: every `:te` cache populator (the
-//! `(load-conjs :te …)` rows, the `いく/く` loop, `(load-kf :te …)`)
-//! materializes a kana-text.
+//! Handles a bare te-form auxiliary: looks up the root via `te-check`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

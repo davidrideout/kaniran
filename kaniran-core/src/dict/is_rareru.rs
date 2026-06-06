@@ -1,14 +1,7 @@
 //! Port of `ichiran/dict:is-rareru` (`dict.lisp:1619`).
 //!
-//! ```lisp
-//! (defun is-rareru (text)
-//!   ;; surely there must be a better way to do this
-//!   (or
-//!    (alexandria:ends-with-subseq "られる" text)
-//!    (alexandria:ends-with-subseq "られます" text)
-//!    (alexandria:ends-with-subseq "られない" text)
-//!    (alexandria:ends-with-subseq "られません" text)))
-//! ```
+//! True when `text` ends with one of the passive/potential forms
+//! られる / られます / られない / られません.
 
 pub fn is_rareru(text: &str) -> bool {
     text.ends_with("られる")

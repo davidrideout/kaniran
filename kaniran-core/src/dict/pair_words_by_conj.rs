@@ -2,23 +2,9 @@
 //!
 //! Group N word-lists into buckets where words share the same
 //! conjugation-source signature, placing each word at its source-list
-//! index inside the bucket. For every input word, the signature is the
-//! sorted list of `(seq-from, via-or-0)` pairs produced by walking the
-//! word's `word-conjugations` slot and resolving each conjugation id to
-//! a `conjugation` row. Words from different input lists whose
-//! signature lists are equal end up in the same bucket; bucket cell
-//! `[idx]` holds the word from input list `idx` (or `None` when no
-//! word from that list shared the signature).
-//!
-//! Diverges from the upstream lambda list `(&rest word-groups)` by
-//! taking `&KaniranContext` as the first argument (per CONVENTIONS
-//! §4.8 — `get-dao 'conjugation` is a SQL fetch) and a slice of
-//! per-input-list `Vec`s instead of `&rest`. Returns a `Vec<Vec<Option<…>>>`
-//! mirroring the upstream `list of arrays`: each bucket is a vector
-//! of length `word_groups.len()`. Bucket iteration order is
-//! `HashMap` order — non-deterministic, matching SBCL hash-table
-//! iteration; the upstream caller (`suffix-rashii` at
-//! `dict-grammar.lisp:512`) does not depend on the order.
+//! index inside the bucket. The signature is the sorted list of
+//! `(seq-from, via-or-0)` pairs from the word's conjugations; bucket
+//! cell `[idx]` holds the word from input list `idx` (or `None`).
 
 use std::cmp::Ordering;
 use std::collections::HashMap;

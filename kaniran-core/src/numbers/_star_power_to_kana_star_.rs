@@ -2,8 +2,6 @@
 //!
 //! Reading for each power-of-ten kanji that has a single-character form,
 //! keyed by exponent. Sparse — only `1, 2, 3, 4, 8, 12, 16` appear.
-//! Used by [`super::group_to_kana::group_to_kana`] to emit the kana for
-//! the [`super::kani_num_class::NumClass::P`] half of a number group.
 
 pub const POWER_TO_KANA: &[(u8, &str)] = &[
     (1, "じゅう"),  // 十

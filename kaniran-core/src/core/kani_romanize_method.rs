@@ -1,9 +1,6 @@
-//! Rust-only sidecar: the `method` keyword value the romanize entry
-//! points branch on. Upstream the slot holds either a
-//! `generic-romanization` instance or the keyword `:kana`
-//! (`romanize.lisp:252`, `(if (eql method :kana) …)`).
-//! [`RomanizationMethod`] models only the instance case; this enum adds
-//! the `:kana` arm so [`super::romanize_word_info`] can dispatch on it.
+//! Rust-only sidecar: the `method` value the romanize entry points
+//! dispatch on — either a `generic-romanization` instance or the keyword
+//! `:kana` (`romanize.lisp:252`, `(if (eql method :kana) …)`).
 
 use super::generic_romanization_class::RomanizationMethod;
 

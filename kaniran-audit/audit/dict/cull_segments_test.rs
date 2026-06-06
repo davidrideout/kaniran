@@ -5,43 +5,9 @@
 //!   cargo run --release --bin cull_segments_test -- \
 //!       --path corpus/<corpus_tag>/dict/cull_segments.parquet
 //!
-//! Captured shape:
-//! - `args = [[segment, segment, ...]]` — one positional arg (a list
-//!   of segment objects).
-//! - `result = [[segment, segment, ...]]` — single value, the culled
-//!   sub-list.
-//!
-//! ## Capture artifact — destructive stable-sort
-//!
-//! The chunk_b_segmentation_2026_05_14 parquet is contaminated by a
-//! known interaction between `cull-segments` and `trace_capture.lisp`:
-//! the hook projects `args` AFTER the call, and `(stable-sort
-//! segments ...)` destructively re-chains the input conses so the
-//! original `args[0]` head pointer ends up mid-chain in the sorted
-//! list. The captured `args` is therefore a truncated tail of the true
-//! input rather than the true input itself. REPL probe at port time:
-//! ```
-//! input  : [9 9 36 9 36 9 9 36 9 9]
-//! args   : [9 9 9 9 9 9 9]   ← post-call read from original head ptr
-//! result : [36 36 36]        ← correct (freshly consed by `collect`)
-//! ```
-//! Rows where the captured args don't reach the score peak will
-//! mismatch the captured result because cull-segments on those args
-//! produces a different culling. Fixing this end-to-end requires the
-//! tracer to deep-copy args before invoking destructive functions;
-//! until then, the audit honestly surfaces the artifact as a
-//! corruption-induced failure rate rather than hiding it.
-//!
-//! Comparison granularity: output segments are compared by the tuple
-//! `(word.seq, word.text, score, info.common, info.seq_set)` in order.
-//! `info.common` is the primary sort key (drives the first stable-sort);
-//! `seq_set` plus `word.text` exist to keep compound-text segments
-//! distinguishable — `word.seq` is `None` for compounds, so without
-//! `seq_set` two same-score compound segments with distinct JMdict
-//! children would compare equal and a swap would pass silently
-//! (observed ~1.1% of rows in the diverse_250k_2026_05_09 capture).
-//! Other `info` fields (`posi`, `score_info`, `kpcl`, `conj`) are
-//! passengers the function does not consult.
+//! Sorts a list of segments (by `common` then score) and keeps the
+//! best sub-list. Args are `[[segment, ...]]`; the one result value is
+//! the culled list.
 
 #[path = "../common/mod.rs"]
 mod common;

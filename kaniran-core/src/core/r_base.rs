@@ -1,10 +1,7 @@
 //! Port of `ichiran:r-base` (gf — `romanize.lisp:39-42`, `66-67`).
 //!
-//! Romanizes one atomic mora class. Every instantiated method is a
-//! `generic-romanization` subclass, so the `(generic-romanization item)`
-//! method always applies: look the class up in the method's kana-table,
-//! falling through (`call-next-method`) to the `(method item)` default,
-//! which downcases the class's printed name.
+//! Romanizes one atomic mora class by looking it up in the method's
+//! kana-table, falling back to the downcased class name.
 
 use super::generic_romanization_class::RomanizationMethod;
 use crate::characters::kani_kana_class::KanaClass;

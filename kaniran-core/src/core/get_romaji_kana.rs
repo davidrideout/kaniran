@@ -1,10 +1,7 @@
 //! Port of `ichiran:get-romaji-kana` (`deromanize.lisp:7`, `csv-hash *romaji-kana*` expansion).
 //!
 //! Looks up the romaji prefix `key` in the romaji-map, returning its
-//! [`RmapItem`] rule or `None` when absent. The upstream accessor
-//! lazily fills `*romaji-kana*` on first call (`unless *romaji-kana*
-//! (load-romaji-kana)`); here that lazy build is the `OnceLock` in
-//! [`super::_star_romaji_kana_star_`].
+//! [`RmapItem`] rule or `None` when absent.
 
 use super::_star_romaji_kana_star_::romaji_kana;
 use super::rmap_item_struct::RmapItem;

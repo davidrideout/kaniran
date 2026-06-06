@@ -1,28 +1,7 @@
 //! Port of `ichiran/dict:te-check` (`dict-grammar.lisp:384`).
 //!
-//! ```lisp
-//! (defun te-check (root)
-//!   (and (not (equal root "で"))
-//!        (find (char root (1- (length root))) "てで")
-//!        (find-word-with-conj-type root 3)))
-//! ```
-//!
-//! Three-clause `and`: bare "で" is excluded; otherwise the last
-//! character must be て or で; otherwise the result is whatever
-//! [`find_word_with_conj_type`] returns for `(root 3)` — conjugation
-//! type 3 is the -te form. Returns the word list (empty when any
-//! clause fails) so callsites in `suffix-te`, `suffix-teiru`,
-//! `suffix-te+space`, `suffix-kudasai`, `suffix-te-ren`, `suffix-teii`
-//! can use it both as a predicate and as the primary-words pile.
-//!
-//! Diverges from the upstream lambda list `(root)` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`]. The
-//! upstream `(and …)` chain whose value flows through is preserved by
-//! returning an empty `Vec` when any guard fails — `Vec::is_empty()`
-//! at the callsite reads the same as the upstream `nil`-as-falsy
-//! check, and the truthy branch hands back the
-//! `find-word-with-conj-type` rows unchanged.
+//! Returns -te-form (conjugation type 3) words for a root ending in て
+//! or で, excluding bare "で".
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::find_word_with_conj_type::find_word_with_conj_type;

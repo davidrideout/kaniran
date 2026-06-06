@@ -1,44 +1,7 @@
 //! Port of `ichiran/dict:subseq-slice` (`dict.lisp:1013`).
 //!
-//! Returns a string view of `s[start..end]` using *character* offsets,
-//! mirroring upstream's `subseq` / `length` semantics (CL strings index
-//! by code point). Asserts `end >= start` (matching the upstream
-//! `(assert (>= end start))`) AND `end <= (length s)` — upstream's
-//! `adjust-array` signals `The :DISPLACED-TO array is too small.` on
-//! `end > (length str)` or `start > (length str)`; with the
-//! `end >= start` guarantee, bounding `end` alone is sufficient.
-//!
-//! ## Divergences from Lisp
-//!
-//! - **`slice` parameter accepted but ignored.** Upstream reuses the
-//!   passed-in displaced character vector via `adjust-array
-//!   :displaced-to`, returning the same array handle each call so a
-//!   caller in a tight loop can preallocate one slice and re-aim it.
-//!   Rust `&str` is already a fat pointer with no allocation to reuse,
-//!   so the Rust port returns a fresh `&str` borrow per call. The
-//!   parameter is kept on the signature to match the upstream lambda
-//!   list at fixture-replay / audit-signatures boundaries. The
-//!   returned `&str`'s lifetime is tied to `s` (not `_slice`), so a
-//!   caller cannot accidentally rely on the result aliasing the
-//!   passed-in buffer — the borrow checker rules that out at compile
-//!   time.
-//! - **`end` is `Option<usize>`.** Upstream's `&optional (end (length
-//!   str))` becomes `Option<usize>` with `None` resolving to the
-//!   character count of `s`, matching the upstream initform.
-//! - **Character offsets.** Per CONVENTIONS §4.5: `start` and `end`
-//!   are character positions to match Lisp captures; converted to
-//!   byte offsets internally before slicing `&str`.
-//!
-//! ## Performance note
-//!
-//! Each call walks `s.char_indices()` to resolve character → byte
-//! offsets, making the port `O(|s|)` versus the upstream's `O(1)`
-//! pointer-math `adjust-array`. The Lisp consumers
-//! ([`super::parse_suffix_val::parse_suffix_val`] dependents
-//! `get-suffix-map` / `get-suffixes` / `find-word-suffix`) call it
-//! inside an `O(n²)` substring loop, so the asymptotic shape diverges.
-//! Revisit once those consumers are ported (e.g. caching
-//! `s.chars().count()` once per outer loop on the caller side).
+//! Returns the substring `s[start..end]` using *character* offsets;
+//! `end = None` slices to the end of `s`.
 
 pub fn subseq_slice<'a>(
     _slice: Option<&str>,

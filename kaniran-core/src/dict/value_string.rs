@@ -1,31 +1,8 @@
 //! Port of `ichiran/dict:value-string` (gf — `dict-counters.lisp:44-49`).
 //!
 //! Renders a counter's numeric value as a human-readable display
-//! string. Four method bodies upstream — the default on
-//! [`CounterText`] (numeric / ordinal with optional descriptions) and
-//! three subclass overrides:
-//!
-//! - **default `(:method ((counter counter-text)) ...)`** at line 46-49 —
-//!   ported on [`CounterText::value_string`]; emits
-//!   `"Value: <n-or-ordinal>"` plus a space-separated tail of the
-//!   reversed `counter-suffix-descriptions` list.
-//! - **`(counter-halfhour)`** at line 393 — ported on
-//!   [`CounterHalfhour::value_string`]; emits `"<n>:30"`.
-//! - **`(counter-months)`** at line 725 — ported on
-//!   [`CounterMonths::value_string`]; emits the English month name
-//!   indexed by `(number-value - 1)`.
-//! - **`(counter-wari)`** at line 748 — ported on
-//!   [`CounterWari::value_string`]; emits `"<n*10>%"`.
-//!
-//! Variants without an explicit override fall through the dispatcher
-//! to the default-method body. This file is the single entry point
-//! (mirrors [`super::verify`]'s shape); see the per-variant
-//! doc-comments for body-level cites.
-//!
-//! [`CounterText::value_string`]: super::counter_text_class::CounterText::value_string
-//! [`CounterHalfhour::value_string`]: super::counter_halfhour_class::CounterHalfhour::value_string
-//! [`CounterMonths::value_string`]: super::counter_months_class::CounterMonths::value_string
-//! [`CounterWari::value_string`]: super::counter_wari_class::CounterWari::value_string
+//! string, dispatching to the counter-text default or a halfhour /
+//! months / wari override.
 
 use crate::dict::counter_text_class::Counter;
 

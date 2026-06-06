@@ -11,51 +11,7 @@
 //! `vs-s` / `v5s` suru-suffix path).
 //!
 //! Mutually recursive with [`super::calc_score::calc_score`] via the
-//! suru-suffix branch: when the candidate carries a `vs-s` / `v5s`
-//! part-of-speech and the input text matches a registered `:SURU`
-//! suffix (`get_suffixes`), the function scores the underlying
-//! reading row by re-entering `calc-score`, then caps the result at
-//! `min(score, suffix-score + 50)`.
-//!
-//! ## Divergences from Lisp
-//!
-//! - **Ctx-injection** per CONVENTIONS §4.8. The Lisp lambda list is
-//!   `(kanji-break score &key info text use-length score-mod)`; the
-//!   Rust signature prepends `ctx: &KaniranContext` because the
-//!   recursive `calc-score` call touches the database (via
-//!   `get-original-text`'s SQL and the `is-arch` / `prefer-kana` reads).
-//!   `audit-signatures` reports the Rust arity as `7 ≠ Lisp 6 …
-//!   (ctx-injected; +1 absorbed)`.
-//! - **`async fn` + `sqlx::Error` Result** for the same reason: the
-//!   recursive `calc-score` is async, and DB errors propagate.
-//! - **`&key` → positional** (CONVENTIONS §4.4). Every upstream
-//!   `kanji-break-penalty` callsite (the two inside `calc-score` at
-//!   `dict.lisp:788` and `dict.lisp:981`) passes all four keywords;
-//!   modeling them as positional with the rich types they carry
-//!   (`Option<&KaniSegmentInfo>`, `&str`, `Option<i32>`,
-//!   `Option<&ScoreMod>`) keeps the dispatch self-describing while
-//!   removing the keyword ceremony.
-//! - **`kanji-break` as `&[usize]`.** Upstream `kanji-break` is a list
-//!   of character positions; the Rust port takes `&[usize]` (character
-//!   positions, CONVENTIONS §4.5). Empty slice maps to upstream `nil`
-//!   and reaches the same `:end` branch through the same `cdr` /
-//!   `car` falsy-on-`nil` semantics.
-//! - **`KanjiBreakEnd` sidecar enum** (CONVENTIONS §4.3) names the
-//!   three Lisp `(cond …)` results that the body matches on.
-//! - **`(third suru-suffix)` is a `KanaText` row** in the Rust triple
-//!   (`get_suffixes` returns `(suffix-text, key, Option<&KanaText>)`).
-//!   To call `calc_score` recursively we wrap the row as
-//!   [`KaniWordDispatchEnum::Kana`] — `calc-score`'s simple-text
-//!   branch only reads slot fields the bare DAO already carries.
-//!
-//! ## Numeric width
-//!
-//! The Lisp `(ceiling score ratio)` divides `score` by `ratio = 2`
-//! with round-up semantics. The Rust port uses `(score + ratio - 1)
-//! / ratio` (positive-operand round-up — `i32::div_ceil` is still
-//! unstable as of rustc 1.95) — both inputs are non-negative in every
-//! reachable callsite (`score` is declared `(integer 0 1000000)` in
-//! `calc-score`, `ratio` is `2`).
+//! suru-suffix branch.
 
 use crate::characters::mora_length::mora_length;
 use crate::conn::kani_context::KaniranContext;

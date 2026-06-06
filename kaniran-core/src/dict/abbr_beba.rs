@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:abbr-beba` (`dict-grammar.lisp:641-642`).
 //!
-//! ```lisp
-//! (def-abbr-suffix abbr-beba :beba 2 (root)
-//!   (find-word-full (concatenate 'string root "べば")))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_abbr_suffix_body`] (CONVENTIONS
-//! §4.6 case (c)).
+//! `:beba` abbreviated suffix: looks up `root + "べば"` and produces
+//! the suffix candidates for it.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;

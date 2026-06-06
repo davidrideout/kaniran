@@ -2,8 +2,7 @@
 //! (`characters.lisp:109`).
 //!
 //! Source side of the abnormal→normal character map: full-width ASCII
-//! printables and half-width katakana, paired index-by-index with
-//! `*normal-chars*`.
+//! printables and half-width katakana.
 
 pub static ABNORMAL_CHARS: &str = "\
 ０１２３４５６７８９\

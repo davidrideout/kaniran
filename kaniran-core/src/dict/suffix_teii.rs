@@ -1,16 +1,8 @@
 //! Port of `ichiran/dict:suffix-teii` (`dict-grammar.lisp:414`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-teii :teii (:connector " " :score 1) (root)
-//!   (and (find (char root (1- (length root))) "てで")
-//!        (find-word-with-conj-type root 3)))
-//! ```
-//!
-//! Body is not `te-check`: no `(not (equal root "で"))` guard, so root
-//! "で" passes and yields the bare で kana-text (seq 2028980).
-//! `suf` typed `&KanaText`: both `(load-kf :teii (get-kana-form 2820690
-//! "いい") …)` and `(load-kf :teii (get-kana-form 900001 "もいい") …)`
-//! materialize kana-texts.
+//! Handles ～ていい/～てもいい: for a root ending in て/で, looks up
+//! conj-type 3. Unlike `te-check` there is no で guard, so a bare で root
+//! passes.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

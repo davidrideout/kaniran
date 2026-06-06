@@ -1,18 +1,6 @@
 //! Port of `ichiran/dict:kana-text` (`dict.lisp:128`).
 //!
-//! Row representation of a kana reading of a JMdict entry, mapped 1:1
-//! to the `public.kana_text` Postgres table populated by ichiran's
-//! schema. Identical column shape to
-//! [`crate::dict::kanji_text_dao::KanjiText`] except for the asymmetric
-//! cross-reference column `best_kanji` (vs `best_kana` on the kanji
-//! row). The `state` field holds the two runtime-only slots inherited
-//! from [`crate::dict::simple_text_class::SimpleText`] and is reset to
-//! its `Default` on every `FromRow` decode.
-//!
-//! `FromRow` is implemented by hand rather than derived because the
-//! `state` field has no DB counterpart and the derive macro requires
-//! every field's type to satisfy `Decode + Type` even when
-//! `#[sqlx(default)]` is set.
+//! Row representation of a kana reading of a JMdict entry.
 
 use crate::dict::simple_text_class::SimpleText;
 use sqlx::postgres::PgRow;

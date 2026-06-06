@@ -1,71 +1,16 @@
 //! Fixture-replay runner for `ICHIRAN/DICT:GET-SUFFIXES`. **Archived
 //! 2026-05-15** — renamed `_buggy` and removed from `Cargo.toml`'s
-//! `[[bin]]` list. Retained on disk as evidence of upstream
-//! nondeterminism (see `docs/known_issues.md`); not built
-//! or run by default. To re-enable for investigation, re-add a
-//! `[[bin]] name = "get_suffixes_test_buggy" path = "…"` entry to
-//! `kaniran-core/Cargo.toml`.
+//! `[[bin]]` list; not built or run by default. Retained as evidence
+//! of upstream nondeterminism (see `docs/known_issues.md`).
 //!
 //! Source under test: `src/dict/get_suffixes.rs`.
 //!
-//! Args: `(<word string>)`.
-//! Result: `((<list of triples>))` — single value: a list of
-//! `(suffix_str ":KEY" <kana-text or null>)` triples in the upstream
-//! "shortest-suffix-first" order. Each triple's third slot is either
-//! a captured `KANA-TEXT` row (full slot set) or null when the
-//! upstream cache entry came from the `load-abbr` path.
-//!
-//! ## Why `_buggy`
-//!
-//! Against the 2026-05-15 parquet (396,209 rows), this runner reports
-//! 504 failures (~0.13%). All 504 are explained, none are Rust port
-//! bugs:
-//!
-//! - **459 cache-row identity mismatches** (docs/known_issues.md,
-//!   "Unordered query results"). The
-//!   upstream UNION in `get_kana_forms_star_` has no `ORDER BY`;
-//!   Postmodern's `query-dao` loader applies a non-trivial permutation
-//!   driven by in-process allocator / hash-table state, which neither
-//!   matches nor reverses Postgres's wire order for multi-row results.
-//!   Empirically verified across 20 seqs × 5 trials on `.103`
-//!   2026-05-15. Captures encode one realization; re-extraction on a
-//!   fresh worker produces a different parquet with the same failure
-//!   count and different per-row `lisp seq=` values.
-//!
-//! - **125 + 1 leaked-slot mismatches** (docs/known_issues.md,
-//!   "Mid-session state in ichiran"). Lisp's
-//!   `compound-text` shares `KanaText` identity by reference with the
-//!   suffix cache; `(setf word-conjugations …)` on the compound
-//!   delegates via `dict.lisp:666` into the cache row, mutating it.
-//!   Rust's value-copy `init_suffixes_thread` has no equivalent
-//!   aliasing path. The captured slot value is a function of the
-//!   worker's prior sentence-processing history, not the get_suffixes
-//!   call alone — making these rows order-dependent traces, not a
-//!   per-input spec.
-//!
-//! ## What this runner still verifies
-//!
-//! The 395,705 passing rows do cover real algorithm properties:
-//!
-//! - `start` loop bounds and `subseq_slice` character-index walking
-//! - shortest-suffix-first ordering across the triple sequence
-//! - cache hit/miss discrimination by substring
-//! - `parse_suffix_val` flattening of the value-list shape
-//! - abbr-vs-kf path discrimination (third-slot None vs Some)
-//! - keyword tag preservation (`teiru`, `neg`, `tai`, …)
-//!
-//! Anything that breaks one of those would surface as a *new* failure
-//! pattern outside the 504 known divergences. Diff against the known
-//! signatures before declaring a regression.
-//!
-//! ## Disposition
-//!
-//! Leave this runner in place until either (a) the suffix subsystem
-//! ports land with an explicit decision on the aliasing-leak fidelity
-//! strategy (docs/known_issues.md, "Mid-session state in ichiran"), at which point a clean
-//! re-extracted fixture replaces this one; or (b) an audit runner is
-//! written that splits known-divergence rows from unknown failures so
-//! a single pass/fail signal is meaningful again.
+//! Replays captured words through `get_suffixes` and compares the
+//! returned suffix triples against the Lisp result. Against the
+//! 2026-05-15 parquet its 504 failures (~0.13%) are all explained by
+//! two known issues (unordered query results; mid-session state in
+//! ichiran), none Rust port bugs — diff against those signatures
+//! before declaring a regression.
 
 #[path = "../common/mod.rs"]
 mod common;

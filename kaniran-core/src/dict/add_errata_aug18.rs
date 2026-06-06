@@ -4,10 +4,6 @@
 //! adjustments on `kana-text` / `kanji-text` rows, sense-prop tweaks,
 //! a new reading for オケ together with its `primary-nokanji` flag,
 //! and a `misc` "uk" delete.
-//!
-//! Diverges from the upstream lambda list `()` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
 
 use super::add_primary_nokanji::add_primary_nokanji;
 use super::add_reading::add_reading;

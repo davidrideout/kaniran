@@ -3,10 +3,6 @@
 //! Top-level errata pipeline applied after the JMdict load completes.
 //! Calls every errata helper in turn, then dispatches the monthly
 //! `add-errata-<tag>` batches.
-//!
-//! Diverges from the upstream lambda list `()` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
 
 use super::add_deha_ja_readings::add_deha_ja_readings;
 use super::add_errata_apr19::add_errata_apr19;

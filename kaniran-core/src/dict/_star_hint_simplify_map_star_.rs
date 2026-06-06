@@ -1,26 +1,15 @@
 //! Port of `ichiran/dict:*hint-simplify-map*` (`dict-split.lisp:818-824`).
 //!
-//! Ordered (from, to) substitution table consumed by
-//! [`super::process_hints`] via
-//! [`crate::characters::simplify_ngrams::simplify_ngrams`]. Folds
-//! the hint sentinels back into reader-facing characters:
+//! Ordered (from, to) substitution table that folds the hint
+//! sentinels back into reader-facing characters:
 //!
 //! - `*kana-hint-space*` → ASCII space `" "`
 //! - `*kana-hint-mod*` + `は` → `わ`  (and `ハ` → `ワ`)
 //! - `*kana-hint-mod*` + `へ` → `え`  (and `ヘ` → `エ`)
 //! - lone `*kana-hint-mod*` → empty string (drop)
 //!
-//! Order is load-bearing: the 2-char sentinel+kana entries must
-//! precede the lone-sentinel entry so `simplify_ngrams`' alternation
-//! prefers the longer match at the same starting offset.
-//!
-//! ## Divergence
-//!
-//! The Lisp `defparameter` builds the value at load time from
-//! `*kana-hint-space*` / `*kana-hint-mod*` (character globals) via
-//! `string` / `coerce`. The Rust port mirrors that derivation under
-//! `OnceLock` rather than freezing the result, so the table stays
-//! tracked against the source character constants.
+//! Order matters: the 2-char sentinel+kana entries must precede the
+//! lone-sentinel entry so the longer match wins at the same offset.
 
 use std::sync::OnceLock;
 

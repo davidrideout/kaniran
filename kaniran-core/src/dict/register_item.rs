@@ -1,31 +1,10 @@
 //! Port of `ichiran/dict:register-item` (`dict.lisp:1148-1158`).
 //!
-//! ```lisp
-//! (defgeneric register-item (collection score payload)
-//!   (:method ((obj top-array) score payload)
-//!     (with-slots (array count) obj
-//!       (let ((item (make-top-array-item :score score :payload payload))
-//!             (len (length array)))
-//!         (loop for idx from (min count len) downto 0
-//!            for prev-item = (when (> idx 0) (aref array (1- idx)))
-//!            for done = (or (not prev-item) (>= (tai-score prev-item) score))
-//!            when (< idx len) do (setf (aref array idx) (if done item prev-item))
-//!            until done)
-//!         (incf count)))))
-//! ```
-//!
 //! Inserts `(score, payload)` into [`TopArray`]'s backing array,
 //! maintaining the highest-score-first order by shifting lower-scored
 //! entries down. `count` increments every call even when the array is
-//! already at capacity — the lowest-scored entry at index `len-1` is
-//! dropped silently when a higher-scored item walks down past it.
-//! Equal scores: the new item lands BELOW the existing one (the
-//! `>= score` test is satisfied at the first equal-score slot above,
-//! so insertion stops one index lower).
-//!
-//! Single method on `top-array`; per [`super::get_array::get_array`]
-//! precedent the Rust port is a free function rather than a generic
-//! dispatcher (CONVENTIONS §4.7).
+//! at capacity (the lowest-scored entry is dropped). Equal scores: the
+//! new item lands BELOW the existing one.
 
 use super::top_array_class::TopArray;
 use super::top_array_item_struct::{PathElement, TopArrayItem};

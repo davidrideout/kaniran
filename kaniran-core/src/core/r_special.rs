@@ -1,9 +1,7 @@
 //! Port of `ichiran:r-special` (gf — `romanize.lisp:210-215`).
 //!
 //! Romanizes the standalone glyphs that carry no mora class: a lone small
-//! tsu and the long-vowel bar. The `or` method combination currently has
-//! only the `(method word)` default, so the result does not depend on the
-//! method; `nil` (no special case) maps to `None`.
+//! tsu (`っ` -> `!`) and the long-vowel bar (`ー` -> `~`).
 
 use super::generic_romanization_class::RomanizationMethod;
 

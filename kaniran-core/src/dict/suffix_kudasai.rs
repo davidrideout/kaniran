@@ -1,13 +1,6 @@
 //! Port of `ichiran/dict:suffix-kudasai` (`dict-grammar.lisp:404`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-kudasai :kudasai (:connector " " :score (constantly 360)) (root)
-//!   (te-check root))
-//! ```
-//!
-//! `:score (constantly 360)` → [`ScoreMod::Constant(360)`].
-//! `suf` typed `&KanaText`: `(load-kf :kudasai (get-kana-form 1184270
-//! "ください" :conj :root))` materializes a kana-text.
+//! Handles ～ください: looks up the root as a te-form via `te-check`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

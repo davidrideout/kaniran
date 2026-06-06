@@ -5,19 +5,9 @@
 //!   cargo run --bin get_original_text_test -- \
 //!       --path corpus/<corpus_tag>/dict/get_original_text.parquet
 //!
-//! Args: `(<reading> :CONJ-DATA <conj-data-list>)`. The trace captures
-//! the `&key conj-data` keyword as a positional name+value pair, so
-//! args length is 3. `conj-data-list` is null (Lisp NIL) or an array
-//! of CONJ-DATA envelopes.
-//!
-//! Reading classes: KANA-TEXT, KANJI-TEXT, PROXY-TEXT. The Rust port
-//! peels proxies recursively; the leaf's word-type determines whether
-//! the result rows are kana-text or kanji-text DAOs.
-//!
-//! Result: `[<list>]` where `<list>` is null (Lisp NIL = empty) or an
-//! array of kana-text / kanji-text envelopes. Homogeneous per call
-//! (the impl dispatches on `(word-type reading)` once), but the
-//! comparator buckets by class to be defensive.
+//! Replays a captured reading (plus conj-data) through
+//! `get_original_text` and compares the returned kana-text/kanji-text
+//! rows against the Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

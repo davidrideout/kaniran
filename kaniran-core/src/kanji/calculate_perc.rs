@@ -1,17 +1,8 @@
 //! Port of `ichiran/kanji:calculate-perc` (`kanji.lisp:349`).
 //!
-//! Renders `sample / total` as a fixed-width percentage string with
-//! two fractional digits and a trailing `%`. Returns the literal
-//! `"--.--%"` when `total` is zero, mirroring upstream's divide-by-
-//! zero guard. The format directive `~,2,,,'0F%` rounds half-to-even,
-//! which matches Rust's default `{:.2}` rounding so callers see the
-//! same string for every realistic input pair.
-//!
-//! Diverges from the upstream lambda list `(sample total)` only by
-//! taking `i32` rather than the unconstrained `t` types upstream
-//! accepts: every callsite in scope passes the integer `stat-common`
-//! / `stat-irregular` columns of the kanji and reading DAOs, both
-//! `i32` in the Rust ports.
+//! Renders `sample / total` as a percentage string with two fractional
+//! digits and a trailing `%`, or the literal `"--.--%"` when `total`
+//! is zero.
 
 pub fn calculate_perc(sample: i32, total: i32) -> String {
     if total == 0 {

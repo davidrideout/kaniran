@@ -1,10 +1,7 @@
 //! Port of `ichiran/dict:get-seg-initial` (`dict.lisp:1171-1173`).
 //!
-//! ```lisp
-//! (defun get-seg-initial (seg)
-//!   (loop for split in (apply-segfilters nil seg)
-//!      collect (cadr split)))
-//! ```
+//! Runs `seg` through [`apply_segfilters`] (with no left segment) and
+//! collects the right segment of each resulting split.
 
 use std::sync::Arc;
 

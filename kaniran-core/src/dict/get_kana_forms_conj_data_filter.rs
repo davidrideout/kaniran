@@ -2,11 +2,6 @@
 //!
 //! Short-circuits to empty if [`skip_by_conj_data`] applies; otherwise
 //! collects `conj_id`s of props that are NOT in [`WEAK_CONJ_FORMS`].
-//! Both Lisp empty cases (`unless` skip vs empty `collect`) collapse
-//! to the same empty [`Vec`]; callers gate on `is_empty()`.
-//!
-//! `cd.prop = None` rows are silently dropped (defensive; upstream
-//! never produces them).
 
 use super::_star_weak_conj_forms_star_::WEAK_CONJ_FORMS;
 use super::conj_data_struct::ConjData;

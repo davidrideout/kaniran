@@ -1,21 +1,7 @@
 //! Port of `ichiran/dict:*synergy-list*` (`dict-grammar.lisp:723`).
 //!
-//! Registry of synergy fn pointers iterated by [`get_synergies`]. In
-//! Lisp this is `(defparameter *synergy-list* nil)` populated at load
-//! time by `pushnew` inside the `defsynergy` macro
-//! (`dict-grammar.lisp:725`); the order below mirrors the captured
-//! value of the global — `pushnew` prepends, so the last `defsynergy`
-//! site appears first.
-//!
-//! Divergences from Lisp:
-//! - Encoded as a fixed `&[SynergyFn]` instead of a mutable
-//!   `defparameter`. Per CONVENTIONS §4.6 the `defsynergy` macro is
-//!   marked `skip` (DSL definer); its only effect was the
-//!   accumulation captured here.
-//! - Each entry is a Rust `fn` pointer with the shared signature
-//!   `fn(&SegmentList, &SegmentList) -> Vec<(SegmentList, Synergy, SegmentList)>`.
-//!
-//! [`get_synergies`]: super::get_synergies::get_synergies
+//! Registry of synergy functions applied to adjacent segment pairs
+//! during scoring.
 
 use std::sync::Arc;
 

@@ -1,17 +1,7 @@
 //! Port of `ichiran/dict:dict-segment` (`dict.lisp:1450`).
 //!
-//! ```lisp
-//! (defun dict-segment (str &key (limit 5))
-//!   (with-connection *connection*
-//!     (loop for (path . score) in (find-best-path (join-substring-words str) (length str) :limit limit)
-//!          collect (cons (fill-segment-path str path) score))))
-//! ```
-//!
-//! Diverges from the upstream lambda list `(str &key (limit 5))` by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! `(with-connection *connection*)` per [`crate::conn::kani_context`]. The
-//! `&key (limit 5)` becomes `Option<usize>`; each `(word-info-list . score)`
-//! cons becomes a `(Vec<WordInfo>, i32)` tuple.
+//! Segments `str` into the top-scoring paths and pairs each resulting
+//! word-info list with its score.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::fill_segment_path::fill_segment_path;

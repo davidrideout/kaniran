@@ -1,7 +1,7 @@
 //! Port of `ichiran/custom:as-xml-simple` (`dict-custom.lisp:223`).
 //!
-//! Lisp builds a `rune-dom` document; the Rust port returns the
-//! serialized form because `load_entry` re-parses strings.
+//! Builds a JMdict-style XML `<entry>` string for a custom entry from
+//! its text, reading, and definition.
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;

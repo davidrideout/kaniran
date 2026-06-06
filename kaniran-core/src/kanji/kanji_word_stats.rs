@@ -7,22 +7,6 @@
 //! through to an `"irr"` reading (or fails to align altogether) are
 //! counted into the `irregular` tally. Returns the tally alist,
 //! the irregular count, and the total word count.
-//!
-//! Diverges from the upstream lambda list `(char)` by:
-//!
-//! - taking `&KaniranContext` as the first argument per
-//!   [`crate::conn::kani_context`], replacing the upstream dynamic
-//!   `*connection*` reached transitively through
-//!   [`super::super::dict::get_kanji_words`] and [`super::match_readings`];
-//! - taking `char: &str` rather than the upstream `char-or-string`
-//!   union — the single-character case at every callsite collapses to
-//!   a one-char `&str`, matching [`super::super::dict::get_kanji_words`];
-//! - returning a 3-tuple `(stats, irregular, total)` in place of the
-//!   upstream `(values ... ... ...)`.
-//!
-//! The `stats` `Vec` mirrors `(alexandria:hash-table-alist r-stat)` — an
-//! unordered list of `((rtext, rtype), count)` entries. Upstream
-//! iteration order is hash-table-defined; callers must not rely on it.
 
 use super::get_original_reading::get_original_reading;
 use super::get_reading_alternatives::ReadingTag;

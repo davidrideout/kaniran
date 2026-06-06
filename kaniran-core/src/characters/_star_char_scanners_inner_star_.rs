@@ -2,11 +2,8 @@
 //! (`characters.lisp:155`).
 //!
 //! Like [`super::_star_char_scanners_star_`] but unanchored: each
-//! pattern is wrapped as `(?:pattern)+`. The Lisp parse-tree form
-//! `(:greedy-repetition 1 nil (:regex pattern))` means "one or more of
-//! pattern" — fancy-regex's text-form equivalent is `(?:pattern)+`.
-//!
-//! Compilation is lazy — `fancy_regex::Regex` is not const-constructible.
+//! pattern is wrapped as `(?:pattern)+`, matching one or more
+//! characters of the class.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

@@ -1,31 +1,10 @@
 //! Port of `ichiran/kanji:to-json` (`kanji.lisp:369`), the sole method
 //! of the `to-json` generic (`kanji.lisp:7`).
 //!
-//! ```lisp
-//! (defmethod to-json ((kanji kanji) &key)
-//!   (let* ((total (stat-common kanji))
-//!          (js (jsown:new-js ("text" (text kanji)) ("rc" (radical-c kanji))
-//!                 ("rn" (radical-n kanji)) ("strokes" (strokes kanji))
-//!                 ("total" (stat-common kanji)) ("irr" (stat-irregular kanji))
-//!                 ("irr_perc" (calculate-perc (stat-irregular kanji) total))
-//!                 ("readings" (mapcar (lambda (r) (reading-info-json r total))
-//!                               (select-dao 'reading (:and (:= 'kanji-id (id kanji))
-//!                                  (:not (:= 'type "ja_na"))) (:desc 'type) (:desc 'stat-common))))
-//!                 ("meanings" (mapcar 'text (select-dao 'meaning (:= 'kanji-id (id kanji)) 'id))))))
-//!     (when (freq kanji) (jsown:extend-js js ("freq" (freq kanji))))
-//!     (when (grade kanji) (jsown:extend-js js ("grade" (grade kanji))))
-//!     js))
-//! ```
-//!
-//! Returns a [`serde_json::Value`] object (insertion order via the
-//! crate's `preserve_order` feature). The generic has only this one
-//! method, so it is ported as a single free function over [`Kanji`]
-//! rather than an enum dispatcher.
-//!
-//! Diverges from the upstream lambda list `(kanji &key)` only by taking
-//! `&KaniranContext` for the database handle (the readings/meanings
-//! queries), replacing the upstream dynamic `*connection*` per
-//! [`crate::conn::kani_context`].
+//! Builds a JSON object describing one `kanji` row: its text, radical
+//! and stroke fields, common/irregular stat counts and percentage, the
+//! non-nanori readings (each via [`reading_info_json`]), the meanings,
+//! and `freq`/`grade` when present.
 
 use serde_json::{Map, Value};
 

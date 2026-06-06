@@ -1,10 +1,7 @@
 //! Port of `ichiran/dict:*hints-checked*` (`dict-split.lisp:947`).
 //!
-//! Upstream construction is `(mapcar 'car '(<alist>))` where each
-//! alist entry pairs a seq with a sample expression for the audit
-//! comment; the port inlines the post-`mapcar` list of cars.
-//! Duplicates (e.g. `2006850` appearing three times) are preserved
-//! because the upstream consumer treats it as a list, not a set.
+//! List of seqs whose split hints have been audited. Duplicates
+//! (e.g. `2006850` three times) are preserved — it's a list, not a set.
 
 pub static HINTS_CHECKED: &[i32] = &[
     1186700, 1236510, 1252080, 1259320, 1259320, 1324680, 1327220, 1348240, 1370020, 1483810,

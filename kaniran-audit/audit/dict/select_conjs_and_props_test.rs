@@ -1,20 +1,15 @@
 //! Fixture-replay runner for `ICHIRAN/DICT:SELECT-CONJS-AND-PROPS`
 //! (`dict.lisp:1638`).
 //!
-//! Replays `(seq &optional conj-ids text)` and compares the returned
-//! `(conjugation, filtered-props, sort-key)` tuples to the captured DAO
-//! list. Each tuple is fingerprinted by conjugation content
-//! (`seq`/`from`/`via`) — not the surrogate `id`, which differs between
-//! duplicate dictionary rows the database returns in unstable order
-//! (same rationale as the suffix runners) — plus a sorted prop content
-//! list and the sort key. Tuples are compared as a sorted MULTISET, so a
-//! genuine extra/missing conjugation survives while pure row-order
-//! reordering and id-only differences collapse to equal. Under
-//! [`common::run_async`] (group-by-args, pass-if-any).
-//!
 //! Run with:
 //!   cargo run --release --bin select_conjs_and_props_test -- \
 //!     --path corpus/<tag>/dict/select_conjs_and_props.parquet
+//!
+//! Replays `(seq &optional conj-ids text)` through
+//! `select_conjs_and_props` and compares the returned
+//! `(conjugation, filtered-props, sort-key)` tuples against the Lisp
+//! result (sorted multiset, so id-only and row-order differences
+//! collapse to equal).
 
 #[path = "../common/mod.rs"]
 mod common;

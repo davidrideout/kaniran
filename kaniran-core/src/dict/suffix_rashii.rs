@@ -1,24 +1,7 @@
 //! Port of `ichiran/dict:suffix-rashii` (`dict-grammar.lisp:520`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-rashii :rashii (:connector "" :score 3) (root)
-//!   (pair-words-by-conj
-//!    (find-word-with-conj-type root 2)
-//!    (find-word-with-conj-type (concatenate 'string root "ら") 11)))
-//! ```
-//!
-//! Each bucket from [`pair_words_by_conj`] is a 2-element list
-//! `(word_g0 word_g1)`; the def-simple-suffix mapcar's
-//! `(when (listp pw) (setf score-base (second pw) pw (first pw)))`
-//! unpacks first into `pw` and second into `score-base`. Mapped to the
-//! [`PrimaryWord::WithScoreBase`] variant when both slots are filled;
-//! `(Some(w0), None)` maps to [`PrimaryWord::Bare(w0)`]. A `(None, _)`
-//! bucket would error in upstream (`adjoin-word nil w2` finds no
-//! applicable method); the Rust port mirrors via panic.
-//!
-//! [`pair_words_by_conj`]: super::pair_words_by_conj::pair_words_by_conj
-//! [`PrimaryWord::WithScoreBase`]: super::def_simple_suffix_macro::PrimaryWord::WithScoreBase
-//! [`PrimaryWord::Bare(w0)`]: super::def_simple_suffix_macro::PrimaryWord::Bare
+//! Handles ～らしい: pairs words found as the root's past-plain (conj 2)
+//! with those found as root+ら conj-type 11.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

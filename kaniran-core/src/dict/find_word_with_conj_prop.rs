@@ -1,60 +1,13 @@
 //! Port of `ichiran/dict:find-word-with-conj-prop` (`dict-grammar.lisp:44`).
 //!
-//! ```lisp
-//! (defun find-word-with-conj-prop (wordstr filter-fn &key allow-root)
-//!   (loop for word in (find-word-full wordstr)
-//!        for conj-data = (word-conj-data word)
-//!        for conj-data-filtered = (remove-if-not filter-fn conj-data)
-//!        for conj-ids = (mapcar (lambda (cdata) (conj-id (conj-data-prop cdata))) conj-data-filtered)
-//!        when (or conj-data-filtered (and (null conj-data) allow-root))
-//!        do (setf (word-conjugations word) conj-ids)
-//!        and collect word))
-//! ```
-//!
 //! For each word from [`find_word_full`], read its conjugation data
-//! through [`word_conj_data`], filter with the caller's predicate,
-//! map the survivors to their `conj_id` values, and either (a) the
-//! filtered list is non-empty, or (b) the original conj-data was
-//! empty and `allow_root` is set — in both cases the word's
-//! `word-conjugations` slot is mutated to the conj-ids list and the
-//! word is collected.
-//!
-//! ## Divergences from Lisp
-//!
-//! - **Ctx-injected** per CONVENTIONS §4.8.
-//! - **`filter_fn` typed as a [`FnMut`] borrowed closure** instead of
-//!   a Lisp function value. Mirrors the upstream callsite usage where
-//!   the lambda is constructed inline (`find-word-with-conj-type`,
-//!   `suffix-sou-base`) — no upstream callsite reuses the same
-//!   `filter-fn` across multiple invocations.
-//! - **`allow_root` is `bool`** per CONVENTIONS §4.4 (binary `&key`
-//!   keyword with a clearly-named boolean polarity).
-//! - **`conj-id` of a `nil` prop is impossible** under the
-//!   [`get_conj_data`] invariant (every emitted [`ConjData`] carries
-//!   `Some(prop)`); the filter closure is the only path that could
-//!   observe a `None` prop, and a closure that returns `true` for a
-//!   `None` prop is a caller bug.
-//!
-//! ## word-conjugations slot mutation
-//!
-//! Upstream calls `(setf (word-conjugations word) conj-ids)` even when
-//! `conj-ids` is the empty list (`mapcar` over `nil` yields `nil`).
-//! In Rust:
-//!
-//! - non-empty conj-ids → `Some(WordConjugations::Ids(ids))`
-//! - empty conj-ids (`allow_root` path with no upstream conj-data) →
-//!   `None`
-//!
-//! The setter dispatch ([`set_word_conjugations`]) descends into
-//! compound-text / proxy-text. The find-word-full output for this
-//! callsite never includes counter-text (no `:counter` arg passed),
-//! so the counter-text panic arm is unreachable here.
+//! through [`word_conj_data`], filter with the caller's predicate, and
+//! collect the word — setting its `word-conjugations` slot to the
+//! survivors' conj-ids — when either the filtered list is non-empty, or
+//! the original conj-data was empty and `allow_root` is set.
 //!
 //! [`find_word_full`]: super::find_word_full::find_word_full
 //! [`word_conj_data`]: super::word_conj_data::word_conj_data
-//! [`get_conj_data`]: super::get_conj_data::get_conj_data
-//! [`ConjData`]: super::conj_data_struct::ConjData
-//! [`set_word_conjugations`]: super::set_word_conjugations::set_word_conjugations
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::conj_data_struct::ConjData;

@@ -1,17 +1,7 @@
 //! Port of `ichiran/dict:synergy-suffix-chu` (`dict-grammar.lisp:884`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-suffix-chu (l r)
-//!   #'filter-is-noun
-//!   (filter-in-seq-set 1620400 2083570)
-//!   :description "suffix-chu"
-//!   :score 12
-//!   :connector "-")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! "suffix-chu" synergy: binds a noun on the left to 中 (seqs
+//! 1620400/2083570) on the right.
 
 use std::sync::Arc;
 

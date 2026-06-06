@@ -1,17 +1,8 @@
 //! Port of `ichiran/kanji:get-reading-stats` (`kanji.lisp:399`).
 //!
-//! Joins `kanji` and `reading` on `kanji.id = reading.kanji_id`,
-//! filters by `kanji.text = $1 AND reading.text = $2 AND
-//! reading.type = $3`, and returns the matched row's
+//! For a `(kanji, reading, type)` match, returns the
 //! `(reading.stat_common, kanji.stat_common, perc, kanji.grade)`
-//! tuple — where `perc` is rendered via [`super::calculate_perc`].
-//! Returns `None` when no row matches.
-//!
-//! Diverges from the upstream lambda list `(kanji reading type)` only
-//! by taking `&KaniranContext` for the database handle, replacing the
-//! upstream dynamic `*connection*` per [`crate::conn::kani_context`].
-//! `grade` stays `Option<i32>` because the column is nullable and
-//! upstream surfaces `:null` to the caller.
+//! tuple, or `None` when no row matches.
 
 use super::calculate_perc::calculate_perc;
 use crate::conn::kani_context::KaniranContext;

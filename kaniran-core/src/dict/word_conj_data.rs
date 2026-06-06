@@ -1,32 +1,8 @@
 //! Port of `ichiran/dict:word-conj-data` (`dict.lisp:654`).
 //!
-//! Returns the conjugation data for a word — the [`Vec<ConjData>`]
-//! produced by [`super::get_conj_data::get_conj_data`] for readings
-//! whose `word-conjugations` slot directs the lookup. Three method
-//! arms in the Lisp gf:
-//!
-//! - **simple-text** (`dict.lisp:657-658`) — `(get-conj-data (seq w)
-//!   (word-conjugations w) (true-text w))`. The
-//!   [`super::simple_text_class::WordConjugations`] slot value picks
-//!   the [`super::get_conj_data::FromOrConjIds`] arm: `nil` → `All`,
-//!   `:root` → `Root`, integer-list → `ConjIds`. The `texts` filter is
-//!   the reading's surface form (single string).
-//! - **compound-text** (`dict.lisp:660-661`) — recurse on the last
-//!   word in `words`. Compounds are built from simple-texts only via
-//!   `adjoin-word`, but the dispatch is faithful and would handle a
-//!   nested compound through the recursive call.
-//! - **counter-text** (`dict-counters.lisp:87`) — always `nil`.
-//!
-//! Diverges from the upstream lambda list `(word)` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`]. The proxy
-//! arm of the simple-text method's `(seq w)` / `(word-conjugations w)`
-//! / `(true-text w)` triple is inlined here as a single proxy-chain
-//! walk — the leaf is a kanji-text or kana-text and all three slot
-//! reads come from it. (The proxy-text gf overrides for `seq`,
-//! `word-conjugations`, and `true-text` all delegate to `(source obj)`
-//! without touching the proxy's own `text` / `state`, so the leaf walk
-//! is equivalent.)
+//! Returns the conjugation data for a word via
+//! [`super::get_conj_data::get_conj_data`] — recursing into the last
+//! word for compounds and yielding nothing for counters.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::conj_data_struct::ConjData;

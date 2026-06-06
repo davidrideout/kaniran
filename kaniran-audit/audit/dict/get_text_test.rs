@@ -5,13 +5,9 @@
 //!   cargo run --bin get_text_test -- \
 //!       --path corpus/<corpus_tag>/dict/get_text.parquet
 //!
-//! Two surfaces tested by the same fixture:
-//! - SEGMENT input → `Segment::get_text()` (lazy memoization).
-//! - word-shaped input (KANA-TEXT / KANJI-TEXT / COMPOUND-TEXT /
-//!   counter family / proxy) → free-fn `get_text(&word)`.
-//!
-//! ENTRY input is skipped — the entry method needs DB context (not
-//! plumbed through this sync runner).
+//! Replays a captured segment or word row through `get_text` and
+//! compares the returned text string against the Lisp result. ENTRY
+//! input is skipped (needs DB context).
 
 #[path = "../common/mod.rs"]
 mod common;

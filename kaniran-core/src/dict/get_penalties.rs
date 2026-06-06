@@ -1,26 +1,11 @@
 //! Port of `ichiran/dict:get-penalties` (`dict-grammar.lisp:1011-1016`).
 //!
 //! Walks [`PENALTY_LIST`] in order, returning the first penalty that
-//! fires between `seg_left` and `seg_right`. Result is either the
-//! three-element `(seg_right, penalty, seg_left)` shape when a
-//! penalty matched, or the two-element `(seg_right, seg_left)` shape
-//! when no penalty fn returned a [`Synergy`].
-//!
-//! ```lisp
-//! (defun get-penalties (seg-left seg-right)
-//!   (loop for fn in *penalty-list*
-//!      for penalty = (funcall fn seg-left seg-right)
-//!      when penalty
-//!        do (return (list seg-right penalty seg-left))
-//!      finally (return (list seg-right seg-left))))
-//! ```
-//!
-//! Divergences from Lisp:
-//! - The heterogeneous Lisp return list is modeled as
-//!   [`Vec<KaniLitePathElement>`] per CONVENTIONS §4.3.
+//! fires between `seg_left` and `seg_right`. Result is the
+//! three-element `(seg_right, penalty, seg_left)` shape when a penalty
+//! matched, else the two-element `(seg_right, seg_left)` shape.
 //!
 //! [`PENALTY_LIST`]: super::_star_penalty_list_star_::PENALTY_LIST
-//! [`Synergy`]: super::synergy_struct::Synergy
 
 use std::sync::Arc;
 

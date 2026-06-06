@@ -1,14 +1,7 @@
 //! Port of `ichiran/dict:*special-counters*` (`dict-counters.lisp:211`).
 //!
-//! Per-seq registry of counter constructors. Lisp init form is
-//! `(make-hash-table)` — empty at file load — populated by 91
-//! `def-special-counter` macro callsites at `dict-counters.lisp:382-765`.
-//! Each callsite registers a function that, given the readings list
-//! for a JMdict seq, returns the [`CounterArgs`] recipes that the
-//! `*counter-cache*` populator stores under each recipe's text key.
-//!
-//! Process-global `OnceLock` rather than a `KaniranContext` field:
-//! the data is pure compile-time, no DB or runtime input.
+//! seq → counter constructor that, given a JMdict entry's readings,
+//! returns the counter-reading recipes for that counter.
 
 use crate::dict::counter_text_class::{Common, DigitOp, DigitOp as D, DigitOptKey as K};
 use crate::dict::kana_text_dao::KanaText;

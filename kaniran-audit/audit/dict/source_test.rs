@@ -5,12 +5,10 @@
 //!   cargo run --bin source_test -- \
 //!       --path corpus/<corpus_tag>/dict/source.parquet
 //!
-//! Source identity: (variant-class-tag, seq, text). Lisp's
-//! `(source obj)` returns whatever the slot holds — a kanji-text /
-//! kana-text row (or nil) for both counter-text and proxy-text. The
-//! counter-vs-proxy distinction is at the input, not the output, so
-//! equality compares row identity. Variants without a `source` slot
-//! upstream (kana, kanji, compound) are skipped.
+//! Replays a captured counter-text/proxy-text row through `source` and
+//! compares the returned source row by `(class-tag, seq, text)` against
+//! the Lisp result. Variants with no `source` slot upstream are
+//! skipped.
 
 #[path = "../common/mod.rs"]
 mod common;

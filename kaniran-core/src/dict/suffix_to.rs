@@ -1,21 +1,7 @@
 //! Port of `ichiran/dict:suffix-to` (`dict-grammar.lisp:425`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-to :to (:stem 1 :score 0) (root suf)
-//!   (let ((te (case (char suf 0)
-//!               (#\HIRAGANA_LETTER_TO "て")
-//!               (#\HIRAGANA_LETTER_DO "で"))))
-//!     (when te
-//!       (find-word-with-conj-type (concatenate 'string root te) 3))))
-//! ```
-//!
-//! `:stem 1` triggers the macro's `(let* ((*suffix-map-temp* nil)) …)`
-//! rebind; the rebound ctx is threaded into both the primary-words
-//! producer and [`def_simple_suffix_body`].
-//!
-//! `suf` typed `&KanaText`: every `:to` cache entry under
-//! `(load-conjs :to …)` populates a kana-text (とく id=119112 /
-//! どく id=119113 / their conjugated forms).
+//! Handles the ～とく/～どく contraction: maps the suffix's first kana
+//! (と→て, ど→で) and looks up the root plus that te-form (conj-type 3).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

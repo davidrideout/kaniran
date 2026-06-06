@@ -1,26 +1,7 @@
-//! Rust-only sidecar (CONVENTIONS §1, §2): runtime engine for the
-//! `def-easy-hint` and `def-simple-hint` callsites + shared
-//! string-search / hint-emit helpers consumed by
-//! [`super::_star_hint_map_star_::hint_map_dispatch`].
-//!
-//! No Lisp FQN. The macros `def-easy-hint` (`dict-split.lisp:916`)
-//! and `def-simple-hint` (`dict-split.lisp:860`) each expand every
-//! callsite into the same shape:
-//!
-//! - `def-easy-hint`: type-check `simple-text`, compute `match-diff`
-//!   against the kanji-split + `match-readings` against the kana,
-//!   translate the compile-time hint positions through both
-//!   alignments, splice sentinels via [`super::insert_hints`].
-//! - `def-simple-hint`: bind `(true-kana reading)` + its length,
-//!   walk a per-callsite hints-def (with optional `:test` /
-//!   `let*`-style position bindings), splice sentinels into
-//!   `(get-kana reading)`.
-//!
-//! All the data-row registrations + the by-seq dispatch live in
-//! [`super::_star_hint_map_star_`]; this file holds the engine
-//! helpers shared across the bodies. Mirrors the
-//! [`super::kani_split_engine`] pattern that absorbed
-//! `def-simple-split`.
+//! Rust-only sidecar: runtime engine for the `def-easy-hint`
+//! (`dict-split.lisp:916`) and `def-simple-hint`
+//! (`dict-split.lisp:860`) callsites, plus the shared
+//! string-search / hint-emit helpers they share.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

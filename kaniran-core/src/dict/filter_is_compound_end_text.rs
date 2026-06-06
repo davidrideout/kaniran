@@ -1,17 +1,7 @@
 //! Port of `ichiran/dict:filter-is-compound-end-text` (`dict-grammar.lisp:794`).
 //!
-//! ```lisp
-//! (defun filter-is-compound-end-text (&rest texts)
-//!   (lambda (segment)
-//!     (let* ((word (segment-word segment))
-//!            (seq (seq word)))
-//!       (and seq (listp (seq word))
-//!            (find (get-text (car (last (words word)))) texts :test 'equal)))))
-//! ```
-//!
-//! The compound-and-non-nil gate together with the last child's text
-//! collapse to lite-precomputed [`KaniLiteSegment::compound_end_text`]
-//! — `Some(text)` exactly when `word` is `Compound`.
+//! Returns a predicate testing whether a segment's word is a compound
+//! whose last child's text matches any of the supplied texts.
 
 use std::sync::Arc;
 

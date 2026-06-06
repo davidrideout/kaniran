@@ -1,36 +1,10 @@
 //! Port of `ichiran/dict:find-word-with-conj-type` (`dict-grammar.lisp:53`).
 //!
-//! ```lisp
-//! (defun find-word-with-conj-type (word &rest conj-types)
-//!   (find-word-with-conj-prop word
-//!                             (lambda (cdata)
-//!                               (member (conj-type (conj-data-prop cdata)) conj-types))))
-//! ```
-//!
-//! Delegates to [`find_word_with_conj_prop`] with a `member`-style
-//! filter that admits any [`ConjData`] whose prop's `conj-type` is in
-//! the caller-supplied integer set. Used pervasively by the suffix
-//! family: `suffix-tai`, `suffix-ren`, `suffix-neg`, `suffix-te`,
-//! `suffix-chau`, `suffix-to`, `suffix-sou-base`, `suffix-teiru` (via
-//! [`te_check`] / [`teiru_check`]), and many more.
-//!
-//! ## Divergences from Lisp
-//!
-//! - **Ctx-injected** per CONVENTIONS §4.8.
-//! - **`conj_types` as `&[i32]`** instead of `&rest` packed positional
-//!   per the same pattern as [`super::find_word_seq`] /
-//!   [`super::find_word_with_pos`]. Empty slice mirrors `(find-word-
-//!   with-conj-type word)` with no `&rest` args (yields a closure that
-//!   matches nothing — `(member x nil)` is `nil`).
-//! - **`allow_root` is forced `false`** to match the upstream call
-//!   shape; `find-word-with-conj-prop` is called without the
-//!   `:allow-root` keyword, so the root-pass-through branch is dead
-//!   here.
+//! Delegates to [`find_word_with_conj_prop`] with a filter that admits
+//! any conj-data whose prop's `conj-type` is in the caller-supplied
+//! integer set.
 //!
 //! [`find_word_with_conj_prop`]: super::find_word_with_conj_prop::find_word_with_conj_prop
-//! [`ConjData`]: super::conj_data_struct::ConjData
-//! [`te_check`]: super::te_check
-//! [`teiru_check`]: super::teiru_check
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::find_word_with_conj_prop::find_word_with_conj_prop;

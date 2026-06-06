@@ -1,9 +1,7 @@
 //! Port of `ichiran/dict:get-pos` (`dict-load.lisp:253`, `csv-hash *pos-by-index*` accessor).
 //!
 //! Look up the part-of-speech tag for a numeric id in `*pos-by-index*`,
-//! returning `nil`/`None` on a miss. The upstream `(unless
-//! *pos-by-index* (load-pos-by-index))` lazy-load is the `OnceLock` in
-//! [`super::_star_pos_by_index_star_`].
+//! returning `None` on a miss.
 
 use super::_star_pos_by_index_star_::pos_by_index;
 

@@ -1,24 +1,7 @@
 //! Port of `ichiran/dict:conj-prop-json` (`dict.lisp:285`).
 //!
-//! ```lisp
-//! (defun conj-prop-json (obj)
-//!   (let ((js (jsown:new-js
-//!               ("pos" (pos obj))
-//!               ("type" (get-conj-description (conj-type obj)))))
-//!         (neg (conj-neg obj))
-//!         (fml (conj-fml obj)))
-//!     (unless (or (not neg) (eql neg :null))
-//!       (jsown:extend-js js ("neg" neg)))
-//!     (unless (or (not fml) (eql fml :null))
-//!       (jsown:extend-js js ("fml" fml)))
-//!     js))
-//! ```
-//!
-//! Returns a [`serde_json::Value`] object, mirroring the jsown JS object
-//! (insertion order preserved via the crate's `preserve_order` feature).
-//! `neg`/`fml` map the upstream tri-state `nil`/`t`/`:null` onto
-//! `Option<bool>` (`Some(false)`/`Some(true)`/`None`) and are included only
-//! when `Some(true)`.
+//! Builds the JSON object for one [`ConjProp`] — `pos` and `type`
+//! always, plus `neg`/`fml` only when the flag is the true state.
 
 use serde_json::{Map, Value};
 

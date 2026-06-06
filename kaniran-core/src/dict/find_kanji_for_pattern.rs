@@ -1,27 +1,8 @@
 //! Port of `ichiran/dict:find-kanji-for-pattern` (`dict.lisp:1882`).
 //!
-//! ```lisp
-//! (defun find-kanji-for-pattern (pattern)
-//!   (with-connection *connection*
-//!     (loop for r in (find-word-kana-pattern pattern)
-//!        for k = (get-kanji r)
-//!        when k collect k into kanji
-//!        collect (text r) into kana
-//!        finally (return
-//!                  (values (remove-duplicates kanji :test 'equal :from-end t)
-//!                          (remove-duplicates kana :test 'equal :from-end t))))))
-//! ```
-//!
-//! For each `kana_text` row matching `pattern` (already common-sorted by
-//! [`find_word_kana_pattern`]), collects its `get-kanji` surface (when
-//! non-nil) and its `text`, then returns both lists with duplicates
-//! removed keeping the first occurrence.
-//!
-//! Diverges from the upstream lambda list `(pattern)` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`]. The
-//! multiple-value return `(values kanji kana)` becomes the tuple
-//! `(Vec<String>, Vec<String>)`.
+//! For each `kana_text` row matching `pattern`, collects its
+//! `get-kanji` surface (when non-nil) and its `text`, then returns both
+//! lists with duplicates removed keeping the first occurrence.
 
 use std::collections::HashSet;
 

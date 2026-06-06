@@ -5,11 +5,9 @@
 //!   cargo run --release --bin get_segsplit_test -- \
 //!       --path corpus/extracted_chunk_c_suffix_abbr_2026_05_16/dict/get_segsplit.parquet
 //!
-//! Captured args shape: `[<segment>]` — one positional arg.
-//! Captured result shape: `[null]` for Lisp NIL (no segsplit), or
-//! `[<segment>]` for a hit (the new compound-text-wrapping segment).
-//!
-//! Streaming async runner: the chunk_c parquet is 1.55M rows.
+//! Replays a captured segment through `get_segsplit` and compares the
+//! returned compound-text-wrapping segment (or nil) against the Lisp
+//! result.
 
 #[path = "../common/mod.rs"]
 mod common;

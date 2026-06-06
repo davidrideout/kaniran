@@ -1,35 +1,10 @@
 //! Port of `ichiran/dict:match-sense-restrictions` (`dict.lisp:1515`).
 //!
-//! ```lisp
-//! (defun match-sense-restrictions (seq props reading)
-//!   (let ((stagk (cdr (assoc "stagk" props :test 'equal)))
-//!         (stagr (cdr (assoc "stagr" props :test 'equal)))
-//!         (wtype (word-type reading)))
-//!     (cond ((and (not stagk) (not stagr)) t)
-//!           ((or (member (text reading) stagk :test 'equal)
-//!                (member (text reading) stagr :test 'equal)) t)
-//!           ((and (not stagr) (eql wtype :kanji)) nil)
-//!           ((and (not stagk) (eql wtype :kana)) nil)
-//!           (t (let ((restricted (query (:select 'reading 'text :from 'restricted-readings :where (:= 'seq seq)))))
-//!                (case wtype
-//!                  (:kanji
-//!                   (let ((rkana (select-dao 'kana-text (:and (:= 'seq seq) (:in 'text (:set stagr))))))
-//!                     (some (lambda (rk) (match-kana-kanji rk reading restricted)) rkana)))
-//!                  (:kana
-//!                   (let ((rkanji (select-dao 'kanji-text (:and (:= 'seq seq) (:in 'text (:set stagk))))))
-//!                     (some (lambda (rk) (match-kana-kanji reading rk restricted)) rkanji)))))))))
-//! ```
-//!
-//! `props` is the `(tag . texts)` alist of one sense (see
-//! [`super::get_senses_raw::RawSense`]). `(not stag…)` is the CL `null`
-//! test on the alist's `cdr`: an absent tag yields the empty slice, so
-//! `is_empty()` mirrors `(not …)`. Returns the generalized boolean as
-//! `Option<MatchKanaKanjiResult>` (see [`super::match_kana_kanji`]); the
-//! `case` with no `:gap` clause maps to `None`.
-//!
-//! Diverges from the upstream lambda list `(seq props reading)` only by
-//! taking `&KaniranContext` for the database handle, replacing the
-//! upstream dynamic `*connection*` per [`crate::conn::kani_context`].
+//! Tests whether a sense (given its `stagk`/`stagr` restriction tags in
+//! `props`) applies to `reading`: true when there are no restrictions or
+//! the reading is listed, false when the wrong word-type is restricted
+//! away, otherwise a `restricted-readings` lookup paired with
+//! [`super::match_kana_kanji`].
 
 use crate::conn::kani_context::KaniranContext;
 

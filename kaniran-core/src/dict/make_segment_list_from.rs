@@ -1,26 +1,7 @@
 //! Port of `ichiran/dict:make-segment-list-from` (`dict-grammar.lisp:718`).
 //!
-//! Clones a [`SegmentList`] and swaps in a different `segments`
-//! vector — used by `def-generic-synergy` and
-//! `def-segfilter-must-follow` macro expansions
-//! (`dict-grammar.lisp:741`, `:746`, `:1054`, `:1062`, `:1065-1066`)
-//! to produce a derived [`SegmentList`] over the same `(start, end)`
-//! slice but with a filtered segment subset.
-//!
-//! Upstream:
-//!
-//! ```lisp
-//! (defun make-segment-list-from (old-segment-list segments)
-//!   (let ((new-segment-list (copy-segment-list old-segment-list)))
-//!     (setf (segment-list-segments new-segment-list) segments)
-//!     new-segment-list))
-//! ```
-//!
-//! Lisp's `copy-segment-list` is the `defstruct`-auto-generated
-//! shallow copier; the Rust analog is [`Clone`] on
-//! [`SegmentList`]. The `top` and `matches` slots are carried over
-//! verbatim, matching the upstream behavior of a shallow copy that
-//! then overwrites only `segments`.
+//! Copies a [`SegmentList`] and swaps in a different `segments` vector,
+//! carrying over the `start`, `end`, `top`, and `matches` slots verbatim.
 
 use super::segment_list_struct::SegmentList;
 use super::segment_struct::Segment;

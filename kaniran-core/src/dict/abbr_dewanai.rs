@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:abbr-dewanai` (`dict-grammar.lisp:618-619`).
 //!
-//! ```lisp
-//! (def-abbr-suffix abbr-dewanai :dewanai 4 (root)
-//!   (find-word-full (concatenate 'string root "ではない")))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_abbr_suffix_body`] (CONVENTIONS
-//! §4.6 case (c)).
+//! `:dewanai` abbreviated suffix: looks up `root + "ではない"` and
+//! produces the suffix candidates for it.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;

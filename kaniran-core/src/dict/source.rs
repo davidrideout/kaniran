@@ -1,28 +1,9 @@
-//! Port of `ichiran/dict:source` (gf — `dict-counters.lisp:0` /
-//! method on counter-text at `dict-counters.lisp:14` `:reader source`,
-//! method on proxy-text at `dict.lisp:553` `:reader source`).
+//! Port of `ichiran/dict:source` (gf — `:reader source` on
+//! counter-text at `dict-counters.lisp:14` and proxy-text at
+//! `dict.lisp:553`).
 //!
-//! Both methods are auto-generated `:reader source` slot accessors —
-//! pure field reads with no transformation. Lisp dispatches at call
-//! sites that may hold either class; Rust collapses the dispatch into
-//! [`SourceRef`], a borrowed enum that names the two return shapes:
-//!
-//! - `CounterKanji` / `CounterKana` — counter-text source. Optional
-//!   upstream (synthesized counters carry `nil`); the dispatcher
-//!   returns `None` for that case.
-//! - `ProxySimple` — proxy-text source. Always present (proxy-text's
-//!   slot is non-optional in the Rust port; see
-//!   [`super::proxy_text_class::ProxyText::source`]).
-//!
-//! Variants that have no `source` slot upstream (`kanji-text`,
-//! `kana-text`, `compound-text`) get `None`. Lisp would error on
-//! `(source kana-text)` since no method exists; the Rust dispatcher
-//! makes the fall-through total because callers that hold a
-//! statically-known `KanjiText` / `KanaText` / `CompoundText` skip
-//! this dispatcher entirely (CONVENTIONS §4.7's "callsites with a
-//! known concrete type read the slot directly"). Polymorphic
-//! callsites — `seq` and `common` for the proxy/counter recursion —
-//! stay total over the wider word union.
+//! Reads the `source` slot of a counter-text or proxy-text word
+//! (`None` for words that have no such slot).
 
 use crate::dict::counter_text_class::CounterSource;
 use crate::dict::kana_text_dao::KanaText;

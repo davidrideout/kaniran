@@ -1,16 +1,7 @@
 //! Port of `ichiran/dict:simple-word-info` (`dict.lisp:1282`).
 //!
-//! ```lisp
-//! (defun simple-word-info (seq text reading type &key (as :object))
-//!   (let ((obj (make-instance 'word-info
-//!                :type type :text text :true-text text :seq seq :kana reading)))
-//!     (cond ((eql as :object) obj)
-//!           ((eql as :json) (word-info-json obj)))))
-//! ```
-//!
-//! `:as` is a binary keyword (§4.4) selecting the return shape; the
-//! keyword-discriminated return is a tagged enum (§4.1/§4.3). `:true-text` is
-//! set to `text`; every other slot takes its `word-info` initform.
+//! Builds a [`WordInfo`] from the given seq/text/reading/type (with
+//! `true_text` = `text`), returned either as the object or its JSON.
 
 use serde_json::Value;
 

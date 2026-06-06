@@ -2,33 +2,9 @@
 //!
 //! Walks the `conjugation` table for one `seq`, joins each row to its
 //! `conj_prop` rows and `conj_source_reading` rows, and packs the
-//! result as a [`ConjData`] per `(conjugation, conj-prop)` pair. The
-//! Lisp lambda list is
-//! `(seq &optional from/conj-ids texts)` where `from/conj-ids` is the
-//! Lisp-typical anti-pattern of a single parameter taking four
-//! distinct shapes (`NIL` / `:root` / integer / list). The Rust port
-//! pins the closed shape via the [`FromOrConjIds`] enum per
-//! CONVENTIONS §4.3.
-//!
-//! Diverges from the upstream lambda list by:
-//! - taking `&KaniranContext` for the DB handle, replacing Lisp's
-//!   `*connection*`;
-//! - replacing the polymorphic `from/conj-ids` parameter with the
-//!   [`FromOrConjIds`] enum (`All` ≡ Lisp `NIL`; `Root` ≡ Lisp
-//!   `:root`; `From(i)` ≡ Lisp integer; `ConjIds(v)` ≡ Lisp list);
-//! - taking `texts` as `&[&str]` (empty = "no filter", matching Lisp
-//!   `NIL`) instead of "string-or-list-or-NIL".
-//!
-//! `texts` filtering replicates the Lisp `(when texts) src-map` gate:
-//! when the caller supplies any text, conjugations whose
-//! `conj_source_reading.text` doesn't intersect that set are dropped
-//! entirely (no `ConjData` emitted), matching upstream's
-//! `(when (or (not texts) src-map) ...)`.
-//!
-//! The early-out for [`super::no_conj_data::no_conj_data`]-marked
-//! `seq`s reads the in-memory cache only — until that cache's
-//! populator lands, the predicate is always false and the early-out
-//! never fires.
+//! result as a [`ConjData`] per `(conjugation, conj-prop)` pair. When
+//! `texts` is non-empty, conjugations whose `conj_source_reading.text`
+//! doesn't intersect that set are dropped.
 
 use crate::conn::kani_context::KaniranContext;
 use sqlx::Row;

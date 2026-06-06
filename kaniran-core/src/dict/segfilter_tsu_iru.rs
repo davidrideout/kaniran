@@ -1,11 +1,7 @@
 //! Port of `ichiran/dict:segfilter-tsu-iru` (`dict-grammar.lisp:1081`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-tsu-iru (l r) ;; TODO: remove this, or make more generic
-//!   (complement (filter-in-seq-set 2221640))
-//!   (filter-in-seq-set 1577980)
-//!   :allow-first t)
-//! ```
+//! Keeps an いる (1577980) right segment only when the preceding left
+//! segment is not つ (2221640).
 
 use std::sync::Arc;
 

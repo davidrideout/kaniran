@@ -1,19 +1,7 @@
 //! Port of `ichiran/dict:synergy-o-prefix` (`dict-grammar.lisp:913`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-o-prefix (l r)
-//!   (filter-in-seq-set 1270190)
-//!   (filter-is-pos ("n") (segment k p c l) (or k l))
-//!   :description "o+noun"
-//!   :score 10
-//!   :connector "")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - The `filter-is-pos` filter (`dict-grammar.lisp:915`, `(or k l)`)
-//!   is built via [`filter_is_pos`].
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! "o+noun" synergy: binds the honorific お (seq 1270190) on the left to a
+//! noun on the right.
 
 use std::sync::Arc;
 

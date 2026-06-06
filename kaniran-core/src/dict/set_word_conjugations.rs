@@ -1,13 +1,9 @@
 //! Port of `(setf word-conjugations)` — setter half of the
 //! `:accessor word-conjugations` slot option on `simple-text`
-//! (`dict.lisp:70`), plus two explicit overrides:
+//! (`dict.lisp:70`).
 //!
-//! - **simple-text** (`dict.lisp:70`): write `conjugations` slot.
-//! - **proxy-text** (`dict.lisp:571-572`): recurse to source.
-//! - **compound-text** (`dict.lisp:666-667`): recurse to last word.
-//! - **counter-text**: no method; panic mirrors `no-applicable-method`.
-//!
-//! Companion getter: [`super::word_conjugations`].
+//! Stores the conjugations on a word, recursing to a proxy's source
+//! or a compound's last word.
 
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::simple_text_class::WordConjugations;

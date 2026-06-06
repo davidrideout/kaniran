@@ -1,16 +1,7 @@
 //! Kaniran sidecar (no Lisp FQN). Pre-computed predicate inputs for a
 //! [`Segment`] — read by the `find-best-path` inner loop's segfilter
-//! / synergy / penalty predicates. One [`KaniLiteSegment`] is built
-//! per source [`Segment`] at `find-best-path` entry and shared via
-//! [`Arc`] across every filtered sub-list that mentions it; the
-//! `source` back-ref lets `find-best-path` materialize a full
-//! [`Segment`] at exit for each surviving path.
-//!
-//! The field set is the union of everything the 16 segfilter +
-//! 17 synergy + 2 penalty bodies actually read off a segment (see
-//! `find_best_path.md` session-2 discovery pass). Anything not read by
-//! those predicates — `info.common`, `info.score_info`, `segment.top`
-//! — is left on the source `Segment` and never duplicated here.
+//! / synergy / penalty predicates, with a `source` back-ref so the
+//! full [`Segment`] can be materialized at exit.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;

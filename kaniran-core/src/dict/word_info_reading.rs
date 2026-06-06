@@ -1,25 +1,10 @@
 //! Port of `ichiran/dict:word-info-reading` (`dict.lisp:1445`).
 //!
-//! ```lisp
-//! (defun word-info-reading (word-info)
-//!   (let ((table (case (word-info-type word-info) (:kanji 'kanji-text) (:kana 'kana-text)))
-//!         (true-text (word-info-true-text word-info)))
-//!     (when (and table true-text)
-//!       (car (select-dao table (:= 'text true-text))))))
-//! ```
-//!
 //! Looks up the reading DAO backing a [`WordInfo`]: the first
 //! `kanji_text` row for a `:kanji` word-info, the first `kana_text`
 //! row for a `:kana` one, matched on `text = true-text`. Returns
 //! `None` when the type is `:gap`, `true-text` is nil, or no row
 //! matches.
-//!
-//! Diverges from the upstream lambda list `(word-info)` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`]. The
-//! kanji-text / kana-text result is wrapped into [`KaniWordDispatchEnum`]
-//! so the polymorphic reading consumers (`get-senses-json`'s
-//! reading-getter) dispatch over it as upstream does over the bare DAO.
 
 use super::kana_text_dao::KanaText;
 use super::kani_word::KaniWordDispatchEnum;

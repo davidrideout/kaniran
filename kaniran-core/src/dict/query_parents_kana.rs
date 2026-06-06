@@ -1,20 +1,10 @@
 //! Port of `ichiran/dict:query-parents-kana` (`dict.lisp:417`).
 //!
-//! Prepared query that, for a given `seq` and surface `text`,
-//! enumerates the `(kana-text.id, conjugation.id)` pairs whose
-//! `kana-text` row is the parent reading of the `conj-source-reading`
-//! that produced `(seq, text)`. Joins three tables: a `conjugation`
-//! whose `seq` is the input `seq`, its `conj-source-reading` whose
-//! `text` is the input `text`, and the `kana-text` row matching the
-//! `(seq, text)` pair on the source side — `seq` resolves to the
-//! conjugation's `via` when set, otherwise its `from`.
-//!
-//! Mirror of [`super::query_parents_kanji::query_parents_kanji`] —
-//! same join shape, with `kana_text` substituted for `kanji_text`.
-//!
-//! Diverges from the upstream lambda list `(seq text)` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
+//! For a given `seq` and surface `text`, enumerates the
+//! `(kana-text.id, conjugation.id)` pairs whose `kana-text` row is the
+//! parent reading of the `conj-source-reading` that produced
+//! `(seq, text)` — the source `seq` resolves to the conjugation's `via`
+//! when set, otherwise its `from`.
 
 use crate::conn::kani_context::KaniranContext;
 

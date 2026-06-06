@@ -1,18 +1,8 @@
-//! Rust-only sidecar (CONVENTIONS §1, §2): the port-wide context.
-//!
-//! Replaces three layers of upstream globals:
-//! - `*connection*` → [`KaniranContext::pool`].
-//! - The `cache`-class registry (`get-cache` / `init-cache` / `ensure`
-//!   / `reset-cache`) → typed fields populated by per-cache builders
-//!   from [`KaniranContext::from_url`].
-//! - The per-connection variable cache (`*conn-vars*` /
-//!   `*conn-var-cache*` / `switch-conn-vars`) → owned per-context
-//!   state. Multi-DB use (`with-db` / `let-db`) = construct another
-//!   `KaniranContext`.
-//!
-//! `Error` failures are also `eprintln!`ed before propagating; mirrors
-//! upstream's `dp` / `*debug*`. Will move to `tracing` when query-level
-//! logging lands.
+//! Rust-only sidecar: the port-wide context, holding the Postgres
+//! connection pool and every populated cache. Replaces upstream's
+//! `*connection*`, the `cache`-class registry, and the per-connection
+//! variable cache; multi-DB use means constructing another
+//! `KaniranContext`.
 
 use crate::conn::_star_connection_env_var_star_::DATABASE_URL;
 use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;

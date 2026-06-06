@@ -1,15 +1,7 @@
 //! Port of `ichiran/dict:segfilter-aux-verb` (`dict-grammar.lisp:1077`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-aux-verb (l r)
-//!   (filter-is-conjugation 13)
-//!   (apply #'filter-in-seq-set *aux-verbs*))
-//! ```
-//!
-//! Body shared with the other `segfilter_*` callsites via
-//! [`super::def_segfilter_must_follow_macro::def_segfilter_must_follow_body`].
-//! `seg-left` is nil-able (`dict.lisp:1172` passes nil); `seg-right`
-//! is always non-nil.
+//! Keeps a left/right segment pair when the right segment is a
+//! conjugation type 13 verb that follows one of the auxiliary verbs.
 
 use std::sync::Arc;
 

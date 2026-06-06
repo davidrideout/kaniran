@@ -1,9 +1,7 @@
 //! Port of `ichiran/characters:as-katakana` (`characters.lisp:262-271`).
 //!
-//! Mirror of [`super::as_hiragana`]: each kana char is replaced with
-//! the *last* glyph of its class string in `*all-characters*` (each
-//! pair is hiragana-then-katakana, so the last char is katakana).
-//! Non-kana characters pass through unchanged.
+//! Convert any hiragana in `s` to its katakana counterpart, leaving
+//! non-kana characters as-is.
 
 use super::_star_all_characters_star_::all_characters;
 use super::_star_char_class_hash_star_::char_class_hash;

@@ -1,21 +1,6 @@
 //! Fixture-replay runner for the e2e complete-result JSON — ichiran's
-//! `ichiran-cli --full` output. cli.lisp's `--full` branch is
-//! `(princ (jsown:to-json (romanize* input :limit limit-value)))`; captures
-//! were driven by a synthetic CL-USER entry point named after that cli mode,
-//! `CL-USER::CLI-FULL` = `(jsown:to-json (romanize* text :limit 5))`
-//! (i.e. `ichiran-cli -f -l 5`).
-//!
-//! There is no library fn for the top-level JSON assembly: `cli.lisp` builds
-//! it inline and that path is marked skip (a future kaniran-cli crate). This
-//! runner assembles it test-locally from the ported pieces — `romanize_star_`
-//! (segmentation + per-word romanize) and `word_info_gloss_json` (the per-word
-//! JSON object) — and the trivial array nesting `jsown:to-json` performs over
-//! the `romanize*` result. All substance under audit is library code; only the
-//! nesting + the `prop` placeholder are test-local.
-//!
-//! Comparison is structural ([`serde_json::Value`] equality), so it is robust
-//! to jsown's `\uXXXX` escaping vs serde's literal UTF-8 and to object key
-//! order. Byte-exact serialization is a kaniran-cli concern, out of scope here.
+//! `ichiran-cli --full` output, captured via the synthetic entry point
+//! `CL-USER::CLI-FULL` = `(jsown:to-json (romanize* text :limit 5))`.
 //!
 //! Run with:
 //!   cargo run --release --bin cli_full_test -- \

@@ -5,18 +5,6 @@
 //! `゛` (`はハ → ぱパ`); other rows have no handakuten form so the
 //! input passes through unchanged. The hiragana/katakana script of the
 //! first glyph is preserved.
-//!
-//! Leaves `txt` unchanged when it's empty, when the first character has
-//! no [`KanaClass`], or when the class has no voiced counterpart in the
-//! chosen hash.
-//!
-//! The upstream signature is `(txt &key fresh handakuten)`. With
-//! `:fresh nil` (default) it mutates `txt` in place; with `:fresh t` it
-//! copies first and mutates the copy. The Rust port takes `&mut String`
-//! and always mutates in place — equivalent to `:fresh nil`. Callers
-//! that need `:fresh t` semantics clone before calling. The
-//! `:handakuten` boolean becomes a 2-variant [`Voicing`] enum
-//! (CONVENTIONS §4.4).
 
 use super::_star_dakuten_hash_star_::dakuten_hash;
 use super::_star_handakuten_hash_star_::handakuten_hash;

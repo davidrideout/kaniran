@@ -5,17 +5,9 @@
 //!   cargo run --bin query_parents_kanji_test -- \
 //!       --path corpus/<corpus_tag>/dict/query_parents_kanji.parquet
 //!
-//! Args: `(seq "<text>")` — integer and string.
-//! Result: `[<rows>, <count>]` — postmodern `(values rows count)`.
-//!   `rows` is a list of two-element `(kt-id, conj-id)` lists, or
-//!   `null` when empty. We compare against `rows`; `count` is
-//!   redundant (== len rows) so it's ignored.
-//!
-//! Joins three tables with no ORDER BY → row order is non-deterministic
-//! across captures and replays. Both sides are sorted before comparison.
-//! (See [`get_split` non-determinism memo].)
-//!
-//! [`get_split` non-determinism memo]: ../../../../README.md
+//! Replays a captured `(seq, text)` through `query_parents_kanji` and
+//! compares the returned `(kt-id, conj-id)` rows against the Lisp
+//! result. The join has no ORDER BY, so both sides are sorted first.
 
 #[path = "../common/mod.rs"]
 mod common;

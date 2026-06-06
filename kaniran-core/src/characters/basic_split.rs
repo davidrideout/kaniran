@@ -1,11 +1,6 @@
 //! Port of `ichiran/characters:basic-split` (`characters.lisp:238-243`).
 //!
 //! Segment Japanese-mixed text into alternating misc / word runs.
-//! Splits with `*basic-split-regex*` (compiled lazily here), tags the
-//! first segment via `test_word(.., :nonword)`, and alternates from
-//! there — that's how upstream encodes "consecutive segments returned
-//! by `:with-registers-p t` alternate between between-match misc text
-//! and matched word groups."
 
 use std::sync::OnceLock;
 

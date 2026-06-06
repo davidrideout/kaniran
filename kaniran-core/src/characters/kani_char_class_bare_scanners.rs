@@ -1,21 +1,10 @@
 //! Rust-only sidecar within the `ichiran/characters` port module.
 //! Has no Lisp counterpart.
 //!
-//! Lazily-compiled bare scanners — one [`fancy_regex::Regex`] per
-//! [`CharClass`] using the pattern from `*char-class-regex-mapping*`
-//! directly (no `+` repetition wrapper). Used by
-//! [`super::count_char_class`] and [`super::collect_char_class`], which
-//! find individual matches of one character of the class — not runs of
-//! them. The repeated form `(?:pat)+` is in
-//! [`super::_star_char_scanners_inner_star_`]; the anchored form
-//! `^pat+$` is in [`super::_star_char_scanners_star_`].
-//!
-//! Upstream recompiles the regex per call (the Lisp uses the raw
-//! pattern string in `ppcre:do-matches` each time). The cache is a
-//! Rust-only optimization — semantics are identical.
-//!
-//! Naming convention: `kani_<snake_name>.rs` marks a Rust-only
-//! sidecar (no Lisp counterpart).
+//! Bare scanners — one [`fancy_regex::Regex`] per [`CharClass`] using
+//! the pattern from `*char-class-regex-mapping*` directly (no `+`
+//! repetition wrapper), matching individual characters of a class
+//! rather than runs of them.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

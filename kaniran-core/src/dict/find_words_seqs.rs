@@ -1,31 +1,8 @@
 //! Transliteration of `ichiran/dict:find-words-seqs` (`dict.lisp:520`).
 //!
-//! ```lisp
-//! (defun find-words-seqs (words seqs)
-//!   "generalized version of find-word-seq from dict-grammar"
-//!   (unless (listp words) (setf words (list words)))
-//!   (unless (listp seqs) (setf seqs (list seqs)))
-//!   (loop for word in words
-//!      if (test-word word :kana) collect word into kana-words
-//!      else collect word into kanji-words
-//!      finally
-//!        (let ((kw (when kanji-words (select-dao 'kanji-text (:and (:in 'text (:set kanji-words)) (:in 'seq (:set seqs))))))
-//!              (rw (when kana-words (select-dao 'kana-text (:and (:in 'text (:set kana-words)) (:in 'seq (:set seqs)))))))
-//!          (return (nconc kw rw)))))
-//! ```
-//!
-//! Partitions `words` into kana vs kanji by [`test_word`], fetches the
-//! `kanji_text` rows whose text is among the kanji words and the
-//! `kana_text` rows whose text is among the kana words (both restricted to
-//! `seqs`), and returns the kanji rows followed by the kana rows.
-//!
-//! Diverges from the upstream lambda list `(words seqs)` by:
-//! - taking `&KaniranContext` for the DB handle, replacing Lisp's
-//!   `*connection*`;
-//! - taking `words: &[&str]` and `seqs: &[i32]` — the Lisp coerces a lone
-//!   word / seq to a one-element list internally, the Rust caller wraps;
-//! - returning `Vec<KaniWordDispatchEnum>`, tagging each heterogeneous
-//!   `(nconc kw rw)` element as its kanji-text / kana-text variant.
+//! Partitions `words` into kana vs kanji, fetches the `kanji_text` rows
+//! and `kana_text` rows whose text matches and whose seq is among `seqs`,
+//! and returns the kanji rows followed by the kana rows.
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;

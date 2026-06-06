@@ -1,13 +1,7 @@
 //! Port of `ichiran/dict:suffix-teiru+` (`dict-grammar.lisp:398`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-teiru+ :teiru+ (:connector "" :score 6) (root)
-//!   (teiru-check root))
-//! ```
-//!
-//! `suf` typed `&KanaText`: the `いる(る)` loop at
-//! `dict-grammar.lisp:210-215` populates kana-texts on the length-1+
-//! branch.
+//! Score-6 variant of the ～ている auxiliary: looks up the root via
+//! `teiru-check`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

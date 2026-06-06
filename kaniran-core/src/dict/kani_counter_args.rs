@@ -1,15 +1,9 @@
-//! Rust-only sidecar (CONVENTIONS §1, §2): the keyword-arg recipe
-//! that the `*counter-cache*` populator stores per text key, and that
-//! `find-counter` later applies to make-instance to construct a
-//! [`crate::dict::counter_text_class::Counter`].
-//!
-//! Lisp `def-special-counter` callsites yield raw arglists shaped
-//! `(text-key class :text "..." :kana "..." :source <ref> :digit-opts ... ...)`.
-//! Rust materializes each arglist as a typed [`CounterArgs`] struct.
-//!
-//! Diverges from upstream by pre-expanding multi-text in
-//! [`args_multi`] rather than deferring to the populator's `add-args`.
-//! Output is identical given correct insertion order in `add_args`.
+//! Rust-only sidecar: the keyword-arg recipe that the
+//! `*counter-cache*` populator stores per text key, and that
+//! `find-counter` later applies to construct a
+//! [`crate::dict::counter_text_class::Counter`], materialized from the
+//! Lisp `def-special-counter` arglists as a typed [`CounterArgs`]
+//! struct.
 
 use crate::dict::counter_text_class::{Common, CounterSource, DigitOp, DigitOptEntry, DigitOptKey};
 use crate::dict::kana_text_dao::KanaText;

@@ -1,21 +1,13 @@
 //! Port of `ichiran/kanji:load-kanji-stats` (`kanji.lisp:332`).
 //!
-//! Recomputes the per-kanji and per-reading word-stat counters used by
-//! [`super::reading_info_json`] and [`super::to_json`]. Zeroes every
-//! `kanji.stat_common` / `kanji.stat_irregular` / `reading.stat_common`
-//! first, then iterates every kanji with `grade <= 8`, runs
+//! Recomputes the per-kanji and per-reading word-stat counters. Zeroes
+//! every `kanji.stat_common` / `kanji.stat_irregular` /
+//! `reading.stat_common` first, then iterates every kanji with
+//! `grade <= 8`, runs
 //! [`super::kanji_word_stats::kanji_word_stats`] against the kanji
 //! literal, writes the `(total, irregular)` pair back onto the kanji
 //! row, and writes each `((rtext, rtype), count)` tally back onto the
 //! matching `reading` row (matched by `(text, type, kanji_id)`).
-//!
-//! Diverges from the upstream lambda list `()` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
-//!
-//! Upstream emits a `~a kanji processed` line every 100 rows and a
-//! `~a kanji total` line at the end. The Rust port mirrors both via
-//! `println!`.
 
 use super::kanji_dao::Kanji;
 use super::kanji_word_stats::kanji_word_stats;

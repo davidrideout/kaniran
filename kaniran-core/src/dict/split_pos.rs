@@ -1,14 +1,8 @@
 //! Port of `ichiran/dict:split-pos` (`dict.lisp:1535`).
 //!
-//! ```lisp
-//! (defun split-pos (pos-str)
-//!   (split-sequence #\, pos-str :start 1 :end (1- (length pos-str))))
-//! ```
-//!
 //! Splits the bracketed part-of-speech string on commas, excluding the
-//! enclosing `[` / `]`. Empty subsequences are kept (`split-sequence`
-//! default), so `"[]"` yields `[""]`. `:start` / `:end` index by code
-//! point, matching the upstream `subseq` / `length`.
+//! enclosing `[` / `]`. Empty subsequences are kept, so `"[]"` yields
+//! `[""]`; offsets index by code point.
 
 pub fn split_pos(pos_str: &str) -> Vec<&str> {
     // :start 1 :end (1- (length pos-str)) — code-point offsets.

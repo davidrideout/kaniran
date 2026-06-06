@@ -1,16 +1,7 @@
 //! Port of `ichiran/dict:set-common` (`dict-errata.lisp:168`).
 //!
 //! Updates the `common` field on every row in `table` matching
-//! `(seq, text)` to `common`. `common = None` writes SQL NULL,
-//! mirroring the upstream `:null` argument.
-//!
-//! Diverges from the upstream lambda list `(table seq text common)`
-//! by:
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
-//! - representing the `'kana-text` / `'kanji-text` table-symbol arg
-//!   as [`KaniReadingTable`] (no shared CL symbol type in Rust).
+//! `(seq, text)` to `common` (`None` writes SQL NULL).
 
 use super::kani_reading_table::KaniReadingTable;
 use crate::conn::kani_context::KaniranContext;

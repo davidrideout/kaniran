@@ -1,9 +1,6 @@
 //! Port of `ichiran/dict:*conj-description*` (`dict-load.lisp:257`, `csv-hash *conj-description*`).
 //!
-//! conj-id → English conjugation-type description. Lazily built once
-//! by [`load_conj_description`] (vendored conj.csv + errata) and
-//! cached, mirroring the upstream `defparameter *conj-description* nil`
-//! that `load-conj-description` fills on first `get-conj-description`.
+//! conj-id → English conjugation-type description.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

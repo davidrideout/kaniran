@@ -1,24 +1,9 @@
 //! Port of `ichiran/kanji:get-original-reading` (`kanji.lisp:308`).
 //!
 //! Recovers the underlying kun/on dictionary form from a reading
-//! variant. Strips dakuten/handakuten via [`super::super::characters::unrendaku`]
-//! when `rendaku` is set, and replaces the trailing character with
-//! the supplied `geminated` glyph (typically the original mora before
-//! gemination produced `っ`) when present.
-//!
-//! Diverges from the upstream lambda list `(rtext &optional rendaku
-//! geminated)` by:
-//!
-//! - taking `rendaku` as a plain `bool` per CONVENTIONS §4.4. The
-//!   keyword is binary upstream — `:rendaku` (truthy) or `nil` —
-//!   matching how [`super::get_reading_alternatives::ReadingTag`]
-//!   records the tag at the producing call site.
-//! - taking `geminated` as `Option<&str>`. Upstream accepts a string
-//!   whose first character is grafted onto the result; `None` mirrors
-//!   the absent / `nil` case.
-//! - returning a fresh `String`. Upstream's `:fresh t` semantics for
-//!   [`super::super::characters::unrendaku`] are reproduced by cloning
-//!   `rtext` upfront and mutating the clone.
+//! variant: strips dakuten/handakuten when `rendaku` is set, and
+//! replaces the trailing character with the supplied `geminated` glyph
+//! when present.
 
 use crate::characters::unrendaku::unrendaku;
 

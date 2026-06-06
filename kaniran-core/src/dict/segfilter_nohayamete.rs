@@ -1,11 +1,7 @@
 //! Port of `ichiran/dict:segfilter-nohayamete` (`dict-grammar.lisp:1127`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-nohayamete (l r)
-//!   (complement (filter-in-seq-set 1469800))
-//!   (filter-in-seq-set 1601080)
-//!   :allow-first t)
-//! ```
+//! Keeps a 早めて (1601080) right segment only when the preceding left
+//! segment is not の (1469800).
 
 use std::sync::Arc;
 

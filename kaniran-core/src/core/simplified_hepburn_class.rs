@@ -1,9 +1,7 @@
 //! Port of `ichiran:simplified-hepburn` (`romanize.lisp:136`).
 //!
-//! Subclass of generic-hepburn. Adds a `simplifications` slot
-//! (`:initarg :simplifications`, `:initform nil`) — a flat list of
-//! alternating from/to spellings (e.g. `("ou" "o" "uu" "u")`). The
-//! `:initform nil` maps to an empty list.
+//! Hepburn variant carrying a `simplifications` list of alternating
+//! from/to spellings (e.g. `("ou" "o" "uu" "u")`).
 
 use super::generic_hepburn_class::GenericHepburn;
 use crate::characters::simplify_ngrams::simplify_ngrams;

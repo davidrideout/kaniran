@@ -1,29 +1,7 @@
-//! Rust-only sidecar (CONVENTIONS §1, §2): the interpreter that drives
-//! every `def-simple-split` callsite.
-//!
-//! No Lisp FQN. The macro `def-simple-split` (`dict-split.lisp:13`)
-//! and its derived helpers (`def-de-split`, `def-toori-split`,
-//! `def-do-split`, `def-shi-split`) expand each call into a hand-rolled
-//! `prog*` loop with the same skeleton: materialize `(true-text reading)`
-//! and its length, walk a sequence of part / `:test` / `:score` / `:pscore`
-//! forms, and return `(values parts score)`. The expansion is identical
-//! up to the per-callsite arguments (seq, score, parts list) — which
-//! makes a per-callsite Rust function just a hand-expansion of the same
-//! template.
-//!
-//! This module factors that template out. Every split-* callsite ports
-//! to a [`SplitDef`] data row (in the callsite's own
-//! `dict/split_*.rs` so CONVENTIONS §1's "one Lisp symbol per Rust file"
-//! still holds, and so [`crate::dict::_star_split_map_star_`] / the
-//! audit-signatures sweep see the expected `pub fn`); the function body
-//! is one line that delegates to [`run_split`]. Any future
-//! `def-simple-split` Rust port adds a row, not a 50-line block of
-//! scaffolding.
-//!
-//! See [`crate::dict::_star_split_map_star_`] for the dispatch table
-//! that enumerates every registered seq, and the `def-simple-split`
-//! macro doc-comment in `dict-split.lisp:13` for the reference
-//! expansion shape.
+//! Rust-only sidecar: the interpreter that drives every
+//! `def-simple-split` callsite (`dict-split.lisp:13`). Each split-*
+//! callsite ports to a [`SplitDef`] data row whose body delegates to
+//! [`run_split`].
 
 use crate::characters::safe_subseq::safe_subseq;
 use crate::characters::unrendaku::unrendaku as unrendaku_fn;

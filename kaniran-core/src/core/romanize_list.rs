@@ -2,11 +2,6 @@
 //!
 //! Romanizes a character-class list: expand iteration markers, fold
 //! modifiers into a tree, romanize it, then simplify per the method.
-//!
-//! The upstream `&key (method *default-romanization-method*)` becomes a
-//! required positional `method` — Rust has no keyword defaults, so callers
-//! pass the method explicitly (the upstream default is
-//! [`super::_star_default_romanization_method_star_`]).
 
 use super::generic_romanization_class::RomanizationMethod;
 use super::kani_cc_item::CcItem;

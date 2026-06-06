@@ -5,50 +5,10 @@
 //!   cargo run --release --bin abbr_nakereba_test -- \
 //!       --path corpus/extracted_chunk_c_suffix_abbr_2026_05_16/dict/abbr_nakereba.parquet
 //!
-//! ```lisp
-//! (def-abbr-suffix abbr-nakereba :nakereba 4 (root)
-//!   (find-word-full (concatenate 'string root "なければ")))
-//! ```
-//!
-//! Args shape (the `def-abbr-suffix` macro signature is `(root sv suf)`
-//! at `dict-grammar.lisp:547-579`; the third `,suf` is `(declare
-//! (ignore ,suf))`d but still appears in the captured args):
-//!   `[<root>, <sv>, <suf KANA-TEXT envelope | null>]`
-//!
-//! Result shape: `[<list> | null]`. `null` ↔ Lisp nil (find-word-full
-//! returned nothing for `root + "なければ"`). Otherwise a list of word
-//! envelopes — PROXY-TEXT for simple-text primaries (wrapped
-//! `hintedp=T`), or the COMPOUND-TEXT itself with reassigned text/kana
-//! (`dict-grammar.lisp:568-578`). The destem length is 4 (the
-//! `:nakereba` stem).
-//!
-//! Comparison covers every projected slot of every returned word
-//! recursively via `format!("{:?}", c)` Debug fingerprints, then
-//! `id: NNN,` substrings are stripped before equality. Debug derives
-//! on CompoundText / KanaText / KanjiText / ProxyText / SimpleText /
-//! WordConjugations / ScoreMod are complete, so the fingerprint covers
-//! every output field at every depth (including ProxyText's source
-//! recursion and each leaf simple-text's seq / text / ord / common /
-//! common_tags / conjugate_p / nokanji / best_* / state.conjugations /
-//! state.hintedp).
-//!
-//! ## id slot is stripped before comparison
-//!
-//! abbr-nakereba reaches `find-word` via `find-word-full` during
-//! extraction. When the segmenter has `*substring-hash*` bound, the
-//! synthesis path at `dict.lisp:493` reconstructs DAOs via
-//! `(apply 'make-instance init)` without `:id`. Captures emit JSON
-//! null → audit-side `id = 0`. Rust replay hits the production DB and
-//! returns real ids. Strict-equality on id would fail every
-//! synthesized row.
-//!
-//! ## suf is ignored upstream
-//!
-//! The `def-abbr-suffix` macro at `dict-grammar.lisp:553-554` emits
-//! `(declare (ignore ,suf))` — the captured third arg's content has
-//! no behavioral influence. We parse it (to verify the projector
-//! shape) but pass `None` to the function under test, mirroring the
-//! ignored-slot semantics.
+//! `ICHIRAN/DICT:ABBR-NAKEREBA` reconstructs `root + "なければ"`
+//! (destem length 4) and runs `find-word-full` on it. Captured args
+//! are `[<root>, <sv>, <suf | null>]`; the result is a list of word
+//! envelopes or `null`.
 
 #[path = "../common/mod.rs"]
 mod common;

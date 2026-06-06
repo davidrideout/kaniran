@@ -1,17 +1,7 @@
 //! Port of `ichiran/dict:substring-index` (`dict.lisp:1131`).
 //!
-//! ```lisp
-//! (defun substring-index(str)
-//!   (let ((sls (join-substring-words str))
-//!         (index (make-hash-table :test 'equal)))
-//!     (loop for sl in sls
-//!        do (setf (gethash (list (segment-list-start sl) (segment-list-end sl)) index) sl))
-//!     index))
-//! ```
-//!
 //! Re-indexes `join-substring-words`' output by each segment-list's
-//! `(start end)` slice. The `equal`-keyed `(list start end)` becomes a
-//! `(usize, usize)` tuple key.
+//! `(start, end)` slice.
 
 use std::collections::HashMap;
 

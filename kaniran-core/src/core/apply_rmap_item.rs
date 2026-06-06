@@ -1,11 +1,8 @@
 //! Port of `ichiran:apply-rmap-item` (`deromanize.lisp:37`).
 //!
 //! Builds the [`KanaRepresentation`] for applying one romaji rule
-//! `rmi` to input `s`: the rule's kana is the canonical kana and the
-//! base pattern, with a trailing `う?` appended when the consumed
-//! romaji could be a long vowel; `rest` is the rule's `next` fragment
-//! (or empty) prepended to `s` past the consumed prefix. `branch`
-//! takes the struct default (0).
+//! `rmi` to input `s`, appending a trailing `う?` to the pattern when
+//! the consumed romaji could be a long vowel.
 
 use super::kana_representation_struct::KanaRepresentation;
 use super::possible_long_vowel_p::possible_long_vowel_p;

@@ -3,18 +3,6 @@
 //! Recomputes the `n_kanji` / `n_kana` row-count caches on the `entry`
 //! rows whose `seq` is in `entries`, from their current `kanji_text` /
 //! `kana_text` children.
-//!
-//! Diverges from the upstream lambda list `(&rest entries)`:
-//! - takes `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per [`crate::conn::kani_context`];
-//! - `&rest entries` becomes the slice `entries: &[i32]`;
-//! - `(:in 'entry.seq (:set entries))` binds as `entry.seq = ANY($1)`
-//!   (postmodern → sqlx idiom; empty input affects 0 rows either way,
-//!   matching upstream's `seq IN (NULL)`, REPL-pinned 2026-05-25);
-//! - upstream `query` returns `(values nil affected-count)` for a
-//!   no-RETURNING UPDATE; the port returns the affected-row count
-//!   (`PgQueryResult::rows_affected`), postmodern's secondary value.
-//!   Both callers discard it.
 
 use crate::conn::kani_context::KaniranContext;
 

@@ -1,8 +1,7 @@
 //! End-to-end runner for the kanjidic loader: drives
 //! [`kaniran_core::kanji::load_kanjidic::load_kanjidic`] (and
 //! optionally [`kaniran_core::kanji::load_kanji_stats::load_kanji_stats`])
-//! against an arbitrary Postgres URL so a Python orchestrator can
-//! diff the resulting tables against the reference ichiran DB.
+//! against an arbitrary Postgres URL.
 //!
 //! Run:
 //!   cargo run --release -p kaniran-audit --bin e2e_load_kanjidic -- \

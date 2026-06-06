@@ -1,23 +1,7 @@
 //! Port of `ichiran/dict:synergy-shika-negative` (`dict-grammar.lisp:934`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-shika-negative (l r)
-//!   (filter-in-seq-set 1005460) ;; しか
-//!   (lambda (segment)
-//!     (some (lambda (cdata)
-//!             (conj-neg (conj-data-prop cdata)))
-//!           (getf (segment-info segment) :conj)))
-//!   :description "shika+neg"
-//!   :score 50
-//!   :connector " ")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
-//! - The right-side `lambda` is inlined as `|s| s.conj_has_neg`; the
-//!   lite layer precomputes `(some (conj-neg (conj-data-prop cdata)))`
-//!   over `:conj` as the `KaniLiteSegment::conj_has_neg` field.
+//! "shika+neg" synergy: binds しか (seq 1005460) on the left to any
+//! segment with a negated conjugation on the right.
 
 use std::sync::Arc;
 

@@ -1,30 +1,8 @@
 //! Port of `ichiran/kanji:reading-info-json` (`kanji.lisp:354`).
 //!
-//! ```lisp
-//! (defun reading-info-json (reading total)
-//!   (with-connection *connection*
-//!     (let ((js (jsown:new-js
-//!                 ("text" (text reading))
-//!                 ("rtext" (romanize-word (text reading) :method *hepburn-basic* :original-spelling ""))
-//!                 ("type" (reading-type reading))
-//!                 ("okuri" (query (:select 'text :distinct :from 'okurigana :where (:= 'reading-id (id reading))) :column))
-//!                 ("sample" (stat-common reading))
-//!                 ("perc" (calculate-perc (stat-common reading) total)))))
-//!       (when (prefixp reading)
-//!         (jsown:extend-js js ("prefixp" t)))
-//!       (when (suffixp reading)
-//!         (jsown:extend-js js ("suffixp" t)))
-//!       js)))
-//! ```
-//!
-//! Returns a [`serde_json::Value`] object (insertion order via the crate's
-//! `preserve_order` feature). The `:column` query yields the okurigana
-//! `text` column as a JSON array (empty list renders `[]`).
-//!
-//! Diverges from the upstream lambda list `(reading total)` by taking
-//! `&KaniranContext` first for the database handle (the okurigana query),
-//! replacing the upstream dynamic `*connection*` per
-//! [`crate::conn::kani_context`].
+//! Builds a JSON object describing one `reading` row: its text,
+//! romanized form, type, distinct okurigana list, corpus sample count
+//! and percentage, plus `prefixp`/`suffixp` flags when set.
 
 use serde_json::{Map, Value};
 

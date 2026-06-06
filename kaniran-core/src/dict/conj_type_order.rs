@@ -1,13 +1,7 @@
 //! Port of `ichiran/dict:conj-type-order` (`dict.lisp:1612`).
 //!
-//! ```lisp
-//! (defun conj-type-order (conj-type)
-//!   ;; swaps Continuative and Imperative so that the former is shown first
-//!   (case conj-type
-//!     (10 13)
-//!     (13 10)
-//!     (t conj-type)))
-//! ```
+//! Swaps conj-type 10 and 13 (Continuative and Imperative) so the
+//! former sorts first; all other types pass through unchanged.
 
 pub fn conj_type_order(conj_type: i32) -> i32 {
     match conj_type {

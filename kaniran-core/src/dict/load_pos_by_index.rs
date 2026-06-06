@@ -1,14 +1,8 @@
 //! Port of `ichiran/dict:load-pos-by-index` (`dict-load.lisp:253`, `csv-hash *pos-by-index*` expansion).
 //!
-//! Build the numeric id → part-of-speech tag map from the embedded
-//! kwpos.csv (tab-separated, header skipped — mirrors `cl-csv:read-csv
-//! :separator #\Tab :skip-first-p t`). The `description` / `ents`
-//! columns are unused by this loader's value-form (`pos`).
-//!
-//! Diverges from upstream `(merge-pathnames *jmdict-data* "kwpos.csv")`:
-//! kwpos.csv is vendored into the crate and embedded with `include_str!`.
-//! Returns the built map; the upstream `setf` of `*pos-by-index*` lives
-//! on the `OnceLock` in [`super::_star_pos_by_index_star_`].
+//! Builds the numeric id → part-of-speech tag map by parsing the
+//! tab-separated kwpos.csv (header skipped); only the id and tag
+//! columns are used.
 
 use std::collections::HashMap;
 

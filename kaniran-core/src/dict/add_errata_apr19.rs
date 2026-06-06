@@ -1,8 +1,7 @@
 //! Port of `ichiran/dict:add-errata-apr19` (`dict-errata.lisp:788`).
 //!
-//! Diverges from the upstream lambda list `()` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
+//! Applies the April-2019 batch of JMdict corrections (common-flag
+//! adjustments, sense-prop tweaks, reading deletes).
 
 use super::add_sense_prop::add_sense_prop;
 use super::delete_reading::delete_reading;

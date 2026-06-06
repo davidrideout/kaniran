@@ -1,21 +1,7 @@
 //! Port of `ichiran/dict:def-reader-for-json` (`dict.lisp:1292`).
 //!
-//! ```lisp
-//! (defmacro def-reader-for-json (name slot)
-//!   (alexandria:with-gensyms (obj)
-//!     `(defmethod ,name ((,obj cons))
-//!        (jsown:val ,obj ,slot))))
-//! ```
-//!
-//! At each callsite (`dict.lisp:1309-1320`) it adds a `cons`-method to a
-//! `word-info-*` accessor so it reads from a jsown JSON object as well as a
-//! `word-info` instance. The Rust accessors are `WordInfo` struct fields, so
-//! there is no generic function to extend; the shared expansion body
-//! `(jsown:val obj slot)` ports as a single helper over the
-//! [`serde_json::Value`] object `word-info-json` builds, with the per-callsite
-//! `slot` becoming a `&str`. Returns the untyped `&Value` like `jsown:val`, and
-//! panics on an absent key like `jsown:val`'s error (every key is present in a
-//! `word-info-json` object).
+//! Reads the value at `slot` from a `word-info-json` object, panicking
+//! on an absent key like `jsown:val`'s error.
 
 use serde_json::Value;
 

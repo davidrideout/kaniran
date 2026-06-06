@@ -1,23 +1,7 @@
 //! Port of `ichiran/dict:abbr-nx` (`dict-grammar.lisp:591-600`).
 //!
-//! ```lisp
-//! (def-abbr-suffix abbr-nx :nai-x 2 (root suf patch)
-//!   (cond ((equal root "せ")
-//!          (setf patch '("しない" . "せ"))
-//!          (find-word-conj-of "しない" 1157170))
-//!         (t
-//!          (find-word-with-conj-prop
-//!           (concatenate 'string root "ない")
-//!           (lambda (cdata)
-//!             (and (/= (conj-data-from cdata) 1157170)
-//!                  (conj-neg (conj-data-prop cdata))))))))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_abbr_suffix_body`] (CONVENTIONS
-//! §4.6 case (c)). `patch` (cons cell `("しない" . "せ")`) flows as
-//! `Some(("しない", "せ"))` into the body's kana branch:
-//! `destem(source-kana, 3) + "せ" + suf-var` (3 = char-count of
-//! `(car patch)` = "しない").
+//! Matches the negative `root + "ない"`, with a special-cased patch
+//! mapping せ to する's しない form.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;

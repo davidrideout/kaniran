@@ -2,28 +2,8 @@
 //!
 //! Looks up the recipes registered for `counter` in the counter
 //! cache, materializes a [`Counter`] from each recipe with the given
-//! `number` text, and keeps the ones [`verify`] accepts. Drops
-//! recipes whose [`Counter::new`] raises `NotANumber` (mirrors the
-//! upstream `(handler-case ... (not-a-number () nil))` at line 279).
-//!
-//! Diverges from the upstream lambda list
-//! `(number counter &key (unique t))` only by taking
-//! `&KaniranContext` as the first parameter, replacing Lisp's
-//! dynamic `*connection*` and the `(ensure :counters)` cache
-//! lookup with explicit field access on the context per
-//! [`crate::conn::kani_context`] (§4.8).
-//!
-//! `unique` is preserved as `Option<bool>` so the upstream
-//! "absent → defaults to `t`" shape lives at the function boundary,
-//! not at every call site: `find_counter(ctx, num, ctr, None)`
-//! mirrors `(find-counter num ctr)`, while `Some(true)` / `Some(false)`
-//! mirror `:unique t` / `:unique nil`. Without this, callers ported
-//! against the bare `bool` form would silently lose the default-true
-//! contract on omission.
-//!
-//! The cache itself is populated eagerly during context construction;
-//! at call time this fn is a pure HashMap lookup + per-recipe
-//! construct + verify.
+//! `number` text, and keeps the ones [`verify`] accepts. Drops recipes
+//! whose [`Counter::new`] raises `NotANumber`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_counter_cache_star_::counter_cache;

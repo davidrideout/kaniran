@@ -1,12 +1,6 @@
 //! Port of `ichiran/dict:entry-info-short` (`dict.lisp:1595`).
 //!
-//! ```lisp
-//! (defun entry-info-short (seq &key with-pos)
-//!   (let ((sense-str (short-sense-str seq :with-pos with-pos)))
-//!     (with-output-to-string (s)
-//!       (format s "~a : " (reading-str-seq seq))
-//!       (when sense-str (princ sense-str s)))))
-//! ```
+//! Formats a seq as `"<reading> : <short sense str>"`.
 
 use super::reading_str_seq::reading_str_seq;
 use super::short_sense_str::short_sense_str;

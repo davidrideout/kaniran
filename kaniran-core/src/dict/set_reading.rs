@@ -5,9 +5,6 @@
 //! Picks the best cross-reading for a kanji/kana row and writes it
 //! back to the row's `best_kana` / `best_kanji` column. Restricted
 //! readings (`re_restr` JMdict tags) gate the candidate list.
-//!
-//! Method dispatch on `kanji-text` vs `kana-text` is modelled by the
-//! 2-variant [`SetReadingObj`] enum.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kana_text_dao::KanaText;

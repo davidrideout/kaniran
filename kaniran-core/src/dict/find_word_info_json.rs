@@ -1,17 +1,7 @@
 //! Port of `ichiran/dict:find-word-info-json` (`dict.lisp:1871`).
 //!
-//! ```lisp
-//! (defun find-word-info-json (text &key reading root-only)
-//!   (mapcar (lambda (wi) (word-info-gloss-json wi :root-only root-only))
-//!           (find-word-info text :reading reading :root-only root-only)))
-//! ```
-//!
-//! ## Divergences from Lisp
-//!
-//! - Ctx-injected for the database handle (`*connection*` → `ctx.pool`).
-//! - `reading: Option<&str>` for `&key reading`; `root_only: bool` for
-//!   `&key root-only`.
-//! - jsown objects map to [`serde_json::Value`].
+//! Runs [`find_word_info`] and renders each result through
+//! [`word_info_gloss_json`].
 
 use serde_json::Value;
 

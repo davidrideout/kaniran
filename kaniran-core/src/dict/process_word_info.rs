@@ -1,21 +1,9 @@
 //! Port of `ichiran/dict:process-word-info` (`dict.lisp:1417`).
 //!
 //! Post-processes a word-info sequence to fix the 何 (what) reading
-//! based on the next word's first kana. Walks adjacent pairs; for
-//! each pair where the current `text` is `"何"` and a next word
-//! exists, scans the next word's kana strings and picks one of
-//! `"なに"` / `"なん"` based on which kana classes the leading
-//! characters fall into:
-//!
-//! - All leading kana fall in the dental / voiced / `n` / `r`
-//!   bracket → `"なん"`.
-//! - All leading kana are outside that bracket → `"なに"`.
-//! - A mix of both → `"なに"`.
-//! - Empty kana strings only → no change.
-//!
-//! The `nan` class is the inline keyword set in `dict.lisp:1426-1430`:
-//! the `b/p/d/dz/z/t/n/r` rows minus `ni`. Encoded here as
-//! [`is_nan_class`].
+//! based on the next word's first kana, picking `"なん"` when every
+//! leading kana falls in the dental / voiced / `n` / `r` bracket and
+//! `"なに"` otherwise (empty kana strings leave the reading unchanged).
 
 use super::word_info_class::{WordInfo, WordInfoKana};
 use crate::characters::get_char_class::get_char_class;

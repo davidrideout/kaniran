@@ -1,19 +1,7 @@
 //! Port of `ichiran/dict:segfilter-sae` (`dict-grammar.lisp:1117`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-sae (l r)
-//!   (complement (filter-is-compound-end 2029120))
-//!   (lambda (segment) (alexandria:starts-with #\え (get-text segment)))
-//!   :allow-first t)
-//! ```
-//!
-//! Divergences from Lisp:
-//! - The lambda's `(get-text segment)` upstream goes through the
-//!   `((segment))` method (`dict.lisp:677-679`) which lazily caches
-//!   the result back into `segment-text`. The Rust port reads through
-//!   the lite-precomputed [`super::kani_lite_segment::KaniLiteSegment::text`]
-//!   directly. Functionally identical — text() is the default delegate
-//!   of the cache path.
+//! Keeps a right segment whose text starts with え only when the
+//! preceding left segment is not a さえ (2029120) compound end.
 
 use std::sync::Arc;
 

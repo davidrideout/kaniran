@@ -2,14 +2,8 @@
 //!
 //! Threads `(seg-left, seg-right)` through each filter in
 //! [`SEGFILTER_LIST`] in order. Each filter returns a list of
-//! `(seg-left, seg-right)` candidates; the union (Lisp `nconc`) of
-//! those candidates becomes the input to the next filter.
-//!
-//! Divergences from Lisp:
-//! - Operates on [`Arc<KaniLiteSegmentList>`] end-to-end so the 16
-//!   pass-through filter clones reduce to refcount bumps. The Lisp
-//!   `(list seg-left seg-right)` is itself pointer-shared, so the
-//!   `Arc` shape preserves upstream semantics.
+//! `(seg-left, seg-right)` candidates; the union of those candidates
+//! becomes the input to the next filter.
 //!
 //! [`SEGFILTER_LIST`]: super::_star_segfilter_list_star_::SEGFILTER_LIST
 

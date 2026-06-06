@@ -4,11 +4,6 @@
 //! the class has no voiced counterpart in
 //! [`super::_star_dakuten_hash_star_::dakuten_hash`]. Only the dakuten
 //! mapping is consulted — handakuten (`Ha → Pa` etc.) is not.
-//!
-//! The Lisp idiom `(gethash cc *dakuten-hash* cc)` falls back to the
-//! key when missing. Per CONVENTIONS §4.2 the same-typed default
-//! collapses directly to `unwrap_or` — no `Option` shape needed,
-//! because input and output are both `KanaClass`.
 
 use super::_star_dakuten_hash_star_::dakuten_hash;
 use super::kani_kana_class::KanaClass;

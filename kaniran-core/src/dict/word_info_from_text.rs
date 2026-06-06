@@ -1,19 +1,8 @@
 //! Port of `ichiran/dict:word-info-from-text` (`dict.lisp:1382`).
 //!
-//! ```lisp
-//! (defun word-info-from-text (text)
-//!   (with-connection *connection*
-//!     (let* ((readings (find-word-full text :counter :auto))
-//!            (segments (loop for r in readings collect (gen-score (make-segment :start 0 :end (length text) :word r :text text))))
-//!            (segment-list (make-segment-list :segments segments :start 0 :end (length text)
-//!                                             :matches (length segments))))
-//!       (word-info-from-segment-list segment-list))))
-//! ```
-//!
-//! Diverges by taking `&KaniranContext` for the DB handle (replacing the
-//! upstream dynamic `*connection*` per [`crate::conn::kani_context`]) and
-//! being `async`. `make-segment` / `make-segment-list` become struct
-//! literals; `(length text)` is a character count per CONVENTIONS §4.5.
+//! Builds a one-span segment-list over `text` (looking up its full
+//! readings and scoring each) and collapses it into a single
+//! [`WordInfo`] via [`word_info_from_segment_list`].
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::find_word_full::{find_word_full, CounterArg};

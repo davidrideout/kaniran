@@ -2,8 +2,7 @@
 //! (`characters.lisp:3`).
 //!
 //! Single-entry table for the geminating mark (small tsu, hiragana
-//! `っ` / katakana `ッ`). One of the four constituents that
-//! `*all-characters*` is built from.
+//! `っ` / katakana `ッ`).
 
 use super::kani_kana_class::KanaClass;
 

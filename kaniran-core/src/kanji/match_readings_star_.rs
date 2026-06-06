@@ -9,27 +9,7 @@
 //! candidate-match is always preferred over an irr fallback that
 //! covers the same span. For each non-kanji rmap position the next
 //! `reading` character must match exactly. The best-scoring match
-//! is returned; ties resolve to the largest `end` (matches the
-//! upstream loop's strict `>` against `max-score` over a
-//! reverse-push iteration order).
-//!
-//! Diverges from the upstream lambda list `(rmap reading &key
-//! (start 0))` by:
-//!
-//! - dropping the `:start` keyword from the public surface — the
-//!   upstream's only callers (`match-readings`, the recursion
-//!   itself) always start at 0; the recursion threads the offset
-//!   through an internal helper instead;
-//! - collapsing the upstream's `(values match score) | :none`
-//!   triple-shape return to `MatchResult::None` /
-//!   `MatchResult::Some { items, score }`. The dual signal
-//!   "no match" (`:none`) vs. "matched empty" (`(values nil 0)` at
-//!   the rmap-empty / reading-exhausted base case) becomes
-//!   `Option`-typed via the enum.
-//!
-//! `MatchItem::Char` carries the non-kanji passthrough; `Reading`
-//! carries the matched [`KanjiReading`] (either a candidate from
-//! the rmap or a freshly-constructed irr fallback).
+//! is returned; ties resolve to the largest `end`.
 
 use super::kani_kanji_reading::KanjiReading;
 use super::make_rmap::RmapEntry;

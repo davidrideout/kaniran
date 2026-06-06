@@ -1,11 +1,7 @@
 //! Port of `ichiran/dict:segfilter-n` (`dict-grammar.lisp:1086`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-n (l r)
-//!   (complement (apply 'filter-in-seq-set-simple *noun-particles*))
-//!   (filter-in-seq-set 2139720 2849370 2849387) ;;　ん んだ
-//!   :allow-first t)
-//! ```
+//! Keeps a ん/んだ right segment only when the preceding left segment
+//! is not a noun particle.
 
 use std::sync::Arc;
 

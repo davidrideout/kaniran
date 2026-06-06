@@ -1,25 +1,7 @@
 //! Port of `ichiran:romanize` (`romanize.lisp:257-271`).
 //!
-//! ```lisp
-//! (defun romanize (input &key (method *default-romanization-method*) (with-info nil))
-//!   (setf input (normalize input :context method))
-//!   (loop with definitions = nil
-//!      for (split-type . split-text) in (basic-split input)
-//!      nconc
-//!        (if (eql split-type :word)
-//!            (mapcar (lambda (word)
-//!                      (let ((rom (romanize-word-info word :method method)))
-//!                        (when with-info
-//!                          (push (cons rom (word-info-str word)) definitions))
-//!                        rom))
-//!                    (simple-segment split-text))
-//!            (list split-text)) into parts
-//!      finally (return (values (join-parts parts) (nreverse definitions)))))
-//! ```
-//!
-//! The `(values str list)` return becomes a `(String, Vec<(rom, word-info-str)>)`
-//! tuple. `:context method` reduces to a [`NormalizationContext`]; `normalize`
-//! only tests `(eql context :kana)`.
+//! Romanizes `input` and joins the parts into one string; with `with_info`
+//! also returns each romanization paired with its word-info string.
 
 use super::join_parts::join_parts;
 use super::kani_romanize_method::KaniRomanizeMethod;

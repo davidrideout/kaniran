@@ -1,31 +1,8 @@
 //! Port of `ichiran:romanize*` (`romanize.lisp:273-290`).
 //!
-//! ```lisp
-//! (defun romanize* (input &key (method *default-romanization-method*) (limit 5) (wordprop-fn (constantly nil)))
-//!   (setf input (normalize input :context method))
-//!   (loop for (split-type . split-text) in (basic-split input)
-//!      collect
-//!        (if (eql split-type :word)
-//!            (mapcar (lambda (pair)
-//!                      (let ((word-list (car pair))
-//!                            (score (cdr pair)))
-//!                        (list
-//!                         (mapcar (lambda (word)
-//!                                   (let* ((romanized (romanize-word-info word :method method))
-//!                                          (prop (funcall wordprop-fn romanized word)))
-//!                                     (list romanized word prop)))
-//!                                 word-list)
-//!                         score)))
-//!                    (dict-segment split-text :limit limit))
-//!            split-text)))
-//! ```
-//!
-//! Each `basic-split` segment becomes a [`RomanizeStarSegment`]: a `:misc`
-//! split is `Misc(text)`, a `:word` split is `Word` holding one
-//! `(word-prop-list, score)` pair per `dict-segment` alternative. The
-//! `(list romanized word prop)` triple becomes a `(String, WordInfo, P)`
-//! tuple; `wordprop-fn` is a generic `Fn(&str, &WordInfo) -> P` whose result
-//! is the `prop`. `:context method` reduces to a [`NormalizationContext`].
+//! Splits `input` and, for each word segment, romanizes every
+//! `dict-segment` alternative into `(romanized, word-info, prop)` triples
+//! paired with the segment score; misc segments pass through as text.
 
 use super::kani_romanize_method::KaniRomanizeMethod;
 use super::romanize_word_info::romanize_word_info;

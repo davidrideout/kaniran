@@ -1,37 +1,10 @@
 //! Port of `ichiran/maintenance:diff-content` (`ichiran.lisp:140-147`).
 //!
 //! Compare two text blobs split on `[\r\n]+` and return a unified diff
-//! or a sentinel marking that one side is missing. Used upstream to
-//! summarize JMdict entry-content changes between two database
-//! snapshots.
-//!
-//! Divergences from Lisp:
-//! - "Missing" inputs are modeled as [`Option<&str>`] rather than
-//!   `nil`, separating the absent case from an explicit empty string.
-//! - The `(or simple-string (member :gone :new))` return type collapses
-//!   to the [`DiffResult`] enum (CONVENTIONS §4.3).
-//! - The `&key short` keyword stays a [`bool`]: the parameter name
-//!   reads as "short-circuit when one side is absent" at the callsite,
-//!   so the polarity is clear without an enum (CONVENTIONS §4.4).
-//! - Diff library: [`similar`] is the closest Rust equivalent of
-//!   upstream `cl-diff`'s unified-diff renderer. Output text is not
-//!   guaranteed byte-identical with cl-diff; tests pin behavior, not
-//!   literal output.
-//!
-//! ## `None` vs `Some("")`
-//!
-//! Only [`None`] triggers the [`DiffResult::Gone`] / [`DiffResult::New`]
-//! sentinels — [`Some("")`] is treated as a present-but-empty input
-//! and flows through the diff path. This matches upstream's
-//! NULL-vs-empty distinction on the JMdict `entry.content` column:
-//! a SQL `NULL` becomes `nil` (sentinel); an empty `TEXT` value stays
-//! as `""` and produces a normal (empty-body) diff.
-//!
-//! In Lisp the distinction is implicit in the `(and old (split-by-regex
-//! ...))` truthiness chain — `nil` short-circuits, `""` reaches
-//! `split-by-regex` and returns a non-`nil` list. The Rust port makes
-//! the boundary explicit at the function signature and in the
-//! [`Option::is_none`] checks below.
+//! or a sentinel marking that one side is missing. Only [`None`] (an
+//! absent side) triggers the [`DiffResult::Gone`] / [`DiffResult::New`]
+//! sentinels; [`Some("")`] is a present-but-empty input that flows
+//! through the diff path.
 
 use crate::characters::split_by_regex::split_by_regex;
 use fancy_regex::Regex;

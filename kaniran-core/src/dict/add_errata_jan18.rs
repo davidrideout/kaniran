@@ -3,10 +3,6 @@
 //! Applies the January-2018 batch of JMdict overrides: `common`
 //! adjustments on `kana-text` / `kanji-text` rows, sense-prop
 //! tweaks, two `primary-nokanji` flips, and one new reading.
-//!
-//! Diverges from the upstream lambda list `()` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
 
 use super::add_reading::add_reading;
 use super::add_sense_prop::add_sense_prop;

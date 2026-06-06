@@ -1,31 +1,8 @@
 //! `kaniran-cli` — Rust transliteration of `ichiran/cli` (`cli.lisp`).
 //!
-//! ```lisp
-//! (defun main ()
-//!   (load-connection-from-env)
-//!   (multiple-value-bind (options free-args) (... (opts:get-opts) ...)
-//!     (cond
-//!       ((getf options :help) (opts:describe ...))
-//!       ((getf options :eval) ...)
-//!       ((getf options :info)
-//!        (let ((input (join " " free-args)))
-//!          (multiple-value-bind (r info) (romanize input :with-info t)
-//!            (princ r) (print-romanize-info info))))
-//!       ((getf options :full)
-//!        (let* ((input (join " " free-args))
-//!               (limit-value (getf options :limit))
-//!               (result (romanize* input :limit limit-value)))
-//!          (princ (jsown:to-json result))))
-//!       (t (let ((input (join " " free-args)))
-//!            (princ (romanize input :with-info t))))))
-//!   (terpri) (finish-output))
-//! ```
-//!
-//! `load-connection-from-env` becomes [`KaniranContext::from_env`]; option
-//! parsing is clap rather than `unix-opts`, so `-h/--help` and parse errors
-//! are clap's. The `-e/--eval` branch (`(eval (read-from-string input))`)
-//! has no Rust equivalent and is omitted. `build` / `setup-debugger` are
-//! image-build glue with no runtime counterpart.
+//! Parses CLI options and romanizes the free-argument input, with
+//! `--with-info` / `--full` selecting plain text, dictionary-info, or
+//! JSON output.
 
 use std::io::Write;
 

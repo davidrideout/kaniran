@@ -5,18 +5,8 @@
 //!   cargo run --bin get_hint_test -- \
 //!       --path corpus/<corpus_tag>/dict/get_hint.parquet
 //!
-//! Args (post-projector): `(<reading-row> {"_meta":{"context":
-//! {"disable_hints":<bool>}}})`. The upstream get-hint is only
-//! called from the `simple-text :around` method on get-kana, which
-//! rebinds `*disable-hints*` to T before invoking get-hint — so
-//! every captured row should carry `disable_hints=true`. The runner
-//! rebinds the audit ctx via
-//! [`KaniranContext::with_disable_hints`] before calling the impl
-//! so any divergence surfaces as a runtime-state difference (which
-//! would itself be a bug worth investigating).
-//!
-//! Result: `(<kana string or nil>)` — single value; `nil` ↔ `None`
-//! when no hint-fn fired or the hint-fn body returned nil.
+//! Replays captured reading rows through `get_hint` and compares the
+//! returned hint kana string against the Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

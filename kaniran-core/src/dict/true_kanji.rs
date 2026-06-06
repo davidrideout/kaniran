@@ -1,27 +1,8 @@
 //! Port of `ichiran/dict:true-kanji` (`dict.lisp:564-566`).
 //!
-//! Returns the kanji writing for a reading, descending through any
-//! `proxy-text` wrappers to the underlying source. The Lisp gf has
-//! two methods:
-//!
-//! ```lisp
-//! (defgeneric true-kanji (obj)
-//!   (:method (obj) (get-kanji obj))
-//!   (:method ((obj proxy-text)) (true-kanji (source obj))))
-//! ```
-//!
-//! The Rust port dispatches on [`KaniWordDispatchEnum`]. The
-//! `proxy-text` branch unwraps through [`ProxyText::source`]
-//! iteratively (the source is itself a [`KaniSimpleTextDispatchEnum`]
-//! that may carry another `Proxy`) and then re-enters the
-//! [`super::get_kanji::get_kanji`] dispatcher for the terminal
-//! kanji-text / kana-text. Every non-proxy branch delegates directly
-//! to [`get_kanji`].
-//!
-//! Diverges from the upstream lambda list `(obj)` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`]. Async
-//! because [`get_kanji`]'s kana-text branch reaches the database.
+//! Returns the kanji writing for a reading via [`get_kanji`],
+//! descending through any `proxy-text` wrappers to the underlying
+//! source first.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_kanji::get_kanji;

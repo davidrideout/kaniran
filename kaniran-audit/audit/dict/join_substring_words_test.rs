@@ -5,39 +5,9 @@
 //!   cargo run --release --bin join_substring_words_test -- \
 //!       --path corpus/substring_2026_05_14/dict/join_substring_words.parquet
 //!
-//! Args shape: `[<str>]`.
-//!
-//! Result shape (one captured value): a list of SEGMENT-LIST objects,
-//! each `{"_meta":{"class":"SEGMENT-LIST"}, "start", "end", "matches",
-//! "segments":[{SEGMENT}, ...]}`. Unlike `join-substring-words*`, the
-//! segments here are gen-scored: every SEGMENT carries a populated
-//! `score` and `info` plist, both compared in full.
-//!
-//! ## id-stripping
-//!
-//! Same asymmetry as `join_substring_words_star_test` /
-//! `find_word_full_test`: the inner `find-word` reads the
-//! `*substring-hash*` `make-instance` branch (`dict.lisp:493`), leaving
-//! the `id` slot unbound — the projector emits `"id": null`. The Rust
-//! port reads its `substring_hash` cache (rows from `SELECT *`, real
-//! ids). Both sides are zeroed before comparison; `seq + text + ord`
-//! identifies the row.
-//!
-//! ## comparison
-//!
-//! Segment-lists are ordered `(start, end)` ascending on both sides
-//! (the upstream loop walks `result` in order), so they compare
-//! positionally on `(start, end, matches)`. Segment order WITHIN a list
-//! follows `cull-segments`' two stable sorts; ties among equal
-//! `(common, score)` fall back on `find-word`'s unordered SQL, so the
-//! per-list segments are compared as a sorted multiset of full-field
-//! fingerprints. The fingerprint covers every compared slot — `start`,
-//! `end`, `score`, `text`, `word` (deep `Debug` after id-stripping),
-//! and the six-key `info` plist (with `posi` sorted, since
-//! `get-non-arch-posi`'s SQL is unordered). `ConjData` / `ConjProp`
-//! `Debug` covers exactly the fields the `gen-score` audit compares
-//! field-by-field, so the fingerprint is a complete check, not a
-//! lossy one.
+//! Replays a captured string through `join_substring_words` and
+//! compares the returned gen-scored segment-lists (start/end/matches
+//! plus each segment's score and info) against the Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

@@ -1,43 +1,11 @@
 //! Port of `ichiran/kanji:process-match-json` (`kanji.lisp:428`).
 //!
-//! ```lisp
-//! (defun process-match-json (match)
-//!   (loop with irrbag and result
-//!      with empty-bag = (lambda (&aux (ib (nreverse irrbag)))
-//!                         (let ((js (jsown:new-js
-//!                                     ("kanji" (apply 'concatenate 'string (mapcar 'first ib)))
-//!                                     ("reading" (apply 'concatenate 'string (mapcar 'second ib)))
-//!                                     ("type" "irr"))))
-//!                           (when (ppcre:scan *kanji-char-regex* (jsown:val js "kanji"))
-//!                             (jsown:extend-js js ("link" t)))
-//!                           (push js result))
-//!                         (setf irrbag nil))
-//!      for item in match
-//!      if (listp item) do
-//!          (cond ((equal (third item) "irr") (push item irrbag))
-//!                (t (when irrbag (funcall empty-bag))
-//!                   (push (apply 'kanji-reading-json item) result)))
-//!      else do (when irrbag (funcall empty-bag))
-//!              (push (jsown:new-js ("text" item)) result)
-//!      finally (when irrbag (funcall empty-bag))
-//!        (return (nreverse result))))
-//! ```
-//!
 //! Walks the [`MatchedSegment`] list from [`super::match_readings`]:
 //! each non-`irr` kanji segment becomes a [`super::kanji_reading_json`]
 //! object, each non-kanji run a `{"text": …}` object, and consecutive
 //! `irr` kanji segments coalesce into one `{"kanji", "reading", "type":
 //! "irr"}` object whose texts are the concatenated segments, gaining
 //! `"link": true` when the concatenation holds a CJK ideograph.
-//!
-//! Returns `Vec<serde_json::Value>` (object insertion order via the
-//! crate's `preserve_order` feature). The `match` argument is renamed
-//! `match_` (Rust keyword).
-//!
-//! Diverges from the upstream lambda list `(match)` only by taking
-//! `&KaniranContext` for the database handle (via
-//! [`super::kanji_reading_json`]), replacing the upstream dynamic
-//! `*connection*` per [`crate::conn::kani_context`].
 
 use std::sync::OnceLock;
 

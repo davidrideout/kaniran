@@ -2,15 +2,7 @@
 //! (`characters.lisp:131`).
 //!
 //! Composite pattern that recognizes one "word" token in
-//! Japanese-mixed-with-digits text. Derived from
-//! [`DECIMAL_POINT_REGEX`], [`DIGIT_REGEX`], [`WORD_REGEX`], and
-//! [`NUM_WORD_REGEX`] via the same `format` template the Lisp uses,
-//! built lazily on first access.
-//!
-//! The negative lookbehind `(?<![.,]|[0-9０-９〇])` is what required
-//! `fancy-regex` instead of the stdlib `regex` crate. Compilation is
-//! still deferred to `*char-scanners*` — this file only produces the
-//! pattern string.
+//! Japanese-mixed-with-digits text.
 
 use std::sync::OnceLock;
 
@@ -45,9 +37,6 @@ mod tests {
         fancy_regex::Regex::new(basic_split_regex()).expect("regex must compile");
     }
 
-    /// Pinned to the value the Lisp introspector captured. Guards against
-    /// drift if any of the four input constants change without an
-    /// intentional update here.
     #[test]
     fn matches_introspected_value() {
         assert_eq!(

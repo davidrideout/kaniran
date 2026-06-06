@@ -1,7 +1,7 @@
 //! Port of `ichiran/custom:test-entry` (gf — `dict-custom.lisp:23`).
 //!
-//! The 2-value `(values ok seq)` upstream return collapses into the
-//! 4-variant [`TestEntryResult`] per CONVENTIONS §4.3.
+//! Decides whether an entry should be inserted, updated, gloss-updated,
+//! or skipped by matching its words against existing dictionary glosses.
 
 use fancy_regex::Regex;
 

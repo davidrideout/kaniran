@@ -4,10 +4,6 @@
 //! y-glide modifier wraps the item just before it, and the geminate
 //! marker `:sokuon` wraps everything that follows it (recursively). All
 //! other items pass through as atoms.
-//!
-//! The upstream accumulates with `push` (prepend) and `nreverse`s at the
-//! end; the Rust keeps the accumulator in forward order and pushes/pops
-//! its back, so no final reversal is needed.
 
 use super::kani_cc_item::CcItem;
 use super::kani_cc_tree::CcTree;

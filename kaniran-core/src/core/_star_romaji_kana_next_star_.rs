@@ -3,9 +3,7 @@
 //! Set of every proper prefix of every romaji key in
 //! [`*romaji-kana*`][super::_star_romaji_kana_star_::romaji_kana] —
 //! the "could this grow into a longer key?" membership test consulted
-//! by `romaji-next`. Lazily built once via [`has_successors`] over the
-//! map's keys, mirroring the upstream `defparameter` evaluated after
-//! `load-romaji-kana`.
+//! by `romaji-next`.
 
 use std::collections::HashSet;
 use std::sync::OnceLock;

@@ -1,28 +1,11 @@
 //! Port of `ichiran:branches-next` (`deromanize.lisp:69`).
 //!
-//! ```lisp
-//! (defun branches-next (branches)
-//!   (flet ((key (b) (length (kr-rest b))))
-//!     (let* ((kr (car branches))
-//!            (new-branches
-//!             (sort
-//!              (nconc (loop for k in (romaji-next (kr-rest kr)) collect (kr-concat kr k)) (cdr branches))
-//!              '>
-//!              :key #'key))
-//!            (new-len (length new-branches)))
-//!       (if (= new-len 1)
-//!           (setf (kr-branch (car new-branches)) (length (kr-pattern (car new-branches)))))
-//!       (if (and (> new-len 1) (= (key (car new-branches)) (key (car (last new-branches)))))
-//!           (list (join-branches new-branches))
-//!           new-branches))))
-//! ```
-//!
 //! Advances the deromanizer search one step: extends the first branch
 //! with every `romaji-next` continuation of its remaining romaji,
-//! appends the other branches, and sorts the result by remaining-romaji
-//! length descending. A lone surviving branch has its `branch` index
-//! reset to its full pattern length; when the longest and shortest
-//! remaining romaji are equal, the branches merge via `join-branches`.
+//! appends the other branches, and sorts by remaining-romaji length
+//! descending. A lone survivor has its `branch` index reset to its full
+//! pattern length; when longest and shortest remaining romaji are equal,
+//! the branches merge via `join-branches`.
 
 use super::join_branches::join_branches;
 use super::kana_representation_struct::KanaRepresentation;

@@ -1,24 +1,7 @@
 //! Port of `ichiran/dict:filter-short-kana` (`dict-grammar.lisp:986-994`).
 //!
-//! ```lisp
-//! (declaim (inline filter-short-kana))
-//! (defun filter-short-kana (len &key except)
-//!   (lambda (segment-list)
-//!     (let ((seg (car (segment-list-segments segment-list))))
-//!       (and seg
-//!            (<= (- (segment-list-end segment-list)
-//!                   (segment-list-start segment-list)) len)
-//!            (not (car (getf (segment-info seg) :kpcl)))
-//!            (not (and except (member (get-text seg) except :test 'equal)))))))
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `&key except` → positional `Vec<String>` (CONVENTIONS §4.6).
-//! - Closure return collapses to `bool` (CONVENTIONS §4.1).
-//! - Closure takes the lite list; first-segment kpcl-bit-0 and text
-//!   are precomputed on [`KaniLiteSegment`] so no `setf`-on-`seg.text`
-//!   is required (upstream's caching is moot when the data is already
-//!   on the lite layer).
+//! Returns a predicate matching a segment-list at most `len` long whose
+//! first segment is non-kanji and not in the `except` list.
 
 use super::kani_lite_segment::KPCL_K;
 use super::kani_lite_segment_list::KaniLiteSegmentList;

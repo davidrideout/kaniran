@@ -1,9 +1,7 @@
 //! Port of `ichiran:get-character-classes` (`romanize.lisp:5-7`).
 //!
-//! Maps each character of `word` to its character class, looking the
-//! glyph up in `*char-class-hash*` and falling back to the glyph itself
-//! when it is not kana. The result feeds `process-iteration-characters`
-//! and `process-modifiers`.
+//! Maps each character of `word` to its character class, falling back to
+//! the glyph itself when it is not kana.
 
 use super::kani_cc_item::CcItem;
 use crate::characters::_star_char_class_hash_star_::char_class_hash;

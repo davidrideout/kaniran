@@ -5,10 +5,9 @@
 //!   cargo run --bin romanize_word_test -- \
 //!       --path corpus/<corpus_tag>/romanize_word.parquet
 //!
-//! Captured args interleave the `&key` keyword symbols with their values:
-//! `[<word>, ":METHOD", <method>, ":ORIGINAL-SPELLING", <orig>, ":NORMALIZE",
-//! <normalize>]`. The keywords are located by scanning rather than by fixed
-//! index. The one result value is the romanized string.
+//! Captured args are `[<word>, ":METHOD", <method>, ":ORIGINAL-SPELLING",
+//! <orig>, ":NORMALIZE", <normalize>]`; the one result value is the
+//! romanized string.
 
 #[path = "../common/mod.rs"]
 mod common;

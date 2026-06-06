@@ -1,21 +1,7 @@
 //! Port of `ichiran/dict:suffix-chau` (`dict-grammar.lisp:418`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-chau :chau (:stem 1 :score 5) (root suf)
-//!   (let ((te (case (char suf 0)
-//!               (#\HIRAGANA_LETTER_ZI "で")
-//!               (#\HIRAGANA_LETTER_TI "て"))))
-//!     (when te
-//!       (find-word-with-conj-type (concatenate 'string root te) 3))))
-//! ```
-//!
-//! `:stem 1` triggers the macro's `(let* ((*suffix-map-temp* nil)) …)`
-//! rebind; the rebound ctx is threaded into both the primary-words
-//! producer and [`def_simple_suffix_body`].
-//!
-//! `suf` typed `&KanaText`: every `:chau` cache entry under
-//! `(load-conjs :chau …)` populates a kana-text (ちゃう id=108760 /
-//! じゃう id=108761 / their conjugated forms).
+//! Handles the ～ちゃう/～じゃう contraction: maps the suffix's first
+//! kana (じ→で, ち→て) and looks up the root plus that te-form.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

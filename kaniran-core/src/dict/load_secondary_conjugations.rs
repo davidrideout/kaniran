@@ -1,12 +1,9 @@
 //! Port of `ichiran/dict:load-secondary-conjugations` (`dict-load.lisp:460`).
 //!
-//! Walks every primary conjugation tagged as
-//! [`SECONDARY_CONJUGATION_TYPES_FROM`] and drives
-//! [`conjugate_entry_outer`] with `via = seq`, `as-posi = ("v5s")` or
-//! `("v1")` (`v5s` when the source conjugation is the causative-su
-//! form, else `v1`), and `conj-types = ` [`SECONDARY_CONJUGATION_TYPES`].
-//! With `from`, the candidate set is restricted to source seqs in
-//! that list.
+//! Walks every primary conjugation tagged as a secondary type and drives
+//! `conjugate_entry_outer` to build the second-order conjugations (`v5s`
+//! posi for the causative-su source form, else `v1`); `from` restricts
+//! the candidate set to the given source seqs.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_secondary_conjugation_types_from_star_::SECONDARY_CONJUGATION_TYPES_FROM;

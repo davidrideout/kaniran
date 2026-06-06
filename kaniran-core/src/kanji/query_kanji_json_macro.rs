@@ -1,26 +1,8 @@
 //! Port of `ichiran/kanji:query-kanji-json` (`kanji.lisp:458`).
 //!
-//! ```lisp
-//! (defmacro query-kanji-json (var query &body extra-fields)
-//!   (alexandria:with-gensyms (js)
-//!     `(with-connection *connection*
-//!        (mapcar (lambda (,var)
-//!                  (let ((,js (to-json ,var)))
-//!                    (jsown:extend-js ,js ,@extra-fields)))
-//!                (query-dao 'kanji ,query)))))
-//! ```
-//!
 //! Runs `query` as a `kanji`-DAO query, maps each row through
 //! [`to_json`], and extends each resulting object with the caller's
-//! extra fields. The `&body extra-fields` (unevaluated `(key value)`
-//! forms over the bound row) becomes the `extra_fields` closure
-//! returning the per-row `(key, value)` pairs; `query` becomes the SQL
-//! `&str` passed to `query-dao`; the gensym row binding `var` becomes
-//! the closure parameter.
-//!
-//! Diverges from the upstream lambda list `(var query &body extra-fields)`
-//! by taking `&KaniranContext` for the database handle, replacing the
-//! upstream dynamic `*connection*` per [`crate::conn::kani_context`].
+//! extra fields.
 
 use serde_json::Value;
 

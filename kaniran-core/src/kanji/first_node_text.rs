@@ -1,4 +1,7 @@
 //! Port of `ichiran/kanji:first-node-text` (`kanji.lisp:108`).
+//!
+//! Returns the text of the first XML node in `nodes` (run through
+//! `wrapper`), or the default when the list is empty.
 
 use crate::dict::node_text::node_text;
 use roxmltree::Node;

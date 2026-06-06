@@ -4,37 +4,6 @@
 //! Run with:
 //!   cargo run --release --bin suffix_rashii_test -- \
 //!       --path corpus/extracted_chunk_c_suffix_abbr_2026_05_16/dict/suffix_rashii.parquet
-//!
-//! Args shape (per `def-simple-suffix` expansion, suffix-rashii defined
-//! at `dict-grammar.lisp:511`):
-//!   `[<root>, <sv>, <kf KANA-TEXT envelope>]`
-//!
-//! Result shape: `[<list> | null]`. `null` ↔ Lisp nil (empty — either
-//! `pair-words-by-conj` returned no buckets or the UNLESS branch fired);
-//! otherwise a list of COMPOUND-TEXT envelopes — one per primary word
-//! returned by the pair-words bucket sweep. `pair-words-by-conj` walks
-//! `alexandria:hash-table-values` whose order is undefined, so the runner
-//! sorts compound fingerprints before comparing.
-//!
-//! Comparison: every projected slot of every compound is compared via
-//! `format!("{:?}", c)` Debug fingerprints, then `id: NNN,` substrings
-//! are stripped before equality. Covers all CompoundText fields
-//! (text, kana, primary, words, score_base, score_mod) and recursively
-//! every simple-text field (seq, text, ord, common, common_tags,
-//! conjugate_p, nokanji, best_*, conjugations, hintedp). Proxy-text
-//! rows include their wrapped source.
-//!
-//! ## id slot is stripped before comparison
-//!
-//! suffix-rashii is reached via `find-word-with-conj-type → find-word`
-//! during extraction. When the segmenter has `*substring-hash*` bound
-//! (the substring cache path at `dict.lisp:493`), `find-word`
-//! reconstructs root-word DAOs via `(apply 'make-instance init)` where
-//! `init` lacks `:id`. The resulting unbound id surfaces in captures as
-//! JSON null → audit-side `id = 0`. Rust replay hits the production
-//! codepath end-to-end with real DB ids. Strict-equality on id would
-//! fail every row whose primary came through the synthesis path. Same
-//! treatment as `find_word_suffix_test`.
 
 #[path = "../common/mod.rs"]
 mod common;

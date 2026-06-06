@@ -1,33 +1,9 @@
 //! Port of `ichiran/dict:def-generic-synergy` (`dict-grammar.lisp:731-746`).
 //!
-//! ```lisp
-//! (defmacro def-generic-synergy (name (segment-list-left segment-list-right)
-//!                                filter-left filter-right &key description connector score)
-//!   (alexandria:with-gensyms (start end left right)
-//!    `(defsynergy ,name (,segment-list-left ,segment-list-right)
-//!       (let ((,start (segment-list-end ,segment-list-left))
-//!             (,end (segment-list-start ,segment-list-right)))
-//!         (when (= ,start ,end)
-//!           (let ((,left (remove-if-not ,filter-left (segment-list-segments ,segment-list-left)))
-//!                 (,right (remove-if-not ,filter-right (segment-list-segments ,segment-list-right))))
-//!             (when (and ,left ,right)
-//!               (list (list (make-segment-list-from ,segment-list-right ,right)
-//!                           (make-synergy :start ,start :end ,end
-//!                                         :description ,description
-//!                                         :connector ,connector
-//!                                         :score ,score)
-//!                           (make-segment-list-from ,segment-list-left ,left))))))))))
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `&key description connector score` → [`DefGenericSynergyOpts`]
-//!   fields; `description` is `Option<&str>` (`synergy-oki` omits it).
-//! - `filter-left` / `filter-right` are passed as already-built
-//!   segment predicates `Fn(&Arc<KaniLiteSegment>) -> bool`.
-//! - The `(list (list ...))` nil-or-single result is a `Vec` holding
-//!   zero or one `(right-list, synergy, left-list)` triple.
-//! - The `defsynergy` `pushnew` registration lives in
-//!   [`SYNERGY_LIST`](super::_star_synergy_list_star_::SYNERGY_LIST).
+//! Shared body for the generic synergy definers: when the two adjacent
+//! segment-lists abut and each has segments passing its left/right
+//! filter, emit a `(right-list, synergy, left-list)` triple over the
+//! filtered segments.
 
 use std::sync::Arc;
 

@@ -1,27 +1,9 @@
 //! Port of `ichiran/dict:def-generic-penalty` (`dict-grammar.lisp:972-984`).
 //!
-//! ```lisp
-//! (defmacro def-generic-penalty (name (segment-list-left segment-list-right)
-//!                                test-left test-right &key (serial t) description score (connector " "))
-//!   (alexandria:with-gensyms (start end)
-//!    `(defpenalty ,name (,segment-list-left ,segment-list-right)
-//!       (let ((,start (segment-list-end ,segment-list-left))
-//!             (,end (segment-list-start ,segment-list-right)))
-//!         (when (and ,(if serial `(= ,start ,end) t)
-//!                    (funcall ,test-left ,segment-list-left)
-//!                    (funcall ,test-right ,segment-list-right))
-//!           (make-synergy :start ,start :end ,end
-//!                         :description ,description
-//!                         :connector ,connector
-//!                         :score ,score))))))
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `&key (serial t)` → `bool`; `description` / `score` / `connector`
-//!   keywords → [`DefGenericPenaltyOpts`] fields.
-//! - The nil-or-`synergy` result is `Option<Synergy>`.
-//! - The `defpenalty` `pushnew` registration lives in
-//!   [`PENALTY_LIST`](super::_star_penalty_list_star_::PENALTY_LIST).
+//! Shared body for the generic penalty definers: when the two adjacent
+//! segment-lists pass their left/right tests (and abut, if `serial`),
+//! emit a [`Synergy`] carrying the penalty's description, connector,
+//! and score.
 
 use super::kani_lite_segment_list::KaniLiteSegmentList;
 use super::synergy_struct::Synergy;

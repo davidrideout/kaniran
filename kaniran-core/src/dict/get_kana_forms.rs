@@ -1,9 +1,7 @@
 //! Transliteration of `ichiran/dict:get-kana-forms` (`dict-grammar.lisp:32`).
 //!
 //! Thin wrapper: returns [`get_kana_forms_star_`]; emits a stderr
-//! warning when the result is empty. Lisp `warn` returns `nil`, so the
-//! Rust empty `Vec` covers both the populated and "warned, no rows"
-//! paths.
+//! warning when the result is empty.
 //!
 //! [`get_kana_forms_star_`]: super::get_kana_forms_star_::get_kana_forms_star_
 

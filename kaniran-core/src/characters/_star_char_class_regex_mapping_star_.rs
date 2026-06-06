@@ -2,9 +2,7 @@
 //! (`characters.lisp:136`).
 //!
 //! Mapping from a [`CharClass`] to a regex string that matches one
-//! character of that class. Compiled into actual scanners later by
-//! `*char-scanners*` (`characters.lisp:151`); kept here as raw pattern
-//! strings.
+//! character of that class.
 
 use super::char_class_type::CharClass;
 

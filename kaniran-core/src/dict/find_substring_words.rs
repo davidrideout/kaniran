@@ -1,32 +1,11 @@
 //! Port of `ichiran/dict:find-substring-words` (`dict.lisp:501`).
 //!
-//! Builds the per-call-tree lookup cache that
-//! [`crate::dict::find_word::find_word`] short-circuits against —
-//! enumerates every length-bounded substring of `str` whose `(start,
-//! end)` pair is not blocked by `sticky` (positions that cannot serve
-//! as a word boundary), then bulk-fetches the matching `kana_text` /
-//! `kanji_text` rows from the database, bucketed by substring text.
-//!
-//! Substrings absent from the database still get a hash entry whose
-//! value is an empty `FindWordRows` variant — that empty entry is the
-//! signal `find-word` uses to know the lookup already ran and the
-//! result is "no rows", short-circuiting the per-substring SQL query.
-//!
-//! Diverges from the upstream lambda list `(str &key sticky)` by:
-//!
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
-//! - taking `sticky` as a borrowed `&[usize]` rather than the upstream
-//!   `&key` keyword that defaults to `nil`. The data is a list of
-//!   character positions; the default-empty case lifts to `&[]` at the
-//!   call site (CONVENTIONS §4.4 — multi-valued keyword takes its
-//!   natural type).
-//!
-//! Returns the populated [`SubstringHash`] by value so the caller can
-//! wrap it in an [`Arc`](std::sync::Arc) and rebind the context via
-//! [`crate::conn::kani_context::KaniranContext::with_substring_hash`]
-//! before invoking the nested-find loop.
+//! Builds the substring lookup cache: enumerates every length-bounded
+//! substring of `str` whose `(start, end)` pair is not blocked by
+//! `sticky` (positions that cannot serve as a word boundary), then
+//! bulk-fetches the matching `kana_text` / `kanji_text` rows, bucketed
+//! by substring text. Substrings absent from the database still get an
+//! empty hash entry, signalling that the lookup already ran.
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;

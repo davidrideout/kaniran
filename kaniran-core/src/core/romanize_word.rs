@@ -1,18 +1,8 @@
 //! Port of `ichiran:romanize-word` (`romanize.lisp:224-230`).
 //!
-//! ```lisp
-//! (defun romanize-word (word &key (method *default-romanization-method*)
-//!                                 original-spelling (normalize t))
-//!   (when normalize (setf word (normalize word)))
-//!   (or (r-special method (or original-spelling word))
-//!       (let ((word (process-hints word)))
-//!         (romanize-list (get-character-classes word) :method method))))
-//! ```
-//!
-//! Divergences: `&key (method …)` becomes a required positional
-//! `method`; `&key original-spelling` becomes `Option<&str>` (`None` =
-//! absent); `&key (normalize t)` becomes a required `bool`. The in-place
-//! `(setf word (normalize word))` is a fresh binding.
+//! Romanizes a single word: returns the `r-special` mapping when one
+//! applies, otherwise processes hints and romanizes its character
+//! classes.
 
 use super::generic_romanization_class::RomanizationMethod;
 use super::get_character_classes::get_character_classes;

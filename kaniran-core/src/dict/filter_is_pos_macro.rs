@@ -1,38 +1,8 @@
 //! Port of `ichiran/dict:filter-is-pos` (`dict-grammar.lisp:757`).
 //!
-//! ```lisp
-//! (defmacro filter-is-pos (pos-list (segment &rest kpcl-vars) &body kpcl-test)
-//!   `(lambda (,segment)
-//!      (destructuring-bind ,kpcl-vars (getf (segment-info ,segment) :kpcl)
-//!        (declare (ignorable ,@kpcl-vars))
-//!        (and (progn ,@kpcl-test)
-//!             (intersection ',pos-list
-//!                           (getf (segment-info ,segment) :posi)
-//!                           :test 'equal)))))
-//! ```
-//!
-//! Builds the segment predicate the macro's `(lambda (segment) ...)`
-//! expands to: the `kpcl_test` body over the `(kanji-or-katakana,
-//! primary, common, long)` quad, AND-ed with overlap between
-//! `pos_mask` and the segment's parts-of-speech. Used as the
-//! `filter-left` / `filter-right` argument at the six
-//! `def-generic-synergy` callsites (`dict-grammar.lisp:864`, `871`,
-//! `878`, `915`, `922`, `952`).
-//!
-//! Divergences from Lisp:
-//! - The macro is factored into one closure-returning helper (its
-//!   expansion is identical across callsites up to `pos-list` and
-//!   `kpcl-test`); each callsite collapses to
-//!   `filter_is_pos(pos_mask, |k, p, c, l| ...)`.
-//! - `pos-list` (POS strings intersected against `:posi`) becomes
-//!   `pos_mask: u16`: the lite [`KaniLiteSegment`] stores
-//!   parts-of-speech only as the precomputed bitmask, so the
-//!   intersection is a bit-and.
-//! - `kpcl-test` (a `&body`) becomes the `kpcl_test` closure over the
-//!   four kpcl bools; the closure returns `bool` (the `(and ...)`
-//!   truthiness, consumed only by `remove-if-not`).
-//! - Operates on `&Arc<KaniLiteSegment>` like the rest of the filter
-//!   family.
+//! Returns a segment predicate: the caller's `kpcl_test` body over the
+//! `(kanji-or-katakana, primary, common, long)` quad, AND-ed with an
+//! overlap between `pos_mask` and the segment's parts-of-speech.
 
 use std::sync::Arc;
 

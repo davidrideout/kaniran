@@ -1,65 +1,8 @@
 //! Port of `ichiran/dict:word-info-gloss-json` (`dict.lisp:1782`).
 //!
-//! ```lisp
-//! (defun word-info-gloss-json (word-info &key root-only)
-//!   (with-connection *connection*
-//!     (labels ((inner (word-info &optional suffix)
-//!                (let ((js (jsown:new-js ("reading" (reading-str word-info))
-//!                                        ("text" (word-info-text word-info))
-//!                                        ("kana" (word-info-kana word-info)))))
-//!                  (when (word-info-score word-info)
-//!                    (jsown:extend-js js ("score" (word-info-score word-info))))
-//!                  (cond
-//!                    ((word-info-components word-info)
-//!                     (jsown:extend-js js
-//!                       ("compound" (mapcar #'word-info-text (word-info-components word-info)))
-//!                       ("components" (loop for wi in (word-info-components word-info)
-//!                                        collect (inner wi (not (word-info-primary wi)))))))
-//!                    ((word-info-counter word-info)
-//!                     (destructuring-bind (value ordinal) (word-info-counter word-info)
-//!                       (jsown:extend-js js ("counter" (jsown:new-js ("value" value) ("ordinal" ordinal)))))
-//!                     (let ((seq (word-info-seq word-info)))
-//!                       (when seq
-//!                         (jsown:extend-js js ("seq" seq))
-//!                         (let* ((reading-getter (lambda () (word-info-reading word-info)))
-//!                                (gloss (get-senses-json seq :pos-list '("ctr") :reading-getter reading-getter)))
-//!                           (when gloss
-//!                             (jsown:extend-js js ("gloss" gloss)))))))
-//!                    (t
-//!                      (let ((seq (word-info-seq word-info))
-//!                            (conjs (word-info-conjugations word-info))
-//!                            (reading-getter (lambda () (word-info-reading word-info)))
-//!                            desc has-gloss)
-//!                        (when seq
-//!                          (jsown:extend-js js ("seq" seq)))
-//!                        (cond (root-only
-//!                               (return-from inner
-//!                                 (jsown:extend-js js ("gloss" (get-senses-json seq :reading-getter reading-getter)))))
-//!                              ((and suffix (setf desc (get-suffix-description seq)))
-//!                               (jsown:extend-js js ("suffix" desc)))
-//!                              ((and seq (or (not conjs) (eql conjs :root)))
-//!                               (let ((gloss (get-senses-json seq :reading-getter reading-getter)))
-//!                                 (when gloss
-//!                                   (setf has-gloss t)
-//!                                   (jsown:extend-js js ("gloss" gloss))))))
-//!                        (when seq
-//!                          (jsown:extend-js js
-//!                            ("conj" (conj-info-json seq :conjugations (word-info-conjugations word-info)
-//!                                                    :text (word-info-true-text word-info)
-//!                                                    :has-gloss has-gloss)))))))
-//!                  js)))
-//!       (if (word-info-alternative word-info)
-//!           (jsown:new-js ("alternative" (mapcar #'inner (word-info-components word-info))))
-//!           (inner word-info)))))
-//! ```
-//!
-//! ## Divergences from Lisp
-//!
-//! - Ctx-injected (`*connection*` → `ctx.pool`); `root-only` is `bool`.
-//! - jsown objects map to [`serde_json::Value`] (insertion order via
-//!   `preserve_order`); jsown's nil-value `[]` is [`nil`].
-//! - `reading-getter` is the upstream lazy thunk: [`word_info_reading`]'s
-//!   future, awaited at most once inside [`get_senses_json`].
+//! Builds the gloss JSON object for a [`WordInfo`] — reading / text /
+//! kana / score plus, per word kind, compound components, counter
+//! value, suffix description, sense gloss, and conjugation info.
 
 use std::future::Future;
 use std::pin::Pin;

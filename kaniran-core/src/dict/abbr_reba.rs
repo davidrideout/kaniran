@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:abbr-reba` (`dict-grammar.lisp:629-630`).
 //!
-//! ```lisp
-//! (def-abbr-suffix abbr-reba :reba 2 (root)
-//!   (find-word-full (concatenate 'string root "れば")))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_abbr_suffix_body`] (CONVENTIONS
-//! §4.6 case (c)).
+//! Matches the spoken abbreviation of `root + "れば"` (e.g. 見りゃ
+//! for 見れば).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;

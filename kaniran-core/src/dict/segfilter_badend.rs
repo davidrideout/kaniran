@@ -1,10 +1,7 @@
 //! Port of `ichiran/dict:segfilter-badend` (`dict-grammar.lisp:1095`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-badend (l r)
-//!   (constantly nil)
-//!   (filter-is-compound-end-text "ちゃい" "いか" "とか" "とき" "い"))
-//! ```
+//! Drops right segments whose compound ends in one of the spurious
+//! tails ちゃい/いか/とか/とき/い (the left filter is always false).
 
 use std::sync::Arc;
 

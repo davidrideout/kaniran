@@ -1,10 +1,7 @@
 //! Port of `ichiran/dict:*conj-rules*` (`dict-load.lisp:268`, `csv-hash *conj-rules*`).
 //!
-//! pos-id → list of `ConjugationRule` (stored in cons-prepend order;
-//! [`super::get_conj_rules::get_conj_rules`] reverses on read). Lazily
-//! built once by [`load_conj_rules`] (vendored conjo.csv + errata) and
-//! cached, mirroring the upstream `defparameter *conj-rules* nil` that
-//! `load-conj-rules` fills on first `get-conj-rules`.
+//! pos-id → list of `ConjugationRule`, stored in cons-prepend order
+//! (the reader reverses on read).
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

@@ -1,25 +1,10 @@
 //! Port of `ichiran/dict:load-jmdict` (`dict-load.lisp:170`).
 //!
-//! Rebuilds the entry-package tables from a JMdict XML dump: drops &
-//! recreates the schema via [`super::init_tables`], iterates every
-//! `<entry>` in the source, hands each to [`super::load_entry`], and
-//! (when requested) chains [`super::load_extras`] for the conjugation
-//! / errata / custom-data pass.
-//!
-//! Diverges from the upstream lambda list `(&key path load-extras)`:
-//! `path` is a required `&Path` (upstream defaults to the dynamic
-//! `*jmdict-path*`, which is not a ported global per PORT_PLAN entry
-//! 624 — config lives in `kaniran.toml`). `load_extras` keeps the
-//! upstream default-on behavior. Replaces upstream `*connection*` with
-//! `&KaniranContext` per [`crate::conn::kani_context`].
-//!
-//! The upstream uses CXML's klacks streaming pull-parser to walk the
-//! source one `<entry>` at a time. The Rust port DOM-parses the whole
-//! file via [`roxmltree::Document`] (kaniran's only XML dep) and
-//! iterates the resulting tree; entry boundaries are recovered by
-//! filtering top-level descendants. Each entry is re-serialized via
-//! [`serialize_entry`] before being passed to [`super::load_entry`],
-//! mirroring `klacks:serialize-element source (cxml:make-string-sink)`.
+//! Rebuilds the entry-package tables from a JMdict XML dump: clears
+//! the schema via [`super::init_tables`], iterates every `<entry>` in
+//! the source, hands each to [`super::load_entry`], and (when
+//! requested) chains [`super::load_extras`] for the conjugation /
+//! errata / custom-data pass.
 
 use std::path::Path;
 

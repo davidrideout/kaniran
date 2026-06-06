@@ -1,21 +1,8 @@
 //! Port of `ichiran/dict:word-info-from-segment` (`dict.lisp:1327`).
 //!
-//! Lifts a scored [`Segment`] into a [`WordInfo`]. Branches on
-//! `(segment-word segment)`:
-//!
-//! - `simple-text` (kanji / kana / proxy) — populates `true_text` and
-//!   `conjugations` from the simple-text slots.
-//! - `compound-text` — populates `components` with one child
-//!   [`WordInfo`] per `(words word)` entry, setting each child's
-//!   `primary` flag iff its seq equals `(seq (primary word))`.
-//! - `counter-text` — populates `counter` with
-//!   `(value-string word, ordinalp word)`.
-//!
-//! Diverges from the upstream lambda list `(segment)` by taking
-//! `&KaniranContext` for the database handle (replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`]) and
-//! `&mut Segment` so the lazy `(get-text segment)` memoization
-//! (`dict.lisp:677-679`) runs in place.
+//! Lifts a scored [`Segment`] into a [`WordInfo`], branching on the
+//! segment's word: simple-text fills `true_text` / `conjugations`,
+//! compound-text fills `components`, counter-text fills `counter`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::CompoundText;

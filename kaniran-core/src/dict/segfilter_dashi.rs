@@ -1,13 +1,7 @@
 //! Port of `ichiran/dict:segfilter-dashi` (`dict-grammar.lisp:1143`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-dashi (l r)
-//!   (lambda (segment &aux (seq-set (getf (segment-info segment) :seq-set)))
-//!     (or (not (find 2089020 seq-set)) ;; だ
-//!         (find 2028980 seq-set))) ;; で
-//!   (filter-in-seq-set 1157170 2424740 1305070) ;; する　して
-//!   :allow-first t)
-//! ```
+//! Keeps a する/して right segment only when the preceding left
+//! segment is not だ (or is で).
 
 use std::sync::Arc;
 

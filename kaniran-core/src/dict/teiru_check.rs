@@ -1,22 +1,6 @@
 //! Port of `ichiran/dict:teiru-check` (`dict-grammar.lisp:392`).
 //!
-//! ```lisp
-//! (defun teiru-check (root)
-//!   (and (not (equal root "いて")) (te-check root)))
-//! ```
-//!
-//! Stricter variant of [`te_check`]: the literal "いて" is excluded
-//! (the `:teiru` suffix would otherwise loop in on its own canonical
-//! form `いる` → `いて`), then delegates to `te-check`. Used by
-//! `suffix-teiru` and `suffix-teiru+` (`dict-grammar.lisp:395, 398`)
-//! as both the predicate gate and the primary-words pile.
-//!
-//! Diverges from the upstream lambda list `(root)` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`]. The
-//! upstream `(and …)` chain flows the right-hand value out when the
-//! guard passes; the Rust port mirrors that by returning the
-//! `te_check` result unchanged in the non-excluded path.
+//! Stricter [`te_check`]: excludes the literal "いて", then delegates.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kani_word::KaniWordDispatchEnum;

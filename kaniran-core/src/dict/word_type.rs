@@ -1,24 +1,8 @@
 //! Port of `ichiran/dict:word-type` (gf — `dict.lisp:22-24`).
 //!
-//! Classifies a word's primary script as `:kanji`, `:kana`, or `:gap`.
-//! Five non-default methods plus the `(:method (obj) :gap)` fallback
-//! in the defgeneric body:
-//!
-//! - **kanji-text** (`dict.lisp:126`): `:kanji`.
-//! - **kana-text** (`dict.lisp:157`): `:kana`.
-//! - **counter-text** (`dict-counters.lisp:73-74`): inspect the
-//!   counter's text — `:kanji` if any `kanji-char` in the
-//!   `(text obj)` result, else `:kana`. The text gf for counter-text
-//!   concatenates `number-text + counter-text` (see
-//!   [`super::text::text`]).
-//! - **proxy-text** (`dict.lisp:586-587`): recurse on source.
-//! - **compound-text** (`dict.lisp:630`): recurse on the
-//!   `primary` slot.
-//!
-//! Every variant of [`KaniWordDispatchEnum`] has a specialized
-//! method upstream, so the `:gap` default is unreachable from this
-//! dispatcher's surface; it remains in the [`WordType`] enum for
-//! callers that need to represent the unmatched fallback.
+//! Classifies a word's primary script as `:kanji`, `:kana`, or `:gap`
+//! — counters resolve by whether their rendered text holds any kanji
+//! char; proxies and compounds recurse on their source / primary word.
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::count_char_class::count_char_class;

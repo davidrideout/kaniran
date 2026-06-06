@@ -1,18 +1,6 @@
 //! Port of `ichiran/dict:synergy-suffix-sei` (`dict-grammar.lisp:905`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-suffix-sei (l r)
-//!   #'filter-is-noun
-//!   (filter-in-seq-set 1375260)
-//!   :description "suffix-sei"
-//!   :score 12
-//!   :connector ""
-//!   )
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! Scores a noun on the left followed by the 性 (-sei) suffix word.
 
 use std::sync::Arc;
 

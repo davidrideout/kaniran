@@ -3,15 +3,6 @@
 //! Convenience wrapper around [`super::add_new_sense::add_new_sense`]:
 //! wraps the single `pos` in a 1-element positions list and forwards
 //! `glosses`.
-//!
-//! Diverges from the upstream lambda list `(seq pos &rest glosses)`
-//! by:
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
-//! - representing the variadic `&rest glosses` as `&[String]` to
-//!   match [`super::add_new_sense::add_new_sense`]'s signature and
-//!   pass the slice straight through, mirroring the Lisp.
 
 use super::add_new_sense::add_new_sense;
 use crate::conn::kani_context::KaniranContext;

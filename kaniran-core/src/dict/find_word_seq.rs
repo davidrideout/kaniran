@@ -1,24 +1,9 @@
-//! Transliteration of `ichiran/dict:find-word-seq` (`dict-grammar.lisp:75`).
+//! Port of `ichiran/dict:find-word-seq` (`dict-grammar.lisp:75`).
 //!
 //! Returns the rows of `kana_text` or `kanji_text` where `text = word`
 //! and `seq ∈ seqs`. The table is chosen by
 //! [`crate::characters::test_word`] against [`CharClass::Kana`] — kana
-//! inputs hit `kana_text`, anything else hits `kanji_text`. The
-//! polymorphic return is wrapped in a 2-variant enum per CONVENTIONS
-//! §4.3 (closed `(:tag . value)` shape: the Lisp dispatch tag is the
-//! table-name symbol; the Rust dispatch tag is the [`WordSeqRows`]
-//! variant).
-//!
-//! Diverges from the upstream lambda list `(word &rest seqs)` by:
-//! - taking `&KaniranContext` for the DB handle, replacing Lisp's
-//!   `*connection*` per the [`crate::conn::kani_context`] module doc;
-//! - taking `seqs` as `&[i32]` instead of `&rest` packed positional —
-//!   Rust has no `&rest` keyword.
-//!
-//! Empty `seqs` returns the matching enum variant with an empty `Vec`.
-//! Postgres' `seq = ANY($2)` against an empty array yields no rows,
-//! mirroring the Lisp behavior where `(:in 'seq (:set))` filters
-//! everything out.
+//! inputs hit `kana_text`, anything else hits `kanji_text`.
 
 use crate::characters::char_class_type::CharClass;
 use crate::characters::test_word::test_word;

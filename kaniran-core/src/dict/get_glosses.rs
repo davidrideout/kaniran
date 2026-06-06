@@ -1,17 +1,8 @@
 //! Port of `ichiran/dict:get-glosses` (`dict.lisp:1892`).
 //!
-//! Joins `gloss` to `sense` on `gloss.sense_id = sense.id`, filters
-//! `sense.seq` to the requested set, orders by `sense.seq`, then
-//! groups rows by `seq` into `(seq, glosses)` pairs. Within each
-//! group the inner Vec mirrors the upstream `(push text (cdar al))`
-//! accumulation — texts appear in **reverse** physical-row order.
-//! [`super::match_glosses::match_glosses`] reverses again before
-//! scanning, matching the upstream `(loop for gloss in (nreverse
-//! glosses))`.
-//!
-//! Diverges from the upstream lambda list `(seqs)` only by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`].
+//! Joins `gloss` to `sense`, filters `sense.seq` to the requested set,
+//! and groups rows by `seq` into `(seq, glosses)` pairs. Within each
+//! group the glosses appear in reverse physical-row order.
 
 use crate::conn::kani_context::KaniranContext;
 

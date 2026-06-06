@@ -4,35 +4,6 @@
 //! Run with:
 //!   cargo run --release --bin suffix_ren__test -- \
 //!       --path corpus/extracted_chunk_c_suffix_abbr_2026_05_16/dict/suffix_ren_.parquet
-//!
-//! `ICHIRAN/DICT:SUFFIX-REN-` is a `def-simple-suffix`
-//! (`dict-grammar.lisp:378`). The macro signature is `(root sv kf)`,
-//! so the captured args are `[<root>, <sv>, <kf KANA-TEXT envelope>]`
-//! and the result is `[<list> | null]` — `null` ↔ Lisp nil, else a
-//! list of COMPOUND-TEXT envelopes.
-//!
-//! Comparison: every projected slot of every compound is compared
-//! recursively via `format!("{:?}", c)` Debug fingerprints, then
-//! `id: NNN,` substrings are stripped before equality (see id rationale
-//! below). Debug derives on CompoundText / KanaText / KanjiText /
-//! ProxyText / SimpleText / WordConjugations / ScoreMod are complete,
-//! so the fingerprint covers every output field at every depth
-//! (recursive primary / words / score_base, and each leaf simple-text's
-//! seq / text / ord / common / common_tags / conjugate_p / nokanji /
-//! best_* / state.conjugations / state.hintedp). `pair-words-by-conj`
-//! walks `hash-table-values` (undefined order), so compound
-//! fingerprints are sorted before comparing — a length divergence still
-//! fails (sorted vecs of differing length are unequal).
-//!
-//! ## id slot is stripped before comparison
-//!
-//! This suffix reaches `find-word` during extraction. When the
-//! segmenter has `*substring-hash*` bound, the synthesis path at
-//! `dict.lisp:493` reconstructs DAOs via `(apply 'make-instance init)`
-//! without `:id`. Captures emit JSON null → audit-side `id = 0`. Rust
-//! replay hits the production DB and returns real ids. Strict-equality
-//! on id would fail every synthesized row. Same treatment as
-//! `suffix_rashii_test`.
 
 #[path = "../common/mod.rs"]
 mod common;

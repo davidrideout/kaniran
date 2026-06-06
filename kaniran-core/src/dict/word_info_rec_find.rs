@@ -1,26 +1,10 @@
 //! Port of `ichiran/dict:word-info-rec-find` (`dict.lisp:1409`).
 //!
-//! ```lisp
-//! (defun word-info-rec-find (wi-list test-fn)
-//!   "Find a word satisfying test-fn and the one after it"
-//!   (loop for (wi wi-next) on wi-list
-//!      for components = (word-info-components wi)
-//!      if (funcall test-fn wi) nconc (list (cons wi wi-next))
-//!      nconc (loop for (wf . wf-next) in (word-info-rec-find components test-fn)
-//!               collect (cons wf (or wf-next wi-next)))))
-//! ```
-//!
 //! Walks `wi-list` and each word-info's `components` recursively,
 //! returning every `(matched, following)` pair where `matched`
 //! satisfies `test-fn`. The `following` word-info is the one after
-//! `matched` in its list, falling back to the parent's `wi-next` for a
-//! matched last component, or `nil` at the very end.
-//!
-//! Diverges: `test-fn` becomes a borrowed closure `F: Fn(&WordInfo) ->
-//! bool`; each Lisp `(cons wi wi-next)` cell becomes a tuple
-//! `(&WordInfo, Option<&WordInfo>)` (the `cdr` is `nil` for a final
-//! element). References borrow the input list and its nested
-//! `components`.
+//! `matched` in its list, falling back to the parent's next for a
+//! matched last component, or `None` at the very end.
 
 use crate::dict::word_info_class::WordInfo;
 

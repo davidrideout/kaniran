@@ -1,10 +1,8 @@
 //! Port of `ichiran:join-parts` (`romanize.lisp:235-246`).
 //!
 //! Concatenates `parts`, inserting a single space before a part that
-//! begins with an alphanumeric character when the running output did
-//! not already end in whitespace. Empty parts neither trigger a space
-//! nor update the whitespace flag. The flag starts true, so the first
-//! part never gets a leading space.
+//! begins with an alphanumeric character when the running output did not
+//! already end in whitespace. Empty parts are skipped entirely.
 
 use unicode_properties::{GeneralCategory, GeneralCategoryGroup, UnicodeGeneralCategory};
 

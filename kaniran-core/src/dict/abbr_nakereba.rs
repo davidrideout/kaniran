@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:abbr-nakereba` (`dict-grammar.lisp:612-613`).
 //!
-//! ```lisp
-//! (def-abbr-suffix abbr-nakereba :nakereba 4 (root)
-//!   (find-word-full (concatenate 'string root "なければ")))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_abbr_suffix_body`] (CONVENTIONS
-//! §4.6 case (c)).
+//! Matches the spoken abbreviation of `root + "なければ"` (e.g.
+//! 行かなきゃ for 行かなければ).
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::def_abbr_suffix_macro::def_abbr_suffix_body;

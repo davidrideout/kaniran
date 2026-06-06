@@ -1,17 +1,7 @@
 //! Fixture-replay runner for `ICHIRAN/DICT:CONJ-INFO-JSON` (`dict.lisp:1697`).
 //!
-//! Replays the captured `(seq &key conjugations text has-gloss)` call and
-//! compares `conj_info_json`'s `Vec<Value>` to the captured `jsown:to-json`
-//! string (the `conj` array as it appears in a word gloss).
-//!
-//! Comparison is order-independent: every array in the conj JSON comes back
-//! in the database's unordered SQL row order (the conj list, the per-conj
-//! `prop`/`gloss`/`via` arrays — none carry a stable sort), so [`normalize`]
-//! deep-sorts arrays and object keys before comparing. Run under
-//! [`common::run_async`], which groups by args and passes if Rust matches
-//! ANY captured result — the right equivalence for nondeterministic DB row
-//! order. A residual diff is therefore a genuine divergence (a different
-//! conjugation set, count, reading, or `type`), not a reordering.
+//! Builds the `conj` array as it appears in a word gloss. Replays the
+//! captured `(seq &key conjugations text has-gloss)` call.
 //!
 //! Run with:
 //!   cargo run --release --bin conj_info_json_test -- \

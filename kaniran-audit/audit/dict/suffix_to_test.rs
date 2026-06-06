@@ -4,40 +4,6 @@
 //! Run with:
 //!   cargo run --release --bin suffix_to_test -- \
 //!       --path corpus/extracted_chunk_c_suffix_abbr_2026_05_16/dict/suffix_to.parquet
-//!
-//! Args shape (`def-simple-suffix suffix-to :to (:stem 1 :score 0) (root)`
-//! at `dict-grammar.lisp:425` — macro signature `(root sv kf)`):
-//!   `[<root>, <sv>, <kf KANA-TEXT envelope>]`
-//!
-//! Result shape: `[<list> | null]`. `null` ↔ Lisp nil (case in (char suf
-//! 0) returned NIL, or find-word-with-conj-type returned no matches, or
-//! pair-words-by-conj returned no buckets); otherwise a list of
-//! COMPOUND-TEXT envelopes per primary word the bucket sweep produced.
-//! `pair-words-by-conj` walks `alexandria:hash-table-values` whose order
-//! is undefined, so the runner sorts compound fingerprints before
-//! comparing.
-//!
-//! Comparison covers every projected slot recursively via
-//! `format!("{:?}", c)` Debug fingerprints; `id: NNN,` substrings are
-//! stripped before equality (see id-slot rationale below). Debug derives
-//! on CompoundText / KanaText / KanjiText / ProxyText / SimpleText /
-//! WordConjugations / ScoreMod are complete, so the Debug fingerprint
-//! covers: text, kana, primary (recursive word), words (recursive),
-//! score_base (recursive), score_mod — and at each leaf simple-text:
-//! seq, text, ord, common, common_tags, conjugate_p, nokanji,
-//! best_kanji / best_kana, state.conjugations, state.hintedp.
-//!
-//! ## id slot is stripped before comparison
-//!
-//! suffix-to is reached via `find-word-with-conj-type → find-word`
-//! during extraction. When the segmenter has `*substring-hash*` bound
-//! (the substring cache path at `dict.lisp:493`), `find-word`
-//! reconstructs root-word DAOs via `(apply 'make-instance init)` where
-//! `init` lacks `:id`. The resulting unbound id surfaces in captures as
-//! JSON null → audit-side `id = 0`. Rust replay hits the production
-//! codepath end-to-end with real DB ids. Strict-equality on id would
-//! fail every row whose primary came through the synthesis path. Same
-//! treatment as `find_word_suffix_test` and `suffix_rashii_test`.
 
 #[path = "../common/mod.rs"]
 mod common;

@@ -1,43 +1,9 @@
 //! Port of `ichiran/dict:join-substring-words*` (`dict.lisp:1071`).
 //!
-//! ```lisp
-//! (defun join-substring-words* (str)
-//!   (loop with sticky = (find-sticky-positions str)
-//!         with substring-hash = (find-substring-words str :sticky sticky)
-//!         with katakana-groups = (consecutive-char-groups :katakana str)
-//!         with number-groups = (consecutive-char-groups :number str)
-//!         and kanji-break and ends
-//!        with suffix-map = (get-suffix-map str)
-//!        for start from 0 below (length str)
-//!        for katakana-group-end = (cdr (assoc start katakana-groups))
-//!        for number-group-end = (cdr (assoc start number-groups))
-//!        unless (member start sticky)
-//!        nconcing
-//!        (loop for end from (1+ start) upto (min (length str) (+ start *max-word-length*))
-//!             unless (member end sticky)
-//!             nconcing
-//!             (let* ((part (subseq str start end))
-//!                    (segments (mapcar (lambda (word) (make-segment :start start :end end :word word))
-//!                               (let ((*suffix-map-temp* suffix-map) (*suffix-next-end* end)
-//!                                     (*substring-hash* substring-hash))
-//!                                 (find-word-full part :as-hiragana ... :counter ...)))))
-//!               (when segments
-//!                 (when (or (= start 0) (find start ends))
-//!                   (setf kanji-break (nconc (cond ...) kanji-break)))
-//!                 (pushnew end ends)
-//!                 (list (list start end segments)))))
-//!        into result
-//!      finally (return (values result (remove-duplicates kanji-break)))))
-//! ```
-//!
 //! Enumerates every length-bounded `(start, end)` substring that is not
 //! blocked by a sticky position, collects the segments
 //! [`find_word_full`] yields for each, and accumulates the kanji-break
-//! positions reachable from prior segment ends.
-//!
-//! Divergences: the CL `(values result kanji-break)` becomes a tuple;
-//! the `*suffix-map-temp*` / `*suffix-next-end*` / `*substring-hash*`
-//! rebinds become sibling-ctx construction. Offsets are character
+//! positions reachable from prior segment ends. Offsets are character
 //! positions.
 
 use std::sync::Arc;

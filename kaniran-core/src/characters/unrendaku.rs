@@ -1,19 +1,9 @@
 //! Port of `ichiran/characters:unrendaku` (`characters.lisp:286-296`).
 //!
 //! Unvoice the first character of `txt`: maps `がガ → かカ`,
-//! `ばバ/ぱパ → はハ`, `ゔヴ → うウ`, etc. via
-//! [`super::_star_undakuten_hash_star_::undakuten_hash`]. The script
-//! (hiragana vs. katakana) of the first glyph is preserved by aligning
-//! by index inside the input class's `*kana-characters*` entry.
-//!
-//! Leaves `txt` unchanged when it's empty, when the first character has
-//! no [`KanaClass`], or when the class has no unvoiced counterpart.
-//!
-//! The upstream signature is `(txt &key fresh)`. With `:fresh nil`
-//! (default) it mutates `txt` in place; with `:fresh t` it copies first
-//! and mutates the copy. The Rust port takes `&mut String` and always
-//! mutates in place — equivalent to `:fresh nil`. Callers that need
-//! `:fresh t` semantics clone before calling.
+//! `ばバ/ぱパ → はハ`, `ゔヴ → うウ`, etc. The script (hiragana vs.
+//! katakana) of the first glyph is preserved by aligning by index
+//! inside the input class's `*kana-characters*` entry.
 
 use super::_star_kana_characters_star_::KANA_CHARACTERS;
 use super::_star_undakuten_hash_star_::undakuten_hash;
@@ -40,8 +30,7 @@ pub fn unrendaku(txt: &mut String) {
 }
 
 /// Find `c`'s position inside `KANA_CHARACTERS[from]`, then return the
-/// glyph at the same position in `KANA_CHARACTERS[to]`. Used by
-/// [`unrendaku`] and [`super::rendaku::rendaku`] to preserve the
+/// glyph at the same position in `KANA_CHARACTERS[to]`, preserving the
 /// hiragana/katakana script of the input.
 pub(super) fn transpose(c: char, from: KanaClass, to: KanaClass) -> Option<char> {
     let from_str = lookup_kana(from)?;

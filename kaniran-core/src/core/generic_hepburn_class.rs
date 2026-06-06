@@ -1,8 +1,7 @@
 //! Port of `ichiran:generic-hepburn` (`romanize.lisp:103`).
 //!
-//! Subclass of generic-romanization. Redefines the kana-table initform
-//! to a copy of `*hepburn-kana-table*`. Adds no slots — newtype over
-//! [`GenericRomanization`].
+//! Romanization method whose kana-table is a copy of
+//! `*hepburn-kana-table*`.
 
 use std::sync::OnceLock;
 

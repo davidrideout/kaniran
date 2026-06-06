@@ -1,16 +1,8 @@
 //! Port of `ichiran/characters:*dakuten-join*` (`characters.lisp:103-104`).
 //!
 //! Pairs of `(input-with-combining-mark, single-precomposed-char)` for
-//! both dakuten (゛) and handakuten (゜) — used by `simplify-ngrams`
-//! to normalize decomposed forms (`"か゛"` → `"が"`) into single code
-//! points before downstream matching.
-//!
-//! Derived at first use by calling
-//! [`super::dakuten_join::dakuten_join`] on the dakuten and handakuten
-//! hashes and concatenating the results — exact upstream construction.
-//! Order of pair emission is implementation-defined (depends on hash
-//! iteration order); the regression test below sorts both sides before
-//! comparing against the Lisp introspector's captured value.
+//! both dakuten (゛) and handakuten (゜), normalizing decomposed forms
+//! (`"か゛"` → `"が"`) into single code points.
 
 use std::sync::OnceLock;
 
@@ -32,11 +24,6 @@ pub fn dakuten_join() -> &'static Vec<(String, String)> {
 mod tests {
     use super::*;
 
-    /// Captured by the introspector running
-    /// `(append (dakuten-join *dakuten-hash* #\゛) (dakuten-join *handakuten-hash* #\゜))`
-    /// against the upstream image. SBCL's `hash-table-alist` order is
-    /// implementation-defined, so the upstream pair order itself is
-    /// not stable — the comparison sorts both sides.
     static INTROSPECTED: &[(&str, &str)] = &[
         ("う゛", "ゔ"),
         ("ウ゛", "ヴ"),

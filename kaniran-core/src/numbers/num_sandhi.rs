@@ -4,22 +4,9 @@
 //! groups. Geminates the trailing mora of `s1` (e.g. `いち → いっ`) and
 //! voices the leading mora of `s2` (e.g. `せん → ぜん`, `ひゃく →
 //! びゃく`) when the `(c1, v1, c2, v2)` quadruple matches one of the
-//! upstream `defmethod` specializers; otherwise the strings concatenate
-//! unchanged.
-//!
-//! Diverges from the Lisp on one axis:
-//!
-//! - **Multimethod → match.** The Lisp uses six `defmethod` clauses on
-//!   `(eql :jd N)` / `(eql :p N)` specializers plus a default that
-//!   just concatenates. Rust collapses to a single `match` over
-//!   `(c1, v1, c2, v2)`. The dispatch table is identical; the `_ →
-//!   plain concat` arm covers the default method.
-//!
-//! Otherwise the 6-arg surface is preserved verbatim. `c1` and `v1`
-//! are `Option`-typed because the Lisp permits passing `nil` for the
-//! "no previous group" startup state (e.g. from `group-to-kana`'s
-//! initial `last-class = nil`); the Lisp dispatch falls through to the
-//! default method on `nil`, which the `_` arm replicates.
+//! upstream specializers; otherwise the strings concatenate unchanged.
+//! `c1`/`v1` are `Option`-typed for the "no previous group" startup
+//! state.
 
 use crate::characters::geminate::geminate;
 use crate::characters::rendaku::{rendaku, Voicing};

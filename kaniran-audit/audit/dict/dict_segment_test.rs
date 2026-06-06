@@ -6,10 +6,8 @@
 //!       --path corpus/<corpus_tag>/dict/dict_segment.parquet
 //!
 //! Args: `[<str>, ":LIMIT", <limit>]`.
-//! Result: `[[<cons>...]]` — single value: a list of
-//! `(word-info-list . score)` cons cells, one per top path (descending
-//! by score). Each cons head is the list of word-infos produced by
-//! `fill-segment-path` for that path; the tail is the integer score.
+//! Result: `[[<cons>...]]` — a list of `(word-info-list . score)` cons
+//! cells, one per top path, descending by score.
 
 #[path = "../common/mod.rs"]
 mod common;

@@ -1,19 +1,7 @@
 //! Port of `ichiran/dict:suffix-sa` (`dict-grammar.lisp:481`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-sa :sa (:connector "" :score 2) (root)
-//!   (nconc
-//!    (find-word-with-conj-type root +conj-adjective-stem+)
-//!    (find-word-with-pos root "adj-na")))
-//! ```
-//!
-//! `+conj-adjective-stem+` is `51` (`dict-errata.lisp:1237`); the
-//! `&rest` conj-type set is `(51)`. `nconc` concatenates the adj-i
-//! stem rows (arm A) before the `adj-na` rows (arm B). Mapcar tail
-//! delegated to [`def_simple_suffix_body`].
-//!
-//! `suf` typed `&KanaText`: the `:sa` cache loads kana-texts via
-//! `(load-kf :sa (get-kana-form 2029120 "さ"))`.
+//! Handles the nominalizing ～さ: concatenates words found as the root's
+//! adjective-stem (conj-type 51) conjugation with those found as adj-na.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

@@ -1,64 +1,9 @@
 //! Port of `ichiran/dict:apply-score-mod` (`dict.lisp:735-742`).
 //!
-//! Upstream is a `defgeneric` with three method specializations:
-//! `((score-mod integer) score len)` — `(* score score-mod len)`;
-//! `((score-mod function) score len)` — `(funcall score-mod score)`;
-//! and `((score-mod list) score len)` — recursive reduce.
-//!
-//! Per CONVENTIONS §4.7, generic-function dispatch is replicated as a
-//! `match` against the closed
-//! [`crate::dict::compound_text_class::ScoreMod`] enum. All three
-//! methods are reachable on real input:
-//!
-//! - [`ScoreMod::Single`] ← `((score-mod integer) …)`. Most
-//!   `def-simple-suffix` callsites pass an integer literal
-//!   (e.g. `dict-grammar.lisp:370` `:score 5`).
-//! - [`ScoreMod::Constant`] ← `((score-mod function) …)`. Four upstream
-//!   callsites construct a `(constantly N)` closure as `:score`:
-//!   `suffix-kudasai` (`dict-grammar.lisp:404`, `360`), `suffix-sou`
-//!   (`dict-grammar.lisp:448`, `40/0/100/70` depending on `root`),
-//!   `suffix-desu` (`dict-grammar.lisp:516`, `200`), `suffix-desho`
-//!   (`dict-grammar.lisp:532`, `300`). The closure ignores its
-//!   argument and returns `N`; the Rust variant carries `N` directly.
-//! - [`ScoreMod::Stack`] ← `((score-mod list) …)`. Built by
-//!   `adjoin-word`'s cons/list growth at `dict.lisp:651` when the
-//!   compound is extended a second time. Elements are themselves
-//!   `Single` or `Constant`; the recursive `apply-score-mod` call
-//!   dispatches each element through the same match.
-//!
-//! ## `Constant` is narrow on purpose
-//!
-//! [`ScoreMod::Constant(i32)`] models **only** the closures produced
-//! by `(constantly N)` — closures whose body ignores their argument
-//! and returns the captured `N`. The upstream `((score-mod function)
-//! …)` method at `dict.lisp:739-740` dispatches an arbitrary
-//! `funcall score-mod score`, so a non-`constantly` closure (one
-//! whose body actually consults `score`) would silently produce the
-//! wrong value if forced through this variant.
-//!
-//! All four current upstream callsites pass `(constantly N)` for some
-//! integer `N` evaluated at adjoin-word time (`suffix-sou`'s `(cond
-//! …)` runs once before `constantly` wraps it). If a future upstream
-//! addition introduces a non-`constantly` closure as `:score-mod`,
-//! **add a new variant** (e.g. `Callable(fn(i64) -> i64)` or an enum
-//! of named closures) — do not reuse `Constant`. The same parity rule
-//! applies the other direction: when `suffix-sou` is ported, the Rust
-//! caller MUST evaluate the four-case `cond` on `root` at dispatch
-//! time and pass `ScoreMod::Constant(40 | 0 | 100 | 70)` based on the
-//! result; no compile-time check enforces table parity with
-//! `dict-grammar.lisp:448-452`, so the porting site needs a
-//! `// PARITY:` comment back-referencing that range.
-//!
-//! ## Integer width
-//!
-//! Every numeric value (stored `score-mod`, `score`, `len`, and the
-//! return) is `i64`, matching SBCL's 63-bit fixnum. The product
-//! `score * sm * len` reaches `~3.6e12` for plausible upstream inputs
-//! (`prop-score` ≤ `1_000_000` × `score-mod` up to `360` × `len` ≤
-//! `10_000`), well past `i32::MAX` but inside `i64` with margin.
-//! Going all-`i64` removes the cast boilerplate at the function
-//! boundary and keeps the type story aligned with CL's fixnum
-//! semantics.
+//! Computes a compound word's score modifier: an integer modifier
+//! gives `score * score-mod * len`, a constant modifier returns its
+//! captured value, and a list modifier sums the result over each
+//! element.
 
 use crate::dict::compound_text_class::ScoreMod;
 

@@ -1,22 +1,9 @@
 //! Port of `ichiran/dict:match-kana-kanji` (`dict.lisp:1507`).
 //!
-//! ```lisp
-//! (defun match-kana-kanji (kana-reading kanji-reading restricted)
-//!   (cond ((nokanji kana-reading) nil)
-//!         (t (let* ((kana-text (text kana-reading))
-//!                   (restr (loop for (rt kt) in restricted when (equal kana-text rt) collect kt)))
-//!              (if restr
-//!                  (find (text kanji-reading) restr :test 'equal)
-//!                  t)))))
-//! ```
-//!
-//! `restricted` is a list of `(reading text)` rows from
-//! `restricted-readings`. The upstream return is the CL generalized
-//! boolean `(or null (eql t) string)`, modeled as
-//! `Option<MatchKanaKanjiResult>`: `None` = `nil`, `Some(Yes)` = `t`,
-//! `Some(Found(s))` = the matched kanji surface from `(find …)`. The
-//! sole caller [`super::match_sense_restrictions`] uses it as a
-//! predicate via `some`.
+//! Tests whether a kana reading and kanji reading are compatible given
+//! the `(reading, text)` rows of `restricted-readings`: yields `Yes`
+//! when the kana carries no restriction, `Found(s)` when a restricted
+//! kanji surface matches, else `None`.
 
 use super::kani_word::KaniWordDispatchEnum;
 use super::nokanji::nokanji;

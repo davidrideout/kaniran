@@ -3,8 +3,6 @@
 //! Adds a sense to the entry. Inserts the sense row, its glosses, and
 //! the pos sense-props (only when they differ from the entry's last
 //! seen pos). Returns `None` if a matching sense already exists.
-//!
-//! Multi-value return `(values sense-id ord)` collapses to `Option<(i32, i32)>`.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_senses_raw::get_senses_raw;

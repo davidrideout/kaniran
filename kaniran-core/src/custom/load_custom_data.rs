@@ -1,16 +1,8 @@
 //! Port of `ichiran/custom:load-custom-data` (`dict-custom.lisp:327`).
 //!
-//! Walks [`get_custom_data`], optionally filtered by `keys`, and for
-//! each loader runs slurp (file I/O) then insert (DB). `silent_p`
-//! suppresses the "Loading …" / "Inserting N entries" progress prints
-//! the same way the upstream `(let ((*silent-p* silent-p)) …)` does.
-//!
-//! Diverges from the upstream lambda list `(&optional keys silent-p)`
-//! only by taking `&KaniranContext` for the database handle, replacing
-//! the upstream dynamic `*connection*` per [`crate::conn::kani_context`].
-//! The dynamic `*silent-p*` is not a ported global (see PORT_PLAN
-//! entry 557 — skip-with-reason); it becomes a plain function
-//! parameter consulted at each print site.
+//! Walks the built-in loaders, optionally filtered by `keys`, and for
+//! each runs slurp (file read) then insert (database); `silent_p`
+//! suppresses progress prints.
 
 use crate::conn::kani_context::KaniranContext;
 

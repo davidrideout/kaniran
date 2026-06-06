@@ -4,11 +4,6 @@
 //! Run with:
 //!   cargo run --release --bin synergy_noun_particle_test -- \
 //!       --path corpus/extracted_chunk_d1a_synergy_2026_05_17/dict/synergy_noun_particle.parquet
-//!
-//! Same shape + comparator stack as `synergy_noun_da_test`; the only
-//! upstream divergence is the score formula
-//! `10 + 4 * (r.end - r.start)` which is exact-matched against the
-//! captured value via [`compare_synergy`].
 
 #[path = "../common/mod.rs"]
 mod common;

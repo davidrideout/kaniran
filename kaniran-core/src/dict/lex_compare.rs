@@ -4,38 +4,9 @@
 //! element-level `predicate`. Walks two equal-length sequences in
 //! lockstep; the first pair where `predicate(e1, e2)` is true makes the
 //! comparator return `true`, the first pair where `predicate(e2, e1)`
-//! is true makes it return `false`. If neither holds for any pair
-//! (sequences compare equal under `predicate`), the comparator returns
-//! `false`. Per the upstream docstring, sequences must be of equal
-//! length; mismatched lengths walk only the shared prefix and then
-//! return `false`, matching Common Lisp's `(map nil …)` semantics.
-//!
-//! ## Divergences from Lisp
-//!
-//! - Returns `impl Fn(&[T], &[T]) -> bool` instead of a CL function
-//!   value. Rust closures are statically typed; the generic parameters
-//!   `T` (element type) and `P` (predicate type) are inferred from the
-//!   `predicate` argument and the eventual call site.
-//! - The element predicate takes `&T, &T` rather than CL's by-value
-//!   convention, per CONVENTIONS §4.9 (prefer references over clones).
-//! - Comparator inputs are slices (`&[T]`) rather than CL `sequence`
-//!   designators. Verified against each upstream caller's sort-key
-//!   shape:
-//!     * `insert-conjugation` (`dict-load.lisp:379`) — `:key #'cdddr`
-//!       on `readings`, where the cdddr tail is the propagated
-//!       conjugation key (a list of integers). Ports to `&[i32]`.
-//!     * `select-conjs-and-props` (`dict.lisp:1645`) — `:key 'third`
-//!       returns `(list (if (eql (seq-via conj) :null) 0 1) val)`, a
-//!       2-element list of integers. Ports to `&[i32]`.
-//!     * `pair-words-by-conj` (`dict-grammar.lisp:64`) — sort key is
-//!       a list of `(seq-from via)` 2-tuples, each integers. Ports to
-//!       `&[i32]` after flattening the per-conj-id pair into the
-//!       outer comparison.
-//!   All three are homogeneous integer sequences; the slice signature
-//!   is sufficient. If a future caller needs heterogeneous element
-//!   types (e.g. a `(i32, &str)` sort key), the slice signature must
-//!   be widened or a parallel implementation added — flag at that
-//!   port site.
+//! is true makes it return `false`. If neither holds for any pair, the
+//! comparator returns `false`. Mismatched lengths walk only the shared
+//! prefix and then return `false`.
 
 pub fn lex_compare<T, P>(predicate: P) -> impl Fn(&[T], &[T]) -> bool
 where

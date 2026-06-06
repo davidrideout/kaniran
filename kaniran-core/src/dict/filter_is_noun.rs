@@ -1,22 +1,7 @@
 //! Port of `ichiran/dict:filter-is-noun` (`dict-grammar.lisp:748`).
 //!
-//! ```lisp
-//! (defun filter-is-noun (segment)
-//!   (or (destructuring-bind (k p c l) (getf (segment-info segment) :kpcl)
-//!         (and (or l k (and p c))
-//!              (intersection '("n" "n-adv" "n-t" "adj-na" "n-suf" "pn")
-//!                            (getf (segment-info segment) :posi)
-//!                            :test 'equal)))
-//!       (and (typep (segment-word segment) 'counter-text)
-//!            (getf (segment-info segment) :seq-set))))
-//! ```
-//!
-//! Both branches map directly to lite-precomputed fields:
-//! - the kpcl-gated branch reads [`KPCL_K`] / [`KPCL_L`] / [`KPCL_P`]
-//!   / [`KPCL_C`] bits and intersects against [`POS_NOUN`] (precomputed
-//!   union of the 6 noun POS tags).
-//! - the counter branch reads [`KaniLiteSegment::is_counter`] +
-//!   `!seq_set.is_empty()`.
+//! Tests whether a segment is a noun: a kpcl-gated word with one of the
+//! six noun parts-of-speech, or a counter-text with a non-empty seq-set.
 
 use std::sync::Arc;
 

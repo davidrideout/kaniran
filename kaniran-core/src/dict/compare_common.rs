@@ -1,28 +1,10 @@
 //! Port of `ichiran/dict:compare-common` (`dict.lisp:1022`).
 //!
-//! Ranking predicate used at three upstream call sites:
-//!
-//! 1. `dict.lisp:867` — `(setf … common-of (car (sort conj-of-common
-//!    #'compare-common)))`.
-//! 2. `dict.lisp:1029` — `(stable-sort segments #'compare-common
-//!    :key (lambda (s) (getf (segment-info s) :common)))`.
-//! 3. `dict.lisp:1877` — `(stable-sort (select-dao 'kana-text …)
-//!    #'compare-common :key …)`.
-//!
-//! All three consume the result as a `<` predicate (truthy vs falsy);
-//! the actual values the cond branches return (`c1` / `t` / `nil`)
-//! aren't otherwise observed by callers. The Rust port still
-//! preserves those three shapes through the [`CompareCommonResult`]
-//! enum rather than collapsing to `bool` at port time — that keeps
-//! fixture-replay audits bit-for-bit and lets a future caller
-//! recover the upstream value if needed. Predicate callers consume
-//! the result via [`CompareCommonResult::is_truthy`].
-//!
-//! Inputs are JMdict `common` values: `None` mirrors the Lisp `nil`
-//! (used when a reading has no rank), `Some(0)` is the "common but
-//! unranked" marker, positive values are JMdict rank tiers (lower =
-//! more common), and negative or zero c1 values fall off the `cond`
-//! ladder and return `Nil`.
+//! Ranking predicate over two JMdict `common` values that orders
+//! readings by commonness (lower rank = more common). Inputs: `None`
+//! mirrors Lisp `nil` (no rank), `Some(0)` is the "common but
+//! unranked" marker, positive values are rank tiers, and negative or
+//! zero c1 values fall off the `cond` ladder and return `Nil`.
 
 /// Faithful image of the three upstream return shapes. Predicate
 /// callers consult [`Self::is_truthy`]; fixture replay compares the

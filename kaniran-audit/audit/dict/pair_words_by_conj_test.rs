@@ -5,31 +5,10 @@
 //!   cargo run --release --bin pair_words_by_conj_test -- \
 //!       --path corpus/extracted_chunk_c_suffix_abbr_2026_05_16/dict/pair_words_by_conj.parquet
 //!
-//! Args shape (always 2 word-groups for the captured chunk-C corpus —
-//! the sole upstream callsite at `dict-grammar.lisp:512` passes two
-//! `find-word-with-conj-type` results):
-//!   `[ [<word>, …] | null, [<word>, …] | null ]`
-//! Each word is a KANA-TEXT, KANJI-TEXT, or COMPOUND-TEXT envelope (no
-//! PROXY-TEXT or counter-text observed in the chunk-C corpus). `null`
-//! word-group → empty list (CL `nil` projects to JSON `null`).
-//!
-//! Result shape: `[ [<bucket>, …] | null ]` (`(values list)`). Each
-//! bucket is a 2-cell list mirroring the upstream `loop … collect nil`
-//! initialiser; bucket cell `[idx]` is the word from word-group `idx`
-//! sharing the conjugation key, or `null` when no word from that group
-//! matched. The outer list is in SBCL hash-table iteration order —
-//! non-deterministic; this runner sorts buckets canonically before
-//! comparing.
-//!
-//! Cell equality is a deep all-fields comparison: both sides parse via
-//! [`parse_captured_word`], producing the same Rust structs (full
-//! fidelity of every projected slot — `id`, `seq`, `text`, `ord`,
-//! `common`, `common_tags`, `conjugate_p`, `nokanji`, `best_*`,
-//! `conjugations`, `hintedp` for simple-text; `text`, `kana`,
-//! `primary`, `words`, `score_base`, `score_mod` for compound-text).
-//! The fingerprint is `format!("{:?}", word)` — `Debug` on the word
-//! enum visits every field recursively, so any divergence on any slot
-//! surfaces as a fingerprint mismatch.
+//! Replays two captured word-groups through `pair_words_by_conj` and
+//! compares the returned conjugation-keyed buckets against the Lisp
+//! result (buckets sorted canonically, since the outer list is in
+//! hash-table iteration order).
 
 #[path = "../common/mod.rs"]
 mod common;

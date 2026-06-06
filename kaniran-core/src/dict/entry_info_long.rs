@@ -1,9 +1,7 @@
 //! Port of `ichiran/dict:entry-info-long` (`dict.lisp:1601`).
 //!
-//! ```lisp
-//! (defun entry-info-long (seq)
-//!   (format nil "~a~@[ ~a~%~]~a" seq (reading-str-seq seq) (get-senses-str seq)))
-//! ```
+//! Formats a seq as its number, reading line, and full sense text;
+//! the reading line is omitted when the reading is nil.
 
 use std::fmt::Write;
 

@@ -1,10 +1,7 @@
 //! Port of `ichiran/dict:*final-prt*` (`dict-errata.lisp:1182`).
 //!
-//! "Words that only have meaning when they're final" — `calc-score`
-//! (`dict.lisp:856`) returns 0 for any reading whose seq is in this
-//! list unless the reading is the final segment of the path.
-//! Also consumed as the seed for
-//! [`crate::dict::_star_semi_final_prt_star_::semi_final_prt`].
+//! Seqs of words that only have meaning when they're the final
+//! segment of a path.
 
 pub static FINAL_PRT: &[i32] = &[
     2017770, // かい

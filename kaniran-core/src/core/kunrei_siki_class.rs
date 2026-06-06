@@ -1,8 +1,7 @@
 //! Port of `ichiran:kunrei-siki` (`romanize.lisp:194`).
 //!
-//! Subclass of generic-romanization. Redefines the kana-table initform
-//! to a copy of `*kunrei-siki-kana-table*`. Adds no slots — newtype
-//! over [`GenericRomanization`].
+//! Romanization method whose kana-table is a copy of
+//! `*kunrei-siki-kana-table*`.
 
 use std::sync::OnceLock;
 

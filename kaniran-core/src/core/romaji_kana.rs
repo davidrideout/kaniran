@@ -1,27 +1,8 @@
 //! Port of `ichiran:romaji-kana` (`deromanize.lisp:84`).
 //!
-//! ```lisp
-//! (defun romaji-kana (s)
-//!   (loop with branches = (list (make-kana-representation :rest (string-downcase s)))
-//!      with finished = nil
-//!      while branches
-//!      do (setf branches (branches-next branches))
-//!      when (and branches (alexandria:emptyp (kr-rest (car branches))))
-//!      do (setf finished (car branches) branches nil)
-//!      finally
-//!        (when finished
-//!          (return (values (kr-canonical finished) (format nil "^~a$" (kr-pattern finished)))))))
-//! ```
-//!
-//! Deromanizes `s`: seeds one branch holding the lowercased input as
-//! its remaining romaji, repeatedly steps the search via
-//! `branches-next` until a branch consumes all input, and returns its
-//! canonical kana paired with the anchored kana regex `^pattern$`.
-//!
-//! The upstream `(values canonical pattern)` collapses to
-//! `Option<(String, String)>`: `Some` when a branch finishes, `None`
-//! when the search exhausts without consuming the input (upstream
-//! returns `nil`).
+//! Deromanizes `s`: steps the search until a branch consumes all input,
+//! then returns its canonical kana paired with the anchored kana regex
+//! `^pattern$` (`None` when the search exhausts without consuming).
 
 use super::branches_next::branches_next;
 use super::kana_representation_struct::KanaRepresentation;

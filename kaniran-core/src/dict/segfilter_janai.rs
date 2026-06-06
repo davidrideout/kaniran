@@ -1,11 +1,7 @@
 //! Port of `ichiran/dict:segfilter-janai` (`dict-grammar.lisp:1122`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-janai (l r)
-//!   (complement (filter-is-compound-end 2028920))
-//!   (filter-in-seq-set 1529520 1296400 2139720)
-//!   :allow-first t)
-//! ```
+//! Keeps a じゃない/ではない right segment only when the preceding
+//! left segment is not a は compound end.
 
 use std::sync::Arc;
 

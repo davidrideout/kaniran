@@ -3,11 +3,6 @@
 //! Return the longest prefix of `word` that ends in a kanji-ish
 //! character (CJK ideograph plus `々ヶ〆`), or the empty string if
 //! `word` contains no kanji at all.
-//!
-//! The Lisp uses `scan-to-strings` against `"^.*<kanji-regex>"`, which
-//! falls back to `nil` and is `or`'d with `""`; the Rust port returns
-//! `String` directly to mirror the always-string upstream contract.
-//! The compiled scanner is cached.
 
 use std::sync::OnceLock;
 
@@ -34,15 +29,14 @@ pub fn kanji_prefix(word: &str) -> String {
 mod tests {
     use super::*;
 
-    /// No kanji → empty string, mirroring the Lisp `(or scan "")`.
+    /// No kanji → empty string.
     #[test]
     fn returns_empty_when_no_kanji() {
         assert_eq!(kanji_prefix("ひらがな"), "");
         assert_eq!(kanji_prefix(""), "");
     }
 
-    /// Returns up to and including the *last* kanji — the `.*` is
-    /// greedy. Trailing non-kanji are dropped.
+    /// Returns up to and including the last kanji; trailing non-kanji dropped.
     #[test]
     fn returns_prefix_up_to_last_kanji() {
         assert_eq!(kanji_prefix("お茶を飲む"), "お茶を飲");

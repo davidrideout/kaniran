@@ -1,15 +1,8 @@
 //! Port of `ichiran/dict:conjugation` (`dict.lisp:238`).
 //!
-//! Row representation of one conjugation link between JMdict entries,
-//! mapped 1:1 to the `public.conjugation` Postgres table populated by
-//! ichiran's schema. A row records that the entry with sequence
-//! `seq` was derived from the entry with sequence `seq_from`,
+//! Row of the `public.conjugation` table — one conjugation link
+//! recording that entry `seq` was derived from entry `seq_from`,
 //! optionally via an intermediate entry `seq_via`.
-//!
-//! The Lisp slot names are `from` and `via`; the upstream slot
-//! readers — `seq-from` and `seq-via` — are the public surface every
-//! caller uses. The Rust fields therefore take the reader names. The
-//! Postgres column names remain `from` / `via`.
 
 use sqlx::postgres::PgRow;
 use sqlx::{FromRow, Row};

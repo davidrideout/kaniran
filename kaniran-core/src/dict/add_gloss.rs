@@ -3,12 +3,6 @@
 //! Appends `texts` as new gloss rows on the sense at `(seq, ord)`.
 //! Each new gloss receives the next `ord` after the current max;
 //! duplicates against the existing `gloss.text` set are skipped.
-//!
-//! Diverges from the upstream lambda list `(seq ord &rest texts)` by:
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per
-//!   [`crate::conn::kani_context`];
-//! - representing the variadic `&rest texts` as `&[&str]`.
 
 use super::gloss_dao::Gloss;
 use crate::conn::kani_context::KaniranContext;

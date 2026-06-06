@@ -4,17 +4,6 @@
 //! Run with:
 //!   cargo run --bin normalize_test -- \
 //!       --path corpus/<corpus_tag>/normalize.parquet
-//!
-//! The fixture parquet is produced by `:ICHI-PROJECTORS-JSON` on .103
-//! and carries `ichiran_extractor_fqn = "ICHIRAN/CHARACTERS:NORMALIZE"`
-//! in its file metadata. Each row's `args` and `result` text columns
-//! hold one JSON value apiece per the schema documented in
-//! `audit/common/mod.rs`.
-//!
-//! Lisp signature: `(normalize text &key (context :default))`.
-//! JSON args may be either `["text"]` or `["text", ":CONTEXT", ":KANA"]`
-//! (the encapsulation captures keyword args as-passed). Result is the
-//! one-element list `["normalized text"]`.
 
 #[path = "../common/mod.rs"]
 mod common;

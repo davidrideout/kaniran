@@ -1,13 +1,9 @@
 //! Port of `ichiran:join-branches` (`deromanize.lisp:55`).
 //!
-//! Collapses sibling deromanizer branches that share the same
-//! remaining input into one [`KanaRepresentation`] whose pattern is
-//! the alternation `head(tail1|tail2|...)`, where `head` is the
-//! common prefix (up to the first branch's `branch` index) and each
-//! `tail` is a branch pattern past that index. The canonical kana is
-//! the shortest branch canonical (`<=`, so ties keep the first);
-//! `rest` comes from the first branch; `branch` becomes the character
-//! length of the joined pattern.
+//! Collapses sibling deromanizer branches that share the same remaining
+//! input into one [`KanaRepresentation`] whose pattern is the alternation
+//! `head(tail1|tail2|...)`. The canonical kana is the shortest branch
+//! canonical (ties keep the first).
 
 use super::kana_representation_struct::KanaRepresentation;
 

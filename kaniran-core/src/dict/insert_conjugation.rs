@@ -3,16 +3,7 @@
 //! For one (pos-id, conj-id, neg, fml) cell of the conjugation matrix,
 //! resolve an existing or freshly-minted target entry, then upsert the
 //! corresponding `conjugation` / `conj_prop` / `conj_source_reading`
-//! rows. Returns `true` iff a brand-new target entry was created (the
-//! caller increments its `next_seq` counter on a `true` return).
-//!
-//! Diverges from the upstream lambda list
-//! `(readings &key seq from pos conj-type neg fml via)` by taking
-//! `&KaniranContext` for the database handle, replacing the upstream
-//! dynamic `*connection*` per [`crate::conn::kani_context`], and by
-//! representing the keyword arguments as plain typed Rust parameters
-//! (with `Option` for the upstream `:null`-bearing `neg` / `fml` /
-//! `via` slots).
+//! rows. Returns `true` iff a brand-new target entry was created.
 
 use std::cmp::Ordering;
 use std::collections::HashSet;

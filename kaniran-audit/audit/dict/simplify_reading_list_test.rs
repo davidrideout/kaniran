@@ -5,10 +5,8 @@
 //!   cargo run --release --bin simplify_reading_list_test -- \
 //!       --path corpus/<corpus_tag>/dict/simplify_reading_list.parquet
 //!
-//! Args: `[<reading-list>]` — single argument, a list of strings.
-//! Result: `[<list>]` — single value, the simplified reading list.
-//! Both lists project as JSON arrays of strings (`null` for the empty
-//! list, since CL nil flattens to JSON null).
+//! Replays a captured reading list through `simplify_reading_list` and
+//! compares the returned simplified list against the Lisp result.
 
 #[path = "../common/mod.rs"]
 mod common;

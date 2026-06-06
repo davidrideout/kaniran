@@ -1,14 +1,8 @@
 //! Port of `ichiran/dict:segfilter-wokarasu` (`dict-grammar.lisp:1091`).
 //!
-//! ```lisp
-//! (def-segfilter-must-follow segfilter-wokarasu (l r)
-//!   (filter-in-seq-set 2029010)
-//!   (filter-in-seq-set 2087020))
-//! ```
-//!
-//! Unlike the other `must-follow` segfilters in this file, the left
-//! filter is **not** wrapped in `complement` — `sat-l` here means
-//! "matches を", and `con-l` means "does not".
+//! Keeps a からす (2087020) right segment only when the preceding left
+//! segment is を (2029010) — the only must-follow segfilter whose left
+//! filter is not complemented.
 
 use std::sync::Arc;
 

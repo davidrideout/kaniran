@@ -1,10 +1,6 @@
 //! Port of `ichiran/dict:delete-sense-prop` (`dict-errata.lisp:138`).
 //!
 //! Removes every `sense-prop` row matching `(seq, tag, text)`.
-//!
-//! Diverges from the upstream lambda list `(seq tag text)` only by
-//! taking `&KaniranContext` for the database handle, replacing the
-//! upstream dynamic `*connection*` per [`crate::conn::kani_context`].
 
 use crate::conn::kani_context::KaniranContext;
 

@@ -1,38 +1,9 @@
 //! Port of `ichiran/dict:get-senses-json` (`dict.lisp:1537`).
 //!
-//! ```lisp
-//! (defun get-senses-json (seq &key pos-list reading reading-getter)
-//!   (loop with readp
-//!      for (pos gloss props) in (get-senses seq)
-//!      for emptypos = (equal pos "[]")
-//!      for rpos = pos then (if emptypos rpos pos)
-//!      for lpos = (split-pos pos) then (if emptypos lpos (split-pos pos))
-//!      for inf = (cdr (assoc "s_inf" props :test 'equal))
-//!      for rinf = (when inf (join "; " inf))
-//!      for field = (cdr (assoc "field" props :test 'equal))
-//!      for rfield = (and field (format nil "{~{~a~^,~}}" field))
-//!      when (and (or (not pos-list) (intersection lpos pos-list :test 'equal))
-//!                (or (not (or reading-getter reading))
-//!                    (not (or (assoc "stagk" props :test 'equal)
-//!                             (assoc "stagr" props :test 'equal)))
-//!                    (let ((rr (or reading
-//!                                  (and (not readp)
-//!                                       (setf readp t
-//!                                             reading (funcall reading-getter))))))
-//!                      (if rr (match-sense-restrictions seq props rr) t))))
-//!      collect (let ((js (jsown:new-js ("pos" rpos) ("gloss" gloss))))
-//!                (when rfield (jsown:extend-js js ("field" rfield)))
-//!                (when rinf (jsown:extend-js js ("info" rinf)))
-//!                js)))
-//! ```
-//!
-//! `reading-getter` is the upstream lazy reading thunk: a future awaited
-//! at most once across the loop (the `readp` memo). `reading` keeps the
-//! `(setf … reading …)` memo result. The `(or reading-getter reading)`
-//! providedness test reads `has_reading_getter` because the future is
-//! consumed by `.take()`. `match-sense-restrictions`' generalized boolean
-//! is consumed for truthiness via `.is_some()`. JS objects map to
-//! [`serde_json::Value`] (insertion order via `preserve_order`).
+//! Builds the per-sense JSON objects (`pos` / `gloss` plus optional
+//! `field` and `info`) for an entry, filtering by `pos_list` and, when
+//! a reading is supplied, by sense restrictions. The `reading_getter`
+//! thunk is awaited at most once across the loop.
 
 use std::future::Future;
 

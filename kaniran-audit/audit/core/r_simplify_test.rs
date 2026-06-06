@@ -5,9 +5,8 @@
 //!   cargo run --bin r_simplify_test -- \
 //!       --path corpus/<corpus_tag>/r_simplify.parquet
 //!
-//! Args are `[<method>, "str"]`. The capture records the multiple values
-//! of the trailing `regex-replace-all` (string plus a match flag); the
-//! port returns only the string, so the first result value is compared.
+//! Args are `[<method>, "str"]`; the first result value is the
+//! simplified romanization string.
 
 #[path = "../common/mod.rs"]
 mod common;

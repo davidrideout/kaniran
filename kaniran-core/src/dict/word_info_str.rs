@@ -1,22 +1,8 @@
 //! Port of `ichiran/dict:word-info-str` (`dict.lisp:1745`).
 //!
-//! ```lisp
-//! (defun word-info-str (word-info)
-//!   (with-connection *connection*
-//!     (with-output-to-string (s)
-//!       (labels ((inner (word-info &optional suffix marker) ...))
-//!         (if (word-info-alternative word-info)
-//!             (loop for wi in (word-info-components word-info)
-//!                  for i from 1
-//!                  when (> i 1) do (terpri s)
-//!                  do (format s "<~a>. " i) (inner wi nil nil))
-//!             (inner word-info))))))
-//! ```
-//!
-//! Takes `&KaniranContext` for the DB handle (upstream `with-connection
-//! *connection*`) and returns the assembled `String` instead of writing to a
-//! stream. `(princ (reading-str word-info) s)` renders a nil reading as "NIL"
-//! per `princ`.
+//! Renders a [`WordInfo`] to its human-readable string form — one
+//! numbered block per component for an alternative word-info,
+//! otherwise a single block.
 
 use std::fmt::Write;
 

@@ -1,12 +1,7 @@
 //! Port of `ichiran/dict:*no-conj-data*` (`dict.lisp:329`).
 //!
-//! Per-seq marker for JMdict entries that have no rows in the
-//! `conjugation` table. Owned by [`KaniranContext::no_conj_data`];
-//! populated once by [`build_no_conj_data`] during `from_url`.
-//!
-//! Computed negatively (per upstream comment) because the no-conj
-//! set is much smaller than the conjugatable set and is more robust
-//! when new conjugations are added.
+//! Set of seqs for JMdict entries that have no rows in the
+//! `conjugation` table.
 
 use crate::conn::kani_context::KaniranContext;
 use sqlx::PgPool;

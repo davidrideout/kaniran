@@ -1,19 +1,7 @@
 //! Port of `ichiran/dict:synergy-na-adjectives` (`dict-grammar.lisp:870`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-na-adjectives (l r)
-//!   (filter-is-pos ("adj-na") (segment k p c l) (or k l (and p c)))
-//!   (filter-in-seq-set 2029110 2028990) ;; な ; に
-//!   :description "na-adjective"
-//!   :score 15
-//!   :connector " ")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - The `filter-is-pos` filter (`dict-grammar.lisp:871`,
-//!   `(or k l (and p c))`) is built via [`filter_is_pos`].
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! "na-adjective" synergy: binds an adj-na on the left to な/に
+//! (seqs 2029110/2028990) on the right.
 
 use std::sync::Arc;
 

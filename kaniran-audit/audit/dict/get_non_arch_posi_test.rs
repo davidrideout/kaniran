@@ -5,21 +5,10 @@
 //!   cargo run --bin get_non_arch_posi_test -- \
 //!       --path corpus/<corpus_tag>/dict/get_non_arch_posi.parquet
 //!
-//! Captured shapes (per `corpus/extracted_calc_score_2026_05_11/`):
-//! - `args = [[seq, ...]]` — single argument, a list of integer seqs.
-//! - `result = [pos_strings, count]` — postmodern's
-//!   `(query … :column)` returns multiple values `(values list count)`,
-//!   where `count = (length list)`. The projector captures both. The
-//!   Rust port returns `Vec<String>` only (the count is postmodern
-//!   bookkeeping with no caller); the audit validates BOTH captured
-//!   fields:
-//!
-//!   1. **list**: compare against the Rust return, sorted on each
-//!      side. Upstream `:distinct` carries no `ORDER BY`, so Postgres
-//!      is free to return distinct rows in any order across rebuilds.
-//!   2. **count**: assert `count == lisp_list.len()`. This is a
-//!      tautology by postmodern's contract, but capturing-side
-//!      regressions or projector drift would break it, so we check.
+//! Replays a captured list of seqs through `get_non_arch_posi` and
+//! compares the returned non-archaic part-of-speech strings against
+//! the Lisp result (sorted on each side, since the query has no
+//! ORDER BY).
 
 #[path = "../common/mod.rs"]
 mod common;

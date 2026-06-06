@@ -1,13 +1,7 @@
 //! Port of `ichiran/dict:penalty-short` (`dict-grammar.lisp:996-1001`).
 //!
-//! ```lisp
-//! (def-generic-penalty penalty-short (l r)
-//!   (filter-short-kana 1)
-//!   (filter-short-kana 1 :except '("と"))
-//!   :description "short"
-//!   :serial nil
-//!   :score -9)
-//! ```
+//! Scoring penalty (-9) applied when both adjacent segments are short
+//! single-kana words (the right side excepting と).
 
 use super::def_generic_penalty_macro::{def_generic_penalty_body, DefGenericPenaltyOpts};
 use super::filter_short_kana::filter_short_kana;

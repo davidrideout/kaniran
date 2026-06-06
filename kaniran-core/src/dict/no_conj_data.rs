@@ -1,8 +1,6 @@
 //! Port of `ichiran/dict:no-conj-data` (`dict.lisp:339`).
 //!
-//! True when `seq` has no rows in the `conjugation` table. Lisp's
-//! `(nth-value 1 (gethash seq cache))` reads only key presence, so
-//! the Rust port is a `HashSet` membership check.
+//! True when `seq` has no rows in the `conjugation` table.
 
 use crate::conn::kani_context::KaniranContext;
 

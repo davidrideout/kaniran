@@ -1,31 +1,7 @@
 //! Port of `ichiran/dict:classify` (`dict-grammar.lisp:1032`).
 //!
 //! Partitions a list into elements that satisfy `filter` and elements
-//! that do not, preserving the original order in each output. Upstream:
-//!
-//! ```lisp
-//! (defun classify (filter list)
-//!   (loop for element in list
-//!      if (funcall filter element)
-//!      collect element into yep
-//!      else collect element into nope
-//!      finally (return (values yep nope))))
-//! ```
-//!
-//! Used by the `def-segfilter-must-follow` macro expansions in
-//! `dict-grammar.lisp:1039-1069` to split a [`SegmentList`]'s
-//! `segments` field into "satisfies / contradicts" halves before
-//! deciding how to recombine them.
-//!
-//! Divergences from Lisp:
-//! - Multi-value return `(values yep nope)` collapses to the Rust
-//!   tuple `(Vec<T>, Vec<T>)`, per CONVENTIONS §4 — Lisp multi-value
-//!   returns map to Rust tuples by default.
-//! - Generic over the element type rather than dynamically typed; in
-//!   the upstream codebase every callsite operates on
-//!   [`super::segment_struct::Segment`], but the function itself is
-//!   untyped and the Rust port preserves that by parameterizing over
-//!   `T`.
+//! that do not, preserving the original order in each output.
 
 pub fn classify<T, F>(filter: F, list: &[T]) -> (Vec<T>, Vec<T>)
 where

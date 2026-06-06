@@ -1,19 +1,7 @@
 //! Port of `ichiran:romanize-word-info` (`romanize.lisp:248-255`).
 //!
-//! ```lisp
-//! (defun romanize-word-info (word-info &key (method *default-romanization-method*))
-//!   (let* ((orig-text (word-info-text word-info)))
-//!     (map-word-info-kana
-//!      (if (eql method :kana)
-//!          (lambda (wk) (strip-hints wk))
-//!          (lambda (wk) (romanize-word wk :method method :original-spelling orig-text :normalize nil)))
-//!      word-info)))
-//! ```
-//!
-//! Divergences: `&key (method …)` becomes a required [`KaniRomanizeMethod`]
-//! so the `(eql method :kana)` branch dispatches on a closed enum rather
-//! than an inline keyword test; the two lambdas become the two match arms.
-//! `map-word-info-kana`'s `&key (separator "/")` is passed explicitly.
+//! Romanizes each kana reading of a word-info, or strips hints under the
+//! `:kana` method.
 
 use super::kani_romanize_method::KaniRomanizeMethod;
 use super::romanize_word::romanize_word;

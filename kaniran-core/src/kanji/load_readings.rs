@@ -8,30 +8,8 @@
 //! once as `ja_onkun`, with okurigana forms accumulated and the
 //! suffix/prefix flags OR-ed in), and inserts one `reading` row per
 //! distinct reading plus one `okurigana` row per accumulated
-//! okurigana form.
-//!
-//! Diverges from the upstream lambda list `(nodes kanji-id)` by:
-//!
-//! - taking `&KaniranContext` for the database handle, replacing the
-//!   upstream dynamic `*connection*` per [`crate::conn::kani_context`];
-//! - taking the `<reading>` nodes as a `&[Node]` slice, mirroring how
-//!   [`super::load_kanji`] passes the `dom:get-elements-by-tag-name`
-//!   result into this function;
-//! - returning `Result<(), sqlx::Error>` since the Lisp `do`-loop has
-//!   no useful return value.
-//!
-//! Reading row inserts hardcode `stat_common = 0` (the
-//! upstream `:initform 0` on the `stat-common` slot of `reading`, which
-//! `make-dao` would otherwise apply implicitly).
-//!
-//! `IndexMap` keeps the deduplicated readings in kanjidic2 `<reading>`
-//! order, so each row's `reading.id` is assigned in that order. The
-//! ordering is load-bearing: `get_readings_cache` reads the rows back
-//! `ORDER BY r.id` and `get_normal_readings` breaks ambiguous-gemination
-//! ties by first occurrence, so kanjidic2 order decides which reading
-//! wins. Upstream uses a `cl:hash-table` (implementation-defined order);
-//! pinning the order here makes `reading.stat_common` deterministic
-//! run-to-run.
+//! okurigana form. Reading rows are inserted in kanjidic2 `<reading>`
+//! order so each `reading.id` is assigned deterministically.
 
 use super::reading_dao::Reading;
 use crate::characters::as_hiragana::as_hiragana;

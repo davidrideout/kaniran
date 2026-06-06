@@ -1,32 +1,9 @@
 //! Port of `ichiran/dict:find-best-path` (`dict.lisp:1190`).
 //!
-//! ```lisp
-//! (defun find-best-path (segment-lists str-length &key (limit 5))
-//!   "generalized version of old find-best-path that operates on segment-lists and uses synergies"
-//!   ...)
-//! ```
-//!
 //! Builds a top-`limit` array of path scorings over the input
-//! segment-lists. Each result is a `(path, score)` pair where `path`
-//! is a heterogeneous list of [`SegmentList`]s (left-to-right picks)
-//! and [`super::synergy_struct::Synergy`]s (inter-slice bonuses
-//! produced by `get-penalties` / `get-synergies` via
-//! [`get_seg_splits`]). The initial seed
-//! `(register-item top (gap-penalty 0 str-length) nil)` ensures the
-//! all-gap "no segments picked" candidate is in the pool.
-//!
-//! Divergences from Lisp:
-//! - The inner loop runs on [`KaniLiteSegmentList`] +
-//!   [`KaniLitePathElement`] sidecar types — every predicate input is
-//!   precomputed at conversion. Surviving top-K paths are
-//!   reconstructed into full [`PathElement`]s at exit.
-//! - The Lisp slot `(segment-list-top seg)` is held in a parallel
-//!   `Vec<KaniLiteTopArray>` indexed by the same `i` as the lite
-//!   list; this avoids juggling [`Arc::make_mut`] across the inner
-//!   `(i, j, tai)` loop where two distinct lists' top slots are read
-//!   and written in the same iteration.
-//! - `limit: Option<usize>` preserves the upstream `&key (limit 5)`
-//!   default at the function boundary.
+//! segment-lists. Each result is a `(path, score)` pair where `path` is
+//! a heterogeneous list of [`SegmentList`]s (left-to-right picks) and
+//! [`super::synergy_struct::Synergy`]s (inter-slice bonuses).
 
 use std::sync::Arc;
 

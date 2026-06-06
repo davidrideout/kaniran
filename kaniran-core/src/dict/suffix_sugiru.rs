@@ -1,26 +1,8 @@
 //! Port of `ichiran/dict:suffix-sugiru` (`dict-grammar.lisp:475`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-sugiru :sugiru (:stem 1 :connector "" :score 5) (root suf patch)
-//!   (let ((root (cond ((equal root "い") nil)
-//!                     ((or (alexandria:ends-with-subseq "なさ" root)
-//!                          (alexandria:ends-with-subseq "無さ" root))
-//!                      (setf patch '("い" . "さ"))
-//!                      (apply-patch root patch))
-//!                     (t (concatenate 'string root "い")))))
-//!     (when root
-//!       (cond
-//!         ((and patch (> (length root) 2))
-//!          (find-word-with-conj-prop root (lambda (cdata)
-//!                                           (conj-neg (conj-data-prop cdata)))))
-//!         (t (find-word-with-pos root "adj-i"))))))
-//! ```
-//!
-//! `:stem 1` triggers the macro's `(let* ((*suffix-map-temp* nil)) …)`
-//! rebind; the rebound ctx is threaded into the primary-words producer
-//! and [`def_simple_suffix_body`].
-//!
-//! [`def_simple_suffix_body`]: super::def_simple_suffix_macro::def_simple_suffix_body
+//! Handles ～すぎる (excess): reconstitutes the adjective root (なさ/無さ
+//! patched to ～さ, otherwise root+い) and looks it up either as a negated
+//! conjugation or as an adj-i.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::apply_patch::apply_patch;

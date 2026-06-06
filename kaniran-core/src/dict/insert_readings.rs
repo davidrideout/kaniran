@@ -3,9 +3,6 @@
 //! Inserts the kanji or kana readings for one entry. Skips readings
 //! tagged `re_inf=ok`, records `re_restr` restrictions, then updates
 //! the parent entry's reading count and `primary_nokanji` flag.
-//!
-//! Upstream's `'kana-text` / `'kanji-text` symbol becomes the
-//! 2-variant [`ReadingTable`] enum.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::node_text::node_text;

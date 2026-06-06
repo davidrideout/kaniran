@@ -1,23 +1,7 @@
 //! Port of `ichiran/dict:parse-suffix-val` (`dict-grammar.lisp:665`).
 //!
 //! Pairs `substr` with each cache entry under that substring, yielding
-//! a flat list of `(substr, key, kf)` triples for downstream
-//! destructuring (`(suffix keyword kf)` in `find-word-suffix` /
-//! `get-suffix-map` / `get-suffixes`).
-//!
-//! ## Divergences from Lisp
-//!
-//! Upstream dispatches on `(consp (car val))` to handle two physical
-//! shapes the cache can hold: a single 2-element entry `(key kf)`
-//! versus a list of such entries `((key1 kf1) (key2 kf2) …)`. The Rust
-//! [`SuffixCache`] port flattens both shapes into a uniform
-//! `Vec<(String, Option<KanaText>)>` (the populator always wraps a new
-//! match in a `vec![..]` and prepends on `join=true`), so the runtime
-//! `consp` dispatch collapses to a straight iteration over the slice.
-//! Both `val = nil` and `val = ()` in Lisp map to either `None` or an
-//! empty slice here; both produce an empty `Vec`.
-//!
-//! [`SuffixCache`]: super::_star_suffix_cache_star_::SuffixCache
+//! a flat list of `(substr, key, kf)` triples.
 
 use super::kana_text_dao::KanaText;
 

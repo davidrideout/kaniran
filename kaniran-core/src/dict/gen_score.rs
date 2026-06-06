@@ -1,34 +1,8 @@
 //! Port of `ichiran/dict:gen-score` (`dict.lisp:985`).
 //!
-//! ```lisp
-//! (defun gen-score (segment &key final kanji-break)
-//!   (setf (values (segment-score segment) (segment-info segment))
-//!         (calc-score (segment-word segment) :final final :kanji-break kanji-break))
-//!   segment)
-//! ```
-//!
 //! Mutates `segment.score` and `segment.info` in place with the
 //! `(score, info)` pair returned by [`calc_score`], then returns the
-//! same `&mut Segment` so call sites can chain (`segs.push(gen_score(…)…)`).
-//!
-//! ## Divergences from Lisp
-//!
-//! - **Ctx-injection** per CONVENTIONS §4.8. Lisp lambda list is
-//!   `(segment &key final kanji-break)`; the Rust signature prepends
-//!   `ctx: &KaniranContext` because [`calc_score`] is ctx-injected.
-//!   `audit-signatures` reports the Rust arity as `4 ≠ Lisp 3 …
-//!   (ctx-injected; +1 absorbed)`.
-//! - **`async fn` + `sqlx::Error` Result** because [`calc_score`] is
-//!   async and propagates DB errors.
-//! - **`&key` → positional** (CONVENTIONS §4.4). The two upstream
-//!   keywords are passed positionally:
-//!   - `final` → `final_: bool` (rename only; `final` is a Rust
-//!     keyword).
-//!   - `kanji-break` → `kanji_break: &[usize]` (empty slice ≡ upstream
-//!     `nil`).
-//! - **In-place mutation, returns `&mut Segment`** instead of a fresh
-//!   value. Upstream uses CLOS `setf` to mutate the segment slots and
-//!   returns the same object; the Rust port mirrors that exactly.
+//! same segment so call sites can chain.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::calc_score::calc_score;

@@ -1,12 +1,8 @@
 //! Fixture-replay runner for `ICHIRAN/DICT:CONJ-INFO-JSON*` (`dict.lisp:1664`).
 //!
-//! The unfiltered workhorse behind [`conj_info_json`] — same shape, no
-//! `readok` filter. Replays the captured `(seq &key conjugations text
-//! has-gloss)` call and compares `conj_info_json_star_`'s `Vec<Value>` to
-//! the captured `jsown:to-json` string. [`normalize`] deep-sorts arrays and
-//! object keys so SQL row order is ignored; under [`common::run_async`]
-//! (group-by-args, pass-if-any) a residual diff is a genuine divergence in
-//! the conjugation set, count, reading, or `type`.
+//! Builds the `conj` JSON array for a sequence (the unfiltered form, with
+//! no `readok` filter). Replays the captured `(seq &key conjugations text
+//! has-gloss)` call.
 //!
 //! Run with:
 //!   cargo run --release --bin conj_info_json_star_test -- \

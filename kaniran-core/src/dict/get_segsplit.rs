@@ -3,19 +3,9 @@
 //! When `segment.word` is a `simple-text`, dispatch through
 //! `*segsplit-map*` for a split that decomposes the reading; on a hit,
 //! wrap the parts in a `compound-text`, copy the segment, and overwrite
-//! word/text/score/info on the copy. Returns `None` for non-`simple-text`
-//! words and for readings with no matching segsplit entry.
-//!
-//! Diverges from the upstream lambda list `(segment)` by taking
-//! `&KaniranContext` per CONVENTIONS §4.8; the special `*split-map*`
-//! rebind at `dict-split.lisp:786` becomes the
-//! [`KaniranContext::with_segsplit_map`] sibling-context call per
-//! CONVENTIONS §4.10. The Lisp `(values split attrs)` pair from
-//! `get-split` is collapsed in the Rust [`super::get_split::get_split`]
-//! to `(parts, score-int)` — the keyword-arg portion of `attrs`
-//! (`:primary`, `:connector`, `:root`) is recovered here by walking
-//! [`SEGSPLIT_TABLE`] in the same seq order `get-split*` does
-//! (`dict-split.lisp:70-75`).
+//! word/text/score/info on the copy. Returns `None` for
+//! non-`simple-text` words and for readings with no matching segsplit
+//! entry.
 
 use crate::characters::join::join;
 use crate::conn::kani_context::KaniranContext;

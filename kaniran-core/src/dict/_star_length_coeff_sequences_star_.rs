@@ -1,30 +1,7 @@
 //! Port of `ichiran/dict:*length-coeff-sequences*` (`dict.lisp:686`).
 //!
-//! ```lisp
-//! (defparameter *length-coeff-sequences*
-//!   '((:strong 1 8 24 40 60)
-//!     (:weak 1 4 9 16 25 36)
-//!     (:tail 4 9 16 24)
-//!     (:ltail 4 12 18 24)))
-//! ```
-//!
-//! Consulted by `length-multiplier-coeff` (`dict.lisp:694`) as
-//! `(assoc class *length-coeff-sequences*)` where `class` is declared
-//! `(member :strong :weak :tail :ltail)` at line 693. The Rust
-//! transliteration captures that closed tag set as
-//! [`KaniLengthClass`] per CONVENTIONS §4.3 and stores the table as a
-//! flat slice of `(class, coeffs)` pairs that the future
-//! `length-multiplier-coeff` port can `linear-scan` like the upstream
-//! `assoc`.
-//!
-//! Coefficients are typed `i64`. The cell values fit `i32`
-//! comfortably, but `length-multiplier-coeff` extrapolates them as
-//! `(* length (/ last (1- (length coeffs))))` for inputs beyond the
-//! tabled range — at the `:strong` row, `length = 10000` extrapolates
-//! to `150000`. The downstream score formula then multiplies that by
-//! a segment score and additional coefficients, which would overflow
-//! `i32`. `i64` matches CL fixnum semantics for the full arithmetic
-//! chain.
+//! Per-class coefficient sequences (`:strong`/`:weak`/`:tail`/`:ltail`)
+//! that `length-multiplier-coeff` looks up to score a segment by length.
 
 /// Rust-only sidecar tag for the keyword keys in
 /// [`LENGTH_COEFF_SEQUENCES`]. Upstream uses bare CL keywords

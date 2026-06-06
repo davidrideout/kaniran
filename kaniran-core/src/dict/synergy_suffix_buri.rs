@@ -1,17 +1,7 @@
 //! Port of `ichiran/dict:synergy-suffix-buri` (`dict-grammar.lisp:898`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-suffix-buri (l r)
-//!   #'filter-is-noun
-//!   (filter-in-seq-set 1361140)
-//!   :description "suffix-buri"
-//!   :score 40
-//!   :connector "")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! "suffix-buri" synergy: binds a noun on the left to ぶり (seq 1361140)
+//! on the right.
 
 use std::sync::Arc;
 

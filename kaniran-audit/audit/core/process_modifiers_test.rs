@@ -6,9 +6,7 @@
 //!       --path corpus/<corpus_tag>/process_modifiers.parquet
 //!
 //! Args are `[<cc-list>]` (a flat list of keyword / char atoms); the one
-//! result value is the modifier tree. Recursive calls (`:sokuon` tail)
-//! are captured too, so their flat-list args appear alongside the
-//! top-level ones.
+//! result value is the modifier tree.
 
 #[path = "../common/mod.rs"]
 mod common;

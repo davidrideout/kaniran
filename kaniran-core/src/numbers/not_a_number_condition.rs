@@ -1,10 +1,8 @@
 //! Port of `ichiran/numbers:not-a-number` (`numbers.lisp:67`).
 //!
 //! Error raised by [`super::parse_number::parse_number`] when its input
-//! string contains a character that isn't in
-//! [`super::_star_char_number_class_hash_star_`]. Carries the offending
-//! input and a free-form reason string — same two fields as the Lisp
-//! condition.
+//! string contains a character that isn't a recognized numeric glyph.
+//! Carries the offending input and a free-form reason string.
 
 use thiserror::Error;
 

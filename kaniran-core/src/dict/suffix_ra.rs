@@ -1,18 +1,7 @@
 //! Port of `ichiran/dict:suffix-ra` (`dict-grammar.lisp:504`).
 //!
-//! ```lisp
-//! (def-simple-suffix suffix-ra :ra (:connector "" :score 1) (root)
-//!   (unless (alexandria:ends-with-subseq "ら" root)
-//!     (or (or-as-hiragana 'find-word-with-pos root "pn")
-//!         (find-word-seq root 1580640))))
-//! ```
-//!
-//! Mapcar tail delegated to [`def_simple_suffix_body`] per CONVENTIONS
-//! §4.6 case (c).
-//!
-//! Divergences from `(root sv suf)`:
-//! - `suf` typed `&KanaText` (the suffix-cache `kf` is the single
-//!   `(load-kf :ra (get-kana-form 2067770 "ら"))` row).
+//! Handles the pluralizing ～ら on a root not already ending in ら:
+//! looks it up as a pronoun, falling back to the seq-1580640 entry.
 
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

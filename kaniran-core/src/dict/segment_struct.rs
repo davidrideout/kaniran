@@ -1,44 +1,8 @@
 //! Port of `ichiran/dict:segment` (`dict.lisp:674`).
 //!
 //! In-memory record for one candidate word match at a fixed
-//! `(start, end)` slice — the unit `join-substring-words` produces
-//! and `gen-score` decorates with score and info plist before the
-//! find-best-path scoring loop runs. One [`Segment`] per
-//! `(slice, word)` pair: each substring may yield several segments
-//! (one per dictionary reading) which `cull-segments` then filters
-//! by score cutoff.
-//!
-//! Slot shape (`(defstruct segment start end word (score nil) (info nil) (top nil) (text nil))`):
-//! - `start` / `end` — character offsets of the slice in the source
-//!   string; always set by `make-segment` callers (the bare
-//!   `defstruct` defaults are `nil`, but every callsite passes both).
-//! - `word` — the matched dictionary reading; per `slot_types.csv`
-//!   this resolves to the [`KaniWordDispatchEnum`] union the
-//!   segmenter dispatches over.
-//! - `score` — populated by `gen-score` (`dict.lisp:986`) once
-//!   `calc-score` runs; [`None`] until then.
-//! - `info` — the property-list value `calc-score` returns alongside
-//!   the score (`dict.lisp:976-980`). Modeled as a typed sidecar
-//!   [`KaniSegmentInfo`] capturing the six plist keys calc-score
-//!   writes (`:posi`, `:seq-set`, `:conj`, `:common`, `:score-info`,
-//!   `:kpcl`) per CONVENTIONS §4.3. [`None`] until `gen-score` runs.
-//! - `top` — backing [`TopArray`] populated during `find-best-path`'s
-//!   inner loop (`dict.lisp:1192-1230`); per `slot_types.csv`. Cleared
-//!   to [`None`] when the path search completes.
-//! - `text` — lazy cache for `(text word)` produced by `get-text`
-//!   (`dict.lisp:677-679`).
-//!
-//! Divergences from Lisp:
-//! - `start` / `end` are [`usize`] rather than `Option<usize>`. Every
-//!   `make-segment` call passes both; modeling as `Option` would
-//!   force every reader to unwrap a value that's never absent in
-//!   practice. Documented because the bare `defstruct` slot defaults
-//!   to `nil`.
-//! - The `info` plist's `:common` key carries the Lisp sentinel
-//!   `:null` for "explicitly not common"; the Rust port collapses
-//!   that to `None`. The distinction between "info plist absent" and
-//!   "info plist present, common unspecified" is preserved by the
-//!   outer `Option<KaniSegmentInfo>`.
+//! `(start, end)` slice, decorated with score and info plist before
+//! the find-best-path scoring loop runs.
 
 use super::conj_data_struct::ConjData;
 use super::kani_word::KaniWordDispatchEnum;

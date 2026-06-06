@@ -1,8 +1,7 @@
-//! Rust-only sidecar (CONVENTIONS §1, §2): closed enum tagging the
-//! three kinds of character used by the Japanese number system.
-//!
-//! Mirrors the `:jd` / `:p` / `:ad` keywords the Lisp uses inline in
-//! `*char-number-class*` (`numbers.lisp:9`) without a named type:
+//! Rust-only sidecar: closed enum tagging the three kinds of character
+//! used by the Japanese number system. Mirrors the `:jd` / `:p` / `:ad`
+//! keywords the Lisp uses inline in `*char-number-class*`
+//! (`numbers.lisp:9`) without a named type:
 //!
 //! - [`NumClass::Jd`] — japanese digit (e.g. `〇一二…`, `壱弐参…`),
 //!   value is `0..=9`.
@@ -10,10 +9,6 @@
 //!   value is the exponent (`1, 2, 3, 4, 8, 12, 16`).
 //! - [`NumClass::Ad`] — ASCII / full-width digit (`0..9`, `０..９`),
 //!   value is `0..=9`.
-//!
-//! The associated value travels alongside the class as a `(NumClass, u8)`
-//! tuple — splitting the tag from its value matches how the Lisp uses
-//! `class` for dispatch (`(eql class :p)`) independently of `val`.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NumClass {

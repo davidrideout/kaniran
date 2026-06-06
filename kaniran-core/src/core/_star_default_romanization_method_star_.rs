@@ -1,10 +1,7 @@
 //! Port of `ichiran:*default-romanization-method*` (`romanize.lisp:203`).
 //!
-//! `(defvar *default-romanization-method* *hepburn-traditional*)` — the
-//! same instance as `*hepburn-traditional*`. Returning
-//! [`hepburn_traditional`] preserves that identity (one shared
-//! `&'static`). Never rebound upstream, so a process-wide global rather
-//! than a context slot.
+//! The default romanization method — the same instance as
+//! `*hepburn-traditional*`.
 
 use super::_star_hepburn_traditional_star_::hepburn_traditional;
 use super::traditional_hepburn_class::TraditionalHepburn;

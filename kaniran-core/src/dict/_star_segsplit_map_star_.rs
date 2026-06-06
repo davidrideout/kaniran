@@ -1,27 +1,7 @@
 //! Port of `ichiran/dict:*segsplit-map*` (`dict-split.lisp:704`).
 //!
-//! 18 `def-simple-split` callsites registered inside
-//! `(let ((*split-map* *segsplit-map*)) ...)` at
-//! `dict-split.lisp:706-782` — the let-binding redirects `defsplit`'s
-//! `(setf (gethash ,seq *split-map*) ...)` target. Collapsed to a
-//! static [`SEGSPLIT_TABLE`] of data rows, mirroring
-//! [`super::_star_split_map_star_`]; both tables are dispatched via
-//! [`super::_star_split_map_star_::split_map_dispatch`] keyed off
-//! [`crate::conn::kani_context::KaniranContext::split_map`].
-//!
-//! Diverges from `*split-map*`: each callsite here passes a **list**
-//! as the macro's `score` arg (e.g. `'(-10 :root (1))` at
-//! `dict-split.lisp:711`, `'(20 :primary 1 :connector "")` at `:732`).
-//! Upstream `get-segsplit` destructures it as
-//! `(score &key (primary 0) (connector " ") root)` at
-//! `dict-split.lisp:790`. The port stores the destructured slots
-//! alongside the [`SplitDef`] on [`SegSplitDef`]; the integer score
-//! lives on `SplitDef.score`. `get-segsplit` recovers the keyword
-//! attrs via a direct [`SEGSPLIT_TABLE`] walk.
-//!
-//! Diverges from CONVENTIONS §1: the 18 `split-*` callsites collapse
-//! to data rows here rather than per-file ports, same rationale as
-//! [`super::_star_split_map_star_`].
+//! seq → segment-split definition, for splits applied during
+//! segmentation rather than word lookup.
 
 use crate::dict::kani_split_engine::{
     Finder, Len, Modify, PartSeq, Pred, SplitDef, Step, WordPart,

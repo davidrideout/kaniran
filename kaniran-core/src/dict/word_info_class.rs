@@ -1,38 +1,7 @@
 //! Port of `ichiran/dict:word-info` (`dict.lisp:1245`).
 //!
-//! Plain CLOS class — the runtime descriptor produced by the
-//! segmenter for each word in a tokenized sentence. Not a DAO; built
-//! by `word-info-from-segment` / `word-info-from-segment-list` and
-//! by `fill-segment-path` (`dict.lisp:1327`, `dict.lisp:1353`,
-//! `dict.lisp:1389`).
-//!
-//! Slot shape (`dict.lisp:1245-1260`):
-//! - `type` — `:kanji` / `:kana` / `:gap` ([`WordInfoType`]).
-//! - `text` — surface text.
-//! - `true-text` — slot value or nil.
-//! - `kana` — single string, list (heterogeneous, may contain
-//!   nil-entries or nested lists), or nil. Modeled as
-//!   [`Option<WordInfoKana>`] where [`WordInfoKana::Multi`] is
-//!   `Vec<Option<WordInfoKana>>` to preserve every position-aligned
-//!   element the upstream `(collect (word-info-kana wi))` produces,
-//!   including nested kana lists from compound-text children and
-//!   nil-entries from children with absent kana.
-//! - `seq` — single int, list, or nil. Same recursive
-//!   [`Option<WordInfoSeq>`] shape as `kana` — `Multi(Vec<Option<WordInfoSeq>>)`
-//!   preserves nil and nested-list elements without flattening.
-//! - `conjugations` — none / `:root` / list of conjugation row ids
-//!   (`Option<WordConjugations>`).
-//! - `score` — integer or nil. Modeled as `Option<i32>` because the
-//!   `:score` initarg is set from `(segment-score segment)` which
-//!   can be nil; `:initform 0` only fires when the initarg is absent.
-//! - `components` — recursive list of word-infos (`Vec<WordInfo>`,
-//!   empty for the slot-value nil).
-//! - `alternative` — `bool`.
-//! - `primary` — `bool` (slot `:initform t`).
-//! - `start` / `end` — `Option<usize>` (character offsets).
-//! - `counter` — `Option<(String, bool)>` (the `(value-string, ordinalp)`
-//!   pair counter-text segments populate).
-//! - `skipped` — `i32` (slot `:initform 0`).
+//! The runtime descriptor the segmenter produces for each word in a
+//! tokenized sentence (a plain CLOS class, not a DAO).
 
 use super::simple_text_class::WordConjugations;
 

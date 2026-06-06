@@ -3,9 +3,6 @@
 //!
 //! Maps an unvoiced mora `KanaClass` to its voiced counterpart —
 //! `Ka → Ga`, `Shi → Ji`, `Ha → Ba`, `U → Vu`, etc. 21 entries.
-//! Used by `voice-char` (`characters.lisp:81`) to compute the voiced
-//! form of a mora; lookup falls back to the input class itself when
-//! absent.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

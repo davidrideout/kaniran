@@ -1,17 +1,7 @@
 //! Port of `ichiran/dict:synergy-no-da` (`dict-grammar.lisp:848`).
 //!
-//! ```lisp
-//! (def-generic-synergy synergy-no-da (l r)
-//!   (filter-in-seq-set 1469800 2139720)
-//!   (filter-in-seq-set 2089020 1007370 1928670)
-//!   :description "no da/desu"
-//!   :score 15
-//!   :connector " ")
-//! ```
-//!
-//! Divergences from Lisp:
-//! - `pushnew ',name *synergy-list*` from the `defsynergy` expansion
-//!   moves to the `*synergy-list*` port (separate wave).
+//! "no da/desu" synergy: binds の/ん (seqs 1469800/2139720) on the left to
+//! だ/です/だろう (seqs 2089020/1007370/1928670) on the right.
 
 use std::sync::Arc;
 

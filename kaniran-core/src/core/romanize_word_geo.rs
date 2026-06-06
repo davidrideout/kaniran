@@ -1,16 +1,7 @@
 //! Port of `ichiran:romanize-word-geo` (`romanize.lisp:232-233`).
 //!
-//! ```lisp
-//! (defun romanize-word-geo (input &key (method *hepburn-simple*))
-//!   (string-capitalize (romanize-word input :method method :normalize t)))
-//! ```
-//!
-//! `&key (method *hepburn-simple*)` becomes a required positional `method`;
-//! the upstream default is [`super::_star_hepburn_simple_star_`]. The CL
-//! builtin `string-capitalize` is inlined; std `char::to_uppercase` /
-//! `to_lowercase` are full (1:many) case mappings where CL uses simple
-//! (1:1) ones — they only differ on characters that never occur in
-//! romanized hepburn output.
+//! Romanizes `input` (normalized) and capitalizes the result, for place
+//! names.
 
 use unicode_properties::{GeneralCategory, GeneralCategoryGroup, UnicodeGeneralCategory};
 
