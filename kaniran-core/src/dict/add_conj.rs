@@ -6,8 +6,8 @@
 //! `options` is the 4-tuple `(conj-type, pos, neg, fml)`; `reading-map`
 //! is a slice of `(src-reading, reading)` pairs.
 
-use crate::characters::char_class_type::CharClass;
-use crate::characters::test_word::test_word;
+use crate::characters::char_class::CharClass;
+use crate::characters::char_class::test_word;
 use crate::conn::kani_context::KaniranContext;
 
 use super::find_conj::find_conj;

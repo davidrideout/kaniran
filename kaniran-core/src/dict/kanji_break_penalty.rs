@@ -13,7 +13,7 @@
 //! Mutually recursive with [`super::calc_score::calc_score`] via the
 //! suru-suffix branch.
 
-use crate::characters::mora_length::mora_length;
+use crate::characters::kana::mora_length;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_no_kanji_break_penalty_star_::NO_KANJI_BREAK_PENALTY;
 use crate::dict::_star_score_cutoff_star_::SCORE_CUTOFF;

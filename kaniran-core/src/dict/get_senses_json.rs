@@ -9,7 +9,7 @@ use std::future::Future;
 
 use serde_json::{Map, Value};
 
-use crate::characters::join::join;
+use crate::characters::text::join;
 use crate::conn::kani_context::KaniranContext;
 
 use super::get_senses::get_senses;

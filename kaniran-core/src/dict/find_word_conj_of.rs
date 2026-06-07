@@ -6,8 +6,8 @@
 //! following SBCL's `union` ordering: `(reverse <longer list's
 //! uniques>) ++ <shorter list>`, with no de-dup within either list.
 
-use crate::characters::char_class_type::CharClass;
-use crate::characters::test_word::test_word;
+use crate::characters::char_class::CharClass;
+use crate::characters::char_class::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::find_word_seq::{find_word_seq, WordSeqRows};
 use crate::dict::kana_text_dao::KanaText;

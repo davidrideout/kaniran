@@ -5,7 +5,7 @@
 //! replaces the trailing character with the supplied `geminated` glyph
 //! when present.
 
-use crate::characters::unrendaku::unrendaku;
+use crate::characters::voicing::unrendaku;
 
 pub fn get_original_reading(
     rtext: &str,

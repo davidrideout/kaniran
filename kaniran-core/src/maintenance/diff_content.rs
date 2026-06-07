@@ -6,7 +6,7 @@
 //! sentinels; [`Some("")`] is a present-but-empty input that flows
 //! through the diff path.
 
-use crate::characters::split_by_regex::split_by_regex;
+use crate::characters::char_class::split_by_regex;
 use fancy_regex::Regex;
 use similar::TextDiff;
 use std::sync::OnceLock;

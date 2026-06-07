@@ -15,7 +15,7 @@ use serde_json::{Map, Value};
 use super::get_reading_alternatives::ReadingTag;
 use super::kanji_reading_json::kanji_reading_json;
 use super::match_readings::MatchedSegment;
-use crate::characters::_star_kanji_char_regex_star_::KANJI_CHAR_REGEX;
+use crate::characters::constants::KANJI_CHAR_REGEX;
 use crate::conn::kani_context::KaniranContext;
 
 fn kanji_char_scanner() -> &'static Regex {

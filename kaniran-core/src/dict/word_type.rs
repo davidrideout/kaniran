@@ -4,8 +4,8 @@
 //! — counters resolve by whether their rendered text holds any kanji
 //! char; proxies and compounds recurse on their source / primary word.
 
-use crate::characters::char_class_type::CharClass;
-use crate::characters::count_char_class::count_char_class;
+use crate::characters::char_class::CharClass;
+use crate::characters::char_class::count_char_class;
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::text::text;
 

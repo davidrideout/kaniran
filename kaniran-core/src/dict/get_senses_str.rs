@@ -5,7 +5,7 @@
 
 use std::fmt::Write;
 
-use crate::characters::join::join;
+use crate::characters::text::join;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_senses::get_senses;
 

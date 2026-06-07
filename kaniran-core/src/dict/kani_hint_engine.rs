@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use crate::characters::match_diff::{match_diff, MatchSegment};
+use crate::characters::text::{match_diff, MatchSegment};
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_kana::get_kana;
 use crate::dict::insert_hints::insert_hints;

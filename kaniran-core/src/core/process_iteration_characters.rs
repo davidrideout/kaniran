@@ -7,7 +7,7 @@
 
 use super::kani_cc_item::CcItem;
 use crate::characters::kani_kana_class::KanaClass;
-use crate::characters::voice_char::voice_char;
+use crate::characters::voicing::voice_char;
 
 pub fn process_iteration_characters(cc_list: &[CcItem]) -> Vec<CcItem> {
     let mut out = Vec::with_capacity(cc_list.len());

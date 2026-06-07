@@ -3,8 +3,8 @@
 //! Per-text registry of [`CounterArgs`] recipes used to instantiate
 //! counter words.
 
-use crate::characters::char_class_type::CharClass;
-use crate::characters::test_word::test_word;
+use crate::characters::char_class::CharClass;
+use crate::characters::char_class::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_counter_accepts_star_::COUNTER_ACCEPTS;
 use crate::dict::_star_counter_foreign_star_::COUNTER_FOREIGN;

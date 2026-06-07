@@ -7,8 +7,8 @@
 //! `euphk` otherwise) and `okuri`. Offsets are character-based.
 
 use super::conjugation_rule_struct::ConjugationRule;
-use crate::characters::char_class_type::CharClass;
-use crate::characters::test_word::test_word;
+use crate::characters::char_class::CharClass;
+use crate::characters::char_class::test_word;
 
 pub fn construct_conjugation(word: &str, rule: &ConjugationRule) -> String {
     let chars: Vec<char> = word.chars().collect();

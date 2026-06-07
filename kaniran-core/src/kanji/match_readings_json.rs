@@ -11,7 +11,7 @@ use serde_json::Value;
 
 use super::match_readings::match_readings;
 use super::process_match_json::process_match_json;
-use crate::characters::_star_kanji_regex_star_::KANJI_REGEX;
+use crate::characters::constants::KANJI_REGEX;
 use crate::conn::kani_context::KaniranContext;
 
 fn kanji_scanner() -> &'static Regex {

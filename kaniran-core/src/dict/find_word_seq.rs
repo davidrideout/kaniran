@@ -5,8 +5,8 @@
 //! [`crate::characters::test_word`] against [`CharClass::Kana`] — kana
 //! inputs hit `kana_text`, anything else hits `kanji_text`.
 
-use crate::characters::char_class_type::CharClass;
-use crate::characters::test_word::test_word;
+use crate::characters::char_class::CharClass;
+use crate::characters::char_class::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kani_word::KaniWordDispatchEnum;

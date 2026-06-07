@@ -6,8 +6,8 @@
 //! is one of つ/く/き/ち; with `rendaku` set, every entry above is also
 //! duplicated dakuten- and handakuten-voiced.
 
-use crate::characters::geminate::geminate;
-use crate::characters::rendaku::{rendaku as voice_rendaku, Voicing};
+use crate::characters::voicing::geminate;
+use crate::characters::voicing::{rendaku as voice_rendaku, Voicing};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReadingTag {

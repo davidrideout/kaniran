@@ -3,8 +3,8 @@
 //! callsite ports to a [`SplitDef`] data row whose body delegates to
 //! [`run_split`].
 
-use crate::characters::safe_subseq::safe_subseq;
-use crate::characters::unrendaku::unrendaku as unrendaku_fn;
+use crate::characters::text::safe_subseq;
+use crate::characters::voicing::unrendaku as unrendaku_fn;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::find_word_conj_of::find_word_conj_of;
 use crate::dict::find_word_seq::find_word_seq;

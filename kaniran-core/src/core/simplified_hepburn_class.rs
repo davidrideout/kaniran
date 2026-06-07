@@ -4,7 +4,7 @@
 //! from/to spellings (e.g. `("ou" "o" "uu" "u")`).
 
 use super::generic_hepburn_class::GenericHepburn;
-use crate::characters::simplify_ngrams::simplify_ngrams;
+use crate::characters::char_class::simplify_ngrams;
 
 #[derive(Debug, Clone)]
 pub struct SimplifiedHepburn {

@@ -5,8 +5,8 @@
 //! the root, destemmed reading, connector, and suffix, carrying the
 //! macro's `score` and optional `score-base`.
 
-use crate::characters::char_class_type::CharClass;
-use crate::characters::destem::destem;
+use crate::characters::char_class::CharClass;
+use crate::characters::kana::destem;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::adjoin_word::adjoin_word;
 use crate::dict::compound_text_class::{CompoundText, ScoreMod};

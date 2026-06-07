@@ -5,8 +5,8 @@
 //! whose text/kana splice the root and suffix, destemming the kana by
 //! `stem` (or by the optional `patch-var` prefix).
 
-use crate::characters::char_class_type::CharClass;
-use crate::characters::destem::destem;
+use crate::characters::char_class::CharClass;
+use crate::characters::kana::destem;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::get_kana::get_kana;
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};

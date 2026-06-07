@@ -2,9 +2,9 @@ use super::constants::DIGIT_TO_KANA;
 use super::constants::POWER_TO_KANA;
 use super::helpers::char_number_class_hash;
 use super::kani_num_class::NumClass;
-use crate::characters::geminate::geminate;
-use crate::characters::join::join;
-use crate::characters::rendaku::{rendaku, Voicing};
+use crate::characters::voicing::geminate;
+use crate::characters::text::join;
+use crate::characters::voicing::{rendaku, Voicing};
 
 /// Port of `ichiran/numbers:num-sandhi` (`numbers.lisp:82-112`).
 ///

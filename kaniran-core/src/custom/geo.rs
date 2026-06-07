@@ -1,5 +1,5 @@
 use super::constants::{MUNICIPALITY_TYPES, MUNICIPALITY_TYPES_DESCRIPTION};
-use crate::characters::simplify_ngrams::simplify_ngrams;
+use crate::characters::char_class::simplify_ngrams;
 use crate::core::_star_hepburn_simple_star_::hepburn_simple;
 use crate::core::generic_romanization_class::RomanizationMethod;
 use crate::core::romanize_word_geo::romanize_word_geo;

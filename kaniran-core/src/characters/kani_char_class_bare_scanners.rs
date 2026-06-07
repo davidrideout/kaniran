@@ -11,8 +11,8 @@ use std::sync::OnceLock;
 
 use fancy_regex::Regex;
 
-use super::_star_char_class_regex_mapping_star_::CHAR_CLASS_REGEX_MAPPING;
-use super::char_class_type::CharClass;
+use super::constants::CHAR_CLASS_REGEX_MAPPING;
+use super::char_class::CharClass;
 
 pub fn char_class_bare_scanners() -> &'static HashMap<CharClass, Regex> {
     static CACHE: OnceLock<HashMap<CharClass, Regex>> = OnceLock::new();

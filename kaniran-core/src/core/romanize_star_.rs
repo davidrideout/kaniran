@@ -6,9 +6,9 @@
 
 use super::kani_romanize_method::KaniRomanizeMethod;
 use super::romanize_word_info::romanize_word_info;
-use crate::characters::basic_split::{basic_split, SegmentKind};
-use crate::characters::normalize::normalize;
-use crate::characters::to_normal_char::NormalizationContext;
+use crate::characters::char_class::{basic_split, SegmentKind};
+use crate::characters::kana::normalize;
+use crate::characters::kana::NormalizationContext;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::dict_segment::dict_segment;
 use crate::dict::word_info_class::WordInfo;

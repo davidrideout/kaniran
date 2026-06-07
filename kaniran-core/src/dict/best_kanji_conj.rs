@@ -4,7 +4,7 @@
 //! display, walking the conjugation chain back through parent readings
 //! when the pre-baked `best_kanji` slot doesn't apply.
 
-use crate::characters::kanji_match::kanji_match;
+use crate::characters::kanji::kanji_match;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::entry_dao::Entry;
 use crate::dict::kana_text_dao::KanaText;

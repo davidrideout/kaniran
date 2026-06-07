@@ -12,7 +12,7 @@
 //! order so each `reading.id` is assigned deterministically.
 
 use super::reading_dao::Reading;
-use crate::characters::as_hiragana::as_hiragana;
+use crate::characters::kana::as_hiragana;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::node_text::node_text;
 use indexmap::IndexMap;

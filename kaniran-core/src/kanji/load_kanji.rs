@@ -8,7 +8,7 @@
 //! the order they appear in the source.
 
 use super::load_readings::load_readings;
-use crate::characters::as_hiragana::as_hiragana;
+use crate::characters::kana::as_hiragana;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::node_text::node_text;
 use roxmltree::{Document, Node};

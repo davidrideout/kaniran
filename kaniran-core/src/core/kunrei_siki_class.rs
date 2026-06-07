@@ -9,7 +9,7 @@ use fancy_regex::Regex;
 
 use super::_star_kunrei_siki_kana_table_star_::kunrei_siki_kana_table;
 use super::generic_romanization_class::GenericRomanization;
-use crate::characters::simplify_ngrams::simplify_ngrams;
+use crate::characters::char_class::simplify_ngrams;
 
 #[derive(Debug, Clone)]
 pub struct KunreiSiki(pub GenericRomanization);

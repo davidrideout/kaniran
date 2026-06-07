@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use serde_json::{Map, Value};
 
 use super::romaji_kana::romaji_kana;
-use crate::characters::as_katakana::as_katakana;
+use crate::characters::kana::as_katakana;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::find_kanji_for_pattern::find_kanji_for_pattern;
 

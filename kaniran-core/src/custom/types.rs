@@ -1,8 +1,8 @@
 use super::constants::MUNICIPALITY_TYPES_ORDER;
 use super::geo::{municipality_short, romanize_municipality};
-use crate::characters::as_hiragana::as_hiragana;
-use crate::characters::normalize::normalize;
-use crate::characters::to_normal_char::NormalizationContext;
+use crate::characters::kana::as_hiragana;
+use crate::characters::kana::normalize;
+use crate::characters::kana::NormalizationContext;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::load_entry::{load_entry, LoadEntryIfExists, LoadEntrySeq};
 use crate::dict::node_text::node_text;

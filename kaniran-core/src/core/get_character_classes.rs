@@ -4,7 +4,7 @@
 //! the glyph itself when it is not kana.
 
 use super::kani_cc_item::CcItem;
-use crate::characters::_star_char_class_hash_star_::char_class_hash;
+use crate::characters::helpers::char_class_hash;
 
 pub fn get_character_classes(word: &str) -> Vec<CcItem> {
     word.chars()

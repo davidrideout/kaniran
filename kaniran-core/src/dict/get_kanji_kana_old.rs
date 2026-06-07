@@ -5,7 +5,7 @@
 //! rows in `ord` order and returns the first kana whose text matches;
 //! if none match, returns the first kana row's text.
 
-use crate::characters::kanji_regex::kanji_regex;
+use crate::characters::kanji::kanji_regex;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kanji_text_dao::KanjiText;

@@ -8,7 +8,7 @@ use super::generic_romanization_class::RomanizationMethod;
 use super::get_character_classes::get_character_classes;
 use super::r_special::r_special;
 use super::romanize_list::romanize_list;
-use crate::characters::to_normal_char::NormalizationContext;
+use crate::characters::kana::NormalizationContext;
 use crate::dict::process_hints::process_hints;
 
 pub fn romanize_word(
@@ -21,7 +21,7 @@ pub fn romanize_word(
     // with no :context, i.e. NormalizationContext::Default.
     let normalized;
     let word: &str = if normalize {
-        normalized = crate::characters::normalize::normalize(word, NormalizationContext::Default);
+        normalized = crate::characters::kana::normalize(word, NormalizationContext::Default);
         &normalized
     } else {
         word

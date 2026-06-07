@@ -5,7 +5,7 @@
 //! speech of its own inherits them from the most recent earlier sense
 //! that had them.
 
-use crate::characters::join::join;
+use crate::characters::text::join;
 use crate::dict::get_senses_raw::RawSense;
 
 pub fn sense_exists_p(

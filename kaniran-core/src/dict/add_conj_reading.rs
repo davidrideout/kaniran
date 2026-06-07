@@ -8,8 +8,8 @@
 use super::conjugation_dao::Conjugation;
 use super::entry_dao::Entry;
 use super::root_diff_fn::root_diff_fn;
-use crate::characters::char_class_type::CharClass;
-use crate::characters::test_word::test_word;
+use crate::characters::char_class::CharClass;
+use crate::characters::char_class::test_word;
 use crate::conn::kani_context::KaniranContext;
 
 pub async fn add_conj_reading(

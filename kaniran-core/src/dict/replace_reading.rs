@@ -5,8 +5,8 @@
 //! at least one row was updated.
 
 use super::reset_readings::reset_readings;
-use crate::characters::char_class_type::CharClass;
-use crate::characters::test_word::test_word;
+use crate::characters::char_class::CharClass;
+use crate::characters::char_class::test_word;
 use crate::conn::kani_context::KaniranContext;
 
 pub async fn replace_reading(

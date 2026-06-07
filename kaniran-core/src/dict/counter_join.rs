@@ -9,10 +9,10 @@
 //! counter: per-digit overrides, a foreign (katakana) counter rule,
 //! and the standard `case digit` block covering digits 1-10000.
 
-use crate::characters::_star_char_class_hash_star_::char_class_hash;
-use crate::characters::geminate::geminate;
+use crate::characters::helpers::char_class_hash;
+use crate::characters::voicing::geminate;
 use crate::characters::kani_kana_class::KanaClass;
-use crate::characters::rendaku::{rendaku, Voicing};
+use crate::characters::voicing::{rendaku, Voicing};
 use crate::dict::counter_text_class::{Counter, DigitOp, DigitOptKey};
 use crate::dict::get_digit::get_digit;
 use crate::numbers::constants::DIGIT_TO_KANA;

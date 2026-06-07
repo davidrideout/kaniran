@@ -6,8 +6,8 @@
 //! otherwise it treats `text` as a kanji writing and requires both the
 //! primary kanji row and the primary kana row to match.
 
-use crate::characters::char_class_type::CharClass;
-use crate::characters::test_word::test_word;
+use crate::characters::char_class::CharClass;
+use crate::characters::char_class::test_word;
 use crate::conn::kani_context::KaniranContext;
 
 pub async fn get_candidates(

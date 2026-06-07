@@ -4,8 +4,8 @@
 //! and `kana_text` rows whose text matches and whose seq is among `seqs`,
 //! and returns the kanji rows followed by the kana rows.
 
-use crate::characters::char_class_type::CharClass;
-use crate::characters::test_word::test_word;
+use crate::characters::char_class::CharClass;
+use crate::characters::char_class::test_word;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kani_word::KaniWordDispatchEnum;
