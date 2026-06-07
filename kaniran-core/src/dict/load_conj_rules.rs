@@ -9,7 +9,7 @@
 use std::collections::HashMap;
 
 use super::conjugation_rule_struct::ConjugationRule;
-use super::errata_conj_rules_hook::errata_conj_rules_hook;
+use super::errata::errata_conj_rules_hook;
 
 const CONJO_CSV: &str = include_str!("../../data/conjo.csv");
 

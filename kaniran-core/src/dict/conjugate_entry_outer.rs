@@ -7,7 +7,7 @@
 use crate::conn::kani_context::KaniranContext;
 
 use super::conjugate_entry_inner::conjugate_entry_inner;
-use super::get_all_readings::get_all_readings;
+use super::errata::get_all_readings;
 use super::get_pos::get_pos;
 use super::insert_conjugation::insert_conjugation;
 use super::next_seq::next_seq;

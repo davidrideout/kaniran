@@ -6,7 +6,7 @@
 
 use std::collections::HashMap;
 
-use super::errata_conj_description_hook::errata_conj_description_hook;
+use super::errata::errata_conj_description_hook;
 
 const CONJ_CSV: &str = include_str!("../../data/conj.csv");
 

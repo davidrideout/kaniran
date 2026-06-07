@@ -4,7 +4,7 @@
 //! raw JMdict load: conjugations, secondary conjugations, custom data,
 //! errata, and a final `entry` row-count refresh.
 
-use super::add_errata::add_errata;
+use super::errata::add_errata;
 use super::load_conjugations::load_conjugations;
 use super::load_secondary_conjugations::load_secondary_conjugations;
 use super::recalc_entry_stats_all::recalc_entry_stats_all;

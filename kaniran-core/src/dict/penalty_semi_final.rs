@@ -3,7 +3,7 @@
 //! Scoring penalty (-15) applied when the left segment is a semi-final
 //! particle that isn't actually in final position.
 
-use super::_star_semi_final_prt_star_::semi_final_prt;
+use super::errata::semi_final_prt;
 use super::def_generic_penalty_macro::{def_generic_penalty_body, DefGenericPenaltyOpts};
 use super::filter_in_seq_set::filter_in_seq_set;
 use super::kani_lite_segment_list::KaniLiteSegmentList;
