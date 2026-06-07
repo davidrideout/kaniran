@@ -1,16 +1,16 @@
 //! Rust-only sidecar: the keyword-arg recipe that the
 //! `*counter-cache*` populator stores per text key, and that
 //! `find-counter` later applies to construct a
-//! [`crate::dict::counter_text_class::Counter`], materialized from the
+//! [`crate::dict::counters::classes::Counter`], materialized from the
 //! Lisp `def-special-counter` arglists as a typed [`CounterArgs`]
 //! struct.
 
-use crate::dict::counter_text_class::{Common, CounterSource, DigitOp, DigitOptEntry, DigitOptKey};
+use crate::dict::counters::classes::{Common, CounterSource, DigitOp, DigitOptEntry, DigitOptKey};
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kani_suffix_kind::SuffixKind;
 use crate::dict::kanji_text_dao::KanjiText;
 
-/// Tag-only twin of [`crate::dict::counter_text_class::Counter`].
+/// Tag-only twin of [`crate::dict::counters::classes::Counter`].
 /// Separate so [`CounterArgs`] can stay `Clone` without forcing it
 /// onto every variant struct.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -1,18 +1,17 @@
-//! Port of `ichiran/dict:*special-counters*` (`dict-counters.lisp:211`).
-//!
-//! seq → counter constructor that, given a JMdict entry's readings,
-//! returns the counter-reading recipes for that counter.
-
-use crate::dict::counter_text_class::{Common, DigitOp, DigitOp as D, DigitOptKey as K};
-use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_counter_args::{
+use crate::dict::counters::classes::{Common, DigitOp, DigitOp as D, DigitOptKey as K};
+use crate::dict::counters::kani_counter_args::{
     args, args_multi, args_suffix, digit_opts, CounterArgs, CounterClass as C,
 };
+use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kani_suffix_kind::SuffixKind;
 use crate::dict::kanji_text_dao::KanjiText;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
+/// Port of `ichiran/dict:*special-counters*` (`dict-counters.lisp:211`).
+///
+/// seq → counter constructor that, given a JMdict entry's readings,
+/// returns the counter-reading recipes for that counter.
 pub type SpecialCounterFn = fn(kanji: &[KanjiText], kana: &[KanaText]) -> Vec<CounterArgs>;
 
 pub fn special_counters() -> &'static HashMap<i32, SpecialCounterFn> {
@@ -41,31 +40,39 @@ pub fn build_special_counters() -> HashMap<i32, SpecialCounterFn> {
     });
 
     m.insert(1315920, |kj, kn| {
-        vec![args(C::Text, "時間", "じかん", kj, kn).digit_opts(digit_opts(&[
-            (K::Digit(4), &[rep("よ")]),
-            (K::Digit(9), &[rep("く")]),
-        ]))]
+        vec![
+            args(C::Text, "時間", "じかん", kj, kn).digit_opts(digit_opts(&[
+                (K::Digit(4), &[rep("よ")]),
+                (K::Digit(9), &[rep("く")]),
+            ])),
+        ]
     });
 
     m.insert(1658480, |kj, kn| {
-        vec![args(C::Halfhour, "時半", "じはん", kj, kn).digit_opts(digit_opts(&[
-            (K::Digit(4), &[rep("よ")]),
-            (K::Digit(9), &[rep("く")]),
-        ]))]
+        vec![
+            args(C::Halfhour, "時半", "じはん", kj, kn).digit_opts(digit_opts(&[
+                (K::Digit(4), &[rep("よ")]),
+                (K::Digit(9), &[rep("く")]),
+            ])),
+        ]
     });
 
     m.insert(1356740, |kj, kn| {
-        vec![args(C::Text, "畳", "じょう", kj, kn).digit_opts(digit_opts(&[
-            (K::Digit(4), &[rep("よ")]),
-            (K::Digit(7), &[rep("しち")]),
-        ]))]
+        vec![
+            args(C::Text, "畳", "じょう", kj, kn).digit_opts(digit_opts(&[
+                (K::Digit(4), &[rep("よ")]),
+                (K::Digit(7), &[rep("しち")]),
+            ])),
+        ]
     });
 
     m.insert(2258110, |kj, kn| {
-        vec![args(C::Text, "帖", "じょう", kj, kn).digit_opts(digit_opts(&[
-            (K::Digit(4), &[rep("よ")]),
-            (K::Digit(7), &[rep("しち")]),
-        ]))]
+        vec![
+            args(C::Text, "帖", "じょう", kj, kn).digit_opts(digit_opts(&[
+                (K::Digit(4), &[rep("よ")]),
+                (K::Digit(7), &[rep("しち")]),
+            ])),
+        ]
     });
 
     m.insert(1396490, |kj, kn| {
@@ -183,11 +190,13 @@ pub fn build_special_counters() -> HashMap<i32, SpecialCounterFn> {
     });
 
     m.insert(1468900, |kj, kn| {
-        vec![args(C::Text, "年生", "ねんせい", kj, kn).digit_opts(digit_opts(&[
-            (K::Digit(4), &[rep("よ")]),
-            (K::Digit(7), &[rep("しち")]),
-            (K::Digit(9), &[rep("く")]),
-        ]))]
+        vec![
+            args(C::Text, "年生", "ねんせい", kj, kn).digit_opts(digit_opts(&[
+                (K::Digit(4), &[rep("よ")]),
+                (K::Digit(7), &[rep("しち")]),
+                (K::Digit(9), &[rep("く")]),
+            ])),
+        ]
     });
 
     m.insert(1502840, |kj, kn| {
@@ -319,7 +328,10 @@ pub fn build_special_counters() -> HashMap<i32, SpecialCounterFn> {
     m.insert(1384840, |kj, kn| {
         vec![args(C::Hifumi, "切れ", "きれ", kj, kn)
             .digit_set(vec![1, 2, 3])
-            .digit_opts(digit_opts(&[(K::Digit(4), &[rep("よ")]), (K::Digit(8), &[])]))]
+            .digit_opts(digit_opts(&[
+                (K::Digit(4), &[rep("よ")]),
+                (K::Digit(8), &[]),
+            ]))]
     });
 
     m.insert(1385780, |kj, kn| {
@@ -361,11 +373,13 @@ pub fn build_special_counters() -> HashMap<i32, SpecialCounterFn> {
     });
 
     m.insert(2108240, |kj, kn| {
-        vec![args(C::Text, "重", "じゅう", kj, kn).digit_opts(digit_opts(&[
-            (K::Digit(4), &[rep("し")]),
-            (K::Digit(7), &[rep("しち")]),
-            (K::Digit(9), &[rep("く")]),
-        ]))]
+        vec![
+            args(C::Text, "重", "じゅう", kj, kn).digit_opts(digit_opts(&[
+                (K::Digit(4), &[rep("し")]),
+                (K::Digit(7), &[rep("しち")]),
+                (K::Digit(9), &[rep("く")]),
+            ])),
+        ]
     });
 
     m.insert(1482110, |kj, kn| {
@@ -388,8 +402,7 @@ pub fn build_special_counters() -> HashMap<i32, SpecialCounterFn> {
                 .digit_set(vec![1, 2, 3])
                 .allowed(vec![1, 2, 3])
                 .suffix_descriptions(vec!["(sets or pairs only)".to_string()]),
-            args(C::Text, "組", "くみ", kj, kn)
-                .digit_opts(digit_opts(&[(K::Digit(1), &[])])),
+            args(C::Text, "組", "くみ", kj, kn).digit_opts(digit_opts(&[(K::Digit(1), &[])])),
         ]
     });
 
@@ -419,10 +432,16 @@ pub fn build_special_counters() -> HashMap<i32, SpecialCounterFn> {
             (K::Digit(1000), &[]),
             (K::Digit(10000), &[]),
         ]);
-        args_multi(C::Hifumi, &["箱", "函", "匣", "筥", "筐", "凾"], "はこ", kj, kn)
-            .into_iter()
-            .map(|a| a.digit_set(vec![1, 2]).digit_opts(opts.clone()))
-            .collect()
+        args_multi(
+            C::Hifumi,
+            &["箱", "函", "匣", "筥", "筐", "凾"],
+            "はこ",
+            kj,
+            kn,
+        )
+        .into_iter()
+        .map(|a| a.digit_set(vec![1, 2]).digit_opts(opts.clone()))
+        .collect()
     });
 
     m.insert(1602800, |kj, kn| {
@@ -536,9 +555,13 @@ pub fn build_special_counters() -> HashMap<i32, SpecialCounterFn> {
             .accepts(vec![SuffixKind::Kan])]
     });
 
-    m.insert(2083100, |kj, kn| vec![args(C::DaysOn, "日", "にち", kj, kn)]);
+    m.insert(2083100, |kj, kn| {
+        vec![args(C::DaysOn, "日", "にち", kj, kn)]
+    });
 
-    m.insert(1255430, |kj, kn| vec![args(C::Months, "月", "がつ", kj, kn)]);
+    m.insert(1255430, |kj, kn| {
+        vec![args(C::Months, "月", "がつ", kj, kn)]
+    });
 
     m.insert(2149890, |kj, kn| {
         vec![args(C::People, "人", "にん", kj, kn)
@@ -551,44 +574,75 @@ pub fn build_special_counters() -> HashMap<i32, SpecialCounterFn> {
 
     m.insert(1606800, |kj, kn| vec![args(C::Wari, "割", "わり", kj, kn)]);
 
-    m.insert(1606950, |kj, kn| vec![args(C::Wari, "割引", "わりびき", kj, kn)]);
+    m.insert(1606950, |kj, kn| {
+        vec![args(C::Wari, "割引", "わりびき", kj, kn)]
+    });
 
-    m.insert(1294940, |kj, kn| args_multi(C::Age, &["歳", "才"], "さい", kj, kn));
+    m.insert(1294940, |kj, kn| {
+        args_multi(C::Age, &["歳", "才"], "さい", kj, kn)
+    });
 
     m
 }
 
+/// Port of `ichiran/dict:*counter-suffixes*` (`dict-counters.lisp:213`).
+///
+/// Definition table for the three counter-trailing suffixes a counter
+/// can advertise via its `:accepts` list. Each entry is
+/// `(kind, kanji surface, kana, English description)`.
+pub static COUNTER_SUFFIXES: &[(SuffixKind, &str, &str, &str)] = &[
+    (SuffixKind::Kan, "間", "かん", "[duration]"),
+    (SuffixKind::Kango, "間後", "かんご", "[after ...]"),
+    (SuffixKind::Chuu, "中", "ちゅう", "[among/out of ...]"),
+];
+
+/// Port of `ichiran/dict:*counter-accepts*` (`dict-counters.lisp:217`).
+///
+/// Per-seq override of which counter suffixes a JMdict entry accepts.
+/// The default is "no suffixes"; entries listed here advertise the
+/// given subset of [`crate::dict::kani_suffix_kind::SuffixKind`].
+pub static COUNTER_ACCEPTS: &[(i32, &[SuffixKind])] = &[
+    (1194480, &[SuffixKind::Kan]),
+    (1490430, &[SuffixKind::Kan]),
+    (1333450, &[SuffixKind::Kan, SuffixKind::Kango]),
+];
+
+/// Port of `ichiran/dict:*counter-foreign*` (`dict-counters.lisp:219`).
+///
+/// Seqs of counter entries treated as foreign, so their katakana
+/// readings are pulled as additional sources. One seq today: 1120410
+/// (頁/ページ).
+pub static COUNTER_FOREIGN: &[i32] = &[1120410];
+
+/// Port of `ichiran/dict:*extra-counter-ids*` (`dict-counters.lisp:310`).
+///
+/// JMdict seqs treated as counters even though JMdict itself does not
+/// tag them with `pos=ctr`.
+pub static EXTRA_COUNTER_IDS: &[i32] = &[
+    1255430, // 月
+    1606800, // 割
+];
+
+/// Port of `ichiran/dict:*skip-counter-ids*` (`dict-counters.lisp:315`).
+///
+/// Seqs JMdict tags as `pos=ctr` but that are excluded from the
+/// counter cache (ambiguous readings, mahjong terms with no canonical
+/// reading).
+pub static SKIP_COUNTER_IDS: &[i32] = &[
+    2426510, // 一個当り
+    2220370, // 歳 （とせ）
+    2248360, // 入 （しお）
+    2423450, // 差し
+    2671670, // 幅 （の）
+    2735690, // 種 （くさ）
+    2838543, // 杯 （はた）
+    // mahjong stuff - need some research on how to say these
+    2249290, // 荘
+    2833260, // 翻
+    2833465, // 萬
+    2833466, // 索
+    2833467, // 筒
+];
+
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Build-loop regression (CONVENTIONS §6): the registry should
-    /// hold exactly one entry per `def-special-counter` callsite in
-    /// upstream `dict-counters.lisp`. Drift here means a duplicate
-    /// `m.insert` (silently overwriting) or a missing one.
-    #[test]
-    fn builds_91_entries_one_per_upstream_callsite() {
-        let map = build_special_counters();
-        assert_eq!(map.len(), 91, "expected 91 special-counter seqs");
-    }
-
-    /// Pin the iteration shape: a registered fn called with empty
-    /// readings should still return a valid (possibly source-less)
-    /// `Vec<CounterArgs>`. Catches the case where a callsite forgot
-    /// to wrap its output in `vec![...]` or returned a wrong type.
-    #[test]
-    fn every_fn_runs_on_empty_readings() {
-        let map = build_special_counters();
-        for (seq, f) in &map {
-            let out = f(&[], &[]);
-            assert!(!out.is_empty(), "seq {} returned no entries", seq);
-            for a in &out {
-                assert!(!a.text.is_empty(), "seq {}: empty text", seq);
-                assert!(!a.kana.is_empty(), "seq {}: empty kana", seq);
-                // No source resolves against empty readings.
-                assert!(a.source.is_none(), "seq {}: source resolved against empty readings", seq);
-            }
-        }
-    }
-}
-
+mod tests;

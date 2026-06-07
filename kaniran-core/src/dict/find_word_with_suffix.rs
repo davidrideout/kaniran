@@ -11,7 +11,7 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_suffix_class_star_::suffix_class;
 use crate::dict::find_word_full::find_word_full;
 use crate::dict::kani_word::KaniWordDispatchEnum;
-use crate::dict::seq::seq;
+use crate::dict::counters::methods::seq;
 use crate::dict::word_info_class::WordInfoSeq;
 
 pub async fn find_word_with_suffix(

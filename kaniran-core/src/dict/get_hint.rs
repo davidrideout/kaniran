@@ -10,7 +10,7 @@ use crate::conn::kani_context::KaniranContext;
 use crate::dict::_star_hint_map_star_::{hint_map_dispatch, HintDispatch};
 use crate::dict::conj_data_from::conj_data_from;
 use crate::dict::kani_word::KaniWordDispatchEnum;
-use crate::dict::seq::seq as word_seq;
+use crate::dict::counters::methods::seq as word_seq;
 use crate::dict::word_conj_data::word_conj_data;
 use crate::dict::word_info_class::WordInfoSeq;
 

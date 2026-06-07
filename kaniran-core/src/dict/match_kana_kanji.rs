@@ -6,8 +6,8 @@
 //! kanji surface matches, else `None`.
 
 use super::kani_word::KaniWordDispatchEnum;
-use super::nokanji::nokanji;
-use super::text::text;
+use super::counters::methods::nokanji;
+use super::counters::methods::text;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MatchKanaKanjiResult {

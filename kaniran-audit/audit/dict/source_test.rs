@@ -18,7 +18,7 @@ use serde_json::Value;
 use kaniran_core::dict::kana_text_dao::KanaText;
 use kaniran_core::dict::kani_word::KaniSimpleTextDispatchEnum;
 use kaniran_core::dict::kanji_text_dao::KanjiText;
-use kaniran_core::dict::source::{source, SourceRef};
+use kaniran_core::dict::counters::methods::{source, SourceRef};
 
 use common::{
     captured_class, parse_captured_word, single_result, CapturedKanaText, CapturedKanjiText,

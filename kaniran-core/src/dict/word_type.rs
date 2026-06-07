@@ -7,7 +7,7 @@
 use crate::characters::char_class::CharClass;
 use crate::characters::char_class::count_char_class;
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::text::text;
+use crate::dict::counters::methods::text;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WordType {
@@ -45,7 +45,7 @@ fn word_type_simple(obj: &KaniSimpleTextDispatchEnum) -> WordType {
 mod tests {
     use super::*;
     use crate::dict::compound_text_class::{CompoundText, ScoreMod};
-    use crate::dict::counter_text_class::{Common, Counter, CounterSource, CounterText};
+    use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText};
     use crate::dict::kana_text_dao::KanaText;
     use crate::dict::kanji_text_dao::KanjiText;
     use crate::dict::proxy_text_class::ProxyText;

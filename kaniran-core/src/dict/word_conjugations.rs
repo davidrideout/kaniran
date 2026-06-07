@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn counter_text_always_returns_none() {
-        use crate::dict::counter_text_class::{Common, Counter, CounterText};
+        use crate::dict::counters::classes::{Common, Counter, CounterText};
         let counter = Counter::Base(CounterText {
             text: String::new(),
             kana: String::new(),

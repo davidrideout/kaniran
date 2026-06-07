@@ -10,7 +10,7 @@
 //! Entry-typed rather than polymorphic.
 
 use crate::dict::compound_text_class::CompoundText;
-use crate::dict::counter_text_class::Counter;
+use crate::dict::counters::classes::Counter;
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::kanji_text_dao::KanjiText;
 use crate::dict::proxy_text_class::ProxyText;
@@ -27,7 +27,7 @@ impl KaniSimpleTextDispatchEnum {
     /// Family-level dispatcher for `seq` (cross-family gf). Mirrors
     /// the `Counter::get_kana` pattern from CONVENTIONS §4.7
     /// ("A sibling enum in the base file dispatches"): this narrows
-    /// the wider [`super::seq::seq`] free fn to the simple-text
+    /// the wider [`super::counters::methods::seq`] free fn to the simple-text
     /// subset so split / synergy callers can borrow a
     /// `&KaniSimpleTextDispatchEnum` without round-tripping through
     /// [`KaniWordDispatchEnum`].

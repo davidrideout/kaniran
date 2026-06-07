@@ -7,9 +7,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use super::kani_word::KaniWordDispatchEnum;
-use super::seq::seq;
+use super::counters::methods::seq;
 use super::segment_struct::Segment;
-use super::text::text;
+use super::counters::methods::text;
 use super::word_info_class::WordInfoSeq;
 
 /// Per-field "ever observed non-default value" counters, bumped in

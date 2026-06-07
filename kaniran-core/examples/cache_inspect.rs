@@ -3,7 +3,7 @@
 //! cross-checking against the upstream Lisp values.
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::_star_special_counters_star_::special_counters;
+use kaniran_core::dict::counters::constants::special_counters;
 
 #[tokio::main]
 async fn main() {

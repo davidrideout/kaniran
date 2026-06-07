@@ -1,10 +1,10 @@
 //! Port of `ichiran/dict:number-text` (`dict-counters.lisp:203`).
 //!
 //! Counter cache entry for the bare-number reading; adds no slots over
-//! [`crate::dict::counter_text_class::CounterText`].
+//! [`crate::dict::counters::classes::CounterText`].
 
 use crate::dict::_star_kana_hint_space_star_::KANA_HINT_SPACE;
-use crate::dict::counter_text_class::CounterText;
+use crate::dict::counters::classes::CounterText;
 use crate::numbers::constants::DIGIT_KANJI_DEFAULT;
 use crate::numbers::constants::POWER_KANJI;
 use crate::numbers::kana_form::{number_to_kana, NumberToKanaOutput};

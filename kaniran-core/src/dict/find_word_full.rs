@@ -13,13 +13,13 @@
 //! [`find_word`]: super::find_word::find_word
 //! [`find_word_suffix`]: super::find_word_suffix::find_word_suffix
 //! [`find_word_as_hiragana`]: super::find_word_as_hiragana::find_word_as_hiragana
-//! [`find_counter`]: super::find_counter::find_counter
+//! [`find_counter`]: super::counters::dispatchers::find_counter
 //! [`consecutive_char_groups`]: crate::characters::char_class::consecutive_char_groups
 
 use crate::characters::char_class::CharClass;
 use crate::characters::char_class::consecutive_char_groups;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::find_counter::find_counter;
+use crate::dict::counters::dispatchers::find_counter;
 use crate::dict::find_word::{find_word, FindWordRows};
 use crate::dict::find_word_as_hiragana::find_word_as_hiragana;
 use crate::dict::find_word_suffix::find_word_suffix;
