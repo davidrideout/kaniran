@@ -11,7 +11,7 @@ use super::conj_prop_dao::ConjProp;
 use super::conj_type_order::conj_type_order;
 use super::conjugation_dao::Conjugation;
 use super::filter_props::{filter_props, FilterPropsText};
-use super::lex_compare::lex_compare;
+use super::load::conjugate::lex_compare;
 use super::select_conjs::select_conjs;
 use super::simple_text_class::WordConjugations;
 

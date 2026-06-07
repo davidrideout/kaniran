@@ -4,8 +4,8 @@ use crate::characters::kana::as_hiragana;
 use crate::characters::kana::normalize;
 use crate::characters::kana::NormalizationContext;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::load_entry::{load_entry, LoadEntryIfExists, LoadEntrySeq};
-use crate::dict::node_text::node_text;
+use crate::dict::load::jmdict::{load_entry, LoadEntryIfExists, LoadEntrySeq};
+use crate::dict::load::jmdict::node_text;
 use roxmltree::Document;
 use std::path::PathBuf;
 
@@ -167,7 +167,7 @@ pub enum XmlEntrySeq {
 /// One parsed `<entry>` element from a custom XML source. `seq` is the
 /// `<ent_seq>` text parsed to an integer if possible, otherwise the
 /// raw string. `content` is the serialized XML of the single
-/// `<entry>` element, ready for [`crate::dict::load_entry::load_entry`].
+/// `<entry>` element, ready for [`crate::dict::load::jmdict::load_entry`].
 ///
 /// ```text
 /// XmlEntry {

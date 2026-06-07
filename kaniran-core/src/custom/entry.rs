@@ -3,10 +3,10 @@ use super::load::get_words;
 use super::types::{CustomEntry, CustomLoader, Municipality, Ward};
 use super::xml::as_xml;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::add_new_sense::add_new_sense;
-use crate::dict::load_entry::{load_entry, LoadEntryIfExists, LoadEntrySeq};
+use crate::dict::load::jmdict::add_new_sense;
+use crate::dict::load::jmdict::{load_entry, LoadEntryIfExists, LoadEntrySeq};
 use crate::dict::match_glosses::{match_glosses, MatchValue};
-use crate::dict::next_seq::next_seq;
+use crate::dict::load::jmdict::next_seq;
 use fancy_regex::Regex;
 
 /// Port of `ichiran/custom:insert` (gf — `dict-custom.lisp:14`).

@@ -1,22 +1,22 @@
-use super::add_new_sense::add_new_sense;
+use super::load::jmdict::add_new_sense;
 use super::apply_patch::apply_patch;
 use super::conj_data_struct::ConjData;
 use super::conj_prop_dao::ConjProp;
 use super::conj_source_reading_dao::ConjSourceReading;
-use super::conjugate_entry_outer::conjugate_entry_outer;
+use super::load::conjugate::conjugate_entry_outer;
 use super::conjugation_dao::Conjugation;
-use super::conjugation_rule_struct::ConjugationRule;
+use super::load::conj_rules::ConjugationRule;
 use super::entry_dao::Entry;
-use super::get_pos::get_pos;
-use super::get_pos_index::get_pos_index;
+use super::load::pos::get_pos;
+use super::load::pos::get_pos_index;
 use super::gloss_dao::Gloss;
 use super::kana_text_dao::KanaText;
 use super::kani_conj_form::{ConjForm, FormToken};
 use super::kani_reading_table::KaniReadingTable;
 use super::kanji_text_dao::KanjiText;
-use super::next_seq::next_seq;
+use super::load::jmdict::next_seq;
 use super::sense_prop_dao::SenseProp;
-use super::set_reading::{set_reading, SetReadingObj};
+use super::load::readings::{set_reading, SetReadingObj};
 use crate::characters::char_class::{test_word, CharClass};
 use crate::conn::kani_context::KaniranContext;
 use crate::custom::load::{load_custom_data, CustomDataKey, LoadCustomDataError};
@@ -1010,7 +1010,7 @@ pub async fn add_errata(ctx: &KaniranContext) -> Result<(), LoadCustomDataError>
 
 /// Port of `ichiran/dict:add-new-sense*` (`dict-errata.lisp:155`).
 ///
-/// Convenience wrapper around [`super::add_new_sense::add_new_sense`]:
+/// Convenience wrapper around [`super::load::jmdict::add_new_sense`]:
 /// wraps the single `pos` in a 1-element positions list and forwards
 /// `glosses`.
 pub async fn add_new_sense_star_(
@@ -1500,7 +1500,7 @@ pub async fn add_gozaimasu_conjs(
 /// adding it and running [`conjugate_entry_outer`] when it's missing.
 /// `seq` defaults to 2089020 (the copula `だ`) when `None`.
 ///
-/// [`conjugate_entry_outer`]: super::conjugate_entry_outer::conjugate_entry_outer
+/// [`conjugate_entry_outer`]: super::load::conjugate::conjugate_entry_outer
 pub async fn conjugate_da(ctx: &KaniranContext, seq: Option<i32>) -> Result<(), sqlx::Error> {
     let seq = seq.unwrap_or(2089020);
     // dict-errata.lisp:283 (unless (select-dao 'sense-prop (:and (:= 'seq seq) (:= 'tag "pos") (:= 'text "cop-da"))) …)
