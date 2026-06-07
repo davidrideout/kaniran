@@ -22,8 +22,16 @@ unicode-properties = "0.1"
 roxmltree = "0.21"
 indexmap = "2"
 
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
 # Release-with-debug profile for sampling profilers (samply, pprof).
 # Build with `cargo build --profile profiling --bin <name>`.
 [profile.profiling]
 inherits = "release"
 debug = true
+strip = "none"
