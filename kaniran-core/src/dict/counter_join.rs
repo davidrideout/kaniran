@@ -15,8 +15,8 @@ use crate::characters::kani_kana_class::KanaClass;
 use crate::characters::rendaku::{rendaku, Voicing};
 use crate::dict::counter_text_class::{Counter, DigitOp, DigitOptKey};
 use crate::dict::get_digit::get_digit;
-use crate::numbers::_star_digit_to_kana_star_::DIGIT_TO_KANA;
-use crate::numbers::_star_power_to_kana_star_::POWER_TO_KANA;
+use crate::numbers::constants::DIGIT_TO_KANA;
+use crate::numbers::constants::POWER_TO_KANA;
 
 pub fn counter_join(
     counter: &Counter,
