@@ -6,9 +6,9 @@
 //! their romanizations.
 
 use crate::conn::kani_context::KaniranContext;
-use crate::core::_star_default_romanization_method_star_::default_romanization_method;
-use crate::core::generic_romanization_class::RomanizationMethod;
-use crate::core::romanize_word::romanize_word;
+use crate::core::methods::default_romanization_method;
+use crate::core::methods::RomanizationMethod;
+use crate::core::romanize::romanize_word;
 
 pub async fn word_readings(
     ctx: &KaniranContext,

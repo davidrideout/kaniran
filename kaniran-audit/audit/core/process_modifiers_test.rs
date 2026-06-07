@@ -11,7 +11,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-use kaniran_core::core::process_modifiers::process_modifiers;
+use kaniran_core::core::rules::process_modifiers;
 
 use common::{parse_cc_list, parse_cc_tree, single_result, CapturedRow};
 

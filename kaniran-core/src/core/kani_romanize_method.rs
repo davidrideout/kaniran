@@ -2,7 +2,7 @@
 //! dispatch on — either a `generic-romanization` instance or the keyword
 //! `:kana` (`romanize.lisp:252`, `(if (eql method :kana) …)`).
 
-use super::generic_romanization_class::RomanizationMethod;
+use super::methods::RomanizationMethod;
 
 #[derive(Debug, Clone, Copy)]
 pub enum KaniRomanizeMethod<'a> {

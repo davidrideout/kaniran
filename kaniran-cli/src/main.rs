@@ -11,11 +11,11 @@ use serde_json::{json, Value};
 
 use kaniran_core::characters::text::join;
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::core::_star_hepburn_traditional_star_::hepburn_traditional;
-use kaniran_core::core::generic_romanization_class::RomanizationMethod;
+use kaniran_core::core::methods::hepburn_traditional;
+use kaniran_core::core::methods::RomanizationMethod;
 use kaniran_core::core::kani_romanize_method::KaniRomanizeMethod;
 use kaniran_core::core::romanize::romanize;
-use kaniran_core::core::romanize_star_::{romanize_star_, RomanizeStarSegment};
+use kaniran_core::core::romanize::{romanize_star_, RomanizeStarSegment};
 use kaniran_core::dict::word_info_gloss_json::word_info_gloss_json;
 
 // cli.lisp:8-31 (opts:define-opts) — :eval (cli.lisp:13) omitted; :help

@@ -12,7 +12,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-use kaniran_core::core::leftmost_atom::leftmost_atom;
+use kaniran_core::core::romanize::leftmost_atom;
 
 use common::{parse_cc_atom, parse_cc_tree, single_result, CapturedRow};
 

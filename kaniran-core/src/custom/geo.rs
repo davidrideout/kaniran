@@ -1,8 +1,8 @@
 use super::constants::{MUNICIPALITY_TYPES, MUNICIPALITY_TYPES_DESCRIPTION};
 use crate::characters::char_class::simplify_ngrams;
-use crate::core::_star_hepburn_simple_star_::hepburn_simple;
-use crate::core::generic_romanization_class::RomanizationMethod;
-use crate::core::romanize_word_geo::romanize_word_geo;
+use crate::core::methods::hepburn_simple;
+use crate::core::methods::RomanizationMethod;
+use crate::core::romanize::romanize_word_geo;
 
 /// Port of `ichiran/custom:municipality-short` (`dict-custom.lisp:120`).
 pub fn municipality_short(text: &str, reading: &str) -> (String, Option<String>) {

@@ -11,7 +11,7 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-use kaniran_core::core::r_simplify::r_simplify;
+use kaniran_core::core::rules::r_simplify;
 
 use common::{with_captured_method, CapturedRow};
 
