@@ -1,16 +1,16 @@
 use crate::characters::text::join;
 use crate::conn::kani_context::KaniranContext;
 use crate::custom::load::{load_custom_data, LoadCustomDataError};
-use crate::dict::entry_dao::Entry;
+use crate::dict::dao::Entry;
 use crate::dict::errata::add_errata;
-use crate::dict::find_word::{find_word, FindWordRows};
-use crate::dict::get_senses_raw::{get_senses_raw, RawSense};
+use crate::dict::readings::{find_word, FindWordRows};
+use crate::dict::senses::{get_senses_raw, RawSense};
 use crate::dict::load::conj_rules::POS_WITH_CONJ_RULES;
 use crate::dict::load::conjugate::{
     conjugate_entry_outer, load_conjugations, load_secondary_conjugations,
 };
 use crate::dict::load::readings::{insert_readings, ReadingTable};
-use crate::dict::recalc_entry_stats_all::recalc_entry_stats_all;
+use crate::dict::dao::recalc_entry_stats_all;
 use fancy_regex::{Captures, Regex};
 use roxmltree::{Document, Node, NodeType, ParsingOptions};
 use std::path::Path;

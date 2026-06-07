@@ -6,9 +6,9 @@
 //! struct.
 
 use crate::dict::counters::classes::{Common, CounterSource, DigitOp, DigitOptEntry, DigitOptKey};
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::grammar::suffix::kani_suffix_kind::SuffixKind;
-use crate::dict::kanji_text_dao::KanjiText;
+use crate::dict::dao::KanjiText;
 
 /// Tag-only twin of [`crate::dict::counters::classes::Counter`].
 /// Separate so [`CounterArgs`] can stay `Clone` without forcing it

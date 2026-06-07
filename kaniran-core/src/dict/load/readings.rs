@@ -1,6 +1,6 @@
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kanji_text_dao::KanjiText;
+use crate::dict::dao::KanaText;
+use crate::dict::dao::KanjiText;
 use crate::dict::load::jmdict::node_text;
 use roxmltree::Node;
 

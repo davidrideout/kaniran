@@ -14,7 +14,7 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::get_kanji::get_kanji;
+use kaniran_core::dict::accessors::get_kanji;
 
 use common::{captured_class, parse_captured_word, single_result, CapturedRow};
 

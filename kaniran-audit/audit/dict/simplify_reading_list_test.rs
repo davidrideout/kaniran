@@ -14,7 +14,7 @@ mod common;
 use serde_json::Value;
 
 use common::{single_result, CapturedRow};
-use kaniran_core::dict::simplify_reading_list::simplify_reading_list;
+use kaniran_core::dict::conj::simplify_reading_list;
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:SIMPLIFY-READING-LIST";
 

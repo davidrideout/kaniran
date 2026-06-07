@@ -1,11 +1,11 @@
 mod synergy_no_toori {
-    use crate::dict::conj_data_struct::ConjData;
+    use crate::dict::conj::ConjData;
     use crate::dict::grammar::penalty::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::path::SegmentList;
+    use crate::dict::scoring::score::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::dao::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -116,13 +116,13 @@ mod synergy_no_toori {
 }
 
 mod synergy_oki {
-    use crate::dict::conj_data_struct::ConjData;
+    use crate::dict::conj::ConjData;
     use crate::dict::grammar::penalty::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::path::SegmentList;
+    use crate::dict::scoring::score::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::dao::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -274,13 +274,13 @@ mod synergy_oki {
 }
 
 mod get_synergies {
-    use crate::dict::conj_data_struct::ConjData;
+    use crate::dict::conj::ConjData;
     use crate::dict::grammar::penalty::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::path::SegmentList;
+    use crate::dict::scoring::score::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::dao::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -493,13 +493,13 @@ mod get_synergies {
 }
 
 mod filter_short_kana {
-    use crate::dict::conj_data_struct::ConjData;
+    use crate::dict::conj::ConjData;
     use crate::dict::grammar::penalty::*;
-    use crate::dict::kana_text_dao::KanaText;
+    use crate::dict::dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::segment_list_struct::SegmentList;
-    use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::path::SegmentList;
+    use crate::dict::scoring::score::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+    use crate::dict::dao::SimpleText;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {

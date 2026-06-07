@@ -7,7 +7,7 @@ use crate::core::methods::{
 use crate::core::romanize::get_character_classes;
 use crate::dict::split::segsplit::KANA_HINT_MOD;
 use crate::dict::split::segsplit::KANA_HINT_SPACE;
-use crate::dict::word_info_class::WordInfoType;
+use crate::dict::word_info::WordInfoType;
 
 // --- get_character_classes ---
 fn class(kana: KanaClass) -> CcItem {

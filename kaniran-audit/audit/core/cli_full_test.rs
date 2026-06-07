@@ -14,7 +14,7 @@ use kaniran_core::core::methods::hepburn_traditional;
 use kaniran_core::core::methods::RomanizationMethod;
 use kaniran_core::core::kani_romanize_method::KaniRomanizeMethod;
 use kaniran_core::core::romanize::{romanize_star_, RomanizeStarSegment};
-use kaniran_core::dict::word_info_gloss_json::word_info_gloss_json;
+use kaniran_core::dict::word_info_str::word_info_gloss_json;
 
 use common::{single_result, CapturedRow};
 use serde_json::{json, Map, Value};

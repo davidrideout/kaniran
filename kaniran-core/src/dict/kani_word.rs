@@ -9,12 +9,12 @@
 //! `entry` is not a member: every upstream entry callsite is locally
 //! Entry-typed rather than polymorphic.
 
-use crate::dict::compound_text_class::CompoundText;
+use crate::dict::text_classes::CompoundText;
 use crate::dict::counters::classes::Counter;
-use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kanji_text_dao::KanjiText;
-use crate::dict::proxy_text_class::ProxyText;
-use crate::dict::word_type::WordType;
+use crate::dict::dao::KanaText;
+use crate::dict::dao::KanjiText;
+use crate::dict::text_classes::ProxyText;
+use crate::dict::accessors::WordType;
 
 #[derive(Debug, Clone)]
 pub enum KaniSimpleTextDispatchEnum {
@@ -96,7 +96,7 @@ impl KaniSimpleTextDispatchEnum {
     /// `dict.lisp:150-151` for kana-text,
     /// `dict.lisp:552` slot reader for proxy-text). Per
     /// CONVENTIONS §4.7, each family handles its own `:around`
-    /// internally; the top-level [`super::get_kana::get_kana`]
+    /// internally; the top-level [`super::accessors::get_kana`]
     /// dispatcher just delegates here for the simple-text arms.
     pub async fn get_kana(
         &self,
@@ -135,9 +135,9 @@ impl KaniSimpleTextDispatchEnum {
             // would raise no-applicable-method; Rust surfaces
             // it as Ok(None).
             Self::Kanji(k) => {
-                match super::best_kana_conj::best_kana_conj(ctx, k).await? {
+                match super::readings::best_kana_conj(ctx, k).await? {
                     Some(s) => Ok(Some(s)),
-                    None => super::get_kanji_kana_old::get_kanji_kana_old(ctx, k).await,
+                    None => super::readings::get_kanji_kana_old(ctx, k).await,
                 }
             }
             // dict.lisp:150-151 (defmethod get-kana ((obj kana-text))) — (text obj)

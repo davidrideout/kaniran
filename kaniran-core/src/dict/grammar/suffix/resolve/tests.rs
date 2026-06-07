@@ -1,6 +1,6 @@
 mod parse_suffix_val {
     use crate::dict::grammar::suffix::resolve::*;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     fn kf(seq: i32, text: &str) -> KanaText {
         KanaText {
@@ -448,8 +448,8 @@ mod get_suffixes {
 mod match_unique {
     use crate::conn::kani_context::KaniranContext;
     use crate::dict::grammar::suffix::resolve::*;
-    use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::KanaText;
+    use crate::dict::dao::SimpleText;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -647,7 +647,7 @@ mod match_unique {
     #[tokio::test]
     #[should_panic(expected = "compound-text seq returned WordInfoSeq::Multi")]
     async fn sa_with_compound_text_match_panics() {
-        use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+        use crate::dict::text_classes::{CompoundText, ScoreMod};
         let c = ctx().await;
         let child1 = synthetic_kana(1586010);
         let child2 = synthetic_kana(10597478);
@@ -667,7 +667,7 @@ mod match_unique {
     #[tokio::test]
     #[should_panic(expected = "compound-text seq returned WordInfoSeq::Multi")]
     async fn desu_with_compound_text_match_panics() {
-        use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+        use crate::dict::text_classes::{CompoundText, ScoreMod};
         let c = ctx().await;
         let child1 = synthetic_kana(1586010);
         let child2 = synthetic_kana(10597478);
@@ -773,14 +773,14 @@ mod find_word_suffix {
     async fn t7_match_unique_gate_fires() {
         let ctx = ctx().await;
         // Build matches = find-word 私 (kana + kanji rows).
-        let watashi_rows = crate::dict::find_word::find_word(&ctx, "私", false)
+        let watashi_rows = crate::dict::readings::find_word(&ctx, "私", false)
             .await
             .unwrap();
         let matches: Vec<KaniWordDispatchEnum> = match watashi_rows {
-            crate::dict::find_word::FindWordRows::Kana(v) => {
+            crate::dict::readings::FindWordRows::Kana(v) => {
                 v.into_iter().map(KaniWordDispatchEnum::Kana).collect()
             }
-            crate::dict::find_word::FindWordRows::Kanji(v) => {
+            crate::dict::readings::FindWordRows::Kanji(v) => {
                 v.into_iter().map(KaniWordDispatchEnum::Kanji).collect()
             }
         };
@@ -805,7 +805,7 @@ mod find_word_suffix {
     /// `get_suffixes` path would have returned 3.
     #[tokio::test]
     async fn t8_map_path_position_sensitive() {
-        use crate::dict::_star_suffix_map_temp_star_::SuffixMapTemp;
+        use crate::dict::word_info::SuffixMapTemp;
         use crate::dict::grammar::suffix::resolve::get_suffix_map;
         use std::sync::Arc;
 

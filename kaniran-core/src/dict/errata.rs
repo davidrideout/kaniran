@@ -1,21 +1,21 @@
 use super::load::jmdict::add_new_sense;
 use super::grammar::suffix::rules::apply_patch;
-use super::conj_data_struct::ConjData;
-use super::conj_prop_dao::ConjProp;
-use super::conj_source_reading_dao::ConjSourceReading;
+use super::conj::ConjData;
+use super::dao::ConjProp;
+use super::dao::ConjSourceReading;
 use super::load::conjugate::conjugate_entry_outer;
-use super::conjugation_dao::Conjugation;
+use super::dao::Conjugation;
 use super::load::conj_rules::ConjugationRule;
-use super::entry_dao::Entry;
+use super::dao::Entry;
 use super::load::pos::get_pos;
 use super::load::pos::get_pos_index;
-use super::gloss_dao::Gloss;
-use super::kana_text_dao::KanaText;
+use super::dao::Gloss;
+use super::dao::KanaText;
 use super::kani_conj_form::{ConjForm, FormToken};
 use super::kani_reading_table::KaniReadingTable;
-use super::kanji_text_dao::KanjiText;
+use super::dao::KanjiText;
 use super::load::jmdict::next_seq;
-use super::sense_prop_dao::SenseProp;
+use super::dao::SenseProp;
 use super::load::readings::{set_reading, SetReadingObj};
 use crate::characters::char_class::{test_word, CharClass};
 use crate::conn::kani_context::KaniranContext;
@@ -953,7 +953,7 @@ pub async fn add_errata(ctx: &KaniranContext) -> Result<(), LoadCustomDataError>
     delete_senses(ctx, 2611370, |_prop| true).await?;
     // dict-errata.lisp:543-545 (let ((entry (get-dao 'entry 2611370)))
     //   (setf (slot-value entry 'root-p) nil) (update-dao entry))
-    let mut entry: super::entry_dao::Entry = sqlx::query_as("SELECT * FROM entry WHERE seq = $1")
+    let mut entry: super::dao::Entry = sqlx::query_as("SELECT * FROM entry WHERE seq = $1")
         .bind(2611370)
         .fetch_one(&ctx.pool)
         .await?;

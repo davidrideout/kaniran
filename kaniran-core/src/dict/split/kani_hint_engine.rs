@@ -1,12 +1,12 @@
 use crate::characters::text::{match_diff, MatchSegment};
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::get_kana::get_kana;
+use crate::dict::accessors::get_kana;
 use crate::dict::kani_match_part::KaniMatchPart;
 use crate::dict::kani_word::KaniWordDispatchEnum;
 use crate::dict::split::hint::{insert_hints, translate_hints};
 use crate::dict::split::kani_hint_kind::KaniHintKind;
-use crate::dict::true_kana::true_kana;
-use crate::dict::true_kanji::true_kanji;
+use crate::dict::accessors::true_kana;
+use crate::dict::accessors::true_kanji;
 use crate::kanji::matching::{match_readings, MatchedSegment};
 use std::collections::HashMap;
 use std::sync::OnceLock;

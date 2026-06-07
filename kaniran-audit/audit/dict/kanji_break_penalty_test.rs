@@ -15,10 +15,10 @@ mod common;
 use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::compound_text_class::ScoreMod;
-use kaniran_core::dict::conj_data_struct::ConjData;
-use kaniran_core::dict::kanji_break_penalty::kanji_break_penalty;
-use kaniran_core::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo};
+use kaniran_core::dict::text_classes::ScoreMod;
+use kaniran_core::dict::conj::ConjData;
+use kaniran_core::dict::scoring::score::kanji_break_penalty;
+use kaniran_core::dict::scoring::score::{KaniScoreInfo, KaniSegmentInfo};
 
 use common::{
     parse_conj_list, parse_int_list, parse_kpcl, parse_opt_i32, parse_score_info,

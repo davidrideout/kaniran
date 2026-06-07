@@ -1,24 +1,24 @@
 use crate::characters::char_class::{test_word, CharClass};
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::conj_data_struct::ConjData;
-use crate::dict::conjugation_dao::Conjugation;
+use crate::dict::conj::ConjData;
+use crate::dict::dao::Conjugation;
 use crate::dict::counters::methods::seq;
 use crate::dict::errata::{skip_by_conj_data, test_conj_prop, WEAK_CONJ_FORMS};
-use crate::dict::find_word::FindWordRows;
-use crate::dict::find_word_as_hiragana::{find_word_as_hiragana, HiraganaFinder};
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::get_conj_data::{get_conj_data, FromOrConjIds};
+use crate::dict::readings::FindWordRows;
+use crate::dict::text_classes::{find_word_as_hiragana, HiraganaFinder};
+use crate::dict::path::find_word_full;
+use crate::dict::conj::{get_conj_data, FromOrConjIds};
 use crate::dict::grammar::suffix::constants::suffix_class;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani_word::KaniWordDispatchEnum;
-use crate::dict::kanji_text_dao::KanjiText;
+use crate::dict::dao::KanjiText;
 use crate::dict::load::conjugate::lex_compare;
-use crate::dict::proxy_text_class::ProxyText;
-use crate::dict::set_word_conjugations::set_word_conjugations;
-use crate::dict::simple_text_class::WordConjugations;
-use crate::dict::word_conj_data::word_conj_data;
-use crate::dict::word_conjugations::word_conjugations;
-use crate::dict::word_info_class::WordInfoSeq;
+use crate::dict::text_classes::ProxyText;
+use crate::dict::accessors::set_word_conjugations;
+use crate::dict::dao::WordConjugations;
+use crate::dict::accessors::word_conj_data;
+use crate::dict::accessors::word_conjugations;
+use crate::dict::word_info::WordInfoSeq;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
@@ -135,8 +135,8 @@ pub async fn get_kana_form(
 /// survivors' conj-ids — when either the filtered list is non-empty, or
 /// the original conj-data was empty and `allow_root` is set.
 ///
-/// [`find_word_full`]: crate::dict::find_word_full::find_word_full
-/// [`word_conj_data`]: crate::dict::word_conj_data::word_conj_data
+/// [`find_word_full`]: crate::dict::path::find_word_full
+/// [`word_conj_data`]: crate::dict::accessors::word_conj_data
 pub async fn find_word_with_conj_prop<F>(
     ctx: &KaniranContext,
     wordstr: &str,
@@ -530,7 +530,7 @@ pub async fn or_as_hiragana<'a>(
 /// (a list) and whose last element's seq maps to one of
 /// `suffix_classes` in [`SUFFIX_CLASS`].
 ///
-/// [`find_word_full`]: crate::dict::find_word_full::find_word_full
+/// [`find_word_full`]: crate::dict::path::find_word_full
 /// [`SUFFIX_CLASS`]: crate::dict::grammar::suffix::constants::suffix_class
 pub async fn find_word_with_suffix(
     ctx: &KaniranContext,

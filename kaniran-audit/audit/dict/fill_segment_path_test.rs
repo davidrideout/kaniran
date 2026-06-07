@@ -19,8 +19,8 @@ use serde_json::Value;
 use common::{
     compare_captured_word_info, parse_captured_path_element, single_result, CapturedRow,
 };
-use kaniran_core::dict::fill_segment_path::fill_segment_path;
-use kaniran_core::dict::top_array_item_struct::PathElement;
+use kaniran_core::dict::word_info::fill_segment_path;
+use kaniran_core::dict::path::PathElement;
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:FILL-SEGMENT-PATH";
 
@@ -66,7 +66,7 @@ async fn run_with_empty_path(
 }
 
 fn compare_word_info_list(
-    actual: &[kaniran_core::dict::word_info_class::WordInfo],
+    actual: &[kaniran_core::dict::word_info::WordInfo],
     result: &[Value],
 ) -> Result<(), String> {
     let expected = single_result(result)?;

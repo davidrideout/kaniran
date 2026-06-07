@@ -8,9 +8,9 @@ use std::sync::Arc;
 
 use super::kani_word::KaniWordDispatchEnum;
 use super::counters::methods::seq;
-use super::segment_struct::Segment;
+use super::scoring::score::Segment;
 use super::counters::methods::text;
-use super::word_info_class::WordInfoSeq;
+use super::word_info::WordInfoSeq;
 
 /// Per-field "ever observed non-default value" counters, bumped in
 /// [`KaniLiteSegment::from_segment`]. Used by the find_best_path
@@ -109,7 +109,7 @@ pub struct KaniLiteSegment {
     /// per segment regardless of `Segment`'s internal size.
     pub source: Arc<Segment>,
 
-    /// Score read by [`super::get_segment_score::get_segment_score`]
+    /// Score read by [`super::accessors::get_segment_score`]
     /// off `segments[0]` of a [`super::kani_lite_segment_list::KaniLiteSegmentList`].
     pub score: Option<i32>,
 

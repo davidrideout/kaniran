@@ -11,9 +11,9 @@
 mod common;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::conj_info_json::conj_info_json;
-use kaniran_core::dict::filter_props::FilterPropsText;
-use kaniran_core::dict::simple_text_class::WordConjugations;
+use kaniran_core::dict::conj::conj_info_json;
+use kaniran_core::dict::conj::FilterPropsText;
+use kaniran_core::dict::dao::WordConjugations;
 
 use common::{single_result, CapturedRow};
 use serde_json::{Map, Value};

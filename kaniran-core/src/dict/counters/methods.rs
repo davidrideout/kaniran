@@ -1,9 +1,9 @@
-use crate::dict::compound_text_class::CompoundText;
+use crate::dict::text_classes::CompoundText;
 use crate::dict::counters::classes::{Common, Counter, CounterSource};
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::kanji_text_dao::KanjiText;
-use crate::dict::word_info_class::WordInfoSeq;
+use crate::dict::dao::KanjiText;
+use crate::dict::word_info::WordInfoSeq;
 use std::borrow::Cow;
 
 /// Port of `ichiran/dict:common` (gf — `dict-counters.lisp:0`).
@@ -220,7 +220,7 @@ pub fn value_string(counter: &Counter) -> String {
         Counter::Wari(c) => c.value_string(),
         // Every other variant inherits the (counter-text) default.
         Counter::Base(c)
-        | Counter::NumberText(crate::dict::number_text_class::NumberText(c))
+        | Counter::NumberText(crate::dict::text_classes::NumberText(c))
         | Counter::Age(crate::dict::counters::classes::CounterAge(c))
         | Counter::DaysKun(crate::dict::counters::classes::CounterDaysKun(c))
         | Counter::DaysOn(crate::dict::counters::classes::CounterDaysOn(c))
@@ -241,7 +241,7 @@ pub fn verify(counter: &Counter, unique: bool) -> bool {
         Counter::DaysOn(c) => c.verify(unique),
         // Every other variant inherits the (T T) default method.
         Counter::Base(c)
-        | Counter::NumberText(crate::dict::number_text_class::NumberText(c))
+        | Counter::NumberText(crate::dict::text_classes::NumberText(c))
         | Counter::Age(crate::dict::counters::classes::CounterAge(c))
         | Counter::DaysKun(crate::dict::counters::classes::CounterDaysKun(c))
         | Counter::Halfhour(crate::dict::counters::classes::CounterHalfhour(c))

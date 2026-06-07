@@ -1,20 +1,20 @@
 use crate::characters::text::join;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::calc_score::calc_score;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
-use crate::dict::get_kana::get_kana;
-use crate::dict::get_text::get_text;
+use crate::dict::scoring::calc_score::calc_score;
+use crate::dict::text_classes::{CompoundText, ScoreMod};
+use crate::dict::accessors::get_kana;
+use crate::dict::accessors::get_text;
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
-use crate::dict::set_word_conjugations::set_word_conjugations;
-use crate::dict::simple_text_class::WordConjugations;
+use crate::dict::scoring::score::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+use crate::dict::accessors::set_word_conjugations;
+use crate::dict::dao::WordConjugations;
 use crate::dict::split::kani_hint_kind::KaniHintKind;
 use crate::dict::split::kani_split_engine::{
     Finder, Len, Modify, PartSeq, Pred, SplitDef, Step, WordPart,
 };
 use crate::dict::split::kani_split_part::SplitPart;
 use crate::dict::split::split::get_split;
-use crate::dict::word_conj_data::word_conj_data;
+use crate::dict::accessors::word_conj_data;
 use std::sync::OnceLock;
 
 /// Port of `ichiran/dict:*segsplit-map*` (`dict-split.lisp:704`).

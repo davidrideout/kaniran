@@ -5,7 +5,7 @@ use crate::dict::split::kani_split_engine::{
 };
 use crate::dict::split::kani_split_part::SplitPart;
 use crate::dict::split::segsplit::SEGSPLIT_TABLE;
-use crate::dict::word_type::WordType;
+use crate::dict::accessors::WordType;
 
 /// Port of `ichiran/dict:*split-map*` (`dict-split.lisp:5`).
 ///

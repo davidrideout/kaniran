@@ -29,8 +29,8 @@ mod _star_hint_simplify_map_star_ {
 }
 
 mod get_segsplit {
-    use crate::dict::find_word::{find_word, FindWordRows};
-    use crate::dict::gen_score::gen_score;
+    use crate::dict::readings::{find_word, FindWordRows};
+    use crate::dict::scoring::score::gen_score;
     use crate::dict::split::segsplit::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
@@ -127,10 +127,10 @@ mod get_segsplit {
         assert_eq!(word_text(&compound.words[1]), "で");
         // :root (1) — index-1 word gets WordConjugations::Root.
         assert!(matches!(
-            crate::dict::word_conjugations::word_conjugations(&compound.words[1]),
+            crate::dict::accessors::word_conjugations(&compound.words[1]),
             Some(WordConjugations::Root)
         ));
-        assert!(crate::dict::word_conjugations::word_conjugations(&compound.words[0]).is_none());
+        assert!(crate::dict::accessors::word_conjugations(&compound.words[0]).is_none());
         assert!(matches!(compound.score_mod, ScoreMod::Single(-10)));
         assert!(compound.score_base.is_none());
 
@@ -186,7 +186,7 @@ mod get_segsplit {
         assert_eq!(word_seq(&compound.words[2]), 2028920);
         // No :root keyword → no word gets marked Root.
         for w in &compound.words {
-            assert!(crate::dict::word_conjugations::word_conjugations(w).is_none());
+            assert!(crate::dict::accessors::word_conjugations(w).is_none());
         }
         assert!(matches!(compound.score_mod, ScoreMod::Single(-10)));
         assert!(compound.score_base.is_none());
@@ -239,7 +239,7 @@ mod get_segsplit {
         assert_eq!(word_seq(&compound.words[0]), 2826528);
         assert_eq!(word_seq(&compound.words[1]), 1582120);
         for w in &compound.words {
-            assert!(crate::dict::word_conjugations::word_conjugations(w).is_none());
+            assert!(crate::dict::accessors::word_conjugations(w).is_none());
         }
         assert!(matches!(compound.score_mod, ScoreMod::Single(20)));
         assert!(compound.score_base.is_none());
@@ -295,7 +295,7 @@ mod get_segsplit {
         assert_eq!(new_seg.text.as_deref(), Some("だから"));
         // No :root — neither word marked.
         for w in &compound.words {
-            assert!(crate::dict::word_conjugations::word_conjugations(w).is_none());
+            assert!(crate::dict::accessors::word_conjugations(w).is_none());
         }
 
         let info = new_seg.info.as_ref().expect("info set");
@@ -343,7 +343,7 @@ mod get_segsplit {
         assert_eq!(word_seq(&compound.words[0]), 1002980);
         assert_eq!(word_seq(&compound.words[1]), 1260720);
         for w in &compound.words {
-            assert!(crate::dict::word_conjugations::word_conjugations(w).is_none());
+            assert!(crate::dict::accessors::word_conjugations(w).is_none());
         }
         assert!(matches!(compound.score_mod, ScoreMod::Single(10)));
         assert!(compound.score_base.is_none());
@@ -410,7 +410,7 @@ mod get_segsplit {
         assert_eq!(word_seq(&compound.words[1]), 1004070);
         assert_eq!(word_text(&compound.words[1]), "ぐったり");
         for w in &compound.words {
-            assert!(crate::dict::word_conjugations::word_conjugations(w).is_none());
+            assert!(crate::dict::accessors::word_conjugations(w).is_none());
         }
         assert!(matches!(compound.score_mod, ScoreMod::Single(5)));
         assert!(compound.score_base.is_none());
@@ -433,8 +433,8 @@ mod get_segsplit {
     // compound-text; get-segsplit returns nil immediately.
     #[tokio::test]
     async fn compound_text_input_returns_none() {
-        use crate::dict::kana_text_dao::KanaText;
-        use crate::dict::simple_text_class::SimpleText;
+        use crate::dict::dao::KanaText;
+        use crate::dict::dao::SimpleText;
         let ctx = ctx_from_env().await;
         let kana = KanaText {
             id: 0,

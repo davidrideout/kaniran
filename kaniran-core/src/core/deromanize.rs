@@ -2,7 +2,7 @@ use super::helpers::{get_romaji_kana, romaji_kana_next};
 use super::rules::apply_rmap_item;
 use crate::characters::kana::as_katakana;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::find_kanji_for_pattern::find_kanji_for_pattern;
+use crate::dict::find_word_info::find_kanji_for_pattern;
 use serde_json::{Map, Value};
 use std::collections::HashSet;
 

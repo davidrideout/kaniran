@@ -4,8 +4,8 @@ use crate::dict::kani_lite_segment::{
     POS_NOUN,
 };
 use crate::dict::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
-use crate::dict::segment_list_struct::SegmentList;
-use crate::dict::segment_struct::Segment;
+use crate::dict::path::SegmentList;
+use crate::dict::scoring::score::Segment;
 use std::sync::Arc;
 
 /// Port of `ichiran/dict:synergy` (`dict-grammar.lisp:713`).

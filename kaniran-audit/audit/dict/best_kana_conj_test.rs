@@ -13,7 +13,7 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::best_kana_conj::best_kana_conj;
+use kaniran_core::dict::readings::best_kana_conj;
 
 use common::{captured_class, single_result, CapturedKanjiText, CapturedRow};
 

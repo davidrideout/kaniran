@@ -154,7 +154,7 @@ mod find_word_with_conj_type {
         assert_eq!(k.seq, 10092233);
         assert_eq!(
             k.state.conjugations,
-            Some(crate::dict::simple_text_class::WordConjugations::Ids(vec![
+            Some(crate::dict::dao::WordConjugations::Ids(vec![
                 92707
             ]))
         );
@@ -229,8 +229,8 @@ mod find_word_with_conj_type {
 
 mod pair_words_by_conj {
     use crate::dict::grammar::lookup::*;
-    use crate::dict::kana_text_dao::KanaText;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::KanaText;
+    use crate::dict::dao::SimpleText;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()

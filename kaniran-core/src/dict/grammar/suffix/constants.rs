@@ -10,7 +10,7 @@ use crate::dict::grammar::suffix::rules::{
     suffix_te_plus_space, suffix_te_ren, suffix_teii, suffix_teiru, suffix_teiru_plus_, suffix_to,
     suffix_tosuru,
 };
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani_word::KaniWordDispatchEnum;
 use std::collections::HashMap;
 use std::future::Future;

@@ -15,7 +15,7 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::compare_common::{compare_common, CompareCommonResult};
+use kaniran_core::dict::scoring::score::{compare_common, CompareCommonResult};
 
 use common::{single_result, CapturedRow};
 

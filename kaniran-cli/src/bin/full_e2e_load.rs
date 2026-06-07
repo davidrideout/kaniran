@@ -17,7 +17,7 @@ use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::custom::load::load_custom_data;
 use kaniran_core::dict::load::readings::load_best_readings;
 use kaniran_core::dict::load::jmdict::load_jmdict;
-use kaniran_core::dict::recalc_entry_stats_all::recalc_entry_stats_all;
+use kaniran_core::dict::dao::recalc_entry_stats_all;
 use kaniran_core::kanji::stats::load_kanji_stats;
 use kaniran_core::kanji::loaders::load_kanjidic;
 use kaniran_core::maintenance::add_errata::add_errata;

@@ -1,5 +1,5 @@
 //! Kaniran sidecar (no Lisp FQN). Lite mirror of
-//! [`super::top_array_item_struct::TopArrayItem`] used inside the
+//! [`super::path::TopArrayItem`] used inside the
 //! `find-best-path` inner loop, with an [`Arc<[_]>`] payload.
 
 use std::sync::Arc;
@@ -13,11 +13,11 @@ pub struct KaniLiteTopArrayItem {
     pub payload: Arc<[KaniLitePathElement]>,
 }
 
-/// Lite mirror of [`super::top_array_item_struct::PathElement`]. The
+/// Lite mirror of [`super::path::PathElement`]. The
 /// inner loop builds these; `find-best-path` reconstructs full
 /// [`PathElement`]s from them at exit.
 ///
-/// [`PathElement`]: super::top_array_item_struct::PathElement
+/// [`PathElement`]: super::path::PathElement
 #[derive(Debug, Clone)]
 pub enum KaniLitePathElement {
     SegmentList(Arc<KaniLiteSegmentList>),

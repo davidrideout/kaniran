@@ -5,7 +5,7 @@ use crate::dict::grammar::lookup::{find_word_conj_of, find_word_seq};
 use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 use crate::dict::split::kani_split_part::SplitPart;
 use crate::dict::split::split::optprefix;
-use crate::dict::word_type::WordType;
+use crate::dict::accessors::WordType;
 
 /// Rust-only sidecar: the interpreter that drives every
 /// `def-simple-split` callsite (`dict-split.lisp:13`). Each split-*

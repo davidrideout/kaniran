@@ -2,7 +2,7 @@ use super::dao::{Kanji, Reading};
 use super::matching::{match_readings, MatchedSegment};
 use super::readings::{get_original_reading, ReadingTag};
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::get_kanji_words::get_kanji_words;
+use crate::dict::word_info_str::get_kanji_words;
 use std::collections::HashMap;
 
 /// Port of `ichiran/kanji:kanji-word-stats` (`kanji.lisp:316`).

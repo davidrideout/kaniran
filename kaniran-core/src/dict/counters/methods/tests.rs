@@ -1,14 +1,14 @@
 use super::*;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
+use crate::dict::text_classes::{CompoundText, ScoreMod};
 use crate::dict::counters::classes::{
     Common, Counter, CounterDaysOn, CounterHalfhour, CounterMonths, CounterSource, CounterText,
     CounterTsu, CounterWari,
 };
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani_word::KaniWordDispatchEnum;
-use crate::dict::kanji_text_dao::KanjiText;
-use crate::dict::proxy_text_class::ProxyText;
-use crate::dict::simple_text_class::SimpleText;
+use crate::dict::dao::KanjiText;
+use crate::dict::text_classes::ProxyText;
+use crate::dict::dao::SimpleText;
 
 // --- common ---
 fn kanji_with_common(c: Option<i32>) -> KanjiText {

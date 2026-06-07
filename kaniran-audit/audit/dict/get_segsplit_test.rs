@@ -15,15 +15,15 @@ mod common;
 use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::compound_text_class::{CompoundText, ScoreMod};
-use kaniran_core::dict::conj_data_struct::ConjData;
-use kaniran_core::dict::conj_prop_dao::ConjProp;
+use kaniran_core::dict::text_classes::{CompoundText, ScoreMod};
+use kaniran_core::dict::conj::ConjData;
+use kaniran_core::dict::dao::ConjProp;
 use kaniran_core::dict::split::segsplit::get_segsplit;
-use kaniran_core::dict::kana_text_dao::KanaText;
+use kaniran_core::dict::dao::KanaText;
 use kaniran_core::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use kaniran_core::dict::kanji_text_dao::KanjiText;
-use kaniran_core::dict::proxy_text_class::ProxyText;
-use kaniran_core::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
+use kaniran_core::dict::dao::KanjiText;
+use kaniran_core::dict::text_classes::ProxyText;
+use kaniran_core::dict::scoring::score::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
 
 use common::{
     captured_class, parse_captured_segment, parse_captured_word, parse_opt_bool, parse_opt_i32,
@@ -806,7 +806,7 @@ fn compare_kpcl(actual: (bool, bool, bool, bool), val: &Value) -> Result<(), Str
 }
 
 fn compare_conj_count(
-    actual: &[kaniran_core::dict::conj_data_struct::ConjData],
+    actual: &[kaniran_core::dict::conj::ConjData],
     val: &Value,
 ) -> Result<(), String> {
     let arr = match val {
@@ -833,7 +833,7 @@ fn compare_conj_count(
 }
 
 fn compare_conj_data(
-    actual: &kaniran_core::dict::conj_data_struct::ConjData,
+    actual: &kaniran_core::dict::conj::ConjData,
     val: &Value,
 ) -> Result<(), String> {
     let class = captured_class(val)?;

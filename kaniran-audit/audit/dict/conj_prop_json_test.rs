@@ -11,8 +11,8 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-use kaniran_core::dict::conj_prop_dao::ConjProp;
-use kaniran_core::dict::conj_prop_json::conj_prop_json;
+use kaniran_core::dict::dao::ConjProp;
+use kaniran_core::dict::dao::conj_prop_json;
 
 use common::{single_result, CapturedRow};
 use serde_json::Value;

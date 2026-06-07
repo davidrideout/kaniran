@@ -1,0 +1,799 @@
+mod exists_reading {
+    use crate::dict::find_word_info::*;
+
+    async fn ctx() -> std::sync::Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .await
+            .expect("DATABASE_URL / kaniran.toml required")
+    }
+
+    /// REPL (.103, `ichiran/dict::exists-reading`) + local DB, 2026-05-24:
+    /// 政府 seq 1376070 has kana-text row "せいふ"
+    /// (`(exists-reading 1376070 "せいふ")` -> `((1376070))`); reading
+    /// "ありえない" is absent for that seq (-> `NIL`); 猫 seq 1467640
+    /// has kana-text row "ねこ".
+    #[tokio::test]
+    async fn reading_present_and_absent() {
+        let ctx = ctx().await;
+        assert_eq!(
+            exists_reading(&ctx, 1376070, "せいふ").await.unwrap(),
+            vec![1376070]
+        );
+        assert!(exists_reading(&ctx, 1376070, "ありえない")
+            .await
+            .unwrap()
+            .is_empty());
+        assert_eq!(
+            exists_reading(&ctx, 1467640, "ねこ").await.unwrap(),
+            vec![1467640]
+        );
+        // reading belongs to a different entry -> no row for this seq
+        assert!(exists_reading(&ctx, 1467640, "せいふ")
+            .await
+            .unwrap()
+            .is_empty());
+    }
+}
+
+mod find_word_info {
+    use crate::dict::find_word_info::*;
+    // Ground truth captured from `ichiran/dict:find-word-info` on .103
+    // (2026-05-25) with `(init-suffixes t t)` forced first so the suffix
+    // cache is fully populated — matching `KaniranContext::from_env`'s
+    // eager populate. Tests run against the local DB per project policy.
+
+    async fn ctx() -> std::sync::Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .await
+            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+    }
+
+    fn kana_of(wi: &WordInfo) -> &str {
+        match &wi.kana {
+            Some(WordInfoKana::Single(k)) => k,
+            other => panic!("expected single kana, got {other:?}"),
+        }
+    }
+
+    fn single_seq(wi: &WordInfo) -> i32 {
+        match &wi.seq {
+            Some(WordInfoSeq::Single(s)) => *s,
+            other => panic!("expected single seq, got {other:?}"),
+        }
+    }
+
+    /// One-result lookups: every populated WordInfo field per REPL.
+    /// Covers the kanji branch, the katakana `:as-hiragana` branch
+    /// (ヨーロッパ / コンピューター resolve to a KANA row), and
+    /// ASCII-digit absence of the counter path. For all simple words
+    /// `true-text` equals the surface text and find-word-info sets
+    /// `start`=0 / `end`=(length text).
+    #[tokio::test]
+    async fn single_result_cases() {
+        use crate::dict::word_info::WordInfoType;
+        let ctx = ctx().await;
+        // (text, kana, seq, score, is_kana_type)
+        let cases: &[(&str, &str, i32, i32, bool)] = &[
+            ("政府", "せいふ", 1376070, 325, false),
+            ("経済", "けいざい", 1251320, 325, false),
+            ("今日", "きょう", 1579110, 312, false),
+            ("明日", "あした", 1584660, 273, false),
+            ("ヨーロッパ", "ヨーロッパ", 1137570, 384, true),
+            ("コンピューター", "コンピューター", 1053350, 440, true),
+        ];
+        for (text, kana, seq, score, is_kana) in cases {
+            let result = find_word_info(&ctx, text, None, false).await.unwrap();
+            assert_eq!(result.len(), 1, "text={text}");
+            let wi = &result[0];
+            assert_eq!(&wi.text, text, "text={text}");
+            assert_eq!(kana_of(wi), *kana, "text={text}");
+            assert_eq!(single_seq(wi), *seq, "text={text}");
+            assert_eq!(wi.score, Some(*score), "text={text}");
+            assert_eq!(
+                wi.kind,
+                if *is_kana {
+                    WordInfoType::Kana
+                } else {
+                    WordInfoType::Kanji
+                },
+                "text={text}"
+            );
+            assert_eq!(wi.true_text.as_deref(), Some(*text), "text={text}");
+            assert_eq!(wi.start, Some(0), "text={text}");
+            assert_eq!(wi.end, Some(text.chars().count()), "text={text}");
+            assert!(wi.counter.is_none(), "text={text}");
+            assert!(wi.components.is_empty(), "text={text}");
+        }
+    }
+
+    /// Multi-result lookups with distinct scores: the `(sort … #'>)`
+    /// orders strictly descending. 何 (なに 24 / なん 16), 一人 (312 /
+    /// 208), 二人 (325 / 208).
+    #[tokio::test]
+    async fn multi_result_sorted_descending() {
+        let ctx = ctx().await;
+        // (text, [(kana, seq, score), …] in expected order)
+        let cases: &[(&str, &[(&str, i32, i32)])] = &[
+            ("何", &[("なに", 1577100, 24), ("なん", 2846738, 16)]),
+            (
+                "一人",
+                &[("ひとり", 1576150, 312), ("ひとり", 2149890, 208)],
+            ),
+            (
+                "二人",
+                &[("ふたり", 1582670, 325), ("ふたり", 2149890, 208)],
+            ),
+        ];
+        for (text, expected) in cases {
+            let result = find_word_info(&ctx, text, None, false).await.unwrap();
+            assert_eq!(result.len(), expected.len(), "text={text}");
+            for (wi, (kana, seq, score)) in result.iter().zip(expected.iter()) {
+                assert_eq!(&wi.text, text, "text={text}");
+                assert_eq!(kana_of(wi), *kana, "text={text}");
+                assert_eq!(single_seq(wi), *seq, "text={text}");
+                assert_eq!(wi.score, Some(*score), "text={text}");
+            }
+        }
+    }
+
+    /// 三本 → 3 results, two tied at score 208 (DB-order between the two
+    /// ties is unspecified per docs/known_issues.md) then みもと 143. Assert the
+    /// descending score sequence and the seq set, not the tie order.
+    #[tokio::test]
+    async fn score_tie_then_lower() {
+        let ctx = ctx().await;
+        let result = find_word_info(&ctx, "三本", None, false).await.unwrap();
+        assert_eq!(result.len(), 3);
+        let scores: Vec<i32> = result.iter().map(|wi| wi.score.unwrap()).collect();
+        assert_eq!(scores, vec![208, 208, 143]);
+        let mut seqs: Vec<i32> = result.iter().map(single_seq).collect();
+        seqs.sort_unstable();
+        assert_eq!(seqs, vec![1260670, 1301640, 1522150]);
+        assert_eq!(single_seq(&result[2]), 1260670); // the 143 row sorts last
+    }
+
+    /// 5個 → 2 counter-text readings (ごこ 128 / ごか 40). Exercises the
+    /// `:counter :auto` branch of find-word-full and a Single (source)
+    /// seq on a counter word.
+    #[tokio::test]
+    async fn counter_auto_results() {
+        let ctx = ctx().await;
+        let result = find_word_info(&ctx, "5個", None, false).await.unwrap();
+        assert_eq!(result.len(), 2);
+        assert_eq!(
+            (kana_of(&result[0]), single_seq(&result[0]), result[0].score),
+            ("ごこ", 1264740, Some(128))
+        );
+        assert_eq!(
+            (kana_of(&result[1]), single_seq(&result[1]), result[1].score),
+            ("ごか", 2220320, Some(40))
+        );
+        // counter-text: true-text nil, counter = (value-string, ordinalp), start/end 0/2.
+        for wi in &result {
+            assert_eq!(wi.counter, Some(("Value: 5".to_string(), false)));
+            assert!(wi.true_text.is_none());
+            assert_eq!(wi.start, Some(0));
+            assert_eq!(wi.end, Some(2));
+        }
+    }
+
+    /// `:root-only t` routes all-words through `(find-word text :root-only t)`.
+    #[tokio::test]
+    async fn root_only_cases() {
+        let ctx = ctx().await;
+        let cases: &[(&str, &str, i32, i32)] = &[
+            ("経済", "けいざい", 1251320, 325),
+            ("三本", "さんぼん", 1301640, 208),
+            ("一人", "ひとり", 1576150, 312),
+        ];
+        for (text, kana, seq, score) in cases {
+            let result = find_word_info(&ctx, text, None, true).await.unwrap();
+            assert_eq!(result.len(), 1, "text={text}");
+            assert_eq!(kana_of(&result[0]), *kana, "text={text}");
+            assert_eq!(single_seq(&result[0]), *seq, "text={text}");
+            assert_eq!(result[0].score, Some(*score), "text={text}");
+        }
+    }
+
+    /// reading matches the word's kana (`(equal (word-info-kana wi) reading)`)
+    /// → collect unchanged. Includes the compound 食べてる whose kana
+    /// たべてる matches before the list-seq branch is reached.
+    #[tokio::test]
+    async fn reading_match_collects() {
+        let ctx = ctx().await;
+        let seifu = find_word_info(&ctx, "政府", Some("せいふ"), false)
+            .await
+            .unwrap();
+        assert_eq!(seifu.len(), 1);
+        assert_eq!(kana_of(&seifu[0]), "せいふ");
+        assert_eq!(single_seq(&seifu[0]), 1376070);
+
+        let taberu = find_word_info(&ctx, "食べてる", Some("たべてる"), false)
+            .await
+            .unwrap();
+        assert_eq!(taberu.len(), 1);
+        assert_eq!(kana_of(&taberu[0]), "たべてる");
+        assert_eq!(
+            taberu[0].seq,
+            Some(WordInfoSeq::Multi(vec![
+                Some(WordInfoSeq::Single(10092233)),
+                Some(WordInfoSeq::Single(1577980)),
+            ]))
+        );
+    }
+
+    /// reading differs from the kana but `exists-reading` finds it for the
+    /// seq → relabel the kana to reading and collect. Mismatched rows whose
+    /// seq lacks the reading are dropped (一人 keeps only seq 1576150).
+    #[tokio::test]
+    async fn reading_relabel_and_drop() {
+        let ctx = ctx().await;
+        // (text, reading, expected (kana, seq, score))
+        let cases: &[(&str, &str, &str, i32, i32)] = &[
+            ("一人", "いちにん", "いちにん", 1576150, 312),
+            ("今日", "こんにち", "こんにち", 1579110, 312),
+            ("今日", "こんじつ", "こんじつ", 1579110, 312),
+            ("二人", "ににん", "ににん", 1582670, 325),
+            ("何", "なん", "なん", 2846738, 16),
+        ];
+        for (text, reading, kana, seq, score) in cases {
+            let result = find_word_info(&ctx, text, Some(reading), false)
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 1, "text={text} reading={reading}");
+            assert_eq!(kana_of(&result[0]), *kana, "text={text} reading={reading}");
+            assert_eq!(
+                single_seq(&result[0]),
+                *seq,
+                "text={text} reading={reading}"
+            );
+            assert_eq!(
+                result[0].score,
+                Some(*score),
+                "text={text} reading={reading}"
+            );
+        }
+    }
+
+    /// reading matches no row and `exists-reading` is empty for every seq
+    /// → every word-info dropped, result empty.
+    #[tokio::test]
+    async fn reading_drops_all() {
+        let ctx = ctx().await;
+        assert!(find_word_info(&ctx, "政府", Some("ありえない"), false)
+            .await
+            .unwrap()
+            .is_empty());
+        assert!(find_word_info(&ctx, "何", Some("ぜんぜんちがう"), false)
+            .await
+            .unwrap()
+            .is_empty());
+    }
+
+    /// Compounds carry a list seq and a per-part `components` list (each
+    /// child a WordInfo with `primary` set iff its seq is the compound's
+    /// primary). `true-text` is nil, start/end span the whole text.
+    #[tokio::test]
+    async fn compound_results() {
+        let ctx = ctx().await;
+        // (text, kana, score, [(comp_text, comp_kana, comp_seq, primary)])
+        let cases: &[(&str, &str, i32, &[(&str, &str, i32, bool)])] = &[
+            (
+                "食べてる",
+                "たべてる",
+                434,
+                &[
+                    ("食べて", "たべて", 10092233, true),
+                    ("いる", "いる", 1577980, false),
+                ],
+            ),
+            (
+                "勉強する",
+                "べんきょう する",
+                736,
+                &[
+                    ("勉強", "べんきょう", 1512670, true),
+                    ("する", "する", 1157170, false),
+                ],
+            ),
+        ];
+        for (text, kana, score, comps) in cases {
+            let result = find_word_info(&ctx, text, None, false).await.unwrap();
+            assert_eq!(result.len(), 1, "text={text}");
+            let wi = &result[0];
+            assert_eq!(&wi.text, text, "text={text}");
+            assert_eq!(kana_of(wi), *kana, "text={text}");
+            assert_eq!(wi.score, Some(*score), "text={text}");
+            assert!(wi.true_text.is_none(), "text={text}");
+            assert_eq!(wi.start, Some(0), "text={text}");
+            assert_eq!(wi.end, Some(text.chars().count()), "text={text}");
+            let expected_seq = WordInfoSeq::Multi(
+                comps
+                    .iter()
+                    .map(|(_, _, s, _)| Some(WordInfoSeq::Single(*s)))
+                    .collect(),
+            );
+            assert_eq!(wi.seq, Some(expected_seq), "text={text}");
+            assert_eq!(wi.components.len(), comps.len(), "text={text}");
+            for (comp, (comp_text, comp_kana, comp_seq, primary)) in
+                wi.components.iter().zip(comps.iter())
+            {
+                assert_eq!(&comp.text, comp_text, "text={text}");
+                assert_eq!(kana_of(comp), *comp_kana, "text={text}");
+                assert_eq!(single_seq(comp), *comp_seq, "text={text}");
+                assert_eq!(comp.primary, *primary, "text={text}");
+            }
+        }
+    }
+
+    /// A compound whose kana ≠ reading reaches `(exists-reading seq reading)`
+    /// with a list seq; upstream errors with `integer = record` (SQLSTATE
+    /// 42883), so the port returns the same DB error.
+    #[tokio::test]
+    async fn compound_reading_mismatch_errors() {
+        let ctx = ctx().await;
+        let err = find_word_info(&ctx, "食べてる", Some("ちがうよみ"), false)
+            .await
+            .expect_err("compound list-seq exists-reading must raise a DB error");
+        match err {
+            sqlx::Error::Database(db) => assert_eq!(db.code().as_deref(), Some("42883")),
+            other => panic!("expected SQLSTATE 42883 database error, got {other:?}"),
+        }
+    }
+
+    /// No dictionary hit → empty result.
+    #[tokio::test]
+    async fn no_match_is_empty() {
+        let ctx = ctx().await;
+        assert!(find_word_info(&ctx, "qwxz", None, false)
+            .await
+            .unwrap()
+            .is_empty());
+    }
+}
+
+mod find_word_info_json {
+    use crate::dict::find_word_info::*;
+    // Ground truth from `(jsown:to-json (find-word-info-json …))` on .103
+    // (2026-05-25) after `(init-suffixes t t)`. jsown's `\uXXXX` decoded to
+    // the raw-UTF-8 serde_json emits. Local DB per project policy.
+
+    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .await
+            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    }
+
+    fn json(values: &[Value]) -> String {
+        serde_json::to_string(values).unwrap()
+    }
+
+    /// Maps word-info-gloss-json over find-word-info. Covers a single-result
+    /// noun, the multi-result counter (two objects), root-only (one object,
+    /// no conj), and root-only on a conjugated compound (no root entry →
+    /// empty list).
+    #[tokio::test]
+    async fn find_word_info_json_cases() {
+        let ctx = ctx_from_env().await;
+        // (text, reading, root_only, expected list json)
+        let cases: &[(&str, Option<&str>, bool, &str)] = &[
+            (
+                "経済",
+                None,
+                false,
+                r#"[{"reading":"経済 【けいざい】","text":"経済","kana":"けいざい","score":325,"seq":1251320,"gloss":[{"pos":"[n]","gloss":"economy; economics"},{"pos":"[n]","gloss":"finance; (one's) finances; financial circumstances"},{"pos":"[n]","gloss":"being economical; economy; thrift"}],"conj":[]}]"#,
+            ),
+            (
+                "経済",
+                None,
+                true,
+                r#"[{"reading":"経済 【けいざい】","text":"経済","kana":"けいざい","score":325,"seq":1251320,"gloss":[{"pos":"[n]","gloss":"economy; economics"},{"pos":"[n]","gloss":"finance; (one's) finances; financial circumstances"},{"pos":"[n]","gloss":"being economical; economy; thrift"}]}]"#,
+            ),
+            ("行きたい", None, true, "[]"),
+        ];
+        for (text, reading, root_only, expected) in cases {
+            let result = find_word_info_json(&ctx, text, *reading, *root_only)
+                .await
+                .unwrap();
+            assert_eq!(json(&result), *expected, "text={text} root={root_only}");
+        }
+    }
+
+    /// `:reading` restricts/relabels: 今日 with こんにち keeps the seq whose
+    /// reading exists, relabeling the word-info kana (mirrors find-word-info's
+    /// reading branch) before serialization.
+    #[tokio::test]
+    async fn reading_relabel() {
+        let ctx = ctx_from_env().await;
+        let result = find_word_info_json(&ctx, "今日", Some("こんにち"), false)
+            .await
+            .unwrap();
+        assert_eq!(
+            json(&result),
+            r#"[{"reading":"今日 【こんにち】","text":"今日","kana":"こんにち","score":312,"seq":1579110,"gloss":[{"pos":"[n,adv]","gloss":"today; this day"},{"pos":"[n,adv]","gloss":"these days; recently; nowadays"}],"conj":[]}]"#
+        );
+    }
+}
+
+mod find_word_kana_pattern {
+    use crate::dict::find_word_info::*;
+
+    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .await
+            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    }
+
+    /// REPL fixtures (.103, `ichiran/dict::find-word-kana-pattern`), 2026-05-25.
+    /// Asserts the ordered `common` sequence each pattern yields (the
+    /// values are deterministic; tied-`common` rows keep their DB scan
+    /// order). `^はし$` exercises positive-ascending-then-null ordering
+    /// across six homophones (5, 5, 19, null, null, null); `^あれ$`
+    /// exercises the `0` rank sorting after positives but before nulls
+    /// (21, 0, null, null); `^xyzzlkj$` matches nothing.
+    #[tokio::test]
+    async fn common_sort_order() {
+        let ctx = ctx_from_env().await;
+        let cases: &[(&str, &str, Vec<Option<i32>>)] = &[
+            (
+                "^はし$",
+                "はし",
+                vec![Some(5), Some(5), Some(19), None, None, None],
+            ),
+            ("^あれ$", "あれ", vec![Some(21), Some(0), None, None]),
+            ("^がっこう$", "がっこう", vec![Some(1), None]),
+            ("^xyzzlkj$", "", vec![]),
+        ];
+        for (pattern, text, expected_commons) in cases {
+            let rows = find_word_kana_pattern(&ctx, pattern).await.unwrap();
+            assert!(
+                rows.iter().all(|row| row.text == *text),
+                "pattern={pattern:?}: every row text should be {text:?}"
+            );
+            let commons: Vec<Option<i32>> = rows.iter().map(|row| row.common).collect();
+            assert_eq!(&commons, expected_commons, "pattern={pattern:?}");
+        }
+    }
+
+    /// REPL fixtures (.103), 2026-05-25 — single-row patterns pin the
+    /// exact selected row (regex select + identity sort of one element).
+    #[tokio::test]
+    async fn single_row_patterns() {
+        let ctx = ctx_from_env().await;
+        let cases: &[(&str, i32, i32, Option<i32>)] = &[
+            // pattern, seq, id, common
+            ("^ねこ$", 1467640, 54168, Some(7)),
+            ("^きそうてんがい$", 1219430, 28651, Some(26)),
+        ];
+        for (pattern, seq, id, common) in cases {
+            let rows = find_word_kana_pattern(&ctx, pattern).await.unwrap();
+            assert_eq!(rows.len(), 1, "pattern={pattern:?}");
+            assert_eq!(rows[0].seq, *seq, "pattern={pattern:?}");
+            assert_eq!(rows[0].id, *id, "pattern={pattern:?}");
+            assert_eq!(rows[0].common, *common, "pattern={pattern:?}");
+        }
+    }
+}
+
+mod find_kanji_for_pattern {
+    use crate::dict::find_word_info::*;
+
+    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .await
+            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    }
+
+    /// REPL fixtures (.103, `ichiran/dict::find-kanji-for-pattern`), 2026-05-25.
+    /// `^つくえ$` is a single reading with a single kanji; `^がっこう$`
+    /// pins kanji order by distinct `common` (学校 = 1 before 楽校 = null);
+    /// `^あれ$` exercises the `when k` skip (its fourth `あれ` row has no
+    /// kanji) plus the kana dedup (four rows collapse to one `あれ`);
+    /// `^xyzzlkj$` returns two empty lists.
+    #[tokio::test]
+    async fn find_kanji_for_pattern_fixtures() {
+        let ctx = ctx_from_env().await;
+        let cases: &[(&str, Vec<&str>, Vec<&str>)] = &[
+            ("^つくえ$", vec!["机"], vec!["つくえ"]),
+            ("^がっこう$", vec!["学校", "楽校"], vec!["がっこう"]),
+            ("^あれ$", vec!["荒れ", "彼", "有れ"], vec!["あれ"]),
+            ("^xyzzlkj$", vec![], vec![]),
+        ];
+        for (pattern, expected_kanji, expected_kana) in cases {
+            let (kanji, kana) = find_kanji_for_pattern(&ctx, pattern).await.unwrap();
+            assert_eq!(&kanji, expected_kanji, "pattern={pattern:?} (kanji)");
+            assert_eq!(&kana, expected_kana, "pattern={pattern:?} (kana)");
+        }
+    }
+
+    #[test]
+    fn dedup_keeps_first_occurrence() {
+        // `:from-end t` keeps the first occurrence and preserves order.
+        let input = vec![
+            "橋".to_string(),
+            "端".to_string(),
+            "橋".to_string(),
+            "箸".to_string(),
+            "端".to_string(),
+        ];
+        assert_eq!(
+            remove_duplicates_from_end(input),
+            vec!["橋".to_string(), "端".to_string(), "箸".to_string()]
+        );
+    }
+}
+
+mod get_glosses {
+    use crate::dict::find_word_info::*;
+    // Unit tests against the real .103 PG via `KaniranContext::from_env()`.
+    // REPL probe pinned 2026-05-22 using `(get-glosses ...)` after
+    // `(ichiran/conn:with-db nil ...)`. Verifies the upstream
+    // reverse-physical-row inner ordering, multi-seq outer ordering,
+    // and empty / no-rows edge cases.
+
+    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .await
+            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    }
+
+    /// REPL: `(get-glosses '(1372640 1577100))` → outer order is
+    /// ascending sense.seq; inner order is reverse physical-row.
+    #[tokio::test]
+    async fn multi_seq_grouping_and_inner_reversal() {
+        let ctx = ctx_from_env().await;
+        let out = get_glosses(&ctx, &[1372640, 1577100]).await.unwrap();
+        assert_eq!(
+            out,
+            vec![
+                (
+                    1372640,
+                    vec!["execution".to_string(), "accomplishment".to_string()]
+                ),
+                (
+                    1577100,
+                    vec![
+                        "oh (certainly not)".to_string(),
+                        "why (it's nothing)".to_string(),
+                        "oh, no (it's fine)".to_string(),
+                        "come on!".to_string(),
+                        "hey!".to_string(),
+                        "huh?".to_string(),
+                        "what?".to_string(),
+                        "(not) in the slightest".to_string(),
+                        "(not) at all".to_string(),
+                        "dick".to_string(),
+                        "(one's) thing".to_string(),
+                        "penis".to_string(),
+                        "what's-her-name".to_string(),
+                        "what's-his-name".to_string(),
+                        "whachamacallit".to_string(),
+                        "whatsit".to_string(),
+                        "that thing".to_string(),
+                        "you-know-what".to_string(),
+                        "what".to_string(),
+                    ],
+                ),
+            ],
+        );
+    }
+
+    /// REPL: `(get-glosses nil)` → `NIL`.
+    #[tokio::test]
+    async fn empty_seqs_returns_empty() {
+        let ctx = ctx_from_env().await;
+        let out = get_glosses(&ctx, &[]).await.unwrap();
+        assert!(out.is_empty());
+    }
+
+    /// REPL: `(get-glosses '(9999999))` → single-row JMdict header
+    /// gloss attached to the placeholder seq.
+    #[tokio::test]
+    async fn unknown_seq_returns_header_row() {
+        let ctx = ctx_from_env().await;
+        let out = get_glosses(&ctx, &[9999999]).await.unwrap();
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].0, 9999999);
+        assert_eq!(out[0].1.len(), 1);
+        assert!(out[0].1[0].starts_with("Japanese-Multilingual Dictionary Project"));
+    }
+}
+
+mod get_candidates {
+    use crate::dict::find_word_info::*;
+    // Unit tests against the real .103 PG via `KaniranContext::from_env()`.
+    // REPL probe pinned 2026-05-22 covers both branches and the no-row
+    // cases:
+    //   `(get-candidates "する" nil)` → `NIL` (kana branch, no root-p kana-only row).
+    //   `(get-candidates "漢字" "かんじ")` → `(1213170)` (kanji branch).
+    //   `(get-candidates "テスト" nil)` → `(1079760)` (kana branch hit).
+    //   `(get-candidates "ジャバスクリプトーー" nil)` → `NIL` (kana, no match).
+    //   `(get-candidates "漢字" "ZZZZZZZZ")` → `NIL` (kanji, bogus reading).
+
+    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .await
+            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    }
+
+    #[tokio::test]
+    async fn kana_branch_no_root_kana_only_entry() {
+        let ctx = ctx_from_env().await;
+        let out = get_candidates(&ctx, "する", None).await.unwrap();
+        assert!(out.is_empty(), "expected NIL, got {:?}", out);
+    }
+
+    #[tokio::test]
+    async fn kanji_branch_with_reading() {
+        let ctx = ctx_from_env().await;
+        let out = get_candidates(&ctx, "漢字", Some("かんじ")).await.unwrap();
+        assert_eq!(out, vec![1213170]);
+    }
+
+    #[tokio::test]
+    async fn kana_branch_pure_katakana_hit() {
+        let ctx = ctx_from_env().await;
+        let out = get_candidates(&ctx, "テスト", None).await.unwrap();
+        assert_eq!(out, vec![1079760]);
+    }
+
+    #[tokio::test]
+    async fn kana_branch_unknown_kana_returns_empty() {
+        let ctx = ctx_from_env().await;
+        let out = get_candidates(&ctx, "ジャバスクリプトーー", None)
+            .await
+            .unwrap();
+        assert!(out.is_empty());
+    }
+
+    #[tokio::test]
+    async fn kanji_branch_bogus_reading_returns_empty() {
+        let ctx = ctx_from_env().await;
+        let out = get_candidates(&ctx, "漢字", Some("ZZZZZZZZ"))
+            .await
+            .unwrap();
+        assert!(out.is_empty());
+    }
+}
+
+mod match_glosses {
+    use crate::dict::find_word_info::*;
+    // Unit tests against the real .103 PG via `KaniranContext::from_env()`.
+    // REPL probe pinned 2026-05-22 against `(match-glosses ...)` after
+    // `(ichiran/conn:with-db nil ...)`. Coverage:
+    //   `("Chinese" "character")` → words-match arm `(Seq, true)`.
+    //   `("chinese" "character")` no-normalize → fallback `(Seq, false)`.
+    //   `("chinese" "character")` + `string-downcase` → words-match `(Seq, true)`.
+    //   `("zzzz")` + update-gloss `^(?i)chinese character` → `(SeqAndGloss, true)`.
+    //   `("zzzz")` + update-gloss that misses + words that miss → fallback `(Seq, false)`.
+    //   bogus reading → `None`.
+    //   empty words → matches the first DB-order gloss (`all` on empty is vacuously true).
+
+    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .await
+            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    }
+
+    /// REPL: `(match-glosses "漢字" "かんじ" '("Chinese" "character"))`
+    /// → `matched=1213170 found-p=T`.
+    #[tokio::test]
+    async fn words_match_returns_seq_true() {
+        let ctx = ctx_from_env().await;
+        let out = match_glosses(
+            &ctx,
+            "漢字",
+            Some("かんじ"),
+            &["Chinese", "character"],
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+        assert_eq!(out, Some((MatchValue::Seq(1213170), true)));
+    }
+
+    /// REPL: `(match-glosses "漢字" "かんじ" '("zzzzz"))`
+    /// → `matched=1213170 found-p=NIL` — fallback to first candidate.
+    #[tokio::test]
+    async fn no_word_match_fallback_to_first_candidate() {
+        let ctx = ctx_from_env().await;
+        let out = match_glosses(&ctx, "漢字", Some("かんじ"), &["zzzzz"], None, None)
+            .await
+            .unwrap();
+        assert_eq!(out, Some((MatchValue::Seq(1213170), false)));
+    }
+
+    /// REPL: `(match-glosses "漢字" "ZZZZZ" '("x"))`
+    /// → `matched=NIL found-p=NIL` — no candidates from `(text, reading)`.
+    #[tokio::test]
+    async fn empty_candidates_returns_none() {
+        let ctx = ctx_from_env().await;
+        let out = match_glosses(&ctx, "漢字", Some("ZZZZZ"), &["x"], None, None)
+            .await
+            .unwrap();
+        assert_eq!(out, None);
+    }
+
+    /// REPL: `(match-glosses "漢字" "かんじ" '("zzzz")
+    ///         :update-gloss '(:sequence :case-insensitive-p :start-anchor "chinese character"))`
+    /// → `matched=(1213170 "Chinese character") found-p=T`.
+    #[tokio::test]
+    async fn update_gloss_match_returns_seq_and_gloss() {
+        let ctx = ctx_from_env().await;
+        let rg = fancy_regex::Regex::new("(?i)^chinese character").unwrap();
+        let out = match_glosses(&ctx, "漢字", Some("かんじ"), &["zzzz"], None, Some(&rg))
+            .await
+            .unwrap();
+        assert_eq!(
+            out,
+            Some((
+                MatchValue::SeqAndGloss(1213170, "Chinese character".to_string()),
+                true
+            )),
+        );
+    }
+
+    /// REPL: `(match-glosses "漢字" "かんじ" '("zzzz")
+    ///         :update-gloss '(:sequence "XXXX"))`
+    /// → `matched=1213170 found-p=NIL` — neither update-gloss nor words match.
+    #[tokio::test]
+    async fn update_gloss_miss_and_words_miss_fallback() {
+        let ctx = ctx_from_env().await;
+        let rg = fancy_regex::Regex::new("XXXX").unwrap();
+        let out = match_glosses(&ctx, "漢字", Some("かんじ"), &["zzzz"], None, Some(&rg))
+            .await
+            .unwrap();
+        assert_eq!(out, Some((MatchValue::Seq(1213170), false)));
+    }
+
+    /// REPL: `(match-glosses "漢字" "かんじ" '("chinese" "character") :normalize 'string-downcase)`
+    /// → `matched=1213170 found-p=T` — words become matchable after normalize.
+    #[tokio::test]
+    async fn normalize_string_downcase_enables_match() {
+        let ctx = ctx_from_env().await;
+        let downcase: &dyn Fn(&str) -> String = &|s: &str| s.to_lowercase();
+        let out = match_glosses(
+            &ctx,
+            "漢字",
+            Some("かんじ"),
+            &["chinese", "character"],
+            Some(downcase),
+            None,
+        )
+        .await
+        .unwrap();
+        assert_eq!(out, Some((MatchValue::Seq(1213170), true)));
+    }
+
+    /// REPL: same as above but no `:normalize` — case-sensitive
+    /// `search` doesn't find lowercase `chinese` in `Chinese character`.
+    /// → `matched=1213170 found-p=NIL`.
+    #[tokio::test]
+    async fn no_normalize_lowercase_falls_back() {
+        let ctx = ctx_from_env().await;
+        let out = match_glosses(
+            &ctx,
+            "漢字",
+            Some("かんじ"),
+            &["chinese", "character"],
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+        assert_eq!(out, Some((MatchValue::Seq(1213170), false)));
+    }
+
+    /// REPL: `(match-glosses "漢字" "かんじ" '())`
+    /// → `matched=1213170 found-p=T` — empty words is vacuously
+    /// satisfied by the first DB-order gloss.
+    #[tokio::test]
+    async fn empty_words_matches_first_gloss() {
+        let ctx = ctx_from_env().await;
+        let out = match_glosses(&ctx, "漢字", Some("かんじ"), &[], None, None)
+            .await
+            .unwrap();
+        assert_eq!(out, Some((MatchValue::Seq(1213170), true)));
+    }
+}

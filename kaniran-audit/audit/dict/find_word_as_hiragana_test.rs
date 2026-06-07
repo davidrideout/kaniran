@@ -13,9 +13,9 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::find_word_as_hiragana::find_word_as_hiragana;
+use kaniran_core::dict::text_classes::find_word_as_hiragana;
 use kaniran_core::dict::kani_word::KaniSimpleTextDispatchEnum;
-use kaniran_core::dict::proxy_text_class::ProxyText;
+use kaniran_core::dict::text_classes::ProxyText;
 
 use common::{captured_class, get_string, CapturedKanaText, CapturedKanjiText, CapturedRow};
 

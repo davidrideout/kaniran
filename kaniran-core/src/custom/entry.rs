@@ -5,7 +5,7 @@ use super::xml::as_xml;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::load::jmdict::add_new_sense;
 use crate::dict::load::jmdict::{load_entry, LoadEntryIfExists, LoadEntrySeq};
-use crate::dict::match_glosses::{match_glosses, MatchValue};
+use crate::dict::find_word_info::{match_glosses, MatchValue};
 use crate::dict::load::jmdict::next_seq;
 use fancy_regex::Regex;
 

@@ -7,13 +7,13 @@
 use crate::conn::_star_connection_env_var_star_::DATABASE_URL;
 use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;
 use crate::dict::counters::dispatchers::{build_counter_cache, CounterCache};
-use crate::dict::_star_is_arch_cache_star_::build_is_arch;
-use crate::dict::_star_no_conj_data_star_::build_no_conj_data;
+use crate::dict::scoring::score::build_is_arch;
+use crate::dict::conj::build_no_conj_data;
 use crate::dict::split::split_map::SplitMapKind;
-use crate::dict::_star_substring_hash_star_::SubstringHash;
+use crate::dict::path::SubstringHash;
 use crate::dict::grammar::suffix::constants::SuffixCache;
 use crate::dict::grammar::suffix::constants::SuffixClass;
-use crate::dict::_star_suffix_map_temp_star_::SuffixMapTemp;
+use crate::dict::word_info::SuffixMapTemp;
 use crate::dict::grammar::suffix::init::build_suffix_caches;
 use crate::kanji::helpers::{new_reading_cache, ReadingCache};
 use sqlx::postgres::{PgPool, PgPoolOptions};
@@ -55,7 +55,7 @@ pub struct KaniranContext {
 
     /// Upstream `*disable-hints*` (`dict.lisp:78`) — recursion guard
     /// for the `simple-text :around` method on
-    /// [`crate::dict::get_kana::get_kana`]. Rebound to `true` at two
+    /// [`crate::dict::accessors::get_kana`]. Rebound to `true` at two
     /// sites: `dict.lisp:82` (the `:around` body, around the call to
     /// `get-hint`) and `dict-split.lisp:909` (`check-easy-hints`,
     /// around the per-row `true-kana` call). Default `false` matches
@@ -69,7 +69,7 @@ pub struct KaniranContext {
     pub disable_hints: bool,
 
     /// Upstream `*substring-hash*` (`dict.lisp:487`) — per-call-tree
-    /// lookup cache short-circuiting [`crate::dict::find_word::find_word`].
+    /// lookup cache short-circuiting [`crate::dict::readings::find_word`].
     /// Rebound only inside `find-word-full`'s nested-find loop
     /// (`dict.lisp:1090-1092`); `None` outside that scope matches the
     /// upstream `(defparameter … nil)` initform. Wrapped in `Arc` so

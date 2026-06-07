@@ -3,10 +3,10 @@ use crate::dict::counters::methods::seq;
 use crate::dict::grammar::suffix::constants::{
     lookup_suffix_fn, suffix_class, SuffixUniqueOnly, SUFFIX_UNIQUE_ONLY,
 };
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani_word::KaniWordDispatchEnum;
-use crate::dict::subseq_slice::subseq_slice;
-use crate::dict::word_info_class::WordInfoSeq;
+use crate::dict::scoring::score::subseq_slice;
+use crate::dict::word_info::WordInfoSeq;
 use std::collections::HashMap;
 
 /// Port of `ichiran/dict:parse-suffix-val` (`dict-grammar.lisp:665`).

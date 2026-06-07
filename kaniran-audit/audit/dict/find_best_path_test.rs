@@ -14,16 +14,16 @@ mod common;
 use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::conj_data_struct::ConjData;
-use kaniran_core::dict::find_best_path::find_best_path;
+use kaniran_core::dict::conj::ConjData;
+use kaniran_core::dict::path::find_best_path;
 use kaniran_core::dict::split::segsplit::get_segsplit;
 use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
-use kaniran_core::dict::segment_list_struct::SegmentList;
-use kaniran_core::dict::segment_struct::{
+use kaniran_core::dict::path::SegmentList;
+use kaniran_core::dict::scoring::score::{
     KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment,
 };
 use kaniran_core::dict::grammar::synergy::Synergy;
-use kaniran_core::dict::top_array_item_struct::PathElement;
+use kaniran_core::dict::path::PathElement;
 
 use common::{
     captured_class, parse_captured_word, parse_conj_list, parse_int_list, parse_kpcl,

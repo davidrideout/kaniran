@@ -14,8 +14,8 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::get_text::get_text;
-use kaniran_core::dict::segment_struct::Segment;
+use kaniran_core::dict::accessors::get_text;
+use kaniran_core::dict::scoring::score::Segment;
 
 use common::{captured_class, get_usize, parse_captured_word, single_result, CapturedRow};
 

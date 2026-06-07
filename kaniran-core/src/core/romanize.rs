@@ -9,12 +9,12 @@ use crate::characters::char_class::{basic_split, SegmentKind};
 use crate::characters::helpers::char_class_hash;
 use crate::characters::kana::{normalize, NormalizationContext};
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::dict_segment::dict_segment;
-use crate::dict::map_word_info_kana::map_word_info_kana;
+use crate::dict::word_info::dict_segment;
+use crate::dict::word_info_str::map_word_info_kana;
 use crate::dict::split::hint::process_hints;
-use crate::dict::simple_segment::simple_segment;
+use crate::dict::word_info::simple_segment;
 use crate::dict::split::hint::strip_hints;
-use crate::dict::word_info_class::{WordInfo, WordInfoKana};
+use crate::dict::word_info::{WordInfo, WordInfoKana};
 use crate::dict::word_info_str::word_info_str;
 use unicode_properties::{GeneralCategory, GeneralCategoryGroup, UnicodeGeneralCategory};
 

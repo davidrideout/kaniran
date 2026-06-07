@@ -3,9 +3,9 @@
 //!
 //! Example values:
 //! - `KaniReadingTable::Kanji` → table `"kanji_text"` (DAO
-//!   [`crate::dict::kanji_text_dao::KanjiText`]).
+//!   [`crate::dict::dao::KanjiText`]).
 //! - `KaniReadingTable::Kana` → table `"kana_text"` (DAO
-//!   [`crate::dict::kana_text_dao::KanaText`]).
+//!   [`crate::dict::dao::KanaText`]).
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KaniReadingTable {

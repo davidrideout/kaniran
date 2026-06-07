@@ -1,7 +1,7 @@
 mod suffix_tai {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:tai` suffix-cache `kf`, REPL pinned: `(get-kana-form 2017560
     /// "たい")` → id=109172, seq=2017560, text="たい", common=0,
@@ -157,7 +157,7 @@ mod suffix_tai {
 mod suffix_ren {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:ren` suffix-cache `kf` for つつ, REPL pinned: `(get-kana-form
     /// 1008120 "つつ")` → id=1075, seq=1008120, text="つつ", common=0,
@@ -307,7 +307,7 @@ mod suffix_ren {
 mod suffix_ren_ {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:ren-` suffix-cache `kf` for がい, REPL pinned:
     /// `(get-kana-form 2606690 "がい")` → id=177519, seq=2606690,
@@ -424,7 +424,7 @@ mod suffix_ren_ {
 mod suffix_neg {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:neg` suffix-cache `kf`, REPL pinned: `(car (find-word-conj-of
     /// "なく" 1529520))` → id=1030305, seq=10648808, text="なく",
@@ -623,7 +623,7 @@ mod te_check {
         assert_eq!(k.seq, 10092233);
         assert_eq!(
             k.state.conjugations,
-            Some(crate::dict::simple_text_class::WordConjugations::Ids(vec![
+            Some(crate::dict::dao::WordConjugations::Ids(vec![
                 92707
             ]))
         );
@@ -650,7 +650,7 @@ mod te_check {
 mod suffix_te {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:te` suffix-cache `kf` for "も", REPL pinned: `(get-kana-form
     /// 2028940 "も")` → id=110365, seq=2028940, text="も", common=0,
@@ -811,7 +811,7 @@ mod teiru_check {
 mod suffix_teiru {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:teiru` suffix-cache `kf` for "いる", REPL pinned via the
     /// いる(る) loop at `dict-grammar.lisp:210-215` against
@@ -896,7 +896,7 @@ mod suffix_teiru {
 mod suffix_teiru_plus_ {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:teiru+` suffix-cache `kf` for "いる", REPL pinned via the
     /// いる(る) loop at `dict-grammar.lisp:210-215`: id=65814,
@@ -971,7 +971,7 @@ mod suffix_teiru_plus_ {
 mod suffix_te_plus_space {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:te+space` suffix-cache `kf` for "くれる", REPL pinned via
     /// `(get-kana-form 1269130 …)`: id=33764, seq=1269130, text="くれる",
@@ -1048,7 +1048,7 @@ mod suffix_te_plus_space {
 mod suffix_kudasai {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:kudasai` suffix-cache `kf` for "ください", REPL pinned via
     /// `(get-kana-form 1184270 "ください" :conj :root)`: id=25048,
@@ -1136,7 +1136,7 @@ mod suffix_kudasai {
 mod suffix_te_ren {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:teren` suffix-cache `kf` for "やがって", REPL pinned via the
     /// `(load-conjs :teren 1012740 :yagaru)` populator: id=597027,
@@ -1259,7 +1259,7 @@ mod suffix_te_ren {
 mod suffix_teii {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:teii` suffix-cache `kf` for "いい", REPL pinned via
     /// `(get-kana-form 2820690 "いい")`: id=201742, seq=2820690,
@@ -1356,7 +1356,7 @@ mod suffix_teii {
 mod suffix_chau {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:chau` suffix-cache kf for "ちゃう", REPL pinned via
     /// `(postmodern:get-dao 'kana-text 108760)`: id=108760, seq=2013800,
@@ -1499,7 +1499,7 @@ mod suffix_chau {
 mod suffix_to {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:to` cache kf for "とく", REPL pinned via
     /// `(postmodern:get-dao 'kana-text 119112)`: id=119112, seq=2108590,
@@ -1672,7 +1672,7 @@ mod suffix_to {
 
 mod suffix_suru {
     use crate::dict::grammar::suffix::rules::*;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// Construct the `:suru` suffix-cache `kf` REPL pinned for the
     /// test corpus: id=439727, seq=10152292, text="し",
@@ -1841,7 +1841,7 @@ mod apply_patch {
 mod suffix_sou {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:sou` suffix-cache `kf` for "そう", REPL pinned via
     /// `(gethash "そう" *suffix-cache*)`: id=876, seq=1006610, text="そう",
@@ -2031,7 +2031,7 @@ mod suffix_sou {
 mod suffix_sou_plus_ {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:sou+` cache `kf` for "そう". The :sou+ entry shares the cache
     /// row text "そう" with :sou (the `(load-conjs :sou+ 2141080)`
@@ -2156,7 +2156,7 @@ mod suffix_sou_plus_ {
 mod suffix_rou {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:rou` suffix-cache `kf`, REPL pinned: `(get-kana-form 1928670
     /// "だろう")` → id=99986, seq=1928670, text="だろう", common=0,
@@ -2273,7 +2273,7 @@ mod suffix_rou {
 mod suffix_adv {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:adv` suffix-cache `kf` for "なる" — the root kana-text of seq
     /// 1375610. REPL pinned: id=44705, seq=1375610, text="なる",
@@ -2381,7 +2381,7 @@ mod suffix_adv {
 
 mod suffix_sugiru {
     use crate::dict::grammar::suffix::rules::*;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:sugiru` cache `kf` for "すぎる", REPL pinned: id=26253,
     /// seq=1195970, text="すぎる", ord=0, common=34,
@@ -2586,7 +2586,7 @@ mod suffix_sugiru {
 
 mod suffix_sa {
     use crate::dict::grammar::suffix::rules::*;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:sa` suffix-cache kf for "さ", REPL pinned via
     /// `(postmodern:get-dao 'kana-text 110392)`: id=110392, seq=2029120,
@@ -2780,7 +2780,7 @@ mod suffix_sa {
 mod suffix_iadj {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:iadj` suffix-cache `kf` for "げ", REPL pinned: `(get-kana-form
     /// 2006580 "げ")` → id=107976, seq=2006580, text="げ", common=:NULL,
@@ -2895,7 +2895,7 @@ mod suffix_iadj {
 mod suffix_garu {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:garu` cache `kf` for "がる", REPL pinned: id=72111, seq=1631750,
     /// text="がる", ord=0, common=:NULL, common_tags="[spec1]",
@@ -3086,7 +3086,7 @@ mod suffix_garu {
 
 mod suffix_ra {
     use crate::dict::grammar::suffix::rules::*;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:ra` suffix-cache `kf`, REPL pinned: `(get-kana-form 2067770
     /// "ら")` → id=114553, seq=2067770, text="ら", common=:NULL,
@@ -3290,7 +3290,7 @@ mod suffix_ra {
 mod suffix_rashii {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:rashii` cache `kf` for "らしい", REPL pinned: id=1812,
     /// seq=1013240, text="らしい", ord=0, common=0,
@@ -3465,7 +3465,7 @@ mod suffix_rashii {
 mod suffix_desu {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:desu` cache `kf` for "です", REPL pinned: id=71736, seq=1628500,
     /// text="です", ord=0, common=0, common_tags="[spec1]",
@@ -3613,7 +3613,7 @@ mod suffix_desu {
 mod suffix_desho {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:desho` cache `kf` for "でしょう", REPL pinned: id=1122,
     /// seq=1008420, text="でしょう", ord=0, common=0,
@@ -3759,7 +3759,7 @@ mod suffix_desho {
 mod suffix_tosuru {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:tosuru` suffix-cache `kf` for "とする" — the root kana-text of
     /// seq 2136890. REPL pinned: id=122279, seq=2136890, text="とする",
@@ -3888,7 +3888,7 @@ mod suffix_tosuru {
 mod suffix_kurai {
     use crate::dict::grammar::suffix::rules::*;
     use crate::dict::kani_word::KaniWordDispatchEnum;
-    use crate::dict::simple_text_class::SimpleText;
+    use crate::dict::dao::SimpleText;
 
     /// `:kurai` suffix-cache `kf` for "くらい", REPL pinned: `(get-kana-
     /// form 1154340 "くらい")` → id=21985, seq=1154340, text="くらい",

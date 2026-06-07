@@ -2,9 +2,9 @@ use crate::dict::counters::classes::{Common, DigitOp, DigitOp as D, DigitOptKey 
 use crate::dict::counters::kani_counter_args::{
     args, args_multi, args_suffix, digit_opts, CounterArgs, CounterClass as C,
 };
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::grammar::suffix::kani_suffix_kind::SuffixKind;
-use crate::dict::kanji_text_dao::KanjiText;
+use crate::dict::dao::KanjiText;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 

@@ -1,18 +1,152 @@
-//! Port of `ichiran/dict:word-info-str` (`dict.lisp:1745`).
-//!
-//! Renders a [`WordInfo`] to its human-readable string form — one
-//! numbered block per component for an alternative word-info,
-//! otherwise a single block.
-
-use std::fmt::Write;
-
-use super::get_senses_str::get_senses_str;
-use super::grammar::suffix::init::get_suffix_description;
-use super::print_conj_info::print_conj_info;
-use super::simple_text_class::WordConjugations;
-use super::word_info_class::{WordInfo, WordInfoSeq};
+use crate::characters::text::join;
 use crate::conn::kani_context::KaniranContext;
+use crate::dict::conj::{conj_info_json, print_conj_info, simplify_reading_list, FilterPropsText};
+use crate::dict::dao::WordConjugations;
+use crate::dict::grammar::suffix::init::get_suffix_description;
+use crate::dict::senses::{get_senses_json, get_senses_str, short_sense_str};
+use crate::dict::word_info::{
+    word_info_reading, WordInfo, WordInfoKana, WordInfoSeq, WordInfoType,
+};
+use serde_json::{Map, Value};
+use std::borrow::Cow;
+use std::fmt::Write;
+use std::future::Future;
+use std::pin::Pin;
 
+/// Port of `ichiran/dict:reading-str*` (`dict.lisp:1580`).
+///
+/// Formats a `(kanji, kana)` pair as `"kanji 【kana】"`, or the bare kana
+/// when there's no kanji.
+pub fn reading_str_star_(kanji: Option<&str>, kana: Option<&str>) -> Option<String> {
+    match kanji {
+        // ~a of nil prints "NIL"
+        Some(kanji) => Some(format!("{} 【{}】", kanji, kana.unwrap_or("NIL"))),
+        None => kana.map(str::to_string),
+    }
+}
+
+/// Port of `ichiran/dict:reading-str-seq` (`dict.lisp:1584`).
+///
+/// Looks up the ord-0 kanji and kana surface forms for `seq` and formats
+/// them via `reading-str*`.
+pub async fn reading_str_seq(
+    ctx: &KaniranContext,
+    seq: i32,
+) -> Result<Option<String>, sqlx::Error> {
+    let kanji_text: Option<String> =
+        sqlx::query_scalar("SELECT text FROM kanji_text WHERE seq = $1 AND ord = 0")
+            .bind(seq)
+            .fetch_optional(&ctx.pool)
+            .await?;
+    let kana_text: Option<String> =
+        sqlx::query_scalar("SELECT text FROM kana_text WHERE seq = $1 AND ord = 0")
+            .bind(seq)
+            .fetch_optional(&ctx.pool)
+            .await?;
+    Ok(reading_str_star_(
+        kanji_text.as_deref(),
+        kana_text.as_deref(),
+    ))
+}
+
+/// Port of `ichiran/dict:entry-info-short` (`dict.lisp:1595`).
+///
+/// Formats a seq as `"<reading> : <short sense str>"`.
+pub async fn entry_info_short(
+    ctx: &KaniranContext,
+    seq: i32,
+    with_pos: Option<&str>,
+) -> Result<String, sqlx::Error> {
+    let sense_str = short_sense_str(ctx, seq, with_pos).await?;
+    // ~a of a nil reading prints "NIL"
+    let mut s = format!(
+        "{} : ",
+        reading_str_seq(ctx, seq).await?.as_deref().unwrap_or("NIL")
+    );
+    if let Some(sense_str) = sense_str {
+        s.push_str(&sense_str);
+    }
+    Ok(s)
+}
+
+/// Port of `ichiran/dict:entry-info-long` (`dict.lisp:1601`).
+///
+/// Formats a seq as its number, reading line, and full sense text;
+/// the reading line is omitted when the reading is nil.
+pub async fn entry_info_long(ctx: &KaniranContext, seq: i32) -> Result<String, sqlx::Error> {
+    let mut out = seq.to_string();
+    // dict.lisp:1601 (~@[ ~a~%~]) — " <reading>\n" only when reading-str-seq
+    // is non-nil; nil prints nothing (unlike entry-info-short's bare ~a).
+    if let Some(reading) = reading_str_seq(ctx, seq).await? {
+        writeln!(out, " {}", reading).unwrap();
+    }
+    out.push_str(&get_senses_str(ctx, seq).await?);
+    Ok(out)
+}
+
+/// Port of `ichiran/dict:map-word-info-kana` (`dict.lisp:1727`).
+///
+/// Apply `fn_` to a word-info's kana. When the kana is a list, map `fn_`
+/// over each element, simplify the readings, and join with `separator`;
+/// when it is a single string, return `fn_` of it. A nil kana takes the
+/// list branch and yields the empty string.
+pub fn map_word_info_kana<F>(fn_: F, word_info: &WordInfo, separator: &str) -> String
+where
+    F: Fn(&Option<WordInfoKana>) -> String,
+{
+    let wkana = &word_info.kana;
+    match wkana {
+        // (listp wkana) is nil for a string -> (funcall fn wkana).
+        Some(WordInfoKana::Single(_)) => fn_(wkana),
+        // (listp wkana) is t for a list -> (mapcar fn wkana).
+        Some(WordInfoKana::Multi(elements)) => {
+            let mapped: Vec<String> = elements.iter().map(|element| fn_(element)).collect();
+            join(separator, &simplify_reading_list(&mapped))
+        }
+        // (listp nil) is t -> (mapcar fn nil) = nil -> join over empty = "".
+        None => join(separator, &simplify_reading_list(&[])),
+    }
+}
+
+/// Port of `ichiran/dict:word-info-reading-str` (`dict.lisp:1733`).
+///
+/// Renders a [`WordInfo`]'s text/kana into a reading string via
+/// [`reading_str_star_`] — kanji (or a counter with a seq) gets both
+/// sides; everything else passes only the text as the kana side.
+pub fn word_info_reading_str(word_info: &WordInfo) -> Option<String> {
+    if word_info.kind == WordInfoType::Kanji
+        || (word_info.counter.is_some() && word_info.seq.is_some())
+    {
+        let kana = word_info.kana.as_ref().map(princ_kana);
+        reading_str_star_(Some(&word_info.text), kana.as_deref())
+    } else {
+        reading_str_star_(None, Some(&word_info.text))
+    }
+}
+
+// `~a`/princ rendering of a kana value: a string prints verbatim, a list
+// prints `(elem ...)` with nil → NIL and nested lists recursing.
+fn princ_kana(kana: &WordInfoKana) -> Cow<'_, str> {
+    match kana {
+        WordInfoKana::Single(reading) => Cow::Borrowed(reading),
+        WordInfoKana::Multi(readings) => {
+            let elems: Vec<String> = readings
+                .iter()
+                .map(|reading| match reading {
+                    None => "NIL".to_string(),
+                    Some(reading) => princ_kana(reading).into_owned(),
+                })
+                .collect();
+            Cow::Owned(format!("({})", elems.join(" ")))
+        }
+    }
+}
+
+/// Port of `ichiran/dict:word-info-str` (`dict.lisp:1745`).
+///
+/// Renders a [`WordInfo`] to its human-readable string form — one
+/// numbered block per component for an alternative word-info,
+/// otherwise a single block.
 pub async fn word_info_str(
     ctx: &KaniranContext,
     word_info: &WordInfo,
@@ -26,16 +160,16 @@ pub async fn word_info_str(
                 s.push('\n');
             }
             write!(s, "<{}>. ", i).unwrap();
-            inner(ctx, wi, false, false, &mut s).await?;
+            word_info_str_inner(ctx, wi, false, false, &mut s).await?;
         }
     } else {
-        inner(ctx, word_info, false, false, &mut s).await?;
+        word_info_str_inner(ctx, word_info, false, false, &mut s).await?;
     }
     Ok(s)
 }
 
-// dict.lisp:1748 (labels inner (word-info &optional suffix marker))
-async fn inner(
+// dict.lisp:1748 (labels word_info_str_inner (word-info &optional suffix marker))
+async fn word_info_str_inner(
     ctx: &KaniranContext,
     word_info: &WordInfo,
     suffix: bool,
@@ -58,7 +192,7 @@ async fn inner(
         // dict.lisp:1755-1757 (dolist (comp components) (terpri s) (inner comp (not (word-info-primary comp)) t))
         for comp in &word_info.components {
             s.push('\n');
-            Box::pin(inner(ctx, comp, !comp.primary, true, s)).await?;
+            Box::pin(word_info_str_inner(ctx, comp, !comp.primary, true, s)).await?;
         }
     } else if let Some((value, _ordinal)) = &word_info.counter {
         // dict.lisp:1759-1763 (destructuring-bind (value ordinal) (word-info-counter …) (terpri s) (princ value s) …)
@@ -110,217 +244,231 @@ fn word_info_seq_single(word_info: &WordInfo) -> Option<i32> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::dict::word_info_class::{WordInfoKana, WordInfoType};
-    use std::sync::Arc;
+/// Port of `ichiran/dict:word-info-gloss-json` (`dict.lisp:1782`).
+///
+/// Builds the gloss JSON object for a [`WordInfo`] — reading / text /
+/// kana / score plus, per word kind, compound components, counter
+/// value, suffix description, sense gloss, and conjugation info.
+// jsown renders CL `nil` as `[]`.
+fn nil() -> Value {
+    Value::Array(Vec::new())
+}
 
-    async fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
-    }
-
-    fn single(reading: &str) -> Option<WordInfoKana> {
-        Some(WordInfoKana::Single(reading.to_string()))
-    }
-
-    /// REPL fixtures (.103, `(word-info-str (make-instance 'word-info …))`),
-    /// 2026-05-24, after `(init-suffixes t)`. Each row builds one word-info and
-    /// pins the exact output (blank lines included). Covers:
-    /// - A: default branch, no conjugations → senses.
-    /// - B: default branch, conjugations nil → empty senses + full conj-info.
-    /// - C: conjugations `:root` → conj display suppressed (test2 still fires).
-    /// - D: seq nil → "???".
-    /// - E: counter + seq → value then senses.
-    /// - F: counter, no seq → value only.
-    /// - G: compound, non-primary suffix component → marker, suffix description.
-    /// - G2: compound, non-primary component without a suffix description →
-    ///   marker, falls through to senses.
-    /// - H: alternative → "<i>. " prefixes, second reading a counter.
-    #[tokio::test]
-    async fn word_info_str_fixtures() {
-        use WordInfoType::{Kana, Kanji};
-        let ctx = ctx_from_env().await;
-
-        let compound = |text: &str, kana: &str, seqs: &[i32], comps: Vec<WordInfo>| WordInfo {
-            kind: Kanji,
-            text: text.to_string(),
-            kana: single(kana),
-            seq: Some(WordInfoSeq::Multi(
-                seqs.iter().map(|s| Some(WordInfoSeq::Single(*s))).collect(),
-            )),
-            components: comps,
-            ..Default::default()
-        };
-
-        let cases: Vec<(&str, WordInfo, &str)> = vec![
-            (
-                "A",
-                WordInfo {
-                    kind: Kanji,
-                    text: "日本".to_string(),
-                    kana: single("にほん"),
-                    seq: Some(WordInfoSeq::Single(1582710)),
-                    ..Default::default()
-                },
-                "日本 【にほん】\n1. [n] Japan",
-            ),
-            (
-                "B",
-                WordInfo {
-                    kind: Kanji,
-                    text: "食べた".to_string(),
-                    kana: single("たべた"),
-                    seq: Some(WordInfoSeq::Single(10092229)),
-                    ..Default::default()
-                },
-                "食べた 【たべた】\n\n[ Conjugation: [v1] Past (~ta) Affirmative Plain\n  食べる 【たべる】 : to eat ]",
-            ),
-            (
-                "C",
-                WordInfo {
-                    kind: Kanji,
-                    text: "食べた".to_string(),
-                    kana: single("たべた"),
-                    seq: Some(WordInfoSeq::Single(10092229)),
-                    conjugations: Some(WordConjugations::Root),
-                    ..Default::default()
-                },
-                "食べた 【たべた】\n",
-            ),
-            (
-                "D",
-                WordInfo {
-                    kind: Kana,
-                    text: "ねこねこ".to_string(),
-                    kana: single("ねこねこ"),
-                    seq: None,
-                    ..Default::default()
-                },
-                "ねこねこ\n???",
-            ),
-            (
-                "E",
-                WordInfo {
-                    kind: Kanji,
-                    text: "三冊".to_string(),
-                    kana: single("さんさつ"),
-                    seq: Some(WordInfoSeq::Single(1298520)),
-                    counter: Some(("Value: 3".to_string(), false)),
-                    ..Default::default()
-                },
-                "三冊 【さんさつ】\nValue: 3\n1. [ctr] counter for books\n2. [n] volume",
-            ),
-            (
-                "F",
-                WordInfo {
-                    kind: Kanji,
-                    text: "三".to_string(),
-                    kana: single("さん"),
-                    seq: None,
-                    counter: Some(("Value: 3".to_string(), false)),
-                    ..Default::default()
-                },
-                "三 【さん】\nValue: 3",
-            ),
-            (
-                "G",
-                compound(
-                    "食べたい",
-                    "たべたい",
-                    &[1358280, 2017560],
-                    vec![
-                        WordInfo {
-                            kind: Kanji,
-                            text: "食べ".to_string(),
-                            kana: single("たべ"),
-                            seq: Some(WordInfoSeq::Single(1358280)),
-                            primary: true,
-                            ..Default::default()
-                        },
-                        WordInfo {
-                            kind: Kana,
-                            text: "たい".to_string(),
-                            kana: single("たい"),
-                            seq: Some(WordInfoSeq::Single(2017560)),
-                            primary: false,
-                            ..Default::default()
-                        },
-                    ],
-                ),
-                "食べたい 【たべたい】 Compound word: 食べ + たい\n * 食べ 【たべ】\n1. [v1,vt] to eat\n2. [vt,v1] to live on (e.g. a salary); to live off; to subsist on\n * たい  [suffix]: want to... / would like to... ",
-            ),
-            (
-                "G2",
-                compound(
-                    "日本語",
-                    "にほんご",
-                    &[1582710, 1576050],
-                    vec![
-                        WordInfo {
-                            kind: Kanji,
-                            text: "日本".to_string(),
-                            kana: single("にほん"),
-                            seq: Some(WordInfoSeq::Single(1582710)),
-                            primary: true,
-                            ..Default::default()
-                        },
-                        WordInfo {
-                            kind: Kanji,
-                            text: "語".to_string(),
-                            kana: single("ご"),
-                            seq: Some(WordInfoSeq::Single(1576050)),
-                            primary: false,
-                            ..Default::default()
-                        },
-                    ],
-                ),
-                "日本語 【にほんご】 Compound word: 日本 + 語\n * 日本 【にほん】\n1. [n] Japan\n * 語 【ご】\n1. [adv,n] day before yesterday",
-            ),
-            (
-                "H",
-                WordInfo {
-                    kind: Kanji,
-                    text: "一人".to_string(),
-                    kana: single("ひとり"),
-                    seq: Some(WordInfoSeq::Multi(vec![
-                        Some(WordInfoSeq::Single(1576150)),
-                        Some(WordInfoSeq::Single(2149890)),
-                    ])),
-                    alternative: true,
-                    components: vec![
-                        WordInfo {
-                            kind: Kanji,
-                            text: "一人".to_string(),
-                            kana: single("ひとり"),
-                            seq: Some(WordInfoSeq::Single(1576150)),
-                            primary: false,
-                            ..Default::default()
-                        },
-                        WordInfo {
-                            kind: Kanji,
-                            text: "一人".to_string(),
-                            kana: single("ひとり"),
-                            seq: Some(WordInfoSeq::Single(2149890)),
-                            counter: Some(("Value: 1".to_string(), false)),
-                            primary: false,
-                            ..Default::default()
-                        },
-                    ],
-                    ..Default::default()
-                },
-                "<1>. 一人 【ひとり】\n1. [n] 《esp. 一人, １人》 one person\n2. [n] being alone; being by oneself\n3. [n] 《esp. 独り》 being single; being unmarried\n4. [adv] by oneself; alone\n5. [adv] 《with neg. sentence》 just; only; simply\n<2>. 一人 【ひとり】\nValue: 1\n1. [ctr] counter for people",
-            ),
-        ];
-
-        for (label, word_info, expected) in &cases {
-            assert_eq!(
-                &word_info_str(&ctx, word_info).await.unwrap(),
-                expected,
-                "case={label}"
-            );
-        }
+// `(word-info-kana word-info)` handed straight to jsown: a string prints as
+// itself, nil as `[]`, a list as a JSON array (mirrors word-info-json's slot).
+fn kana_json(kana: &WordInfoKana) -> Value {
+    match kana {
+        WordInfoKana::Single(reading) => Value::String(reading.clone()),
+        WordInfoKana::Multi(readings) => Value::Array(
+            readings
+                .iter()
+                .map(|reading| reading.as_ref().map_or_else(nil, kana_json))
+                .collect(),
+        ),
     }
 }
+
+// The counter and `(t ...)` cond arms run only when components is empty; a
+// list seq co-occurs with components (word-info-from-segment-list), handled by
+// the compound arm first. Upstream `(get-senses-json (list …))` would raise a
+// PostgreSQL `integer = record` error on a list seq reaching here.
+fn single_seq(seq: &Option<WordInfoSeq>) -> Option<i32> {
+    match seq {
+        None => None,
+        Some(WordInfoSeq::Single(seq)) => Some(*seq),
+        Some(WordInfoSeq::Multi(_)) => panic!(
+            "word-info-gloss-json: list seq in a non-compound branch \
+             — upstream `(get-senses-json (list …))` raises `integer = record`"
+        ),
+    }
+}
+
+fn word_info_gloss_json_inner<'a>(
+    ctx: &'a KaniranContext,
+    word_info: &'a WordInfo,
+    suffix: bool,
+    root_only: bool,
+) -> Pin<Box<dyn Future<Output = Result<Value, sqlx::Error>> + 'a>> {
+    Box::pin(async move {
+        let mut js = Map::new();
+        // ("reading" (reading-str word-info)) / ("text" …) / ("kana" …)
+        js.insert(
+            "reading".to_owned(),
+            word_info.reading_str().map_or_else(nil, Value::String),
+        );
+        js.insert("text".to_owned(), Value::String(word_info.text.clone()));
+        js.insert(
+            "kana".to_owned(),
+            word_info.kana.as_ref().map_or_else(nil, kana_json),
+        );
+        // (when (word-info-score word-info) ("score" …)) — 0 is truthy; only nil skips.
+        if let Some(score) = word_info.score {
+            js.insert("score".to_owned(), Value::from(score));
+        }
+
+        if !word_info.components.is_empty() {
+            // ((word-info-components word-info) …)
+            js.insert(
+                "compound".to_owned(),
+                Value::Array(
+                    word_info
+                        .components
+                        .iter()
+                        .map(|component| Value::String(component.text.clone()))
+                        .collect(),
+                ),
+            );
+            let mut components = Vec::with_capacity(word_info.components.len());
+            for component in &word_info.components {
+                // (inner wi (not (word-info-primary wi)))
+                components.push(
+                    word_info_gloss_json_inner(ctx, component, !component.primary, root_only)
+                        .await?,
+                );
+            }
+            js.insert("components".to_owned(), Value::Array(components));
+        } else if let Some((value, ordinal)) = &word_info.counter {
+            // ((word-info-counter word-info) …)
+            let mut counter = Map::new();
+            counter.insert("value".to_owned(), Value::String(value.clone()));
+            counter.insert(
+                "ordinal".to_owned(),
+                if *ordinal { Value::Bool(true) } else { nil() },
+            );
+            js.insert("counter".to_owned(), Value::Object(counter));
+            // (let ((seq (word-info-seq word-info))) (when seq …))
+            if let Some(seq) = single_seq(&word_info.seq) {
+                js.insert("seq".to_owned(), Value::from(seq));
+                // (get-senses-json seq :pos-list '("ctr") :reading-getter reading-getter)
+                let pos_list = [String::from("ctr")];
+                let gloss = get_senses_json(
+                    ctx,
+                    seq,
+                    &pos_list,
+                    None,
+                    Some(word_info_reading(ctx, word_info)),
+                )
+                .await?;
+                // (when gloss …)
+                if !gloss.is_empty() {
+                    js.insert("gloss".to_owned(), Value::Array(gloss));
+                }
+            }
+        } else {
+            // (t …)
+            let seq = single_seq(&word_info.seq);
+            let conjs = word_info.conjugations.as_ref();
+            // (when seq ("seq" seq))
+            if let Some(seq) = seq {
+                js.insert("seq".to_owned(), Value::from(seq));
+            }
+            let mut has_gloss = false;
+            if root_only {
+                // (return-from word_info_gloss_json_inner (extend-js js ("gloss" (get-senses-json seq :reading-getter …))))
+                let gloss = match seq {
+                    Some(seq) => {
+                        get_senses_json(
+                            ctx,
+                            seq,
+                            &[],
+                            None,
+                            Some(word_info_reading(ctx, word_info)),
+                        )
+                        .await?
+                    }
+                    None => Vec::new(),
+                };
+                js.insert("gloss".to_owned(), Value::Array(gloss));
+                return Ok(Value::Object(js));
+            }
+            // ((and suffix (setf desc (get-suffix-description seq))) …)
+            let mut suffix_done = false;
+            if suffix {
+                if let Some(seq) = seq {
+                    if let Some(desc) = get_suffix_description(ctx, seq) {
+                        js.insert("suffix".to_owned(), Value::String(desc.to_owned()));
+                        suffix_done = true;
+                    }
+                }
+            }
+            // ((and seq (or (not conjs) (eql conjs :root))) …)
+            if !suffix_done {
+                if let Some(seq) = seq {
+                    if conjs.is_none() || matches!(conjs, Some(WordConjugations::Root)) {
+                        let gloss = get_senses_json(
+                            ctx,
+                            seq,
+                            &[],
+                            None,
+                            Some(word_info_reading(ctx, word_info)),
+                        )
+                        .await?;
+                        // (when gloss (setf has-gloss t) ("gloss" gloss))
+                        if !gloss.is_empty() {
+                            has_gloss = true;
+                            js.insert("gloss".to_owned(), Value::Array(gloss));
+                        }
+                    }
+                }
+            }
+            // (when seq ("conj" (conj-info-json seq :conjugations … :text … :has-gloss …)))
+            if let Some(seq) = seq {
+                let text = match &word_info.true_text {
+                    Some(true_text) => FilterPropsText::One(true_text),
+                    None => FilterPropsText::None,
+                };
+                let conj =
+                    conj_info_json(ctx, seq, word_info.conjugations.as_ref(), text, has_gloss)
+                        .await?;
+                js.insert("conj".to_owned(), Value::Array(conj));
+            }
+        }
+        Ok(Value::Object(js))
+    })
+}
+
+pub async fn word_info_gloss_json(
+    ctx: &KaniranContext,
+    word_info: &WordInfo,
+    root_only: bool,
+) -> Result<Value, sqlx::Error> {
+    if word_info.alternative {
+        // (jsown:new-js ("alternative" (mapcar #'word_info_gloss_json_inner (word-info-components word-info))))
+        let mut alternatives = Vec::with_capacity(word_info.components.len());
+        for component in &word_info.components {
+            alternatives.push(word_info_gloss_json_inner(ctx, component, false, root_only).await?);
+        }
+        let mut js = Map::new();
+        js.insert("alternative".to_owned(), Value::Array(alternatives));
+        Ok(Value::Object(js))
+    } else {
+        word_info_gloss_json_inner(ctx, word_info, false, root_only).await
+    }
+}
+
+/// Port of `ichiran/dict:get-kanji-words` (`dict.lisp:1834`).
+///
+/// Returns `(seq, kanji-text, kana-text, common)` rows for every root
+/// entry whose kanji writing contains `char` as a substring, restricted
+/// to the best-kana reading with a non-null `common`.
+pub async fn get_kanji_words(
+    ctx: &KaniranContext,
+    char: &str,
+) -> Result<Vec<(i32, String, String, i32)>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT e.seq, k.text, r.text, k.common \
+         FROM entry AS e, kanji_text AS k, kana_text AS r \
+         WHERE e.seq = k.seq \
+           AND e.seq = r.seq \
+           AND r.text = k.best_kana \
+           AND k.common IS NOT NULL \
+           AND e.root_p \
+           AND k.text LIKE '%' || $1 || '%'",
+    )
+    .bind(char)
+    .fetch_all(&ctx.pool)
+    .await
+}
+
+#[cfg(test)]
+mod tests;

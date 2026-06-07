@@ -18,10 +18,10 @@ use std::sync::Arc;
 use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::conj_data_struct::ConjData;
+use kaniran_core::dict::conj::ConjData;
 use kaniran_core::dict::grammar::synergy::filter_is_noun;
 use kaniran_core::dict::kani_lite_segment::KaniLiteSegment;
-use kaniran_core::dict::segment_struct::{
+use kaniran_core::dict::scoring::score::{
     KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment,
 };
 

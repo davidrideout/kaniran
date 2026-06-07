@@ -11,8 +11,8 @@ mod common;
 use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::dict::compound_text_class::CompoundText;
-use kaniran_core::dict::kana_text_dao::KanaText;
+use kaniran_core::dict::text_classes::CompoundText;
+use kaniran_core::dict::dao::KanaText;
 use kaniran_core::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use kaniran_core::dict::grammar::suffix::rules::suffix_sa;
 

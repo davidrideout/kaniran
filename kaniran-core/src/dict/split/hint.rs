@@ -1,17 +1,17 @@
 use crate::characters::char_class::simplify_ngrams;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::conj_data_from::conj_data_from;
+use crate::dict::conj::conj_data_from;
 use crate::dict::counters::methods::seq as word_seq;
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani_match_part::KaniMatchPart;
 use crate::dict::kani_word::KaniWordDispatchEnum;
 use crate::dict::split::hint_map::{hint_map_dispatch, HintDispatch, EASY_HINTS};
 use crate::dict::split::kani_hint_kind::KaniHintKind;
 use crate::dict::split::segsplit::{hint_simplify_map, HINT_CHAR_MAP};
-use crate::dict::true_kana::true_kana;
-use crate::dict::true_kanji::true_kanji;
-use crate::dict::word_conj_data::word_conj_data;
-use crate::dict::word_info_class::WordInfoSeq;
+use crate::dict::accessors::true_kana;
+use crate::dict::accessors::true_kanji;
+use crate::dict::accessors::word_conj_data;
+use crate::dict::word_info::WordInfoSeq;
 use crate::kanji::matching::match_readings;
 use std::sync::OnceLock;
 

@@ -3,8 +3,8 @@ use crate::dict::grammar::lookup::{find_word_conj_of, get_kana_form, get_kana_fo
 use crate::dict::grammar::suffix::constants::{
     suffix_class, suffix_description, SuffixCache, SuffixClass, SuffixDescKey,
 };
-use crate::dict::kana_text_dao::KanaText;
-use crate::dict::simple_text_class::WordConjugations;
+use crate::dict::dao::KanaText;
+use crate::dict::dao::WordConjugations;
 
 /// Port of `ichiran/dict:get-suffix-description` (`dict-grammar.lisp:160`).
 ///

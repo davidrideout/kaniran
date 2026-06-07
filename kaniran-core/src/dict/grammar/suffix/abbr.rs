@@ -1,13 +1,13 @@
 use crate::characters::char_class::CharClass;
 use crate::characters::kana::destem;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::find_word_full::find_word_full;
-use crate::dict::get_kana::get_kana;
+use crate::dict::path::find_word_full;
+use crate::dict::accessors::get_kana;
 use crate::dict::grammar::lookup::{find_word_conj_of, find_word_with_conj_prop, WordSeqRows};
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::proxy_text_class::ProxyText;
-use crate::dict::simple_text_class::SimpleText;
+use crate::dict::text_classes::ProxyText;
+use crate::dict::dao::SimpleText;
 
 /// Port of `ichiran/dict:def-abbr-suffix` (`dict-grammar.lisp:547-579`).
 ///

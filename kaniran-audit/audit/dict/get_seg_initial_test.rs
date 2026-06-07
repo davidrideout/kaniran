@@ -16,12 +16,12 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use kaniran_core::dict::conj_data_struct::ConjData;
-use kaniran_core::dict::get_seg_initial::get_seg_initial;
+use kaniran_core::dict::conj::ConjData;
+use kaniran_core::dict::path::get_seg_initial;
 use kaniran_core::dict::kani_lite_segment_list::KaniLiteSegmentList;
 use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
-use kaniran_core::dict::segment_list_struct::SegmentList;
-use kaniran_core::dict::segment_struct::{
+use kaniran_core::dict::path::SegmentList;
+use kaniran_core::dict::scoring::score::{
     KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment,
 };
 

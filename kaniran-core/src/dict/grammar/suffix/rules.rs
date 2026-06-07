@@ -1,16 +1,16 @@
 use crate::characters::char_class::CharClass;
 use crate::characters::kana::destem;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::adjoin_word::adjoin_word;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
-use crate::dict::find_word::FindWordRows;
-use crate::dict::get_kana::get_kana;
+use crate::dict::accessors::adjoin_word;
+use crate::dict::text_classes::{CompoundText, ScoreMod};
+use crate::dict::readings::FindWordRows;
+use crate::dict::accessors::get_kana;
 use crate::dict::grammar::lookup::{
     find_word_seq, find_word_with_conj_prop, find_word_with_conj_type, find_word_with_pos,
     find_word_with_suffix, or_as_hiragana, pair_words_by_conj, OrAsHiraganaFinder,
     OrAsHiraganaRows, WordSeqRows, WordWithPosRows,
 };
-use crate::dict::kana_text_dao::KanaText;
+use crate::dict::dao::KanaText;
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use std::sync::Arc;
 

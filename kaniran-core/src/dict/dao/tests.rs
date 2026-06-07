@@ -1,0 +1,336 @@
+mod recalc_entry_stats {
+    use crate::dict::dao::*;
+
+    // Idempotent on a consistent dictionary: the UPDATE rewrites each
+    // matched entry's n_kanji / n_kana to the same values it already
+    // holds. Affected count is the number of matched entry rows, not
+    // changed rows. All cases REPL-pinned against ichiran 2026-05-25.
+    #[tokio::test]
+    async fn affected_count_matches_matched_rows() {
+        let ctx = KaniranContext::from_env().await.expect("ctx");
+
+        // (recalc-entry-stats 1591050) -> 1 row affected.
+        let one = recalc_entry_stats(&ctx, &[1591050]).await.expect("one");
+        assert_eq!(one, 1);
+
+        // (recalc-entry-stats 1591050 1495740 1221520) -> 3.
+        let multi = recalc_entry_stats(&ctx, &[1591050, 1495740, 1221520])
+            .await
+            .expect("multi");
+        assert_eq!(multi, 3);
+
+        // (recalc-entry-stats) -> 0 (empty set, seq IN (NULL)).
+        let empty = recalc_entry_stats(&ctx, &[]).await.expect("empty");
+        assert_eq!(empty, 0);
+
+        // A seq with no matching entry row -> 0 affected.
+        let missing = recalc_entry_stats(&ctx, &[99999999])
+            .await
+            .expect("missing");
+        assert_eq!(missing, 0);
+
+        // (recalc-entry-stats 1591050 99999999) -> 1 (only the present
+        // seq is matched; the absent one contributes nothing).
+        let mixed = recalc_entry_stats(&ctx, &[1591050, 99999999])
+            .await
+            .expect("mixed");
+        assert_eq!(mixed, 1);
+    }
+
+    #[tokio::test]
+    async fn stats_match_child_counts_after_recalc() {
+        let ctx = KaniranContext::from_env().await.expect("ctx");
+
+        // Varied vocabulary spanning the kanji/kana count combinations.
+        // seq -> (n_kanji, n_kana). REPL-pinned 2026-05-25.
+        let cases: &[(i32, i32, i32)] = &[
+            (1603990, 2, 1), // 仄か
+            (1000580, 2, 2), // 彼
+            (1582710, 1, 2),
+            (2028930, 0, 1), // が
+            (1467640, 1, 2),
+        ];
+        let seqs: Vec<i32> = cases.iter().map(|(seq, _, _)| *seq).collect();
+
+        let affected = recalc_entry_stats(&ctx, &seqs).await.expect("recalc");
+        assert_eq!(affected, seqs.len() as u64);
+
+        for (seq, exp_kanji, exp_kana) in cases {
+            let (n_kanji, n_kana): (i32, i32) =
+                sqlx::query_as("SELECT n_kanji, n_kana FROM entry WHERE seq = $1")
+                    .bind(seq)
+                    .fetch_one(&ctx.pool)
+                    .await
+                    .expect("entry row");
+            assert_eq!(n_kanji, *exp_kanji, "seq={seq} n_kanji");
+            assert_eq!(n_kana, *exp_kana, "seq={seq} n_kana");
+
+            let actual_kanji: i64 =
+                sqlx::query_scalar("SELECT COUNT(id) FROM kanji_text WHERE seq = $1")
+                    .bind(seq)
+                    .fetch_one(&ctx.pool)
+                    .await
+                    .expect("kanji count");
+            let actual_kana: i64 =
+                sqlx::query_scalar("SELECT COUNT(id) FROM kana_text WHERE seq = $1")
+                    .bind(seq)
+                    .fetch_one(&ctx.pool)
+                    .await
+                    .expect("kana count");
+            assert_eq!(
+                n_kanji as i64, actual_kanji,
+                "seq={seq} stored vs actual kanji"
+            );
+            assert_eq!(
+                n_kana as i64, actual_kana,
+                "seq={seq} stored vs actual kana"
+            );
+        }
+    }
+}
+
+mod recalc_entry_stats_all {
+    use crate::dict::dao::*;
+
+    // Idempotent on a consistent dictionary: every entry's stored
+    // n_kanji / n_kana already equals its child-row counts, so the
+    // UPDATE rewrites them to the same values. Affected count is the
+    // total entry row count regardless (Postgres counts matched rows,
+    // not changed rows). REPL-pinned against ichiran 2026-05-25.
+    #[tokio::test]
+    async fn affects_all_entries_and_stats_match_children() {
+        let ctx = KaniranContext::from_env().await.expect("ctx");
+
+        let affected = recalc_entry_stats_all(&ctx).await.expect("recalc-all");
+
+        let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM entry")
+            .fetch_one(&ctx.pool)
+            .await
+            .expect("count entries");
+        assert_eq!(affected, total as u64, "affected != total entry rows");
+
+        // Spot-check varied vocabulary post-recalc: stored stats equal
+        // the independently-counted child rows. (REPL 2026-05-25.)
+        // seq -> (n_kanji, n_kana)
+        let cases: &[(i32, i32, i32)] = &[
+            (1603990, 2, 1), // 仄か
+            (1000580, 2, 2), // 彼
+            (1582710, 1, 2),
+            (1591050, 2, 1), // 気が付く
+            (2028930, 0, 1), // が
+            (1467640, 1, 2),
+        ];
+        for (seq, exp_kanji, exp_kana) in cases {
+            let (n_kanji, n_kana): (i32, i32) =
+                sqlx::query_as("SELECT n_kanji, n_kana FROM entry WHERE seq = $1")
+                    .bind(seq)
+                    .fetch_one(&ctx.pool)
+                    .await
+                    .expect("entry row");
+            assert_eq!(n_kanji, *exp_kanji, "seq={seq} n_kanji");
+            assert_eq!(n_kana, *exp_kana, "seq={seq} n_kana");
+
+            let actual_kanji: i64 =
+                sqlx::query_scalar("SELECT COUNT(id) FROM kanji_text WHERE seq = $1")
+                    .bind(seq)
+                    .fetch_one(&ctx.pool)
+                    .await
+                    .expect("kanji count");
+            let actual_kana: i64 =
+                sqlx::query_scalar("SELECT COUNT(id) FROM kana_text WHERE seq = $1")
+                    .bind(seq)
+                    .fetch_one(&ctx.pool)
+                    .await
+                    .expect("kana count");
+            assert_eq!(
+                n_kanji as i64, actual_kanji,
+                "seq={seq} stored vs actual kanji"
+            );
+            assert_eq!(
+                n_kana as i64, actual_kana,
+                "seq={seq} stored vs actual kana"
+            );
+        }
+    }
+}
+
+mod entry_digest {
+    use crate::dict::dao::*;
+
+    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .await
+            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    }
+
+    async fn load_entry(ctx: &KaniranContext, seq: i32) -> Entry {
+        sqlx::query_as::<_, Entry>("SELECT * FROM entry WHERE seq = $1")
+            .bind(seq)
+            .fetch_one(&ctx.pool)
+            .await
+            .unwrap()
+    }
+
+    /// REPL fixtures (.103, `ichiran/dict::entry-digest`), 2026-05-25.
+    /// Covers `n-kanji > 0` entries (get-text reads kanji-text: a noun,
+    /// a 2-kanji noun, a verb) and `n-kanji = 0` entries (get-text reads
+    /// kana-text, so text equals kana: a katakana loanword and an
+    /// onomatopoeic adverb).
+    #[tokio::test]
+    async fn entry_digest_fixtures() {
+        let ctx = ctx_from_env().await;
+        let cases: &[(i32, &str, &str)] = &[
+            (1257590, "憲法", "けんぽう"),
+            (1386690, "雪崩", "なだれ"),
+            (1573390, "躊躇う", "ためらう"),
+            (1087690, "ドーナツ", "ドーナツ"),
+            (1010900, "ぴったり", "ぴったり"),
+        ];
+        for (seq, text, kana) in cases {
+            let entry = load_entry(&ctx, *seq).await;
+            let digest = entry_digest(&ctx, &entry).await.unwrap();
+            assert_eq!(
+                (digest.0, digest.1.as_deref(), digest.2.as_deref()),
+                (*seq, Some(*text), Some(*kana)),
+                "seq={seq}"
+            );
+        }
+    }
+}
+
+mod conj_info_short {
+    use crate::dict::dao::*;
+
+    fn prop(pos: &str, conj_type: i32, neg: Option<bool>, fml: Option<bool>) -> ConjProp {
+        ConjProp {
+            id: 0,
+            conj_id: 0,
+            conj_type,
+            pos: pos.to_string(),
+            neg,
+            fml,
+        }
+    }
+
+    /// REPL fixtures (.103, ichiran/dict::conj-info-short on conj_prop
+    /// rows), 2026-05-24. Covers every neg/fml state — Some(false)
+    /// (Lisp nil), Some(true) (Lisp t), None (db-null) — plus the
+    /// missing-description path (`~a` of nil → "NIL").
+    #[test]
+    fn conj_info_short_fixtures() {
+        let cases: &[(ConjProp, &str)] = &[
+            (
+                prop("v5k", 2, Some(false), Some(false)),
+                "[v5k] Past (~ta) Affirmative Plain",
+            ),
+            (
+                prop("v5k", 1, Some(false), Some(true)),
+                "[v5k] Non-past Affirmative Formal",
+            ),
+            (
+                prop("v5k", 1, Some(true), Some(false)),
+                "[v5k] Non-past Negative Plain",
+            ),
+            (
+                prop("v5k", 1, Some(true), Some(true)),
+                "[v5k] Non-past Negative Formal",
+            ),
+            (
+                prop("adj-i", 3, Some(false), None),
+                "[adj-i] Conjunctive (~te) Affirmative",
+            ),
+            (
+                prop("v5k", 52, Some(true), None),
+                "[v5k] Negative Stem Negative",
+            ),
+            (
+                prop("adj-i", 9, None, Some(false)),
+                "[adj-i] Volitional Plain",
+            ),
+            (
+                prop("adj-i", 9, None, Some(true)),
+                "[adj-i] Volitional Formal",
+            ),
+            (prop("v5k", 13, None, None), "[v5k] Continuative (~i)"),
+            (
+                prop("v5k", 999, Some(false), Some(false)),
+                "[v5k] NIL Affirmative Plain",
+            ),
+        ];
+        for (obj, expected) in cases {
+            assert_eq!(&conj_info_short(obj), expected, "obj={obj:?}");
+        }
+    }
+}
+
+mod conj_prop_json {
+    use crate::dict::dao::*;
+
+    fn prop(conj_type: i32, pos: &str, neg: Option<bool>, fml: Option<bool>) -> ConjProp {
+        ConjProp {
+            id: 0,
+            conj_id: 0,
+            conj_type,
+            pos: pos.to_owned(),
+            neg,
+            fml,
+        }
+    }
+
+    /// REPL fixtures (.103, `jsown:to-json` of `conj-prop-json` on real
+    /// conj_prop rows), 2026-05-24. Rows cover every neg/fml state
+    /// (`:null`→None, `t`→Some(true), `nil`→Some(false)); the no-description
+    /// row pins jsown's nil→[] rendering of "type".
+    #[test]
+    fn conj_prop_json_fixtures() {
+        let cases = [
+            // id=52: neg :null, fml :null
+            (
+                prop(13, "v5k", None, None),
+                r#"{"pos":"v5k","type":"Continuative (~i)"}"#,
+            ),
+            // id=3: neg t, fml t
+            (
+                prop(1, "v5k", Some(true), Some(true)),
+                r#"{"pos":"v5k","type":"Non-past","neg":true,"fml":true}"#,
+            ),
+            // id=2: neg t, fml nil
+            (
+                prop(1, "v5k", Some(true), Some(false)),
+                r#"{"pos":"v5k","type":"Non-past","neg":true}"#,
+            ),
+            // id=1: neg nil, fml t
+            (
+                prop(1, "v5k", Some(false), Some(true)),
+                r#"{"pos":"v5k","type":"Non-past","fml":true}"#,
+            ),
+            // id=4: neg nil, fml nil
+            (
+                prop(2, "v5k", Some(false), Some(false)),
+                r#"{"pos":"v5k","type":"Past (~ta)"}"#,
+            ),
+            // id=226: neg :null, fml t
+            (
+                prop(9, "adj-i", None, Some(true)),
+                r#"{"pos":"adj-i","type":"Volitional","fml":true}"#,
+            ),
+            // id=53: neg t, fml :null
+            (
+                prop(52, "v5k", Some(true), None),
+                r#"{"pos":"v5k","type":"Negative Stem","neg":true}"#,
+            ),
+            // no description for conj_type → jsown nil renders as []
+            (prop(999, "v5k", None, None), r#"{"pos":"v5k","type":[]}"#),
+        ];
+        for (obj, expected) in &cases {
+            let actual = serde_json::to_string(&conj_prop_json(obj)).unwrap();
+            assert_eq!(
+                actual.as_str(),
+                *expected,
+                "conj_type={} pos={}",
+                obj.conj_type,
+                obj.pos
+            );
+        }
+    }
+}
