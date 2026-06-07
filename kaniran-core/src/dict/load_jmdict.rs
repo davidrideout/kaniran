@@ -16,7 +16,7 @@ use super::load_entry::{load_entry, LoadEntryIfExists, LoadEntrySeq};
 use super::load_extras::load_extras;
 use super::recalc_entry_stats_all::recalc_entry_stats_all;
 use crate::conn::kani_context::KaniranContext;
-use crate::custom::load_custom_data::LoadCustomDataError;
+use crate::custom::load::LoadCustomDataError;
 
 pub async fn load_jmdict(
     ctx: &KaniranContext,

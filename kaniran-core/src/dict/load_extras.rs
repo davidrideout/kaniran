@@ -9,7 +9,7 @@ use super::load_conjugations::load_conjugations;
 use super::load_secondary_conjugations::load_secondary_conjugations;
 use super::recalc_entry_stats_all::recalc_entry_stats_all;
 use crate::conn::kani_context::KaniranContext;
-use crate::custom::load_custom_data::{load_custom_data, LoadCustomDataError};
+use crate::custom::load::{load_custom_data, LoadCustomDataError};
 
 pub async fn load_extras(ctx: &KaniranContext) -> Result<(), LoadCustomDataError> {
     println!("Loading conjugations...");

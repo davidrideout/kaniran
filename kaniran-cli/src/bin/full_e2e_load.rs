@@ -14,7 +14,7 @@ use std::time::Instant;
 use clap::Parser;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::custom::load_custom_data::load_custom_data;
+use kaniran_core::custom::load::load_custom_data;
 use kaniran_core::dict::load_best_readings::load_best_readings;
 use kaniran_core::dict::load_jmdict::load_jmdict;
 use kaniran_core::dict::recalc_entry_stats_all::recalc_entry_stats_all;

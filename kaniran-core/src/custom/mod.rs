@@ -1,29 +1,8 @@
 //! Port of `ichiran/custom` (`dict-custom.lisp`).
 
-pub mod _star_municipality_types_description_star_;
-pub mod _star_municipality_types_order_star_;
-pub mod _star_municipality_types_star_;
-pub mod as_xml;
-pub mod as_xml_simple;
-pub mod csv_loader_class;
-pub mod custom_source_class;
-pub mod get_custom_data;
-pub mod get_words;
-pub mod insert;
-pub mod insert_entry;
-pub mod load_custom_data;
-pub mod municipality_csv_class;
-pub mod municipality_short;
-pub mod municipality_struct;
-pub mod normalize_geo;
-pub mod process_entry;
-pub mod romanize_municipality;
-pub mod slurp;
-pub mod source_path;
-pub mod test_entry;
-pub mod update_entry;
-pub mod update_entry_gloss;
-pub mod ward_csv_class;
-pub mod ward_struct;
-pub mod xml_entry_struct;
-pub mod xml_loader_class;
+pub mod types;
+pub mod constants;
+pub mod load;
+pub mod entry;
+pub mod xml;
+pub mod geo;

@@ -36,8 +36,8 @@ use super::remove_hiragana_nokanji::remove_hiragana_nokanji;
 use super::set_common::set_common;
 use super::set_primary_nokanji::set_primary_nokanji;
 use crate::conn::kani_context::KaniranContext;
-use crate::custom::get_custom_data::CustomDataKey;
-use crate::custom::load_custom_data::{load_custom_data, LoadCustomDataError};
+use crate::custom::load::CustomDataKey;
+use crate::custom::load::{load_custom_data, LoadCustomDataError};
 
 pub async fn add_errata(ctx: &KaniranContext) -> Result<(), LoadCustomDataError> {
     conjugate_da(ctx, None).await?;
