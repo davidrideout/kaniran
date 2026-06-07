@@ -4,8 +4,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 // --- process_entry ---
-// REPL fixtures (.103, ichiran/custom::process-entry on a stub
-// municipality-csv loader), 2026-05-31.
 
 fn row(strs: &[&str]) -> Vec<String> {
     strs.iter().map(|s| s.to_string()).collect()
@@ -172,8 +170,7 @@ fn process_entry_municipality_town_two_items() {
 }
 
 // --- test_entry ---
-// REPL fixtures (.103, ichiran/custom::test-entry against live
-// Postgres), 2026-05-31.
+// Needs a live Postgres database.
 
 async fn ctx_from_env() -> Arc<KaniranContext> {
     KaniranContext::from_env()
@@ -181,8 +178,7 @@ async fn ctx_from_env() -> Arc<KaniranContext> {
         .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
 }
 
-/// REPL: (test-entry loader m) with text/reading 東京/とうきょう
-/// and definition "Tokyo Metropolis" → ok=NIL seq=1447690.
+/// An entry already in the dictionary is skipped.
 #[tokio::test]
 async fn test_entry_municipality_skip_path() {
     let ctx = ctx_from_env().await;
@@ -198,7 +194,7 @@ async fn test_entry_municipality_skip_path() {
     assert_eq!(got, TestEntryResult::Skip);
 }
 
-/// REPL: bogus text/reading → no candidates → ok=T seq=NIL.
+/// An entry with no matching dictionary candidate is inserted.
 #[tokio::test]
 async fn test_entry_municipality_insert_path() {
     let ctx = ctx_from_env().await;
@@ -214,7 +210,7 @@ async fn test_entry_municipality_insert_path() {
     assert_eq!(got, TestEntryResult::Insert);
 }
 
-/// REPL: 漢字/かんじ + bogus definition → ok=T seq=1213170.
+/// An entry matching an existing sequence updates that sequence.
 #[tokio::test]
 async fn test_entry_municipality_update_path() {
     let ctx = ctx_from_env().await;
@@ -230,7 +226,7 @@ async fn test_entry_municipality_update_path() {
     assert_eq!(got, TestEntryResult::Update(1213170));
 }
 
-/// REPL: 中央区/ちゅうおうく + "Chuo Ward, Sapporo" → ok=NIL seq=12296020.
+/// A ward entry already in the dictionary is skipped.
 #[tokio::test]
 async fn test_entry_ward_skip_path() {
     let ctx = ctx_from_env().await;

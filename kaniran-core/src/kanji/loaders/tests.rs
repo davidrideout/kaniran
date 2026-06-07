@@ -2,7 +2,6 @@ use super::*;
 use roxmltree::Document;
 
 // --- first_node_text ---
-// REPL fixtures (.103, ichiran/kanji::first-node-text), 2026-05-31.
 #[test]
 fn first_node_text_returns_none_on_empty_list() {
     let xml = "<root><x>42</x><x>99</x></root>";

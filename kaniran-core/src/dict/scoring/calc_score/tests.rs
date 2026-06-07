@@ -34,11 +34,7 @@ mod calc_score {
         KaniWordDispatchEnum::Kana(rows.into_iter().next().expect("row exists"))
     }
 
-    // ----- REPL-pinned cases (.103, 2026-05-16). All output strings
-    //       captured by `(calc-score (car (find-word "<txt>")) …)`. -----
-
-    /// REPL: `(calc-score (car (find-word "ねこ")))` →
-    ///   `16  (:POSI ("n") :SEQ-SET (1467640) :CONJ NIL :COMMON 7 :SCORE-INFO (4 NIL 0 NIL) :KPCL (NIL NIL T NIL))`
+    /// Baseline score for the common noun ねこ.
     #[tokio::test]
     async fn nekko_baseline() {
         let ctx = ctx_from_env().await;
@@ -57,8 +53,7 @@ mod calc_score {
         assert_eq!(info.kpcl, (false, false, true, false));
     }
 
-    /// REPL: `(calc-score (car (find-word "の")))` →
-    ///   `11  (:POSI ("prt") :SEQ-SET (1469800) :CONJ NIL :COMMON 0 :SCORE-INFO (11 NIL 0 NIL) :KPCL (NIL T T NIL))`
+    /// The particle の scored in non-final position.
     #[tokio::test]
     async fn no_particle_non_final() {
         let ctx = ctx_from_env().await;
@@ -77,8 +72,7 @@ mod calc_score {
         assert_eq!(info.kpcl, (false, true, true, false));
     }
 
-    /// REPL: `(calc-score (car (find-word "の")) :final t)` →
-    ///   `16  (:POSI ("prt") :SEQ-SET (1469800) :CONJ NIL :COMMON 0 :SCORE-INFO (16 NIL 0 NIL) :KPCL (NIL T T NIL))`
+    /// The particle の in final position gets the final-particle bonus.
     #[tokio::test]
     async fn no_particle_final_branch_bonus() {
         let ctx = ctx_from_env().await;
@@ -97,8 +91,7 @@ mod calc_score {
         assert_eq!(info.kpcl, (false, true, true, false));
     }
 
-    /// REPL: `(calc-score (car (find-word "は")))` →
-    ///   `1  (:POSI ("n") :SEQ-SET (1171680) :CONJ NIL :COMMON NIL :SCORE-INFO (1 NIL 0 NIL) :KPCL (NIL NIL NIL NIL))`
+    /// An uncommon noun reading of は (common rank absent).
     #[tokio::test]
     async fn ha_n_uncommon() {
         let ctx = ctx_from_env().await;
@@ -117,18 +110,11 @@ mod calc_score {
         assert_eq!(info.kpcl, (false, false, false, false));
     }
 
-    /// REPL: with row `(select-dao 'kana-text (:and (:= 'seq 2089020) (:= 'text "だ")))` →
-    ///   `(calc-score row)` and `(calc-score row :final t)` both →
-    ///   `16  (:POSI ("aux-v" "cop" "cop-da") :SEQ-SET (2089020) :CONJ NIL :COMMON 0
-    ///         :SCORE-INFO (16 NIL 0 NIL) :KPCL (NIL T T NIL))`
-    ///
-    /// Pinned via the explicit-seq helper because `(find-word "だ")`
-    /// returns 6 candidates and Postgres's row order without an
-    /// ORDER BY is non-deterministic — `da_first_reading_n` would
-    /// otherwise alternate between the `n` reading (seq 1564200) and
-    /// the copula (seq 2089020). This case exercises the `cop-da-p`
-    /// branch (`(intersection seq-set *copulae*)` truthy) and the
-    /// `common = 0` arm of the common-bonus cascade.
+    /// The copula reading of だ (seq 2089020). Uses the explicit-seq
+    /// helper because looking up だ returns 6 candidates in undefined
+    /// order, which would otherwise alternate between the noun reading and
+    /// the copula. Exercises the copula branch and the common=0 arm of the
+    /// common-bonus cascade.
     #[tokio::test]
     async fn da_copula_cop_da_p_branch() {
         let ctx = ctx_from_env().await;
@@ -157,8 +143,7 @@ mod calc_score {
         assert_eq!(score, 16);
     }
 
-    /// REPL: `(calc-score (car (find-word "食べる")))` →
-    ///   `504  (:POSI ("v1" "vt") :SEQ-SET (1358280) :CONJ NIL :COMMON 25 :SCORE-INFO (21 NIL 0 NIL) :KPCL (T T T T))`
+    /// The root verb 食べる.
     #[tokio::test]
     async fn taberu_root_verb() {
         let ctx = ctx_from_env().await;
@@ -179,11 +164,9 @@ mod calc_score {
         assert_eq!(info.kpcl, (true, true, true, true));
     }
 
-    /// REPL: `(calc-score (car (find-word "食べる")) :kanji-break '(0))` →
-    ///   `252  (... :SCORE-INFO (21 (0) 0 NIL) ...)`
-    /// `kanji_break_penalty` only adjusts the outer score; it does not
-    /// mutate any field of `info`. Every non-score-info field is
-    /// therefore identical to [`taberu_root_verb`]'s output.
+    /// A kanji-break only adjusts the outer score; it does not mutate any
+    /// field of `info`, so every non-score-info field matches
+    /// [`taberu_root_verb`].
     #[tokio::test]
     async fn taberu_with_kanji_break() {
         let ctx = ctx_from_env().await;
@@ -204,8 +187,7 @@ mod calc_score {
         assert_eq!(info.kpcl, (true, true, true, true));
     }
 
-    /// REPL: `(calc-score (car (find-word "ありがとう")))` →
-    ///   `525  (:POSI ("int") :SEQ-SET (1586820) :CONJ NIL :COMMON 0 :SCORE-INFO (21 NIL 0 NIL) :KPCL (NIL T T T))`
+    /// A long interjection (ありがとう).
     #[tokio::test]
     async fn arigatou_interjection_long() {
         let ctx = ctx_from_env().await;
@@ -224,8 +206,7 @@ mod calc_score {
         assert_eq!(info.kpcl, (false, true, true, true));
     }
 
-    /// REPL: `(calc-score (car (find-word "コンピューター")))` →
-    ///   `440  (:POSI ("n") :SEQ-SET (1053350) :CONJ NIL :COMMON 0 :SCORE-INFO (11 NIL 0 NIL) :KPCL (T NIL T T))`
+    /// A long katakana noun (コンピューター).
     #[tokio::test]
     async fn computer_katakana_path() {
         let ctx = ctx_from_env().await;
@@ -245,15 +226,8 @@ mod calc_score {
         assert_eq!(info.kpcl, (true, false, true, true));
     }
 
-    /// REPL: `(calc-score (car (find-word "ねこ")) :use-length 5)` →
-    ///   `80  (:POSI ("n") :SEQ-SET (1467640) :CONJ NIL :COMMON 7
-    ///        :SCORE-INFO (4 NIL 64 NIL) :KPCL (NIL NIL T NIL))`
-    /// REPL: `(calc-score (car (find-word "ねこ")) :use-length 3)` →
-    ///   `32  (:POSI ("n") :SEQ-SET (1467640) :CONJ NIL :COMMON 7
-    ///        :SCORE-INFO (4 NIL 16 NIL) :KPCL (NIL NIL T NIL))`
-    /// REPL: `(calc-score (car (find-word "ねこ")) :use-length 2)` →
-    ///   `16  (:POSI ("n") :SEQ-SET (1467640) :CONJ NIL :COMMON 7
-    ///        :SCORE-INFO (4 NIL 0 NIL) :KPCL (NIL NIL T NIL))`
+    /// How the use-length bonus scales the score for ねこ at lengths 5, 3,
+    /// and 2 (only the score and length bonus change).
     #[tokio::test]
     async fn neko_use_length_variations() {
         let ctx = ctx_from_env().await;
@@ -297,33 +271,13 @@ mod calc_score {
         assert_eq!(info.score_info.use_length_bonus, 0);
     }
 
-    // ----- Class-C regression: compound-text whose inner calc-score
-    //       on `score-base` hits a skip-path and returns `0` with no
-    //       info. Upstream `dict.lisp:785-786`:
-    //           (multiple-value-bind (score info) (apply 'calc-score args)
-    //             (setf (getf info :conj) (word-conj-data reading)) ...)
-    //       The `multiple-value-bind` of a single-value return binds
-    //       `info` to nil; `(setf (getf nil :conj) X)` is CL's
-    //       setf-getf-on-nil idiom, which rewrites the binding to a
-    //       fresh plist `(:conj X)`. The Rust port must mirror this
-    //       rather than propagating `(0, None)`.
-    //
-    //       Both rows below come from the chunk_b_segmentation_2026_05_14
-    //       parquet — the captured args / result tell us exactly what
-    //       outer info plist upstream produced. The current `None =>`
-    //       arm at line 167 returns `(0, None)`, so both tests fail
-    //       on `info.expect(...)`.
+    // A compound-text whose inner score falls on a skip-path returns 0,
+    // but the result must still carry a partial info that holds only the
+    // conjugation data — not an absent info.
 
-    /// Row 279 of chunk_b calc_score parquet. Compound `れちゃう`,
-    /// `score_base = null` (falls back to primary), `score_mod = 5`.
-    /// Last word `ちゃう` (seq 2013800, conjugations=:ROOT) — and
-    /// `get-conj-data(2013800, :ROOT, "ちゃう")` returns nil on the
-    /// real DB, so the outer `(word-conj-data <compound>)` returns nil
-    /// and the synthesized plist has `:CONJ null`.
-    ///
-    /// Captured:
-    ///   args   = [<compound>, ":FINAL", null, ":KANJI-BREAK", null]
-    ///   result = [0, [":CONJ", null]]
+    /// Compound `れちゃう` with no score-base (falls back to its primary).
+    /// The last word ちゃう has no conjugation data on the real DB, so the
+    /// synthesized info carries an empty conj list.
     #[tokio::test]
     async fn compound_skipword_partial_info_conj_null() {
         let ctx = ctx_from_env().await;
@@ -384,8 +338,8 @@ mod calc_score {
             "info.conj: expected empty (last word ちゃう :ROOT has no conj-data); got {:?}",
             info.conj,
         );
-        // The other five fields default to zero/empty — only `:CONJ`
-        // is set by the setf-getf-on-nil synthesis.
+        // The other five fields default to zero/empty — only the
+        // conjugation field is synthesized.
         assert!(info.posi.is_empty(), "info.posi: {:?}", info.posi);
         assert!(info.seq_set.is_empty(), "info.seq_set: {:?}", info.seq_set);
         assert_eq!(info.common, None);
@@ -396,19 +350,9 @@ mod calc_score {
         assert_eq!(info.kpcl, (false, false, false, false));
     }
 
-    /// chunk_b calc_score row capturing compound `られなくなりました`,
-    /// `score_base = null`, `score_mod = (1 5)` (list). Last word
-    /// `なりました` (seq 10374833, conjugations=[378046]) — the outer
-    /// `(word-conj-data <compound>)` recurses to it and produces a
-    /// single CONJ-DATA: seq=10374833, from=1375610 (なる), conj-prop
-    /// (id=386572, conj_id=378046, conj_type=2, fml=true, pos="v5r"),
-    /// src_map=[("なりました","なる")].
-    ///
-    /// Captured:
-    ///   result = [0, [":CONJ", [{class:CONJ-DATA, seq:10374833,
-    ///            from:1375610, prop:{conj_id:378046, conj_type:2,
-    ///            fml:true, neg:null, pos:"v5r"}, src_map:[[なりました,
-    ///            なる]]}]]]
+    /// Compound `られなくなりました` with no score-base. Its last word
+    /// なりました does have conjugation data (from なる), so the
+    /// synthesized info carries a single conj-data entry.
     #[tokio::test]
     async fn compound_skipword_partial_info_conj_non_null() {
         let ctx = ctx_from_env().await;
@@ -495,8 +439,7 @@ mod calc_score {
         assert_eq!(prop.conj_id, 378046);
         assert_eq!(prop.conj_type, 2);
         assert_eq!(prop.pos, "v5r");
-        // REPL: SELECT neg, fml FROM conj_prop WHERE id = 386572; → f, t
-        // PG false (`f`) decodes to Some(false) at the sqlx layer.
+        // Postgres false (`f`) decodes to Some(false), not None.
         assert_eq!(prop.neg, Some(false));
         assert_eq!(prop.fml, Some(true));
         assert_eq!(

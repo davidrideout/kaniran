@@ -8,13 +8,11 @@ mod select_conjs {
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::select-conjs`), 2026-05-24.
-    /// - 2028980: single via-null conjugation (id 2343254, from 2089020) —
-    ///   mirrors `tests.lisp:651`.
-    /// - 1156880: via-null branch returns two rows (366552, 661748); the
-    ///   seq's via-not-null row (705712) is excluded.
-    /// - 1257260: no via-null rows, so the `or` falls back to all rows
-    ///   (1239109, 1239126), both via-not-null.
+    /// With no conjugation filter, prefers the rows whose "via" is empty, and
+    /// only when there are none does it fall back to returning all rows.
+    /// - 2028980: one via-empty row.
+    /// - 1156880: two via-empty rows (a via-set row exists but is excluded).
+    /// - 1257260: no via-empty rows, so all rows come back (both via-set).
     #[tokio::test]
     async fn select_conjs_nil_conj_ids() {
         let ctx = ctx_from_env().await;
@@ -32,7 +30,7 @@ mod select_conjs {
         assert_eq!(ids, vec![366552, 661748]);
         assert!(r1156880.iter().all(|c| c.seq_via.is_none()));
 
-        // or-fallback: no via-null rows → all rows (both via-not-null).
+        // No via-empty rows, so all rows come back (both via-set).
         let r1257260 = select_conjs(&ctx, 1257260, None).await.unwrap();
         let mut ids: Vec<i32> = r1257260.iter().map(|c| c.id).collect();
         ids.sort_unstable();
@@ -40,7 +38,6 @@ mod select_conjs {
         assert!(r1257260.iter().all(|c| c.seq_via.is_some()));
     }
 
-    /// REPL: `(select-conjs 2028980 :root)` → `NIL`.
     #[tokio::test]
     async fn select_conjs_root_is_empty() {
         let ctx = ctx_from_env().await;
@@ -50,9 +47,9 @@ mod select_conjs {
         assert!(result.is_empty());
     }
 
-    /// REPL: `(select-conjs 1156880 (list 366552))` → only the requested
-    /// id, regardless of the via-null preference (no `or` fallback). The
-    /// via-not-null row (705712) is reachable through an explicit id list.
+    /// An explicit id list returns exactly those ids, with no via-empty
+    /// preference and no fallback — including a via-set row that the
+    /// unfiltered path would otherwise exclude.
     #[tokio::test]
     async fn select_conjs_explicit_ids() {
         let ctx = ctx_from_env().await;
@@ -63,15 +60,15 @@ mod select_conjs {
         let ids: Vec<i32> = one.iter().map(|c| c.id).collect();
         assert_eq!(ids, vec![366552]);
 
-        // The via-not-null row is selectable by id even though the
-        // nil-conj-ids path filters it out.
+        // A via-set row is selectable by id even though the unfiltered path
+        // would exclude it.
         let via_row = select_conjs(&ctx, 1156880, Some(&WordConjugations::Ids(vec![705712])))
             .await
             .unwrap();
         assert_eq!(via_row.len(), 1);
         assert_eq!(via_row[0].seq_via, Some(1156890));
 
-        // ids that don't belong to the seq are filtered by the `seq =` clause.
+        // Ids that don't belong to the seq are filtered out.
         let none = select_conjs(&ctx, 1156880, Some(&WordConjugations::Ids(vec![1])))
             .await
             .unwrap();
@@ -82,8 +79,8 @@ mod select_conjs {
 mod conj_type_order {
     use crate::dict::conj::*;
 
-    /// REPL fixtures (.103, `ichiran/dict::conj-type-order`), 2026-05-24.
-    /// Covers the 10↔13 swap and the identity fall-through.
+    /// Conjugation types 10 and 13 swap with each other; every other value
+    /// maps to itself.
     #[test]
     fn conj_type_order_fixtures() {
         let cases: &[(i32, i32)] = &[(10, 13), (13, 10), (1, 1), (0, 0), (99, 99)];
@@ -100,10 +97,9 @@ mod conj_type_order {
 mod is_rareru {
     use crate::dict::conj::*;
 
-    /// REPL fixtures (.103, `ichiran/dict::is-rareru`), 2026-05-24.
-    /// Covers each of the four suffixes, a non-rareru form, the empty
-    /// string, a rareru substring not at the end (`られるよ` → false), and
-    /// a kana-only suffix.
+    /// True when the text ends in one of the four rareru suffixes. A rareru
+    /// substring that isn't at the end (`られるよ`) is false; the empty string
+    /// is false.
     #[test]
     fn is_rareru_fixtures() {
         let cases: &[(&str, bool)] = &[
@@ -140,13 +136,10 @@ mod filter_props {
         props.iter().map(|prop| prop.conj_id).collect()
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::filter-props`), 2026-05-24.
-    /// `props` = passive v1 (1), passive v5r (2, pos out of set), plain v1
-    /// (3, conj-type ≠ 6), passive v1s (4), passive vk (5). Each row drops
-    /// the passive v1/v1s/vk props (1,4,5) only when text is non-nil and
-    /// not a rareru form. Covers nil, single string (rareru / non-rareru /
-    /// empty-but-truthy), and list (with / without a rareru member /
-    /// empty-list-is-nil).
+    /// Drops the passive props (ids 1, 4, 5) only when the text is present
+    /// and is not a rareru form. With no text, a rareru form, or an empty
+    /// list (treated as no text), everything is kept; the empty string still
+    /// counts as present and triggers the drop.
     #[test]
     fn filter_props_fixtures() {
         let props = vec![
@@ -170,7 +163,7 @@ mod filter_props {
         for (text, expected) in cases {
             assert_eq!(ids(&filter_props(&props, *text)), *expected);
         }
-        // empty props → empty result
+        // Empty props in → empty result.
         assert!(filter_props(&[], FilterPropsText::One("食べる")).is_empty());
     }
 }
@@ -206,12 +199,10 @@ mod select_conjs_and_props {
             .collect()
     }
 
-    /// REPL: `(select-conjs-and-props 1156880)` → two via-null
-    /// conjugations sorted by `(0 val)`. conj 661748 has prop type 13
-    /// → `conj-type-order` 10 → key `(0 10)`, sorts ahead of conj
-    /// 366552 (prop type 10 → `conj-type-order` 13 → key `(0 13)`),
-    /// reordering the `select-conjs` input. Exercises the val swap and
-    /// the sort, with nil text (all props kept).
+    /// Two via-empty conjugations come back sorted by their conjugation-type
+    /// order, which reorders the input: conj 661748 (type 13, ordered as 10)
+    /// sorts ahead of conj 366552 (type 10, ordered as 13). No text, so all
+    /// props are kept.
     #[tokio::test]
     async fn via_null_sorted_by_val() {
         let ctx = ctx_from_env().await;
@@ -246,10 +237,9 @@ mod select_conjs_and_props {
         assert_eq!(project(&rows), expected);
     }
 
-    /// REPL: `(select-conjs-and-props 1257260)` → no via-null rows, so
-    /// `select-conjs` falls back to all rows; both have non-null via →
-    /// key first element 1. Sorted `(1 10)` before `(1 13)`. Exercises
-    /// the via-flag=1 branch and the or-fallback path.
+    /// When there are no via-empty rows the fallback returns all rows; both
+    /// have a via set, so each sort key leads with 1, and they sort by
+    /// conjugation-type order within that.
     #[tokio::test]
     async fn via_not_null_flag_one() {
         let ctx = ctx_from_env().await;
@@ -284,14 +274,10 @@ mod select_conjs_and_props {
         assert_eq!(project(&rows), expected);
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::select-conjs-and-props`),
-    /// 2026-05-24. seq 1232500 has one via-null conjugation (159588)
-    /// with a passive prop (type 6, pos v1). The key stays `(0 6)` and
-    /// `val` stays 6 across every text — `val` reads the *unfiltered*
-    /// props — while `fprops` drops the passive prop exactly when
-    /// `filter-props` would: text non-nil, not a rareru form. Covers
-    /// nil / single rareru / single non-rareru / list with a rareru /
-    /// list without a rareru.
+    /// The text argument is forwarded to the prop filter: the passive prop is
+    /// dropped exactly when the filter would drop it (text present, not a
+    /// rareru form). The sort key is computed from the unfiltered props, so it
+    /// stays the same across every text variant.
     #[tokio::test]
     async fn text_threads_to_filter_props() {
         let ctx = ctx_from_env().await;
@@ -323,8 +309,8 @@ mod select_conjs_and_props {
         }
     }
 
-    /// REPL: `(select-conjs-and-props 2028980 :root)` → `NIL`
-    /// (`select-conjs … :root` returns no conjugations).
+    /// The root conjugation filter yields no conjugations, so the result is
+    /// empty.
     #[tokio::test]
     async fn root_conj_ids_empty() {
         let ctx = ctx_from_env().await;
@@ -362,18 +348,13 @@ mod print_conj_info {
         out
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::print-conj-info` via
-    /// `(with-output-to-string (s) (print-conj-info seq :out s))`),
-    /// 2026-05-24, `conjugations` = nil. Covers:
-    /// - 1156880: two via-null conjugations, one prop each — the
-    ///   entry-info-short branch repeated, each prop opens with "[".
-    /// - 1184270: one via-null conjugation with two props — the
-    ///   `first` toggle ("[" then " ") inside one " ]".
-    /// - 1257260: two non-null via conjugations — the " --(via)--"
-    ///   branch with a recursive call producing the via entry.
-    /// - 10674648: two conjugations sharing via 10327845 — the second
-    ///   is dropped by `(member via via-used)`, so only one block prints.
-    /// - 1358280: no conjugations (root) → empty output.
+    /// Renders the conjugation breakdown for a sequence. Covers:
+    /// - 1156880: two via-empty conjugations, one prop each.
+    /// - 1184270: one via-empty conjugation with two props in a single block.
+    /// - 1257260: two via-set conjugations, each printing a "--(via)--" entry.
+    /// - 10674648: two conjugations sharing the same via; the second via is
+    ///   suppressed, so its block prints only once.
+    /// - 1358280: no conjugations, so output is empty.
     #[tokio::test]
     async fn print_conj_info_fixtures() {
         let ctx = ctx_from_env().await;
@@ -401,10 +382,8 @@ mod print_conj_info {
         }
     }
 
-    /// REPL fixtures (.103, `print-conj-info 1156880` with
-    /// `:conjugations`), 2026-05-24. `:root` selects no conjugations
-    /// (empty output); an explicit id list narrows to that single
-    /// conjugation.
+    /// The conjugation filter narrows the output: root selects nothing (empty
+    /// output), an explicit id list prints just that one conjugation.
     #[tokio::test]
     async fn print_conj_info_conjugations_arg() {
         let ctx = ctx_from_env().await;
@@ -435,14 +414,10 @@ mod conj_info_json_star_ {
         serde_json::to_string(values).unwrap()
     }
 
-    /// REPL fixtures (.103, `(jsown:to-json (conj-info-json* …))`),
-    /// 2026-05-24. seq 10175587 is the past-tense (~ta) conjugation of
-    /// 1370080 (尽き果てる), via-null. The kana / kanji surface both resolve
-    /// the original reading (readok true); has-gloss true keeps the entry
-    /// because the reading resolves; a non-matching surface and nil text
-    /// leave the original reading nil (`readok` `[]`, `reading` from
-    /// `reading-str-seq` of seq-from). With has-gloss true AND no resolved
-    /// reading, `(return-from outer nil)` drops the entry entirely (`[]`).
+    /// For a via-empty conjugation, a kana or kanji surface that resolves the
+    /// original reading sets readok true. A non-matching surface or no text
+    /// leaves readok empty. When the reading can't be resolved and a gloss is
+    /// required, the entry is dropped entirely.
     #[tokio::test]
     async fn via_null_paths() {
         let ctx = ctx_from_env().await;
@@ -508,11 +483,8 @@ mod conj_info_json_star_ {
         }
     }
 
-    /// REPL: `(conj-info-json* 10670519 :conjugations nil :text "あくどくさせた"
-    /// :has-gloss …)`. seq 10670519 is the causative-past of 1000260
-    /// (悪どい) via 10155281 (causative), exercising the via-not-null
-    /// recursion: the entry nests the via's own conj-info-json under
-    /// `"via"` and copies its `readok`.
+    /// A via-set conjugation nests the via's own conjugation info under
+    /// `"via"` and copies its readok up to the outer entry.
     #[tokio::test]
     async fn via_not_null_recursion() {
         let ctx = ctx_from_env().await;
@@ -531,12 +503,9 @@ mod conj_info_json_star_ {
         }
     }
 
-    /// REPL: `(conj-info-json* 1156880 …)`. seq 1156880 (慰め) carries two
-    /// via-null conjugations — 慰める (v1 continuative) and 慰む (v5m
-    /// imperative) — so the loop emits two entries in `select-conjs-and-props`
-    /// order. nil text leaves both readings unresolved (`readok` `[]`);
-    /// restricting `conjugations` to one conj id (661748) emits a single
-    /// entry.
+    /// A sequence with two via-empty conjugations emits two entries. No text
+    /// leaves both readings unresolved (`readok` empty); restricting to one
+    /// conjugation id emits a single entry.
     #[tokio::test]
     async fn multi_entry_and_conj_ids() {
         let ctx = ctx_from_env().await;
@@ -582,11 +551,9 @@ mod conj_info_json {
         serde_json::to_string(values).unwrap()
     }
 
-    /// REPL fixtures (.103, `(jsown:to-json (conj-info-json …))`), 2026-05-24.
-    /// seq 10175587 (尽き果てる, ~ta) resolves the original reading with a
-    /// matching surface (readok true → kept). With nil text every entry's
-    /// readok is `[]`, so `remove-if-not` empties the filtered list and the
-    /// `(or fcij cij)` fallback returns the unfiltered list unchanged.
+    /// A matching surface resolves the original reading (readok true, entry
+    /// kept). With no text every entry's readok is empty, so the filtered list
+    /// comes back empty and the result falls back to the unfiltered list.
     #[tokio::test]
     async fn readok_filter_and_fallback() {
         let ctx = ctx_from_env().await;
@@ -609,8 +576,8 @@ mod conj_info_json {
             .unwrap();
         assert_eq!(json(&result), unresolved, "nil text → fallback to cij");
 
-        // has-gloss + unresolved reading drops the only entry in conj-info-json*,
-        // so cij is empty and (or fcij cij) is the empty list.
+        // has-gloss plus an unresolved reading drops the only entry, so the
+        // result is the empty list.
         let result = conj_info_json(
             &ctx,
             10175587,
@@ -623,9 +590,8 @@ mod conj_info_json {
         assert_eq!(json(&result), "[]", "has-gloss drop → empty");
     }
 
-    /// REPL: `(conj-info-json 10670519 :conjugations nil :text "あくどくさせた"
-    /// :has-gloss nil)`. The via-not-null entry keeps its recursive `via`
-    /// payload (readok copied from the via's first element → true).
+    /// A via-set entry keeps its nested `via` payload, with readok copied up
+    /// from the via's first element.
     #[tokio::test]
     async fn via_recursion_kept() {
         let ctx = ctx_from_env().await;
@@ -642,9 +608,8 @@ mod conj_info_json {
         assert_eq!(json(&result), expected);
     }
 
-    /// REPL: `(conj-info-json 1156880 :conjugations nil :text "慰め")`. Both
-    /// via-null entries resolve (readok true), so the filtered list equals
-    /// the full two-entry list.
+    /// When both via-empty entries resolve, the filtered list equals the full
+    /// two-entry list.
     #[tokio::test]
     async fn multi_entry_all_kept() {
         let ctx = ctx_from_env().await;
@@ -666,7 +631,6 @@ mod simplify_reading_list {
 
     #[test]
     fn simplify_reading_list_fixtures() {
-        // REPL fixtures (.103, ichiran/dict::simplify-reading-list), 2026-05-23.
         let cases: &[(&[&str], &[&str])] = &[
             (&[], &[]),
             (&["aru"], &["aru"]),

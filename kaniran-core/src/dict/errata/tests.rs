@@ -3,7 +3,6 @@ use super::*;
 // --- root_diff ---
 #[test]
 fn root_diff_fixtures() {
-    // REPL (.103, `ichiran/dict::root-diff`), 2026-05-31.
     let cases: &[(&str, &str, (usize, usize))] = &[
         ("食べる", "食べる", (0, 0)),
         ("尋ねる", "たずねる", (1, 2)),
@@ -29,7 +28,6 @@ fn root_diff_fixtures() {
 // --- root_diff_fn ---
 #[test]
 fn root_diff_fn_fixtures() {
-    // REPL (.103, `ichiran/dict::root-diff-fn`), 2026-05-31.
     let f1 = root_diff_fn("尋ねる", "たずねる");
     assert_eq!(f1("訪ねる"), "たずねる");
     assert_eq!(f1("尋ねた"), "たずねた");
@@ -43,10 +41,7 @@ fn root_diff_fn_fixtures() {
 }
 
 // --- add_deha_ja_readings ---
-/// REPL pin (`(concatenate 'string "じゃ" (subseq input 2))`),
-/// 2026-05-31. Cases drawn from the live `では`-prefixed kana_text
-/// join inside `add_deha_ja_readings`, plus the exactly-2-char
-/// boundary `では`.
+/// Rewrites a leading では to じゃ, including the exactly-two-char では.
 #[test]
 fn rewrite_deha_to_ja_cases() {
     let cases: &[(&str, &str)] = &[
@@ -67,12 +62,9 @@ fn rewrite_deha_to_ja_cases() {
 }
 
 // --- get_all_readings ---
-/// REPL probe (`(ichiran/dict::get-all-readings seq)` under
-/// `with-db`), 2026-05-31. Pins three real entries plus a
-/// guaranteed-missing seq. UNION lacks `ORDER BY` in the upstream
-/// query so the returned order is not specified — assertions
-/// compare sorted sets, the same way the probe script sorted with
-/// `(sort (copy-list …) #'string<)`.
+/// All readings for an entry, plus a missing seq. The query has no
+/// ORDER BY, so the returned order is unspecified and assertions
+/// compare sorted sets.
 #[tokio::test]
 #[ignore = "DB test; requires KANIRAN_TEST_DATABASE_URL"]
 async fn get_all_readings_corpus() {
@@ -159,17 +151,15 @@ fn rule(
     )
 }
 
-/// Synthetic conj-rules hash (real pos-ids from `get-pos-index`)
-/// driven through `ichiran/dict::errata-conj-rules-hook` on .103,
-/// 2026-05-24. Each pos exercises a distinct section: adj-i (1) /
-/// adj-ix (7) prepend rules into a fresh entry; v5aru (30) gets the
-/// irregular then a v5 negative-stem; v1 (28) patches the
-/// formal-negative okuri and leaves the non-formal row intact; v5u
-/// (41) patches the negative-conditional, converts causative-su, and
-/// adds the negative-stem; vs-s (47) drops the conj-5 row; v5r (37)
-/// gets the negative-stem and leaves a conj-7/onum-1 row untouched;
-/// n (17) shows causative-su conversion applies to every entry, not
-/// just v5.
+/// The errata hook applies a distinct fixup per part-of-speech:
+/// adj-i (1) / adj-ix (7) prepend rules into a fresh entry; v5aru
+/// (30) gets the irregular then a v5 negative-stem; v1 (28) patches
+/// the formal-negative okurigana and leaves the non-formal row intact;
+/// v5u (41) patches the negative-conditional, converts causative-su,
+/// and adds the negative-stem; vs-s (47) drops the conj-5 row; v5r
+/// (37) gets the negative-stem and leaves a conj-7/onum-1 row
+/// untouched; n (17) shows causative-su conversion applies to every
+/// part-of-speech, not just verbs.
 #[test]
 fn errata_fixups() {
     let mut hash: HashMap<i32, Vec<ConjugationRule>> = HashMap::new();

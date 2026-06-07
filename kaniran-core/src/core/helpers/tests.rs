@@ -1,8 +1,7 @@
 use super::*;
 
 // --- _star_romaji_kana_star_ ---
-/// The `OnceLock` builder wiring runs `load_romaji_kana` (292
-/// entries per the .103 REPL).
+/// The romaji-kana table has 292 entries.
 #[test]
 fn romaji_kana_builds_once() {
     assert_eq!(romaji_kana().len(), 292);
@@ -11,10 +10,8 @@ fn romaji_kana_builds_once() {
 // --- get_romaji_kana ---
 #[test]
 fn get_romaji_kana_fixtures() {
-    // REPL fixtures (.103, ichiran::get-romaji-kana), 2026-05-26.
-    // (key, Some(text, kana, next) | None). Covers a plain rule, a
-    // doubled-consonant rule (`next` present), a missing key, and
-    // the empty key.
+    // Columns: key, Some(text, kana, next) or None. Covers a plain rule, a
+    // doubled-consonant rule (next present), a missing key, and the empty key.
     let cases: &[(&str, Option<(&str, &str, Option<&str>)>)] = &[
         ("a", Some(("a", "あ", None))),
         ("ka", Some(("ka", "か", None))),
@@ -34,9 +31,8 @@ fn get_romaji_kana_fixtures() {
 }
 
 // --- load_romaji_kana ---
-/// REPL (.103, after `(load-romaji-kana)`): 292 keys (293 rows,
-/// `fu` duplicated). Spot-checks pin the tab-split parse, the
-/// 2-column `next`→`None`, and the 3-column gemination `next`.
+/// Parses the romaji-map CSV: 292 keys (293 rows, `fu` duplicated). Spot-checks
+/// the tab-split parse, a 2-column row (no `next`), and a 3-column gemination row.
 #[test]
 fn loads_romaji_map_csv() {
     let map = load_romaji_kana();
@@ -70,9 +66,8 @@ fn loads_romaji_map_csv() {
 }
 
 // --- _star_romaji_kana_next_star_ ---
-/// REPL (.103): `(hash-table-count *romaji-kana-next*)` = 60.
-/// Membership spot-checks pin the proper-prefix contract: short
-/// prefixes of longer keys are present, full keys are not.
+/// The romaji-kana-next set has 60 entries. It holds proper prefixes of longer
+/// keys: short prefixes are present, full keys are not.
 #[test]
 fn romaji_kana_next_builds_once() {
     let next = romaji_kana_next();

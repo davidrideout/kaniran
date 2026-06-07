@@ -1,25 +1,22 @@
 use super::*;
 
 // --- _star_pos_by_index_star_ ---
-/// The `OnceLock` builder wiring runs `load_pos_by_index` (92
-/// entries per the .103 REPL).
+/// The pos-by-index table has 92 entries.
 #[test]
 fn pos_by_index_builds_once() {
     assert_eq!(pos_by_index().len(), 92);
 }
 
 // --- _star_pos_index_star_ ---
-/// The `OnceLock` builder wiring runs `load_pos_index` (92 entries
-/// per the .103 REPL).
+/// The pos-index table has 92 entries.
 #[test]
 fn pos_index_builds_once() {
     assert_eq!(pos_index().len(), 92);
 }
 
 // --- get_pos_index ---
-/// REPL (.103, `ichiran/dict::get-pos-index`), 2026-05-24. Spot-checks
-/// across the kwpos.csv tags plus two misses (`nil` on absent key /
-/// empty string).
+/// Looks up the index for part-of-speech tags from kwpos.csv, plus two
+/// misses (absent key and empty string).
 #[test]
 fn get_pos_index_lookups() {
     let cases: &[(&str, Option<i32>)] = &[
@@ -41,10 +38,8 @@ fn get_pos_index_lookups() {
 }
 
 // --- load_pos_index ---
-/// REPL (.103, after `(load-pos-index)`): `(hash-table-count
-/// *pos-index*)` = 92 (93 kwpos.csv lines − header). Spot-checks
-/// pin the tab-split, the `(id . description)` value, and the
-/// dropped header / `ents` column.
+/// Loads kwpos.csv into 92 entries (93 lines minus the header), each tag
+/// mapping to its `(id, description)`.
 #[test]
 fn load_pos_index_loads_kwpos_csv() {
     let map = load_pos_index();
@@ -66,8 +61,7 @@ fn load_pos_index_loads_kwpos_csv() {
 }
 
 // --- get_pos ---
-/// REPL (.103, after `(load-pos-by-index)`): `(get-pos id)` for
-/// present ids and a miss (`(get-pos 99999)` → nil).
+/// Looks up the tag for present ids, plus a miss on an absent id.
 #[test]
 fn get_pos_lookups() {
     let cases: &[(i32, Option<&str>)] = &[
@@ -82,9 +76,8 @@ fn get_pos_lookups() {
 }
 
 // --- load_pos_by_index ---
-/// REPL (.103, after `(load-pos-by-index)`): `(hash-table-count
-/// *pos-by-index*)` = 92 (93 kwpos.csv lines − header). Spot-checks
-/// pin the tab-split and the id→tag value.
+/// Loads kwpos.csv into 92 entries (93 lines minus the header), each id
+/// mapping to its tag.
 #[test]
 fn load_pos_by_index_loads_kwpos_csv() {
     let map = load_pos_by_index();

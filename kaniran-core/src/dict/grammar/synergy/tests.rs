@@ -33,11 +33,8 @@ mod make_segment_list_from {
 
     #[test]
     fn swaps_segments_preserves_other_slots() {
-        // REPL:
-        //   src segments len=2, dst segments len=1
-        //   dst start=0 end=2 matches=3
-        //   src not mutated: src segments len=2
-        //   first dst seg score=20
+        // Builds a new segment list with replacement segments while keeping
+        // start/end/matches, and leaves the source untouched.
         let seg1 = seg_with_score(10);
         let seg2 = seg_with_score(20);
         let sl = SegmentList {
@@ -106,35 +103,33 @@ mod filter_is_pos_macro {
         })))
     }
 
-    // kpcl-test bodies used at the upstream `filter-is-pos` callsites
-    // plus a few that isolate the kpcl gate from the pos gate.
+    // The kpcl-test predicates each synergy uses, plus a couple that
+    // isolate the kpcl gate from the pos gate.
     fn adj(k: bool, p: bool, c: bool, l: bool) -> bool {
         k || l || (p && c)
-    } // dict-grammar.lisp:864/871 (or k l (and p c))
+    }
     fn advto(k: bool, p: bool, _c: bool, l: bool) -> bool {
         k || l || p
-    } // dict-grammar.lisp:878 (or k l p)
+    }
     fn orkl(k: bool, _p: bool, _c: bool, l: bool) -> bool {
         k || l
-    } // dict-grammar.lisp:915 (or k l)
+    }
     fn konly(k: bool, _p: bool, _c: bool, _l: bool) -> bool {
         k
-    } // dict-grammar.lisp:922 (k)
+    }
     fn always(_k: bool, _p: bool, _c: bool, _l: bool) -> bool {
         true
-    } // dict-grammar.lisp:952 (t)
+    }
     fn ponly(_k: bool, p: bool, _c: bool, _l: bool) -> bool {
         p
-    } // isolation case
+    }
     fn pandc(_k: bool, p: bool, c: bool, _l: bool) -> bool {
         p && c
-    } // isolation case
+    }
 
     #[test]
     fn filter_is_pos_fixtures() {
-        // REPL fixtures (.103, `ichiran/dict::filter-is-pos` applied to
-        // a `gen-score`d segment), 2026-05-24. Columns:
-        // (label, kpcl (k p c l), posi, pos_mask, kpcl_test, expected).
+        // Columns: (label, kpcl (k p c l), posi, pos_mask, kpcl_test, expected).
         type Test = fn(bool, bool, bool, bool) -> bool;
         let cases: &[(&str, (bool, bool, bool, bool), &[&str], u16, Test, bool)] = &[
             // 普通 — kpcl=(T T T NIL) posi=(adj-na adj-no adv n)
@@ -375,7 +370,6 @@ mod filter_in_seq_set {
 
     #[test]
     fn match_when_intersection_nonempty() {
-        // REPL: filter (200 400) on seg-a (:seq-set (100 200)) -> truthy=T
         let seg = lite_with_seq_set(vec![100, 200]);
         let f = filter_in_seq_set(vec![200, 400]);
         assert!(f(&seg));
@@ -383,7 +377,6 @@ mod filter_in_seq_set {
 
     #[test]
     fn no_match_when_disjoint() {
-        // REPL: filter (200 400) on seg-b (:seq-set (300)) -> truthy=NIL
         let seg = lite_with_seq_set(vec![300]);
         let f = filter_in_seq_set(vec![200, 400]);
         assert!(!f(&seg));
@@ -391,7 +384,6 @@ mod filter_in_seq_set {
 
     #[test]
     fn no_match_when_info_absent() {
-        // REPL: filter (200 400) on seg-no-info -> truthy=NIL
         let seg = lite_no_info();
         let f = filter_in_seq_set(vec![200, 400]);
         assert!(!f(&seg));
@@ -399,7 +391,6 @@ mod filter_in_seq_set {
 
     #[test]
     fn empty_seqs_never_matches() {
-        // REPL: (filter-in-seq-set) on seg-a -> truthy=NIL
         let seg = lite_with_seq_set(vec![100, 200]);
         let f = filter_in_seq_set(vec![]);
         assert!(!f(&seg));
@@ -464,12 +455,9 @@ mod synergy_noun_particle {
         })
     }
 
-    // REPL probes (/tmp/probe_437_441.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive_len1() {
-        // noun-particle/positive-len1: l noun, r seq 2028920 (は), r.end-r.start=1.
-        // SYNERGY desc="noun+prt" conn=" " score=14 start=1 end=1.
+        // Noun followed by particle は (one mora): "noun+prt" synergy, score 14.
         let l = lite_sl_owned(
             0,
             1,
@@ -498,7 +486,7 @@ mod synergy_noun_particle {
 
     #[test]
     fn positive_len2() {
-        // noun-particle/positive-len2: r seq 2215430 (には), span=2 -> score=18.
+        // Particle には spanning two morae raises the score to 18.
         let l = lite_sl_owned(
             0,
             1,
@@ -518,7 +506,7 @@ mod synergy_noun_particle {
 
     #[test]
     fn positive_len4() {
-        // noun-particle/positive-len4: r seq 1009600 (にとって), span=4 -> score=26.
+        // Particle にとって spanning four morae raises the score to 26.
         let l = lite_sl_owned(
             0,
             1,
@@ -536,7 +524,6 @@ mod synergy_noun_particle {
 
     #[test]
     fn not_adjacent_empty() {
-        // noun-particle/not-adjacent: NIL.
         let l = lite_sl_owned(
             0,
             1,
@@ -552,7 +539,6 @@ mod synergy_noun_particle {
 
     #[test]
     fn right_misses_empty() {
-        // noun-particle/right-misses: NIL.
         let l = lite_sl_owned(
             0,
             1,
@@ -625,13 +611,9 @@ mod synergy_noun_da {
         })
     }
 
-    // REPL probes (/tmp/probe_437_441.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive() {
-        // noun-da/positive: l noun (kpcl k=T posi=("n")), r seq 2089020 (だ).
-        // RIGHT-SL start=1 end=2 segs=1, SYNERGY desc="noun+da"
-        // conn=" " score=10 start=1 end=1, LEFT-SL start=0 end=1 segs=1.
+        // Noun followed by だ produces the "noun+da" synergy, score 10.
         let l = lite_sl_owned(
             0,
             1,
@@ -660,7 +642,6 @@ mod synergy_noun_da {
 
     #[test]
     fn not_adjacent_empty() {
-        // noun-da/not-adjacent: NIL.
         let l = lite_sl_owned(
             0,
             1,
@@ -676,7 +657,6 @@ mod synergy_noun_da {
 
     #[test]
     fn left_not_noun_empty() {
-        // noun-da/left-not-noun: NIL.
         let l = lite_sl_owned(
             0,
             1,
@@ -692,7 +672,6 @@ mod synergy_noun_da {
 
     #[test]
     fn right_misses_empty() {
-        // noun-da/right-misses: NIL.
         let l = lite_sl_owned(
             0,
             1,
@@ -765,13 +744,9 @@ mod synergy_no_da {
         })
     }
 
-    // REPL probes (/tmp/probe_synergies.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive_1469800_2089020() {
-        // no-da/positive-1: l ends at 2, r starts at 2.
-        // RIGHT-SL start=2 end=3 segs=1, SYNERGY desc="no da/desu"
-        // conn=" " score=15 start=2 end=2, LEFT-SL start=0 end=2 segs=1
+        // Adjacent の + だ produces the "no da/desu" synergy, score 15.
         let l = lite_sl_owned(0, 2, vec![seg_with_seqs(vec![1469800, 999])]);
         let r = lite_sl_owned(2, 3, vec![seg_with_seqs(vec![2089020])]);
         let got = synergy_no_da(&l, &r);
@@ -792,7 +767,6 @@ mod synergy_no_da {
 
     #[test]
     fn positive_2139720_1928670() {
-        // no-da/positive-2.
         let l = lite_sl_owned(0, 1, vec![seg_with_seqs(vec![2139720])]);
         let r = lite_sl_owned(1, 2, vec![seg_with_seqs(vec![1928670])]);
         let got = synergy_no_da(&l, &r);
@@ -804,7 +778,6 @@ mod synergy_no_da {
 
     #[test]
     fn not_adjacent_empty() {
-        // no-da/not-adjacent: NIL
         let l = lite_sl_owned(0, 1, vec![seg_with_seqs(vec![1469800])]);
         let r = lite_sl_owned(5, 6, vec![seg_with_seqs(vec![2089020])]);
         assert!(synergy_no_da(&l, &r).is_empty());
@@ -812,7 +785,6 @@ mod synergy_no_da {
 
     #[test]
     fn left_misses_empty() {
-        // no-da/left-misses: NIL
         let l = lite_sl_owned(0, 1, vec![seg_with_seqs(vec![9999999])]);
         let r = lite_sl_owned(1, 2, vec![seg_with_seqs(vec![2089020])]);
         assert!(synergy_no_da(&l, &r).is_empty());
@@ -820,7 +792,6 @@ mod synergy_no_da {
 
     #[test]
     fn right_misses_empty() {
-        // no-da/right-misses: NIL
         let l = lite_sl_owned(0, 1, vec![seg_with_seqs(vec![1469800])]);
         let r = lite_sl_owned(1, 2, vec![seg_with_seqs(vec![9999999])]);
         assert!(synergy_no_da(&l, &r).is_empty());
@@ -828,7 +799,6 @@ mod synergy_no_da {
 
     #[test]
     fn empty_left_segments() {
-        // no-da/empty-left: NIL
         let l = lite_sl_owned(0, 1, vec![]);
         let r = lite_sl_owned(1, 2, vec![seg_with_seqs(vec![2089020])]);
         assert!(synergy_no_da(&l, &r).is_empty());
@@ -893,13 +863,9 @@ mod synergy_sou_nanda {
         })
     }
 
-    // REPL probes (/tmp/probe_442_448.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive() {
-        // sou-nanda/positive: RIGHT-SL start=2 end=5 segs=1,
-        // SYN desc="sou na n da" conn=" " score=50 start=2 end=2,
-        // LEFT-SL start=0 end=2 segs=1.
+        // Adjacent そう + なんだ produces the "sou na n da" synergy, score 50.
         let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![2137720])]);
         let r = lite_sl_owned(2, 5, vec![seg(2, 5, vec![2140410])]);
         let got = synergy_sou_nanda(&l, &r);
@@ -920,7 +886,6 @@ mod synergy_sou_nanda {
 
     #[test]
     fn right_miss_empty() {
-        // sou-nanda/right-miss: NIL.
         let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![2137720])]);
         let r = lite_sl_owned(2, 5, vec![seg(2, 5, vec![99])]);
         assert!(synergy_sou_nanda(&l, &r).is_empty());
@@ -928,7 +893,6 @@ mod synergy_sou_nanda {
 
     #[test]
     fn not_adjacent_empty() {
-        // sou-nanda/not-adjacent: NIL.
         let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![2137720])]);
         let r = lite_sl_owned(3, 6, vec![seg(3, 6, vec![2140410])]);
         assert!(synergy_sou_nanda(&l, &r).is_empty());
@@ -936,7 +900,6 @@ mod synergy_sou_nanda {
 
     #[test]
     fn left_miss_empty() {
-        // sou-nanda/left-miss: NIL.
         let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![99])]);
         let r = lite_sl_owned(2, 5, vec![seg(2, 5, vec![2140410])]);
         assert!(synergy_sou_nanda(&l, &r).is_empty());
@@ -1001,13 +964,10 @@ mod synergy_no_adjectives {
         })
     }
 
-    // REPL probes (/tmp/probe_synergies.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive_kpcl_k() {
-        // no-adj/positive-k: l adj-no with k=T, r seq 1469800.
-        // RIGHT-SL start=1 end=2 segs=1, SYNERGY desc="no-adjective"
-        // conn=" " score=15 start=1 end=1, LEFT-SL start=0 end=1 segs=1.
+        // An adj-no left with the k bit set produces the "no-adjective"
+        // synergy, score 15.
         let l = lite_sl_owned(
             0,
             1,
@@ -1036,7 +996,7 @@ mod synergy_no_adjectives {
 
     #[test]
     fn positive_kpcl_l() {
-        // no-adj/positive-l: l=T satisfies (or k l (and p c)).
+        // The l bit alone also satisfies the kpcl gate.
         let l = lite_sl_owned(
             0,
             1,
@@ -1054,7 +1014,7 @@ mod synergy_no_adjectives {
 
     #[test]
     fn positive_kpcl_pc() {
-        // no-adj/positive-pc: (and p c) satisfies the test.
+        // The p and c bits together satisfy the kpcl gate.
         let l = lite_sl_owned(
             0,
             1,
@@ -1071,7 +1031,6 @@ mod synergy_no_adjectives {
 
     #[test]
     fn neg_kpcl_all_nil() {
-        // no-adj/neg-kpcl-all-nil: NIL.
         let l = lite_sl_owned(
             0,
             1,
@@ -1087,7 +1046,7 @@ mod synergy_no_adjectives {
 
     #[test]
     fn neg_kpcl_p_only() {
-        // no-adj/neg-p-only: p without c, no k, no l -> kpcl-test false.
+        // The p bit without c (and no k or l) fails the kpcl gate.
         let l = lite_sl_owned(
             0,
             1,
@@ -1103,7 +1062,7 @@ mod synergy_no_adjectives {
 
     #[test]
     fn neg_wrong_posi() {
-        // no-adj/neg-no-posi: posi=("n"), not adj-no.
+        // A plain noun (not adj-no) on the left fires nothing.
         let l = lite_sl_owned(
             0,
             1,
@@ -1176,13 +1135,10 @@ mod synergy_na_adjectives {
         })
     }
 
-    // REPL probes (/tmp/probe_synergies.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive_na() {
-        // na-adj/positive-na: l adj-na with k=T, r seq 2029110.
-        // RIGHT-SL start=2 end=3 segs=1, SYNERGY desc="na-adjective"
-        // conn=" " score=15 start=2 end=2, LEFT-SL start=0 end=2 segs=1.
+        // An adj-na left followed by な produces the "na-adjective" synergy,
+        // score 15.
         let l = lite_sl_owned(
             0,
             2,
@@ -1211,7 +1167,7 @@ mod synergy_na_adjectives {
 
     #[test]
     fn positive_ni() {
-        // na-adj/positive-ni: l adj-na with l=T, r seq 2028990 (に).
+        // An adj-na left also fires with the particle に on the right.
         let l = lite_sl_owned(
             0,
             2,
@@ -1231,7 +1187,7 @@ mod synergy_na_adjectives {
 
     #[test]
     fn wrong_posi_empty() {
-        // na-adj/neg-wrong-posi: l posi=("v5k"), not adj-na -> NIL.
+        // A verb (not adj-na) on the left fires nothing.
         let l = lite_sl_owned(
             0,
             2,
@@ -1304,13 +1260,10 @@ mod synergy_to_adverbs {
         })
     }
 
-    // REPL probes (/tmp/probe_449_451.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive_k_span2() {
-        // to-adv/positive-k: l adv-to k=T span=2 -> score = 10 + 10*2 = 30.
-        // RIGHT-SL start=2 end=3 segs=1, SYNERGY desc="to-adverb"
-        // conn=" " score=30 start=2 end=2, LEFT-SL start=0 end=2 segs=1.
+        // An adv-to left (k bit) spanning two morae produces the "to-adverb"
+        // synergy; score scales with span: 10 + 10*2 = 30.
         let l = lite_sl_owned(
             0,
             2,
@@ -1339,7 +1292,7 @@ mod synergy_to_adverbs {
 
     #[test]
     fn positive_l_span1() {
-        // to-adv/positive-l: l=T span=1 -> score = 20.
+        // The l bit with span 1 scores 20.
         let l = lite_sl_owned(
             0,
             1,
@@ -1359,9 +1312,8 @@ mod synergy_to_adverbs {
 
     #[test]
     fn positive_p_alone_span3() {
-        // to-adv/positive-p-alone: p=T c=NIL span=3 -> score = 40. Bare
-        // `p` is the divergence vs synergy-no-adjectives / synergy-na-
-        // adjectives whose kpcl-test is `(or k l (and p c))`.
+        // The p bit alone (no c) passes here, unlike the no/na-adjective
+        // synergies which need k, l, or both p and c. Span 3 scores 40.
         let l = lite_sl_owned(
             0,
             3,
@@ -1381,7 +1333,7 @@ mod synergy_to_adverbs {
 
     #[test]
     fn positive_p_and_c_span4() {
-        // to-adv/positive-p-and-c: p=T c=T span=4 -> score = 50.
+        // Both p and c with span 4 scores 50.
         let l = lite_sl_owned(
             0,
             4,
@@ -1401,7 +1353,7 @@ mod synergy_to_adverbs {
 
     #[test]
     fn positive_k_span1() {
-        // to-adv/positive-span1: k=T span=1 -> score = 20.
+        // The k bit with span 1 scores 20.
         let l = lite_sl_owned(
             0,
             1,
@@ -1419,7 +1371,6 @@ mod synergy_to_adverbs {
 
     #[test]
     fn neg_kpcl_all_nil() {
-        // to-adv/neg-kpcl-all-nil: NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -1435,8 +1386,7 @@ mod synergy_to_adverbs {
 
     #[test]
     fn neg_c_alone() {
-        // to-adv/neg-c-alone: c=T only (no k, no l, no p) — kpcl-test is
-        // `(or k l p)` so bare c does not pass.
+        // The c bit alone fails the gate (only k, l, or p pass).
         let l = lite_sl_owned(
             0,
             2,
@@ -1452,7 +1402,6 @@ mod synergy_to_adverbs {
 
     #[test]
     fn neg_wrong_posi() {
-        // to-adv/neg-wrong-posi: posi=("n"), not adv-to -> NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -1468,7 +1417,6 @@ mod synergy_to_adverbs {
 
     #[test]
     fn neg_wrong_right_seq() {
-        // to-adv/neg-wrong-right: r seq not 1008490.
         let l = lite_sl_owned(
             0,
             2,
@@ -1484,7 +1432,6 @@ mod synergy_to_adverbs {
 
     #[test]
     fn neg_non_adjacent() {
-        // to-adv/neg-non-adjacent: l.end /= r.start.
         let l = lite_sl_owned(
             0,
             2,
@@ -1500,7 +1447,6 @@ mod synergy_to_adverbs {
 
     #[test]
     fn neg_empty_left() {
-        // to-adv/neg-empty-left: l segs empty.
         let l = lite_sl_owned(0, 2, vec![]);
         let r = lite_sl_owned(
             2,
@@ -1575,13 +1521,10 @@ mod synergy_suffix_chu {
         })
     }
 
-    // REPL probes (/tmp/probe_442_448.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive_1620400() {
-        // suffix-chu/positive-1620400: RIGHT-SL start=2 end=3 segs=1,
-        // SYN desc="suffix-chu" conn="-" score=12 start=2 end=2,
-        // LEFT-SL start=0 end=2 segs=1.
+        // Noun followed by the 中 suffix produces the "suffix-chu" synergy,
+        // score 12.
         let l = lite_sl_owned(
             0,
             2,
@@ -1616,7 +1559,7 @@ mod synergy_suffix_chu {
 
     #[test]
     fn positive_2083570() {
-        // suffix-chu/positive-2083570: same shape as positive_1620400.
+        // The other 中 suffix sequence fires the same way.
         let l = lite_sl_owned(
             0,
             2,
@@ -1639,7 +1582,6 @@ mod synergy_suffix_chu {
 
     #[test]
     fn right_miss_empty() {
-        // suffix-chu/right-miss: NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -1655,7 +1597,6 @@ mod synergy_suffix_chu {
 
     #[test]
     fn left_not_noun_empty() {
-        // suffix-chu/left-not-noun: NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -1677,7 +1618,6 @@ mod synergy_suffix_chu {
 
     #[test]
     fn not_adjacent_empty() {
-        // suffix-chu/not-adjacent: NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -1762,13 +1702,10 @@ mod synergy_suffix_tachi {
         })
     }
 
-    // REPL probes (/tmp/probe_442_448.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive() {
-        // suffix-tachi/positive: RIGHT-SL start=2 end=3 segs=1,
-        // SYN desc="suffix-tachi" conn="-" score=10 start=2 end=2,
-        // LEFT-SL start=0 end=2 segs=1.
+        // Noun followed by the 達 suffix produces the "suffix-tachi" synergy,
+        // score 10.
         let l = lite_sl_owned(
             0,
             2,
@@ -1803,7 +1740,6 @@ mod synergy_suffix_tachi {
 
     #[test]
     fn right_miss_empty() {
-        // suffix-tachi/right-miss: NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -1819,7 +1755,6 @@ mod synergy_suffix_tachi {
 
     #[test]
     fn left_not_noun_empty() {
-        // suffix-tachi/left-not-noun: NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -1841,7 +1776,6 @@ mod synergy_suffix_tachi {
 
     #[test]
     fn not_adjacent_empty() {
-        // suffix-tachi/not-adjacent: NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -1863,9 +1797,8 @@ mod synergy_suffix_tachi {
 
     #[test]
     fn multi_segs_partial_filter() {
-        // suffix-tachi/multi-segs: l has 2 segs (one noun, one not),
-        // r has 2 segs (one matches 1416220, one not). RIGHT-SL segs=1,
-        // LEFT-SL segs=1.
+        // With mixed segments on both sides, only the matching ones survive:
+        // one segment each side.
         let l = lite_sl_owned(
             0,
             2,
@@ -1954,13 +1887,10 @@ mod synergy_suffix_buri {
         })
     }
 
-    // REPL probes (/tmp/probe_442_448.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive() {
-        // suffix-buri/positive: RIGHT-SL start=2 end=4 segs=1,
-        // SYN desc="suffix-buri" conn="" score=40 start=2 end=2,
-        // LEFT-SL start=0 end=2 segs=1.
+        // Noun followed by the 振り suffix produces the "suffix-buri" synergy,
+        // score 40.
         let l = lite_sl_owned(
             0,
             2,
@@ -1995,7 +1925,6 @@ mod synergy_suffix_buri {
 
     #[test]
     fn left_not_noun_empty() {
-        // suffix-buri/left-not-noun: NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -2017,7 +1946,6 @@ mod synergy_suffix_buri {
 
     #[test]
     fn right_miss_empty() {
-        // suffix-buri/right-miss: NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -2033,7 +1961,6 @@ mod synergy_suffix_buri {
 
     #[test]
     fn not_adjacent_empty() {
-        // suffix-buri/not-adjacent: NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -2118,13 +2045,10 @@ mod synergy_suffix_sei {
         })
     }
 
-    // REPL probes (/tmp/probe_442_448.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive() {
-        // suffix-sei/positive: RIGHT-SL start=2 end=3 segs=1,
-        // SYN desc="suffix-sei" conn="" score=12 start=2 end=2,
-        // LEFT-SL start=0 end=2 segs=1.
+        // Noun followed by the 性 suffix produces the "suffix-sei" synergy,
+        // score 12.
         let l = lite_sl_owned(
             0,
             2,
@@ -2159,7 +2083,6 @@ mod synergy_suffix_sei {
 
     #[test]
     fn left_not_noun_empty() {
-        // suffix-sei/left-not-noun: NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -2181,7 +2104,6 @@ mod synergy_suffix_sei {
 
     #[test]
     fn right_miss_empty() {
-        // suffix-sei/right-miss: NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -2197,7 +2119,6 @@ mod synergy_suffix_sei {
 
     #[test]
     fn not_adjacent_empty() {
-        // suffix-sei/not-adjacent: NIL.
         let l = lite_sl_owned(
             0,
             2,
@@ -2276,13 +2197,10 @@ mod synergy_o_prefix {
         })
     }
 
-    // REPL probes (/tmp/probe_437_441.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive_k() {
-        // o-prefix/positive-k: l seq 1270190 (お), r kpcl k=T posi=("n").
-        // RIGHT-SL start=1 end=2 segs=1, SYNERGY desc="o+noun"
-        // conn="" score=10 start=1 end=1, LEFT-SL start=0 end=1 segs=1.
+        // Prefix お before a noun (k bit) produces the "o+noun" synergy,
+        // score 10.
         let l = lite_sl_owned(
             0,
             1,
@@ -2311,7 +2229,7 @@ mod synergy_o_prefix {
 
     #[test]
     fn positive_l() {
-        // o-prefix/positive-l: r kpcl l=T, kpcl-test (or k l) satisfied.
+        // The l bit on the noun also satisfies the gate.
         let l = lite_sl_owned(
             0,
             1,
@@ -2329,7 +2247,7 @@ mod synergy_o_prefix {
 
     #[test]
     fn neg_pc_only() {
-        // o-prefix/neg-pc-only: kpcl-test is (or k l), NOT (and p c) — NIL.
+        // The p and c bits do not satisfy this gate (only k or l do).
         let l = lite_sl_owned(
             0,
             1,
@@ -2345,7 +2263,7 @@ mod synergy_o_prefix {
 
     #[test]
     fn neg_no_n_posi() {
-        // o-prefix/neg-no-n-posi: posi=("adj-na"), not "n" — NIL.
+        // A non-noun (adj-na) on the right fires nothing.
         let l = lite_sl_owned(
             0,
             1,
@@ -2361,7 +2279,6 @@ mod synergy_o_prefix {
 
     #[test]
     fn neg_left_miss() {
-        // o-prefix/neg-left-miss: l seq doesn't match 1270190 — NIL.
         let l = lite_sl_owned(
             0,
             1,
@@ -2434,13 +2351,10 @@ mod synergy_kanji_prefix {
         })
     }
 
-    // REPL probes (/tmp/probe_synergies.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive_mi() {
-        // kanji-prefix/positive-mi: l seq 2242840, r k=T posi=("n").
-        // RIGHT-SL start=1 end=3 segs=1, SYNERGY desc="kanji prefix+noun"
-        // conn="" score=15 start=1 end=1, LEFT-SL start=0 end=1 segs=1.
+        // A kanji prefix before a noun produces the "kanji prefix+noun"
+        // synergy, score 15.
         let l = lite_sl_owned(
             0,
             1,
@@ -2469,7 +2383,7 @@ mod synergy_kanji_prefix {
 
     #[test]
     fn positive_fu() {
-        // kanji-prefix/positive-fu: l seq 1922780.
+        // Another accepted kanji-prefix sequence fires the same way.
         let l = lite_sl_owned(
             0,
             1,
@@ -2487,7 +2401,6 @@ mod synergy_kanji_prefix {
 
     #[test]
     fn positive_2423740() {
-        // kanji-prefix/positive-2423740: l seq 2423740.
         let l = lite_sl_owned(
             0,
             1,
@@ -2504,7 +2417,7 @@ mod synergy_kanji_prefix {
 
     #[test]
     fn neg_no_k() {
-        // kanji-prefix/neg-no-k: r kpcl k=NIL even with posi=("n") -> NIL.
+        // Without the k bit, a noun on the right still fires nothing.
         let l = lite_sl_owned(
             0,
             1,
@@ -2520,7 +2433,7 @@ mod synergy_kanji_prefix {
 
     #[test]
     fn neg_no_n_posi() {
-        // kanji-prefix/neg-no-n-posi: r k=T but posi=("v5k") (not "n").
+        // A verb (not a noun) on the right fires nothing.
         let l = lite_sl_owned(
             0,
             1,
@@ -2536,7 +2449,6 @@ mod synergy_kanji_prefix {
 
     #[test]
     fn neg_left_miss() {
-        // kanji-prefix/neg-left-miss: l seq 9999 doesn't match.
         let l = lite_sl_owned(
             0,
             1,
@@ -2631,13 +2543,10 @@ mod synergy_shicha_ikenai {
         })
     }
 
-    // REPL probes (/tmp/probe_442_448.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive() {
-        // shicha-ikenai/positive: RIGHT-SL start=3 end=7 segs=1,
-        // SYN desc="shicha ikenai" conn=" " score=50 start=3 end=3,
-        // LEFT-SL start=0 end=3 segs=1.
+        // A compound ending in は followed by いけない produces the
+        // "shicha ikenai" synergy, score 50.
         let l = lite_sl_owned(
             0,
             3,
@@ -2662,7 +2571,6 @@ mod synergy_shicha_ikenai {
 
     #[test]
     fn right_miss_empty() {
-        // shicha-ikenai/right-miss: NIL.
         let l = lite_sl_owned(
             0,
             3,
@@ -2674,7 +2582,6 @@ mod synergy_shicha_ikenai {
 
     #[test]
     fn not_adjacent_empty() {
-        // shicha-ikenai/not-adjacent: NIL.
         let l = lite_sl_owned(
             0,
             3,
@@ -2686,8 +2593,7 @@ mod synergy_shicha_ikenai {
 
     #[test]
     fn left_not_compound_empty() {
-        // shicha-ikenai/left-not-compound: NIL.
-        // Simple word with seq 2028920 fails filter-is-compound-end.
+        // A simple word (not a compound) on the left fires nothing.
         let l = lite_sl_owned(0, 1, vec![seg(0, 1, dummy_kana(), vec![2028920])]);
         let r = lite_sl_owned(1, 5, vec![seg(1, 5, dummy_kana(), vec![1612750])]);
         assert!(synergy_shicha_ikenai(&l, &r).is_empty());
@@ -2774,21 +2680,16 @@ mod synergy_shika_negative {
         })
     }
 
-    // REPL probes:
-    // - /tmp/probe_442_448.lisp on .103, 2026-05-18: t / nil cases.
-    // - /tmp/probe_shika_null.lisp on .103: :NULL case (DB-null neg
-    //   keyword is truthy in CL, so synergy fires).
-    //
-    // Rust ↔ Lisp neg mapping (parse_opt_bool, audit/common/mod.rs:1789):
-    //   Some(true)  ↔ Lisp t      → FIRE
-    //   Some(false) ↔ Lisp nil    → reject
-    //   None        ↔ Lisp :NULL  → FIRE (:NULL is a truthy keyword)
+    // How the right segment's "negative" flag maps to whether the synergy
+    // fires:
+    //   Some(true)  → fires
+    //   Some(false) → rejected (this is the only value that rejects)
+    //   None        → fires (a database-null negative flag counts as set)
 
     #[test]
     fn positive_neg_t() {
-        // shika-negative/positive (neg=t): RIGHT-SL start=2 end=5 segs=1,
-        // SYN desc="shika+neg" conn=" " score=50 start=2 end=2,
-        // LEFT-SL start=0 end=2 segs=1.
+        // しか followed by a negative-conjugated word produces the
+        // "shika+neg" synergy, score 50.
         let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
         let r = lite_sl_owned(2, 5, vec![seg(2, 5, vec![], vec![cdata(Some(true))])]);
         let got = synergy_shika_negative(&l, &r);
@@ -2809,10 +2710,7 @@ mod synergy_shika_negative {
 
     #[test]
     fn positive_neg_null() {
-        // shika-negative/neg=:NULL ALONE -- expect FIRE (REPL
-        // /tmp/probe_shika_null.lisp: COUNT=1 desc="shika+neg"
-        // score=50). :NULL keyword is truthy in CL, so `some` returns
-        // truthy and the filter accepts.
+        // A database-null negative flag still fires the synergy.
         let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
         let r = lite_sl_owned(2, 5, vec![seg(2, 5, vec![], vec![cdata(None)])]);
         let got = synergy_shika_negative(&l, &r);
@@ -2823,9 +2721,7 @@ mod synergy_shika_negative {
 
     #[test]
     fn right_neg_nil_empty() {
-        // shika-negative/neg=NIL ALONE -- expect NIL (REPL
-        // /tmp/probe_shika_null.lisp). Lisp nil is the sole falsy
-        // value, so `some` returns nil and the filter rejects.
+        // An explicitly-false negative flag is the only value that rejects.
         let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
         let r = lite_sl_owned(2, 5, vec![seg(2, 5, vec![], vec![cdata(Some(false))])]);
         assert!(synergy_shika_negative(&l, &r).is_empty());
@@ -2833,7 +2729,7 @@ mod synergy_shika_negative {
 
     #[test]
     fn right_empty_conj_empty() {
-        // shika-negative/right-empty-conj: NIL.
+        // A right word with no conjugation data fires nothing.
         let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
         let r = lite_sl_owned(2, 5, vec![seg(2, 5, vec![], vec![])]);
         assert!(synergy_shika_negative(&l, &r).is_empty());
@@ -2841,7 +2737,6 @@ mod synergy_shika_negative {
 
     #[test]
     fn left_miss_empty() {
-        // shika-negative/left-miss: NIL.
         let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![99], vec![])]);
         let r = lite_sl_owned(2, 5, vec![seg(2, 5, vec![], vec![cdata(Some(true))])]);
         assert!(synergy_shika_negative(&l, &r).is_empty());
@@ -2849,7 +2744,6 @@ mod synergy_shika_negative {
 
     #[test]
     fn not_adjacent_empty() {
-        // shika-negative/not-adjacent: NIL.
         let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
         let r = lite_sl_owned(4, 7, vec![seg(4, 7, vec![], vec![cdata(Some(true))])]);
         assert!(synergy_shika_negative(&l, &r).is_empty());
@@ -2857,7 +2751,7 @@ mod synergy_shika_negative {
 
     #[test]
     fn multi_conj_nil_plus_nil_empty() {
-        // shika-negative/neg=NIL+NIL -- expect NIL (REPL probe).
+        // Two conjugations both explicitly non-negative: no fire.
         let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
         let r = lite_sl_owned(
             2,
@@ -2874,8 +2768,7 @@ mod synergy_shika_negative {
 
     #[test]
     fn multi_conj_nil_plus_null_fires() {
-        // shika-negative/neg=NIL+:NULL -- expect FIRE (REPL probe).
-        // The :NULL cdata's truthy neg-value satisfies `some`.
+        // One non-negative plus one database-null conjugation fires.
         let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
         let r = lite_sl_owned(
             2,
@@ -2889,9 +2782,7 @@ mod synergy_shika_negative {
 
     #[test]
     fn multi_conj_nil_plus_t_fires() {
-        // shika-negative/multi-conj-mixed: RIGHT-SL segs=1, LEFT-SL segs=1.
-        // Mirrors the original probe_442_448 test but with the
-        // corrected nil mapping (Some(false), not None).
+        // One non-negative plus one negative conjugation fires.
         let l = lite_sl_owned(0, 2, vec![seg(0, 2, vec![1005460], vec![])]);
         let r = lite_sl_owned(
             2,

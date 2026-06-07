@@ -8,8 +8,8 @@ mod find_word_full {
             .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
     }
 
-    /// REPL: `(find-word-full "区別")` → 1 KANJI-TEXT (seq=1244250).
-    /// Single simple-text, no suffix / hiragana / counter branches.
+    /// A single simple kanji word resolves to one kanji-text, with no
+    /// suffix, hiragana, or counter branches.
     #[tokio::test]
     async fn t1_simple_kanji_word() {
         let ctx = ctx().await;
@@ -22,8 +22,7 @@ mod find_word_full {
         assert_eq!(k.text, "区別");
     }
 
-    /// REPL: `(find-word-full "私")` → 14 KANJI-TEXT rows (polysemous
-    /// 私). Exercises multi-row simple-words.
+    /// A polysemous word (私) returns multiple kanji-text rows.
     #[tokio::test]
     async fn t2_polysemous_kanji() {
         let ctx = ctx().await;
@@ -34,10 +33,8 @@ mod find_word_full {
         }
     }
 
-    /// REPL: `(find-word-full "勉強する")` → 1 COMPOUND-TEXT.
-    /// simple-words for 勉強する is empty; suffix-suru fires through
-    /// the partial `*suffix-list*` (suru row registered) and produces
-    /// 1 compound (勉強+する).
+    /// A する-suffix word (勉強する) has no simple match and resolves to
+    /// one compound (勉強 + する) via the suru suffix.
     #[tokio::test]
     async fn t3_suru_suffix_via_registered_row() {
         let ctx = ctx().await;
@@ -50,8 +47,7 @@ mod find_word_full {
         assert_eq!(c.kana, "べんきょう する");
     }
 
-    /// REPL: `(find-word-full "我々ら")` → 1 COMPOUND-TEXT via the
-    /// `ra` suffix row.
+    /// 我々ら resolves to one compound via the `ra` suffix.
     #[tokio::test]
     async fn t4_ra_suffix_via_registered_row() {
         let ctx = ctx().await;
@@ -64,10 +60,8 @@ mod find_word_full {
         assert_eq!(c.kana, "われわれら");
     }
 
-    /// REPL: `(find-word-full "食べてる")` → 1 COMPOUND-TEXT
-    /// text="食べてる" kana="たべてる" via `suffix-teiru`. primary =
-    /// KANJI-TEXT 食べて (seq=10092233), words = (primary, KANA-TEXT
-    /// いる seq=1577980), score_mod=3, score_base=nil.
+    /// 食べてる resolves to one compound via the teiru suffix: kanji
+    /// primary 食べて plus kana auxiliary いる.
     #[tokio::test]
     async fn t5_teiru_suffix_compound() {
         let ctx = ctx().await;
@@ -97,8 +91,8 @@ mod find_word_full {
         assert_eq!(w1.text, "いる");
     }
 
-    /// REPL: `(find-word-full "xyzabc")` → NIL. No simple-text, no
-    /// suffix expansion via the cache.
+    /// An unmatchable string returns nothing — no simple match, no suffix
+    /// expansion.
     #[tokio::test]
     async fn t6_no_match() {
         let ctx = ctx().await;
@@ -106,9 +100,9 @@ mod find_word_full {
         assert!(r.is_empty());
     }
 
-    /// REPL: `(find-word-full "ジャバスクリプト" :as-hiragana t)` → 1
-    /// (the existing kana_text row 2302400; the hiragana fallback
-    /// excludes the same seq, so no proxies added).
+    /// With as-hiragana on, a katakana word that already has a kana row
+    /// returns just that row — the hiragana fallback excludes the same
+    /// seq, so no proxies are added.
     #[tokio::test]
     async fn t7_as_hiragana_with_existing_kana_match() {
         let ctx = ctx().await;
@@ -122,9 +116,8 @@ mod find_word_full {
         assert_eq!(k.seq, 2302400);
     }
 
-    /// REPL: `(find-word-full "ハイ" :as-hiragana t)` → 14:
-    ///   1 KANA-TEXT (the existing ハイ row) + 13 PROXY-TEXT (the
-    ///   13 はい kana_text root rows wrapped as proxies).
+    /// With as-hiragana on, ハイ returns its own kana row plus 13 proxy
+    /// rows wrapping the はい readings.
     #[tokio::test]
     async fn t8_as_hiragana_with_proxy_fallback() {
         let ctx = ctx().await;
@@ -142,10 +135,8 @@ mod find_word_full {
         assert_eq!(proxy_count, 13);
     }
 
-    /// REPL: `(find-word-full "三本" :counter :auto)` → 3:
-    ///   1 KANJI-TEXT (existing 三本) + 1 COUNTER-TEXT + 1
-    ///   COUNTER-HIFUMI. Exercises the `:auto` branch through
-    ///   `consecutive-char-groups`.
+    /// With auto counter detection, 三本 returns the kanji word plus two
+    /// counter rows.
     #[tokio::test]
     async fn t9_counter_auto_with_simple_match() {
         let ctx = ctx().await;
@@ -158,9 +149,8 @@ mod find_word_full {
         assert!(matches!(r[2], KaniWordDispatchEnum::Counter(_)));
     }
 
-    /// REPL: `(find-word-full "5本" :counter 1)` → 2 COUNTER-TEXT
-    /// (number text "5", counter unit "本"). Integer-index branch;
-    /// simple-words is empty so `:unique` resolves to T.
+    /// With an explicit counter index, 5本 returns two counter rows (the
+    /// number "5" and the unit "本").
     #[tokio::test]
     async fn t10_counter_explicit_index() {
         let ctx = ctx().await;
@@ -173,9 +163,8 @@ mod find_word_full {
         }
     }
 
-    /// REPL: `(find-word-full "区別" :counter :auto)` → 1 (just the
-    /// kanji-text; `consecutive-char-groups :number` returns NIL for
-    /// 区別 → counter branch contributes nothing).
+    /// With auto counter detection but no number group (区別), only the
+    /// kanji word is returned — the counter branch contributes nothing.
     #[tokio::test]
     async fn t11_counter_auto_no_number_group() {
         let ctx = ctx().await;
@@ -186,13 +175,9 @@ mod find_word_full {
         assert!(matches!(r[0], KaniWordDispatchEnum::Kanji(_)));
     }
 
-    /// REPL: `(find-word-full <long>)` → 0 (full result, not just the
-    /// `find-word` branch). The `*max-word-length*` gate inside
-    /// `find-word` short-circuits the simple-words path; the
-    /// `find-word-suffix` branch still runs but finds no cache hit on
-    /// this specific 51-char hiragana run — REPL-verified against
-    /// both the random-hiragana string below and a realistic
-    /// over-length sentence.
+    /// An over-length input returns nothing: the max-word-length gate
+    /// short-circuits the simple-word path, and the suffix branch finds no
+    /// cache hit on this 51-character hiragana run.
     #[tokio::test]
     async fn t12_over_length_short_circuit() {
         let ctx = ctx().await;
@@ -205,8 +190,6 @@ mod find_word_full {
 mod join_substring_words_star_ {
     use crate::dict::kani_word::KaniWordDispatchEnum;
     use crate::dict::path::*;
-    // Every assertion is REPL-verified against the .103 SBCL via
-    // `(ichiran/dict::join-substring-words* …)` (2026-05-23 probe runs).
     // Run with `cargo test ... -- --test-threads=1` per the DB-test
     // convention.
 
@@ -216,8 +199,7 @@ mod join_substring_words_star_ {
             .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
     }
 
-    /// `(start, end, segment-count)` shape of the result — the
-    /// loop-bound / sticky / find-word behavior that the function owns.
+    /// `(start, end, segment-count)` shape of the result.
     fn shape(result: &[(usize, usize, Vec<Segment>)]) -> Vec<(usize, usize, usize)> {
         result
             .iter()
@@ -225,10 +207,8 @@ mod join_substring_words_star_ {
             .collect()
     }
 
-    /// REPL `(join-substring-words* "日本語")`:
-    /// `[0 1] n=4 [0 2] n=1 [0 3] n=1 [1 2] n=2 [2 3] n=2`,
-    /// kanji-break `(2 1)` — sequential-kanji-positions accumulated
-    /// across reachable starts, deduped keep-last.
+    /// A kanji run (日本語) accumulates sequential kanji-break positions
+    /// across reachable starts, deduped keep-last, giving kanji-break `(2 1)`.
     #[tokio::test]
     async fn nihongo_kanji_run() {
         let ctx = ctx().await;
@@ -240,9 +220,8 @@ mod join_substring_words_star_ {
         assert_eq!(kanji_break, vec![2, 1]);
     }
 
-    /// REPL `(join-substring-words* "特大")`:
-    /// `[0 2] n=1 [1 2] n=5`, kanji-break `(1)`. start=1 is not in
-    /// `ends` so its segment does not add to kanji-break.
+    /// For 特大, start=1 is not reachable (not in `ends`), so its segment
+    /// does not contribute to kanji-break, leaving `(1)`.
     #[tokio::test]
     async fn tokudai_start_not_reachable() {
         let ctx = ctx().await;
@@ -251,10 +230,9 @@ mod join_substring_words_star_ {
         assert_eq!(kanji_break, vec![1]);
     }
 
-    /// REPL `(join-substring-words* "私は学生です")`:
-    /// kanji-break `(5 3)`. The `[4 6]` slice "です" is in
-    /// *force-kanji-break* → iota over its interior (position 5); the
-    /// `[2 4]` slice "学生" contributes the sequential position 3.
+    /// In 私は学生です the slice "です" is in the force-kanji-break set
+    /// (adds position 5) and "学生" contributes the sequential position 3,
+    /// giving kanji-break `(5 3)`.
     #[tokio::test]
     async fn watashi_force_kanji_break_desu() {
         let ctx = ctx().await;
@@ -277,10 +255,9 @@ mod join_substring_words_star_ {
         assert_eq!(kanji_break, vec![5, 3]);
     }
 
-    /// REPL `(join-substring-words* "一日置く")`: the `[1 3]` slice
-    /// "日置" is in *no-kanji-break*, so the sequential position 2 it
-    /// would otherwise contribute is suppressed — kanji-break is `(1)`,
-    /// not `(2 1)`.
+    /// In 一日置く the slice "日置" is in the no-kanji-break set, so the
+    /// sequential position 2 it would contribute is suppressed —
+    /// kanji-break is `(1)`, not `(2 1)`.
     #[tokio::test]
     async fn ichinichi_no_kanji_break() {
         let ctx = ctx().await;
@@ -301,10 +278,9 @@ mod join_substring_words_star_ {
         assert!(result.iter().any(|(s, e, _)| *s == 1 && *e == 3));
     }
 
-    /// REPL `(join-substring-words* "コーヒー")` (sticky=(1)): the
-    /// katakana group spans 0..4, so the `[0 4]` slice runs
-    /// find-word-full with as-hiragana=T and yields the kana row.
-    /// start=1 and end=1 are sticky → absent.
+    /// For コーヒー the katakana group spans 0..4, so the whole slice
+    /// looks up as hiragana and yields the kana row; the sticky position
+    /// 1 is absent from every slice.
     #[tokio::test]
     async fn coffee_as_hiragana_and_sticky() {
         let ctx = ctx().await;
@@ -318,10 +294,9 @@ mod join_substring_words_star_ {
         assert!(matches!(segs[0].word, KaniWordDispatchEnum::Kana(_)));
     }
 
-    /// REPL `(join-substring-words* "5本")`: the number group at 0..1
-    /// drives the :counter argument. `[0 1]` "5" yields a NUMBER-TEXT;
-    /// `[0 2]` "5本" yields COUNTER-TEXT + COUNTER-HIFUMI; `[1 2]` "本"
-    /// is two plain KANJI-TEXT.
+    /// For 5本 the number group drives counter detection: "5" yields a
+    /// number-text, "5本" yields two counter rows, and "本" is two plain
+    /// kanji-text.
     #[tokio::test]
     async fn counter_number_group() {
         let ctx = ctx().await;
@@ -340,9 +315,8 @@ mod join_substring_words_star_ {
             .all(|seg| matches!(seg.word, KaniWordDispatchEnum::Kanji(_))));
     }
 
-    /// REPL `(join-substring-words* "やっぱり")` (sticky=(2)): the
-    /// sokuon makes position 2 sticky, so no slice starts or ends
-    /// there. kanji-break empty (all-kana input).
+    /// In やっぱり the sokuon makes position 2 sticky, so no slice starts
+    /// or ends there; kanji-break is empty for the all-kana input.
     #[tokio::test]
     async fn yappari_sokuon_sticky() {
         let ctx = ctx().await;
@@ -355,8 +329,7 @@ mod join_substring_words_star_ {
         assert!(!result.iter().any(|(s, e, _)| *s == 2 || *e == 2));
     }
 
-    /// REPL `(join-substring-words* "")`: empty input → empty result,
-    /// empty kanji-break (the outer loop range is empty).
+    /// Empty input gives an empty result and an empty kanji-break.
     #[tokio::test]
     async fn empty_string() {
         let ctx = ctx().await;
@@ -365,8 +338,7 @@ mod join_substring_words_star_ {
         assert!(kanji_break.is_empty());
     }
 
-    /// `remove-duplicates` keep-last semantics, pinned directly:
-    /// REPL `(remove-duplicates '(1 2 1))` → `(2 1)`.
+    /// Deduplication keeps the last occurrence of each value: `(1 2 1)` → `(2 1)`.
     #[test]
     fn remove_duplicates_keeps_last() {
         assert_eq!(remove_duplicates(&[1, 2, 1]), vec![2, 1]);
@@ -378,8 +350,6 @@ mod join_substring_words_star_ {
 
 mod join_substring_words {
     use crate::dict::path::*;
-    // Every assertion is REPL-verified against the .103 SBCL via
-    // `(ichiran/dict::join-substring-words …)` (2026-05-23 probe runs).
     // Run with `cargo test ... -- --test-threads=1` per the DB-test
     // convention.
 
@@ -404,9 +374,9 @@ mod join_substring_words {
             .collect()
     }
 
-    /// REPL `(join-substring-words "日本語")`: 5 segment-lists.
-    /// kanji-break is `(2 1)`, so `[1 2]`'s kb is the two-element
-    /// reverse-order case `(1 0)`. `[0 1]` keeps 2 of its 4 matches.
+    /// 日本語 yields 5 segment-lists; kanji-break `(2 1)` drives the
+    /// per-slice kanji-break, and `[0 1]` keeps 2 of its 4 matches after
+    /// culling.
     #[tokio::test]
     async fn nihongo() {
         let ctx = ctx().await;
@@ -423,8 +393,8 @@ mod join_substring_words {
         );
     }
 
-    /// REPL `(join-substring-words "特大")`: 2 segment-lists. `[1 2]`
-    /// has matches=5 but a single surviving segment after cutoff/cull.
+    /// 特大 yields 2 segment-lists; `[1 2]` has 5 matches but a single
+    /// surviving segment after cutoff and culling.
     #[tokio::test]
     async fn tokudai() {
         let ctx = ctx().await;
@@ -435,9 +405,9 @@ mod join_substring_words {
         );
     }
 
-    /// REPL `(join-substring-words "私は学生です")`: 7 segment-lists.
-    /// です is in *force-kanji-break*, 学生 contributes a sequential
-    /// break; `[0 1]` keeps 3 of 14 私 readings, `[3 4]` keeps 3 of 7.
+    /// 私は学生です yields 7 segment-lists: です forces a kanji-break and
+    /// 学生 adds a sequential one; `[0 1]` keeps 3 of 14 私 readings and
+    /// `[3 4]` keeps 3 of 7.
     #[tokio::test]
     async fn watashi_wa_gakusei_desu() {
         let ctx = ctx().await;
@@ -456,9 +426,8 @@ mod join_substring_words {
         );
     }
 
-    /// REPL `(join-substring-words "5本")`: the number group drives the
-    /// counter path. `[0 1]` "5" is a NUMBER-TEXT scoring exactly at the
-    /// cutoff (5); `[0 2]` "5本" yields COUNTER-TEXT + COUNTER-HIFUMI.
+    /// 5本 drives the counter path: "5" is a number-text scoring exactly
+    /// at the cutoff (5), and "5本" yields two counter rows.
     #[tokio::test]
     async fn counter_5hon() {
         let ctx = ctx().await;
@@ -473,9 +442,8 @@ mod join_substring_words {
         );
     }
 
-    /// REPL `(join-substring-words "ねこー")`: ends-with-lw is T. The
-    /// `[0 2]` "ねこ" slice ends at length-1 (=2), so its `:final` is the
-    /// `(and ends-with-lw (= end (1- length)))` branch.
+    /// ねこー ends with a long-vowel mark, so the slice ending one short
+    /// of the full length (ねこ) is still treated as final.
     #[tokio::test]
     async fn neko_lw_final_branch() {
         let ctx = ctx().await;
@@ -486,9 +454,9 @@ mod join_substring_words {
         );
     }
 
-    /// REPL `(join-substring-words "サッカー")`: ends-with-lw is T, sole
-    /// slice `[0 4]` ends at length so `:final` is T via the first
-    /// disjunct. matches=3 collapses to a single kana row.
+    /// サッカー ends with a long-vowel mark; its sole slice spans the
+    /// full length so it is final, and 3 matches collapse to a single
+    /// kana row.
     #[tokio::test]
     async fn sakka_lw() {
         let ctx = ctx().await;
@@ -496,7 +464,7 @@ mod join_substring_words {
         assert_eq!(summarize(&sls), vec![(0, 4, 3, vec![80])]);
     }
 
-    /// REPL `(join-substring-words "")`: empty input → no segment-lists.
+    /// Empty input yields no segment-lists.
     #[tokio::test]
     async fn empty() {
         let ctx = ctx().await;
@@ -504,10 +472,8 @@ mod join_substring_words {
         assert!(sls.is_empty());
     }
 
-    /// Word identity at the slice level: `[0 3]` of 日本語 is the single
-    /// 日本語 entry (seq 1464530), `[2 4]` of 私は学生です is 学生
-    /// (seq 1270790-class kanji row). Checks the matched word text, not
-    /// just the score shape.
+    /// Checks the matched word text at the slice level, not just the score
+    /// shape: the whole-string slice of 日本語 is the single 日本語 entry.
     #[tokio::test]
     async fn slice_word_text() {
         let ctx = ctx().await;
@@ -523,8 +489,6 @@ mod join_substring_words {
 
 mod substring_index {
     use crate::dict::path::*;
-    // Every assertion is REPL-verified against the .103 SBCL via
-    // `(ichiran/dict::substring-index …)` (2026-05-25 probe).
     // Run with `-- --test-threads=1` per the DB-test convention.
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
@@ -546,8 +510,8 @@ mod substring_index {
         rows
     }
 
-    /// REPL `(substring-index "日本語")`: 5 entries; each value's
-    /// start/end equals its key, segment counts match join-substring-words.
+    /// 日本語 indexes to 5 entries; each value's start/end equals its key
+    /// and segment counts match join-substring-words.
     #[tokio::test]
     async fn nihongo() {
         let ctx = ctx().await;
@@ -564,7 +528,7 @@ mod substring_index {
         );
     }
 
-    /// REPL `(substring-index "特大")`: 2 entries.
+    /// 特大 indexes to 2 entries.
     #[tokio::test]
     async fn tokudai() {
         let ctx = ctx().await;
@@ -575,8 +539,7 @@ mod substring_index {
         );
     }
 
-    /// REPL `(substring-index "5本")`: 3 entries; the counter slice
-    /// `(0 2)` keeps 2 segments.
+    /// 5本 indexes to 3 entries; the counter slice `(0 2)` keeps 2 segments.
     #[tokio::test]
     async fn counter_5hon() {
         let ctx = ctx().await;
@@ -587,7 +550,7 @@ mod substring_index {
         );
     }
 
-    /// REPL `(substring-index "")`: empty input → empty index.
+    /// Empty input gives an empty index.
     #[tokio::test]
     async fn empty() {
         let ctx = ctx().await;
@@ -611,12 +574,6 @@ mod top_array_class {
 mod gap_penalty {
     use crate::dict::path::*;
 
-    // REPL-pinned (.103 SBCL 2.2.9, 2026-05-14):
-    //   (ichiran/dict::gap-penalty 0 0)   => 0
-    //   (ichiran/dict::gap-penalty 0 3)   => -1500
-    //   (ichiran/dict::gap-penalty 7 9)   => -1000
-    //   (ichiran/dict::gap-penalty 10 10) => 0
-    //   (ichiran/dict::gap-penalty 5 2)   => 1500
     #[test]
     fn matches_repl() {
         assert_eq!(gap_penalty(0, 0), 0);
@@ -737,8 +694,6 @@ mod get_seg_initial {
 
     #[test]
     fn a5_mixed_aux_and_normal_yields_filtered_subset() {
-        // dict-grammar.lisp:1047-1054 — seg-left=nil + non-empty
-        // satisfies-right → clause-2 pushes (nil, mslf(r, contradicts-right)).
         let r = lite_sl(
             0,
             2,
@@ -852,8 +807,6 @@ mod get_seg_splits {
             other => panic!("expected Synergy, got {:?}", other),
         }
     }
-
-    // REPL probes (`/tmp/probe_gss_synth*.lisp` on .103, 2026-05-19).
 
     #[test]
     fn a_no_penalty_no_synergy_yields_one_fallback_outer() {
@@ -1080,11 +1033,9 @@ mod get_seg_splits {
 
 mod find_best_path {
     use crate::dict::path::*;
-    // Empty-input unit tests pinned against `.103` REPL probes
-    // (SBCL 2.2.9, 2026-05-19). The DB-dependent non-empty paths
+    // These cover the empty-input cases. The DB-dependent non-empty paths
     // (outer loop, get-seg-initial, get-seg-splits accumulation) are
-    // covered by the 522K-row audit binary at
-    // `audit/dict/find_best_path_test.rs`.
+    // covered by the audit binary at `audit/dict/find_best_path_test.rs`.
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -1092,7 +1043,6 @@ mod find_best_path {
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
-    // REPL: (ichiran/dict::find-best-path nil 5) => ((NIL . -2500))
     #[tokio::test]
     async fn empty_input_length_5_default_limit() {
         let ctx = ctx_from_env().await;
@@ -1102,7 +1052,6 @@ mod find_best_path {
         assert_eq!(result[0].1, -2500);
     }
 
-    // REPL: (ichiran/dict::find-best-path nil 0) => ((NIL . 0))
     #[tokio::test]
     async fn empty_input_length_0() {
         let ctx = ctx_from_env().await;
@@ -1112,7 +1061,6 @@ mod find_best_path {
         assert_eq!(result[0].1, 0);
     }
 
-    // REPL: (ichiran/dict::find-best-path nil 1 :limit 3) => ((NIL . -500))
     #[tokio::test]
     async fn empty_input_length_1_limit_3() {
         let ctx = ctx_from_env().await;
@@ -1122,7 +1070,6 @@ mod find_best_path {
         assert_eq!(result[0].1, -500);
     }
 
-    // REPL: (ichiran/dict::find-best-path nil 1 :limit 1) => ((NIL . -500))
     #[tokio::test]
     async fn empty_input_length_1_limit_1() {
         let ctx = ctx_from_env().await;

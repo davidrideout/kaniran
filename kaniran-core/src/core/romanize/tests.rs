@@ -17,7 +17,6 @@ fn class(kana: KanaClass) -> CcItem {
 #[test]
 fn get_character_classes_fixtures() {
     use KanaClass::*;
-    // REPL fixtures (.103, ichiran::get-character-classes), 2026-05-23.
     let cases: Vec<(&str, Vec<CcItem>)> = vec![
         ("し", vec![class(Shi)]),
         ("による", vec![class(Ni), class(Yo), class(Ru)]),
@@ -54,7 +53,6 @@ fn node(kana: KanaClass, tail: Vec<CcTree>) -> CcTree {
 #[test]
 fn leftmost_atom_fixtures() {
     use KanaClass::*;
-    // REPL fixtures (.103, ichiran::leftmost-atom), 2026-05-23.
     // Each row is (label, input cc-tree, expected leftmost atom).
     let cases: Vec<(&str, Vec<CcTree>, Option<CcItem>)> = vec![
         // first element is already an atom
@@ -105,9 +103,8 @@ fn romanize_core_walks_every_node_shape() {
     use KanaClass::*;
     let hepburn = GenericHepburn::new();
     let method = RomanizationMethod::GenericHepburn(&hepburn);
-    // REPL (.103, (romanize-core *hepburn-basic* '(:ko nil :n #\x (:+ya :ki))))
-    // => "kon'xkya", 2026-05-24 — exercises mora class, nil skip, raw
-    // character passthrough, and a modifier node in one tree.
+    // One tree exercising a mora class, a nil skip, raw character
+    // passthrough, and a modifier node.
     let cc_tree = vec![
         CcTree::Atom(CcItem::Class(Ko)),
         CcTree::Nil,
@@ -121,8 +118,6 @@ fn romanize_core_walks_every_node_shape() {
 // --- romanize_list ---
 #[test]
 fn romanize_list_fixtures() {
-    // REPL fixtures (.103, (romanize-list (get-character-classes W) :method M)),
-    // 2026-05-24. Words drawn from common Japanese vocabulary.
     let generic = GenericHepburn::new();
     let simple = SimplifiedHepburn::new(vec!["oo", "o", "ou", "o", "uu", "u"]);
     let traditional = TraditionalHepburn::new();
@@ -164,14 +159,14 @@ fn romanize_list_fixtures() {
 // --- romanize_word ---
 #[test]
 fn romanize_word_fixtures() {
-    // REPL fixtures (.103, ichiran:romanize-word), 2026-05-24.
     let traditional = RomanizationMethod::TraditionalHepburn(hepburn_traditional());
 
-    // r-special path: lone small tsu / long-vowel bar (method-independent).
+    // A lone small tsu / long-vowel bar romanize to "!" / "~" regardless
+    // of method.
     assert_eq!(romanize_word("っ", traditional, None, true), "!");
     assert_eq!(romanize_word("ー", traditional, None, true), "~");
 
-    // normalize=false + original-spelling (the romanize-word-info call shape).
+    // normalize=false, with an original spelling supplied.
     assert_eq!(
         romanize_word("センター", traditional, Some("センター"), false),
         "senta"
@@ -185,13 +180,13 @@ fn romanize_word_fixtures() {
         "konnichiha"
     );
 
-    // original-spelling drives r-special; the word argument is ignored
-    // when r-special matches.
+    // When the original spelling is a lone small tsu / long-vowel bar, it
+    // romanizes to "!" / "~" and the word argument is ignored.
     assert_eq!(romanize_word("x", traditional, Some("っ"), false), "!");
     assert_eq!(romanize_word("x", traditional, Some("ー"), false), "~");
 
-    // Empty original-spelling Some("") is truthy: r-special("") is nil,
-    // so the word is romanized normally (kanji.lisp:358 call shape).
+    // An empty original spelling is not a special glyph, so the word is
+    // romanized normally.
     assert_eq!(romanize_word("よむ", traditional, Some(""), false), "yomu");
     assert_eq!(
         romanize_word("しゃしん", traditional, Some(""), false),
@@ -206,22 +201,19 @@ fn romanize_word_fixtures() {
 
 #[test]
 fn romanize_word_process_hints() {
-    // REPL fixtures (.103, ichiran:romanize-word), 2026-05-24 — the
-    // process-hints branch operates on the (possibly normalized) word,
-    // not on original-spelling.
+    // Hint processing acts on the word, not on the original spelling.
     let traditional = RomanizationMethod::TraditionalHepburn(hepburn_traditional());
 
-    // *kana-hint-mod* + は → わ → "wa".
+    // A modifier-hint sentinel before は turns it into "wa".
     let hint_ha = format!("{}は", KANA_HINT_MOD);
     assert_eq!(romanize_word(&hint_ha, traditional, None, false), "wa");
-    // original-spelling "は" is not a special glyph, so it still falls
-    // through to process-hints on the hinted word.
+    // An original spelling of "は" does not block the hint.
     assert_eq!(
         romanize_word(&hint_ha, traditional, Some("は"), false),
         "wa"
     );
 
-    // *kana-hint-space* + へ → ASCII space + へ → " he".
+    // A space-hint sentinel before へ produces a leading space: " he".
     let hint_space = format!("{}へ", KANA_HINT_SPACE);
     assert_eq!(romanize_word(&hint_space, traditional, None, false), " he");
 }
@@ -229,21 +221,20 @@ fn romanize_word_process_hints() {
 // --- romanize_word_geo ---
 #[test]
 fn romanize_word_geo_fixtures() {
-    // REPL fixtures (.103, ichiran:romanize-word-geo), 2026-05-24.
-    // Real Japanese place names; default method *hepburn-simple*.
+    // Place names, using the default simplified-hepburn method.
     let simple = RomanizationMethod::SimplifiedHepburn(hepburn_simple());
     let cases: &[(&str, &str)] = &[
         ("とうきょう", "Tokyo"),
         ("おおさか", "Osaka"),
         ("ほっかいどう", "Hokkaido"),
         ("ぐんま", "Gunma"),
-        // ん before お yields the apostrophe boundary; string-capitalize
-        // upcases the vowel after the apostrophe ("shin'osaka" → "Shin'Osaka").
+        // ん before お inserts an apostrophe boundary, and the vowel after
+        // it is capitalized: "Shin'Osaka".
         ("しんおおさか", "Shin'Osaka"),
         ("きょうと", "Kyoto"),
         ("ふじさん", "Fujisan"),
         ("しんじゅく", "Shinjuku"),
-        // r-special: lone small tsu / long-vowel bar pass through capitalize.
+        // a lone small tsu / long-vowel bar romanize to "!" / "~".
         ("っ", "!"),
         ("ー", "~"),
         // empty input
@@ -261,9 +252,8 @@ fn romanize_word_geo_fixtures() {
 
 #[test]
 fn romanize_word_geo_method_param() {
-    // REPL fixtures (.103, (romanize-word-geo W :method *hepburn-traditional*)),
-    // 2026-05-24 — the method keyword overrides the hepburn-simple default,
-    // here producing macron long vowels.
+    // A method argument overrides the simplified-hepburn default, here
+    // producing macron long vowels.
     let traditional = RomanizationMethod::TraditionalHepburn(hepburn_traditional());
     assert_eq!(romanize_word_geo("とうきょう", traditional), "Tōkyō");
     assert_eq!(romanize_word_geo("おおさか", traditional), "Ōsaka");
@@ -271,8 +261,6 @@ fn romanize_word_geo_method_param() {
 
 #[test]
 fn string_capitalize_fixtures() {
-    // REPL fixtures (.103, cl:string-capitalize), 2026-05-24 — exercises
-    // both `newword` states, the alphanumeric branch, and passthrough.
     let cases: &[(&str, &str)] = &[
         // apostrophe word boundary
         ("shin'osaka", "Shin'Osaka"),
@@ -302,7 +290,6 @@ fn string_capitalize_fixtures() {
 // --- join_parts ---
 #[test]
 fn join_parts_fixtures() {
-    // REPL fixtures (.103, ichiran::join-parts), 2026-05-23.
     let cases: &[(&[&str], &str)] = &[
         // spaces inserted between alphanumeric parts
         (
@@ -319,10 +306,9 @@ fn join_parts_fixtures() {
         (&["abc", "", "def"], "abc def"),
         // ideographic period is not alphanumeric
         (&["Tokyo", "。"], "Tokyo。"),
-        // ① (category No) is not alphanumeric to CL; std is_alphanumeric
-        // would have inserted a space here
+        // ① (circled number) is not treated as alphanumeric, so no space
         (&["a", "①"], "a①"),
-        // Ⅴ (category Nl) is not alphanumeric; the space before "a"
+        // Ⅴ (roman numeral) is not alphanumeric; the space before "a"
         // comes from "a", not Ⅴ
         (&["Ⅴ", "a"], "Ⅴ a"),
         // ascii digit is alphanumeric
@@ -355,8 +341,6 @@ fn single(reading: &str) -> Option<WordInfoKana> {
 
 #[test]
 fn romanize_word_info_fixtures() {
-    // REPL fixtures (.103, ichiran:romanize-word-info via simple-segment),
-    // 2026-05-24. Each row: (text, kana, traditional, :kana).
     let traditional =
         KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(hepburn_traditional()));
     let kana = KaniRomanizeMethod::Kana;
@@ -371,22 +355,19 @@ fn romanize_word_info_fixtures() {
     assert_eq!(romanize_word_info(&shougakkou, traditional), "shōgakkō");
     assert_eq!(romanize_word_info(&shougakkou, kana), "しょうがっこう");
 
-    // topic-particle は — kana carries a *kana-hint-mod* sentinel before
-    // は: traditional romanizes to "wa" (process-hints), :kana strips
-    // the sentinel back to "は".
+    // は — the kana carries a modifier-hint sentinel: a method romanizes
+    // it to "wa", while :kana strips the sentinel back to "は".
     let hinted_ha = wi("は", single(&format!("{}は", KANA_HINT_MOD)));
     assert_eq!(romanize_word_info(&hinted_ha, traditional), "wa");
     assert_eq!(romanize_word_info(&hinted_ha, kana), "は");
 
-    // はた — list kana with one reading: map over the list, simplify,
-    // join with "/".
+    // はた — a kana list with a single reading.
     let hata = wi("はた", Some(WordInfoKana::Multi(vec![single("はた")])));
     assert_eq!(romanize_word_info(&hata, traditional), "hata");
     assert_eq!(romanize_word_info(&hata, kana), "はた");
 
-    // text (= original-spelling) drives r-special: a lone small tsu /
-    // long-vowel bar romanizes to "!" / "~" under a method, and strips
-    // to itself under :kana.
+    // A lone small tsu / long-vowel bar romanizes to "!" / "~" under a
+    // method, and stays itself under :kana.
     let tsu = wi("っ", single("っ"));
     assert_eq!(romanize_word_info(&tsu, traditional), "!");
     assert_eq!(romanize_word_info(&tsu, kana), "っ");
@@ -397,9 +378,8 @@ fn romanize_word_info_fixtures() {
 
 #[test]
 fn romanize_word_info_method_arm_nil_element() {
-    // REPL fixture (.103): a kana list with a nil element romanizes the
-    // nil to "" under a method ((romanize-word nil …) -> ""), giving
-    // "a/" for kana=("あ" nil).
+    // Under a method, an empty element in a kana list romanizes to "",
+    // so kana=("あ", empty) gives "a/".
     let traditional =
         KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(hepburn_traditional()));
     let wi_nil_elem = wi("x", Some(WordInfoKana::Multi(vec![single("あ"), None])));
@@ -409,8 +389,7 @@ fn romanize_word_info_method_arm_nil_element() {
 #[test]
 #[should_panic]
 fn romanize_word_info_kana_arm_nil_element_errors() {
-    // REPL fixture (.103): the :kana path errors on a nil list element
-    // ((strip-hints nil) -> nil, then simplify-reading-list fails).
+    // The :kana path errors on an empty element in a kana list.
     let wi_nil_elem = wi("x", Some(WordInfoKana::Multi(vec![single("あ"), None])));
     romanize_word_info(&wi_nil_elem, KaniRomanizeMethod::Kana);
 }
@@ -418,8 +397,7 @@ fn romanize_word_info_kana_arm_nil_element_errors() {
 #[test]
 #[should_panic]
 fn romanize_word_info_nested_element_errors() {
-    // REPL fixture (.103): a nested-list kana element is a type error
-    // under a method (romanize-word on a list).
+    // A nested-list kana element is an error under a method.
     let traditional =
         KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(hepburn_traditional()));
     let wi_nested = wi(
@@ -433,8 +411,7 @@ fn romanize_word_info_nested_element_errors() {
 
 #[test]
 fn romanize_word_info_nil_kana() {
-    // REPL fixture (.103): a word-info with kana=nil takes the list
-    // branch (`(listp nil)` is true) and yields "".
+    // A word-info with no kana yields "".
     let traditional =
         KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(hepburn_traditional()));
     let empty = wi("x", None);
@@ -443,8 +420,7 @@ fn romanize_word_info_nil_kana() {
 }
 
 // --- romanize ---
-// REPL fixtures (.103, `ichiran:romanize`, 2026-05-24). Run with
-// `cargo test ... -- --test-threads=1` per the DB-test convention.
+// These tests hit the database; run with `-- --test-threads=1`.
 
 async fn romanize_ctx() -> std::sync::Arc<KaniranContext> {
     KaniranContext::from_env()
@@ -459,9 +435,8 @@ fn romanize_traditional() -> KaniRomanizeMethod<'static> {
 #[tokio::test]
 async fn romanize_joined_string() {
     // Each row: (input, default-method joined string, :kana joined string).
-    // The default-method string converts 。/！ to ". "/"! " (punctuation
-    // marks); the :kana string keeps full-width punctuation because
-    // normalize's :kana context omits *punctuation-marks*.
+    // The default method converts 。/！ to ". "/"! "; the :kana output
+    // keeps the full-width punctuation.
     let romanize_ctx = romanize_ctx().await;
     let cases: &[(&str, &str, &str)] = &[
         (
@@ -503,9 +478,8 @@ async fn romanize_joined_string() {
 
 #[tokio::test]
 async fn romanize_with_info_collects_definitions_in_order() {
-    // REPL `(romanize "富士山は日本で最も高い山である。" :with-info t)`:
-    // 9 definitions, one per romanized part (the trailing ". " misc split
-    // contributes no definition), paired with the word-info-str headword.
+    // With info on, each romanized part gets one definition paired with its
+    // headword; the trailing ". " punctuation contributes none.
     let romanize_ctx = romanize_ctx().await;
     let (joined, definitions) = romanize(
         &romanize_ctx,
@@ -521,7 +495,7 @@ async fn romanize_with_info_collects_definitions_in_order() {
         roms,
         vec!["fujisan", "wa", "nihon", "de", "mottomo", "takai", "yama", "de", "aru"]
     );
-    // word-info-str headwords pair with the rom in encounter order.
+    // Headwords pair with the romanization in encounter order.
     assert!(
         definitions[0].1.starts_with("富士山"),
         "got {:?}",
@@ -557,8 +531,7 @@ async fn romanize_with_info_false_yields_empty_definitions() {
 }
 
 // --- romanize_star_ ---
-// REPL fixtures (.103, `ichiran:romanize*`, 2026-05-24). Run with
-// `cargo test ... -- --test-threads=1` per the DB-test convention.
+// These tests hit the database; run with `-- --test-threads=1`.
 
 async fn romanize_star_ctx() -> std::sync::Arc<KaniranContext> {
     KaniranContext::from_env()
@@ -604,10 +577,9 @@ fn shape(result: &[RomanizeStarSegment<()>]) -> Vec<SegShape> {
 
 #[tokio::test]
 async fn romanize_star_full_structure() {
-    // REPL `(romanize* "Hello 世界！")`: a latin misc split, a word split
-    // with 5 distinct-score alternatives, and a "! " misc split. The
-    // alternatives carry the unromanizable kanji verbatim (e.g. "世" /
-    // "世界") when no reading wins. wordprop-fn = (constantly nil) -> ().
+    // "Hello 世界！" splits into a latin misc, a word with 5 distinct-score
+    // alternatives, and a "! " misc. Alternatives carry unromanizable kanji
+    // verbatim (e.g. "世" / "世界") when no reading wins.
     let romanize_star_ctx = romanize_star_ctx().await;
     let result = romanize_star_(
         &romanize_star_ctx,
@@ -637,9 +609,9 @@ async fn romanize_star_full_structure() {
 
 #[tokio::test]
 async fn romanize_star_misc_in_middle() {
-    // REPL `(romanize* "ABCは試験的な略語です。")`: leading latin misc,
-    // a word split, trailing ". " misc. Assert the segment kinds and the
-    // top alternative's word sequence (top score 1091 is unique).
+    // "ABCは試験的な略語です。" splits into a leading latin misc, a word,
+    // and a trailing ". " misc. Checks the segment kinds and the top
+    // alternative's word sequence (top score 1091 is unique).
     let romanize_star_ctx = romanize_star_ctx().await;
     let result = romanize_star_(
         &romanize_star_ctx,
@@ -665,9 +637,10 @@ async fn romanize_star_misc_in_middle() {
 
 #[tokio::test]
 async fn romanize_star_wordprop_fn_receives_romanized_and_word() {
-    // wordprop-fn is funcall'd with (romanized word); its result is the
-    // prop in each triple. Here it returns (romanized-byte-len, word.text)
-    // so both arguments are observed: "sekai" (5 bytes) over word "世界".
+    // The prop callback is given both the romanization and the word; its
+    // result becomes the prop in each triple. Here it returns
+    // (romanized-byte-len, word text) so both arguments are observed:
+    // "sekai" (5 bytes) over word "世界".
     let romanize_star_ctx = romanize_star_ctx().await;
     let result = romanize_star_(
         &romanize_star_ctx,

@@ -1,11 +1,8 @@
 use super::*;
 
 // --- kanji_word_stats ---
-// Fixtures captured via `(ichiran/kanji:kanji-word-stats …)` on
-// the .103 SBCL REPL (2026-06-01). The upstream returns an
-// `alexandria:hash-table-alist`, so each assertion sorts both
-// sides by key before comparing — iteration order is hash-defined
-// and not part of the contract.
+// Result order is not part of the contract, so each assertion sorts both
+// sides by key before comparing.
 
 async fn ctx() -> std::sync::Arc<KaniranContext> {
     KaniranContext::from_env()
@@ -87,7 +84,6 @@ async fn kanji_word_stats_fixtures() {
 // --- calculate_perc ---
 #[test]
 fn matches_repl_captures() {
-    // /tmp/probe-kanji.lisp on .103 — verified 2026-05-09.
     assert_eq!(calculate_perc(50, 100), "50.00%");
     assert_eq!(calculate_perc(1, 1000), "0.10%");
     assert_eq!(calculate_perc(0, 0), "--.--%");

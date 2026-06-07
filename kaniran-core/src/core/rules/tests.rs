@@ -16,15 +16,14 @@ fn r_apply_fixtures() {
     use KanaClass::*;
     let hepburn = GenericHepburn::new();
     let kunrei = KunreiSiki::new();
-    // An emptied generic-romanization reaches the symbol-T downcase
-    // fallback; with a populated table that branch is unreachable.
+    // An emptied table reaches the downcase fallback; a populated table
+    // never hits that branch.
     let mut bare = GenericHepburn::new();
     bare.0 = GenericRomanization::new();
     let h = RomanizationMethod::GenericHepburn(&hepburn);
     let k = RomanizationMethod::KunreiSiki(&kunrei);
     let b = RomanizationMethod::GenericHepburn(&bare);
-    // REPL fixtures (.103, ichiran::r-apply), 2026-05-24.
-    // (label, modifier, method, cc-tree, expected).
+    // Columns: label, modifier, method, cc-tree, expected.
     let cases: &[(&str, KanaClass, RomanizationMethod, Vec<CcTree>, &str)] = &[
         // sokuon: hepburn chi -> "t", else double a Basic-Latin lead
         (
@@ -69,16 +68,16 @@ fn r_apply_fixtures() {
         ("+yu hepburn ki", PlusYu, h, vec![r_apply_atom(Ki)], "kyu"),
         ("+yo hepburn chi", PlusYo, h, vec![r_apply_atom(Chi)], "cho"),
         ("+yo hepburn ki", PlusYo, h, vec![r_apply_atom(Ki)], "kyo"),
-        // kunrei has no y-glide override -> generic-romanization path
+        // kunrei has no y-glide override
         ("+ya kunrei shi", PlusYa, k, vec![r_apply_atom(Shi)], "sya"),
         ("+ya kunrei ki", PlusYa, k, vec![r_apply_atom(Ki)], "kya"),
-        // generic-romanization symbol cases: :u, :a/:i/:e/:o, default
+        // generic modifier cases: u, the a/i/e/o vowels, and the default
         ("+a hepburn u", PlusA, h, vec![r_apply_atom(U)], "wa"),
         ("+a hepburn a", PlusA, h, vec![r_apply_atom(A)], "aa"),
         ("+i hepburn i", PlusI, h, vec![r_apply_atom(I)], "ii"),
         ("+wa hepburn ku", PlusWa, h, vec![r_apply_atom(Ku)], "kwa"),
         ("+a hepburn ki", PlusA, h, vec![r_apply_atom(Ki)], "ka"),
-        // symbol-T fallback: modifier missing from the table -> downcase
+        // fallback: modifier missing from the table -> downcase
         ("+ya bare ki", PlusYa, b, vec![r_apply_atom(Ki)], "ki+ya"),
     ];
     for (label, modifier, method, cc_tree, expected) in cases {
@@ -94,7 +93,6 @@ fn r_apply_fixtures() {
 #[test]
 fn r_base_fixtures() {
     use KanaClass::*;
-    // REPL fixtures (.103, ichiran::r-base), 2026-05-24.
     let hepburn = GenericHepburn::new();
     let kunrei = KunreiSiki::new();
     let method_hepburn = RomanizationMethod::GenericHepburn(&hepburn);
@@ -108,10 +106,8 @@ fn r_base_fixtures() {
 #[test]
 fn r_base_downcase_fallback() {
     use KanaClass::*;
-    // REPL fixtures (.103, (r-base (make-instance 'generic-romanization) X)),
-    // 2026-05-24 — the empty kana-table misses, so r-base downcases the
-    // keyword name. Reproduced with a cleared table since the dispatcher
-    // exposes only the four populated subclasses.
+    // With an empty kana table, r_base misses and falls back to the
+    // downcased key name.
     let mut empty = GenericHepburn::new();
     empty.0 = GenericRomanization::new();
     let method = RomanizationMethod::GenericHepburn(&empty);
@@ -123,7 +119,6 @@ fn r_base_downcase_fallback() {
 // --- r_simplify ---
 #[test]
 fn r_simplify_fixtures() {
-    // REPL fixtures (.103, ichiran::r-simplify), 2026-05-24.
     let generic = GenericHepburn::new();
     let simple = SimplifiedHepburn::new(vec!["oo", "o", "ou", "o", "uu", "u"]);
     let passport = SimplifiedHepburn::new(vec!["oo", "oh", "ou", "oh", "uu", "u"]);
@@ -134,13 +129,13 @@ fn r_simplify_fixtures() {
     let passport = RomanizationMethod::SimplifiedHepburn(&passport);
     let traditional = RomanizationMethod::TraditionalHepburn(&traditional);
     let kunrei = RomanizationMethod::KunreiSiki(&kunrei);
-    // (label, method, input, expected).
+    // Columns: label, method, input, expected.
     let cases: &[(&str, RomanizationMethod, &str, &str)] = &[
         // generic-hepburn: n' drops before a non-vowel, stays before vowel/y
         ("hepburn n'+consonant", hepburn, "kon'nichiwa", "konnichiwa"),
         ("hepburn n'+vowel", hepburn, "han'i", "han'i"),
         ("hepburn n'+y", hepburn, "shin'you", "shin'you"),
-        // simplified-hepburn: call-next + simplifications slot
+        // simplified-hepburn: applies the configured simplifications
         ("simple long-o", simple, "koukou", "koko"),
         ("simple n'+ngram", simple, "n'pou", "npo"),
         ("passport long-o", passport, "koukou", "kohkoh"),
@@ -163,8 +158,7 @@ fn r_simplify_fixtures() {
 // --- r_special ---
 #[test]
 fn r_special_fixtures() {
-    // REPL fixtures (.103, ichiran::r-special), 2026-05-24 — result is
-    // method-independent (only the default `or` method exists).
+    // Result is the same regardless of method — only one method exists.
     let traditional = TraditionalHepburn::new();
     let method = RomanizationMethod::TraditionalHepburn(&traditional);
     assert_eq!(r_special(method, "っ"), Some("!".to_string()));
@@ -221,16 +215,14 @@ fn run_of_iters_all_reference_same_source() {
 
 #[test]
 fn iter_v_after_unvoiceable_kana_falls_through() {
-    // A → IterV: A has no voiced counterpart in *dakuten-hash*,
-    // so voice_char returns A unchanged.
+    // A has no voiced counterpart, so the voicing marker leaves it unchanged.
     let result = process_iteration_characters(&[k(KanaClass::A), k(KanaClass::IterV)]);
     assert_eq!(result, vec![k(KanaClass::A), k(KanaClass::A)]);
 }
 
 #[test]
 fn char_prev_passes_through_iter_v_unchanged() {
-    // Upstream's voice-char hash misses on a raw char and returns
-    // it as-is; Rust mirrors that branch by emitting the char.
+    // A raw char has no voiced form, so the voicing marker emits the char unchanged.
     let result = process_iteration_characters(&[CcItem::Char('!'), k(KanaClass::IterV)]);
     assert_eq!(result, vec![CcItem::Char('!'), CcItem::Char('!')]);
 }
@@ -252,8 +244,6 @@ fn node(kana: KanaClass, tail: Vec<CcTree>) -> CcTree {
 #[test]
 fn process_modifiers_fixtures() {
     use KanaClass::*;
-    // REPL fixtures (.103, ichiran::process-modifiers over
-    // process-iteration-characters of the cited word), 2026-05-23.
     // Each row is (label, input cc-list, expected cc-tree).
     let cases: Vec<(&str, Vec<CcItem>, Vec<CcTree>)> = vec![
         // sokuon wraps the rest
@@ -358,10 +348,7 @@ fn rmi(text: &str, kana: &str, next: Option<&str>) -> RmapItem {
 
 #[test]
 fn apply_rmap_item_fixtures() {
-    // REPL fixtures (.103, ichiran::apply-rmap-item), 2026-05-26.
-    // (s, rmi, expected canonical/pattern/rest). Rows cover the
-    // long-vowel branch (う? appended), the plain branch, and the
-    // doubled-consonant `next` re-emission.
+    // Columns: input string, rmap item, expected (canonical, pattern, rest).
     let cases: &[(&str, RmapItem, (&str, &str, &str))] = &[
         // long-vowel branch: text ends in o/u -> pattern gets う?
         (
@@ -379,9 +366,7 @@ fn apply_rmap_item_fixtures() {
             ("し", "し", "nkansen"),
         ),
         ("nagoya", rmi("na", "な", None), ("な", "な", "goya")),
-        // gemination: next re-emitted before the unconsumed tail. Inputs
-        // are the remaining strings romaji-next passes mid-word when
-        // deromanizing 結婚(kekkon)/一杯(ippai)/学校(gakkou).
+        // gemination: next re-emitted before the unconsumed tail
         ("kkon", rmi("kk", "っ", Some("k")), ("っ", "っ", "kon")),
         ("ppai", rmi("pp", "っ", Some("p")), ("っ", "っ", "pai")),
         ("kkou", rmi("kk", "っ", Some("k")), ("っ", "っ", "kou")),

@@ -1,9 +1,8 @@
 mod _star_suffix_description_star_ {
     use crate::dict::grammar::suffix::constants::*;
 
-    /// Cardinality and spot-check against the live image. Probed
-    /// on .103 (`(hash-table-count *suffix-description*) => 47`,
-    /// per-key values dumped via `maphash`).
+    /// The description table holds 47 entries; spot-checks a few class
+    /// keys, a few seq keys, and two misses.
     #[test]
     fn matches_introspected_value() {
         let map = suffix_description();
@@ -18,7 +17,7 @@ mod _star_suffix_description_star_ {
             map.get(&SuffixDescKey::Class("ha".to_string())).copied(),
             Some("topic marker particle"),
         );
-        // trailing space is load-bearing — preserved from upstream literal
+        // trailing space is intentional and must be preserved
         assert_eq!(
             map.get(&SuffixDescKey::Class("kuru".to_string())).copied(),
             Some("indicates action that had been continuing up till now / came to be "),
@@ -51,8 +50,6 @@ mod _star_suffix_description_star_ {
         assert_eq!(map.get(&SuffixDescKey::Seq(0)).copied(), None);
     }
 
-    /// Pin the class/seq partition counts so adding/removing
-    /// entries on one side trips the test.
     #[test]
     fn class_seq_partition() {
         let map = suffix_description();
@@ -72,11 +69,10 @@ mod _star_suffix_description_star_ {
 mod _star_suffix_list_star_ {
     use crate::dict::grammar::suffix::constants::*;
 
-    /// Every upstream-published keyword resolves through `lookup_suffix_fn`.
-    /// Pins the full set so a row removal regresses visibly.
+    /// Every published keyword resolves through `lookup_suffix_fn`.
     #[test]
     fn registered_keys_resolve() {
-        // def-simple-suffix
+        // Plain suffix keywords.
         for key in [
             "suru", "ra", "tai", "ren", "ren-", "neg", "te", "teiru", "teiru+", "te+space",
             "kudasai", "teren", "teii", "rou", "adv", "iadj", "tosuru", "kurai", "chau", "to",
@@ -84,7 +80,7 @@ mod _star_suffix_list_star_ {
         ] {
             assert!(lookup_suffix_fn(key).is_some(), "missing key: {}", key);
         }
-        // def-abbr-suffix
+        // Abbreviated-form suffix keywords.
         for key in [
             "nai",
             "nai-x",

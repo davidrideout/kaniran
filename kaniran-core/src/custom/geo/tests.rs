@@ -1,8 +1,8 @@
 use super::*;
 
 // --- municipality_short ---
-// REPL fixtures (.103, ichiran/custom::municipality-short), 2026-05-31.
 
+// Columns: input text, input reading, expected short text, expected short reading.
 #[test]
 fn municipality_short_fixtures() {
     let cases: &[(&str, &str, &str, Option<&str>)] = &[
@@ -38,8 +38,8 @@ fn municipality_short_fixtures() {
 }
 
 // --- romanize_municipality ---
-// REPL fixtures (.103, ichiran/custom::romanize-municipality), 2026-05-31.
 
+// Columns: text, reading, include-type flag, expected romanized name.
 #[test]
 fn romanize_municipality_fixtures() {
     let cases: &[(&str, &str, Option<bool>, &str)] = &[
@@ -67,8 +67,8 @@ fn romanize_municipality_fixtures() {
 }
 
 // --- normalize_geo ---
-// REPL fixtures (.103, ichiran/custom::normalize-geo), 2026-05-31.
 
+// Columns: input, expected normalized form (macrons stripped, lowercased).
 #[test]
 fn normalize_geo_fixtures() {
     let cases: &[(&str, &str)] = &[

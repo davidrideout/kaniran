@@ -5,13 +5,11 @@ mod word_info_json {
         Some(WordInfoKana::Single(s.to_owned()))
     }
 
-    /// REPL fixtures (.103, `jsown:to-json` of `word-info-json` on
-    /// `simple-segment` output), 2026-05-25. serde_json emits raw UTF-8 where
-    /// jsown emitted `\uXXXX`; the values/order are identical JSON.
+    /// Serializes word-info values to JSON across the main shapes.
     #[test]
     fn word_info_json_fixtures() {
-        // 食べた — plain kanji word: single kana/seq, nil conjugations/counter,
-        // primary t, alternative/truetext present.
+        // 食べた — plain kanji word: single kana/seq, no conjugations/counter,
+        // primary true.
         let tabeta = WordInfo {
             kind: WordInfoType::Kanji,
             text: "食べた".to_owned(),
@@ -28,7 +26,7 @@ mod word_info_json {
             r#"{"type":"KANJI","text":"食べた","truetext":"食べた","kana":"たべた","seq":10092229,"conjugations":[],"score":336,"components":[],"alternative":[],"primary":true,"start":0,"end":3,"counter":[],"skipped":0}"#
         );
 
-        // 5番目 — ordinal counter: counter array [value-string, t], nil truetext.
+        // 5番目 — ordinal counter: counter array [value-string, true], empty truetext.
         let go_banme = WordInfo {
             kind: WordInfoType::Kanji,
             text: "5番目".to_owned(),
@@ -46,9 +44,9 @@ mod word_info_json {
             r#"{"type":"KANJI","text":"5番目","truetext":[],"kana":"ごばんめ","seq":1482410,"conjugations":[],"score":667,"components":[],"alternative":[],"primary":true,"start":0,"end":3,"counter":["Value: 5th",true],"skipped":0}"#
         );
 
-        // 走っている — compound: Multi seq, recursive components, conjugations as
-        // an id list (走って) and the :root sentinel (いる, primary nil→[]),
-        // component start/end nil→[].
+        // 走っている — compound: multi-valued seq, nested components, conjugations
+        // as an id list (走って) and the root marker (いる, non-primary),
+        // empty component start/end.
         let hashitteiru = WordInfo {
             kind: WordInfoType::Kanji,
             text: "走っている".to_owned(),
@@ -95,8 +93,8 @@ mod word_info_json {
             r#"{"type":"KANJI","text":"走っている","truetext":[],"kana":"はしっている","seq":[10063379,1577980],"conjugations":[],"score":406,"components":[{"type":"KANJI","text":"走って","truetext":"走って","kana":"はしって","seq":10063379,"conjugations":[63591],"score":0,"components":[],"alternative":[],"primary":true,"start":[],"end":[],"counter":[],"skipped":0},{"type":"KANA","text":"いる","truetext":"いる","kana":"いる","seq":1577980,"conjugations":"ROOT","score":0,"components":[],"alternative":[],"primary":[],"start":[],"end":[],"counter":[],"skipped":0}],"alternative":[],"primary":true,"start":0,"end":5,"counter":[],"skipped":0}"#
         );
 
-        // 何 — alternative branch: Multi kana (string list), Multi seq (int list),
-        // alternative t, two components.
+        // 何 — alternative branch: multiple kana, multiple seq, alternative true,
+        // two components.
         let nani = WordInfo {
             kind: WordInfoType::Kanji,
             text: "何".to_owned(),
@@ -149,7 +147,7 @@ mod word_info_json {
 mod simple_word_info {
     use crate::dict::word_info::*;
 
-    /// REPL fixture (.103, `simple-word-info ... :as :json`), 2026-05-25.
+    /// The JSON output form returns the serialized word-info.
     #[test]
     fn simple_word_info_json() {
         let out = simple_word_info(
@@ -168,8 +166,8 @@ mod simple_word_info {
         );
     }
 
-    /// `:as :object` (the default) returns the constructed word-info;
-    /// `:true-text` mirrors `text` and the unset slots take their initforms.
+    /// The object output form (the default) returns the constructed word-info;
+    /// true-text mirrors text and unset fields take their defaults.
     #[test]
     fn simple_word_info_object() {
         let out = simple_word_info(
@@ -194,14 +192,9 @@ mod def_reader_for_json_macro {
     use crate::dict::word_info::*;
     use serde_json::json;
 
-    // REPL fixtures (.103, `(jsown:val (word-info-json (word-info-from-text W)) slot)`
-    // after `(init-suffixes t t)`), 2026-05-25. jsown renders CL nil as `[]`, so the
-    // serde_json object `word-info-json` builds matches the captured shapes; each
-    // generated reader returns the value pinned here.
-
     #[test]
     fn reads_each_slot() {
-        // 薔薇 — single-seq noun: scalar slots, every nil slot serialized as [].
+        // 薔薇 — single-seq noun: scalar slots, every empty slot serialized as [].
         let bara = json!({
             "type":"KANJI","text":"薔薇","truetext":"薔薇","kana":"ばら",
             "seq":1571760,"conjugations":[],"score":143,"components":[],
@@ -229,8 +222,8 @@ mod def_reader_for_json_macro {
     #[test]
     fn reads_multi_value_slots() {
         // 一人 — alternative reading: kana/seq are arrays, components is the
-        // two-child array (counter on the second child), alternative t,
-        // truetext nil→[].
+        // two-child array (counter on the second child), alternative true,
+        // empty truetext.
         let hitori = json!({
             "type":"KANJI","text":"一人","truetext":[],"kana":["ひとり"],
             "seq":[1576150,2149890],"conjugations":[],"score":312,
@@ -262,7 +255,6 @@ mod def_reader_for_json_macro {
     #[test]
     #[should_panic(expected = "not present")]
     fn panics_on_missing_key() {
-        // jsown:val errors on an absent key.
         let obj = json!({"text": "x"});
         def_reader_for_json(&obj, "nonexistent");
     }
@@ -272,9 +264,7 @@ mod word_info_from_segment {
     use crate::dict::counters::dispatchers::find_counter;
     use crate::dict::readings::{find_word, FindWordRows};
     use crate::dict::word_info::*;
-    // Unit tests against the real .103 PG via `KaniranContext::from_env()`.
-    // Each test exercises one branch of the segment-word dispatch and
-    // confirms the slot mapping against REPL-captured ground truth.
+    // Needs a live Postgres DB.
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -312,9 +302,8 @@ mod word_info_from_segment {
 
     #[tokio::test]
     async fn kana_text_segment_populates_simple_text_slots() {
-        // REPL: (find-word-full "ねこ") → KANA-TEXT seq=1467640
-        //   word-info-from-segment with score=16, end=2 →
-        //   type=KANA text=ねこ kana=ねこ true-text=ねこ primary=T counter=NIL
+        // A kana word (ねこ) yields a KANA word-info with text/kana/true-text
+        // all ねこ, primary set, and no counter.
         let ctx = ctx_from_env().await;
         let word = first_reading(&ctx, "ねこ").await;
         let mut seg = segment(word, 16, 0, 2);
@@ -336,8 +325,6 @@ mod word_info_from_segment {
 
     #[tokio::test]
     async fn kanji_text_segment_returns_text_and_seq() {
-        // KANJI-TEXT branch — get-kana goes through best-kana-conj /
-        // get-kanji-kana-old / hint dispatch, all live against the DB.
         let ctx = ctx_from_env().await;
         let word = first_reading(&ctx, "猫").await;
         let mut seg = segment(word, 3, 0, 1);
@@ -353,8 +340,8 @@ mod word_info_from_segment {
 
     #[tokio::test]
     async fn counter_text_segment_populates_counter_pair_and_null_true_text() {
-        // REPL: (word-info-from-segment) on a COUNTER-TEXT "5個":
-        //   type=KANJI text=5個 counter=("Value: 5" NIL) true-text=NIL
+        // A counter word (5個) yields a KANJI word-info with a counter pair
+        // and no true-text.
         let ctx = ctx_from_env().await;
         let counter = find_counter(&ctx, "5", "個", None)
             .into_iter()
@@ -373,9 +360,7 @@ mod word_info_from_segment {
 
     #[tokio::test]
     async fn segment_with_no_score_passes_none_through() {
-        // The upstream slot is unset (initform 0 only fires when :score
-        // initarg is absent — but every callsite supplies :score from
-        // (segment-score segment), even if nil).
+        // A segment with no score yields a word-info with no score (not 0).
         let ctx = ctx_from_env().await;
         let word = first_reading(&ctx, "ねこ").await;
         let mut seg = Segment {
@@ -393,9 +378,8 @@ mod word_info_from_segment {
 
     #[tokio::test]
     async fn compound_text_segment_builds_components_with_primary_flag() {
-        // dict.lisp:1335-1345 — compound-text branch:
-        //   components = each child word-info with primary set iff
-        //   (= (seq wrd) (seq (primary word))).
+        // A compound word builds one component word-info per child, with the
+        // primary flag set only on the child whose seq matches the primary.
         use crate::dict::text_classes::{CompoundText, ScoreMod};
         let ctx = ctx_from_env().await;
         let w1 = first_reading(&ctx, "ねこ").await; // seq=1467640
@@ -430,18 +414,7 @@ mod word_info_from_segment_list {
     use crate::dict::scoring::score::Segment;
     use crate::dict::word_info::WordInfoType;
     use crate::dict::word_info::*;
-    // Unit tests against the real .103 PG via `KaniranContext::from_env()`.
-    //
-    // Per-branch coverage:
-    // - single-survivor returns `wi1` with `skipped = matches - 1`;
-    // - multi-survivor builds the synthetic with `alternative=true`,
-    //   `score = wi1.score`, `start/end` from the segment-list, and
-    //   per-child `kana` / `seq` preserved (no flattening);
-    // - the score cutoff anchors on `wi1.score` (the FIRST pre-filter
-    //   wi) — even when wi1 itself survives by tie, callers see the
-    //   wi1 binding.
-    // - `dedup_keep_first` keeps first occurrence on a heterogeneous
-    //   `Vec<Option<WordInfoKana>>` (logic-only, no DB).
+    // Needs a live Postgres DB.
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -489,7 +462,7 @@ mod word_info_from_segment_list {
 
     #[tokio::test]
     async fn single_survivor_returns_wi1_with_skipped() {
-        // 1 segment, matches=1 → single branch, skipped = matches - 1 = 0.
+        // One segment, matches=1 → single branch, skipped = matches - 1 = 0.
         let ctx = ctx_from_env().await;
         let word = one_kana_reading(&ctx, "ねこ").await;
         let mut sl = seg_list(vec![seg(word, 16, 0, 2)], 0, 2, 1);
@@ -507,7 +480,7 @@ mod word_info_from_segment_list {
 
     #[tokio::test]
     async fn single_survivor_skipped_eq_matches_minus_one() {
-        // After cull-segments, matches > len(wi-list)==1 → skipped = matches - 1.
+        // One survivor but matches=7 → skipped = matches - 1 = 6.
         let ctx = ctx_from_env().await;
         let word = one_kana_reading(&ctx, "ねこ").await;
         let mut sl = seg_list(vec![seg(word, 16, 0, 2)], 0, 2, 7);
@@ -517,16 +490,15 @@ mod word_info_from_segment_list {
 
     #[tokio::test]
     async fn multi_survivor_builds_synthetic_from_wi1() {
-        // Two surviving segments (scores 5, 5; max=5, cutoff = 2*5/3
-        // — both pass with cross-mul 3*5 >= 2*5). Synthetic wi.kind /
-        // .text / .score all come from wi1 (the first pre-filter wi).
+        // Two surviving segments (both score 5, both pass the cutoff) build an
+        // alternative word-info whose kind/text/score come from the first.
         let ctx = ctx_from_env().await;
         let neko = one_kana_reading(&ctx, "ねこ").await;
         let inu = one_kana_reading(&ctx, "いぬ").await;
         let mut sl = seg_list(vec![seg(neko, 5, 0, 2), seg(inu, 5, 0, 2)], 0, 2, 2);
         let wi = word_info_from_segment_list(&ctx, &mut sl).await.unwrap();
         assert!(wi.alternative);
-        assert_eq!(wi.text, "ねこ"); // wi1.text (first segment's wi)
+        assert_eq!(wi.text, "ねこ"); // first segment's text
         assert_eq!(wi.score, Some(5));
         assert_eq!(wi.components.len(), 2);
         assert_eq!(wi.start, Some(0));
@@ -604,13 +576,10 @@ mod word_info_from_segment_list {
 mod word_info_from_text {
     use crate::dict::word_info::*;
     use crate::dict::word_info::{WordInfoKana, WordInfoSeq, WordInfoType};
-    // Unit tests against the real .103 PG via `KaniranContext::from_env()`.
-    //
-    // Every case is a single-survivor result (`skipped = 0`, i.e.
-    // `find-word-full` returned exactly one reading), so the outcome is
-    // independent of `find-word`'s unordered row order. Multi-survivor
-    // inputs (where `wi1` is order-dependent) are exercised
-    // deterministically by `word_info_from_segment_list`'s own tests.
+    // Needs a live Postgres DB. Each case is a single-survivor result
+    // (skipped = 0), so the outcome doesn't depend on row ordering; the
+    // order-dependent multi-survivor cases live in
+    // word_info_from_segment_list's tests.
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -618,7 +587,7 @@ mod word_info_from_text {
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
-    /// REPL (.103, word-info-from-text "図書館"): single KANJI reading.
+    /// "図書館" yields a single KANJI reading.
     #[tokio::test]
     async fn simple_kanji_noun() {
         let ctx = ctx_from_env().await;
@@ -639,8 +608,8 @@ mod word_info_from_text {
         assert!(wi.primary);
     }
 
-    /// REPL (.103, word-info-from-text "オレら"): single KANA reading
-    /// (seq 1576880). `end = 3` confirms character (not byte) length.
+    /// "オレら" yields a single KANA reading. `end = 3` confirms the length
+    /// is counted in characters, not bytes.
     #[tokio::test]
     async fn simple_kana_pronoun() {
         let ctx = ctx_from_env().await;
@@ -658,9 +627,8 @@ mod word_info_from_text {
         assert!(wi.primary);
     }
 
-    /// REPL (.103, word-info-from-text "食べてる"): single COMPOUND
-    /// (食べて + いる) — the suffix-teiru expansion. seq is the
-    /// per-child list; two components carry the part readings.
+    /// "食べてる" yields a single COMPOUND of 食べて + いる, with seq as the
+    /// per-child list and one component per part.
     #[tokio::test]
     async fn compound_teiru() {
         let ctx = ctx_from_env().await;
@@ -682,15 +650,14 @@ mod word_info_from_text {
         assert_eq!(wi.components[0].seq, Some(WordInfoSeq::Single(10092233)));
         assert_eq!(wi.components[1].text, "いる");
         assert_eq!(wi.components[1].seq, Some(WordInfoSeq::Single(1577980)));
-        // compound-text is not simple-text → true-text / conjugations nil.
+        // A compound carries no true-text or conjugations.
         assert!(wi.true_text.is_none());
         assert!(wi.conjugations.is_none());
         assert!(wi.primary);
     }
 
-    /// REPL (.103, word-info-from-text "5万100"): the `:counter :auto`
-    /// branch resolves a COUNTER reading — counter pair populated,
-    /// `seq` nil. `end = 5` is the character count (byte length is 7).
+    /// "5万100" resolves to a COUNTER reading: counter pair populated, no seq.
+    /// `end = 5` is the character count (byte length is 7).
     #[tokio::test]
     async fn counter_auto_number() {
         let ctx = ctx_from_env().await;
@@ -701,14 +668,13 @@ mod word_info_from_text {
         assert_eq!(wi.score, Some(780));
         assert_eq!(wi.end, Some(5));
         assert!(wi.components.is_empty());
-        // counter-text is not simple-text → true-text / conjugations nil.
+        // A counter reading carries no true-text or conjugations.
         assert!(wi.true_text.is_none());
         assert!(wi.conjugations.is_none());
         assert!(wi.primary);
     }
 
-    /// REPL (.103, word-info-from-text "三羽"): `:counter :auto` yields
-    /// the 三羽 counter reading (value 3).
+    /// "三羽" yields the counter reading (value 3).
     #[tokio::test]
     async fn counter_auto_kanji_number() {
         let ctx = ctx_from_env().await;
@@ -719,7 +685,7 @@ mod word_info_from_text {
         assert_eq!(wi.counter, Some(("Value: 3".into(), false)));
         assert_eq!(wi.score, Some(286));
         assert_eq!(wi.end, Some(2));
-        // counter-text is not simple-text → true-text / conjugations nil.
+        // A counter reading carries no true-text or conjugations.
         assert!(wi.true_text.is_none());
         assert!(wi.conjugations.is_none());
         assert!(wi.primary);
@@ -734,8 +700,7 @@ mod fill_segment_path {
     use crate::dict::scoring::score::Segment;
     use crate::dict::word_info::WordInfoSeq;
     use crate::dict::word_info::*;
-    // Unit tests against the real .103 PG via `KaniranContext::from_env()`.
-    // Coverage:
+    // Needs a live Postgres DB. Coverage:
     // - leading / internal / trailing gap insertion
     // - empty path with non-empty string emits one full-string gap
     // - empty path + empty string emits nothing
@@ -898,11 +863,8 @@ mod fill_segment_path {
 mod word_info_rec_find {
     use crate::dict::word_info::*;
     use crate::dict::word_info::{WordInfo, WordInfoType};
-    // REPL fixtures (.103, ichiran/dict:word-info-rec-find), 2026-05-25.
-    // Each case runs `word-info-rec-find` over a synthetic word-info
-    // tree (parent `P` with components `こ` / `ねこ`, sibling `S`) and
-    // a `test-fn` matching by text — the same construction probed in
-    // the REPL. Pairs are compared by `(text, next-text)`.
+    // Walks a word-info tree (parent P with components こ / ねこ, sibling S)
+    // and pairs each text-matching node with its successor's text.
 
     fn wi(text: &str, components: Vec<WordInfo>) -> WordInfo {
         WordInfo {
@@ -1058,12 +1020,10 @@ mod word_info_reading {
         }
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::word-info-reading`), 2026-05-25.
-    /// Each true-text below has exactly one row in its table, so the
-    /// `car` of `select-dao` is deterministic. Covers: the `:kanji`
-    /// branch (学校, 図書館), the `:kana` branch (ねこ, きそうてんがい),
-    /// the `:gap` type (table nil → None), nil true-text (guard fails →
-    /// None), and a true-text with no matching row (select empty → None).
+    /// Looks up the dictionary row for a word-info's true-text. Covers the
+    /// KANJI type (学校, 図書館), the KANA type (ねこ, きそうてんがい), a GAP type
+    /// (no lookup → None), missing true-text (→ None), and a true-text with
+    /// no matching row (→ None).
     #[tokio::test]
     async fn word_info_reading_fixtures() {
         let ctx = ctx_from_env().await;
@@ -1131,11 +1091,9 @@ mod word_info_reading {
 mod dict_segment {
     use crate::dict::word_info::WordInfoType;
     use crate::dict::word_info::*;
-    // Unit tests against the real .103 PG via `KaniranContext::from_env()`.
-    // Expected paths / scores captured from `ichiran/dict:dict-segment` on
-    // the capture host. Coverage:
-    // - multi-path result (loop runs N times), scores descending
-    // - `:limit` caps the number of paths and is forwarded to find-best-path
+    // Needs a live Postgres DB. Coverage:
+    // - multi-path result, scores descending
+    // - limit caps the number of paths
     // - default limit (None) resolves to 5
     // - empty string yields one seed path with an empty word-info-list
     // - all-gap input yields one path with the gap-penalty score
@@ -1215,13 +1173,9 @@ mod dict_segment {
 mod simple_segment {
     use crate::dict::word_info::WordInfoType;
     use crate::dict::word_info::*;
-    // Mirror of the upstream `segmentation-test` (`tests.lisp:39`), the
-    // canonical unit test for `simple-segment`. Each case maps the
-    // returned word-infos to their text (or `GAP` for gap segments) and
-    // compares against the upstream-asserted segmentation. Runs against
-    // the real .103 PG via `KaniranContext::from_env()`. All 541 cases
-    // pass upstream on the host DB (verified via `run-parallel-tests`);
-    // the 4 commented-out upstream cases are omitted.
+    // The segmentation test: each input string maps to the expected sequence
+    // of segments (word text, or GAP for an unsegmented run). Needs a live
+    // Postgres DB.
 
     const GAP: &str = ":GAP";
 
@@ -1231,8 +1185,7 @@ mod simple_segment {
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
-    // tests.lisp:33 (assert-segment) — :gap word-infos map to GAP, others
-    // to their text.
+    // Gap word-infos map to GAP, others to their text.
     fn segmentation(word_info_list: &[WordInfo]) -> Vec<&str> {
         word_info_list
             .iter()
@@ -1249,7 +1202,6 @@ mod simple_segment {
     #[tokio::test]
     async fn segmentation_test() {
         let ctx = ctx_from_env().await;
-        // tests.lisp:39 (define-parallel-test segmentation-test)
         let cases: &[(&str, &[&str])] = &[
             (
                 "ご注文はうさぎですか",

@@ -340,7 +340,6 @@ When several tests differ only in input and expected output — same callee, sam
 ```rust
 #[test]
 fn get_character_classes_fixtures() {
-    // REPL fixtures (.103, ichiran::get-character-classes), 2026-05-23.
     let cases: &[(&str, Vec<CcItem>)] = &[
         ("し", vec![class(KanaClass::Shi)]),
         ("による", vec![class(KanaClass::Ni), class(KanaClass::Yo), class(KanaClass::Ru)]),

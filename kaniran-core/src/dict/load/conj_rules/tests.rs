@@ -1,27 +1,22 @@
 use super::*;
 
 // --- _star_conj_description_star_ ---
-/// The `OnceLock` builder wiring runs `load_conj_description`
-/// (18 entries per the .103 REPL).
+/// The conj-description table has 18 entries.
 #[test]
 fn conj_description_builds_once() {
     assert_eq!(conj_description().len(), 18);
 }
 
 // --- _star_conj_rules_star_ ---
-/// REPL probe (after `(load-conj-rules)`): `(hash-table-count
-/// *conj-rules*)` = 24 (one entry per pos that appears in
-/// conjo.csv, plus errata insertions for adj-i / adj-ix / v5aru /
-/// vs-s already-present pos ids).
+/// The conj-rules table has 24 entries: one per part-of-speech in
+/// conjo.csv, plus errata insertions for adj-i / adj-ix / v5aru / vs-s.
 #[test]
 fn conj_rules_builds_once() {
     assert_eq!(conj_rules().len(), 24);
 }
 
 // --- get_conj_description ---
-/// REPL fixtures (.103, ichiran/dict::get-conj-description), 2026-05-24.
-/// Present ids resolve to their description; an absent id returns
-/// `None` (upstream nil).
+/// Present ids resolve to their description; an absent id returns `None`.
 #[test]
 fn get_conj_description_fixtures() {
     let cases: &[(i32, Option<&str>)] = &[
@@ -37,9 +32,7 @@ fn get_conj_description_fixtures() {
 }
 
 // --- load_conj_description ---
-/// REPL (.103, after `(load-conj-description)`): 18 entries — 13
-/// conj.csv rows + 5 from the errata hook. Spot-checks pin the
-/// tab-split parse (a `(~tara)` value), the CSV bounds, and the
+/// 18 entries: 13 from conj.csv plus 5 from the errata hook, including the
 /// errata boundary keys (50, 54).
 #[test]
 fn loads_conj_csv_with_errata() {
@@ -68,11 +61,9 @@ fn loads_conj_csv_with_errata() {
 }
 
 // --- get_conj_rules ---
-/// REPL probe (`(ichiran/dict::get-conj-rules pos-id)`), 2026-05-31.
-/// The cases pin both the post-errata row count and the first/last
-/// rules in CSV / accessor order — accessor reverses the stored
-/// cons-prepend list so the last element is the errata-injected
-/// `(conj=52)` v5* negative-stem when the pos starts with `v5`.
+/// Rule count per part-of-speech and the first/last rules. The accessor
+/// reverses the stored list, so the last rule is the errata-injected
+/// `(conj=52)` negative stem for any `v5*`.
 #[test]
 fn get_conj_rules_lookups() {
     // pos 1 (adj-i): 23 rules; first conj=1 okuri="い", last conj=54 okuri="き"
@@ -104,18 +95,18 @@ fn get_conj_rules_lookups() {
         vec![(13, "い", false, false), (52, "わ", true, false)]
     );
 
-    // pos 28 (v1): 60 rules per the REPL probe.
+    // pos 28 (v1): 60 rules.
     assert_eq!(get_conj_rules(28).len(), 60);
 
-    // pos 30 (v5aru): 62 rules per the REPL probe.
+    // pos 30 (v5aru): 62 rules.
     assert_eq!(get_conj_rules(30).len(), 62);
 
     // pos 47 (vs-s): 53 rules after potential-form (conj=5) removal.
     let r47 = get_conj_rules(47);
     assert_eq!(r47.len(), 53);
-    // dict-errata.lisp:1287 removes conj=5 from vs-s entirely.
+    // conj=5 is removed from vs-s entirely.
     assert!(r47.iter().all(|r| r.conj != 5));
 
-    // missing key → empty (upstream returns nil; (reverse nil) = nil)
+    // missing key → empty
     assert!(get_conj_rules(9999).is_empty());
 }

@@ -1,9 +1,8 @@
 mod length_multiplier {
     use crate::dict::scoring::score::*;
 
-    // REPL fixtures (.103, ichiran/dict::length-multiplier), 2026-05-25.
-    // `(length, power, len-lim) -> result`; both cond branches and the
-    // `length == len-lim` boundary (first branch) are covered.
+    // Columns: `(length, power, len-lim) -> result`. Covers both branches
+    // and the `length == len-lim` boundary.
     #[test]
     fn length_multiplier_fixtures() {
         let cases: &[(i64, i64, i64, i64)] = &[
@@ -33,12 +32,6 @@ mod length_multiplier {
 mod _star_length_coeff_sequences_star_ {
     use crate::dict::scoring::score::*;
 
-    // REPL-pinned (.103 SBCL, 2026-05-13):
-    //   *length-coeff-sequences* =
-    //     ((:STRONG 1 8 24 40 60)
-    //      (:WEAK   1 4 9 16 25 36)
-    //      (:TAIL   4 9 16 24)
-    //      (:LTAIL  4 12 18 24))
     #[test]
     fn matches_introspected_value() {
         assert_eq!(LENGTH_COEFF_SEQUENCES.len(), 4);
@@ -64,7 +57,6 @@ mod _star_length_coeff_sequences_star_ {
 mod length_multiplier_coeff {
     use crate::dict::scoring::score::*;
 
-    // All assertions REPL-pinned against upstream ichiran.
     #[test]
     fn strong_tabled_range() {
         assert_eq!(length_multiplier_coeff(0, KaniLengthClass::Strong), 0);
@@ -150,13 +142,10 @@ mod kanji_break_penalty {
     use crate::dict::scoring::score::*;
 
     // ----- pure-arithmetic cases (no info, no DB) -----
-    //
-    // Every assertion REPL-pinned against upstream ichiran 2026-05-16.
 
     #[tokio::test]
     async fn no_info_above_cutoff_halves_with_ceiling() {
-        // REPL: (kanji-break-penalty '(0) 100) → 50
-        // 100 >= 5 → max(5, ceil(100/2) + 0) = max(5, 50) = 50
+        // 100 >= cutoff → max(5, ceil(100/2)) = 50
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = kanji_break_penalty(&ctx, &[0], 100, None, "", None, None)
             .await
@@ -166,7 +155,7 @@ mod kanji_break_penalty {
 
     #[tokio::test]
     async fn no_info_odd_score_rounds_up() {
-        // REPL: (kanji-break-penalty '(1) 100) → 50 (same arithmetic; end branch unused without posi)
+        // Same arithmetic; the end branch is unused without posi.
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = kanji_break_penalty(&ctx, &[1], 100, None, "", None, None)
             .await
@@ -176,7 +165,6 @@ mod kanji_break_penalty {
 
     #[tokio::test]
     async fn no_info_both_branch() {
-        // REPL: (kanji-break-penalty '(0 5) 100) → 50
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = kanji_break_penalty(&ctx, &[0, 5], 100, None, "", None, None)
             .await
@@ -186,7 +174,7 @@ mod kanji_break_penalty {
 
     #[tokio::test]
     async fn below_cutoff_returns_unchanged() {
-        // REPL: (kanji-break-penalty '(0) 4) → 4 (4 < *score-cutoff* = 5)
+        // A score below the cutoff (5) is returned unchanged.
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = kanji_break_penalty(&ctx, &[0], 4, None, "", None, None)
             .await
@@ -196,17 +184,11 @@ mod kanji_break_penalty {
 
     // ----- info-bearing cases (calc_score + kanji_break_penalty integration) -----
     //
-    // The pure-arithmetic cases above exercise the `info=None` arm.
-    // These exercise the four cond branches at dict.lisp:709-728 that
-    // gate on info contents.
+    // The pure-arithmetic cases above exercise the no-info arm. These
+    // exercise the four branches that gate on info contents.
 
-    /// REPL: with seq 1467640 (`猫`, common-rank-7 noun) →
-    ///   `(calc-score row)` → 19, info :posi ("n") :seq-set (1467640).
-    ///   `(kanji-break-penalty '(0) 19 :info info :text "猫")` → 10.
-    ///   Hits the fall-through "penalty applies" branch
-    ///   (no seq-set ∩ `*no-kanji-break-penalty*`, no `す` prefix, no
-    ///   num/suf/pref bonus). Arithmetic: 19 ≥ 5 → max(5, ceil(19/2) + 0)
-    ///   = max(5, 10) = 10.
+    /// For 猫 (a common noun), none of the short-circuit conditions apply,
+    /// so the penalty falls through and halves the score: 19 → 10.
     #[tokio::test]
     async fn info_fall_through_penalty() {
         use crate::dict::kani_word::KaniWordDispatchEnum;
@@ -228,10 +210,8 @@ mod kanji_break_penalty {
         assert_eq!(got, 10);
     }
 
-    /// REPL: `飲む` (seq 1169870) is in `*no-kanji-break-penalty*`,
-    /// so `kanji-break-penalty` returns `score` unchanged regardless
-    /// of arithmetic. Pinned at score=128 (from `(calc-score …)` on
-    /// the kanji row).
+    /// 飲む is on the no-kanji-break-penalty list, so the score is returned
+    /// unchanged regardless of the arithmetic.
     #[tokio::test]
     async fn no_penalty_list_short_circuit() {
         use crate::dict::kani_word::KaniWordDispatchEnum;
@@ -246,19 +226,15 @@ mod kanji_break_penalty {
         let w = KaniWordDispatchEnum::Kanji(rows.into_iter().next().unwrap());
         let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).await.unwrap();
         let info = info.unwrap();
-        // dict.lisp:709 — intersection seq-set *no-kanji-break-penalty*
-        // returns truthy → return score unchanged.
         let got = kanji_break_penalty(&ctx, &[0], score, Some(&info), "飲む", None, None)
             .await
             .unwrap();
         assert_eq!(got, score);
     }
 
-    /// REPL: `好き` (seq 1277450) is in `*no-kanji-break-penalty*`,
-    /// short-circuits regardless of text. Also exercises the
-    /// `(eql end :beg) (alexandria:starts-with #\す text)` arm —
-    /// even if seq-set didn't short-circuit, the `す`-prefix branch
-    /// would. Pinned via the seq-set route.
+    /// 好き is on the no-kanji-break-penalty list, so the score is
+    /// unchanged regardless of text. Even without that, its す-prefix would
+    /// also short-circuit the penalty.
     #[tokio::test]
     async fn suki_seq_short_circuit() {
         use crate::dict::kani_word::KaniWordDispatchEnum;
@@ -280,15 +256,15 @@ mod kanji_break_penalty {
         let got_kana_text = kanji_break_penalty(&ctx, &[0], score, Some(&info), "すき", None, None)
             .await
             .unwrap();
-        // REPL pinned: both → score unchanged (seq-set short-circuits first).
+        // Both leave the score unchanged — the seq-set check fires first.
         assert_eq!(got_kanji_text, score);
         assert_eq!(got_kana_text, score);
     }
 
     #[tokio::test]
     async fn classify_end_results() {
-        // pinned via direct cond evaluation on .103: kanji-break list →
-        // (cond ((cdr kb) :both) ((eql (car kb) 0) :beg) (t :end))
+        // A multi-element break is Both; a single 0 is Beg; anything else
+        // (including empty) is End.
         assert_eq!(classify_end(&[]), KanjiBreakEnd::End);
         assert_eq!(classify_end(&[0]), KanjiBreakEnd::Beg);
         assert_eq!(classify_end(&[3]), KanjiBreakEnd::End);
@@ -303,10 +279,8 @@ mod get_non_arch_posi {
     use crate::conn::kani_context::KaniranContext;
     use crate::dict::scoring::score::*;
 
-    // All assertions REPL-pinned against upstream ichiran. Each test
-    // sorts the returned Vec before comparing because the upstream
-    // Lisp `(:select … :distinct …)` does not impose an ORDER BY,
-    // and Postgres is free to return distinct rows in any order.
+    // Each test sorts the result before comparing: the query has no ORDER
+    // BY, so Postgres may return the distinct rows in any order.
     fn sorted(mut v: Vec<String>) -> Vec<String> {
         v.sort();
         v
@@ -314,7 +288,6 @@ mod get_non_arch_posi {
 
     #[tokio::test]
     async fn taberu_single_seq() {
-        // (get-non-arch-posi '(1357400)) → ("v5m" "vt")
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = get_non_arch_posi(&ctx, &[1357400]).await.expect("query");
         assert_eq!(sorted(got), vec!["v5m".to_string(), "vt".to_string()]);
@@ -322,7 +295,6 @@ mod get_non_arch_posi {
 
     #[tokio::test]
     async fn no_particle_seq() {
-        // (get-non-arch-posi '(2089020)) → ("aux-v" "cop" "cop-da")
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = get_non_arch_posi(&ctx, &[2089020]).await.expect("query");
         assert_eq!(
@@ -333,7 +305,6 @@ mod get_non_arch_posi {
 
     #[tokio::test]
     async fn dummy_seq_1000220() {
-        // (get-non-arch-posi '(1000220)) → ("adj-na")
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = get_non_arch_posi(&ctx, &[1000220]).await.expect("query");
         assert_eq!(sorted(got), vec!["adj-na".to_string()]);
@@ -341,7 +312,6 @@ mod get_non_arch_posi {
 
     #[tokio::test]
     async fn hon_noun_seq() {
-        // (get-non-arch-posi '(1522150)) → ("ctr" "n" "pref")
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = get_non_arch_posi(&ctx, &[1522150]).await.expect("query");
         assert_eq!(
@@ -352,7 +322,6 @@ mod get_non_arch_posi {
 
     #[tokio::test]
     async fn counter_seq_1325880() {
-        // (get-non-arch-posi '(1325880)) → ("n")
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = get_non_arch_posi(&ctx, &[1325880]).await.expect("query");
         assert_eq!(sorted(got), vec!["n".to_string()]);
@@ -360,8 +329,6 @@ mod get_non_arch_posi {
 
     #[tokio::test]
     async fn two_seqs_union() {
-        // (get-non-arch-posi '(1357400 2089020))
-        //   → ("aux-v" "cop" "cop-da" "v5m" "vt")
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = get_non_arch_posi(&ctx, &[1357400, 2089020])
             .await
@@ -380,7 +347,6 @@ mod get_non_arch_posi {
 
     #[tokio::test]
     async fn zo_particle_seq() {
-        // (get-non-arch-posi '(2029110)) → ("int" "prt")
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = get_non_arch_posi(&ctx, &[2029110]).await.expect("query");
         assert_eq!(sorted(got), vec!["int".to_string(), "prt".to_string()]);
@@ -388,7 +354,6 @@ mod get_non_arch_posi {
 
     #[tokio::test]
     async fn unknown_seq_returns_empty() {
-        // (get-non-arch-posi '(99999999)) → NIL
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = get_non_arch_posi(&ctx, &[99999999]).await.expect("query");
         assert!(got.is_empty(), "expected NIL, got {got:?}");
@@ -396,7 +361,6 @@ mod get_non_arch_posi {
 
     #[tokio::test]
     async fn empty_seq_set_returns_empty() {
-        // (get-non-arch-posi nil) → NIL.
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = get_non_arch_posi(&ctx, &[]).await.expect("query");
         assert!(got.is_empty(), "expected NIL, got {got:?}");
@@ -404,8 +368,6 @@ mod get_non_arch_posi {
 
     #[tokio::test]
     async fn many_seqs_union() {
-        // (get-non-arch-posi '(1357400 2089020 1522150 1000220))
-        //   → ("adj-na" "aux-v" "cop" "cop-da" "ctr" "n" "pref" "v5m" "vt")
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = get_non_arch_posi(&ctx, &[1357400, 2089020, 1522150, 1000220])
             .await
@@ -428,7 +390,6 @@ mod get_non_arch_posi {
 
     #[tokio::test]
     async fn taberu_with_conj_root() {
-        // (get-non-arch-posi (list 1357400 2027820)) → ("exp" "v5m" "vt")
         let ctx = KaniranContext::from_env().await.expect("ctx");
         let got = get_non_arch_posi(&ctx, &[1357400, 2027820])
             .await
@@ -498,13 +459,7 @@ mod gen_score {
         }
     }
 
-    // ----- REPL-pinned cases (.103, 2026-05-16). Captured by running
-    //       `(gen-score (make-segment :start 0 :end <n> :word w :text "<txt>"))`
-    //       followed by `(segment-score s) / (segment-info s)`. -----
-
-    /// REPL: GEN-SCORE 'ねこ': score=16
-    /// info=(:POSI ("n") :SEQ-SET (1467640) :CONJ NIL :COMMON 7
-    ///       :SCORE-INFO (4 NIL 0 NIL) :KPCL (NIL NIL T NIL))
+    /// Scoring a ねこ segment writes both its score and its info.
     #[tokio::test]
     async fn neko_baseline_writes_score_and_info() {
         let ctx = ctx_from_env().await;
@@ -524,13 +479,9 @@ mod gen_score {
         assert_eq!(info.kpcl, (false, false, true, false));
     }
 
-    /// REPL: with row `(select-dao 'kanji-text (:and (:= 'seq 2698030) (:= 'text "猫")))` →
-    ///   `(gen-score (make-segment :start 0 :end 1 :word w :text "猫") :kanji-break '(0))` →
-    ///   score=3, info=(:POSI NIL :SEQ-SET (2698030) :CONJ NIL :COMMON NIL
-    ///                  :SCORE-INFO (3 (0) 0 NIL) :KPCL (T NIL NIL NIL))
-    ///
-    /// Deterministic-row helper avoids `find-word`'s no-ORDER-BY
-    /// nondeterminism.
+    /// A kanji-break passed to gen_score propagates through calc_score
+    /// into the segment's info. Uses a deterministic-row helper to avoid
+    /// the unordered find-word lookup.
     #[tokio::test]
     async fn neko_kanji_break_propagates_through_calc_score() {
         let ctx = ctx_from_env().await;
@@ -550,10 +501,7 @@ mod gen_score {
         assert_eq!(info.kpcl, (true, false, false, false));
     }
 
-    /// REPL: with row `(select-dao 'kana-text (:and (:= 'seq 1290020) (:= 'text "ね")))` →
-    ///   `(gen-score (make-segment :start 0 :end 1 :word w :text "ね") :final t)` →
-    ///   score=4, info=(:POSI ("n") :SEQ-SET (1290020) :CONJ NIL :COMMON 5
-    ///                  :SCORE-INFO (4 NIL 0 NIL) :KPCL (NIL NIL T NIL))
+    /// A common noun reading of ね scored in final position.
     #[tokio::test]
     async fn ne_final_common_n_branch() {
         let ctx = ctx_from_env().await;
@@ -690,7 +638,6 @@ mod find_sticky_positions {
 mod make_slice {
     use crate::dict::scoring::score::*;
 
-    /// REPL: `(length (make-slice))` → 0, `(string= (make-slice) "")` → T
     #[test]
     fn empty_seed() {
         let s = make_slice();
@@ -702,44 +649,43 @@ mod make_slice {
 mod subseq_slice {
     use crate::dict::scoring::score::*;
 
-    /// REPL: `(subseq-slice nil "あいうえお" 1 3)` → `"いう"` (length 2).
-    /// Pins character-offset semantics across multi-byte UTF-8.
+    /// Offsets count characters, not bytes, across multi-byte UTF-8:
+    /// positions 1..3 of "あいうえお" give "いう".
     #[test]
     fn character_offsets_multi_byte() {
         let r = subseq_slice(None, "あいうえお", 1, Some(3));
         assert_eq!(r, "いう");
     }
 
-    /// REPL: `(subseq-slice nil "abcde" 0 5)` → `"abcde"`.
     #[test]
     fn full_range_ascii() {
         let r = subseq_slice(None, "abcde", 0, Some(5));
         assert_eq!(r, "abcde");
     }
 
-    /// REPL: `(subseq-slice nil "abcde" 0)` → `"abcde"` (default end).
+    /// A missing end defaults to the string length.
     #[test]
     fn end_defaults_to_length() {
         let r = subseq_slice(None, "abcde", 0, None);
         assert_eq!(r, "abcde");
     }
 
-    /// REPL: `(subseq-slice nil "abc" 1)` → `"bc"` (default end past start).
+    /// With an offset start and default end, the slice runs to the end.
     #[test]
     fn end_default_with_offset_start() {
         let r = subseq_slice(None, "abc", 1, None);
         assert_eq!(r, "bc");
     }
 
-    /// REPL: `(subseq-slice nil "hello" 2 2)` → `""` (start == end).
+    /// Equal start and end give an empty slice.
     #[test]
     fn empty_range_when_start_equals_end() {
         let r = subseq_slice(None, "hello", 2, Some(2));
         assert_eq!(r, "");
     }
 
-    /// REPL: passing in an existing slice returns a view of `s` regardless.
-    /// `(let ((s (make-slice))) (subseq-slice s "hello" 1 4))` → `"ell"`.
+    /// The passed-in slice argument is ignored; the result is a view of
+    /// the source string.
     #[test]
     fn slice_argument_is_ignored() {
         let seed = crate::dict::scoring::score::make_slice();
@@ -747,50 +693,43 @@ mod subseq_slice {
         assert_eq!(r, "ell");
     }
 
-    /// REPL: `(subseq-slice nil "hello" 4 2)` → assertion failure
-    /// `(>= END START)` (END=2, START=4).
+    /// An end less than the start panics.
     #[test]
     #[should_panic(expected = "subseq-slice: end (2) < start (4)")]
     fn end_less_than_start_panics() {
         let _ = subseq_slice(None, "hello", 4, Some(2));
     }
 
-    /// REPL: `(subseq-slice nil "hello" 0 10)` →
-    /// `ERROR: The :DISPLACED-TO array is too small.`
+    /// An end past the string length panics.
     #[test]
     #[should_panic(expected = "subseq-slice: end (10) > (length s) (5)")]
     fn end_past_length_panics() {
         let _ = subseq_slice(None, "hello", 0, Some(10));
     }
 
-    /// REPL: `(subseq-slice nil "hello" 2 7)` →
-    /// `ERROR: The :DISPLACED-TO array is too small.` (start in range,
-    /// end past length).
+    /// An in-range start with an end past the length panics.
     #[test]
     #[should_panic(expected = "subseq-slice: end (7) > (length s) (5)")]
     fn start_in_range_end_past_length_panics() {
         let _ = subseq_slice(None, "hello", 2, Some(7));
     }
 
-    /// REPL: `(subseq-slice nil "hello" 10 12)` →
-    /// `ERROR: The :DISPLACED-TO array is too small.` (both out of
-    /// range; rejected via the end-bound check).
+    /// A start and end both past the length panic via the end-bound check.
     #[test]
     #[should_panic(expected = "subseq-slice: end (12) > (length s) (5)")]
     fn start_and_end_past_length_panics() {
         let _ = subseq_slice(None, "hello", 10, Some(12));
     }
 
-    /// REPL: `(subseq-slice nil "hello" 5 5)` → `""` (start == end ==
-    /// length is the upper-edge OK case, no error).
+    /// Start == end == length is the allowed upper edge (empty result, no
+    /// panic).
     #[test]
     fn start_equal_to_length_at_end_is_ok() {
         let r = subseq_slice(None, "hello", 5, Some(5));
         assert_eq!(r, "");
     }
 
-    /// REPL: `(subseq-slice nil "hello" 0 5)` → `"hello"` (end ==
-    /// length is the upper-edge OK case).
+    /// An end equal to the length is the allowed upper edge.
     #[test]
     fn end_equal_to_length_is_ok() {
         let r = subseq_slice(None, "hello", 0, Some(5));
@@ -802,12 +741,10 @@ mod compare_common {
     use crate::dict::scoring::score::*;
     use CompareCommonResult::*;
 
-    // All assertions REPL-pinned against upstream ichiran. Each value
-    // matches the exact Lisp return: branch 1 returns c1 itself, so
-    // (compare-common 5 NIL) = 5 (C1(5)); branches 2/3 return T or NIL.
+    // The first branch returns c1 itself (e.g. compare(5, none) = C1(5));
+    // the second and third return True or Nil.
     #[test]
     fn nil_c1_always_nil() {
-        // (compare-common NIL <anything>) = NIL.
         for c2 in [None, Some(0), Some(1), Some(2), Some(5), Some(10), Some(-3)] {
             assert_eq!(compare_common(None, c2), Nil);
         }
@@ -815,7 +752,6 @@ mod compare_common {
 
     #[test]
     fn nil_c2_returns_c1_itself() {
-        // (compare-common <integer> NIL) returns c1 (branch 1).
         assert_eq!(compare_common(Some(0), None), C1(0));
         assert_eq!(compare_common(Some(1), None), C1(1));
         assert_eq!(compare_common(Some(2), None), C1(2));
@@ -826,7 +762,7 @@ mod compare_common {
 
     #[test]
     fn zero_c1_only_truthy_when_c2_nil() {
-        // (compare-common 0 NIL) = 0 (C1(0), truthy); all others NIL.
+        // A zero c1 against an absent c2 is still truthy; every other c2 is Nil.
         assert_eq!(compare_common(Some(0), None), C1(0));
         assert_eq!(compare_common(Some(0), Some(0)), Nil);
         assert_eq!(compare_common(Some(0), Some(1)), Nil);
@@ -838,7 +774,6 @@ mod compare_common {
 
     #[test]
     fn c2_zero_returns_true_when_c1_positive() {
-        // (compare-common <pos> 0) = T (branch 2); otherwise NIL.
         assert_eq!(compare_common(Some(1), Some(0)), True);
         assert_eq!(compare_common(Some(2), Some(0)), True);
         assert_eq!(compare_common(Some(5), Some(0)), True);
@@ -849,8 +784,7 @@ mod compare_common {
 
     #[test]
     fn positive_pair_lt_predicate() {
-        // Branch 3: (compare-common 1 2) = T (since 1 < 2);
-        // (compare-common 2 1) = NIL (since 2 not < 1).
+        // Two positive values compare by less-than.
         assert_eq!(compare_common(Some(1), Some(2)), True);
         assert_eq!(compare_common(Some(1), Some(5)), True);
         assert_eq!(compare_common(Some(1), Some(10)), True);
@@ -870,15 +804,13 @@ mod compare_common {
 
     #[test]
     fn negative_c1_falls_off() {
-        // (compare-common -3 1) = NIL — c1 not > 0, cond falls off.
+        // A negative c1 is never less than a positive c2, so it falls off to Nil.
         assert_eq!(compare_common(Some(-3), Some(1)), Nil);
         assert_eq!(compare_common(Some(-3), Some(2)), Nil);
         assert_eq!(compare_common(Some(-3), Some(5)), Nil);
         assert_eq!(compare_common(Some(-3), Some(10)), Nil);
         assert_eq!(compare_common(Some(-3), Some(-3)), Nil);
-        // (compare-common <any> -3) when c2 != 0: third clause requires
-        // c1 > 0, so c1<0 falls off; c1>0 returns (< c1 -3) = NIL for
-        // any positive c1.
+        // Any positive c1 against c2 = -3 is also Nil (c1 is not less than -3).
         assert_eq!(compare_common(Some(1), Some(-3)), Nil);
         assert_eq!(compare_common(Some(2), Some(-3)), Nil);
         assert_eq!(compare_common(Some(5), Some(-3)), Nil);
@@ -958,15 +890,12 @@ mod cull_segments {
             .collect()
     }
 
-    // REPL T1: (cull-segments nil) => NIL.
     #[test]
     fn empty_input_returns_empty() {
         let out = cull_segments(Vec::new());
         assert!(out.is_empty());
     }
 
-    // REPL T2: single segment passes through.
-    //   IN: [(score 10)] -> OUT: [(score 10)]
     #[test]
     fn single_segment_passes_through() {
         let out = cull_segments(vec![seg(1, 10, None)]);
@@ -974,8 +903,7 @@ mod cull_segments {
         assert_eq!(seqs(&out), vec![1]);
     }
 
-    // REPL T3: descending scores with culling.
-    //   IN scores [20, 15, 9, 8] -> max=20 cutoff=10 -> OUT [20, 15].
+    // Scores [20, 15, 9, 8]: max=20, cutoff=10, so [20, 15] survive.
     #[test]
     fn descending_scores_cull_below_half() {
         let out = cull_segments(vec![
@@ -988,8 +916,7 @@ mod cull_segments {
         assert_eq!(seqs(&out), vec![1, 2]);
     }
 
-    // REPL T4: identical scores — none culled, order preserved.
-    //   IN scores [10, 10, 10] -> OUT [10, 10, 10].
+    // Identical scores: none culled, input order preserved.
     #[test]
     fn identical_scores_none_culled() {
         let out = cull_segments(vec![seg(1, 10, None), seg(2, 10, None), seg(3, 10, None)]);
@@ -997,9 +924,8 @@ mod cull_segments {
         assert_eq!(seqs(&out), vec![1, 2, 3]);
     }
 
-    // REPL T5: unsorted input sorted by score desc.
-    //   IN scores [5, 20, 15, 12] -> sorted [20, 15, 12, 5] -> max=20
-    //   cutoff=10 -> OUT [20, 15, 12].
+    // Unsorted [5, 20, 15, 12] sorts descending; max=20, cutoff=10, so
+    // [20, 15, 12] survive.
     #[test]
     fn unsorted_input_sorted_descending() {
         let out = cull_segments(vec![
@@ -1012,11 +938,8 @@ mod cull_segments {
         assert_eq!(seqs(&out), vec![2, 3, 4]);
     }
 
-    // REPL T6: same score, varying :common — compare-common is the
-    // primary sort key but score (all equal) is the secondary.
-    // Input order [nil, 0, 10, 5] (commons), all score=10.
-    //   Expected sorted by compare-common then stable score:
-    //   [5, 10, 0, nil] per REPL.
+    // Equal scores, varying commons [nil, 0, 10, 5]: common is the primary
+    // sort key, so the order becomes commons [5, 10, 0, nil].
     #[test]
     fn same_score_varying_commons() {
         let out = cull_segments(vec![
@@ -1026,68 +949,59 @@ mod cull_segments {
             seg(4, 10, Some(Some(5))),
         ]);
         assert_eq!(scores(&out), vec![10, 10, 10, 10]);
-        // REPL output order: commons [5, 10, 0, nil] -> seqs [4, 3, 2, 1].
+        // Order commons [5, 10, 0, nil] maps to seqs [4, 3, 2, 1].
         assert_eq!(seqs(&out), vec![4, 3, 2, 1]);
     }
 
-    // REPL T7: boundary — max=10 cutoff=5; score 5 stays (>= 5), 4
-    // dropped.
-    //   IN [10, 5, 4] -> OUT [10, 5].
+    // Boundary [10, 5, 4]: cutoff=5, so 5 stays (>= cutoff) and 4 drops.
     #[test]
     fn boundary_cutoff_equal_kept() {
         let out = cull_segments(vec![seg(1, 10, None), seg(2, 5, None), seg(3, 4, None)]);
         assert_eq!(scores(&out), vec![10, 5]);
     }
 
-    // REPL T8: odd boundary — max=11 cutoff=11/2=5.5; 6 stays, 5
-    // dropped.
-    //   IN [11, 6, 5] -> OUT [11, 6].
+    // Odd boundary [11, 6, 5]: cutoff=5.5, so 6 stays and 5 drops.
     #[test]
     fn odd_boundary_cutoff_strict() {
         let out = cull_segments(vec![seg(1, 11, None), seg(2, 6, None), seg(3, 5, None)]);
         assert_eq!(scores(&out), vec![11, 6]);
     }
 
-    // REPL T9: odd boundary with 5 below 5.5.
-    //   IN [11, 5] -> OUT [11].
+    // Odd boundary [11, 5]: cutoff=5.5, so 5 drops.
     #[test]
     fn odd_boundary_drops_below_half() {
         let out = cull_segments(vec![seg(1, 11, None), seg(2, 5, None)]);
         assert_eq!(scores(&out), vec![11]);
     }
 
-    // REPL T10: max=10 cutoff=5; score 5 kept.
-    //   IN [10, 5] -> OUT [10, 5].
+    // Even boundary [10, 5]: cutoff=5, so 5 is kept.
     #[test]
     fn even_boundary_keeps_exactly_half() {
         let out = cull_segments(vec![seg(1, 10, None), seg(2, 5, None)]);
         assert_eq!(scores(&out), vec![10, 5]);
     }
 
-    // REPL T11: zero scores — cutoff 0, all kept (0 >= 0).
-    //   IN [0, 0] -> OUT [0, 0].
+    // Zero scores: cutoff=0, all kept.
     #[test]
     fn zero_scores_all_kept() {
         let out = cull_segments(vec![seg(1, 0, None), seg(2, 0, None)]);
         assert_eq!(scores(&out), vec![0, 0]);
     }
 
-    // REPL T12: negative scores — max=-5 cutoff=-2.5; -5 NOT >= -2.5
-    // so loop terminates at first segment.
-    //   IN [-10, -5] -> sorted [-5, -10] -> OUT [].
+    // Negative scores [-10, -5]: max=-5, cutoff=-2.5, so even the top
+    // segment is below cutoff and everything is dropped.
     #[test]
     fn negative_scores_all_culled() {
         let out = cull_segments(vec![seg(1, -10, None), seg(2, -5, None)]);
         assert!(out.is_empty());
     }
 
-    // REPL T13: compare-common ordering on commons [nil, 5, 0, 3]
-    // with all score=10. Result order (commons): [3, 5, 0, nil] per
-    // REPL probe — exercises every compare-common branch:
-    //   - 3 < 5 (third clause T)
-    //   - 5 < 0 (second clause T)
-    //   - 0 < nil (first clause returns 0, truthy)
-    //   - nil never sorts before anything (first clause returns nil).
+    // Common-ordering on [nil, 5, 0, 3] with equal scores gives order
+    // [3, 5, 0, nil], exercising every comparison branch:
+    //   - 3 sorts before 5
+    //   - 5 sorts before 0
+    //   - 0 sorts before nil
+    //   - nil never sorts before anything.
     #[test]
     fn compare_common_ordering_full() {
         let out = cull_segments(vec![
@@ -1096,7 +1010,7 @@ mod cull_segments {
             seg(3, 10, Some(Some(0))),
             seg(4, 10, Some(Some(3))),
         ]);
-        // REPL order: commons [3, 5, 0, nil] -> seqs [4, 2, 3, 1].
+        // Order commons [3, 5, 0, nil] maps to seqs [4, 2, 3, 1].
         assert_eq!(seqs(&out), vec![4, 2, 3, 1]);
     }
 }

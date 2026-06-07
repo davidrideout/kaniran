@@ -2,7 +2,6 @@ use super::*;
 use crate::custom::types::{Municipality, Ward};
 
 // --- as_xml ---
-// REPL fixtures (.103, ichiran/custom::as-xml + dom:map-document), 2026-05-31.
 
 #[test]
 #[should_panic(expected = "as-xml: no method for xml-entry")]
@@ -50,8 +49,6 @@ fn as_xml_ward_fixture() {
 }
 
 // --- as_xml_simple ---
-// REPL fixtures (.103, ichiran/custom::as-xml-simple +
-// dom:map-document), 2026-05-31.
 
 #[test]
 fn as_xml_simple_fixtures() {
@@ -90,7 +87,7 @@ fn as_xml_simple_fixtures() {
     );
 }
 
-// Verified on .103: XML text content escapes only <, >, &; ' and " stay literal.
+// XML text content escapes only <, >, &; ' and " stay literal.
 #[test]
 fn as_xml_simple_escapes_metachars() {
     let out = as_xml_simple("A&B", "えーびー", "A < B & C > 'apos' \"quot\"");
@@ -101,8 +98,7 @@ fn as_xml_simple_escapes_metachars() {
     );
 }
 
-// Real ichiran_latest fixture (seq 12316624, 南陽市): the apostrophe in
-// the romanized name is stored literally, not as &apos;.
+// An apostrophe in the romanized name stays literal, not encoded as &apos;.
 #[test]
 fn as_xml_simple_apostrophe_is_literal() {
     assert_eq!(

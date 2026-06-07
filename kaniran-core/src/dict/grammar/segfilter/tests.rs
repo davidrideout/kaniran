@@ -60,8 +60,6 @@ mod penalty_short {
         })
     }
 
-    // REPL probes (/tmp/probe_b.lisp on .103, 2026-05-18).
-
     #[test]
     fn d1_both_spans_one_returns_synergy() {
         let l = lite_sl_owned(0, 1, vec![seg(0, 1, (false, false, false, false), "あ")]);
@@ -185,8 +183,6 @@ mod penalty_semi_final {
             matches: 0,
         })
     }
-
-    // REPL probes (/tmp/probe_b.lisp on .103, 2026-05-18).
 
     #[test]
     fn b1_non_adjacent_returns_none() {
@@ -323,8 +319,6 @@ mod get_penalties {
             other => panic!("expected Synergy, got {:?}", other),
         }
     }
-
-    // REPL probes (/tmp/probe_penalties.lisp on .103, 2026-05-18).
 
     #[test]
     fn a_no_penalty_returns_two_element_list() {
@@ -520,7 +514,6 @@ mod classify {
 
     #[test]
     fn partitions_by_predicate_preserving_order() {
-        // REPL: (classify #'oddp '(1 2 3 4 5)) => yep=(1 3 5) nope=(2 4)
         let (yep, nope) = classify(|n: &i32| n % 2 != 0, &[1, 2, 3, 4, 5]);
         assert_eq!(yep, vec![1, 3, 5]);
         assert_eq!(nope, vec![2, 4]);
@@ -528,7 +521,6 @@ mod classify {
 
     #[test]
     fn empty_input_yields_empty_outputs() {
-        // REPL: (classify #'oddp '()) => yep=NIL nope=NIL
         let (yep, nope) = classify(|n: &i32| n % 2 != 0, &[]);
         assert!(yep.is_empty());
         assert!(nope.is_empty());
@@ -536,7 +528,6 @@ mod classify {
 
     #[test]
     fn all_nope_branch() {
-        // REPL: (classify #'oddp '(2 4 6)) => yep=NIL nope=(2 4 6)
         let (yep, nope) = classify(|n: &i32| n % 2 != 0, &[2, 4, 6]);
         assert!(yep.is_empty());
         assert_eq!(nope, vec![2, 4, 6]);
@@ -544,7 +535,6 @@ mod classify {
 
     #[test]
     fn all_yep_branch() {
-        // REPL: (classify (constantly t) '(1 2 3)) => yep=(1 2 3) nope=NIL
         let (yep, nope) = classify(|_n: &i32| true, &[1, 2, 3]);
         assert_eq!(yep, vec![1, 2, 3]);
         assert!(nope.is_empty());
@@ -558,11 +548,8 @@ mod def_segfilter_must_follow_macro {
     use crate::dict::path::SegmentList;
     use crate::dict::scoring::score::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::dao::SimpleText;
-    // Synthetic-filter tests pinning each branch of the macro
-    // expansion independent of any specific dictionary lookup. The
-    // per-callsite segfilter_*.rs files cover the full pipeline with
-    // real fixtures; these tests give the helper a self-contained
-    // specification.
+    // Each test exercises one branch of the segfilter helper with
+    // synthetic left/right segments, independent of any dictionary lookup.
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {
@@ -846,12 +833,9 @@ mod segfilter_aux_verb {
         }))
     }
 
-    // REPL probes from `/tmp/probe_aux_verb.lisp` (this session); each
-    // assertion below pins a Lisp result line.
-
     #[test]
     fn a_l_nil_r_no_match() {
-        // A l=NIL r=no-match -> {(L=NIL R=[r unchanged 1 seg seq=999])}
+        // No left, right has no aux-verb match: right passes through unchanged.
         let r = lite_sl(0, 2, vec![seg(0, 2, info_with_seq_set(vec![999]))]);
         let result = segfilter_aux_verb(None, &r);
         assert_eq!(result.len(), 1);
@@ -862,7 +846,7 @@ mod segfilter_aux_verb {
 
     #[test]
     fn b_l_nil_r_all_match() {
-        // B l=NIL r=all-match -> {} (empty — sat-r is full, con-r is empty)
+        // No left, every right segment is an aux verb: result is empty.
         let r = lite_sl(0, 2, vec![seg(0, 2, info_with_seq_set(vec![1342560]))]);
         let result = segfilter_aux_verb(None, &r);
         assert!(result.is_empty());
@@ -870,7 +854,7 @@ mod segfilter_aux_verb {
 
     #[test]
     fn c_l_nil_r_mixed() {
-        // C l=NIL r=mixed -> {(L=NIL R=[1-seg seq=999])}
+        // No left, right is mixed: only the non-aux-verb segment survives.
         let r = lite_sl(
             0,
             2,
@@ -888,7 +872,8 @@ mod segfilter_aux_verb {
 
     #[test]
     fn d_l_adj_gap_r_mixed() {
-        // D l=adj-gap (l.end != r.start), r=mixed -> {(L=l unchanged, R=r-reduced-to-non-aux 1 seg)}
+        // Left not adjacent to right, right mixed: left unchanged, right
+        // reduced to the non-aux-verb segment.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_conj(vec![]))]);
         let r = lite_sl(
             2,
@@ -909,7 +894,8 @@ mod segfilter_aux_verb {
 
     #[test]
     fn e_l_no_sat_r_mixed() {
-        // E l-no-sat (cd missing conj-type=13), r=mixed -> {(L=l unchanged 1 seg, R=r-reduced 1 seg)}
+        // Left has no qualifying conjugation, right mixed: left unchanged,
+        // right reduced to the non-aux-verb segment.
         let l = lite_sl(0, 2, vec![seg(0, 2, info_with_conj(vec![]))]);
         let r = lite_sl(
             2,
@@ -929,9 +915,8 @@ mod segfilter_aux_verb {
 
     #[test]
     fn f_l_mixed_r_mixed() {
-        // F l-mixed (conj13 + conj3) r-mixed -> two splits:
-        //   1st: (L=mslf(l, sat_l)=1 seg, R=mslf(r, sat_r)=1 seg seq=1342560)
-        //   2nd: (L=l unchanged 2 segs, R=mslf(r, con_r)=1 seg seq=999)
+        // Both sides mixed: two splits result — the qualifying-left ×
+        // aux-verb-right pair, and the full-left × remaining-right pair.
         let l = lite_sl(
             0,
             2,
@@ -951,14 +936,14 @@ mod segfilter_aux_verb {
         let result = segfilter_aux_verb(Some(&l), &r);
         assert_eq!(result.len(), 2);
 
-        // First pair: sat-l × sat-r.
+        // First pair: qualifying left × aux-verb right.
         let (lp0, rp0) = &result[0];
         let lp0_ref = lp0.as_ref().unwrap();
         assert_eq!(lp0_ref.segments.len(), 1);
         assert_eq!(rp0.segments.len(), 1);
         assert_eq!(rp0.segments[0].seq_set, vec![1342560]);
 
-        // Second pair: l unchanged × con-r.
+        // Second pair: full left × remaining right.
         let (lp1, rp1) = &result[1];
         let lp1_ref = lp1.as_ref().unwrap();
         assert_eq!(lp1_ref.segments.len(), 2);
@@ -968,7 +953,8 @@ mod segfilter_aux_verb {
 
     #[test]
     fn g_l_all_sat_r_all_sat() {
-        // G l-all-sat r-all-sat -> {(L=l unchanged, R=r unchanged)} (con-l empty path)
+        // Whole left qualifies and whole right is an aux verb: both pass
+        // through unchanged.
         let l = lite_sl(0, 2, vec![seg(0, 2, info_with_conj(vec![cdata(13)]))]);
         let r = lite_sl(2, 4, vec![seg(2, 4, info_with_seq_set(vec![1342560]))]);
         let result = segfilter_aux_verb(Some(&l), &r);
@@ -979,7 +965,8 @@ mod segfilter_aux_verb {
 
     #[test]
     fn i_l_all_sat_r_no_match() {
-        // I l-all-sat r-no-match -> {(L=l unchanged, R=r unchanged)} (clause-1 path, sat-r empty)
+        // Whole left qualifies but right has no aux verb: both pass through
+        // unchanged.
         let l = lite_sl(0, 2, vec![seg(0, 2, info_with_conj(vec![cdata(13)]))]);
         let r = lite_sl(2, 4, vec![seg(2, 4, info_with_seq_set(vec![999]))]);
         let result = segfilter_aux_verb(Some(&l), &r);
@@ -991,7 +978,8 @@ mod segfilter_aux_verb {
 
     #[test]
     fn j_l_mixed_r_all_sat() {
-        // J l-mixed r-all-sat -> {(L=mslf(l, sat_l), R=mslf(r, sat_r))}  (con-r empty; no base pair)
+        // Left mixed, whole right is an aux verb: only the qualifying-left ×
+        // right pair, no full-left pair.
         let l = lite_sl(
             0,
             2,
@@ -1069,8 +1057,6 @@ mod segfilter_tsu_iru {
             matches: 0,
         }))
     }
-
-    // REPL probes from `/tmp/probe_415_423.lisp` (this session).
 
     #[test]
     fn ti_a_l_nil_r_iru_pass_through() {
@@ -1205,11 +1191,9 @@ mod segfilter_n {
         }))
     }
 
-    // REPL probes from `/tmp/probe_415_423.lisp` (this session).
-
     #[test]
     fn n_a_l_nil_r_all_n_pass_through() {
-        // N-A l=NIL r=all-n cnt=1 → pass-through (allow-first)
+        // No left, whole right is a noun: right passes through unchanged.
         let r = lite_sl(
             0,
             1,
@@ -1228,7 +1212,7 @@ mod segfilter_n {
 
     #[test]
     fn n_b_l_nil_r_no_match() {
-        // N-B l=NIL r=no-match cnt=1 → clause-1
+        // No left, right is not a noun: right passes through unchanged.
         let r = lite_sl(
             0,
             1,
@@ -1241,7 +1225,7 @@ mod segfilter_n {
 
     #[test]
     fn n_c_l_nil_r_mixed_pass_through() {
-        // N-C l=NIL r=mixed cnt=1 → pass-through (allow-first); both segs preserved
+        // No left, right is mixed: both segments pass through.
         let r = lite_sl(
             0,
             1,
@@ -1257,7 +1241,7 @@ mod segfilter_n {
 
     #[test]
     fn n_d_l_not_noun_r_n() {
-        // N-D l-not-noun r-n cnt=1; sat-l full, con-l empty → (l, r)
+        // Left is not a noun particle, right is a noun: both pass through.
         let l = lite_sl(
             0,
             1,
@@ -1280,7 +1264,7 @@ mod segfilter_n {
 
     #[test]
     fn n_e_l_is_noun_r_n_empty() {
-        // N-E l-is-noun (simple 2028920=は, in *noun-particles*) r-all-n cnt=0
+        // Left is the noun particle は and right is a noun: result is empty.
         let l = lite_sl(
             0,
             1,
@@ -1307,7 +1291,8 @@ mod segfilter_n {
 
     #[test]
     fn n_f_l_is_noun_r_mixed() {
-        // N-F l-is-noun r-mixed cnt=1 — base pair (l unchanged, mslf r con-r)
+        // Left is a noun particle, right mixed: left unchanged, right reduced
+        // to the non-noun segment.
         let l = lite_sl(
             0,
             1,
@@ -1339,9 +1324,8 @@ mod segfilter_n {
 
     #[test]
     fn n_g_l_mixed_r_all_n() {
-        // N-G l-mixed (noun + not-noun) r-all-n cnt=1
-        // sat-l = not-noun, con-l = noun; sat-r full, con-r empty
-        // → sat-l push only → (mslf l sat-l, mslf r sat-r)
+        // Left mixes a noun particle with a non-noun, right is all noun: only
+        // the non-noun left × noun right pair survives.
         let l = lite_sl(
             0,
             1,
@@ -1369,7 +1353,8 @@ mod segfilter_n {
 
     #[test]
     fn n_h_gap_r_mixed() {
-        // N-H gap r-mixed cnt=1 — clause-2 with con-r non-empty
+        // Left not adjacent to right, right mixed: right reduced to the
+        // non-noun segment.
         let l = lite_sl(
             0,
             1,
@@ -1391,7 +1376,7 @@ mod segfilter_n {
 
     #[test]
     fn n_i_gap_r_all_n_empty() {
-        // N-I gap r-all-n cnt=0 — clause-2 with con-r empty
+        // Left not adjacent to right, whole right is a noun: result is empty.
         let l = lite_sl(
             0,
             1,
@@ -1413,9 +1398,8 @@ mod segfilter_n {
 
     #[test]
     fn n_j_l_compound_r_all_n() {
-        // N-J l-compound r-all-n cnt=1
-        // compound seq is Multi → filter-in-seq-set-simple returns false → complement true
-        // → sat-l full, con-l empty → pass through
+        // A compound left is never treated as a noun particle, so it passes
+        // through together with the noun right.
         let lseg = Segment {
             start: 0,
             end: 2,
@@ -1503,11 +1487,9 @@ mod segfilter_wokarasu {
         }))
     }
 
-    // REPL probes from `/tmp/probe_415_423.lisp` (this session).
-
     #[test]
     fn w_a_l_nil_r_karasu_empty() {
-        // W-A l=NIL r=karasu cnt=0 — no allow-first, clause-2 (not l)=T, con-r empty → ()
+        // No left, whole right is からす: result is empty.
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2087020]))]);
         let result = segfilter_wokarasu(None, &r);
         assert!(result.is_empty());
@@ -1515,7 +1497,7 @@ mod segfilter_wokarasu {
 
     #[test]
     fn w_b_l_nil_r_mixed() {
-        // W-B l=NIL r=mixed cnt=1 — clause-2 (not l)=T, con-r non-empty
+        // No left, right mixed: only the non-からす segment survives.
         let r = lite_sl(
             0,
             1,
@@ -1533,7 +1515,7 @@ mod segfilter_wokarasu {
 
     #[test]
     fn w_c_l_nil_r_no_match() {
-        // W-C l=NIL r=no-match cnt=1 — clause-1
+        // No left, right has no からす match: right passes through.
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
         let result = segfilter_wokarasu(None, &r);
         assert_eq!(result.len(), 1);
@@ -1541,7 +1523,7 @@ mod segfilter_wokarasu {
 
     #[test]
     fn w_d_l_wo_r_karasu_pass_through() {
-        // W-D l-wo r-karasu cnt=1 — sat-l full, con-l empty → (l, r)
+        // Left を, right からす: both pass through.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2029010]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![2087020]))]);
         let result = segfilter_wokarasu(Some(&l), &r);
@@ -1551,7 +1533,7 @@ mod segfilter_wokarasu {
 
     #[test]
     fn w_e_l_not_wo_r_karasu_empty() {
-        // W-E l-not-wo r-karasu cnt=0 — sat-l empty, con-l full; con-r empty → ()
+        // Left is not を, right is からす: result is empty.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![2087020]))]);
         let result = segfilter_wokarasu(Some(&l), &r);
@@ -1560,9 +1542,8 @@ mod segfilter_wokarasu {
 
     #[test]
     fn w_f_l_mixed_r_mixed_two_pairs() {
-        // W-F l-mixed (wo + other) r-mixed (karasu + other) cnt=2
-        //   [0] sat-l × sat-r: L=(wo, 1 seg) × R=(karasu, 1 seg)
-        //   [1] l unchanged × con-r: L=(2 segs) × R=(other, 1 seg seq=888)
+        // Both sides mix を/からす with other words: two pairs result — the
+        // を × からす pair, and the full-left × remaining-right pair.
         let l = lite_sl(
             0,
             1,
@@ -1582,7 +1563,7 @@ mod segfilter_wokarasu {
         let result = segfilter_wokarasu(Some(&l), &r);
         assert_eq!(result.len(), 2);
 
-        // First pair: sat-l × sat-r.
+        // First pair: を left × からす right.
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(
             result[0].0.as_ref().unwrap().segments[0].seq_set,
@@ -1591,7 +1572,7 @@ mod segfilter_wokarasu {
         assert_eq!(result[0].1.segments.len(), 1);
         assert_eq!(result[0].1.segments[0].seq_set, vec![2087020]);
 
-        // Second pair: l unchanged × con-r.
+        // Second pair: full left × remaining right.
         assert_eq!(result[1].0.as_ref().unwrap().segments.len(), 2);
         assert_eq!(result[1].1.segments.len(), 1);
         assert_eq!(result[1].1.segments[0].seq_set, vec![888]);
@@ -1599,7 +1580,8 @@ mod segfilter_wokarasu {
 
     #[test]
     fn w_g_gap_r_mixed() {
-        // W-G gap (l.end=1, r.start=2) r-mixed cnt=1 — clause-2 with con-r non-empty
+        // Left not adjacent to right, right mixed: right reduced to the
+        // non-からす segment.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2029010]))]);
         let r = lite_sl(
             2,
@@ -1617,7 +1599,7 @@ mod segfilter_wokarasu {
 
     #[test]
     fn w_h_gap_r_all_karasu_empty() {
-        // W-H gap r-all-karasu cnt=0 — clause-2 with con-r empty → ()
+        // Left not adjacent to right, whole right is からす: result is empty.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2029010]))]);
         let r = lite_sl(2, 3, vec![seg(2, 3, info_with_seq_set(vec![2087020]))]);
         let result = segfilter_wokarasu(Some(&l), &r);
@@ -1688,11 +1670,9 @@ mod segfilter_badend {
         }))
     }
 
-    // REPL probes from `/tmp/probe_badend.lisp` (this session).
-
     #[test]
     fn ba_a_l_nil_r_all_match_returns_empty() {
-        // Ba-A l=NIL r=all-match -> {} (allow-first=nil, con-r empty)
+        // No left, every right segment is a bad ending: result is empty.
         let seg_chai = seg(1, 2, compound(&["ちゃい"]));
         let r = lite_sl(1, 2, vec![seg_chai]);
         let result = segfilter_badend(None, &r);
@@ -1701,7 +1681,7 @@ mod segfilter_badend {
 
     #[test]
     fn ba_b_l_nil_r_mixed() {
-        // Ba-B l=NIL r=mixed -> {(L=NIL R=[1 seg = non-matching])}
+        // No left, right mixed: only the non-bad-ending segment survives.
         let seg_chai = seg(1, 2, compound(&["ちゃい"]));
         let seg_x = seg(1, 2, compound(&["x"]));
         let r = lite_sl(1, 2, vec![seg_chai, seg_x]);
@@ -1713,7 +1693,7 @@ mod segfilter_badend {
 
     #[test]
     fn ba_c_l_nil_r_no_match() {
-        // Ba-C l=NIL r=no-match -> {(L=NIL R=r unchanged)} (clause-1)
+        // No left, right has no bad ending: right passes through.
         let seg_x = seg(1, 2, compound(&["x"]));
         let r = lite_sl(1, 2, vec![seg_x]);
         let result = segfilter_badend(None, &r);
@@ -1724,8 +1704,8 @@ mod segfilter_badend {
 
     #[test]
     fn ba_d_l_adj_r_mixed_emits_base_pair_only() {
-        // Ba-D l-adj r=mixed -> {(L=l unchanged 1 seg, R=mslf(r, con_r)=1 seg)}
-        // sat-l is always empty (constantly nil) so no prepend.
+        // The left is never split (it has no qualifying half), so an adjacent
+        // left with a mixed right yields only the left × non-bad-ending pair.
         let seg_simp = seg(0, 1, KaniWordDispatchEnum::Kana(kana("い", 9995)));
         let seg_chai = seg(1, 3, compound(&["ちゃい"]));
         let seg_x = seg(1, 3, compound(&["x"]));
@@ -1739,7 +1719,7 @@ mod segfilter_badend {
 
     #[test]
     fn ba_e_l_adj_r_all_match_empty_result() {
-        // Ba-E l-adj r=all-match -> {} (sat-l empty + con-r empty → both branches contribute nothing)
+        // Adjacent left, whole right is a bad ending: result is empty.
         let seg_simp = seg(0, 1, KaniWordDispatchEnum::Kana(kana("い", 9995)));
         let seg_chai = seg(1, 3, compound(&["ちゃい"]));
         let l = lite_sl(0, 1, vec![seg_simp]);
@@ -1750,8 +1730,8 @@ mod segfilter_badend {
 
     #[test]
     fn ba_f_l_adj_gap_r_mixed() {
-        // Ba-F l-adj-gap (l.end=1, r.start=2) r=mixed ->
-        //   {(L=l unchanged, R=mslf(r, con_r)=1 seg)}
+        // Left not adjacent to right, right mixed: left unchanged, right
+        // reduced to the non-bad-ending segment.
         let seg_simp = seg(0, 1, KaniWordDispatchEnum::Kana(kana("い", 9995)));
         let seg_chai = seg(2, 4, compound(&["ちゃい"]));
         let seg_x = seg(2, 4, compound(&["x"]));
@@ -1765,7 +1745,7 @@ mod segfilter_badend {
 
     #[test]
     fn ba_g_l_adj_r_no_match() {
-        // Ba-G l-adj r=no-match -> {(L=l unchanged, R=r unchanged)} (clause-1)
+        // Adjacent left, right has no bad ending: both pass through.
         let seg_simp = seg(0, 1, KaniWordDispatchEnum::Kana(kana("い", 9995)));
         let seg_x = seg(1, 3, compound(&["x"]));
         let l = lite_sl(0, 1, vec![seg_simp]);
@@ -1857,12 +1837,9 @@ mod segfilter_sukiyoki {
         }))
     }
 
-    // REPL probes from `/tmp/probe_415_423.lisp` (this session).
-
     #[test]
     fn sk_a_l_nil_r_suki_conj54_empty() {
-        // SK-A l=NIL r=suki-conj54 cnt=0
-        // no allow-first; sat-r full, l=NIL → clause-2 (not l)=T, con-r empty → ()
+        // No left, right is the matching 好き conjugation: result is empty.
         let r = lite_sl(
             0,
             1,
@@ -1880,8 +1857,7 @@ mod segfilter_sukiyoki {
 
     #[test]
     fn sk_b_l_nil_r_mixed() {
-        // SK-B l=NIL r=mixed cnt=1
-        // clause-2 (not l)=T, con-r non-empty → (NIL, mslf r con-r)
+        // No left, right mixed: only the non-matching segment survives.
         let r = lite_sl(
             0,
             1,
@@ -1905,7 +1881,7 @@ mod segfilter_sukiyoki {
 
     #[test]
     fn sk_c_l_nil_r_no_match() {
-        // SK-C l=NIL r=no-match cnt=1 — clause-1
+        // No left, right has no match: right passes through.
         let r = lite_sl(
             0,
             1,
@@ -1917,9 +1893,7 @@ mod segfilter_sukiyoki {
 
     #[test]
     fn sk_d_l_simple_r_suki_empty() {
-        // SK-D l-simple r-suki cnt=0
-        // sat-l empty (constantly nil), con-l full; sat-r full, con-r empty
-        // → no base, no sat-l push (sat-l empty) → empty
+        // Plain left adjacent to a matching 好き right: result is empty.
         let l = lite_sl(
             0,
             1,
@@ -1942,8 +1916,8 @@ mod segfilter_sukiyoki {
 
     #[test]
     fn sk_e_l_simple_r_mixed_base_only() {
-        // SK-E l-simple r-mixed cnt=1
-        // sat-l empty, con-l full; sat-r=suki, con-r=other → base pair only
+        // Plain left, right mixed: left unchanged, right reduced to the
+        // non-matching segment.
         let l = lite_sl(
             0,
             1,
@@ -1969,7 +1943,7 @@ mod segfilter_sukiyoki {
 
     #[test]
     fn sk_f_gap_r_suki_empty() {
-        // SK-F gap r-suki cnt=0 — clause-2 (l.end != r.start) with con-r empty → ()
+        // Left not adjacent to right, whole right is 好き: result is empty.
         let l = lite_sl(
             0,
             1,
@@ -1992,7 +1966,8 @@ mod segfilter_sukiyoki {
 
     #[test]
     fn sk_g_l_nil_r_suki_no_conj_pass_through() {
-        // SK-G l=NIL r=suki-no-conj cnt=1 — filter-right requires conj-54; without it sat-r empty
+        // 好き text without the required conjugation does not match, so the
+        // right passes through.
         let r = lite_sl(
             0,
             1,
@@ -2004,7 +1979,8 @@ mod segfilter_sukiyoki {
 
     #[test]
     fn sk_h_l_nil_r_conj54_not_suki_pass_through() {
-        // SK-H l=NIL r=conj54-not-suki cnt=1 — text doesn't end with 好き → sat-r empty
+        // The right conjugation without text ending in 好き does not match, so
+        // the right passes through.
         let r = lite_sl(
             0,
             1,
@@ -2092,11 +2068,9 @@ mod segfilter_roku {
         }))
     }
 
-    // REPL probes from `/tmp/probe_415_423.lisp` (this session).
-
     #[test]
     fn r_a_l_nil_r_ku_pass_through() {
-        // R-A l=NIL r=ku cnt=1 — allow-first pass-through
+        // No left, right is くる: right passes through.
         let r = lite_sl(0, 1, vec![simple_seg(0, 1, "くる", 100)]);
         let result = segfilter_roku(None, &r);
         assert_eq!(result.len(), 1);
@@ -2105,7 +2079,7 @@ mod segfilter_roku {
 
     #[test]
     fn r_b_l_nil_r_not_ku() {
-        // R-B l=NIL r=not-ku cnt=1 — clause-1
+        // No left, right is not くる: right passes through.
         let r = lite_sl(0, 1, vec![simple_seg(0, 1, "あさ", 100)]);
         let result = segfilter_roku(None, &r);
         assert_eq!(result.len(), 1);
@@ -2113,7 +2087,7 @@ mod segfilter_roku {
 
     #[test]
     fn r_c_l_simple_r_ku_pass_through() {
-        // R-C l-simple r-ku cnt=1 — sat-l full, con-l empty → (l, r)
+        // Plain left, right くる: both pass through.
         let l = lite_sl(0, 1, vec![simple_seg(0, 1, "abc", 999)]);
         let r = lite_sl(1, 2, vec![simple_seg(1, 2, "くる", 100)]);
         let result = segfilter_roku(Some(&l), &r);
@@ -2123,7 +2097,7 @@ mod segfilter_roku {
 
     #[test]
     fn r_d_l_iro_r_ku_empty() {
-        // R-D l-iro r-ku cnt=0 — sat-l empty, con-l full; con-r empty → ()
+        // Left ends in いろ, right is くる: result is empty.
         let l = lite_sl(0, 2, vec![compound_ending_seg(0, 2, "いろ", 50)]);
         let r = lite_sl(2, 3, vec![simple_seg(2, 3, "くる", 100)]);
         let result = segfilter_roku(Some(&l), &r);
@@ -2132,8 +2106,8 @@ mod segfilter_roku {
 
     #[test]
     fn r_e_l_mixed_iro_r_ku_sat_push() {
-        // R-E l-mixed (compound-iro + simple) r-ku cnt=1
-        // sat-l=simple, con-l=compound-iro; con-r empty → sat-l push only
+        // Left mixes an いろ-ending compound with a plain word, right is くる:
+        // only the plain left × くる pair survives.
         let l = lite_sl(
             0,
             2,
@@ -2159,7 +2133,8 @@ mod segfilter_roku {
 
     #[test]
     fn r_f_gap_r_mixed() {
-        // R-F gap r-mixed cnt=1 — clause-2 with con-r non-empty (only the non-ku reading survives)
+        // Left not adjacent to right, right mixed: only the non-くる reading
+        // survives.
         let l = lite_sl(0, 1, vec![simple_seg(0, 1, "abc", 999)]);
         let r = lite_sl(
             2,
@@ -2269,11 +2244,9 @@ mod segfilter_sae {
         }))
     }
 
-    // REPL probes from `/tmp/probe_415_423.lisp` (this session).
-
     #[test]
     fn s_a_l_nil_r_e_pass_through() {
-        // S-A l=NIL r=e cnt=1 — allow-first pass-through
+        // No left, right is える: right passes through.
         let r = lite_sl(0, 1, vec![simple_seg(0, 1, "える", 100, None)]);
         let result = segfilter_sae(None, &r);
         assert_eq!(result.len(), 1);
@@ -2282,7 +2255,7 @@ mod segfilter_sae {
 
     #[test]
     fn s_b_l_nil_r_not_e() {
-        // S-B l=NIL r=not-e cnt=1 — clause-1
+        // No left, right is not える: right passes through.
         let r = lite_sl(0, 1, vec![simple_seg(0, 1, "abc", 100, None)]);
         let result = segfilter_sae(None, &r);
         assert_eq!(result.len(), 1);
@@ -2290,7 +2263,7 @@ mod segfilter_sae {
 
     #[test]
     fn s_c_l_simple_r_e() {
-        // S-C l-simple r-e cnt=1 — sat-l full, con-l empty → (l, r)
+        // Plain left, right える: both pass through.
         let l = lite_sl(
             0,
             1,
@@ -2310,7 +2283,7 @@ mod segfilter_sae {
 
     #[test]
     fn s_d_l_compound_end_sae_r_e_empty() {
-        // S-D l-comp-end-2029120 r-e cnt=0
+        // Left is a compound ending in さえ, right is える: result is empty.
         let l = lite_sl(0, 2, vec![compound_ending_seg(0, 2, 2029120)]);
         let r = lite_sl(2, 3, vec![simple_seg(2, 3, "える", 100, None)]);
         let result = segfilter_sae(Some(&l), &r);
@@ -2319,8 +2292,8 @@ mod segfilter_sae {
 
     #[test]
     fn s_e_l_mixed_r_e_sat_push() {
-        // S-E l-mixed (compound-end-sae + simple) r-e cnt=1
-        // sat-l=simple, con-l=compound; con-r empty → sat-l push only
+        // Left mixes a さえ-ending compound with a plain word, right is える:
+        // only the plain left × える pair survives.
         let l = lite_sl(
             0,
             2,
@@ -2431,12 +2404,9 @@ mod segfilter_janai {
         }))
     }
 
-    // REPL probes from `/tmp/probe_410_414.lisp` (this session).
-
     #[test]
     fn j_a_l_nil_r_janai_pass_through() {
-        // J-A l=NIL r=janai cnt=1 r-segs=1
-        // allow-first → (list (list nil r))
+        // No left, right is じゃない: right passes through.
         let r = lite_sl(
             0,
             1,
@@ -2455,9 +2425,8 @@ mod segfilter_janai {
 
     #[test]
     fn j_b_l_simple_r_janai_pass_through() {
-        // J-B l-simple r-janai cnt=1 l-segs=1
-        // simple-l → (filter-is-compound-end 2028920) returns NIL → complement → T
-        // sat-l full, con-l empty → (list (list l r))
+        // A simple left is never a compound ending in は, so it and the
+        // じゃない right both pass through.
         let l = lite_sl(
             0,
             1,
@@ -2485,9 +2454,8 @@ mod segfilter_janai {
 
     #[test]
     fn j_c_l_compound_ending_ha_r_janai_empty() {
-        // J-C l-compound-end-wa r-janai => NIL
-        // compound ending in 2028920 → filter-is-compound-end T → complement NIL
-        // sat-l empty, con-l full; sat-r full, con-r empty → empty result
+        // A compound left ending in は disqualifies it; against a じゃない
+        // right the result is empty.
         let l = lite_sl(
             0,
             2,
@@ -2514,9 +2482,8 @@ mod segfilter_janai {
 
     #[test]
     fn j_d_l_mixed_compound_r_janai() {
-        // J-D l-mixed-comp r-janai cnt=1 l-segs=1 l0-info=(999)
-        // sat-l = simple (not compound-end-ha), con-l = compound-end-ha
-        // sat-r full, con-r empty → base skipped; sat-l push → 1 pair
+        // Left mixes a は-ending compound with a simple word, right is
+        // じゃない: only the simple left × right pair survives.
         let l = lite_sl(
             0,
             2,
@@ -2548,9 +2515,8 @@ mod segfilter_janai {
 
     #[test]
     fn j_e_gap_r_janai_mixed() {
-        // J-E gap janai-mixed cnt=1 r-segs=1 r-info=(999)
-        // clause-2 (l.end=1 != r.start=2) with con-r non-empty
-        // → (list (list l (mslf r con-r)))
+        // Left not adjacent to right, right mixed: left unchanged, right
+        // reduced to the non-じゃない segment.
         let l = lite_sl(
             0,
             1,
@@ -2643,11 +2609,9 @@ mod segfilter_nohayamete {
         }))
     }
 
-    // REPL probes from `/tmp/probe_415_423.lisp` (this session).
-
     #[test]
     fn nh_a_l_nil_r_match() {
-        // NH-A l=NIL r=match cnt=1 — pass-through (allow-first)
+        // No left, right matches: right passes through.
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1601080]))]);
         let result = segfilter_nohayamete(None, &r);
         assert_eq!(result.len(), 1);
@@ -2656,7 +2620,7 @@ mod segfilter_nohayamete {
 
     #[test]
     fn nh_b_l_nil_r_no_match() {
-        // NH-B l=NIL r=no-match cnt=1 — clause-1
+        // No left, right has no match: right passes through.
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
         let result = segfilter_nohayamete(None, &r);
         assert_eq!(result.len(), 1);
@@ -2665,7 +2629,7 @@ mod segfilter_nohayamete {
 
     #[test]
     fn nh_c_l_not_no_r_hayamete() {
-        // NH-C l-not-no r-hayamete cnt=1
+        // Left is not の, right is はやめて: both pass through.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1601080]))]);
         let result = segfilter_nohayamete(Some(&l), &r);
@@ -2675,7 +2639,7 @@ mod segfilter_nohayamete {
 
     #[test]
     fn nh_d_l_is_no_r_hayamete_empty() {
-        // NH-D l-is-no r-hayamete cnt=0
+        // Left is の, right is はやめて: result is empty.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1469800]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1601080]))]);
         let result = segfilter_nohayamete(Some(&l), &r);
@@ -2684,7 +2648,8 @@ mod segfilter_nohayamete {
 
     #[test]
     fn nh_e_l_mixed_r_hayamete() {
-        // NH-E l-mixed r-hayamete cnt=1 — sat-l push (con-r empty)
+        // Left mixes の with a non-の word, right is はやめて: only the
+        // non-の left × right pair survives.
         let l = lite_sl(
             0,
             1,
@@ -2703,7 +2668,8 @@ mod segfilter_nohayamete {
 
     #[test]
     fn nh_f_gap_r_mixed() {
-        // NH-F gap r-mixed cnt=1 — clause-2 with con-r non-empty
+        // Left not adjacent to right, right mixed: right reduced to the
+        // non-はやめて segment.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
         let r = lite_sl(
             2,
@@ -2781,11 +2747,9 @@ mod segfilter_toomou {
         }))
     }
 
-    // REPL probes from `/tmp/probe_415_423.lisp` (this session).
-
     #[test]
     fn tm_a_l_nil_r_omou_pass_through() {
-        // TM-A l=NIL r=omou cnt=1 — allow-first
+        // No left, right is おもう: right passes through.
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1589350]))]);
         let result = segfilter_toomou(None, &r);
         assert_eq!(result.len(), 1);
@@ -2794,7 +2758,7 @@ mod segfilter_toomou {
 
     #[test]
     fn tm_b_l_nil_r_no_match() {
-        // TM-B l=NIL r=no-match cnt=1 — clause-1
+        // No left, right has no match: right passes through.
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
         let result = segfilter_toomou(None, &r);
         assert_eq!(result.len(), 1);
@@ -2802,7 +2766,7 @@ mod segfilter_toomou {
 
     #[test]
     fn tm_c_l_not_nandato_r_omou() {
-        // TM-C l-not-nandato r-omou cnt=1
+        // Left is not なんだと, right is おもう: both pass through.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1589350]))]);
         let result = segfilter_toomou(Some(&l), &r);
@@ -2812,7 +2776,7 @@ mod segfilter_toomou {
 
     #[test]
     fn tm_d_l_nandato_r_omou_empty() {
-        // TM-D l-nandato r-omou cnt=0
+        // Left is なんだと, right is おもう: result is empty.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2837117]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1589350]))]);
         let result = segfilter_toomou(Some(&l), &r);
@@ -2821,7 +2785,8 @@ mod segfilter_toomou {
 
     #[test]
     fn tm_e_l_mixed_r_omou() {
-        // TM-E l-mixed r-omou cnt=1 — sat-l push (con-r empty)
+        // Left mixes なんだと with another word, right is おもう: only the
+        // non-なんだと left × right pair survives.
         let l = lite_sl(
             0,
             1,
@@ -2899,8 +2864,6 @@ mod segfilter_totte {
             matches: 0,
         }))
     }
-
-    // REPL probes from `/tmp/probe_415_423.lisp` (this session).
 
     #[test]
     fn t_a_l_nil_r_totte_pass_through() {
@@ -3014,11 +2977,9 @@ mod segfilter_dashi {
         }))
     }
 
-    // REPL probes from `/tmp/probe_dashi.lisp` (this session).
-
     #[test]
     fn da_a_l_nil_r_all_match_passes_through_allow_first() {
-        // Da-A l=NIL r-all-match -> {(L=NIL R=[1-seg seq=1157170])} (allow-first short-circuit)
+        // No left, whole right is する: right passes through.
         let r = lite_sl(
             0,
             1,
@@ -3032,7 +2993,7 @@ mod segfilter_dashi {
 
     #[test]
     fn da_b_l_nil_r_mixed_passes_through() {
-        // Da-B l=NIL r-mixed -> {(L=NIL R=[2-segs unchanged])}
+        // No left, right mixed: both segments pass through.
         let r = lite_sl(
             0,
             1,
@@ -3049,7 +3010,7 @@ mod segfilter_dashi {
 
     #[test]
     fn da_c_l_da_r_no_match_passes_through() {
-        // Da-C l-da r-no-match -> {(L=l unchanged 1 seg, R=r unchanged 1 seg seq=999)}
+        // Left is だ, right has no する match: both pass through.
         let l = lite_sl(
             0,
             1,
@@ -3064,8 +3025,7 @@ mod segfilter_dashi {
 
     #[test]
     fn da_d_l_sat_l_r_sat_r() {
-        // Da-D l-sat-l (no 2089020) r-sat-r (suru) -> {(L=l unchanged, R=r unchanged)}
-        // (sat-l = all of l; con-l empty; falls through to "(list (list l r))")
+        // Left has no だ and right is する: both pass through.
         let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![123])))]);
         let r = lite_sl(
             1,
@@ -3080,9 +3040,8 @@ mod segfilter_dashi {
 
     #[test]
     fn da_e_l_da_r_mixed() {
-        // Da-E l-da r-mixed -> {(L=l unchanged 1 seg, R=mslf(r, con_r)=1 seg seq=999)}
-        // l has only da: sat-l empty (da fails left filter), con-l full.
-        // Only the base pair emits (sat-l prepend skipped).
+        // Left is only だ, right mixed: left unchanged, right reduced to the
+        // non-する segment.
         let l = lite_sl(
             0,
             1,
@@ -3105,7 +3064,7 @@ mod segfilter_dashi {
 
     #[test]
     fn da_f_l_de_r_suru() {
-        // Da-F l-de (sat-l: has 2028980) r-suru -> {(L=l unchanged, R=r unchanged)} (con-l empty)
+        // Left contains で, right is する: both pass through.
         let l = lite_sl(
             0,
             1,
@@ -3123,8 +3082,8 @@ mod segfilter_dashi {
 
     #[test]
     fn da_g_l_da_then_da_de_r_suru() {
-        // Da-G l-da-then-da+de (sat-l = 2nd seg has で; con-l = 1st seg da-only) r-suru ->
-        // {(L=mslf(l, sat_l)=1 seg [da+de], R=mslf(r, sat_r)=1 seg)} (no base pair: con_r empty)
+        // Left has a だ-only segment and a だ+で segment, right is する: only
+        // the だ+で left × right pair survives.
         let l = lite_sl(
             0,
             1,
@@ -3150,8 +3109,8 @@ mod segfilter_dashi {
 
     #[test]
     fn da_h_l_da_r_mixed_gap() {
-        // Da-H l-da (l.end=1) r-mixed-gap (r.start=2) -> {(L=l unchanged, R=mslf(r, con_r)=1 seg)}
-        // l.end != r.start; con-r non-empty.
+        // Left だ not adjacent to right, right mixed: left unchanged, right
+        // reduced to the non-する segment.
         let l = lite_sl(
             0,
             1,
@@ -3174,8 +3133,8 @@ mod segfilter_dashi {
 
     #[test]
     fn da_i_l_info_nil_r_suru() {
-        // Da-I l-info-nil r-suru -> {(L=l unchanged, R=r unchanged)}
-        // info=None ⇒ seq-set empty ⇒ left filter truthy (not (find da empty)=t).
+        // A left segment with no info (empty sequence set) is treated as
+        // qualifying, so it and the する right both pass through.
         let l = lite_sl(0, 1, vec![seg(0, 1, None)]);
         let r = lite_sl(
             1,
@@ -3250,11 +3209,9 @@ mod segfilter_dekiru {
         }))
     }
 
-    // REPL probes from `/tmp/probe_dekiru.lisp` (this session).
-
     #[test]
     fn de_a_l_nil_r_all_match() {
-        // De-A l=NIL r-all-match -> {(L=NIL R=[1 seg seq=2830009])} (allow-first)
+        // No left, whole right is 来る: right passes through.
         let r = lite_sl(
             0,
             1,
@@ -3268,7 +3225,7 @@ mod segfilter_dekiru {
 
     #[test]
     fn de_b_l_nil_r_mixed() {
-        // De-B l=NIL r-mixed -> {(L=NIL R=[r unchanged, 2 segs])}
+        // No left, right mixed: both segments pass through.
         let r = lite_sl(
             0,
             1,
@@ -3284,7 +3241,7 @@ mod segfilter_dekiru {
 
     #[test]
     fn de_c_l_de_r_no_match() {
-        // De-C l-de r-no-match -> {(L=l unchanged, R=r unchanged)} (sat-r empty)
+        // Left is 出, right is not 来る: both pass through.
         let l = lite_sl(
             0,
             1,
@@ -3298,7 +3255,7 @@ mod segfilter_dekiru {
 
     #[test]
     fn de_d_l_sat_l_r_sat_r() {
-        // De-D l-sat-l (not 出) r-sat-r (来る) -> {(L=l unchanged, R=r unchanged)} (con-l empty)
+        // Left is not 出 and right is 来る: both pass through.
         let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![123])))]);
         let r = lite_sl(
             1,
@@ -3312,8 +3269,8 @@ mod segfilter_dekiru {
 
     #[test]
     fn de_e_l_de_r_mixed() {
-        // De-E l-de r-mixed -> {(L=l unchanged 1 seg, R=mslf(r, con_r)=1 seg seq=999)}
-        // l = only 出 → sat-l empty (complement of in-de-seqs is false), con-l = l's seg.
+        // Left is only 出, right mixed: left unchanged, right reduced to the
+        // non-来る segment.
         let l = lite_sl(
             0,
             1,
@@ -3335,9 +3292,8 @@ mod segfilter_dekiru {
 
     #[test]
     fn de_f_l_mixed_r_mixed() {
-        // De-F l-mixed (1896380=出 fails, 888 sat) r-mixed -> two splits:
-        //   1st: (L=mslf(l, sat_l)=1 seg [888], R=mslf(r, sat_r)=1 seg [2830009])
-        //   2nd: (L=l unchanged 2 segs, R=mslf(r, con_r)=1 seg [999])
+        // Both sides mixed: two splits — the non-出 left × 来る right pair, and
+        // the full-left × remaining-right pair.
         let l = lite_sl(
             0,
             1,
@@ -3357,13 +3313,13 @@ mod segfilter_dekiru {
         let result = segfilter_dekiru(Some(&l), &r);
         assert_eq!(result.len(), 2);
 
-        // First pair: sat × sat.
+        // First pair: non-出 left × 来る right.
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![888]);
         assert_eq!(result[0].1.segments.len(), 1);
         assert_eq!(result[0].1.segments[0].seq_set, vec![2830009]);
 
-        // Second pair: l unchanged × con_r.
+        // Second pair: full left × remaining right.
         assert_eq!(result[1].0.as_ref().unwrap().segments.len(), 2);
         assert_eq!(result[1].1.segments.len(), 1);
         assert_eq!(result[1].1.segments[0].seq_set, vec![999]);
@@ -3371,7 +3327,8 @@ mod segfilter_dekiru {
 
     #[test]
     fn de_g_l_mixed_r_all_sat() {
-        // De-G l-mixed r-all-sat -> {(L=mslf(l, sat_l)=1 seg, R=mslf(r, sat_r)=1 seg)} (con_r empty)
+        // Left mixed, whole right is 来る: only the non-出 left × right pair
+        // survives.
         let l = lite_sl(
             0,
             1,
@@ -3394,9 +3351,8 @@ mod segfilter_dekiru {
 
     #[test]
     fn de_h_l_info_nil_r_sat() {
-        // De-H l-info-nil r-sat -> {(L=l unchanged, R=r unchanged)}
-        // info=None ⇒ seq-set empty ⇒ inner filter returns false ⇒ complement returns true ⇒
-        // sat-l = full, con-l empty, falls through to "(list (list l r))".
+        // A left segment with no info (empty sequence set) is treated as
+        // qualifying, so it and the 来る right both pass through.
         let l = lite_sl(0, 1, vec![seg(0, 1, None)]);
         let r = lite_sl(
             1,
@@ -3506,8 +3462,6 @@ mod apply_segfilters {
             matches: 0,
         }))
     }
-
-    // REPL probes (`/tmp/probe_apply_segfilters.lisp` on .103).
 
     fn assert_seq_set_seg(seg: &Arc<KaniLiteSegment>, start: usize, end: usize, seq_set: &[i32]) {
         assert_eq!(seg.source.start, start);
@@ -3683,12 +3637,9 @@ mod segfilter_honorific {
         }))
     }
 
-    // REPL probes from `/tmp/probe_410_414.lisp` (this session).
-
     #[test]
     fn h_a_l_nil_r_all_honor_empty() {
-        // H-A l=NIL r=all-honorific => NIL
-        // sat-r full, allow-first=nil, clause-2 (not l)=t, con-r empty → ()
+        // No left, whole right is honorific: result is empty.
         let r = lite_sl(
             0,
             1,
@@ -3700,8 +3651,7 @@ mod segfilter_honorific {
 
     #[test]
     fn h_b_l_nil_r_mixed() {
-        // H-B l=NIL r=mixed cnt=1
-        // clause-2 with (not l)=t, con-r non-empty → (list (list nil (mslf r con-r)))
+        // No left, right mixed: only the non-honorific segment survives.
         let r = lite_sl(
             0,
             1,
@@ -3719,8 +3669,7 @@ mod segfilter_honorific {
 
     #[test]
     fn h_c_l_nil_r_no_match() {
-        // H-C l=NIL r=no-match cnt=1 l0=NIL r0-segs=1
-        // sat-r empty → clause-1 → (list (list l r))
+        // No left, right has no honorific: right passes through.
         let r = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![999])))]);
         let result = segfilter_honorific(None, &r);
         assert_eq!(result.len(), 1);
@@ -3730,8 +3679,7 @@ mod segfilter_honorific {
 
     #[test]
     fn h_d_l_not_noun_r_honor() {
-        // H-D l-not-noun r-honor cnt=1 l-segs=1 r-segs=1
-        // sat-l = full (not in noun particles), con-l empty → (list (list l r))
+        // Left is not a noun particle, right is honorific: both pass through.
         let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![999])))]);
         let r = lite_sl(
             1,
@@ -3746,8 +3694,7 @@ mod segfilter_honorific {
 
     #[test]
     fn h_e_l_is_noun_r_honor_empty() {
-        // H-E l-is-noun r-honor cnt=0
-        // sat-l empty, con-l full, sat-r full, con-r empty → empty result
+        // Left is a noun particle, right is honorific: result is empty.
         let l = lite_sl(
             0,
             1,
@@ -3764,9 +3711,8 @@ mod segfilter_honorific {
 
     #[test]
     fn h_f_l_is_noun_r_mixed() {
-        // H-F l-is-noun r-mixed cnt=1 r0-segs=1 r0-seq=(999)
-        // sat-l empty, con-l full, sat-r=honor, con-r=other
-        // → base pair (l unchanged, mslf r con-r); no sat-l prepend
+        // Left is a noun particle, right mixed: left unchanged, right reduced
+        // to the non-honorific segment.
         let l = lite_sl(
             0,
             1,
@@ -3789,9 +3735,8 @@ mod segfilter_honorific {
 
     #[test]
     fn h_g_l_mixed_r_honor() {
-        // H-G l-mixed r-honor cnt=1 l-segs=1 r-segs=1
-        // sat-l=non-noun, con-l=noun, sat-r=full, con-r=empty
-        // → base skipped; sat-l prepend → 1 pair (mslf l sat-l, mslf r sat-r)
+        // Left mixes a noun particle with a non-noun, right is honorific: only
+        // the non-noun left × right pair survives.
         let l = lite_sl(
             0,
             1,
@@ -3814,9 +3759,8 @@ mod segfilter_honorific {
 
     #[test]
     fn h_h_gap_r_mixed() {
-        // H-H gap mixed cnt=1 r-segs=1
-        // clause-2 (l.end != r.start) with con-r non-empty
-        // → (list (list l (mslf r con-r)))
+        // Left not adjacent to right, right mixed: left unchanged, right
+        // reduced to the non-honorific segment.
         let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![999])))]);
         let r = lite_sl(
             2,
@@ -3834,8 +3778,8 @@ mod segfilter_honorific {
 
     #[test]
     fn h_i_gap_r_all_honor_empty() {
-        // H-I gap all-honor => NIL
-        // clause-2 gap with con-r empty → ()
+        // Left not adjacent to right, whole right is honorific: result is
+        // empty.
         let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![999])))]);
         let r = lite_sl(
             2,
@@ -3908,12 +3852,9 @@ mod segfilter_mononi {
         }))
     }
 
-    // REPL probes from `/tmp/probe_410_414.lisp` (this session).
-
     #[test]
     fn m_a_l_nil_r_mononi_pass_through() {
-        // M-A l=NIL r=mononi cnt=1
-        // allow-first → clause-1 → (list (list nil r))
+        // No left, right is ものに: right passes through.
         let r = lite_sl(
             0,
             1,
@@ -3927,8 +3868,7 @@ mod segfilter_mononi {
 
     #[test]
     fn m_b_l_not_mo_r_mononi() {
-        // M-B l-not-mo r-mononi cnt=1 l-segs=1
-        // sat-l full (not mo), con-l empty → (list (list l r))
+        // Left is not も, right is ものに: both pass through.
         let l = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![999])))]);
         let r = lite_sl(
             1,
@@ -3942,8 +3882,7 @@ mod segfilter_mononi {
 
     #[test]
     fn m_c_l_mo_r_mononi_empty() {
-        // M-C l-mo r-mononi => NIL
-        // sat-l empty, con-l full, sat-r full, con-r empty → empty result
+        // Left is も, right is ものに: result is empty.
         let l = lite_sl(
             0,
             1,
@@ -3960,9 +3899,8 @@ mod segfilter_mononi {
 
     #[test]
     fn m_d_l_mixed_mo_r_mononi() {
-        // M-D l-mixed-mo r-mononi cnt=1 l-segs=1 l0-info=(999)
-        // sat-l = non-mo, con-l = mo, sat-r full, con-r empty
-        // → base skipped; sat-l push → 1 pair (mslf l sat-l, mslf r sat-r)
+        // Left mixes も with a non-も word, right is ものに: only the non-も
+        // left × right pair survives.
         let l = lite_sl(
             0,
             1,

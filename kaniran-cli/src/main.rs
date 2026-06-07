@@ -114,12 +114,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     //! Ground truth from `(princ (jsown:to-json (romanize* input :limit 1)))`
-    //! with the cli.lisp word-info to-json method installed, on .103
-    //! (2026-05-26) after `(init-suffixes t t)`. jsown emits `\uXXXX`; the
-    //! expected strings are the raw-UTF-8 round-trip serde_json produces
-    //! (identical JSON). Single-reading words at limit 1 → no `/`-joined
-    //! readings and one alternative, so the bytes are deterministic. Local DB
-    //! per project policy; run with `-- --test-threads=1`.
     use super::*;
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {

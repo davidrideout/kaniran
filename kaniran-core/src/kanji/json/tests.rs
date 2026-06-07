@@ -17,15 +17,11 @@ async fn kanji(to_json_ctx: &KaniranContext, text: &str) -> Kanji {
         .expect("kanji row exists")
 }
 
-/// REPL fixtures (.103, `jsown:to-json` of `(to-json kanji)`), 2026-05-25.
-///
-/// Covers the always-emit `freq`/`grade` behaviour (a SQL NULL reads as
-/// `:null`, truthy in Lisp, so the `(when …)` guards always fire and a
-/// missing column becomes JSON null): 人 (both present), 薔 (grade null,
-/// freq present), 鬱 (freq null, grade present), 檸 (both null). Also
-/// exercises `irr_perc` with `total=0` → `--.--%` (薔, 檸) vs nonzero
-/// (人, 鬱); the `type`-desc/`sample`-desc reading order; `suffixp`
-/// readings (人's り/と); and `ja_kun` readings carrying okurigana (鬱).
+/// Serializes a kanji to JSON. A missing freq/grade column always emits as
+/// JSON null: 人 (both present), 薔 (grade null), 鬱 (freq null), 檸 (both
+/// null). Also covers `irr_perc` with total=0 → `--.--%` (薔, 檸) vs nonzero
+/// (人, 鬱); readings ordered by type then sample; suffix readings (人's り/と);
+/// and kun readings carrying okurigana (鬱).
 #[tokio::test]
 async fn to_json_fixtures() {
     let to_json_ctx = to_json_ctx().await;
@@ -70,15 +66,11 @@ async fn reading(reading_info_json_ctx: &KaniranContext, id: i32) -> Reading {
         .expect("reading row exists")
 }
 
-/// REPL fixtures (.103, `jsown:to-json` of `reading-info-json`), 2026-05-24.
-/// Reading rows pinned by id (kanjidic2 load, identical on .103 and local).
-///
-/// Covers: multi-element okurigana array (3329 む, 8 entries) vs single
-/// (5014 で, 397 び) vs empty `[]` (575 え, 315 いち); prefixp+suffixp both
-/// set (3329), prefixp only (5702 もう), suffixp only (5014/397), neither
-/// (575/315); `calculate-perc` with `total=0` → `--.--%` (575) vs `sample=0`
-/// total>0 → `0.00%` (575) vs nonzero (315 → `100.00%`); generic-hepburn
-/// `rtext` keeping long vowels (もう→`mou`, not `mō`).
+/// Serializes a single reading to JSON. Covers: multi-element okurigana array
+/// (3329 む, 8 entries) vs single (5014 で, 397 び) vs empty (575 え, 315 いち);
+/// prefix and suffix flags in every combination; the percentage with total=0 →
+/// `--.--%` (575), sample=0 with total>0 → `0.00%` (575), and nonzero (315 →
+/// `100.00%`); and romanization keeping long vowels (もう→`mou`, not `mō`).
 #[tokio::test]
 async fn reading_info_json_fixtures() {
     let reading_info_json_ctx = reading_info_json_ctx().await;
@@ -136,12 +128,10 @@ async fn kanji_info_json_ctx() -> Arc<KaniranContext> {
         .expect("DATABASE_URL / kaniran.toml required")
 }
 
-/// REPL fixtures (.103, `jsown:to-json` of `(kanji-info-json …)`), 2026-05-25.
-///
-/// Covers a present character (氷 — `freq`/`grade` set, mixed reading
-/// types, a `ja_kun` reading with okurigana), a character passed as the
-/// Lisp `#\光` (the one-character-string path the Rust `&str` already
-/// is), and a non-kanji argument (`"z"`) returning `None`.
+/// Looks up a kanji by character and serializes it to JSON. Covers a present
+/// character (氷 — freq/grade set, mixed reading types, a kun reading with
+/// okurigana), another present character (光), and a non-kanji argument
+/// (`"z"`) returning `None`.
 #[tokio::test]
 async fn kanji_info_json_fixtures() {
     let kanji_info_json_ctx = kanji_info_json_ctx().await;
@@ -178,18 +168,13 @@ async fn kanji_reading_json_ctx() -> Arc<KaniranContext> {
         .expect("DATABASE_URL / kaniran.toml required")
 }
 
-/// REPL fixtures (.103, `jsown:to-json` of `(apply 'kanji-reading-json item)`
-/// for items produced by `match-readings` on the source word), 2026-05-24.
-/// Source words: 人々/ひとびと, 学校/がっこう, 三日月/みかづき, 日本/にっぽん.
-/// The 唖/あ row is a real null-grade `kanji`/`reading` row pinned via the DB
-/// directly (`load-kanji-stats` only updates grade≤8 kanji, so null-grade rows
-/// keep `stat_common`=0 → `--.--%` and emit no `grade` field).
-///
-/// Covers: link present (人,学,月,本,唖) vs absent (々 iteration mark, U+3005);
-/// rendaku tag (々,月,本) vs none; geminated graft (学) vs none; stats present
-/// with grade (人,学,月,本), stats absent (々), stats present grade-`:null` (唖);
-/// and `get-original-reading` paths — identity, rendaku-strip (月), handakuten
-/// rendaku-strip (本: ぽん→ほん), geminated graft (学: がっ→がく).
+/// Serializes one kanji-reading match to JSON. A null-grade kanji (唖) keeps
+/// stat_common=0 → `--.--%` and emits no grade field. Covers: link present
+/// (人,学,月,本,唖) vs absent (々 iteration mark); rendaku tag (々,月,本) vs none;
+/// geminated reading (学) vs none; stats present with grade (人,学,月,本), stats
+/// absent (々), stats present with null grade (唖); and the original-reading
+/// derivations — identity, rendaku strip (月), handakuten rendaku strip
+/// (本: ぽん→ほん), geminated form (学: がっ→がく).
 #[tokio::test]
 async fn kanji_reading_json_fixtures() {
     let kanji_reading_json_ctx = kanji_reading_json_ctx().await;
@@ -270,15 +255,12 @@ async fn process_match_json_ctx() -> Arc<KaniranContext> {
         .expect("DATABASE_URL / kaniran.toml required")
 }
 
-/// REPL fixtures (.103, `jsown:to-json` of `(process-match-json (match-readings str reading))`),
-/// 2026-05-25. Input segments are produced by [`match_readings`] on the source word.
-///
-/// Covers: a kanji segment followed by a non-kanji `{"text"}` run
-/// (見る → 見/み, る); a geminated reading (学校 → 学/がっ gem く); a
-/// rendaku reading (三日月 → 月/づき); an all-irr word coalesced with a
-/// `link` (今日 → 今日/きょう); a single irr segment flushed mid-list
-/// between two normal kanji (明日香 → 明, [日 irr], 香); the iteration
-/// mark 々 which gets no `link` (人々 → 人, 々 rendaku, no link); and a
+/// Serializes a full match (a sequence of segments) to JSON. Covers: a kanji
+/// segment followed by a non-kanji text run (見る → 見/み, る); a geminated
+/// reading (学校 → 学/がっ gem く); a rendaku reading (三日月 → 月/づき); an
+/// all-irregular word coalesced with a link (今日 → 今日/きょう); a single
+/// irregular segment between two normal kanji (明日香 → 明, [日 irr], 香); the
+/// iteration mark 々 which gets no link (人々 → 人, 々 rendaku); and a
 /// geminate-then-rendaku pair (日本 → 日/にっ gem ち, 本/ぽん rendaku).
 #[tokio::test]
 async fn process_match_json_fixtures() {
@@ -340,15 +322,11 @@ async fn match_readings_json_ctx() -> Arc<KaniranContext> {
         .expect("DATABASE_URL / kaniran.toml required")
 }
 
-/// REPL fixtures (.103, `jsown:to-json` of `(match-readings-json str reading)`),
-/// 2026-05-25.
-///
-/// Covers the two `None` short-circuits — no kanji in `str`
-/// (みず/みず) and a kanji `str` that `match-readings` cannot align
-/// (日本/あ, 今日/"") — plus positive results: an irr fall-through
-/// when the reading matches no candidate (水/xyz → 水 irr) and a
-/// kanji-plus-okurigana word (見る/みる). The exhaustive JSON-shape
-/// coverage lives in [`super::super::process_match_json`]'s tests.
+/// Covers the two `None` short-circuits — no kanji in the word (みず/みず) and a
+/// kanji word that cannot be aligned (日本/あ, 今日/"") — plus positive results:
+/// an irregular fall-through when the reading matches no candidate (水/xyz →
+/// 水 irr) and a kanji-plus-okurigana word (見る/みる). The exhaustive
+/// JSON-shape coverage lives in [`super::super::process_match_json`]'s tests.
 #[tokio::test]
 async fn match_readings_json_fixtures() {
     let match_readings_json_ctx = match_readings_json_ctx().await;
@@ -397,11 +375,8 @@ async fn query_kanji_json_macro_ctx() -> Arc<KaniranContext> {
         .expect("DATABASE_URL / kaniran.toml required")
 }
 
-/// REPL fixtures (.103, `jsown:to-json` of a `query-kanji-json`
-/// invocation), 2026-05-26. 檸 has the smallest `to-json` shape
-/// (no freq/grade, two readings, one meaning); the two extra fields
-/// read the bound row's `text` and `id`, appended after the base
-/// object in invocation order.
+/// A single-row query serializes the kanji and appends caller-supplied extra
+/// fields (here the row's text and id) after the base object, in order.
 #[tokio::test]
 async fn query_kanji_json_single_row_extra_fields() {
     let query_kanji_json_macro_ctx = query_kanji_json_macro_ctx().await;

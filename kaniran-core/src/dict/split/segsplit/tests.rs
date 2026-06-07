@@ -3,9 +3,6 @@ mod _star_segsplit_map_star_ {
 
     #[test]
     fn registered_count_matches_upstream_segsplit_map() {
-        // dict-split.lisp:706-782 registers 18 entries via the 18
-        // def-simple-split forms inside the let-binding that redirects
-        // *split-map* to *segsplit-map*.
         assert_eq!(REGISTERED_COUNT, 18);
     }
 }
@@ -13,8 +10,6 @@ mod _star_segsplit_map_star_ {
 mod _star_hint_simplify_map_star_ {
     use crate::dict::split::segsplit::*;
 
-    /// Pin the build output against the introspected upstream value —
-    /// catches drift in the source character constants.
     #[test]
     fn matches_introspected_value() {
         let map = hint_simplify_map();
@@ -90,19 +85,12 @@ mod get_segsplit {
         }
     }
 
-    // REPL probe (2026-05-18, .103):
-    //   (ichi:make-segment :word #1343110_kana :text "ところで") + gen-score
-    //   pre-score=175, post-score=165, score-mod=-10
-    //   text="ところで", kana="ところ で", primary-seq=1343100
-    //   words=((1343100 "ところ" nil) (2028980 "で" :root))
-    //   info=(:posi (adv n suf) :seq-set (1343100) :conj nil :common 0
-    //         :score-info (16 nil 0 nil) :kpcl (nil t t nil))
     #[tokio::test]
     async fn tokorode_root_keyword_marks_index_1() {
         let ctx = ctx_from_env().await;
         let mut seg = segment_for_seq(&ctx, "ところで", 1343110).await;
-        // Pin non-default start/end/top so the copy-segment assertion
-        // catches a regression that zeroes them inside get-segsplit.
+        // Set non-default start/end/top so the test catches any regression
+        // that zeroes them.
         seg.start = 11;
         seg.end = 15;
         seg.top = None;
@@ -110,8 +98,8 @@ mod get_segsplit {
         let result = get_segsplit(&ctx, &seg).await.unwrap();
         let new_seg = result.expect("ところで matches split-tokorode (segsplit-map)");
 
-        // dict-split.lisp:798 — copy-segment clones start/end/top; the
-        // parallel setf only writes word/text/score/info.
+        // start/end/top are carried over unchanged; only word/text/score/info
+        // are rewritten.
         assert_eq!(new_seg.start, 11);
         assert_eq!(new_seg.end, 15);
         assert!(new_seg.top.is_none());
@@ -125,7 +113,7 @@ mod get_segsplit {
         assert_eq!(word_text(&compound.words[0]), "ところ");
         assert_eq!(word_seq(&compound.words[1]), 2028980);
         assert_eq!(word_text(&compound.words[1]), "で");
-        // :root (1) — index-1 word gets WordConjugations::Root.
+        // The index-1 word (で) is marked as a root.
         assert!(matches!(
             crate::dict::accessors::word_conjugations(&compound.words[1]),
             Some(WordConjugations::Root)
@@ -134,14 +122,11 @@ mod get_segsplit {
         assert!(matches!(compound.score_mod, ScoreMod::Single(-10)));
         assert!(compound.score_base.is_none());
 
-        // pre 175 + (-10) = 165 (REPL).
         assert_eq!(new_seg.score, Some(pre_score - 10));
         assert_eq!(new_seg.text.as_deref(), Some("ところで"));
         let info = new_seg.info.as_ref().expect("segsplit info plist non-nil");
-        // calc-score on primary (1343100) — full info plist per REPL.
         assert_eq!(info.posi, vec!["adv", "n", "suf"]);
         assert_eq!(info.seq_set, vec![1343100]);
-        // word-conj-data on compound = word-conj-data on last word (で root) — REPL nil.
         assert!(info.conj.is_empty());
         assert_eq!(info.common, Some(0));
         assert_eq!(info.score_info.prop_score, 16);
@@ -151,14 +136,7 @@ mod get_segsplit {
         assert_eq!(info.kpcl, (false, true, true, false));
     }
 
-    // REPL probe (2026-05-18, .103):
-    //   ところでは reading 1897510 — split-tokorodewa 3-part split
-    //   pre-score=275, post-score=265, score-mod=-10
-    //   text="ところでは", kana="ところ で ‌は" (U+200C hint mod prefix on は)
-    //   primary-seq=1343100 (index 0)
-    //   words=((1343100 "ところ") (2028980 "で") (2028920 "は"))
-    //   info=(:posi (adv n suf) :seq-set (1343100) :conj nil :common 0
-    //         :score-info (16 nil 0 nil) :kpcl (nil t t nil))
+    // A three-part split (ところ / で / は) with default attributes.
     #[tokio::test]
     async fn tokorodewa_three_part_split_default_attrs() {
         let ctx = ctx_from_env().await;
@@ -172,7 +150,6 @@ mod get_segsplit {
             .unwrap()
             .expect("segsplit hit");
 
-        // copy-segment preserves start/end/top.
         assert_eq!(new_seg.start, 3);
         assert_eq!(new_seg.end, 8);
         assert!(new_seg.top.is_none());
@@ -184,7 +161,7 @@ mod get_segsplit {
         assert_eq!(word_seq(&compound.words[0]), 1343100);
         assert_eq!(word_seq(&compound.words[1]), 2028980);
         assert_eq!(word_seq(&compound.words[2]), 2028920);
-        // No :root keyword → no word gets marked Root.
+        // No root keyword, so no word is marked as a root.
         for w in &compound.words {
             assert!(crate::dict::accessors::word_conjugations(w).is_none());
         }
@@ -206,14 +183,8 @@ mod get_segsplit {
         assert_eq!(info.kpcl, (false, true, true, false));
     }
 
-    // REPL probe (2026-05-18, .103):
-    //   お店 reading 2409240 (kanji-text) — split-omise
-    //   pre-score=40, post-score=60, score-mod=20, :primary 1 :connector ""
-    //   text="お店", kana="おみせ" (empty connector concats parts)
-    //   words=((2826528 "お") (1582120 "店"))
-    //   primary-seq=1582120 (index 1 per :primary 1)
-    //   info=(:posi (n) :seq-set (1582120) :conj nil :common 0
-    //         :score-info (16 nil 0 nil) :kpcl (t t t nil))
+    // お店 splits into お / 店, with the second part as primary and an
+    // empty connector joining the kana directly (おみせ).
     #[tokio::test]
     async fn omise_primary_and_connector_keywords() {
         let ctx = ctx_from_env().await;
@@ -258,14 +229,8 @@ mod get_segsplit {
         assert_eq!(info.kpcl, (true, true, true, false));
     }
 
-    // REPL probe (2026-05-18, .103):
-    //   だから reading 1007310 — split-dakara, default attrs
-    //   pre-score=144, post-score=139, score-mod=-5
-    //   text="だから", kana="だ から" (default connector " ")
-    //   words=((2089020 "だ") (1002980 "から"))
-    //   primary-seq=2089020 (index 0)
-    //   info=(:posi (aux-v cop cop-da) :seq-set (2089020) :conj nil :common 0
-    //         :score-info (16 nil 0 nil) :kpcl (nil t t nil))
+    // だから splits into だ / から with default attributes, the default
+    // connector joining the kana with a space (だ から).
     #[tokio::test]
     async fn dakara_basic_default_attrs() {
         let ctx = ctx_from_env().await;
@@ -293,7 +258,7 @@ mod get_segsplit {
         assert!(compound.score_base.is_none());
         assert_eq!(new_seg.score, Some(pre_score - 5));
         assert_eq!(new_seg.text.as_deref(), Some("だから"));
-        // No :root — neither word marked.
+        // No root keyword, so neither word is marked.
         for w in &compound.words {
             assert!(crate::dict::accessors::word_conjugations(w).is_none());
         }
@@ -310,14 +275,8 @@ mod get_segsplit {
         assert_eq!(info.kpcl, (false, true, true, false));
     }
 
-    // REPL probe (2026-05-18, .103):
-    //   から元気 reading 1675330 (kanji-text) — :primary 1
-    //   pre-score=315, post-score=325, score-mod=10
-    //   text="から元気", kana="から げんき"
-    //   words=((KANA-TEXT 1002980 "から") (KANJI-TEXT 1260720 "元気"))
-    //   primary-seq=1260720 (index 1)
-    //   info=(:posi (adj-na n) :seq-set (1260720) :conj nil :common 6
-    //         :score-info (20 nil 0 nil) :kpcl (t t t nil))
+    // から元気 splits into から / 元気 with the second part (the kanji) as
+    // primary.
     #[tokio::test]
     async fn karagenki_kanji_input_primary_1() {
         let ctx = ctx_from_env().await;
@@ -362,8 +321,7 @@ mod get_segsplit {
         assert_eq!(info.kpcl, (true, true, true, false));
     }
 
-    // REPL probe (2026-05-18, .103):
-    //   猫 readings (1467640, 2698030) — neither in segsplit-map → nil.
+    // A word with no registered split returns nothing.
     #[tokio::test]
     async fn neko_no_segsplit() {
         let ctx = ctx_from_env().await;
@@ -372,17 +330,9 @@ mod get_segsplit {
         assert!(result.is_none(), "猫 (1467640) is not in *segsplit-map*");
     }
 
-    // REPL probe (2026-05-18, .103):
-    //   はぐったり reading 10494835 — synthetic conjugated form of seq 1010105
-    //   (はぐる, archaic), conj-of=(1010105). Exercises the get-split*
-    //   conj-of-fallback dispatch branch (dict-split.lisp:73-75) — the
-    //   direct-seq tests in this file all match on simple_word.seq().
-    //   pre-score=176, post-score=181, score-mod=5
-    //   text="はぐったり", kana="‌は ぐったり" (U+200C hint mod prefix on は)
-    //   primary-seq=2028920 (index 0, default :primary 0)
-    //   words=((2028920 "は") (1004070 "ぐったり"))
-    //   info=(:posi (prt) :seq-set (2028920) :conj nil :common 0
-    //         :score-info (11 nil 0 nil) :kpcl (nil t t nil))
+    // はぐったり is a conjugated form, so the split is found via the word's
+    // base form rather than a direct seq match — the only test here that
+    // exercises that fallback path.
     #[tokio::test]
     async fn hagguttari_conj_of_fallback_dispatch() {
         let ctx = ctx_from_env().await;
@@ -429,8 +379,7 @@ mod get_segsplit {
         assert_eq!(info.kpcl, (false, true, true, false));
     }
 
-    // dict-split.lisp:785 — (typep word 'simple-text) is false for
-    // compound-text; get-segsplit returns nil immediately.
+    // A compound-text input is not a simple word, so it returns nothing.
     #[tokio::test]
     async fn compound_text_input_returns_none() {
         use crate::dict::dao::KanaText;
@@ -482,15 +431,13 @@ mod get_segsplit {
         assert!(result.is_none(), "compound-text input fails typep check");
     }
 
-    // dict-split.lisp:798 — copy-segment preserves start / end / top from
-    // the source. The setf parallel-setf only writes word / text / score /
-    // info; everything else stays as-cloned from the source segment.
+    // The result keeps the source segment's start/end/top; only
+    // word/text/score/info are rewritten.
     #[tokio::test]
     async fn copy_segment_preserves_start_end_top() {
         let ctx = ctx_from_env().await;
         let mut seg = segment_for_seq(&ctx, "だから", 1007310).await;
-        // Re-anchor at non-default start/end so the assertion catches
-        // any drift (gen-score doesn't touch start/end).
+        // Re-anchor at non-default start/end so the test catches any drift.
         seg.start = 7;
         seg.end = 10;
         seg.top = None;

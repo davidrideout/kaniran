@@ -56,13 +56,10 @@ mod synergy_no_toori {
         })
     }
 
-    // REPL probes (/tmp/probe_synergies.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive_no_toori() {
-        // no-toori/positive: RIGHT-SL start=1 end=3 segs=1,
-        // SYNERGY desc="no toori" conn=" " score=50 start=1 end=1,
-        // LEFT-SL start=0 end=1 segs=1.
+        // Right span and left span feed through, producing the "no toori"
+        // synergy with score 50.
         let l = lite_sl_owned(0, 1, vec![seg_with_seqs(vec![1469800])]);
         let r = lite_sl_owned(1, 3, vec![seg_with_seqs(vec![1432920])]);
         let got = synergy_no_toori(&l, &r);
@@ -83,7 +80,6 @@ mod synergy_no_toori {
 
     #[test]
     fn left_misses_empty() {
-        // no-toori/left-misses: NIL.
         let l = lite_sl_owned(0, 1, vec![seg_with_seqs(vec![12345])]);
         let r = lite_sl_owned(1, 3, vec![seg_with_seqs(vec![1432920])]);
         assert!(synergy_no_toori(&l, &r).is_empty());
@@ -91,9 +87,8 @@ mod synergy_no_toori {
 
     #[test]
     fn multi_segs_partial_filter() {
-        // no-toori/multi-segs-partial: l has 2 segs (one matches, one
-        // does not), r has 2 segs (both match). Expected RIGHT-SL
-        // segs=2, LEFT-SL segs=1.
+        // Left has two segments (one matches, one does not), right has
+        // two (both match): right keeps both, left keeps the one match.
         let l = lite_sl_owned(
             0,
             1,
@@ -173,13 +168,10 @@ mod synergy_oki {
         })
     }
 
-    // REPL probes (/tmp/probe_437_441.lisp on .103, 2026-05-18).
-
     #[test]
     fn positive_2854117() {
-        // oki/positive-2854117: l posi=("ctr") kpcl all nil, r seq 2854117.
-        // RIGHT-SL start=1 end=3 segs=1, SYNERGY desc=NIL conn=""
-        // score=20 start=1 end=1, LEFT-SL start=0 end=1 segs=1.
+        // Counter on the left followed by seq 2854117 fires the synergy:
+        // no description, score 20.
         let l = lite_sl_owned(
             0,
             1,
@@ -208,7 +200,7 @@ mod synergy_oki {
 
     #[test]
     fn positive_2084550() {
-        // oki/positive-2084550: r matches second seq in the set.
+        // The other accepted right sequence also fires.
         let l = lite_sl_owned(
             0,
             1,
@@ -226,7 +218,7 @@ mod synergy_oki {
 
     #[test]
     fn neg_no_ctr_posi() {
-        // oki/neg-no-ctr-posi: l posi=("n"), not "ctr" — NIL.
+        // Left is a noun, not a counter — no synergy.
         let l = lite_sl_owned(
             0,
             1,
@@ -242,7 +234,7 @@ mod synergy_oki {
 
     #[test]
     fn neg_right_miss() {
-        // oki/neg-right-miss: r seq doesn't match either — NIL.
+        // Right sequence matches neither accepted value — no synergy.
         let l = lite_sl_owned(
             0,
             1,
@@ -258,7 +250,7 @@ mod synergy_oki {
 
     #[test]
     fn neg_not_adjacent() {
-        // oki/neg-not-adjacent: l.end != r.start — NIL.
+        // Left and right are not adjacent — no synergy.
         let l = lite_sl_owned(
             0,
             1,
@@ -344,8 +336,6 @@ mod get_synergies {
             other => panic!("expected SegmentList, got {:?}", other),
         }
     }
-
-    // REPL probes (/tmp/probe_449_451.lisp on .103, 2026-05-18).
 
     #[test]
     fn a_none_fire() {
@@ -553,8 +543,6 @@ mod filter_short_kana {
             matches: 0,
         })
     }
-
-    // REPL probes (/tmp/probe_b.lisp on .103, 2026-05-18).
 
     #[test]
     fn c1_empty_segments_is_false() {

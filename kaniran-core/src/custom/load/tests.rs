@@ -1,7 +1,6 @@
 use super::*;
 
 // --- get_words ---
-// REPL fixtures (.103, ichiran/custom::get-words), 2026-05-31.
 
 fn muni(
     text: &str,
@@ -161,15 +160,13 @@ fn source_path_joins_data_sources() {
 }
 
 // --- get_custom_data ---
-// REPL fixtures (.103, `(ichiran/custom::get-custom-data)`), 2026-05-31.
 
 #[test]
 fn get_custom_data_shape() {
     let data = get_custom_data();
     assert_eq!(data.len(), 3);
 
-    // First pair — :extra → xml-loader, description "extra XML data",
-    // source-file ends in data/sources/extra.xml.
+    // First entry: Extra → XML loader, "extra XML data", data/sources/extra.xml.
     assert_eq!(data[0].0, CustomDataKey::Extra);
     match &data[0].1 {
         CustomLoader::Xml(x) => {
@@ -183,8 +180,7 @@ fn get_custom_data_shape() {
         other => panic!("expected Xml loader, got {other:?}"),
     }
 
-    // Second pair — :municipality → municipality-csv, description
-    // "municipalities", source-file ends in data/sources/jichitai.csv.
+    // Second entry: Municipality → CSV loader, "municipalities", data/sources/jichitai.csv.
     assert_eq!(data[1].0, CustomDataKey::Municipality);
     match &data[1].1 {
         CustomLoader::Municipality(m) => {
@@ -198,8 +194,7 @@ fn get_custom_data_shape() {
         other => panic!("expected Municipality loader, got {other:?}"),
     }
 
-    // Third pair — :ward → ward-csv, description "wards",
-    // source-file ends in data/sources/gyoseiku.csv.
+    // Third entry: Ward → CSV loader, "wards", data/sources/gyoseiku.csv.
     assert_eq!(data[2].0, CustomDataKey::Ward);
     match &data[2].1 {
         CustomLoader::Ward(w) => {

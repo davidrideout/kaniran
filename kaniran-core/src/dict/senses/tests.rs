@@ -1,9 +1,6 @@
 mod get_senses_raw {
     use crate::dict::senses::*;
-    // All expected values pinned against .103 REPL runs of
-    // `(get-senses-raw <seq>)`. Test threads must be 1 —
-    // `cargo test --test-threads=1` per the project's DB-test
-    // convention.
+    // Run with `--test-threads=1` (database tests).
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -13,7 +10,6 @@ mod get_senses_raw {
 
     #[tokio::test]
     async fn unknown_seq_returns_empty() {
-        // REPL: (get-senses-raw 999999) => NIL
         let ctx = ctx_from_env().await;
         let result = get_senses_raw(&ctx, 999999).await.unwrap();
         assert_eq!(result, Vec::<RawSense>::new());
@@ -21,8 +17,6 @@ mod get_senses_raw {
 
     #[tokio::test]
     async fn simple_single_sense() {
-        // REPL: (get-senses-raw 1582710)
-        // => ((:ORD 0 :GLOSS "Japan" :PROPS (("pos" "n"))))
         let ctx = ctx_from_env().await;
         let result = get_senses_raw(&ctx, 1582710).await.unwrap();
         assert_eq!(
@@ -37,8 +31,6 @@ mod get_senses_raw {
 
     #[tokio::test]
     async fn multi_value_pos_single_sense() {
-        // REPL: (get-senses-raw 1577900)
-        // => ((:ORD 0 :GLOSS "eternity" :PROPS (("pos" "adj-no" "n"))))
         let ctx = ctx_from_env().await;
         let result = get_senses_raw(&ctx, 1577900).await.unwrap();
         assert_eq!(
@@ -56,11 +48,7 @@ mod get_senses_raw {
 
     #[tokio::test]
     async fn field_tag_present() {
-        // REPL: (get-senses-raw 1001390)
-        // => ((:ORD 0 :GLOSS "oden; dish of various ingredients, e.g.
-        //      egg, daikon, potato, chikuwa, konnyaku stewed in
-        //      soy-flavored dashi"
-        //     :PROPS (("pos" "n") ("field" "food"))))
+        // A "field" prop ("food") sits alongside "pos" in the props list.
         let ctx = ctx_from_env().await;
         let result = get_senses_raw(&ctx, 1001390).await.unwrap();
         assert_eq!(
@@ -78,12 +66,7 @@ mod get_senses_raw {
 
     #[tokio::test]
     async fn stagk_tag_and_multiple_pos() {
-        // REPL: (get-senses-raw 1000300)
-        // => ((:ORD 0 :GLOSS "to treat; to handle; to deal with"
-        //      :PROPS (("stagk" "遇う") ("pos" "v5u" "vt")))
-        //     (:ORD 1 :GLOSS "to arrange; to decorate (with); to adorn
-        //      (with); to dress (with); to garnish (with)"
-        //      :PROPS (("pos" "vt" "v5u"))))
+        // A "stagk" prop and a multi-value "pos" prop both come through.
         let ctx = ctx_from_env().await;
         let result = get_senses_raw(&ctx, 1000300).await.unwrap();
         assert_eq!(
@@ -114,12 +97,8 @@ mod get_senses_raw {
 
     #[tokio::test]
     async fn final_group_bag_not_reversed_asymmetry() {
-        // REPL: (get-senses-raw 1011960)
-        // Pins the upstream asymmetry: sense 1's `stagr` is
-        // ("ボタボタ" "ぼたぼた") — the in-loop `(reverse bag)`
-        // path; sense 2's `stagr` is ("ぼたぼた" "ボタボタ") — the
-        // `finally` path without reverse. Same two sense_prop.ord
-        // 0/1 rows in both senses.
+        // Two senses hold the same two stagr values but in opposite order: the
+        // last sense's values come out unreversed relative to the others.
         let ctx = ctx_from_env().await;
         let result = get_senses_raw(&ctx, 1011960).await.unwrap();
         assert_eq!(
@@ -167,9 +146,7 @@ mod get_senses_raw {
 
     #[tokio::test]
     async fn sense_with_no_props_yields_empty_props() {
-        // REPL: (get-senses-raw 1447690)
-        // => ((:ORD 0 :GLOSS "Tokyo" :PROPS (("pos" "n")))
-        //     (:ORD 1 :GLOSS "Tokyo Metropolis" :PROPS NIL))
+        // A sense with no props comes back with an empty props list.
         let ctx = ctx_from_env().await;
         let result = get_senses_raw(&ctx, 1447690).await.unwrap();
         assert_eq!(
@@ -192,8 +169,7 @@ mod get_senses_raw {
 
 mod get_senses {
     use crate::dict::senses::*;
-    // All expected values pinned against .103 REPL runs of
-    // `(ichiran/dict::get-senses <seq>)`. Run with `--test-threads=1`.
+    // Run with `--test-threads=1` (database tests).
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -203,7 +179,6 @@ mod get_senses {
 
     #[tokio::test]
     async fn unknown_seq_returns_empty() {
-        // REPL: (get-senses 999999) => NIL
         let ctx = ctx_from_env().await;
         let result = get_senses(&ctx, 999999).await.unwrap();
         assert!(result.is_empty());
@@ -211,8 +186,6 @@ mod get_senses {
 
     #[tokio::test]
     async fn simple_single_sense() {
-        // REPL: (get-senses 1582710)
-        // => (("[n]" "Japan" (("pos" "n"))))
         let ctx = ctx_from_env().await;
         let result = get_senses(&ctx, 1582710).await.unwrap();
         assert_eq!(
@@ -227,8 +200,6 @@ mod get_senses {
 
     #[tokio::test]
     async fn multi_value_pos() {
-        // REPL: (get-senses 1577900)
-        // => (("[adj-no,n]" "eternity" (("pos" "adj-no" "n"))))
         let ctx = ctx_from_env().await;
         let result = get_senses(&ctx, 1577900).await.unwrap();
         assert_eq!(
@@ -246,11 +217,6 @@ mod get_senses {
 
     #[tokio::test]
     async fn field_tag_preserved_in_props() {
-        // REPL: (get-senses 1001390)
-        // => (("[n]"
-        //       "oden; dish of various ingredients, e.g. egg, daikon,
-        //        potato, chikuwa, konnyaku stewed in soy-flavored dashi"
-        //       (("pos" "n") ("field" "food"))))
         let ctx = ctx_from_env().await;
         let result = get_senses(&ctx, 1001390).await.unwrap();
         assert_eq!(
@@ -268,9 +234,6 @@ mod get_senses {
 
     #[tokio::test]
     async fn second_sense_no_pos_yields_empty_brackets() {
-        // REPL: (get-senses 1447690)
-        // => (("[n]" "Tokyo" (("pos" "n")))
-        //     ("[]" "Tokyo Metropolis" NIL))
         let ctx = ctx_from_env().await;
         let result = get_senses(&ctx, 1447690).await.unwrap();
         assert_eq!(
@@ -289,8 +252,7 @@ mod get_senses {
 
 mod get_senses_str {
     use crate::dict::senses::*;
-    // All expected values pinned against .103 REPL runs of
-    // `(ichiran/dict::get-senses-str <seq>)`. Run with `--test-threads=1`.
+    // Run with `--test-threads=1` (database tests).
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -300,7 +262,6 @@ mod get_senses_str {
 
     #[tokio::test]
     async fn unknown_seq_yields_empty_string() {
-        // REPL: (get-senses-str 999999) => ""
         let ctx = ctx_from_env().await;
         let result = get_senses_str(&ctx, 999999).await.unwrap();
         assert_eq!(result, "");
@@ -308,7 +269,6 @@ mod get_senses_str {
 
     #[tokio::test]
     async fn simple_single_sense() {
-        // REPL: (get-senses-str 1582710) => "1. [n] Japan"
         let ctx = ctx_from_env().await;
         let result = get_senses_str(&ctx, 1582710).await.unwrap();
         assert_eq!(result, "1. [n] Japan");
@@ -316,7 +276,6 @@ mod get_senses_str {
 
     #[tokio::test]
     async fn multi_value_pos() {
-        // REPL: (get-senses-str 1577900) => "1. [adj-no,n] eternity"
         let ctx = ctx_from_env().await;
         let result = get_senses_str(&ctx, 1577900).await.unwrap();
         assert_eq!(result, "1. [adj-no,n] eternity");
@@ -324,9 +283,6 @@ mod get_senses_str {
 
     #[tokio::test]
     async fn field_braced_before_gloss() {
-        // REPL: (get-senses-str 1001390) =>
-        //   "1. [n] {food} oden; dish of various ingredients, e.g. egg,
-        //    daikon, potato, chikuwa, konnyaku stewed in soy-flavored dashi"
         let ctx = ctx_from_env().await;
         let result = get_senses_str(&ctx, 1001390).await.unwrap();
         assert_eq!(
@@ -337,7 +293,6 @@ mod get_senses_str {
 
     #[tokio::test]
     async fn multi_field_joined_by_comma() {
-        // REPL: (get-senses-str 1014100) => "1. [n] {physics,chem} isotope"
         let ctx = ctx_from_env().await;
         let result = get_senses_str(&ctx, 1014100).await.unwrap();
         assert_eq!(result, "1. [n] {physics,chem} isotope");
@@ -345,8 +300,6 @@ mod get_senses_str {
 
     #[tokio::test]
     async fn s_inf_in_double_angle_brackets() {
-        // REPL: (get-senses-str 900000) =>
-        //   "1. [suf] 《after the -masu stem of a verb》 to seem to want to (do something)"
         let ctx = ctx_from_env().await;
         let result = get_senses_str(&ctx, 900000).await.unwrap();
         assert_eq!(
@@ -357,8 +310,6 @@ mod get_senses_str {
 
     #[tokio::test]
     async fn field_and_s_inf_both_present() {
-        // REPL: (get-senses-str 1005660) =>
-        //   "1. [n] {food} 《from the sound of the dish being prepared》 shabu-shabu; …"
         let ctx = ctx_from_env().await;
         let result = get_senses_str(&ctx, 1005660).await.unwrap();
         assert_eq!(
@@ -369,9 +320,7 @@ mod get_senses_str {
 
     #[tokio::test]
     async fn multi_sense_separated_by_newline_no_trailing() {
-        // REPL: (get-senses-str 1447690) =>
-        //   "1. [n] Tokyo\n2. [n] Tokyo Metropolis"
-        // sense 2 has pos "[]" → rpos inherits "[n]" from sense 1.
+        // Sense 2 has an empty pos, so it inherits sense 1's "[n]".
         let ctx = ctx_from_env().await;
         let result = get_senses_str(&ctx, 1447690).await.unwrap();
         assert_eq!(result, "1. [n] Tokyo\n2. [n] Tokyo Metropolis");
@@ -379,10 +328,6 @@ mod get_senses_str {
 
     #[tokio::test]
     async fn three_senses_mixed_props() {
-        // REPL: (get-senses-str 1011960) =>
-        //   "1. [adv,adv-to,vs] dripping; trickling; drop by drop; in drops
-        //    2. [adv,adv-to,vs] wet and heavy (snow, clay, etc.)
-        //    3. [adv,adv-to] (moving) slowly"
         let ctx = ctx_from_env().await;
         let result = get_senses_str(&ctx, 1011960).await.unwrap();
         assert_eq!(
@@ -393,7 +338,6 @@ mod get_senses_str {
 
     #[tokio::test]
     async fn five_senses_with_s_inf_subset() {
-        // REPL: (get-senses-str 1000090) — pinned 5-sense output.
         let ctx = ctx_from_env().await;
         let result = get_senses_str(&ctx, 1000090).await.unwrap();
         assert_eq!(
@@ -446,9 +390,9 @@ mod match_kana_kanji {
             .collect()
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::match-kana-kanji`), 2026-05-24.
-    /// Readings are seq-1339160 forms: だし (nokanji nil), ダシ
-    /// (nokanji t), 出し / 出汁 kanji.
+    /// Matches a kana reading against a kanji form under a restriction list.
+    /// Readings used: だし (nokanji false), ダシ (nokanji true), and the
+    /// 出し / 出汁 kanji forms.
     #[test]
     fn match_kana_kanji_fixtures() {
         let dashi = kana("だし", false);
@@ -564,14 +508,12 @@ mod match_sense_restrictions {
         }
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::match-sense-restrictions`), 2026-05-24.
-    /// Covers every cond clause: no-restriction (1339160 s0), direct
-    /// member (出し / ダシ / 遇う / ボタボタ / 風太郎), `:kanji`-only nil
-    /// (配う), `:kana`-only nil (ポタポタ), the `:kanji` select-dao branch
-    /// (出端→t, 出汁→nil via the nokanji ダシ row), and the `:kana`
-    /// select-dao branch returning t (だし / あしらう) and the matched
-    /// kanji string (ぷうたろう / ふうたろう → "風太郎"; プーたろう → nil;
-    /// プータロー nokanji → nil).
+    /// Whether a reading passes a sense's reading restrictions. Covers: no
+    /// restriction (everything passes); a reading directly listed as allowed;
+    /// a kanji-only restriction rejecting a kana reading and vice versa; a
+    /// restriction list resolved against the database to accept or reject a
+    /// kanji; and the case where a kana reading resolves to a specific
+    /// matched kanji string.
     #[tokio::test]
     async fn match_sense_restrictions_fixtures() {
         let ctx = ctx_from_env().await;
@@ -586,7 +528,7 @@ mod match_sense_restrictions {
         let yes = || Some(MatchKanaKanjiResult::Yes);
         let found = |s: &str| Some(MatchKanaKanjiResult::Found(s.to_string()));
         let cases = [
-            // no stags → t (every reading)
+            // No restriction: every reading passes.
             Case {
                 seq: 1339160,
                 ord: 0,
@@ -601,73 +543,73 @@ mod match_sense_restrictions {
                 kanji: false,
                 expected: yes(),
             },
-            // both stags (stagk 出し, stagr ダシ)
+            // Restricted to kanji 出し and kana ダシ.
             Case {
                 seq: 1339160,
                 ord: 1,
                 text: "出し",
                 kanji: true,
                 expected: yes(),
-            }, // member stagk
+            }, // listed kanji
             Case {
                 seq: 1339160,
                 ord: 1,
                 text: "ダシ",
                 kanji: false,
                 expected: yes(),
-            }, // member stagr
+            }, // listed kana
             Case {
                 seq: 1339160,
                 ord: 1,
                 text: "出汁",
                 kanji: true,
                 expected: None,
-            }, // :kanji branch, only ダシ(nokanji) matches → nil
+            }, // kanji not listed
             Case {
                 seq: 1339160,
                 ord: 1,
                 text: "だし",
                 kanji: false,
                 expected: yes(),
-            }, // :kana branch → t
-            // only stagk (遇う)
+            }, // kana, no kana restriction
+            // Restricted to kanji only (遇う).
             Case {
                 seq: 1000300,
                 ord: 0,
                 text: "遇う",
                 kanji: true,
                 expected: yes(),
-            }, // member stagk
+            }, // listed kanji
             Case {
                 seq: 1000300,
                 ord: 0,
                 text: "配う",
                 kanji: true,
                 expected: None,
-            }, // :kanji-only ∧ kanji → nil
+            }, // kanji not listed
             Case {
                 seq: 1000300,
                 ord: 0,
                 text: "あしらう",
                 kanji: false,
                 expected: yes(),
-            }, // :kana branch → t
-            // only stagr (ボタボタ / ぼたぼた)
+            }, // kana passes when only kanji is restricted
+            // Restricted to kana only (ボタボタ / ぼたぼた).
             Case {
                 seq: 1011960,
                 ord: 1,
                 text: "ボタボタ",
                 kanji: false,
                 expected: yes(),
-            }, // member stagr
+            }, // listed kana
             Case {
                 seq: 1011960,
                 ord: 1,
                 text: "ポタポタ",
                 kanji: false,
                 expected: None,
-            }, // :kana-only ∧ kana → nil
-            // both stags, :kanji branch returning t (1580140 stagr でばな non-nokanji)
+            }, // kana not listed
+            // Kanji resolved against the database accepts the reading.
             Case {
                 seq: 1580140,
                 ord: 0,
@@ -675,49 +617,49 @@ mod match_sense_restrictions {
                 kanji: true,
                 expected: yes(),
             },
-            // only stagk (風太郎) with restricted_readings rows → Found(string)
+            // Restricted to a kanji whose readings resolve to a kanji string.
             Case {
                 seq: 1115120,
                 ord: 1,
                 text: "風太郎",
                 kanji: true,
                 expected: yes(),
-            }, // member stagk
+            }, // listed kanji
             Case {
                 seq: 1115120,
                 ord: 1,
                 text: "プー太郎",
                 kanji: true,
                 expected: None,
-            }, // :kanji-only ∧ kanji → nil
+            }, // kanji not listed
             Case {
                 seq: 1115120,
                 ord: 1,
                 text: "プータロー",
                 kanji: false,
                 expected: None,
-            }, // nokanji kana → match-kana-kanji nil
+            }, // nokanji kana never matches a kanji
             Case {
                 seq: 1115120,
                 ord: 1,
                 text: "ぷうたろう",
                 kanji: false,
                 expected: found("風太郎"),
-            },
+            }, // kana resolves to the matched kanji
             Case {
                 seq: 1115120,
                 ord: 1,
                 text: "ふうたろう",
                 kanji: false,
                 expected: found("風太郎"),
-            },
+            }, // kana resolves to the matched kanji
             Case {
                 seq: 1115120,
                 ord: 1,
                 text: "プーたろう",
                 kanji: false,
                 expected: None,
-            }, // restr keyed プー太郎, 風太郎 absent → nil
+            }, // kana whose kanji is absent from the restriction
         ];
 
         for case in &cases {
@@ -738,7 +680,6 @@ mod match_sense_restrictions {
 mod split_pos {
     use crate::dict::senses::*;
 
-    /// REPL fixtures (.103, `ichiran/dict::split-pos`), 2026-05-24.
     #[test]
     fn split_pos_fixtures() {
         let cases: &[(&str, Vec<&str>)] = &[
@@ -795,12 +736,10 @@ mod get_senses_json {
         KaniWordDispatchEnum::Kana(row)
     }
 
-    /// REPL fixtures (.103, `(jsown:to-json (get-senses-json …))`),
-    /// 2026-05-24. No reading/getter, no pos-list: every sense is
-    /// collected. Covers `field` ({food}), multi-pos `[adj-no,n]`, the
-    /// `[]`-second-sense `rpos` carry-forward (1447690 → both `[n]`), and
-    /// the `s_inf` → `info` path with non-ASCII text (serde emits raw
-    /// UTF-8, not jsown's `\u` escapes).
+    /// With no reading and no pos filter, every sense is collected. Covers a
+    /// field ({food}), a multi-pos bracket ([adj-no,n]), a second sense with
+    /// empty pos inheriting the first sense's pos, and the s_inf note rendered
+    /// into an `info` field with non-ASCII text.
     #[tokio::test]
     async fn plain_collect_all() {
         let ctx = ctx_from_env().await;
@@ -831,11 +770,10 @@ mod get_senses_json {
         }
     }
 
-    /// REPL fixtures (.103), 2026-05-24. `pos-list` filter against the
-    /// carried-forward `lpos`. 1577900 keeps/drops on `n`/`xxx`; 1447690
-    /// `n` keeps both senses (the `[]` sense inherits `lpos=["n"]`);
-    /// 1000320 `n` drops the leading `pn` sense; 1199330 `ctr` keeps only
-    /// the counter sense (mirrors the `:pos-list '("ctr")` call site).
+    /// The pos filter keeps only senses whose carried-forward pos matches.
+    /// A matching pos keeps the sense, a non-matching one drops it, a sense
+    /// with empty pos inherits and matches the prior sense's pos, and a
+    /// `ctr` filter keeps only the counter sense.
     #[tokio::test]
     async fn pos_list_filter() {
         let ctx = ctx_from_env().await;
@@ -885,11 +823,9 @@ mod get_senses_json {
         }
     }
 
-    /// REPL fixtures (.103), 2026-05-24. `:reading` restriction path
-    /// (1339160 sense 1 has stagk 出し / stagr ダシ; 1115120 sense 1 has
-    /// stagk 風太郎). A `stagk`/`stagr` member passes (出し / ダシ); a
-    /// non-matching kanji is filtered (出汁 → nil; プー太郎 → nil); the
-    /// restricted-reading `Found` path passes (ぷうたろう → 風太郎).
+    /// When a reading is supplied, senses are filtered by their reading
+    /// restrictions: a listed kanji or kana passes, a non-listed kanji is
+    /// dropped, and a kana that resolves to a listed kanji passes.
     #[tokio::test]
     async fn reading_restriction() {
         let ctx = ctx_from_env().await;
@@ -898,31 +834,31 @@ mod get_senses_json {
         let one_taro = r#"[{"pos":"[n]","gloss":"unemployed person; vagabond; floater; vagrant"}]"#;
         let both_taro = r#"[{"pos":"[n]","gloss":"unemployed person; vagabond; floater; vagrant"},{"pos":"[n]","gloss":"day labourer (esp. on the docks)"}]"#;
 
-        // 出汁 (kanji): sense 1 filtered (only ダシ nokanji matches → nil)
+        // 出汁 (kanji): not in the restriction, so sense 1 is filtered out.
         let reading = kanji_reading(&ctx, 1339160, "出汁").await;
         let result = get_senses_json(&ctx, 1339160, &[], Some(reading), None::<GetterFut>)
             .await
             .unwrap();
         assert_eq!(json(&result), one_dashi, "1339160 出汁");
-        // 出し (kanji): member of stagk → both pass
+        // 出し (kanji): listed in the restriction, so both senses pass.
         let reading = kanji_reading(&ctx, 1339160, "出し").await;
         let result = get_senses_json(&ctx, 1339160, &[], Some(reading), None::<GetterFut>)
             .await
             .unwrap();
         assert_eq!(json(&result), both_dashi, "1339160 出し");
-        // ダシ (kana): member of stagr → both pass
+        // ダシ (kana): listed in the restriction, so both senses pass.
         let reading = kana_reading(&ctx, 1339160, "ダシ").await;
         let result = get_senses_json(&ctx, 1339160, &[], Some(reading), None::<GetterFut>)
             .await
             .unwrap();
         assert_eq!(json(&result), both_dashi, "1339160 ダシ");
-        // プー太郎 (kanji): sense 1 filtered
+        // プー太郎 (kanji): not in the restriction, so sense 1 is filtered out.
         let reading = kanji_reading(&ctx, 1115120, "プー太郎").await;
         let result = get_senses_json(&ctx, 1115120, &[], Some(reading), None::<GetterFut>)
             .await
             .unwrap();
         assert_eq!(json(&result), one_taro, "1115120 プー太郎");
-        // ぷうたろう (kana): match-kana-kanji Found(風太郎) → sense 1 passes
+        // ぷうたろう (kana): resolves to the listed kanji 風太郎, so sense 1 passes.
         let reading = kana_reading(&ctx, 1115120, "ぷうたろう").await;
         let result = get_senses_json(&ctx, 1115120, &[], Some(reading), None::<GetterFut>)
             .await
@@ -930,14 +866,10 @@ mod get_senses_json {
         assert_eq!(json(&result), both_taro, "1115120 ぷうたろう");
     }
 
-    /// REPL fixtures (.103), 2026-05-24. `:reading-getter` lazy thunk.
-    /// A getter yielding 出汁 filters sense 1 exactly like the eager
-    /// `:reading` form; a getter yielding `nil` leaves the restricted
-    /// sense in (the `(if rr … t)` fallthrough). 1011960 carries two
-    /// stag-restricted senses (1 and 2): the nil getter fires once at
-    /// sense 1 then sense 2 takes the `readp`-already-true / `reading`-nil
-    /// path; the ぼたぼた getter fires once then sense 2 reuses the memoized
-    /// `reading` (the `(or reading …)` short-circuit) — both keep all three.
+    /// A reading supplied lazily through a getter behaves like an eager
+    /// reading: a getter yielding 出汁 filters the restricted sense out, and a
+    /// getter yielding nothing leaves it in. The getter fires only once even
+    /// across multiple restricted senses; the resolved reading is reused.
     #[tokio::test]
     async fn reading_getter_path() {
         let ctx = ctx_from_env().await;
@@ -945,7 +877,7 @@ mod get_senses_json {
         let both_dashi = r#"[{"pos":"[n]","gloss":"dashi; Japanese soup stock made from fish and kelp","field":"{food}"},{"pos":"[n]","gloss":"pretext; excuse; pretense (pretence); dupe; front man"}]"#;
         let all_bota = r#"[{"pos":"[adv,adv-to,vs]","gloss":"dripping; trickling; drop by drop; in drops"},{"pos":"[adv,adv-to,vs]","gloss":"wet and heavy (snow, clay, etc.)"},{"pos":"[adv,adv-to]","gloss":"(moving) slowly"}]"#;
 
-        // getter → 出汁: sense 1 filtered
+        // Getter yields 出汁: sense 1 is filtered out.
         let reading = kanji_reading(&ctx, 1339160, "出汁").await;
         let getter = std::future::ready(Ok(Some(reading)));
         let result = get_senses_json(&ctx, 1339160, &[], None, Some(getter))
@@ -953,21 +885,22 @@ mod get_senses_json {
             .unwrap();
         assert_eq!(json(&result), one_dashi, "getter 出汁");
 
-        // getter → nil: restricted sense passes
+        // Getter yields nothing: the restricted sense passes.
         let getter = std::future::ready(Ok(None));
         let result = get_senses_json(&ctx, 1339160, &[], None, Some(getter))
             .await
             .unwrap();
         assert_eq!(json(&result), both_dashi, "getter nil");
 
-        // two stag senses, nil getter: readp-true path on sense 2
+        // Two restricted senses, getter yields nothing: both senses kept.
         let getter = std::future::ready(Ok(None));
         let result = get_senses_json(&ctx, 1011960, &[], None, Some(getter))
             .await
             .unwrap();
         assert_eq!(json(&result), all_bota, "getter nil, two stag senses");
 
-        // two stag senses, ぼたぼた getter (member of both): memoized reading reused
+        // Two restricted senses, getter yields ぼたぼた (listed in both):
+        // the resolved reading is reused, all three senses kept.
         let reading = kana_reading(&ctx, 1011960, "ぼたぼた").await;
         let getter = std::future::ready(Ok(Some(reading)));
         let result = get_senses_json(&ctx, 1011960, &[], None, Some(getter))
@@ -986,11 +919,9 @@ mod short_sense_str {
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::short-sense-str`), 2026-05-24.
-    /// Covers no with-pos (first sense's glosses), with-pos matching a
-    /// sense's pos, with-pos with no matching sense (→ nil), and an
-    /// unknown seq (→ nil), across a noun entry (1582710 日本) and a
-    /// verb entry (1358280 食べる, pos v1).
+    /// With no pos given, returns the first sense's gloss. With a pos, returns
+    /// the matching sense's gloss, or nothing when no sense matches. An unknown
+    /// sequence returns nothing.
     #[tokio::test]
     async fn short_sense_str_fixtures() {
         let ctx = ctx_from_env().await;

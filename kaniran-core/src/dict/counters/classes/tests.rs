@@ -3,21 +3,14 @@ use crate::dict::counters::classes::{Common, Counter, CounterSource, CounterText
 use crate::dict::counters::kani_counter_args::CounterArgs;
 
 // --- counter_text_class ---
-// Ground truth captured via `./ichiran-repl.sh` heredoc against the
-// .103 ichiran install. Each test case mirrors a (number, counter)
-// probe call to `find-counter`; the asserted slot values are read
-// from the materialized counter-text instance(s) Lisp returned.
-//
-// Tests target `Counter::new`'s logic in isolation: the constructor
-// takes a `CounterArgs` recipe + number-text and produces a
-// `Counter` enum variant with the right slots populated. The
-// upstream `find-counter` flow (lookup recipe by text key + verify)
-// is not under test here — that lands with its own port.
+// These tests exercise `Counter::new` on its own: given a counter recipe
+// (`CounterArgs`) and a number, it builds the right `Counter` variant with the
+// expected fields filled in.
 
 #[test]
 fn base_text_arm() {
-    // dict-counters.lisp:278 — find-counter "5" "個" returns 2 COUNTER-TEXT
-    // recipes (kana=か, kana=こ); slots match per-recipe directly.
+    // A plain text counter copies its recipe fields (text, kana) straight onto
+    // the built counter.
     let args = CounterArgs::new(CounterClass::Text, "個", "か");
     let c = Counter::new(&args, "5").unwrap();
     let base = c.base();
@@ -34,8 +27,7 @@ fn base_text_arm() {
 
 #[test]
 fn number_text_arm_empty_seed() {
-    // dict-counters.lisp:241 — (add-args "" 'number-text) seeds the cache
-    // with an empty key. find-counter "42" "" → NUMBER-TEXT, num=42.
+    // A number-text counter with empty text and kana still parses its number.
     let args = CounterArgs::new(CounterClass::NumberText, "", "");
     let c = Counter::new(&args, "42").unwrap();
     assert!(matches!(c, Counter::NumberText(_)));
@@ -46,10 +38,6 @@ fn number_text_arm_empty_seed() {
 
 #[test]
 fn days_kun_initform_fills_when_recipe_omits_allowed() {
-    // dict-counters.lisp:687 (defclass counter-days-kun
-    //   ((allowed :initform '(1 2 3 4 5 6 7 8 9 10 14 20 24 30)))).
-    // Lisp probe of (find-counter "1" "日") returns COUNTER-DAYS-KUN with
-    // exactly that allowed list materialized.
     let args = CounterArgs::new(CounterClass::DaysKun, "日", "か");
     let c = Counter::new(&args, "1").unwrap();
     assert!(matches!(c, Counter::DaysKun(_)));
@@ -62,8 +50,7 @@ fn days_kun_initform_fills_when_recipe_omits_allowed() {
 
 #[test]
 fn days_kun_explicit_allowed_overrides_initform() {
-    // CLOS :initform fires only when no :initarg is passed. A recipe that
-    // sets :allowed wins.
+    // A recipe that sets `allowed` wins over the class default.
     let args = CounterArgs::new(CounterClass::DaysKun, "日", "か").allowed(vec![99]);
     let c = Counter::new(&args, "1").unwrap();
     assert_eq!(c.base().allowed, vec![99]);
@@ -71,10 +58,6 @@ fn days_kun_explicit_allowed_overrides_initform() {
 
 #[test]
 fn months_initforms_fill_when_recipe_omits() {
-    // dict-counters.lisp:721-723 (defclass counter-months
-    //   ((allowed :initform '(1..12))
-    //    (digit-opts :initform '((4 "し") (7 "しち") (9 "く"))))).
-    // Lisp probe of (find-counter "1" "月") materializes both.
     let args = CounterArgs::new(CounterClass::Months, "月", "がつ");
     let c = Counter::new(&args, "4").unwrap();
     assert!(matches!(c, Counter::Months(_)));
@@ -101,9 +84,6 @@ fn months_initforms_fill_when_recipe_omits() {
 
 #[test]
 fn hifumi_propagates_digit_set_from_recipe() {
-    // dict-counters.lisp:541 — (args 'counter-hifumi "株" "かぶ" :digit-set '(1 2)).
-    // Lisp probe of (find-counter "1" "株") returns COUNTER-HIFUMI with
-    // digit-set=(1 2) populated from the :digit-set initarg.
     let args = CounterArgs::new(CounterClass::Hifumi, "株", "かぶ").digit_set(vec![1, 2]);
     let c = Counter::new(&args, "1").unwrap();
     match c {
@@ -118,17 +98,15 @@ fn hifumi_propagates_digit_set_from_recipe() {
 #[test]
 #[should_panic(expected = "counter-hifumi requires non-empty :digit-set")]
 fn hifumi_panics_on_empty_digit_set() {
-    // dict-counters.lisp:518-519 — :digit-set has no :initform; upstream
-    // make-instance without :digit-set leaves the slot unbound.
+    // A hifumi counter has no default digit-set, so building one without it
+    // panics.
     let args = CounterArgs::new(CounterClass::Hifumi, "株", "かぶ");
     let _ = Counter::new(&args, "1");
 }
 
 #[test]
 fn parse_number_failure_returns_err() {
-    // dict-counters.lisp:51 — initialize-instance :after counter-text calls
-    // parse-number on number-text; invalid input raises not-a-number,
-    // which the Rust port surfaces as Err(NotANumber).
+    // A non-numeric number-text fails to build the counter.
     let args = CounterArgs::new(CounterClass::Text, "個", "か");
     let err = Counter::new(&args, "X").unwrap_err();
     assert_eq!(err.text, "X");
@@ -136,9 +114,7 @@ fn parse_number_failure_returns_err() {
 
 #[test]
 fn parse_number_handles_value_above_i32() {
-    // numbers.lisp:74 (parse-number) — returns u64; the roundtrip test in
-    // parse_number.rs covers 12_423_000_430. Pin that the value flows
-    // through Counter::new into the number slot intact.
+    // A number larger than the i32 range flows through intact.
     let args = CounterArgs::new(CounterClass::Text, "個", "か");
     let c = Counter::new(&args, "12423000430").unwrap();
     assert_eq!(c.base().number, 12_423_000_430);
@@ -146,10 +122,7 @@ fn parse_number_handles_value_above_i32() {
 
 #[test]
 fn ordinal_recipe_propagates_to_base() {
-    // dict-counters.lisp:233-269 — *counter-cache* ordinal pass adds
-    // <counter>目 derivatives with ordinalp=t and suffix=め (concatenated
-    // onto any pre-existing suffix). Lisp probe of (find-counter "2" "階目")
-    // returns COUNTER-TEXT with ord=T, suffix="め", digit-opts=((3 R)).
+    // An ordinal recipe sets ordinalp, suffix, and digit-opts on the counter.
     let args = CounterArgs::new(CounterClass::Text, "階目", "かい")
         .ordinalp(true)
         .suffix("め")
@@ -186,8 +159,8 @@ fn make_ct(number: u64, kana: &str) -> CounterText {
     }
 }
 
-/// Hifumi path with `value` covered by the 1..=10 prefix table:
-/// `prefix + counter.kana`.
+/// When the value is in the digit-set and within 1..=10, the reading is the
+/// native-number prefix followed by the counter's kana.
 #[test]
 fn in_digit_set_in_range_uses_prefix_plus_kana() {
     let c = Counter::Hifumi(CounterHifumi {
@@ -197,10 +170,9 @@ fn in_digit_set_in_range_uses_prefix_plus_kana() {
     assert_eq!(c.get_kana(), "ひとかぶ");
 }
 
-/// Hifumi path with `value` in `digit-set` but OUTSIDE 1..=10:
-/// upstream `(case value ...)` returns nil, and
-/// `(concatenate 'string nil counter-kana)` yields just
-/// `counter-kana` — NOT call-next-method.
+/// When the value is in the digit-set but outside 1..=10, there is no prefix,
+/// so the reading is the counter's kana alone (it does not fall through to the
+/// base reading).
 #[test]
 fn in_digit_set_outside_range_is_kana_only_not_call_next_method() {
     let c = Counter::Hifumi(CounterHifumi {
@@ -210,9 +182,8 @@ fn in_digit_set_outside_range_is_kana_only_not_call_next_method() {
     assert_eq!(c.get_kana(), "かぶ");
 }
 
-/// Hifumi path with `value` OUTSIDE `digit-set`: fall through to
-/// `(call-next-method)` — counter-text base primary
-/// (counter_join over number-kana + counter-kana).
+/// When the value is outside the digit-set, the reading falls through to the
+/// base counter behavior (number kana joined with counter kana).
 #[test]
 fn outside_digit_set_falls_through_to_counter_join() {
     let c = Counter::Hifumi(CounterHifumi {

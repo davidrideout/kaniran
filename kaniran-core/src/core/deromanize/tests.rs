@@ -8,7 +8,6 @@ fn set(items: &[&str]) -> HashSet<String> {
 
 #[test]
 fn has_successors_fixtures() {
-    // REPL fixtures (.103, ichiran::has-successors), 2026-05-25.
     // (input, expected proper-prefix set).
     let cases: &[(&[&str], &[&str])] = &[
         // "cha"->{c,ch}, "chi"->{c,ch}, "ba"->{b}
@@ -35,9 +34,8 @@ fn kr_concat_kr(canonical: &str, pattern: &str, rest: &str, branch: i32) -> Kana
 
 #[test]
 fn kr_concat_fixtures() {
-    // REPL fixtures (.103, ichiran::kr_concat_kr-concat), 2026-05-26. First two
-    // are real chains from deromanizing nagoya/konnichiwa; the manual
-    // pair pins that `branch` comes from kr1 and `rest` from kr2.
+    // Concatenating two kana representations takes `branch` from the first
+    // and `rest` from the second.
     let cases: &[(KanaRepresentation, KanaRepresentation, KanaRepresentation)] = &[
         // na + go (long-vowel kr2)
         (
@@ -85,7 +83,6 @@ fn kr_concat_fixtures() {
 // --- possible_long_vowel_p ---
 #[test]
 fn possible_long_vowel_p_fixtures() {
-    // REPL fixtures (.103, ichiran::possible-long-vowel-p), 2026-05-25.
     let cases: &[(&str, Option<char>)] = &[
         ("", None),        // empty
         ("ko", Some('o')), // ends o
@@ -126,7 +123,6 @@ fn romaji_next_show(krs: &[KanaRepresentation]) -> Vec<(String, String, String, 
 
 #[test]
 fn romaji_next_fixtures() {
-    // REPL fixtures (.103, ichiran::romaji-next), 2026-05-26.
     // (s, [(canonical, pattern, rest, branch)…]).
     let cases: &[(&str, Vec<(&str, &str, &str, i32)>)] = &[
         // long-vowel rule (pattern gains う?), single match then stop
@@ -178,10 +174,8 @@ fn join_branches_kr(canonical: &str, pattern: &str, rest: &str, branch: i32) -> 
 
 #[test]
 fn join_branches_fixtures() {
-    // REPL fixtures (.103, ichiran::join-branches), 2026-05-25.
-    // First two are real captures from romaji-kana("nagoya")/("konnichiwa")
-    // tracing; the rest are direct calls exercising the canonical
-    // reduce (first-shorter / equal-tie) and a three-branch join.
+    // Exercises the branch-merge rules: shorter canonical wins, an
+    // equal-length tie keeps the first, plus a three-branch join.
     let cases: &[(Vec<KanaRepresentation>, KanaRepresentation)] = &[
         // head empty, first canonical longer -> second wins
         (
@@ -265,8 +259,7 @@ fn branches_next_show(krs: &[KanaRepresentation]) -> Vec<(String, String, String
 
 #[test]
 fn branches_next_fixtures() {
-    // REPL fixtures (.103, ichiran::branches-next, captured per step of
-    // romaji-kana on "nippon"/"konnichiwa"), 2026-05-26. (in, out).
+    // (in, out).
     let cases: &[(Vec<KanaRepresentation>, Vec<KanaRepresentation>)] = &[
         // single branch → two candidates (ambiguous n), no merge (rest lengths differ)
         (
@@ -333,7 +326,6 @@ fn branches_next_fixtures() {
 // --- romaji_kana ---
 #[test]
 fn romaji_kana_fixtures() {
-    // REPL fixtures (.103, ichiran::romaji-kana), 2026-05-26.
     // (input, Some(canonical, pattern) | None).
     let cases: &[(&str, Option<(&str, &str)>)] = &[
         // doubled p + long-vowel head folded into one anchored pattern
@@ -372,11 +364,10 @@ async fn ctx() -> Arc<KaniranContext> {
         .expect("DATABASE_URL / kaniran.toml required")
 }
 
-/// REPL fixtures (.103, `jsown:to-json` of `(romaji-suggest s)`),
-/// 2026-05-26. Full-JSON comparison on words whose matched-kanji order
-/// is deterministic: `neko`/`tegami`/`toukyou` (single kanji) and `hon`
-/// (two kanji, stable across repeated runs). Exercises the object
-/// shape, the canonical-kana hiragana entry, and `as-katakana` mapping.
+/// Full-JSON suggestions for words whose matched-kanji order is
+/// deterministic: `neko`/`tegami`/`toukyou` (single kanji) and `hon` (two
+/// kanji). Checks the object shape, the canonical hiragana entry, and the
+/// katakana mapping.
 #[tokio::test]
 async fn romaji_suggest_fixtures() {
     let ctx = ctx().await;
@@ -408,11 +399,10 @@ async fn romaji_suggest_fixtures() {
     }
 }
 
-/// `inu` deromanizes to canonical いぬ but its pattern also matches the
-/// alternative kana reading いんう, so hiragana carries both (canonical
-/// first, then the deduped pattern readings) and katakana maps each.
-/// The matched-kanji order is DB-scan-dependent for tied `common`, so
-/// only the deterministic hiragana/katakana fields are pinned here.
+/// `inu` deromanizes to canonical いぬ, but its pattern also matches the
+/// alternative reading いんう, so hiragana carries both (canonical first)
+/// and katakana maps each. Only the hiragana/katakana fields are checked;
+/// the matched-kanji order is not deterministic here.
 #[tokio::test]
 async fn romaji_suggest_multi_hiragana() {
     let ctx = ctx().await;
@@ -424,7 +414,7 @@ async fn romaji_suggest_multi_hiragana() {
     assert_eq!(js["katakana"], serde_json::json!(["イヌ", "インウ"]));
 }
 
-/// `xyz` does not deromanize → romaji-kana returns nil → None.
+/// `xyz` does not deromanize, so there is no suggestion.
 #[tokio::test]
 async fn romaji_suggest_no_parse() {
     let ctx = ctx().await;

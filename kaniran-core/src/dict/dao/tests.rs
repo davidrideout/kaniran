@@ -1,25 +1,24 @@
 mod recalc_entry_stats {
     use crate::dict::dao::*;
 
-    // Idempotent on a consistent dictionary: the UPDATE rewrites each
-    // matched entry's n_kanji / n_kana to the same values it already
-    // holds. Affected count is the number of matched entry rows, not
-    // changed rows. All cases REPL-pinned against ichiran 2026-05-25.
+    // Affected count is the number of matched entry rows, not changed
+    // rows; on a consistent dictionary the recalc rewrites each to the
+    // same value. Needs a live database.
     #[tokio::test]
     async fn affected_count_matches_matched_rows() {
         let ctx = KaniranContext::from_env().await.expect("ctx");
 
-        // (recalc-entry-stats 1591050) -> 1 row affected.
+        // One present seq -> 1 row affected.
         let one = recalc_entry_stats(&ctx, &[1591050]).await.expect("one");
         assert_eq!(one, 1);
 
-        // (recalc-entry-stats 1591050 1495740 1221520) -> 3.
+        // Three present seqs -> 3.
         let multi = recalc_entry_stats(&ctx, &[1591050, 1495740, 1221520])
             .await
             .expect("multi");
         assert_eq!(multi, 3);
 
-        // (recalc-entry-stats) -> 0 (empty set, seq IN (NULL)).
+        // Empty set -> 0.
         let empty = recalc_entry_stats(&ctx, &[]).await.expect("empty");
         assert_eq!(empty, 0);
 
@@ -29,8 +28,7 @@ mod recalc_entry_stats {
             .expect("missing");
         assert_eq!(missing, 0);
 
-        // (recalc-entry-stats 1591050 99999999) -> 1 (only the present
-        // seq is matched; the absent one contributes nothing).
+        // Mixed present/absent -> only the present seq counts (1).
         let mixed = recalc_entry_stats(&ctx, &[1591050, 99999999])
             .await
             .expect("mixed");
@@ -42,7 +40,7 @@ mod recalc_entry_stats {
         let ctx = KaniranContext::from_env().await.expect("ctx");
 
         // Varied vocabulary spanning the kanji/kana count combinations.
-        // seq -> (n_kanji, n_kana). REPL-pinned 2026-05-25.
+        // seq -> (n_kanji, n_kana)
         let cases: &[(i32, i32, i32)] = &[
             (1603990, 2, 1), // 仄か
             (1000580, 2, 2), // 彼
@@ -92,11 +90,9 @@ mod recalc_entry_stats {
 mod recalc_entry_stats_all {
     use crate::dict::dao::*;
 
-    // Idempotent on a consistent dictionary: every entry's stored
-    // n_kanji / n_kana already equals its child-row counts, so the
-    // UPDATE rewrites them to the same values. Affected count is the
-    // total entry row count regardless (Postgres counts matched rows,
-    // not changed rows). REPL-pinned against ichiran 2026-05-25.
+    // Affected count is the total entry row count (matched rows, not
+    // changed rows), and afterwards every entry's stored stats equal its
+    // child-row counts. Needs a live database.
     #[tokio::test]
     async fn affects_all_entries_and_stats_match_children() {
         let ctx = KaniranContext::from_env().await.expect("ctx");
@@ -110,7 +106,7 @@ mod recalc_entry_stats_all {
         assert_eq!(affected, total as u64, "affected != total entry rows");
 
         // Spot-check varied vocabulary post-recalc: stored stats equal
-        // the independently-counted child rows. (REPL 2026-05-25.)
+        // the independently-counted child rows.
         // seq -> (n_kanji, n_kana)
         let cases: &[(i32, i32, i32)] = &[
             (1603990, 2, 1), // 仄か
@@ -171,11 +167,8 @@ mod entry_digest {
             .unwrap()
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::entry-digest`), 2026-05-25.
-    /// Covers `n-kanji > 0` entries (get-text reads kanji-text: a noun,
-    /// a 2-kanji noun, a verb) and `n-kanji = 0` entries (get-text reads
-    /// kana-text, so text equals kana: a katakana loanword and an
-    /// onomatopoeic adverb).
+    /// Entry digest for kanji-bearing entries (text comes from the kanji
+    /// form) and kana-only entries (text equals the kana).
     #[tokio::test]
     async fn entry_digest_fixtures() {
         let ctx = ctx_from_env().await;
@@ -212,10 +205,9 @@ mod conj_info_short {
         }
     }
 
-    /// REPL fixtures (.103, ichiran/dict::conj-info-short on conj_prop
-    /// rows), 2026-05-24. Covers every neg/fml state — Some(false)
-    /// (Lisp nil), Some(true) (Lisp t), None (db-null) — plus the
-    /// missing-description path (`~a` of nil → "NIL").
+    /// Short conjugation description across every negative/formal state
+    /// (false, true, and database-null), plus a missing description that
+    /// renders as "NIL".
     #[test]
     fn conj_info_short_fixtures() {
         let cases: &[(ConjProp, &str)] = &[
@@ -277,49 +269,48 @@ mod conj_prop_json {
         }
     }
 
-    /// REPL fixtures (.103, `jsown:to-json` of `conj-prop-json` on real
-    /// conj_prop rows), 2026-05-24. Rows cover every neg/fml state
-    /// (`:null`→None, `t`→Some(true), `nil`→Some(false)); the no-description
-    /// row pins jsown's nil→[] rendering of "type".
+    /// Conjugation-property JSON across every negative/formal state
+    /// (null, true, false); the no-description row renders "type" as an
+    /// empty list.
     #[test]
     fn conj_prop_json_fixtures() {
         let cases = [
-            // id=52: neg :null, fml :null
+            // neg null, fml null
             (
                 prop(13, "v5k", None, None),
                 r#"{"pos":"v5k","type":"Continuative (~i)"}"#,
             ),
-            // id=3: neg t, fml t
+            // neg true, fml true
             (
                 prop(1, "v5k", Some(true), Some(true)),
                 r#"{"pos":"v5k","type":"Non-past","neg":true,"fml":true}"#,
             ),
-            // id=2: neg t, fml nil
+            // neg true, fml false
             (
                 prop(1, "v5k", Some(true), Some(false)),
                 r#"{"pos":"v5k","type":"Non-past","neg":true}"#,
             ),
-            // id=1: neg nil, fml t
+            // neg false, fml true
             (
                 prop(1, "v5k", Some(false), Some(true)),
                 r#"{"pos":"v5k","type":"Non-past","fml":true}"#,
             ),
-            // id=4: neg nil, fml nil
+            // neg false, fml false
             (
                 prop(2, "v5k", Some(false), Some(false)),
                 r#"{"pos":"v5k","type":"Past (~ta)"}"#,
             ),
-            // id=226: neg :null, fml t
+            // neg null, fml true
             (
                 prop(9, "adj-i", None, Some(true)),
                 r#"{"pos":"adj-i","type":"Volitional","fml":true}"#,
             ),
-            // id=53: neg t, fml :null
+            // neg true, fml null
             (
                 prop(52, "v5k", Some(true), None),
                 r#"{"pos":"v5k","type":"Negative Stem","neg":true}"#,
             ),
-            // no description for conj_type → jsown nil renders as []
+            // no description for conj_type → "type" renders as []
             (prop(999, "v5k", None, None), r#"{"pos":"v5k","type":[]}"#),
         ];
         for (obj, expected) in &cases {

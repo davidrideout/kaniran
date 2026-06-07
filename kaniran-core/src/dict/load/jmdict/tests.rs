@@ -4,7 +4,6 @@ use crate::dict::load::jmdict::{init_tables, node_text};
 use roxmltree::{Document, ParsingOptions};
 
 // --- node_text ---
-// REPL fixtures (.103, ichiran/dict::node-text), 2026-05-31.
 #[test]
 fn node_text_jmdict_entry_concatenation() {
     let xml = "<entry><k_ele><keb>桜</keb></k_ele><r_ele><reb>さくら</reb></r_ele>\
@@ -69,18 +68,15 @@ fn sv(strs: &[&str]) -> Vec<String> {
     strs.iter().map(|s| (*s).to_string()).collect()
 }
 
-// REPL fixtures (.103, ichiran/dict::sense-exists-p), 2026-05-31.
 #[test]
 fn single_sense_exact_match() {
-    // (get-senses-raw 1582710) =>
-    //   ((:ORD 0 :GLOSS "Japan" :PROPS (("pos" "n"))))
+    // One sense: gloss "Japan", pos "n".
     let senses = vec![raw(0, "Japan", &[("pos", &["n"])])];
     assert!(sense_exists_p(&senses, &sv(&["n"]), &sv(&["Japan"])));
 }
 
 #[test]
 fn single_sense_mismatches_and_empty_inputs() {
-    // 1582710 baseline with negative cases.
     let senses = vec![raw(0, "Japan", &[("pos", &["n"])])];
     let cases: &[(&str, &[&str], &[&str], bool)] = &[
         ("diff-gloss", &["n"], &["Korea"], false),
@@ -99,8 +95,7 @@ fn single_sense_mismatches_and_empty_inputs() {
 
 #[test]
 fn multi_pos_value_lists_must_match_in_order() {
-    // (get-senses-raw 1000300) — two senses with `pos` value-lists
-    // in opposite orders.
+    // Two senses whose `pos` value-lists are in opposite orders.
     let senses = vec![
         raw(
             0,
@@ -139,9 +134,7 @@ fn multi_pos_value_lists_must_match_in_order() {
 
 #[test]
 fn second_sense_with_no_props_inherits_prior_pos() {
-    // (get-senses-raw 1447690) =>
-    //   ((:ORD 0 :GLOSS "Tokyo" :PROPS (("pos" "n")))
-    //    (:ORD 1 :GLOSS "Tokyo Metropolis" :PROPS NIL))
+    // Two senses: "Tokyo" with pos "n", then "Tokyo Metropolis" with no props.
     let senses = vec![
         raw(0, "Tokyo", &[("pos", &["n"])]),
         raw(1, "Tokyo Metropolis", &[]),
@@ -163,9 +156,8 @@ fn second_sense_with_no_props_inherits_prior_pos() {
 
 #[test]
 fn first_sense_without_pos_does_not_match_pos_request() {
-    // Synthetic: first sense has no pos; rpos starts as nil, so a
-    // non-empty positions request can't match sense 1 even if its
-    // gloss matches.
+    // A sense with no pos can't match a non-empty pos request even when
+    // its gloss matches.
     let senses = vec![raw(0, "a", &[]), raw(1, "b", &[("pos", &["n"])])];
     assert!(sense_exists_p(&senses, &sv(&["n"]), &sv(&["b"])));
     assert!(!sense_exists_p(&senses, &sv(&["n"]), &sv(&["a"])));
@@ -173,19 +165,16 @@ fn first_sense_without_pos_does_not_match_pos_request() {
 
 #[test]
 fn glosses_joined_with_separator_before_compare() {
-    // Synthetic input plist, output pinned by REPL probe on .103
-    // (2026-05-31). Pins the `(join "; " glosses)` step: the input
-    // glosses list is joined with the same "; " separator the
-    // upstream string_agg produced into sense.gloss.
+    // The input glosses are joined with "; " before comparing against the
+    // stored gloss string.
     let senses = vec![raw(0, "Japan; Land of the Rising Sun", &[("pos", &["n"])])];
     assert!(sense_exists_p(
         &senses,
         &sv(&["n"]),
         &sv(&["Japan", "Land of the Rising Sun"]),
     ));
-    // A single-element input whose value already contains the
-    // separator joins to itself (no separator inserted), so it
-    // also matches — same REPL probe pinned this.
+    // A single-element input whose value already contains the separator
+    // joins to itself (no separator inserted), so it also matches.
     assert!(sense_exists_p(
         &senses,
         &sv(&["n"]),
@@ -195,8 +184,8 @@ fn glosses_joined_with_separator_before_compare() {
 
 #[test]
 fn empty_inputs_match_when_sense_is_also_empty() {
-    // Synthetic: sense with empty gloss and no props matches the
-    // (empty, empty) request because (equal nil nil) is true.
+    // A sense with an empty gloss and no props matches an empty pos /
+    // empty gloss request.
     let senses = vec![raw(0, "", &[])];
     assert!(sense_exists_p(&senses, &[], &[]));
 }
@@ -228,9 +217,7 @@ async fn init_tables_is_idempotent() {
 async fn next_seq_returns_max_plus_one() {
     let ctx = KaniranContext::pool_only_test_ctx().await;
     init_tables(&ctx).await.unwrap();
-    // Two seeded rows mirror the upstream JMdict range; REPL
-    // probe on .103 (2026-05-31) confirmed next-seq returns
-    // MAX_SEQ + 1 (12297856 → 12297857) on the live corpus.
+    // next_seq returns the maximum existing seq plus one.
     sqlx::query(
         "INSERT INTO entry (seq, content, root_p, n_kanji, n_kana, primary_nokanji) \
          VALUES (1000000, '', TRUE, 0, 0, FALSE), \
@@ -243,7 +230,6 @@ async fn next_seq_returns_max_plus_one() {
 }
 
 // --- fix_entities ---
-// REPL fixture (.103, ichiran/dict::fix-entities + klacks serialize-element), 2026-05-31.
 #[test]
 fn fix_entities_rewrites_values_to_names_and_skips_predefined() {
     let xml = "<?xml version='1.0' encoding='UTF-8'?>
@@ -323,7 +309,6 @@ fn fix_entities_preserves_all_five_predefined_entities() {
 }
 
 // --- load_jmdict ---
-// REPL fixture (.103, ichiran/dict::fix-entities → klacks serialize-element on a JMdict entry), 2026-05-31.
 // Input mirrors the JMdict shape: DOCTYPE + entity decls, one <entry> with kanji, kana, and a sense block.
 #[test]
 fn serialize_entry_roundtrips_entities_and_nested_text() {
@@ -399,7 +384,6 @@ fn serialize_entry_roundtrips_entities_and_nested_text() {
     assert_eq!(node_text(gloss, None), "pottery fair");
 }
 
-// REPL fixture (.103, ichiran/dict::fix-entities → klacks serialize-element with embedded "<" and "&"), 2026-05-31.
 // Metacharacters must escape to &lt; / &amp;, and re-parse must yield the original text exactly.
 #[test]
 fn serialize_entry_escapes_xml_metacharacters_in_text() {
@@ -441,10 +425,8 @@ fn serialize_entry_emits_self_closing_for_empty_elements() {
     );
 }
 
-// Ref-DB byte fixture from `ichiran_260118.entry` (seq=1000000), 2026-06-01.
-// Pin the three cxml behaviors that broke entry.content parity in the
-// 2026-06-01 e2e run: XML prolog, DTD-default xml:lang on gloss, and
-// a trailing newline after </entry>.
+// Pins three serializer behaviors in the byte output: the XML prolog,
+// the DTD-default xml:lang on gloss, and no trailing newline after </entry>.
 #[test]
 fn serialize_entry_matches_ref_db_byte_shape() {
     let xml = "<?xml version='1.0' encoding='UTF-8'?>\
@@ -493,9 +475,8 @@ fn serialize_entry_matches_ref_db_byte_shape() {
     );
 }
 
-// DTD-default xml:lang must come BEFORE any source-specified attribute
-// on the same element. Ref-DB pattern from seq=1427400 (a g_type=expl
-// gloss): `<gloss xml:lang="eng" g_type="expl">`, not the reverse.
+// DTD-default xml:lang must come before any source-specified attribute
+// on the same element: `<gloss xml:lang="eng" g_type="expl">`.
 #[test]
 fn serialize_entry_injects_xml_lang_before_other_attrs() {
     let xml = "<entry><sense>\

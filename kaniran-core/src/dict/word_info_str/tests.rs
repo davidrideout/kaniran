@@ -1,9 +1,8 @@
 mod reading_str_star_ {
     use crate::dict::word_info_str::*;
 
-    /// REPL fixtures (.103, `ichiran/dict::reading-str*`), 2026-05-24.
-    /// Covers kanji+kana, kana-only (kanji nil → bare kana), kanji with
-    /// nil kana (`~a` of nil → "NIL"), and both nil → nil.
+    /// Covers kanji+kana, kana-only (no kanji → bare kana), kanji with no
+    /// kana (renders "NIL"), and both absent (→ None).
     #[test]
     fn reading_str_star_fixtures() {
         let cases: &[(Option<&str>, Option<&str>, Option<&str>)] = &[
@@ -31,10 +30,9 @@ mod reading_str_seq {
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::reading-str-seq`), 2026-05-24.
     /// Covers a kanji+kana entry, a conjugating kanji+kana verb, two
-    /// kana-only entries (no kanji-text row → kanji nil → bare kana),
-    /// and an unknown seq (both column queries empty → nil).
+    /// kana-only entries (no kanji → bare kana), and an unknown seq (→ None).
+    /// Needs a live Postgres DB.
     #[tokio::test]
     async fn reading_str_seq_fixtures() {
         let ctx = ctx_from_env().await;
@@ -64,11 +62,10 @@ mod entry_info_short {
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::entry-info-short`), 2026-05-24.
-    /// Covers a noun (1582710 日本) and a verb (1358280 食べる) with no
-    /// with-pos, with-pos matching the entry's pos, and with-pos that
-    /// matches no sense (→ sense-str nil → trailing nothing after " : "),
-    /// plus an unknown seq (reading nil → "NIL").
+    /// Covers a noun (日本) and a verb (食べる) with no part-of-speech filter,
+    /// a filter matching the entry's part of speech, a filter matching no
+    /// sense (empty after " : "), and an unknown seq (reading renders "NIL").
+    /// Needs a live Postgres DB.
     #[tokio::test]
     async fn entry_info_short_fixtures() {
         let ctx = ctx_from_env().await;
@@ -100,13 +97,10 @@ mod entry_info_long {
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::entry-info-long`), 2026-05-25.
-    /// Covers a single-sense noun (reading with 【kanji】), a verb,
-    /// a kana-only entry (reading-str* returns bare kana, no 【】),
-    /// a multi-sense entry exercising the `《s_inf》` annotation and the
-    /// `get-senses-raw` last-tag-group reversal (sense 4 pos), and an
-    /// unknown seq (reading nil + empty senses → just the seq, the
-    /// `~@[` nil branch).
+    /// Covers a single-sense noun (reading with 【kanji】), a verb, a
+    /// kana-only entry (bare kana, no 【】), a multi-sense entry with a
+    /// 《sense-info》 annotation, and an unknown seq (just the seq, no reading).
+    /// Needs a live Postgres DB.
     #[tokio::test]
     async fn entry_info_long_fixtures() {
         let ctx = ctx_from_env().await;
@@ -144,7 +138,7 @@ mod map_word_info_kana {
         Some(WordInfoKana::Single(text.to_string()))
     }
 
-    /// `fn` analogous to the REPL `string-upcase` probe.
+    /// Uppercases a kana element's text.
     fn upcase(element: &Option<WordInfoKana>) -> String {
         match element {
             Some(WordInfoKana::Single(text)) => text.to_uppercase(),
@@ -152,7 +146,7 @@ mod map_word_info_kana {
         }
     }
 
-    /// `fn` analogous to the REPL `identity` probe (kana element as text).
+    /// Returns a kana element's text unchanged.
     fn ident(element: &Option<WordInfoKana>) -> String {
         match element {
             Some(WordInfoKana::Single(text)) => text.clone(),
@@ -162,24 +156,22 @@ mod map_word_info_kana {
 
     #[test]
     fn map_word_info_kana_fixtures() {
-        // REPL fixtures (.103, ichiran/dict::map-word-info-kana), 2026-05-23.
-
-        // String branch: (funcall fn wkana).
+        // Single reading: the function is applied to the one kana value.
         assert_eq!(map_word_info_kana(upcase, &wi(single("neko")), "/"), "NEKO");
 
-        // List branch, default separator "/".
+        // Multiple readings, default separator "/".
         let inu = Some(WordInfoKana::Multi(vec![single("neko"), single("inu")]));
         assert_eq!(
             map_word_info_kana(upcase, &wi(inu.clone()), "/"),
             "NEKO/INU"
         );
 
-        // List branch, identity fn -> simplify-reading-list merges the
-        // shared de-spaced reading with a MIDDLE_DOT boundary.
+        // Two readings that share a de-spaced form merge into one, joined by
+        // a middle-dot.
         let merge = Some(WordInfoKana::Multi(vec![single("a b"), single("ab")]));
         assert_eq!(map_word_info_kana(ident, &wi(merge), "/"), "a\u{00B7}b");
 
-        // nil kana -> list branch -> "".
+        // No kana → empty string.
         assert_eq!(map_word_info_kana(upcase, &wi(None), "/"), "");
 
         // Separator override.
@@ -212,10 +204,9 @@ mod word_info_reading_str {
         }
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::word-info-reading-str`), 2026-05-24.
-    /// Covers the kanji-type branch (single-string / list / nested-list-with-nil
-    /// / nil kana → `~a` princ rendering), the counter+seq branch reaching the
-    /// same body, and the else branch (counter without seq, kana type, gap type).
+    /// Covers the KANJI type (single reading / reading list / nested list with
+    /// a nil / no kana rendered "NIL"), a counter-with-seq reaching the same
+    /// rendering, and the plain branch (counter without seq, KANA type, GAP type).
     #[test]
     fn word_info_reading_str_fixtures() {
         use WordInfoKana::{Multi, Single};
@@ -317,18 +308,16 @@ mod word_info_str {
         Some(WordInfoKana::Single(reading.to_string()))
     }
 
-    /// REPL fixtures (.103, `(word-info-str (make-instance 'word-info …))`),
-    /// 2026-05-24, after `(init-suffixes t)`. Each row builds one word-info and
-    /// pins the exact output (blank lines included). Covers:
-    /// - A: default branch, no conjugations → senses.
-    /// - B: default branch, conjugations nil → empty senses + full conj-info.
-    /// - C: conjugations `:root` → conj display suppressed (test2 still fires).
-    /// - D: seq nil → "???".
-    /// - E: counter + seq → value then senses.
+    /// Each row builds one word-info and pins its exact rendered string
+    /// (blank lines included). Needs a live Postgres DB. Cases:
+    /// - A: plain word, no conjugations → senses.
+    /// - B: conjugated word → empty senses plus full conjugation info.
+    /// - C: root form → conjugation display suppressed.
+    /// - D: no seq → "???".
+    /// - E: counter with seq → value then senses.
     /// - F: counter, no seq → value only.
-    /// - G: compound, non-primary suffix component → marker, suffix description.
-    /// - G2: compound, non-primary component without a suffix description →
-    ///   marker, falls through to senses.
+    /// - G: compound whose non-primary part is a suffix → marker, suffix description.
+    /// - G2: compound whose non-primary part is not a suffix → marker, then senses.
     /// - H: alternative → "<i>. " prefixes, second reading a counter.
     #[tokio::test]
     async fn word_info_str_fixtures() {
@@ -519,11 +508,7 @@ mod word_info_str {
 mod word_info_gloss_json {
     use crate::dict::find_word_info::find_word_info;
     use crate::dict::word_info_str::*;
-    // Ground truth captured from `(jsown:to-json (word-info-gloss-json …))`
-    // and `find-word-info-json` on .103 (2026-05-25) after `(init-suffixes t t)`.
-    // jsown emits `\uXXXX`; the expected strings below are the
-    // raw-UTF-8 round-trip serde_json produces (identical JSON). Tests run
-    // against the local DB per project policy.
+    // Needs a live Postgres DB.
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -535,35 +520,31 @@ mod word_info_gloss_json {
         serde_json::to_string(value).unwrap()
     }
 
-    /// Drives word-info-gloss-json through find-word-info (non-root). One row
-    /// per cond branch: simple noun (`(t)` arm, top-level gloss + has-gloss →
-    /// empty conj), conjugated verb (conjs is a list → no top-level gloss; conj
-    /// carries it), ordinal counter (counter object, `ordinal:true`), and
-    /// compound (compound list + recursive components, the non-primary いる
-    /// reaching the suffix arm).
+    /// One case per output shape: simple noun (top-level gloss, empty conj),
+    /// conjugated verb (no top-level gloss; the conjugation carries it),
+    /// ordinal counter (counter object, `ordinal:true`), and compound (with
+    /// recursive components, the non-primary いる rendered as a suffix).
     #[tokio::test]
     async fn word_info_gloss_json_branches() {
         let ctx = ctx_from_env().await;
         // (text, expected single-object json)
         let cases: &[(&str, &str)] = &[
-            // simple noun — no conjs → top-level gloss, has-gloss → empty conj.
+            // 政府 — simple noun: top-level gloss, empty conj.
             (
                 "政府",
                 r#"{"reading":"政府 【せいふ】","text":"政府","kana":"せいふ","score":325,"seq":1376070,"gloss":[{"pos":"[n]","gloss":"government; administration; ministry"}],"conj":[]}"#,
             ),
-            // conjugated verb — conjs is a list (not nil/:root) → no top-level
-            // gloss; conj-info-json (has-gloss nil) carries the gloss.
+            // 書いた — conjugated verb: no top-level gloss; the conjugation carries it.
             (
                 "書いた",
                 r#"{"reading":"書いた 【かいた】","text":"書いた","kana":"かいた","score":336,"seq":10526928,"conj":[{"prop":[{"pos":"v5k","type":"Past (~ta)"}],"reading":"書く 【かく】","gloss":[{"pos":"[v5k,vt]","gloss":"to write; to compose; to pen"},{"pos":"[vt,v5k]","gloss":"to draw; to paint"}],"readok":true}]}"#,
             ),
-            // ordinal counter — counter object with ordinal:true.
+            // 5番目 — ordinal counter: counter object with ordinal:true.
             (
                 "5番目",
                 r#"{"reading":"5番目 【ごばんめ】","text":"5番目","kana":"ごばんめ","score":667,"counter":{"value":"Value: 5th","ordinal":true},"seq":1482410,"gloss":[{"pos":"[ctr]","gloss":"the nth ...","info":"indicates position in a sequence"}]}"#,
             ),
-            // compound — compound list + components, the non-primary いる
-            // component reaches the suffix arm (suffix t, has a description).
+            // 食べてる — compound: components, the non-primary いる rendered as a suffix.
             (
                 "食べてる",
                 r#"{"reading":"食べてる 【たべてる】","text":"食べてる","kana":"たべてる","score":434,"compound":["食べて","いる"],"components":[{"reading":"食べて 【たべて】","text":"食べて","kana":"たべて","score":0,"seq":10092233,"conj":[{"prop":[{"pos":"v1","type":"Conjunctive (~te)"}],"reading":"食べる 【たべる】","gloss":[{"pos":"[v1,vt]","gloss":"to eat"},{"pos":"[vt,v1]","gloss":"to live on (e.g. a salary); to live off; to subsist on"}],"readok":true}]},{"reading":"いる","text":"いる","kana":"いる","score":0,"seq":1577980,"suffix":"indicates continuing action (to be ...ing)","conj":[]}]}"#,
@@ -577,10 +558,9 @@ mod word_info_gloss_json {
         }
     }
 
-    /// `root_only=true` on a non-root word-info: the `(t)` arm adds gloss
-    /// unconditionally and returns before the conj key. 政府 yields a
-    /// populated gloss; 書いた's conjugated seq has no direct senses, so the
-    /// gloss is the empty list (still emitted, unlike the guarded non-root arm).
+    /// With root_only=true, gloss is always emitted and there's no conj key.
+    /// 政府 yields a populated gloss; 書いた has no direct senses, so its gloss
+    /// is the empty list (still present).
     #[tokio::test]
     async fn root_only_t_arm() {
         let ctx = ctx_from_env().await;
@@ -619,10 +599,8 @@ mod word_info_gloss_json {
         }
     }
 
-    /// Alternative branch: `{"alternative": [word_info_gloss_json_inner(c) …]}`. Built from a real
-    /// alternative word-info (the segmenter shape: alternative=t, components =
-    /// the surviving word-infos). find-word-info never produces alternatives,
-    /// so the components are assembled from its 何 (なに / なん) word-infos.
+    /// An alternative word-info serializes to {"alternative": [...]} with one
+    /// object per component. Built from 何's two readings (なに / なん).
     #[tokio::test]
     async fn alternative_branch() {
         let ctx = ctx_from_env().await;
@@ -645,9 +623,7 @@ mod word_info_gloss_json {
 
 mod get_kanji_words {
     use crate::dict::word_info_str::*;
-    // Every assertion is REPL-verified against the .103 SBCL via
-    // `(ichiran/dict::get-kanji-words …)` (2026-05-25 probe).
-    // Run with `-- --test-threads=1` per the DB-test convention.
+    // Needs a live Postgres DB; run single-threaded (`-- --test-threads=1`).
 
     async fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -659,10 +635,8 @@ mod get_kanji_words {
         (seq, kanji.to_string(), kana.to_string(), common)
     }
 
-    /// The query has no ORDER BY, so the result is an unordered set; both
-    /// sides are sorted by seq before comparison. `蜂蜜` carries
-    /// `common = 0`, exercising the non-null-but-zero branch of the
-    /// `(:not-null 'k.common)` filter.
+    /// The result is an unordered set; both sides are sorted before comparison.
+    /// 蜂蜜 carries common = 0, exercising the common-is-zero-but-not-null case.
     #[tokio::test]
     async fn get_kanji_words_fixtures() {
         let ctx = ctx().await;
@@ -687,9 +661,7 @@ mod get_kanji_words {
         ];
         for (char, expected) in cases {
             let mut got = get_kanji_words(&ctx, char).await.unwrap();
-            // Result is an unordered set (no ORDER BY); sort the whole
-            // tuple so the comparison is deterministic even if a char
-            // ever yields two rows sharing a seq.
+            // The result is unordered; sort both sides for a stable comparison.
             got.sort();
             let mut expected = expected.clone();
             expected.sort();
@@ -697,9 +669,8 @@ mod get_kanji_words {
         }
     }
 
-    /// `#\火` (char) and `"火"` (string) hit the same query in upstream;
-    /// the Rust port collapses both to `&str`, so a single-character
-    /// argument returns the full substring match set.
+    /// A single-character argument ("火") returns the full set of words
+    /// containing that kanji.
     #[tokio::test]
     async fn single_char_argument() {
         let ctx = ctx().await;

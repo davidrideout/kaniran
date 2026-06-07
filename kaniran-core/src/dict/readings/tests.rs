@@ -15,11 +15,9 @@ mod get_original_text_once {
         )
     }
 
-    /// REPL fixtures (.103, `ichiran/dict::get-original-text-once` over
-    /// `make-conj-data` built from the real 食べる conj-source-reading
-    /// rows), 2026-05-24. Output order tracks `src-map` iteration order,
-    /// not `texts` order — both two-text rows below collect
-    /// `("たべる" "食べる")` regardless of how the texts are ordered.
+    /// Output order tracks src-map iteration order, not the input `texts`
+    /// order — both two-text rows below collect `("たべる" "食べる")`
+    /// regardless of how the texts are ordered.
     #[test]
     fn get_original_text_once_fixtures() {
         let cd1 = cd(&[
@@ -70,13 +68,10 @@ mod get_original_text_once {
 
 mod find_substring_words {
     use crate::dict::readings::*;
-    // Per-key buckets cross-checked against the local ichiran Postgres
-    // (2026-05-25), the same DB these tests query. Each bucket is
-    // compared as a sorted `(seq, ord, common)` list: the populating
-    // query (`text = ANY(...)`) has no ORDER BY, so the bucket order is
-    // not stable — sorting both sides keeps the comparison
-    // order-independent. Test threads must be 1 — `cargo test --
-    // --test-threads=1` per the project's DB-test convention.
+    // Each bucket is compared as a sorted `(seq, ord, common)` list: the
+    // populating query has no ORDER BY, so the bucket order is not stable
+    // and sorting both sides keeps the comparison order-independent. Run
+    // with `cargo test -- --test-threads=1` per the DB-test convention.
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -234,7 +229,6 @@ mod find_substring_words {
 
     #[tokio::test]
     async fn empty_string_empty_hash() {
-        // REPL '' empty: n keys=0
         let ctx = ctx_from_env().await;
         let h = find_substring_words(&ctx, "", &[]).await.unwrap();
         assert!(h.is_empty());
@@ -268,13 +262,10 @@ mod find_substring_words {
         assert_eq!(rows_sorted(&h, "ねこ"), vec![(1467640, 0, Some(7))]);
     }
 
-    /// Order guard for the `insert(0, …)` prepend (dict.lisp:517 `push`):
-    /// a multi-row bucket must be the *reverse* of the database's row
-    /// order, not its fetch order. Compared unsorted, unlike the other
-    /// tests here — that's the point. DB-agnostic: derives the expected
-    /// order from the same query the populator runs, so it pins the
-    /// reversal relationship rather than hard-coded seqs. '行って' has
-    /// 3 kanji rows on the local DB.
+    /// A multi-row bucket must be the reverse of the database's fetch
+    /// order. Compared unsorted, unlike the other tests here — that's the
+    /// point. The expected order is derived from the same query the
+    /// populator runs, so it pins the reversal rather than hard-coded seqs.
     #[tokio::test]
     async fn bucket_is_reverse_of_fetch_order() {
         let ctx = ctx_from_env().await;
@@ -313,9 +304,8 @@ mod find_words_seqs {
         }
     }
 
-    /// REPL (.103, `ichiran/dict::find-words-seqs`), 2026-05-24. Each case
-    /// returns one row: a kanji word fills `kw` (kana-words empty), a kana
-    /// word fills `rw` (kanji-words empty).
+    /// Each case returns one row: a kanji word lands in the kanji
+    /// partition, a kana word in the kana partition.
     #[tokio::test]
     async fn single_row_fixtures() {
         let ctx = ctx().await;
@@ -331,8 +321,7 @@ mod find_words_seqs {
         }
     }
 
-    /// REPL: `(find-words-seqs "みる" '(1213770 1259290 1365450 1772790
-    /// 2255060 10553286))` → 6 KANA-TEXT rows, one per matching seq.
+    /// A kana word against six seqs returns one kana-text row per matching seq.
     #[tokio::test]
     async fn kana_multi_seq() {
         let ctx = ctx().await;
@@ -351,9 +340,8 @@ mod find_words_seqs {
         assert_eq!(got, seqs);
     }
 
-    /// REPL: `(find-words-seqs '("食べる" "たべる") '(1358280))` → KANJI-TEXT
-    /// 食べる then KANA-TEXT たべる. Exercises `(nconc kw rw)` with both
-    /// partitions non-empty.
+    /// A kanji and a kana word return the kanji row first, then the kana
+    /// row — both partitions non-empty.
     #[tokio::test]
     async fn mixed_two_words() {
         let ctx = ctx().await;
@@ -365,9 +353,8 @@ mod find_words_seqs {
         assert_eq!(describe(&result[1]), ("kana", 1358280, "たべる"));
     }
 
-    /// REPL: `(find-words-seqs '("見る" "みる" "食べる") '(1259290 1358280))`
-    /// → KANJI 見る, KANJI 食べる, KANA みる. `(nconc kw rw)` guarantees all
-    /// kanji rows precede all kana rows; intra-partition order is the DB's.
+    /// All kanji rows precede all kana rows; order within each partition
+    /// is the database's.
     #[tokio::test]
     async fn mixed_partition() {
         let ctx = ctx().await;
@@ -396,8 +383,8 @@ mod find_words_seqs {
         assert_eq!(got, expected);
     }
 
-    /// REPL: `(find-words-seqs "食べる" 9999999)` → NIL. Word matches a
-    /// row but no row carries the seq, so the `seq = ANY` filter empties it.
+    /// The word matches a row but no row carries the requested seq, so the
+    /// seq filter empties the result.
     #[tokio::test]
     async fn no_match_seq() {
         let ctx = ctx().await;
@@ -407,8 +394,7 @@ mod find_words_seqs {
         assert!(result.is_empty());
     }
 
-    /// Empty `words` leaves both `kanji-words` and `kana-words` nil, so the
-    /// two `(when ...)` guards skip every query and `(nconc nil nil)` is nil.
+    /// Empty `words` skips every query and returns nothing.
     #[tokio::test]
     async fn empty_words() {
         let ctx = ctx().await;
@@ -419,8 +405,6 @@ mod find_words_seqs {
 
 mod word_readings {
     use crate::dict::readings::*;
-    // Unit tests against the real .103 PG via `KaniranContext::from_env()`.
-    // REPL fixtures (.103, ichiran/dict:word-readings), 2026-05-25.
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()

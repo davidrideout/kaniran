@@ -15,12 +15,10 @@ fn rule(stem: i32, okuri: &str, euphr: &str, euphk: &str) -> ConjugationRule {
     }
 }
 
-/// REPL (.103, `(construct-conjugation reading rule)` over real
-/// conjugation rows): exercises every branch — kana vs kanji ending
-/// (`iskana`), euphr vs euphk selection, the +1 stem bump when the
-/// applicable euphonic fragment is non-empty (and no bump when it is
-/// empty), the plain no-euphonic case, and the `(max 0 …)` guard on
-/// a one-character reading.
+/// Exercises every branch: kana vs kanji ending, euphonic-reading vs
+/// euphonic-kanji selection, the +1 stem bump when the applicable euphonic
+/// fragment is non-empty (and no bump when empty), the plain no-euphonic
+/// case, and the lower-bound guard on a one-character reading.
 #[test]
 fn construct_conjugation_paths() {
     // (reading, rule, expected)
@@ -54,13 +52,9 @@ fn construct_conjugation_paths() {
 }
 
 // --- conjugate_word ---
-/// REPL probe (`(ichiran/dict::conjugate-word word pos)`), 2026-05-31.
-/// Each row pins the first few conjugated forms returned in the
-/// accessor order for a real verb / adjective: 食べる (v1), 美しい
-/// (adj-i), 走る (v5r), 飲む (v5m), 起きる (v1, upper-grade), 急ぐ
-/// (v5g), 持つ (v5t), 行く (v5k-s, the irregular godan), 来る (vk,
-/// the irregular k-row), and いう (v5u with a fully kana ending —
-/// hits the `euphr` branch in `construct-conjugation`).
+/// Each row pins the first few conjugated forms for a verb or adjective
+/// across part-of-speech classes, including the irregular verbs 行く and
+/// 来る and a fully-kana ending (いう) that takes the euphonic-reading branch.
 #[test]
 fn conjugate_word_first_forms() {
     let cases: &[(&str, &str, Vec<&str>)] = &[
@@ -138,8 +132,7 @@ fn conjugate_word_first_forms() {
                 "買いませんでした",
             ],
         ),
-        // fully-kana reading — exercises the `iskana=true` branch
-        // selection inside `construct_conjugation`.
+        // fully-kana reading — takes the kana-ending branch.
         (
             "いう",
             "v5u",
@@ -157,11 +150,7 @@ fn conjugate_word_first_forms() {
     }
 }
 
-/// REPL: `(ichiran/dict::conjugate-word "食べる" "v1")` returns 60
-/// `(rule . text)` pairs. The REPL probe confirms the last three
-/// rules: `conj=12 okuri="なかったり" -> 食べなかったり`,
-/// `conj=12 okuri="ませんでしたり" -> 食べませんでしたり`,
-/// `conj=13 okuri="" -> 食べ`.
+/// Conjugating 食べる (v1) returns 60 rule/text pairs; this pins the last three.
 #[test]
 fn conjugate_word_tail_for_v1() {
     let res = conjugate_word("食べる", "v1");
@@ -180,39 +169,34 @@ fn conjugate_word_tail_for_v1() {
     );
 }
 
-/// REPL: `(ichiran/dict::conjugate-word "xxx" "nonexistent-pos")` = `NIL`.
-/// Unknown pos returns an empty list; `get_pos_index` is `None`,
-/// short-circuits before any DB access.
+/// An unknown part-of-speech returns an empty list, short-circuiting
+/// before any database access.
 #[test]
 fn conjugate_word_unknown_pos_is_empty() {
     assert!(conjugate_word("xxx", "nonexistent-pos").is_empty());
 }
 
 // --- lex_compare ---
-/// REPL: `(funcall (lex-compare #'<) #(1 2 3) #(1 2 4))` → `T`.
 #[test]
 fn smaller_at_last_position_is_less() {
     let cmp = lex_compare(|a: &i32, b: &i32| a < b);
     assert!(cmp(&[1, 2, 3], &[1, 2, 4]));
 }
 
-/// REPL: `(funcall (lex-compare #'<) #(1 2 4) #(1 2 3))` → `NIL`.
 #[test]
 fn larger_at_last_position_is_not_less() {
     let cmp = lex_compare(|a: &i32, b: &i32| a < b);
     assert!(!cmp(&[1, 2, 4], &[1, 2, 3]));
 }
 
-/// REPL: `(funcall (lex-compare #'<) #(1 2 3) #(1 2 3))` → `NIL`.
-/// Equal sequences fall off the end of `map nil` to `nil`.
+/// Equal sequences compare as not-less.
 #[test]
 fn equal_sequences_return_false() {
     let cmp = lex_compare(|a: &i32, b: &i32| a < b);
     assert!(!cmp(&[1, 2, 3], &[1, 2, 3]));
 }
 
-/// REPL: `(funcall (lex-compare #'<) (list 1 2 3) (list 1 2 4))` → `T`.
-/// List input matches vector input — both go through `map nil`.
+/// List input behaves the same as slice input.
 #[test]
 fn list_inputs_behave_the_same() {
     let cmp = lex_compare(|a: &i32, b: &i32| a < b);
@@ -221,7 +205,6 @@ fn list_inputs_behave_the_same() {
     assert!(cmp(&s1, &s2));
 }
 
-/// REPL: `(funcall (lex-compare #'<) #() #())` → `NIL`.
 #[test]
 fn empty_sequences_return_false() {
     let cmp = lex_compare(|a: &i32, b: &i32| a < b);
@@ -229,27 +212,22 @@ fn empty_sequences_return_false() {
     assert!(!cmp(&empty, &empty));
 }
 
-/// REPL: `(funcall (lex-compare #'<) (list 1 2) (list 1 2 3))` → `NIL`.
-/// Unequal lengths walk the shared prefix only; falls through to
-/// `nil` when the shared prefix compares equal. (Upstream docstring
-/// notes "Only can sort sequences of equal length"; this pins the
-/// observable behavior at the boundary.)
+/// Unequal lengths walk only the shared prefix; an equal shared prefix
+/// compares as not-less.
 #[test]
 fn shorter_seq_with_equal_prefix_returns_false() {
     let cmp = lex_compare(|a: &i32, b: &i32| a < b);
     assert!(!cmp(&[1, 2], &[1, 2, 3]));
 }
 
-/// REPL: `(funcall (lex-compare #'<) (list 1 2 3) (list 1 2))` → `NIL`.
-/// Symmetric mismatched-length case from `lex-compare`'s perspective.
+/// A longer sequence with an equal shorter prefix compares as not-less.
 #[test]
 fn longer_seq_with_equal_prefix_returns_false() {
     let cmp = lex_compare(|a: &i32, b: &i32| a < b);
     assert!(!cmp(&[1, 2, 3], &[1, 2]));
 }
 
-/// REPL: `(funcall (lex-compare #'<) (list 1) ())` → `NIL`.
-/// Empty-vs-non-empty: `map nil` exits before any pair is examined.
+/// A non-empty sequence compared against an empty one is not-less.
 #[test]
 fn empty_vs_non_empty_returns_false() {
     let cmp = lex_compare(|a: &i32, b: &i32| a < b);
@@ -257,9 +235,7 @@ fn empty_vs_non_empty_returns_false() {
     assert!(!cmp(&[1], &empty));
 }
 
-/// First-position dominates: `(2,9) < (3,1)` under `#'<` since the
-/// first pair already settles the order.
-/// REPL: `(funcall (lex-compare #'<) #(2 9) #(3 1))` → `T`.
+/// The first differing position settles the order: `(2,9) < (3,1)`.
 #[test]
 fn first_position_dominates_when_unequal() {
     let cmp = lex_compare(|a: &i32, b: &i32| a < b);

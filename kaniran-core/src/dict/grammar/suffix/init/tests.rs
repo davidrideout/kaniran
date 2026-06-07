@@ -7,26 +7,25 @@ mod get_suffix_description {
             .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
     }
 
-    /// REPL (.103, after `(init-suffixes t)`):
-    /// `(get-suffix-description seq)` across all four lookup paths —
-    /// seq→class→desc, seq→class→no-desc, seq→direct-key→desc, and
-    /// miss on both.
+    /// Looks up a description by sequence across all four paths: the
+    /// sequence's class has a description, the class has none, the
+    /// sequence is a direct description key, and a miss on both tables.
     #[tokio::test]
     async fn get_suffix_description_paths() {
         let ctx = ctx().await;
         let cases: &[(i32, Option<&str>)] = &[
-            // seq in *suffix-class*, class has a description
-            (2013800, Some("indicates completion (to finish ...)")), // :chau
-            (2017560, Some("want to... / would like to...")),        // :tai
-            (2028920, Some("topic marker particle")),                // :ha
-            (1006610, Some("looking like ... / seeming ...")),       // :sou
-            // seq in *suffix-class*, class has no description
-            (2141080, None), // :sou+
-            // seq not in *suffix-class*, seq is a direct *suffix-description* key
+            // Sequence belongs to a suffix class that has a description.
+            (2013800, Some("indicates completion (to finish ...)")), // chau
+            (2017560, Some("want to... / would like to...")),        // tai
+            (2028920, Some("topic marker particle")),                // ha
+            (1006610, Some("looking like ... / seeming ...")),       // sou
+            // Sequence belongs to a suffix class that has no description.
+            (2141080, None), // sou+
+            // Sequence has no class but is itself a description key.
             (2826528, Some("polite prefix")),
             (2028980, Some("at / in / by")),
             (1002980, Some("from / because")),
-            // in neither table
+            // Sequence appears in neither table.
             (1005530, None),
             (99999999, None),
         ];
