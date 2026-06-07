@@ -10,9 +10,8 @@ use std::sync::OnceLock;
 
 use super::kani_kana_class::KanaClass;
 
-static CACHE: OnceLock<HashMap<KanaClass, KanaClass>> = OnceLock::new();
-
 pub fn handakuten_hash() -> &'static HashMap<KanaClass, KanaClass> {
+    static CACHE: OnceLock<HashMap<KanaClass, KanaClass>> = OnceLock::new();
     CACHE.get_or_init(|| {
         use KanaClass::*;
         [

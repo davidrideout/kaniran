@@ -16,9 +16,8 @@ use std::sync::OnceLock;
 use super::_star_kana_hint_mod_star_::KANA_HINT_MOD;
 use super::_star_kana_hint_space_star_::KANA_HINT_SPACE;
 
-static CACHE: OnceLock<Vec<(String, &'static str)>> = OnceLock::new();
-
 pub fn hint_simplify_map() -> &'static [(String, &'static str)] {
+    static CACHE: OnceLock<Vec<(String, &'static str)>> = OnceLock::new();
     CACHE
         .get_or_init(|| {
             let mut map: Vec<(String, &'static str)> = Vec::with_capacity(6);

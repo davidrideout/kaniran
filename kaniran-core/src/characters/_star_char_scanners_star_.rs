@@ -10,9 +10,8 @@ use std::sync::OnceLock;
 use super::_star_char_class_regex_mapping_star_::CHAR_CLASS_REGEX_MAPPING;
 use super::char_class_type::CharClass;
 
-static CACHE: OnceLock<HashMap<CharClass, fancy_regex::Regex>> = OnceLock::new();
-
 pub fn char_scanners() -> &'static HashMap<CharClass, fancy_regex::Regex> {
+    static CACHE: OnceLock<HashMap<CharClass, fancy_regex::Regex>> = OnceLock::new();
     CACHE.get_or_init(|| {
         let mut h = HashMap::new();
         for (class, pat) in CHAR_CLASS_REGEX_MAPPING {

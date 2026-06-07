@@ -8,9 +8,8 @@ use std::sync::OnceLock;
 
 use super::load_pos_index::load_pos_index;
 
-static POS_INDEX: OnceLock<HashMap<String, (i32, String)>> = OnceLock::new();
-
 pub fn pos_index() -> &'static HashMap<String, (i32, String)> {
+    static POS_INDEX: OnceLock<HashMap<String, (i32, String)>> = OnceLock::new();
     POS_INDEX.get_or_init(load_pos_index)
 }
 

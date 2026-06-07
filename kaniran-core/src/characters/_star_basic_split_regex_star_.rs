@@ -11,9 +11,8 @@ use super::_star_digit_regex_star_::DIGIT_REGEX;
 use super::_star_num_word_regex_star_::NUM_WORD_REGEX;
 use super::_star_word_regex_star_::WORD_REGEX;
 
-static CACHE: OnceLock<String> = OnceLock::new();
-
 pub fn basic_split_regex() -> &'static str {
+    static CACHE: OnceLock<String> = OnceLock::new();
     CACHE.get_or_init(|| {
         format!(
             "((?:(?<!{}|{}){}+|{}){}*{}|{})",

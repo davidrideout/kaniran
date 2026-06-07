@@ -7,9 +7,8 @@ use std::sync::OnceLock;
 
 use super::load_conj_description::load_conj_description;
 
-static CONJ_DESCRIPTION: OnceLock<HashMap<i32, String>> = OnceLock::new();
-
 pub fn conj_description() -> &'static HashMap<i32, String> {
+    static CONJ_DESCRIPTION: OnceLock<HashMap<i32, String>> = OnceLock::new();
     CONJ_DESCRIPTION.get_or_init(load_conj_description)
 }
 

@@ -10,9 +10,8 @@ use super::_star_dakuten_hash_star_::dakuten_hash;
 use super::_star_handakuten_hash_star_::handakuten_hash;
 use super::dakuten_join::dakuten_join as build;
 
-static CACHE: OnceLock<Vec<(String, String)>> = OnceLock::new();
-
 pub fn dakuten_join() -> &'static Vec<(String, String)> {
+    static CACHE: OnceLock<Vec<(String, String)>> = OnceLock::new();
     CACHE.get_or_init(|| {
         let mut v = build(dakuten_hash(), '゛');
         v.extend(build(handakuten_hash(), '゜'));

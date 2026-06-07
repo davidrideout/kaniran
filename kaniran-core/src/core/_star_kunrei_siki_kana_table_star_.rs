@@ -5,9 +5,8 @@ use std::sync::OnceLock;
 
 use crate::characters::kani_kana_class::KanaClass;
 
-static CACHE: OnceLock<HashMap<KanaClass, &'static str>> = OnceLock::new();
-
 pub fn kunrei_siki_kana_table() -> &'static HashMap<KanaClass, &'static str> {
+    static CACHE: OnceLock<HashMap<KanaClass, &'static str>> = OnceLock::new();
     CACHE.get_or_init(|| {
         use KanaClass::*;
         [

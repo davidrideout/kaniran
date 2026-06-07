@@ -9,9 +9,8 @@ use std::sync::OnceLock;
 
 use fancy_regex::Regex;
 
-static SCANNER: OnceLock<Regex> = OnceLock::new();
-
 fn scanner() -> &'static Regex {
+    static SCANNER: OnceLock<Regex> = OnceLock::new();
     SCANNER.get_or_init(|| {
         Regex::new("(?=[々一-龯][々一-龯])").expect("sequential-kanji lookahead compiles")
     })

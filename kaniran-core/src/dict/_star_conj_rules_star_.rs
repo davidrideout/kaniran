@@ -9,9 +9,8 @@ use std::sync::OnceLock;
 use super::conjugation_rule_struct::ConjugationRule;
 use super::load_conj_rules::load_conj_rules;
 
-static CONJ_RULES: OnceLock<HashMap<i32, Vec<ConjugationRule>>> = OnceLock::new();
-
 pub fn conj_rules() -> &'static HashMap<i32, Vec<ConjugationRule>> {
+    static CONJ_RULES: OnceLock<HashMap<i32, Vec<ConjugationRule>>> = OnceLock::new();
     CONJ_RULES.get_or_init(load_conj_rules)
 }
 

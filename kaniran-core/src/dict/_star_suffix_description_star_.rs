@@ -12,9 +12,8 @@ pub enum SuffixDescKey {
     Seq(i32),
 }
 
-static MAP: OnceLock<HashMap<SuffixDescKey, &'static str>> = OnceLock::new();
-
 pub fn suffix_description() -> &'static HashMap<SuffixDescKey, &'static str> {
+    static MAP: OnceLock<HashMap<SuffixDescKey, &'static str>> = OnceLock::new();
     MAP.get_or_init(|| {
         let mut map: HashMap<SuffixDescKey, &'static str> = HashMap::with_capacity(47);
         // dict-grammar.lisp:110-148 (hash-from-list payload — class keywords)

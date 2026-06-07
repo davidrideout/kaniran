@@ -7,9 +7,8 @@ use std::sync::OnceLock;
 
 use super::_star_final_prt_star_::FINAL_PRT;
 
-static CACHE: OnceLock<Vec<i32>> = OnceLock::new();
-
 pub fn semi_final_prt() -> &'static [i32] {
+    static CACHE: OnceLock<Vec<i32>> = OnceLock::new();
     CACHE
         .get_or_init(|| {
             let mut out: Vec<i32> = FINAL_PRT.to_vec();

@@ -9,9 +9,8 @@ use std::sync::OnceLock;
 use super::_star_char_number_class_star_::CHAR_NUMBER_CLASS;
 use super::kani_num_class::NumClass;
 
-static CACHE: OnceLock<HashMap<char, (NumClass, u8)>> = OnceLock::new();
-
 pub fn char_number_class_hash() -> &'static HashMap<char, (NumClass, u8)> {
+    static CACHE: OnceLock<HashMap<char, (NumClass, u8)>> = OnceLock::new();
     CACHE.get_or_init(|| {
         let mut h = HashMap::new();
         for &(chars, class, val) in CHAR_NUMBER_CLASS {

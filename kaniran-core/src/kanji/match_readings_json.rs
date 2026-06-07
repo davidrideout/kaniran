@@ -14,9 +14,8 @@ use super::process_match_json::process_match_json;
 use crate::characters::_star_kanji_regex_star_::KANJI_REGEX;
 use crate::conn::kani_context::KaniranContext;
 
-static KANJI_SCANNER: OnceLock<Regex> = OnceLock::new();
-
 fn kanji_scanner() -> &'static Regex {
+    static KANJI_SCANNER: OnceLock<Regex> = OnceLock::new();
     KANJI_SCANNER.get_or_init(|| Regex::new(KANJI_REGEX).expect("*kanji-regex* must compile"))
 }
 

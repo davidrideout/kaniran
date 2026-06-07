@@ -9,9 +9,8 @@ use fancy_regex::Regex;
 
 use super::_star_kanji_regex_star_::KANJI_REGEX;
 
-static SCANNER: OnceLock<Regex> = OnceLock::new();
-
 fn scanner() -> &'static Regex {
+    static SCANNER: OnceLock<Regex> = OnceLock::new();
     SCANNER.get_or_init(|| {
         Regex::new(&format!("(?:{KANJI_REGEX})+")).expect("kanji-mask scanner compiles")
     })

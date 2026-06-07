@@ -17,9 +17,8 @@ pub enum SegmentKind {
     Word,
 }
 
-static SCANNER: OnceLock<Regex> = OnceLock::new();
-
 fn scanner() -> &'static Regex {
+    static SCANNER: OnceLock<Regex> = OnceLock::new();
     SCANNER.get_or_init(|| {
         Regex::new(basic_split_regex()).expect("basic-split-regex must compile")
     })

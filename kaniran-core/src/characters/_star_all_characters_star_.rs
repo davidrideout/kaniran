@@ -14,9 +14,8 @@ use super::_star_modifier_characters_star_::MODIFIER_CHARACTERS;
 use super::_star_sokuon_characters_star_::SOKUON_CHARACTERS;
 use super::kani_kana_class::KanaClass;
 
-static CACHE: OnceLock<Vec<(KanaClass, &'static str)>> = OnceLock::new();
-
 pub fn all_characters() -> &'static [(KanaClass, &'static str)] {
+    static CACHE: OnceLock<Vec<(KanaClass, &'static str)>> = OnceLock::new();
     CACHE.get_or_init(|| {
         let mut v = Vec::with_capacity(
             SOKUON_CHARACTERS.len()

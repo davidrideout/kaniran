@@ -10,9 +10,8 @@ use std::sync::OnceLock;
 use super::_star_all_characters_star_::all_characters;
 use super::kani_kana_class::KanaClass;
 
-static CACHE: OnceLock<HashMap<char, KanaClass>> = OnceLock::new();
-
 pub fn char_class_hash() -> &'static HashMap<char, KanaClass> {
+    static CACHE: OnceLock<HashMap<char, KanaClass>> = OnceLock::new();
     CACHE.get_or_init(|| {
         let mut h = HashMap::new();
         for (class, chars) in all_characters() {

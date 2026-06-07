@@ -8,9 +8,8 @@ use std::sync::OnceLock;
 use super::load_romaji_kana::load_romaji_kana;
 use super::rmap_item_struct::RmapItem;
 
-static ROMAJI_KANA: OnceLock<HashMap<String, RmapItem>> = OnceLock::new();
-
 pub fn romaji_kana() -> &'static HashMap<String, RmapItem> {
+    static ROMAJI_KANA: OnceLock<HashMap<String, RmapItem>> = OnceLock::new();
     ROMAJI_KANA.get_or_init(load_romaji_kana)
 }
 

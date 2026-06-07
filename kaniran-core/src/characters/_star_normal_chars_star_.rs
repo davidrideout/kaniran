@@ -11,9 +11,8 @@ use super::_star_full_width_kana_star_::FULL_WIDTH_KANA;
 const ASCII_PREFIX: &str =
     "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#$%&()*+/<=>?@[]^_`{|}~";
 
-static CACHE: OnceLock<String> = OnceLock::new();
-
 pub fn normal_chars() -> &'static str {
+    static CACHE: OnceLock<String> = OnceLock::new();
     CACHE.get_or_init(|| format!("{ASCII_PREFIX}{FULL_WIDTH_KANA}"))
 }
 

@@ -18,9 +18,8 @@ use super::match_readings::MatchedSegment;
 use crate::characters::_star_kanji_char_regex_star_::KANJI_CHAR_REGEX;
 use crate::conn::kani_context::KaniranContext;
 
-static KANJI_CHAR_SCANNER: OnceLock<Regex> = OnceLock::new();
-
 fn kanji_char_scanner() -> &'static Regex {
+    static KANJI_CHAR_SCANNER: OnceLock<Regex> = OnceLock::new();
     KANJI_CHAR_SCANNER
         .get_or_init(|| Regex::new(KANJI_CHAR_REGEX).expect("*kanji-char-regex* must compile"))
 }

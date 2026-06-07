@@ -11,9 +11,8 @@ use fancy_regex::Regex;
 use similar::TextDiff;
 use std::sync::OnceLock;
 
-static NEWLINE_RE: OnceLock<Regex> = OnceLock::new();
-
 fn newline_re() -> &'static Regex {
+    static NEWLINE_RE: OnceLock<Regex> = OnceLock::new();
     NEWLINE_RE.get_or_init(|| Regex::new(r"[\r\n]+").expect("newline regex compiles"))
 }
 

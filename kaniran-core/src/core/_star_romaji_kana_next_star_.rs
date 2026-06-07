@@ -11,9 +11,8 @@ use std::sync::OnceLock;
 use super::_star_romaji_kana_star_::romaji_kana;
 use super::has_successors::has_successors;
 
-static ROMAJI_KANA_NEXT: OnceLock<HashSet<String>> = OnceLock::new();
-
 pub fn romaji_kana_next() -> &'static HashSet<String> {
+    static ROMAJI_KANA_NEXT: OnceLock<HashSet<String>> = OnceLock::new();
     ROMAJI_KANA_NEXT.get_or_init(|| {
         let keys: Vec<&str> = romaji_kana().keys().map(String::as_str).collect();
         has_successors(&keys)
