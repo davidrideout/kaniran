@@ -1,191 +1,37 @@
-//! Port of `ichiran/dict:get-segsplit` (`dict-split.lisp:784`).
-//!
-//! When `segment.word` is a `simple-text`, dispatch through
-//! `*segsplit-map*` for a split that decomposes the reading; on a hit,
-//! wrap the parts in a `compound-text`, copy the segment, and overwrite
-//! word/text/score/info on the copy. Returns `None` for
-//! non-`simple-text` words and for readings with no matching segsplit
-//! entry.
+mod _star_segsplit_map_star_ {
+    use crate::dict::split::segsplit::*;
 
-use crate::characters::text::join;
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::_star_segsplit_map_star_::{SegSplitDef, SEGSPLIT_TABLE};
-use crate::dict::calc_score::calc_score;
-use crate::dict::compound_text_class::{CompoundText, ScoreMod};
-use crate::dict::get_kana::get_kana;
-use crate::dict::get_split::get_split;
-use crate::dict::get_text::get_text;
-use crate::dict::kani_split_part::SplitPart;
-use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
-use crate::dict::segment_struct::{
-    KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment,
-};
-use crate::dict::set_word_conjugations::set_word_conjugations;
-use crate::dict::simple_text_class::WordConjugations;
-use crate::dict::word_conj_data::word_conj_data;
-
-pub async fn get_segsplit(
-    ctx: &KaniranContext,
-    segment: &Segment,
-) -> Result<Option<Segment>, sqlx::Error> {
-    // dict-split.lisp:785 (when (typep word 'simple-text))
-    let simple_word = match &segment.word {
-        KaniWordDispatchEnum::Kanji(k) => KaniSimpleTextDispatchEnum::Kanji(k.clone()),
-        KaniWordDispatchEnum::Kana(k) => KaniSimpleTextDispatchEnum::Kana(k.clone()),
-        KaniWordDispatchEnum::Proxy(p) => KaniSimpleTextDispatchEnum::Proxy(p.clone()),
-        KaniWordDispatchEnum::Compound(_) | KaniWordDispatchEnum::Counter(_) => {
-            return Ok(None);
-        }
-    };
-
-    // dict-split.lisp:786 (let ((*split-map* *segsplit-map*)) …)
-    let ctx2 = ctx.with_segsplit_map();
-
-    // dict-split.lisp:788 (cdr (getf (segment-info segment) :seq-set))
-    let conj_of: Vec<i32> = segment
-        .info
-        .as_ref()
-        .map(|info| info.seq_set.iter().skip(1).copied().collect())
-        .unwrap_or_default();
-
-    // dict-split.lisp:787-788
-    // (multiple-value-bind (split attrs) (get-split word conj-of) …)
-    let Some((parts, score)) = get_split(&ctx2, &simple_word, &conj_of).await? else {
-        return Ok(None);
-    };
-
-    // dict-split.lisp:790 (destructuring-bind (score &key (primary 0) (connector " ") root) attrs)
-    // attrs == the score-arg list passed to `def-simple-split` (e.g.
-    // '(-10 :root (1))). The Rust SEGSPLIT_TABLE stores the destructured
-    // slots alongside SplitDef; recover them by re-walking the same seq
-    // order get-split* used.
-    let Some(def) = find_segsplit_def(simple_word.seq(), &conj_of) else {
-        return Ok(None);
-    };
-
-    let mut words: Vec<KaniWordDispatchEnum> = Vec::with_capacity(parts.len());
-    for part in parts {
-        match part {
-            SplitPart::Word(w) => words.push(w),
-            // SEGSPLIT_TABLE has no Step::Push rows — the registered
-            // segsplit forms at dict-split.lisp:706-782 never pass `:score`
-            // / `:pscore` as parts. (setf word-conjugations) on a keyword
-            // would signal no-applicable-method upstream.
-            SplitPart::Score | SplitPart::PScore => unreachable!(
-                "segsplit-map split returned :score / :pscore part — not in SEGSPLIT_TABLE shape"
-            ),
-        }
+    #[test]
+    fn registered_count_matches_upstream_segsplit_map() {
+        // dict-split.lisp:706-782 registers 18 entries via the 18
+        // def-simple-split forms inside the let-binding that redirects
+        // *split-map* to *segsplit-map*.
+        assert_eq!(REGISTERED_COUNT, 18);
     }
-
-    // dict-split.lisp:799-801 (when root (loop for i from 0 for word in split
-    //                            if (find i root) do (setf (word-conjugations word) :root)))
-    if !def.root.is_empty() {
-        for (i, w) in words.iter_mut().enumerate() {
-            if def.root.contains(&i) {
-                set_word_conjugations(w, Some(WordConjugations::Root));
-            }
-        }
-    }
-
-    // dict-split.lisp:793 (:text (join "" (mapcar 'get-text split)))
-    let texts: Vec<String> = words.iter().map(|w| get_text(w).into_owned()).collect();
-    // dict-split.lisp:794 (:kana (join connector (mapcar 'get-kana split)))
-    let mut kanas: Vec<String> = Vec::with_capacity(words.len());
-    for w in &words {
-        // dict.lisp:638 precedent — `(concatenate 'string nil ...)` treats
-        // nil as empty; `Option<String>` from get_kana mirrors with
-        // `.unwrap_or_default()`.
-        kanas.push(get_kana(ctx, w).await?.unwrap_or_default());
-    }
-
-    // dict-split.lisp:795 (:primary (elt split primary))
-    let primary_word = Box::new(words[def.primary].clone());
-
-    // dict-split.lisp:791-797 (make-instance 'compound-text …)
-    let compound = CompoundText {
-        text: join("", &texts),
-        kana: join(def.connector, &kanas),
-        primary: primary_word,
-        words,
-        // dict.lisp:613 — `score-base :initform nil :initarg :score-base`;
-        // not passed by get-segsplit, slot keeps default nil.
-        score_base: None,
-        // dict-split.lisp:797 (:score-mod score) — `score` here is the
-        // integer head of the attrs list (the destructured `score`
-        // positional), held in SplitDef.score.
-        score_mod: ScoreMod::Single(score as i64),
-    };
-
-    let wrapped = KaniWordDispatchEnum::Compound(compound);
-
-    // dict-split.lisp:805 (nth-value 1 (calc-score (primary word)))
-    let primary_ref: &KaniWordDispatchEnum = match &wrapped {
-        KaniWordDispatchEnum::Compound(c) => &c.primary,
-        _ => unreachable!(),
-    };
-    let (_disc_score, info_opt) =
-        calc_score(ctx, primary_ref, false, None, None, &[]).await?;
-
-    // dict-split.lisp:806 (getf (segment-info new-seg) :conj) (word-conj-data word)
-    let conj_data = word_conj_data(ctx, &wrapped).await?;
-    // CL setf-getf-on-nil idiom: when `info` is nil, `(setf (getf nil :conj) X)`
-    // rewrites the binding to a fresh plist `(:conj X)`. Mirror by
-    // synthesizing the same zero/empty KaniSegmentInfo calc_score uses
-    // for the analogous compound-recursion path (calc_score.rs:238-250).
-    let mut info = info_opt.unwrap_or_else(|| KaniSegmentInfo {
-        posi: Vec::new(),
-        seq_set: Vec::new(),
-        conj: Vec::new(),
-        common: None,
-        score_info: KaniScoreInfo {
-            prop_score: 0,
-            kanji_break: Vec::new(),
-            use_length_bonus: 0,
-            split_info: KaniSplitInfo::None,
-        },
-        kpcl: (false, false, false, false),
-    });
-    info.conj = conj_data;
-
-    // dict-split.lisp:798 (new-seg (copy-segment segment))
-    let mut new_seg = segment.clone();
-
-    // dict-split.lisp:802-807 — parallel setf populates new-seg slots.
-    // Compute reads before the moves so the source values come from a
-    // consistent snapshot, matching the parallel-setf semantics.
-    let new_text = get_text(&wrapped).into_owned();
-    let old_score = segment
-        .score
-        .expect("get-segsplit: segment.score must be set by gen-score before call");
-
-    new_seg.word = wrapped;
-    new_seg.text = Some(new_text);
-    new_seg.score = Some(old_score + score);
-    new_seg.info = Some(info);
-
-    Ok(Some(new_seg))
 }
 
-fn find_segsplit_def(seq: i32, conj_of: &[i32]) -> Option<&'static SegSplitDef> {
-    // dict-split.lisp:70 — first lookup is (gethash (seq reading) *split-map*).
-    if let Some(def) = SEGSPLIT_TABLE.iter().find(|d| d.split.seq == seq) {
-        return Some(def);
+mod _star_hint_simplify_map_star_ {
+    use crate::dict::split::segsplit::*;
+
+    /// Pin the build output against the introspected upstream value —
+    /// catches drift in the source character constants.
+    #[test]
+    fn matches_introspected_value() {
+        let map = hint_simplify_map();
+        assert_eq!(map.len(), 6);
+        assert_eq!(map[0], ("\u{200b}".to_string(), " "));
+        assert_eq!(map[1], ("\u{200c}は".to_string(), "わ"));
+        assert_eq!(map[2], ("\u{200c}ハ".to_string(), "ワ"));
+        assert_eq!(map[3], ("\u{200c}へ".to_string(), "え"));
+        assert_eq!(map[4], ("\u{200c}ヘ".to_string(), "エ"));
+        assert_eq!(map[5], ("\u{200c}".to_string(), ""));
     }
-    // dict-split.lisp:73-75 — then walk conj-of in order, returning the
-    // first match.
-    for &s in conj_of {
-        if let Some(def) = SEGSPLIT_TABLE.iter().find(|d| d.split.seq == s) {
-            return Some(def);
-        }
-    }
-    None
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+mod get_segsplit {
     use crate::dict::find_word::{find_word, FindWordRows};
     use crate::dict::gen_score::gen_score;
+    use crate::dict::split::segsplit::*;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -194,11 +40,7 @@ mod tests {
     }
 
     /// Helper: find the reading for `text` at `seq`, gen-score it, return the segment.
-    async fn segment_for_seq(
-        ctx: &KaniranContext,
-        text: &str,
-        seq: i32,
-    ) -> Segment {
+    async fn segment_for_seq(ctx: &KaniranContext, text: &str, seq: i32) -> Segment {
         let rows = find_word(ctx, text, false).await.unwrap();
         let word = match rows {
             FindWordRows::Kana(v) => v
@@ -325,7 +167,10 @@ mod tests {
         seg.end = 8;
         seg.top = None;
         let pre_score = seg.score.expect("gen-score sets score");
-        let new_seg = get_segsplit(&ctx, &seg).await.unwrap().expect("segsplit hit");
+        let new_seg = get_segsplit(&ctx, &seg)
+            .await
+            .unwrap()
+            .expect("segsplit hit");
 
         // copy-segment preserves start/end/top.
         assert_eq!(new_seg.start, 3);
@@ -377,7 +222,10 @@ mod tests {
         seg.end = 6;
         seg.top = None;
         let pre_score = seg.score.expect("gen-score sets score");
-        let new_seg = get_segsplit(&ctx, &seg).await.unwrap().expect("segsplit hit");
+        let new_seg = get_segsplit(&ctx, &seg)
+            .await
+            .unwrap()
+            .expect("segsplit hit");
 
         assert_eq!(new_seg.start, 4);
         assert_eq!(new_seg.end, 6);
@@ -426,7 +274,10 @@ mod tests {
         seg.end = 5;
         seg.top = None;
         let pre_score = seg.score.expect("gen-score sets score");
-        let new_seg = get_segsplit(&ctx, &seg).await.unwrap().expect("segsplit hit");
+        let new_seg = get_segsplit(&ctx, &seg)
+            .await
+            .unwrap()
+            .expect("segsplit hit");
 
         assert_eq!(new_seg.start, 2);
         assert_eq!(new_seg.end, 5);
@@ -475,7 +326,10 @@ mod tests {
         seg.end = 10;
         seg.top = None;
         let pre_score = seg.score.expect("gen-score sets score");
-        let new_seg = get_segsplit(&ctx, &seg).await.unwrap().expect("segsplit hit");
+        let new_seg = get_segsplit(&ctx, &seg)
+            .await
+            .unwrap()
+            .expect("segsplit hit");
 
         assert_eq!(new_seg.start, 6);
         assert_eq!(new_seg.end, 10);
@@ -537,7 +391,10 @@ mod tests {
         seg.end = 14;
         seg.top = None;
         let pre_score = seg.score.expect("gen-score sets score");
-        let new_seg = get_segsplit(&ctx, &seg).await.unwrap().expect("segsplit hit via conj-of");
+        let new_seg = get_segsplit(&ctx, &seg)
+            .await
+            .unwrap()
+            .expect("segsplit hit via conj-of");
 
         assert_eq!(new_seg.start, 9);
         assert_eq!(new_seg.end, 14);

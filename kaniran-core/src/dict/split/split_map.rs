@@ -1,17 +1,16 @@
-//! Port of `ichiran/dict:*split-map*` (`dict-split.lisp:5`).
-//!
-//! JMdict seq → split definition, used to split a single dictionary
-//! entry into its component words.
-
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::_star_segsplit_map_star_::SEGSPLIT_TABLE;
-use crate::dict::kani_split_engine::{
+use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
+use crate::dict::split::kani_split_engine::{
     run_split, Finder, Len, Modify, PartSeq, Pred, ScorePush, SplitDef, Step, WordPart,
 };
-use crate::dict::kani_split_part::SplitPart;
-use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
+use crate::dict::split::kani_split_part::SplitPart;
+use crate::dict::split::segsplit::SEGSPLIT_TABLE;
 use crate::dict::word_type::WordType;
 
+/// Port of `ichiran/dict:*split-map*` (`dict-split.lisp:5`).
+///
+/// JMdict seq → split definition, used to split a single dictionary
+/// entry into its component words.
 /// Selector for the active `*split-map*` binding. Diverges from
 /// upstream "any hashtable" value space — closed to the two tables
 /// upstream actually binds (`*split-map*` itself or `*segsplit-map*`).
@@ -20,7 +19,7 @@ pub enum SplitMapKind {
     /// `*split-map*` (`dict-split.lisp:5`) — [`SPLIT_TABLE`].
     Default,
     /// `*segsplit-map*` (`dict-split.lisp:704`) —
-    /// [`super::_star_segsplit_map_star_::SEGSPLIT_TABLE`].
+    /// [`crate::dict::split::segsplit::SEGSPLIT_TABLE`].
     SegSplit,
 }
 
@@ -33,25 +32,31 @@ fn split_hayaimonode_second_part_len(txt: &str, _len_: usize) -> Option<usize> {
 }
 
 fn split_hitotachi_first_part_len(txt: &str, _len_: usize) -> Option<usize> {
-    Some(if txt.chars().any(|c| c == '人') { 1 } else { 2 })
+    Some(if txt.chars().any(|c| c == '人') {
+        1
+    } else {
+        2
+    })
 }
 
 fn split_hitotachi_second_part_len(txt: &str, _len_: usize) -> Option<usize> {
-    Some(if txt.chars().any(|c| c == '達') { 1 } else { 2 })
+    Some(if txt.chars().any(|c| c == '達') {
+        1
+    } else {
+        2
+    })
 }
 
 pub static SPLIT_TABLE: &[SplitDef] = &[
     SplitDef {
         seq: 1000430,
         score: -5,
-        steps: &[
-            Step::Word(WordPart {
-                seq: PartSeq::Static(&[1000420i32]),
-                length: Len::Open,
-                finder: Finder::Seq,
-                modify: Modify::None,
-            }),
-        ],
+        steps: &[Step::Word(WordPart {
+            seq: PartSeq::Static(&[1000420i32]),
+            length: Len::Open,
+            finder: Finder::Seq,
+            modify: Modify::None,
+        })],
     },
     SplitDef {
         seq: 1002970,
@@ -69,7 +74,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
                 modify: Modify::None,
             }),
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "知れない", seq: 1420490 },
+                seq: PartSeq::Dynamic {
+                    text: "知れない",
+                    seq: 1420490,
+                },
                 length: Len::Open,
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -97,21 +105,25 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
     SplitDef {
         seq: 1005600,
         score: -10,
-        steps: &[
-            Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "しまった", seq: 1305380 },
-                length: Len::Open,
-                finder: Finder::Seq,
-                modify: Modify::None,
-            }),
-        ],
+        steps: &[Step::Word(WordPart {
+            seq: PartSeq::Dynamic {
+                text: "しまった",
+                seq: 1305380,
+            },
+            length: Len::Open,
+            finder: Finder::Seq,
+            modify: Modify::None,
+        })],
     },
     SplitDef {
         seq: 1005700,
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -129,7 +141,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -217,21 +232,20 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
     SplitDef {
         seq: 1008030,
         score: -10,
-        steps: &[
-            Step::Push(ScorePush::Score),
-        ],
+        steps: &[Step::Push(ScorePush::Score)],
     },
     SplitDef {
         seq: 1009470,
         score: 1,
-        steps: &[
-            Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "なら", seq: 2089020 },
-                length: Len::Open,
-                finder: Finder::Seq,
-                modify: Modify::None,
-            }),
-        ],
+        steps: &[Step::Word(WordPart {
+            seq: PartSeq::Dynamic {
+                text: "なら",
+                seq: 2089020,
+            },
+            length: Len::Open,
+            finder: Finder::Seq,
+            modify: Modify::None,
+        })],
     },
     SplitDef {
         seq: 1009600,
@@ -244,7 +258,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
                 modify: Modify::None,
             }),
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "取って", seq: 1326980 },
+                seq: PartSeq::Dynamic {
+                    text: "取って",
+                    seq: 1326980,
+                },
                 length: Len::Open,
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -256,7 +273,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -274,7 +294,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -292,7 +315,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -310,7 +336,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -328,7 +357,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -346,7 +378,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -423,7 +458,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 50,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "割り", seq: 1208000 },
+                seq: PartSeq::Dynamic {
+                    text: "割り",
+                    seq: 1208000,
+                },
                 length: Len::Fixed(2),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -608,7 +646,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -626,7 +667,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -644,7 +688,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -662,7 +709,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -680,7 +730,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -698,7 +751,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -775,7 +831,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 50,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "持って", seq: 1315720 },
+                seq: PartSeq::Dynamic {
+                    text: "持って",
+                    seq: 1315720,
+                },
                 length: Len::CharPosPlus1('て'),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -936,7 +995,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 100,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "申し", seq: 1363090 },
+                seq: PartSeq::Dynamic {
+                    text: "申し",
+                    seq: 1363090,
+                },
                 length: Len::Fixed(2),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -1037,7 +1099,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
                 modify: Modify::None,
             }),
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "映え", seq: 1600620 },
+                seq: PartSeq::Dynamic {
+                    text: "映え",
+                    seq: 1600620,
+                },
                 length: Len::Fixed(2),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -1200,7 +1265,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
                 push: None,
             },
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "入り", seq: 1465590 },
+                seq: PartSeq::Dynamic {
+                    text: "入り",
+                    seq: 1465590,
+                },
                 length: Len::CharPosPlus1('り'),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -1346,7 +1414,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
                 push: None,
             },
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "亡く", seq: 1518450 },
+                seq: PartSeq::Dynamic {
+                    text: "亡く",
+                    seq: 1518450,
+                },
                 length: Len::Fixed(2),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -1423,7 +1494,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "無く", seq: 1529520 },
+                seq: PartSeq::Dynamic {
+                    text: "無く",
+                    seq: 1529520,
+                },
                 length: Len::Fixed(2),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -1477,7 +1551,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 100,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "あけまして", seq: 1202450 },
+                seq: PartSeq::Dynamic {
+                    text: "あけまして",
+                    seq: 1202450,
+                },
                 length: Len::Fixed(5),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -1542,7 +1619,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 50,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "立ち", seq: 1597040 },
+                seq: PartSeq::Dynamic {
+                    text: "立ち",
+                    seq: 1597040,
+                },
                 length: Len::Fixed(2),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -1665,7 +1745,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -1683,7 +1766,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -1701,7 +1787,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -1719,7 +1808,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -1796,7 +1888,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 50,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "跳ね", seq: 1429620 },
+                seq: PartSeq::Dynamic {
+                    text: "跳ね",
+                    seq: 1429620,
+                },
                 length: Len::Fixed(2),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -1850,7 +1945,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 100,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "分かり", seq: 1606560 },
+                seq: PartSeq::Dynamic {
+                    text: "分かり",
+                    seq: 1606560,
+                },
                 length: Len::Fixed(3),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -1873,7 +1971,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
                 push: None,
             },
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "割り", seq: 1208000 },
+                seq: PartSeq::Dynamic {
+                    text: "割り",
+                    seq: 1208000,
+                },
                 length: Len::Open,
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -2045,7 +2146,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
                 modify: Modify::None,
             }),
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "支え", seq: 1310090 },
+                seq: PartSeq::Dynamic {
+                    text: "支え",
+                    seq: 1310090,
+                },
                 length: Len::Open,
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -2124,21 +2228,25 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
     SplitDef {
         seq: 1854750,
         score: 20,
-        steps: &[
-            Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "付いて", seq: 1495740 },
-                length: Len::Open,
-                finder: Finder::Seq,
-                modify: Modify::None,
-            }),
-        ],
+        steps: &[Step::Word(WordPart {
+            seq: PartSeq::Dynamic {
+                text: "付いて",
+                seq: 1495740,
+            },
+            length: Len::Open,
+            finder: Finder::Seq,
+            modify: Modify::None,
+        })],
     },
     SplitDef {
         seq: 1855670,
         score: 50,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "取り留め", seq: 1707770 },
+                seq: PartSeq::Dynamic {
+                    text: "取り留め",
+                    seq: 1707770,
+                },
                 length: Len::CharPos('の'),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -2274,7 +2382,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
                 push: None,
             },
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "付いて", seq: 1894260 },
+                seq: PartSeq::Dynamic {
+                    text: "付いて",
+                    seq: 1894260,
+                },
                 length: Len::Fixed(3),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -2304,7 +2415,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
                 modify: Modify::None,
             }),
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "なって", seq: 1375610 },
+                seq: PartSeq::Dynamic {
+                    text: "なって",
+                    seq: 1375610,
+                },
                 length: Len::Open,
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -2332,21 +2446,25 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
     SplitDef {
         seq: 1951150,
         score: 50,
-        steps: &[
-            Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "決まって", seq: 1591420 },
-                length: Len::Open,
-                finder: Finder::Seq,
-                modify: Modify::None,
-            }),
-        ],
+        steps: &[Step::Word(WordPart {
+            seq: PartSeq::Dynamic {
+                text: "決まって",
+                seq: 1591420,
+            },
+            length: Len::Open,
+            finder: Finder::Seq,
+            modify: Modify::None,
+        })],
     },
     SplitDef {
         seq: 2002270,
         score: 50,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "零れ", seq: 1557650 },
+                seq: PartSeq::Dynamic {
+                    text: "零れ",
+                    seq: 1557650,
+                },
                 length: Len::CharPosPlus1('れ'),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -2364,7 +2482,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 100,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "落ち", seq: 1548550 },
+                seq: PartSeq::Dynamic {
+                    text: "落ち",
+                    seq: 1548550,
+                },
                 length: Len::Fixed(2),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -2398,14 +2519,15 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
     SplitDef {
         seq: 2016840,
         score: -5,
-        steps: &[
-            Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "やった", seq: 1012980 },
-                length: Len::Open,
-                finder: Finder::Seq,
-                modify: Modify::None,
-            }),
-        ],
+        steps: &[Step::Word(WordPart {
+            seq: PartSeq::Dynamic {
+                text: "やった",
+                seq: 1012980,
+            },
+            length: Len::Open,
+            finder: Finder::Seq,
+            modify: Modify::None,
+        })],
     },
     SplitDef {
         seq: 2026650,
@@ -2418,7 +2540,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
                 modify: Modify::None,
             }),
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "せよ", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "せよ",
+                    seq: 1157170,
+                },
                 length: Len::Open,
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -2537,7 +2662,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
                 modify: Modify::None,
             }),
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "なったら", seq: 1375610 },
+                seq: PartSeq::Dynamic {
+                    text: "なったら",
+                    seq: 1375610,
+                },
                 length: Len::Open,
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -2609,7 +2737,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 50,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "有り", seq: 1296400 },
+                seq: PartSeq::Dynamic {
+                    text: "有り",
+                    seq: 1296400,
+                },
                 length: Len::Fixed(2),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -2855,7 +2986,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -2897,7 +3031,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
                 modify: Modify::None,
             }),
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "しろ", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "しろ",
+                    seq: 1157170,
+                },
                 length: Len::Open,
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -2927,7 +3064,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 50,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "弾け", seq: 1419380 },
+                seq: PartSeq::Dynamic {
+                    text: "弾け",
+                    seq: 1419380,
+                },
                 length: Len::CharPosPlus1('け'),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -2967,14 +3107,15 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
     SplitDef {
         seq: 2666360,
         score: 30,
-        steps: &[
-            Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "少なくない", seq: 1348910 },
-                length: Len::Open,
-                finder: Finder::Seq,
-                modify: Modify::None,
-            }),
-        ],
+        steps: &[Step::Word(WordPart {
+            seq: PartSeq::Dynamic {
+                text: "少なくない",
+                seq: 1348910,
+            },
+            length: Len::Open,
+            finder: Finder::Seq,
+            modify: Modify::None,
+        })],
     },
     SplitDef {
         seq: 2668400,
@@ -3105,14 +3246,15 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
     SplitDef {
         seq: 2762260,
         score: 0,
-        steps: &[
-            Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "ならんで", seq: 1508380 },
-                length: Len::Open,
-                finder: Finder::Seq,
-                modify: Modify::None,
-            }),
-        ],
+        steps: &[Step::Word(WordPart {
+            seq: PartSeq::Dynamic {
+                text: "ならんで",
+                seq: 1508380,
+            },
+            length: Len::Open,
+            finder: Finder::Seq,
+            modify: Modify::None,
+        })],
     },
     SplitDef {
         seq: 2771850,
@@ -3268,7 +3410,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 20,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "じゃない", seq: 2089020 },
+                seq: PartSeq::Dynamic {
+                    text: "じゃない",
+                    seq: 2089020,
+                },
                 length: Len::Fixed(4),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -3307,14 +3452,12 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
     SplitDef {
         seq: 2834732,
         score: -10,
-        steps: &[
-            Step::Word(WordPart {
-                seq: PartSeq::Static(&[1707770i32]),
-                length: Len::Open,
-                finder: Finder::ConjOf,
-                modify: Modify::None,
-            }),
-        ],
+        steps: &[Step::Word(WordPart {
+            seq: PartSeq::Static(&[1707770i32]),
+            length: Len::Open,
+            finder: Finder::ConjOf,
+            modify: Modify::None,
+        })],
     },
     SplitDef {
         seq: 2835890,
@@ -3381,7 +3524,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 50,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "取り留め", seq: 1707770 },
+                seq: PartSeq::Dynamic {
+                    text: "取り留め",
+                    seq: 1707770,
+                },
                 length: Len::CharPos('も'),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -3405,7 +3551,10 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
         score: 30,
         steps: &[
             Step::Word(WordPart {
-                seq: PartSeq::Dynamic { text: "し", seq: 1157170 },
+                seq: PartSeq::Dynamic {
+                    text: "し",
+                    seq: 1157170,
+                },
                 length: Len::Fixed(1),
                 finder: Finder::Seq,
                 modify: Modify::None,
@@ -3443,14 +3592,4 @@ pub async fn split_map_dispatch(
 pub(crate) const REGISTERED_COUNT: usize = SPLIT_TABLE.len();
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn registered_count_matches_upstream_split_map() {
-        // dict-split.lisp registers 174 entries via def-simple-split /
-        // def-de-split / def-toori-split / def-do-split /
-        // def-shi-split outside the *segsplit-map* let-binding.
-        assert_eq!(REGISTERED_COUNT, 174);
-    }
-}
+mod tests;

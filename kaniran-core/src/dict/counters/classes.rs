@@ -1,4 +1,4 @@
-use crate::dict::_star_kana_hint_space_star_::KANA_HINT_SPACE;
+use crate::dict::split::segsplit::KANA_HINT_SPACE;
 use crate::dict::counters::kani_counter_args::{CounterArgs, CounterClass};
 use crate::dict::kana_text_dao::KanaText;
 use crate::dict::grammar::suffix::kani_suffix_kind::SuffixKind;

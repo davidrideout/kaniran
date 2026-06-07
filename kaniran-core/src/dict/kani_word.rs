@@ -79,7 +79,7 @@ impl KaniSimpleTextDispatchEnum {
 
     /// Clone-wrap into [`KaniWordDispatchEnum`] for callers that
     /// need the wider type. Used by [`Self::get_kana`] to invoke
-    /// [`super::get_hint::get_hint`], which dispatches on the wider
+    /// [`super::split::hint::get_hint`], which dispatches on the wider
     /// enum.
     pub fn to_word(&self) -> KaniWordDispatchEnum {
         match self {
@@ -110,7 +110,7 @@ impl KaniSimpleTextDispatchEnum {
             // dict.lisp:82 (let ((*disable-hints* t)) (get-hint obj))
             let ctx2 = ctx.with_disable_hints(true);
             if let Some(hint_result) =
-                super::get_hint::get_hint(&ctx2, &wrapped).await?
+                super::split::hint::get_hint(&ctx2, &wrapped).await?
             {
                 return Ok(Some(hint_result));
             }

@@ -5,8 +5,8 @@ use crate::core::methods::{
     SimplifiedHepburn, TraditionalHepburn,
 };
 use crate::core::romanize::get_character_classes;
-use crate::dict::_star_kana_hint_mod_star_::KANA_HINT_MOD;
-use crate::dict::_star_kana_hint_space_star_::KANA_HINT_SPACE;
+use crate::dict::split::segsplit::KANA_HINT_MOD;
+use crate::dict::split::segsplit::KANA_HINT_SPACE;
 use crate::dict::word_info_class::WordInfoType;
 
 // --- get_character_classes ---

@@ -9,7 +9,7 @@ use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;
 use crate::dict::counters::dispatchers::{build_counter_cache, CounterCache};
 use crate::dict::_star_is_arch_cache_star_::build_is_arch;
 use crate::dict::_star_no_conj_data_star_::build_no_conj_data;
-use crate::dict::_star_split_map_star_::SplitMapKind;
+use crate::dict::split::split_map::SplitMapKind;
 use crate::dict::_star_substring_hash_star_::SubstringHash;
 use crate::dict::grammar::suffix::constants::SuffixCache;
 use crate::dict::grammar::suffix::constants::SuffixClass;
@@ -276,7 +276,7 @@ impl KaniranContext {
     /// differs from `DATABASE_URL`. This guards `init_tables` (and any
     /// other DDL test) from ever wiping the production corpus.
     pub(crate) async fn pool_only_test_ctx() -> Self {
-        use crate::dict::_star_split_map_star_::SplitMapKind;
+        use crate::dict::split::split_map::SplitMapKind;
         use std::collections::HashMap;
 
         let test_url = std::env::var("KANIRAN_TEST_DATABASE_URL").expect(

@@ -3,7 +3,7 @@
 //! Counter cache entry for the bare-number reading; adds no slots over
 //! [`crate::dict::counters::classes::CounterText`].
 
-use crate::dict::_star_kana_hint_space_star_::KANA_HINT_SPACE;
+use crate::dict::split::segsplit::KANA_HINT_SPACE;
 use crate::dict::counters::classes::CounterText;
 use crate::numbers::constants::DIGIT_KANJI_DEFAULT;
 use crate::numbers::constants::POWER_KANJI;

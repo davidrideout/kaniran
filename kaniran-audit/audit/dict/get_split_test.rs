@@ -13,8 +13,8 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::get_split::get_split;
-use kaniran_core::dict::kani_split_part::SplitPart;
+use kaniran_core::dict::split::split::get_split;
+use kaniran_core::dict::split::kani_split_part::SplitPart;
 use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
 
 use common::{parse_captured_simple_text, CapturedKanaText, CapturedKanjiText, CapturedRow};

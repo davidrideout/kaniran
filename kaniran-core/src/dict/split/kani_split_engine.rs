@@ -1,18 +1,16 @@
-//! Rust-only sidecar: the interpreter that drives every
-//! `def-simple-split` callsite (`dict-split.lisp:13`). Each split-*
-//! callsite ports to a [`SplitDef`] data row whose body delegates to
-//! [`run_split`].
-
 use crate::characters::text::safe_subseq;
 use crate::characters::voicing::unrendaku as unrendaku_fn;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::grammar::lookup::find_word_conj_of;
-use crate::dict::grammar::lookup::find_word_seq;
-use crate::dict::kani_split_part::SplitPart;
+use crate::dict::grammar::lookup::{find_word_conj_of, find_word_seq};
 use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
-use crate::dict::optprefix::optprefix;
+use crate::dict::split::kani_split_part::SplitPart;
+use crate::dict::split::split::optprefix;
 use crate::dict::word_type::WordType;
 
+/// Rust-only sidecar: the interpreter that drives every
+/// `def-simple-split` callsite (`dict-split.lisp:13`). Each split-*
+/// callsite ports to a [`SplitDef`] data row whose body delegates to
+/// [`run_split`].
 /// One registered split callsite — the macro arguments collapsed into
 /// data. Every `dict/split_*.rs` exposes one of these as `pub static`
 /// and a 3-line `pub async fn` shim that calls [`run_split`] on it.
@@ -93,7 +91,10 @@ pub struct WordPart {
 pub enum PartSeq {
     Static(&'static [i32]),
     /// `(seq (car (find-word-conj-of <text> <seq>)))`
-    Dynamic { text: &'static str, seq: i32 },
+    Dynamic {
+        text: &'static str,
+        seq: i32,
+    },
 }
 
 /// `part-length-form` shape. The macro accepts any expression; this
@@ -186,10 +187,7 @@ impl Modify {
     }
 }
 
-async fn resolve_pseq(
-    ctx: &KaniranContext,
-    pseq: &PartSeq,
-) -> Result<Vec<i32>, sqlx::Error> {
+async fn resolve_pseq(ctx: &KaniranContext, pseq: &PartSeq) -> Result<Vec<i32>, sqlx::Error> {
     match pseq {
         PartSeq::Static(s) => Ok(s.to_vec()),
         PartSeq::Dynamic { text, seq } => {
@@ -216,7 +214,11 @@ pub async fn run_split(
 
     for step in def.steps {
         match step {
-            Step::Test { pred, score_mod, push } => {
+            Step::Test {
+                pred,
+                score_mod,
+                push,
+            } => {
                 if !pred.eval(&txt, reading, len_) {
                     if let Some(s) = score_mod {
                         score = *s;

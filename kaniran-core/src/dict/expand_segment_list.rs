@@ -7,7 +7,7 @@
 //! stable-sorted high-to-low by `segment-score`.
 
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::get_segsplit::get_segsplit;
+use crate::dict::split::segsplit::get_segsplit;
 use crate::dict::segment_list_struct::SegmentList;
 use crate::dict::segment_struct::Segment;
 
