@@ -2,7 +2,7 @@
 //! (`reading`, `type`, optional `tag`, optional `gem`), unifying the
 //! heterogeneous 2- to 4-element reading lists upstream emits.
 
-use super::get_reading_alternatives::{ReadingAlternative, ReadingTag};
+use super::readings::{ReadingAlternative, ReadingTag};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KanjiReading {

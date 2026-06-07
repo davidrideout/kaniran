@@ -16,7 +16,7 @@ use crate::dict::kani_word::KaniWordDispatchEnum;
 use crate::dict::translate_hints::translate_hints;
 use crate::dict::true_kana::true_kana;
 use crate::dict::true_kanji::true_kanji;
-use crate::kanji::match_readings::{match_readings, MatchedSegment};
+use crate::kanji::matching::{match_readings, MatchedSegment};
 
 /// Search for a hiragana substring inside a kana string, returning
 /// the start char-position. `from_end = true` mirrors CL's

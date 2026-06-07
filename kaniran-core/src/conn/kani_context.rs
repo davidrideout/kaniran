@@ -15,7 +15,7 @@ use crate::dict::_star_suffix_cache_star_::SuffixCache;
 use crate::dict::_star_suffix_class_star_::SuffixClass;
 use crate::dict::_star_suffix_map_temp_star_::SuffixMapTemp;
 use crate::dict::init_suffixes_thread::build_suffix_caches;
-use crate::kanji::_star_reading_cache_star_::{new_reading_cache, ReadingCache};
+use crate::kanji::helpers::{new_reading_cache, ReadingCache};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::collections::HashSet;
 use std::sync::Arc;

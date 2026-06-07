@@ -1,6 +1,6 @@
 //! End-to-end runner for the kanjidic loader: drives
-//! [`kaniran_core::kanji::load_kanjidic::load_kanjidic`] (and
-//! optionally [`kaniran_core::kanji::load_kanji_stats::load_kanji_stats`])
+//! [`kaniran_core::kanji::loaders::load_kanjidic`] (and
+//! optionally [`kaniran_core::kanji::stats::load_kanji_stats`])
 //! against an arbitrary Postgres URL.
 //!
 //! Run:
@@ -14,8 +14,8 @@ use std::path::PathBuf;
 use clap::Parser;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::kanji::load_kanji_stats::load_kanji_stats;
-use kaniran_core::kanji::load_kanjidic::load_kanjidic;
+use kaniran_core::kanji::stats::load_kanji_stats;
+use kaniran_core::kanji::loaders::load_kanjidic;
 
 #[derive(Parser)]
 struct Args {
