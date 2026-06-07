@@ -17,7 +17,7 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::get_suffixes::get_suffixes;
+use kaniran_core::dict::grammar::suffix::resolve::get_suffixes;
 use kaniran_core::dict::kana_text_dao::KanaText;
 
 use common::{single_result, CapturedKanaText, CapturedRow};

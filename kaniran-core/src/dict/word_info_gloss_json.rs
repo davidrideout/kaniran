@@ -14,7 +14,7 @@ use crate::conn::kani_context::KaniranContext;
 use super::conj_info_json::conj_info_json;
 use super::filter_props::FilterPropsText;
 use super::get_senses_json::get_senses_json;
-use super::get_suffix_description::get_suffix_description;
+use super::grammar::suffix::init::get_suffix_description;
 use super::simple_text_class::WordConjugations;
 use super::word_info_class::{WordInfo, WordInfoKana, WordInfoSeq};
 use super::word_info_reading::word_info_reading;

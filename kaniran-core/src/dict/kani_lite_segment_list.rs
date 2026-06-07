@@ -55,7 +55,7 @@ impl KaniLiteSegmentList {
     }
 }
 
-/// Sidecar mirror of [`super::make_segment_list_from::make_segment_list_from`]
+/// Sidecar mirror of [`super::grammar::synergy::make_segment_list_from`]
 /// for the lite layer. Builds a fresh [`KaniLiteSegmentList`] with
 /// the given filtered segments, inheriting `start` / `end` /
 /// `matches` / `top` from `old`. Matches the upstream

@@ -3,7 +3,7 @@ use crate::dict::counters::kani_counter_args::{
     args, args_multi, args_suffix, digit_opts, CounterArgs, CounterClass as C,
 };
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_suffix_kind::SuffixKind;
+use crate::dict::grammar::suffix::kani_suffix_kind::SuffixKind;
 use crate::dict::kanji_text_dao::KanjiText;
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -600,7 +600,7 @@ pub static COUNTER_SUFFIXES: &[(SuffixKind, &str, &str, &str)] = &[
 ///
 /// Per-seq override of which counter suffixes a JMdict entry accepts.
 /// The default is "no suffixes"; entries listed here advertise the
-/// given subset of [`crate::dict::kani_suffix_kind::SuffixKind`].
+/// given subset of [`crate::dict::grammar::suffix::kani_suffix_kind::SuffixKind`].
 pub static COUNTER_ACCEPTS: &[(i32, &[SuffixKind])] = &[
     (1194480, &[SuffixKind::Kan]),
     (1490430, &[SuffixKind::Kan]),

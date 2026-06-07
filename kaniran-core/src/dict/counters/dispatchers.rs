@@ -11,7 +11,7 @@ use crate::dict::counters::constants::{
 use crate::dict::counters::kani_counter_args::{CounterArgs, CounterClass};
 use crate::dict::counters::methods::{get_digit, verify};
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_suffix_kind::SuffixKind;
+use crate::dict::grammar::suffix::kani_suffix_kind::SuffixKind;
 use crate::dict::kanji_text_dao::KanjiText;
 use crate::numbers::constants::{DIGIT_TO_KANA, POWER_TO_KANA};
 use sqlx::Row;

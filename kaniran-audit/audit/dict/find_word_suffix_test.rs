@@ -22,7 +22,7 @@ use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::compound_text_class::{CompoundText, ScoreMod};
-use kaniran_core::dict::find_word_suffix::find_word_suffix;
+use kaniran_core::dict::grammar::suffix::resolve::find_word_suffix;
 use kaniran_core::dict::kana_text_dao::KanaText;
 use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
 use kaniran_core::dict::kanji_text_dao::KanjiText;

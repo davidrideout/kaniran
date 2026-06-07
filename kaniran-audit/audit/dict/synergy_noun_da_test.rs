@@ -17,8 +17,8 @@ use kaniran_core::dict::segment_list_struct::SegmentList;
 use kaniran_core::dict::segment_struct::{
     KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment,
 };
-use kaniran_core::dict::synergy_noun_da::synergy_noun_da;
-use kaniran_core::dict::synergy_struct::Synergy;
+use kaniran_core::dict::grammar::synergy::synergy_noun_da;
+use kaniran_core::dict::grammar::synergy::Synergy;
 
 use common::{
     captured_class, parse_captured_word, parse_conj_list, parse_int_list, parse_kpcl,

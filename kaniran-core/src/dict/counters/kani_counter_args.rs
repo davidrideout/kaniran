@@ -7,7 +7,7 @@
 
 use crate::dict::counters::classes::{Common, CounterSource, DigitOp, DigitOptEntry, DigitOptKey};
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_suffix_kind::SuffixKind;
+use crate::dict::grammar::suffix::kani_suffix_kind::SuffixKind;
 use crate::dict::kanji_text_dao::KanjiText;
 
 /// Tag-only twin of [`crate::dict::counters::classes::Counter`].

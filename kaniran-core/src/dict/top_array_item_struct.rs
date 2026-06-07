@@ -6,7 +6,7 @@
 //! [`Synergy`] elements.
 
 use super::segment_list_struct::SegmentList;
-use super::synergy_struct::Synergy;
+use super::grammar::synergy::Synergy;
 
 #[derive(Debug, Clone)]
 pub struct TopArrayItem {

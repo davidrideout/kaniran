@@ -5,7 +5,7 @@ mod common;
 
 use serde_json::Value;
 
-use kaniran_core::dict::get_suffixes::get_suffixes;
+use kaniran_core::dict::grammar::suffix::resolve::get_suffixes;
 use kaniran_core::dict::kana_text_dao::KanaText;
 
 use common::{load_parquet, parse_path_arg, setup_ctx, CapturedKanaText, CapturedRow};

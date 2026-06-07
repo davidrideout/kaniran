@@ -6,8 +6,8 @@
 use crate::characters::text::safe_subseq;
 use crate::characters::voicing::unrendaku as unrendaku_fn;
 use crate::conn::kani_context::KaniranContext;
-use crate::dict::find_word_conj_of::find_word_conj_of;
-use crate::dict::find_word_seq::find_word_seq;
+use crate::dict::grammar::lookup::find_word_conj_of;
+use crate::dict::grammar::lookup::find_word_seq;
 use crate::dict::kani_split_part::SplitPart;
 use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 use crate::dict::optprefix::optprefix;

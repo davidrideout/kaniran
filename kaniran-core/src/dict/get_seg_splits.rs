@@ -4,14 +4,14 @@
 //! and, for each resulting split, concatenates [`get_penalties`] with
 //! [`get_synergies`].
 //!
-//! [`get_penalties`]: super::get_penalties::get_penalties
-//! [`get_synergies`]: super::get_synergies::get_synergies
+//! [`get_penalties`]: super::grammar::segfilter::get_penalties
+//! [`get_synergies`]: super::grammar::penalty::get_synergies
 
 use std::sync::Arc;
 
-use super::apply_segfilters::apply_segfilters;
-use super::get_penalties::get_penalties;
-use super::get_synergies::get_synergies;
+use super::grammar::segfilter::apply_segfilters;
+use super::grammar::segfilter::get_penalties;
+use super::grammar::penalty::get_synergies;
 use super::kani_lite_segment_list::KaniLiteSegmentList;
 use super::kani_lite_top_array_item::KaniLitePathElement;
 
@@ -47,7 +47,7 @@ mod tests {
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::{KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment};
     use crate::dict::simple_text_class::SimpleText;
-    use crate::dict::synergy_struct::Synergy;
+    use crate::dict::grammar::synergy::Synergy;
 
     fn dummy_word() -> KaniWordDispatchEnum {
         KaniWordDispatchEnum::Kana(KanaText {

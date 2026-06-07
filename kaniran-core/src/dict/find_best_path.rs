@@ -3,7 +3,7 @@
 //! Builds a top-`limit` array of path scorings over the input
 //! segment-lists. Each result is a `(path, score)` pair where `path` is
 //! a heterogeneous list of [`SegmentList`]s (left-to-right picks) and
-//! [`super::synergy_struct::Synergy`]s (inter-slice bonuses).
+//! [`super::grammar::synergy::Synergy`]s (inter-slice bonuses).
 
 use std::sync::Arc;
 

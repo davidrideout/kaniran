@@ -1,7 +1,7 @@
 use crate::dict::_star_kana_hint_space_star_::KANA_HINT_SPACE;
 use crate::dict::counters::kani_counter_args::{CounterArgs, CounterClass};
 use crate::dict::kana_text_dao::KanaText;
-use crate::dict::kani_suffix_kind::SuffixKind;
+use crate::dict::grammar::suffix::kani_suffix_kind::SuffixKind;
 use crate::dict::kanji_text_dao::KanjiText;
 use crate::dict::number_text_class::NumberText;
 use crate::numbers::constants::{DIGIT_KANJI_DEFAULT, POWER_KANJI};

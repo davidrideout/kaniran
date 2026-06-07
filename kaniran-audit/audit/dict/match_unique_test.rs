@@ -17,7 +17,7 @@ use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
-use kaniran_core::dict::match_unique::{match_unique, MatchUniqueResult};
+use kaniran_core::dict::grammar::suffix::resolve::{match_unique, MatchUniqueResult};
 
 use common::{parse_captured_word, CapturedRow};
 

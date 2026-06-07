@@ -14,7 +14,7 @@ use crate::dict::exists_reading::exists_reading;
 use crate::dict::find_word::{find_word, FindWordRows};
 use crate::dict::find_word_full::{find_word_full, CounterArg};
 use crate::dict::gen_score::gen_score;
-use crate::dict::get_suffix_map::get_suffix_map;
+use crate::dict::grammar::suffix::resolve::get_suffix_map;
 use crate::dict::kani_word::KaniWordDispatchEnum;
 use crate::dict::segment_struct::Segment;
 use crate::dict::word_info_class::{WordInfo, WordInfoKana, WordInfoSeq};

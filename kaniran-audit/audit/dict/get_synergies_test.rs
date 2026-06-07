@@ -16,14 +16,14 @@ use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::conj_data_struct::ConjData;
-use kaniran_core::dict::get_synergies::get_synergies;
+use kaniran_core::dict::grammar::penalty::get_synergies;
 use kaniran_core::dict::kani_lite_segment_list::KaniLiteSegmentList;
 use kaniran_core::dict::kani_lite_top_array_item::KaniLitePathElement;
 use kaniran_core::dict::segment_list_struct::SegmentList;
 use kaniran_core::dict::segment_struct::{
     KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment,
 };
-use kaniran_core::dict::synergy_struct::Synergy;
+use kaniran_core::dict::grammar::synergy::Synergy;
 use kaniran_core::dict::top_array_item_struct::PathElement;
 
 use common::{

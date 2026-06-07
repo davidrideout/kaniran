@@ -19,7 +19,7 @@ use crate::dict::_star_suffix_map_temp_star_::SuffixMapTemp;
 use crate::dict::find_sticky_positions::find_sticky_positions;
 use crate::dict::find_substring_words::find_substring_words;
 use crate::dict::find_word_full::{find_word_full, CounterArg};
-use crate::dict::get_suffix_map::get_suffix_map;
+use crate::dict::grammar::suffix::resolve::get_suffix_map;
 use crate::dict::segment_struct::Segment;
 
 pub async fn join_substring_words_star_(

@@ -77,7 +77,7 @@ mod tests {
     use crate::dict::kani_word::KaniWordDispatchEnum;
     use crate::dict::segment_list_struct::SegmentList;
     use crate::dict::segment_struct::Segment;
-    use crate::dict::synergy_struct::Synergy;
+    use crate::dict::grammar::synergy::Synergy;
     use crate::dict::word_info_class::WordInfoSeq;
 
     async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {

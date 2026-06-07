@@ -7,7 +7,7 @@
 use std::fmt::Write;
 
 use super::get_senses_str::get_senses_str;
-use super::get_suffix_description::get_suffix_description;
+use super::grammar::suffix::init::get_suffix_description;
 use super::print_conj_info::print_conj_info;
 use super::simple_text_class::WordConjugations;
 use super::word_info_class::{WordInfo, WordInfoSeq};

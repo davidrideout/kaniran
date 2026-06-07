@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use super::kani_lite_segment_list::KaniLiteSegmentList;
-use super::synergy_struct::Synergy;
+use super::grammar::synergy::Synergy;
 
 #[derive(Debug, Clone)]
 pub struct KaniLiteTopArrayItem {

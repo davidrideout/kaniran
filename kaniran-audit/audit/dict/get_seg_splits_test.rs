@@ -25,7 +25,7 @@ use kaniran_core::dict::segment_list_struct::SegmentList;
 use kaniran_core::dict::segment_struct::{
     KaniScoreInfo, KaniSegmentInfo, KaniSplitInfo, Segment,
 };
-use kaniran_core::dict::synergy_struct::Synergy;
+use kaniran_core::dict::grammar::synergy::Synergy;
 use kaniran_core::dict::top_array_item_struct::PathElement;
 
 use common::{

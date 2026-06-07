@@ -17,7 +17,7 @@ use serde_json::Value;
 
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
-use kaniran_core::dict::pair_words_by_conj::pair_words_by_conj;
+use kaniran_core::dict::grammar::lookup::pair_words_by_conj;
 
 use common::{parse_captured_word, CapturedRow};
 

@@ -19,9 +19,9 @@ use std::sync::Arc;
 use serde_json::Value;
 
 use kaniran_core::dict::find_word::FindWordRows;
-use kaniran_core::dict::find_word_with_pos::{find_word_with_pos, WordWithPosRows};
+use kaniran_core::dict::grammar::lookup::{find_word_with_pos, WordWithPosRows};
 use kaniran_core::dict::kani_word::KaniSimpleTextDispatchEnum;
-use kaniran_core::dict::or_as_hiragana::{
+use kaniran_core::dict::grammar::lookup::{
     or_as_hiragana, OrAsHiraganaFinder, OrAsHiraganaRows,
 };
 use kaniran_core::dict::proxy_text_class::ProxyText;

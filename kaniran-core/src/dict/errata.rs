@@ -1,5 +1,5 @@
 use super::load::jmdict::add_new_sense;
-use super::apply_patch::apply_patch;
+use super::grammar::suffix::rules::apply_patch;
 use super::conj_data_struct::ConjData;
 use super::conj_prop_dao::ConjProp;
 use super::conj_source_reading_dao::ConjSourceReading;
@@ -1450,7 +1450,7 @@ pub async fn get_all_readings(ctx: &KaniranContext, seq: i32) -> Result<Vec<Stri
 /// When `reset` is `Some(true)`, every existing conjugation `from`
 /// these seqs is dropped first via [`delete_conjugation`].
 ///
-/// [`apply_patch`]: super::apply_patch::apply_patch
+/// [`apply_patch`]: super::grammar::suffix::rules::apply_patch
 /// [`delete_conjugation`]: super::errata::delete_conjugation
 pub async fn add_gozaimasu_conjs(
     ctx: &KaniranContext,
