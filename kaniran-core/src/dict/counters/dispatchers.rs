@@ -1,3 +1,4 @@
+use crate::conn::kani_backend::KaniBackend;
 use crate::characters::char_class::{test_word, CharClass};
 use crate::characters::helpers::char_class_hash;
 use crate::characters::kani_kana_class::KanaClass;

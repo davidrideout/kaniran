@@ -1,3 +1,4 @@
+use crate::conn::kani_backend::KaniBackend;
 use crate::characters::char_class::{test_word, CharClass};
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::accessors::get_kanji;
@@ -135,10 +136,10 @@ pub async fn find_word_info(
 /// `word-info-seq` slot — an int for a simple word, a list for a
 /// compound. For a single seq this is the ported [`exists_reading`]
 /// predicate. For a compound's list seq, postmodern renders the list as
-/// a SQL row literal (`seq = (a, b, …)`), which PostgreSQL rejects with
-/// `operator does not exist: integer = record` (SQLSTATE 42883);
-/// reproduce the same erroring query so the failure propagates
-/// identically.
+/// a SQL row literal (`seq = (a, b, …)`), which PostgreSQL always
+/// rejects with `operator does not exist: integer = record` (SQLSTATE
+/// 42883); the equivalent error is synthesized here without a round
+/// trip so the failure propagates identically on every backend.
 async fn exists_reading_seq(
     ctx: &KaniranContext,
     seq: &WordInfoSeq,
@@ -148,32 +149,53 @@ async fn exists_reading_seq(
         WordInfoSeq::Single(single_seq) => {
             Ok(!exists_reading(ctx, *single_seq, reading).await?.is_empty())
         }
-        WordInfoSeq::Multi(_) => {
-            let rows = ctx
-                .store
-                .kana_seqs_by_seq_expr(&render_seq_row(seq), reading)
-                .await?;
-            Ok(!rows.is_empty())
-        }
+        WordInfoSeq::Multi(_) => Err(sqlx::Error::Database(Box::new(
+            KaniSeqRecordMismatchError,
+        ))),
     }
 }
 
-/// Render a `word-info-seq` value the way postmodern serializes it into
-/// the `(:= 'seq seq)` clause: an int as itself, a list as a
-/// parenthesized comma-separated row literal (`nil` → `NULL`).
-fn render_seq_row(seq: &WordInfoSeq) -> String {
-    match seq {
-        WordInfoSeq::Single(single_seq) => single_seq.to_string(),
-        WordInfoSeq::Multi(elements) => {
-            let rendered: Vec<String> = elements
-                .iter()
-                .map(|element| match element {
-                    Some(inner) => render_seq_row(inner),
-                    None => "NULL".to_string(),
-                })
-                .collect();
-            format!("({})", rendered.join(", "))
-        }
+/// The Postgres error shape for comparing the integer `seq` column to a
+/// row literal, reproduced as a value so the compound-seq
+/// `exists-reading` failure needs no database.
+#[derive(Debug)]
+struct KaniSeqRecordMismatchError;
+
+impl KaniSeqRecordMismatchError {
+    const MESSAGE: &'static str = "operator does not exist: integer = record";
+}
+
+impl std::fmt::Display for KaniSeqRecordMismatchError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}", Self::MESSAGE)
+    }
+}
+
+impl std::error::Error for KaniSeqRecordMismatchError {}
+
+impl sqlx::error::DatabaseError for KaniSeqRecordMismatchError {
+    fn message(&self) -> &str {
+        Self::MESSAGE
+    }
+
+    fn code(&self) -> Option<std::borrow::Cow<'_, str>> {
+        Some(std::borrow::Cow::Borrowed("42883"))
+    }
+
+    fn as_error(&self) -> &(dyn std::error::Error + Send + Sync + 'static) {
+        self
+    }
+
+    fn as_error_mut(&mut self) -> &mut (dyn std::error::Error + Send + Sync + 'static) {
+        self
+    }
+
+    fn into_error(self: Box<Self>) -> Box<dyn std::error::Error + Send + Sync + 'static> {
+        self
+    }
+
+    fn kind(&self) -> sqlx::error::ErrorKind {
+        sqlx::error::ErrorKind::Other
     }
 }
 

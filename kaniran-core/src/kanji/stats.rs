@@ -1,3 +1,4 @@
+use crate::conn::kani_backend::KaniBackend;
 use super::dao::{Kanji, Reading};
 use super::matching::{match_readings, MatchedSegment};
 use super::readings::{get_original_reading, ReadingTag};

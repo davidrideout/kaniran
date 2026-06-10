@@ -1449,6 +1449,7 @@ dependencies = [
  "config",
  "fancy-regex",
  "indexmap",
+ "memmap2",
  "rkyv",
  "roxmltree",
  "serde",

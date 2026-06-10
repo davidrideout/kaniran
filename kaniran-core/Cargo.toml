@@ -7,10 +7,11 @@ license.workspace = true
 repository.workspace = true
 
 [features]
-# Snapshot schema for the rkyv-backed dictionary store: adds rkyv
-# derives to the DAO row structs and enables `conn::kani_snapshot`.
-# Off by default — the Postgres-only build never pays for it.
-rkyv = ["dep:rkyv"]
+# The rkyv-backed dictionary store: adds rkyv derives to the DAO row
+# structs and enables `conn::kani_snapshot` + `conn::kani_rkyv_backend`
+# (selected at runtime via KANI_RKYV_SNAPSHOT). Off by default — the
+# Postgres-only build never pays for it.
+rkyv = ["dep:rkyv", "dep:memmap2"]
 
 [dependencies]
 serde = { workspace = true }
@@ -25,3 +26,4 @@ unicode-properties = { workspace = true }
 roxmltree = { workspace = true }
 indexmap = { workspace = true }
 rkyv = { workspace = true, optional = true }
+memmap2 = { workspace = true, optional = true }

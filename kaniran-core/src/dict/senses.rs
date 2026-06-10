@@ -1,3 +1,4 @@
+use crate::conn::kani_backend::KaniBackend;
 use crate::characters::text::join;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::accessors::{word_type, WordType};

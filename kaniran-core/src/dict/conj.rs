@@ -1,5 +1,6 @@
+use crate::conn::kani_backend::KaniBackend;
 use crate::conn::kani_context::KaniranContext;
-use crate::conn::kani_postgres_backend::KaniPostgresBackend;
+use crate::conn::kani_backend::KaniStore;
 use crate::dict::dao::{conj_info_short, conj_prop_json, ConjProp, Conjugation, WordConjugations};
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::load::conjugate::lex_compare;
@@ -21,9 +22,7 @@ pub fn no_conj_data_cache(ctx: &KaniranContext) -> &HashSet<i32> {
     &ctx.no_conj_data
 }
 
-pub async fn build_no_conj_data(
-    store: &KaniPostgresBackend,
-) -> Result<HashSet<i32>, sqlx::Error> {
+pub async fn build_no_conj_data(store: &KaniStore) -> Result<HashSet<i32>, sqlx::Error> {
     let seqs: Vec<i32> = store.no_conj_seqs().await?;
     Ok(seqs.into_iter().collect())
 }

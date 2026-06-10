@@ -1,9 +1,10 @@
+use crate::conn::kani_backend::KaniBackend;
 use crate::characters::char_class::get_char_class;
 use crate::characters::constants::{ITERATION_CHARACTERS, KANA_CHARACTERS, MODIFIER_CHARACTERS};
 use crate::characters::kana::{long_vowel_modifier_p, mora_length};
 use crate::characters::kani_kana_class::KanaClass;
 use crate::conn::kani_context::KaniranContext;
-use crate::conn::kani_postgres_backend::KaniPostgresBackend;
+use crate::conn::kani_backend::KaniStore;
 use crate::dict::conj::ConjData;
 use crate::dict::errata::NO_KANJI_BREAK_PENALTY;
 use crate::dict::grammar::suffix::resolve::get_suffixes;
@@ -21,7 +22,7 @@ pub fn is_arch_cache(ctx: &KaniranContext) -> &HashSet<i32> {
     &ctx.is_arch
 }
 
-pub async fn build_is_arch(store: &KaniPostgresBackend) -> Result<HashSet<i32>, sqlx::Error> {
+pub async fn build_is_arch(store: &KaniStore) -> Result<HashSet<i32>, sqlx::Error> {
     let a1: Vec<i32> = store.arch_only_seqs().await?;
     let a2: Vec<i32> = store.conj_seqs_from_any(&a1).await?;
     let mut set: HashSet<i32> = a1.into_iter().collect();

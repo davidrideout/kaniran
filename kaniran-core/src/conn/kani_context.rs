@@ -6,6 +6,7 @@
 
 use crate::conn::_star_connection_env_var_star_::DATABASE_URL;
 use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;
+use crate::conn::kani_backend::KaniStore;
 use crate::conn::kani_postgres_backend::KaniPostgresBackend;
 use crate::dict::counters::dispatchers::{build_counter_cache, CounterCache};
 use crate::dict::scoring::score::build_is_arch;
@@ -30,16 +31,21 @@ pub enum Error {
     Database(#[from] sqlx::Error),
     #[error("database URL is not set: env var `{0}` is empty or missing")]
     MissingConnection(&'static str),
+    #[cfg(feature = "rkyv")]
+    #[error("rkyv snapshot: {0}")]
+    Snapshot(String),
 }
 
 #[derive(Clone)]
 pub struct KaniranContext {
     pub pool: PgPool,
-    /// Dictionary lookup backend. All runtime (lookup-serving) SQL
-    /// goes through here; `pool` remains for build-time code that
-    /// writes the database (`dict/load`, `dict/errata`, kanjidic
-    /// loaders).
-    pub store: KaniPostgresBackend,
+    /// Dictionary lookup backend. All runtime (lookup-serving)
+    /// queries go through here; `pool` remains for build-time code
+    /// that writes the database (`dict/load`, `dict/errata`, kanjidic
+    /// loaders). Postgres by default; with the `rkyv` feature, setting
+    /// `KANI_RKYV_SNAPSHOT=<archive path>` selects the memory-mapped
+    /// snapshot backend instead.
+    pub store: KaniStore,
     /// Upstream `*no-conj-data*` (`dict.lisp:329`). See
     /// [`crate::dict::_star_no_conj_data_star_`].
     pub no_conj_data: Arc<HashSet<i32>>,
@@ -171,7 +177,7 @@ impl KaniranContext {
         // share the Arcs; each context still gets its own runtime-bound
         // pool (a shared pool's connections die when a per-test runtime is
         // torn down) and a fresh reading-cache. Production builds fresh.
-        let store = KaniPostgresBackend::new(pool.clone());
+        let store = kani_store_from_env(&pool)?;
         #[cfg(test)]
         {
             let (no_conj_data, is_arch, counter_cache, suffix_cache, suffix_class) =
@@ -243,7 +249,7 @@ impl KaniranContext {
                 Error::from(e)
             })?;
         Ok(Arc::new(Self {
-            store: KaniPostgresBackend::new(pool.clone()),
+            store: KaniStore::Postgres(KaniPostgresBackend::new(pool.clone())),
             pool,
             no_conj_data: Arc::new(HashSet::new()),
             is_arch: Arc::new(HashSet::new()),
@@ -262,6 +268,7 @@ impl KaniranContext {
     /// Read a Postgres URL via [`config::Config`] (file + env layered)
     /// and build the context.
     pub async fn from_env() -> Result<Arc<Self>, Error> {
+        // (the store backend is chosen inside from_url)
         let url = match get_ichiran_connection_env() {
             Ok(Some(u)) => u,
             Ok(None) => {
@@ -315,7 +322,7 @@ impl KaniranContext {
             .await
             .expect("connect to kaniran_test");
         KaniranContext {
-            store: KaniPostgresBackend::new(pool.clone()),
+            store: KaniStore::Postgres(KaniPostgresBackend::new(pool.clone())),
             pool,
             no_conj_data: Arc::new(HashSet::new()),
             is_arch: Arc::new(HashSet::new()),
@@ -330,6 +337,25 @@ impl KaniranContext {
             split_map: SplitMapKind::Default,
         }
     }
+}
+
+/// Store selection for [`KaniranContext::from_url`]: Postgres unless
+/// the `rkyv` feature is compiled in AND `KANI_RKYV_SNAPSHOT` names an
+/// archive path.
+fn kani_store_from_env(pool: &PgPool) -> Result<KaniStore, Error> {
+    #[cfg(feature = "rkyv")]
+    {
+        if let Ok(path) = std::env::var("KANI_RKYV_SNAPSHOT") {
+            if !path.is_empty() {
+                let backend = crate::conn::kani_rkyv_backend::KaniRkyvBackend::from_file(
+                    std::path::Path::new(&path),
+                )
+                .map_err(Error::Snapshot)?;
+                return Ok(KaniStore::Rkyv(backend));
+            }
+        }
+    }
+    Ok(KaniStore::Postgres(KaniPostgresBackend::new(pool.clone())))
 }
 
 /// Shared cache builder for the crate's own test runs. The five
@@ -364,7 +390,7 @@ mod test_support {
     /// throwaway context whose pool belongs to the first test that
     /// triggers the build. Only the resulting cache Arcs are retained.
     async fn build_once(pool: &PgPool) -> Result<Caches, Error> {
-        let store = KaniPostgresBackend::new(pool.clone());
+        let store = KaniStore::Postgres(KaniPostgresBackend::new(pool.clone()));
         let no_conj_data = Arc::new(build_no_conj_data(&store).await?);
         let is_arch = Arc::new(build_is_arch(&store).await?);
         let mut ctx = KaniranContext {

@@ -1,3 +1,4 @@
+use crate::conn::kani_backend::KaniBackend;
 use crate::characters::char_class::{test_word, CharClass};
 use crate::characters::kanji::{kanji_cross_match, kanji_match, kanji_regex};
 use crate::conn::kani_context::KaniranContext;

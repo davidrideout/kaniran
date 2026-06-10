@@ -1,3 +1,4 @@
+use crate::conn::kani_backend::KaniBackend;
 use crate::characters::char_class::{test_word, CharClass};
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::conj::ConjData;

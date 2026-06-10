@@ -1,3 +1,4 @@
+use crate::conn::kani_backend::KaniBackend;
 use super::kani_kanji_reading::KanjiReading;
 use crate::characters::voicing::{geminate, rendaku as voice_rendaku, unrendaku, Voicing};
 use crate::conn::kani_context::KaniranContext;

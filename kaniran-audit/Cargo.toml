@@ -6,6 +6,11 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[features]
+# Forwarded to kaniran-core so audit runners can replay against the
+# rkyv snapshot backend (select with KANI_RKYV_SNAPSHOT=<archive>).
+rkyv = ["kaniran-core/rkyv"]
+
 [dependencies]
 kaniran-core = { path = "../kaniran-core" }
 serde = { workspace = true }
