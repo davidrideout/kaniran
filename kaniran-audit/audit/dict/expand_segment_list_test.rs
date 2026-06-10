@@ -73,7 +73,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     // re-running get_segsplit on each segment and matching its output
     // against a compound in post-state.
     let added_mask = mark_segsplit_added(ctx, &captured_post.segments).await?;
-    let pre_segments: Vec<Segment> = captured_post
+    let pre_segments: Vec<std::sync::Arc<Segment>> = captured_post
         .segments
         .iter()
         .zip(added_mask.iter())
@@ -114,7 +114,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
 /// `segments`.
 async fn mark_segsplit_added(
     ctx: &KaniranContext,
-    segments: &[Segment],
+    segments: &[std::sync::Arc<Segment>],
 ) -> Result<Vec<bool>, String> {
     let mut added = vec![false; segments.len()];
     for (i, seg) in segments.iter().enumerate() {
@@ -211,10 +211,10 @@ fn parse_segment_list_full(value: &Value) -> Result<SegmentList, String> {
     if class != "SEGMENT-LIST" {
         return Err(format!("expected SEGMENT-LIST class, got :{}", class));
     }
-    let segments: Vec<Segment> = match value.get("segments") {
+    let segments: Vec<std::sync::Arc<Segment>> = match value.get("segments") {
         Some(Value::Array(arr)) => arr
             .iter()
-            .map(parse_segment_full)
+            .map(|item| parse_segment_full(item).map(std::sync::Arc::new))
             .collect::<Result<_, _>>()
             .map_err(|err| format!("segments: {}", err))?,
         Some(Value::Null) | None => Vec::new(),

@@ -35,8 +35,8 @@ mod make_segment_list_from {
     fn swaps_segments_preserves_other_slots() {
         // Builds a new segment list with replacement segments while keeping
         // start/end/matches, and leaves the source untouched.
-        let seg1 = seg_with_score(10);
-        let seg2 = seg_with_score(20);
+        let seg1 = std::sync::Arc::new(seg_with_score(10));
+        let seg2 = std::sync::Arc::new(seg_with_score(20));
         let sl = SegmentList {
             segments: vec![seg1.clone(), seg2.clone()],
             start: 0,
@@ -447,7 +447,7 @@ mod synergy_noun_particle {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -603,7 +603,7 @@ mod synergy_noun_da {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -736,7 +736,7 @@ mod synergy_no_da {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -855,7 +855,7 @@ mod synergy_sou_nanda {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -956,7 +956,7 @@ mod synergy_no_adjectives {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1127,7 +1127,7 @@ mod synergy_na_adjectives {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1252,7 +1252,7 @@ mod synergy_to_adverbs {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1513,7 +1513,7 @@ mod synergy_suffix_chu {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1694,7 +1694,7 @@ mod synergy_suffix_tachi {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1879,7 +1879,7 @@ mod synergy_suffix_buri {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2037,7 +2037,7 @@ mod synergy_suffix_sei {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2189,7 +2189,7 @@ mod synergy_o_prefix {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2343,7 +2343,7 @@ mod synergy_kanji_prefix {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2535,7 +2535,7 @@ mod synergy_shicha_ikenai {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2672,7 +2672,7 @@ mod synergy_shika_negative {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,

@@ -477,13 +477,14 @@ mod join_substring_words {
     #[tokio::test]
     async fn slice_word_text() {
         let ctx = ctx().await;
-        let mut sls = join_substring_words(&ctx, "日本語").await.unwrap();
+        let sls = join_substring_words(&ctx, "日本語").await.unwrap();
         let whole = sls
-            .iter_mut()
+            .iter()
             .find(|sl| sl.start == 0 && sl.end == 3)
             .unwrap();
         assert_eq!(whole.segments.len(), 1);
-        assert_eq!(whole.segments[0].get_text(), "日本語");
+        let mut seg = (*whole.segments[0]).clone();
+        assert_eq!(seg.get_text(), "日本語");
     }
 }
 
@@ -643,7 +644,7 @@ mod get_seg_initial {
         segments: Vec<Segment>,
     ) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -786,7 +787,7 @@ mod get_seg_splits {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,

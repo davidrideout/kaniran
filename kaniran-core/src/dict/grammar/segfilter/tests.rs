@@ -52,7 +52,7 @@ mod penalty_short {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -176,7 +176,7 @@ mod penalty_semi_final {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -298,7 +298,7 @@ mod get_penalties {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -596,7 +596,7 @@ mod def_segfilter_must_follow_macro {
 
     fn sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -825,7 +825,7 @@ mod segfilter_aux_verb {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1050,7 +1050,7 @@ mod segfilter_tsu_iru {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1183,7 +1183,7 @@ mod segfilter_n {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1479,7 +1479,7 @@ mod segfilter_wokarasu {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1662,7 +1662,7 @@ mod segfilter_badend {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1829,7 +1829,7 @@ mod segfilter_sukiyoki {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2060,7 +2060,7 @@ mod segfilter_roku {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2236,7 +2236,7 @@ mod segfilter_sae {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2396,7 +2396,7 @@ mod segfilter_janai {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2601,7 +2601,7 @@ mod segfilter_nohayamete {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2739,7 +2739,7 @@ mod segfilter_toomou {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2857,7 +2857,7 @@ mod segfilter_totte {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2969,7 +2969,7 @@ mod segfilter_dashi {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -3201,7 +3201,7 @@ mod segfilter_dekiru {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -3455,7 +3455,7 @@ mod apply_segfilters {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -3629,7 +3629,7 @@ mod segfilter_honorific {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -3844,7 +3844,7 @@ mod segfilter_mononi {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> Arc<KaniLiteSegmentList> {
         Arc::new(KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,

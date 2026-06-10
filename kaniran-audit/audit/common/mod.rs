@@ -1695,7 +1695,7 @@ pub fn parse_captured_segment_list(value: &Value) -> Result<SegmentList, String>
         .ok_or_else(|| format!("segments: expected array, got {}", segments_value))?;
     let mut segments = Vec::with_capacity(segments_arr.len());
     for s in segments_arr {
-        segments.push(parse_captured_segment(s)?);
+        segments.push(std::sync::Arc::new(parse_captured_segment(s)?));
     }
     let start = require_i32(value, "start")? as usize;
     let end = require_i32(value, "end")? as usize;

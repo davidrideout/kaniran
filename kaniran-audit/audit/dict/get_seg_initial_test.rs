@@ -59,10 +59,10 @@ async fn audit_one(
             class
         ));
     }
-    let segments: Vec<Segment> = match captured_input.get("segments") {
+    let segments: Vec<std::sync::Arc<Segment>> = match captured_input.get("segments") {
         Some(Value::Array(arr)) => arr
             .iter()
-            .map(parse_segment_full)
+            .map(|item| parse_segment_full(item).map(std::sync::Arc::new))
             .collect::<Result<_, _>>()
             .map_err(|err| format!("arg 0.segments: {}", err))?,
         Some(Value::Null) | None => Vec::new(),

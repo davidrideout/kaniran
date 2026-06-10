@@ -63,7 +63,7 @@ pub static SYNERGY_LIST: &[SynergyFn] = &[
 /// carrying over the `start`, `end`, `top`, and `matches` slots verbatim.
 pub fn make_segment_list_from(
     old_segment_list: &SegmentList,
-    segments: Vec<Segment>,
+    segments: Vec<Arc<Segment>>,
 ) -> SegmentList {
     // Lisp `copy-segment-list` is a shallow defstruct copy that then
     // gets its segments slot overwritten — the old segments are

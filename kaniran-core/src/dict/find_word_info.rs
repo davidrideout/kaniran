@@ -104,7 +104,7 @@ pub async fn find_word_info(
 
     // (wis (mapcar #'word-info-from-segment segments))
     let mut wis: Vec<WordInfo> = Vec::with_capacity(segments.len());
-    for segment in &mut segments {
+    for segment in &segments {
         wis.push(word_info_from_segment(&ctx2, segment).await?);
     }
 

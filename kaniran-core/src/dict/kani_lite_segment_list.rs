@@ -21,13 +21,14 @@ pub struct KaniLiteSegmentList {
 
 impl KaniLiteSegmentList {
     /// Build a [`KaniLiteSegmentList`] from a source [`SegmentList`].
-    /// Each contained [`Segment`] is `Arc`-wrapped once and converted
-    /// into a [`KaniLiteSegment`] with precomputed predicate inputs.
+    /// Each contained [`Segment`] is converted into a
+    /// [`KaniLiteSegment`] with precomputed predicate inputs, sharing
+    /// the source list's `Arc<Segment>`.
     pub fn from_segment_list(source: &SegmentList) -> Self {
         let segments = source
             .segments
             .iter()
-            .map(|s| Arc::new(KaniLiteSegment::from_segment(Arc::new(s.clone()))))
+            .map(|s| Arc::new(KaniLiteSegment::from_segment(Arc::clone(s))))
             .collect();
         Self {
             start: source.start,
@@ -39,12 +40,12 @@ impl KaniLiteSegmentList {
     }
 
     /// Materialize a full [`SegmentList`] for export at
-    /// `find-best-path` exit. Deep-clones each
-    /// `KaniLiteSegment.source` because the lite layer doesn't own
-    /// the full `Segment` — it borrows it via `Arc<Segment>`.
+    /// `find-best-path` exit. Shares each `KaniLiteSegment.source`
+    /// by `Arc` — matching upstream, where the exported payloads hold
+    /// the same segment objects as the input segment-lists.
     pub fn to_segment_list(&self) -> SegmentList {
-        let segments: Vec<Segment> =
-            self.segments.iter().map(|s| (*s.source).clone()).collect();
+        let segments: Vec<Arc<Segment>> =
+            self.segments.iter().map(|s| Arc::clone(&s.source)).collect();
         SegmentList {
             segments,
             start: self.start,

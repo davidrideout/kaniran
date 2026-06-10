@@ -15,6 +15,7 @@ use crate::dict::scoring::score::{gen_score, Segment, SEGMENT_SCORE_CUTOFF};
 use crate::dict::text_classes::CompoundText;
 use serde_json::{Map, Number, Value};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Port of `ichiran/dict:*suffix-map-temp*` (`dict.lisp:1049`).
 ///
@@ -288,11 +289,16 @@ pub fn def_reader_for_json<'a>(obj: &'a Value, slot: &str) -> &'a Value {
 /// compound-text fills `components`, counter-text fills `counter`.
 pub async fn word_info_from_segment(
     ctx: &KaniranContext,
-    segment: &mut Segment,
+    segment: &Segment,
 ) -> Result<WordInfo, sqlx::Error> {
-    // dict.lisp:1330 (:text (get-text segment)) — lazy memoization via segment.text
-    let text = segment.get_text().to_string();
-    // dict.lisp:1347-1348 (:score / :start / :end) — read before re-borrowing word
+    // dict.lisp:1330 (:text (get-text segment)) — upstream memoizes the
+    // computed text onto the (shared) segment; segments are Arc-shared
+    // here, so recompute instead. Same value either way: the memo write
+    // is invisible to output.
+    let text = match &segment.text {
+        Some(t) => t.clone(),
+        None => crate::dict::counters::methods::text(&segment.word).into_owned(),
+    };
     let score = segment.score;
     let start = segment.start;
     let end = segment.end;
@@ -410,11 +416,11 @@ fn word_info_type_from(word_type: WordType) -> WordInfoType {
 /// every survivor's kana / seq.
 pub async fn word_info_from_segment_list(
     ctx: &KaniranContext,
-    segment_list: &mut SegmentList,
+    segment_list: &SegmentList,
 ) -> Result<WordInfo, sqlx::Error> {
     // dict.lisp:1354-1355 ((segments ...) (wi-list* ...)) — map over segments
     let mut wi_list_star: Vec<WordInfo> = Vec::with_capacity(segment_list.segments.len());
-    for seg in segment_list.segments.iter_mut() {
+    for seg in segment_list.segments.iter() {
         wi_list_star.push(word_info_from_segment(ctx, seg).await?);
     }
 
@@ -507,7 +513,7 @@ pub async fn word_info_from_text(
     let readings = find_word_full(ctx, text, false, Some(CounterArg::Auto)).await?;
     // dict.lisp:1385 (segments (loop for r in readings collect (gen-score (make-segment …))))
     let text_len = text.chars().count();
-    let mut segments: Vec<Segment> = Vec::with_capacity(readings.len());
+    let mut segments: Vec<Arc<Segment>> = Vec::with_capacity(readings.len());
     for r in readings {
         let mut segment = Segment {
             start: 0,
@@ -519,11 +525,11 @@ pub async fn word_info_from_text(
             text: Some(text.to_string()),
         };
         gen_score(ctx, &mut segment, false, &[]).await?;
-        segments.push(segment);
+        segments.push(Arc::new(segment));
     }
     // dict.lisp:1386-1387 (segment-list (make-segment-list :segments segments :start 0 :end (length text) :matches (length segments)))
     let matches = segments.len();
-    let mut segment_list = SegmentList {
+    let segment_list = SegmentList {
         segments,
         start: 0,
         end: text_len,
@@ -531,7 +537,7 @@ pub async fn word_info_from_text(
         matches,
     };
     // dict.lisp:1388 (word-info-from-segment-list segment-list)
-    word_info_from_segment_list(ctx, &mut segment_list).await
+    word_info_from_segment_list(ctx, &segment_list).await
 }
 
 /// Port of `ichiran/dict:fill-segment-path` (`dict.lisp:1390`).
@@ -544,7 +550,7 @@ pub async fn word_info_from_text(
 pub async fn fill_segment_path(
     ctx: &KaniranContext,
     str: &str,
-    path: &mut [PathElement],
+    path: &[PathElement],
 ) -> Result<Vec<WordInfo>, sqlx::Error> {
     let str_char_len = str.chars().count();
     let mut idx: usize = 0;
@@ -552,7 +558,7 @@ pub async fn fill_segment_path(
 
     // dict.lisp:1396-1403 (loop ... for segment-list in path
     //   when (typep segment-list 'segment-list) ...)
-    for element in path.iter_mut() {
+    for element in path.iter() {
         let PathElement::SegmentList(sl) = element else {
             continue;
         };
@@ -792,8 +798,8 @@ pub async fn dict_segment(
 
     // (loop for (path . score) in ... collect (cons (fill-segment-path str path) score))
     let mut result = Vec::with_capacity(best_paths.len());
-    for (mut path, score) in best_paths {
-        let word_info_list = fill_segment_path(ctx, str, &mut path).await?;
+    for (path, score) in best_paths {
+        let word_info_list = fill_segment_path(ctx, str, &path).await?;
         result.push((word_info_list, score));
     }
     Ok(result)

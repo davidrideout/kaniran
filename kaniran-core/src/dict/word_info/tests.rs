@@ -452,7 +452,7 @@ mod word_info_from_segment_list {
 
     fn seg_list(segments: Vec<Segment>, start: usize, end: usize, matches: usize) -> SegmentList {
         SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -738,7 +738,7 @@ mod fill_segment_path {
     ) -> SegmentList {
         let reading = first_reading(ctx, word).await;
         SegmentList {
-            segments: vec![Segment {
+            segments: vec![std::sync::Arc::new(Segment {
                 start,
                 end,
                 word: reading,
@@ -746,7 +746,7 @@ mod fill_segment_path {
                 info: None,
                 top: None,
                 text: None,
-            }],
+            })],
             start,
             end,
             top: None,

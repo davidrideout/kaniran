@@ -50,7 +50,14 @@ pub type SubstringHash = HashMap<String, FindWordRows>;
 /// per substring that produced at least one above-cutoff segment.
 #[derive(Debug, Clone)]
 pub struct SegmentList {
-    pub segments: Vec<Segment>,
+    /// Divergence from Lisp: `Arc`-shared. Lisp passes segment objects
+    /// by pointer, so the same segment is shared between the input
+    /// segment-lists and every surviving `find-best-path` payload;
+    /// `Arc` restores that sharing (a deep `Vec<Segment>` clone per
+    /// surviving path was 27% of allocation traffic). Segments are
+    /// fully populated by `gen-score` before they enter a list; no
+    /// consumer mutates them afterwards.
+    pub segments: Vec<Arc<Segment>>,
     pub start: usize,
     pub end: usize,
     /// Divergence from Lisp: wrapped in `Arc` so
@@ -368,7 +375,7 @@ pub async fn join_substring_words(
         // when sl collect (make-segment-list :segments (cull-segments sl) ...)
         if !sl.is_empty() {
             sls.push(SegmentList {
-                segments: cull_segments(sl),
+                segments: cull_segments(sl).into_iter().map(Arc::new).collect(),
                 start,
                 end,
                 top: None,
@@ -511,12 +518,12 @@ pub async fn expand_segment_list(
     // get_segsplit by reference, then push owned values into the new
     // working list.
     let pre_segments = std::mem::take(&mut segment_list.segments);
-    let mut working: Vec<Segment> = Vec::with_capacity(pre_segments.len() * 2);
+    let mut working: Vec<Arc<Segment>> = Vec::with_capacity(pre_segments.len() * 2);
     for segment in pre_segments {
         let segsplit = get_segsplit(ctx, &segment).await?;
         working.push(segment);
         if let Some(segsplit) = segsplit {
-            working.push(segsplit);
+            working.push(Arc::new(segsplit));
             segment_list.matches += 1;
         }
     }
@@ -694,7 +701,7 @@ pub async fn find_best_path(
     }
 
     // dict.lisp:1232-1233 — collect surviving top-K paths and
-    // reconstruct full PathElements via deep-clone of each
+    // reconstruct full PathElements, Arc-sharing each
     // KaniLiteSegment.source.
     let mut result = Vec::new();
     for slot in kani_lite_get_array(&top) {

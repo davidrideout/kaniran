@@ -857,7 +857,7 @@ mod get_segment_score {
     #[test]
     fn segment_list_returns_first_segment_score() {
         let sl = SegmentList {
-            segments: vec![seg(Some(99)), seg(Some(50))],
+            segments: vec![std::sync::Arc::new(seg(Some(99))), std::sync::Arc::new(seg(Some(50)))],
             start: 0,
             end: 1,
             top: None,
@@ -872,7 +872,7 @@ mod get_segment_score {
     #[test]
     fn segment_list_returns_none_when_first_segment_score_unset() {
         let sl = SegmentList {
-            segments: vec![seg(None)],
+            segments: vec![std::sync::Arc::new(seg(None))],
             start: 0,
             end: 1,
             top: None,
@@ -887,7 +887,7 @@ mod get_segment_score {
     #[test]
     fn single_segment_list_returns_that_score() {
         let sl = SegmentList {
-            segments: vec![seg(Some(42))],
+            segments: vec![std::sync::Arc::new(seg(Some(42)))],
             start: 0,
             end: 1,
             top: None,

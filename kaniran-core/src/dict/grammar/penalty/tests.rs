@@ -48,7 +48,7 @@ mod synergy_no_toori {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -160,7 +160,7 @@ mod synergy_oki {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -315,7 +315,7 @@ mod get_synergies {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -536,7 +536,7 @@ mod filter_short_kana {
 
     fn lite_sl(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
