@@ -27,8 +27,8 @@ pub fn synergy_no_toori(
     def_generic_synergy_body(
         l,
         r,
-        filter_in_seq_set(vec![1469800]),
-        filter_in_seq_set(vec![1432920]),
+        filter_in_seq_set(&[1469800]),
+        filter_in_seq_set(&[1432920]),
         &DefGenericSynergyOpts {
             description: Some("no toori"),
             connector: " ",
@@ -50,7 +50,7 @@ pub fn synergy_oki(
         r,
         // dict-grammar.lisp:952 (filter-is-pos ("ctr") t)
         filter_is_pos(POS_CTR, |_k, _p, _c, _l| true),
-        filter_in_seq_set(vec![2854117, 2084550]),
+        filter_in_seq_set(&[2854117, 2084550]),
         &DefGenericSynergyOpts {
             description: None,
             connector: "",

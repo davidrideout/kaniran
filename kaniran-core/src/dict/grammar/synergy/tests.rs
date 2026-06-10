@@ -371,28 +371,28 @@ mod filter_in_seq_set {
     #[test]
     fn match_when_intersection_nonempty() {
         let seg = lite_with_seq_set(vec![100, 200]);
-        let f = filter_in_seq_set(vec![200, 400]);
+        let f = filter_in_seq_set(&[200, 400]);
         assert!(f(&seg));
     }
 
     #[test]
     fn no_match_when_disjoint() {
         let seg = lite_with_seq_set(vec![300]);
-        let f = filter_in_seq_set(vec![200, 400]);
+        let f = filter_in_seq_set(&[200, 400]);
         assert!(!f(&seg));
     }
 
     #[test]
     fn no_match_when_info_absent() {
         let seg = lite_no_info();
-        let f = filter_in_seq_set(vec![200, 400]);
+        let f = filter_in_seq_set(&[200, 400]);
         assert!(!f(&seg));
     }
 
     #[test]
     fn empty_seqs_never_matches() {
         let seg = lite_with_seq_set(vec![100, 200]);
-        let f = filter_in_seq_set(vec![]);
+        let f = filter_in_seq_set(&[]);
         assert!(!f(&seg));
     }
 }

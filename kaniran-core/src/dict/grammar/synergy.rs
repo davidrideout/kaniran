@@ -171,17 +171,17 @@ pub fn filter_is_pos(
 ///
 /// Returns a predicate that tests whether a segment's `:seq-set`
 /// shares any seq with the supplied list.
-pub fn filter_in_seq_set(seqs: Vec<i32>) -> impl Fn(&Arc<KaniLiteSegment>) -> bool {
-    move |segment| -> bool { seqs.iter().any(|s| segment.seq_set.contains(s)) }
+pub fn filter_in_seq_set(seqs: &[i32]) -> impl Fn(&Arc<KaniLiteSegment>) -> bool + '_ {
+    move |segment| -> bool { seqs.iter().any(|seq| segment.seq_set.contains(seq)) }
 }
 
 /// Port of `ichiran/dict:filter-in-seq-set-simple` (`dict-grammar.lisp:772`).
 ///
 /// Returns a predicate testing whether a segment's word is non-compound
 /// (a single seq) AND its `:seq-set` intersects the supplied list.
-pub fn filter_in_seq_set_simple(seqs: Vec<i32>) -> impl Fn(&Arc<KaniLiteSegment>) -> bool {
+pub fn filter_in_seq_set_simple(seqs: &[i32]) -> impl Fn(&Arc<KaniLiteSegment>) -> bool + '_ {
     move |segment| -> bool {
-        segment.has_simple_seq && seqs.iter().any(|s| segment.seq_set.contains(s))
+        segment.has_simple_seq && seqs.iter().any(|seq| segment.seq_set.contains(seq))
     }
 }
 
@@ -227,10 +227,10 @@ pub static NOUN_PARTICLES: &[i32] = &[
 ///
 /// Tests whether a segment's word is a compound whose last child's
 /// seq matches any of the supplied seqs.
-pub fn filter_is_compound_end(seqs: Vec<i32>) -> impl Fn(&Arc<KaniLiteSegment>) -> bool {
+pub fn filter_is_compound_end(seqs: &[i32]) -> impl Fn(&Arc<KaniLiteSegment>) -> bool + '_ {
     move |segment| -> bool {
         match segment.compound_end_seq {
-            Some(s) => seqs.contains(&s),
+            Some(end_seq) => seqs.contains(&end_seq),
             None => false,
         }
     }
@@ -240,10 +240,12 @@ pub fn filter_is_compound_end(seqs: Vec<i32>) -> impl Fn(&Arc<KaniLiteSegment>) 
 ///
 /// Returns a predicate testing whether a segment's word is a compound
 /// whose last child's text matches any of the supplied texts.
-pub fn filter_is_compound_end_text(texts: Vec<String>) -> impl Fn(&Arc<KaniLiteSegment>) -> bool {
+pub fn filter_is_compound_end_text<'a>(
+    texts: &'a [&'a str],
+) -> impl Fn(&Arc<KaniLiteSegment>) -> bool + 'a {
     move |segment| -> bool {
         match segment.compound_end_text.as_deref() {
-            Some(end) => texts.iter().any(|t| t == end),
+            Some(end) => texts.iter().any(|text| *text == end),
             None => false,
         }
     }
@@ -264,7 +266,7 @@ pub fn synergy_noun_particle(
         l,
         r,
         filter_is_noun,
-        filter_in_seq_set(NOUN_PARTICLES.to_vec()),
+        filter_in_seq_set(NOUN_PARTICLES),
         &DefGenericSynergyOpts {
             description: Some("noun+prt"),
             connector: " ",
@@ -285,7 +287,7 @@ pub fn synergy_noun_da(
         l,
         r,
         filter_is_noun,
-        filter_in_seq_set(vec![2089020]),
+        filter_in_seq_set(&[2089020]),
         &DefGenericSynergyOpts {
             description: Some("noun+da"),
             connector: " ",
@@ -305,8 +307,8 @@ pub fn synergy_no_da(
     def_generic_synergy_body(
         l,
         r,
-        filter_in_seq_set(vec![1469800, 2139720]),
-        filter_in_seq_set(vec![2089020, 1007370, 1928670]),
+        filter_in_seq_set(&[1469800, 2139720]),
+        filter_in_seq_set(&[2089020, 1007370, 1928670]),
         &DefGenericSynergyOpts {
             description: Some("no da/desu"),
             connector: " ",
@@ -326,8 +328,8 @@ pub fn synergy_sou_nanda(
     def_generic_synergy_body(
         l,
         r,
-        filter_in_seq_set(vec![2137720]),
-        filter_in_seq_set(vec![2140410]),
+        filter_in_seq_set(&[2137720]),
+        filter_in_seq_set(&[2140410]),
         &DefGenericSynergyOpts {
             description: Some("sou na n da"),
             connector: " ",
@@ -349,7 +351,7 @@ pub fn synergy_no_adjectives(
         r,
         // dict-grammar.lisp:864 (filter-is-pos ("adj-no") (or k l (and p c)))
         filter_is_pos(POS_ADJ_NO, |k, p, c, l| k || l || (p && c)),
-        filter_in_seq_set(vec![1469800]),
+        filter_in_seq_set(&[1469800]),
         &DefGenericSynergyOpts {
             description: Some("no-adjective"),
             connector: " ",
@@ -371,7 +373,7 @@ pub fn synergy_na_adjectives(
         r,
         // dict-grammar.lisp:871 (filter-is-pos ("adj-na") (or k l (and p c)))
         filter_is_pos(POS_ADJ_NA, |k, p, c, l| k || l || (p && c)),
-        filter_in_seq_set(vec![2029110, 2028990]),
+        filter_in_seq_set(&[2029110, 2028990]),
         &DefGenericSynergyOpts {
             description: Some("na-adjective"),
             connector: " ",
@@ -396,7 +398,7 @@ pub fn synergy_to_adverbs(
         r,
         // dict-grammar.lisp:878 (filter-is-pos ("adv-to") (or k l p))
         filter_is_pos(POS_ADV_TO, |k, p, _c, l| k || l || p),
-        filter_in_seq_set(vec![1008490]),
+        filter_in_seq_set(&[1008490]),
         &DefGenericSynergyOpts {
             description: Some("to-adverb"),
             connector: " ",
@@ -417,7 +419,7 @@ pub fn synergy_suffix_chu(
         l,
         r,
         filter_is_noun,
-        filter_in_seq_set(vec![1620400, 2083570]),
+        filter_in_seq_set(&[1620400, 2083570]),
         &DefGenericSynergyOpts {
             description: Some("suffix-chu"),
             connector: "-",
@@ -437,7 +439,7 @@ pub fn synergy_suffix_tachi(
         l,
         r,
         filter_is_noun,
-        filter_in_seq_set(vec![1416220]),
+        filter_in_seq_set(&[1416220]),
         &DefGenericSynergyOpts {
             description: Some("suffix-tachi"),
             connector: "-",
@@ -458,7 +460,7 @@ pub fn synergy_suffix_buri(
         l,
         r,
         filter_is_noun,
-        filter_in_seq_set(vec![1361140]),
+        filter_in_seq_set(&[1361140]),
         &DefGenericSynergyOpts {
             description: Some("suffix-buri"),
             connector: "",
@@ -478,7 +480,7 @@ pub fn synergy_suffix_sei(
         l,
         r,
         filter_is_noun,
-        filter_in_seq_set(vec![1375260]),
+        filter_in_seq_set(&[1375260]),
         &DefGenericSynergyOpts {
             description: Some("suffix-sei"),
             connector: "",
@@ -498,7 +500,7 @@ pub fn synergy_o_prefix(
     def_generic_synergy_body(
         l,
         r,
-        filter_in_seq_set(vec![1270190]),
+        filter_in_seq_set(&[1270190]),
         // dict-grammar.lisp:915 (filter-is-pos ("n") (or k l))
         filter_is_pos(POS_N, |k, _p, _c, l| k || l),
         &DefGenericSynergyOpts {
@@ -520,7 +522,7 @@ pub fn synergy_kanji_prefix(
     def_generic_synergy_body(
         l,
         r,
-        filter_in_seq_set(vec![2242840, 1922780, 2423740]),
+        filter_in_seq_set(&[2242840, 1922780, 2423740]),
         // dict-grammar.lisp:922 (filter-is-pos ("n") k)
         filter_is_pos(POS_N, |k, _p, _c, _l| k),
         &DefGenericSynergyOpts {
@@ -542,8 +544,8 @@ pub fn synergy_shicha_ikenai(
     def_generic_synergy_body(
         l,
         r,
-        filter_is_compound_end(vec![2028920]),
-        filter_in_seq_set(vec![1000730, 1612750, 1409110, 2829697, 1587610]),
+        filter_is_compound_end(&[2028920]),
+        filter_in_seq_set(&[1000730, 1612750, 1409110, 2829697, 1587610]),
         &DefGenericSynergyOpts {
             description: Some("shicha ikenai"),
             connector: " ",
@@ -563,7 +565,7 @@ pub fn synergy_shika_negative(
     def_generic_synergy_body(
         l,
         r,
-        filter_in_seq_set(vec![1005460]),
+        filter_in_seq_set(&[1005460]),
         // dict-grammar.lisp:936-939 (lambda (some (conj-neg (conj-data-prop cdata)) :conj))
         |s| s.conj_has_neg,
         &DefGenericSynergyOpts {
