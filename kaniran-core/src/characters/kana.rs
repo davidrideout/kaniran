@@ -1,8 +1,10 @@
-use super::char_class::{get_char_class, simplify_ngrams, CharClass};
+use super::char_class::{get_char_class, CharClass};
 use super::constants::{ABNORMAL_CHARS, FULL_WIDTH_KANA, HALF_WIDTH_KANA, PUNCTUATION_MARKS};
 use super::helpers::{all_characters, char_class_hash, dakuten_join, normal_chars};
 use super::kani_char_class_bare_scanners::char_class_bare_scanners;
 use super::kani_kana_class::KanaClass;
+use super::kani_ngram_scanner::KaniNgramScanner;
+use std::sync::LazyLock;
 
 /// Port of `ichiran/characters:long-vowel-modifier-p` (`characters.lisp:47-53`).
 ///
@@ -65,16 +67,22 @@ pub fn normalize(s: &str, context: NormalizationContext) -> String {
         .chars()
         .map(|c| to_normal_char(c, context).unwrap_or(c))
         .collect();
+    // KANA: dakuten_join() alone. DEFAULT: `*punctuation-marks*`
+    // followed by dakuten_join() — same table order the default
+    // context built per call before the scanner was cached.
+    static KANA_CONTEXT_SCANNER: LazyLock<KaniNgramScanner> =
+        LazyLock::new(|| KaniNgramScanner::new(dakuten_join()));
+    static DEFAULT_CONTEXT_SCANNER: LazyLock<KaniNgramScanner> = LazyLock::new(|| {
+        let combined: Vec<(&str, &str)> = PUNCTUATION_MARKS
+            .iter()
+            .copied()
+            .chain(dakuten_join().iter().map(|(from, to)| (from.as_str(), to.as_str())))
+            .collect();
+        KaniNgramScanner::new(&combined)
+    });
     match context {
-        NormalizationContext::Kana => simplify_ngrams(&phase1, dakuten_join()),
-        NormalizationContext::Default => {
-            let combined: Vec<(&str, &str)> = PUNCTUATION_MARKS
-                .iter()
-                .copied()
-                .chain(dakuten_join().iter().map(|(a, b)| (a.as_str(), b.as_str())))
-                .collect();
-            simplify_ngrams(&phase1, &combined)
-        }
+        NormalizationContext::Kana => KANA_CONTEXT_SCANNER.simplify(&phase1),
+        NormalizationContext::Default => DEFAULT_CONTEXT_SCANNER.simplify(&phase1),
     }
 }
 

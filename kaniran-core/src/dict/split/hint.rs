@@ -1,5 +1,5 @@
 use crate::conn::kani_backend::KaniBackend;
-use crate::characters::char_class::simplify_ngrams;
+use crate::characters::kani_ngram_scanner::KaniNgramScanner;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::conj::conj_data_from;
 use crate::dict::counters::methods::seq as word_seq;
@@ -14,7 +14,7 @@ use crate::dict::accessors::true_kanji;
 use crate::dict::accessors::word_conj_data;
 use crate::dict::word_info::WordInfoSeq;
 use crate::kanji::matching::match_readings;
-use std::sync::OnceLock;
+use std::sync::{LazyLock, OnceLock};
 
 /// Port of `ichiran/dict:process-hints` (`dict-split.lisp:826-827`).
 ///
@@ -23,7 +23,9 @@ use std::sync::OnceLock;
 /// its rewritten reading and converts standalone sentinels back to
 /// user-visible characters (or drops them).
 pub fn process_hints(word: &str) -> String {
-    simplify_ngrams(word, hint_simplify_map())
+    static SCANNER: LazyLock<KaniNgramScanner> =
+        LazyLock::new(|| KaniNgramScanner::new(hint_simplify_map()));
+    SCANNER.simplify(word)
 }
 
 /// Port of `ichiran/dict:strip-hints` (`dict-split.lisp:829-830`).

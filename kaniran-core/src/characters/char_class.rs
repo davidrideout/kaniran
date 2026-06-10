@@ -1,7 +1,8 @@
 use super::helpers::{basic_split_regex, char_class_hash, char_scanners, char_scanners_inner};
 use super::kani_char_class_bare_scanners::char_class_bare_scanners;
 use super::kani_kana_class::KanaClass;
-use fancy_regex::{Captures, Regex};
+use super::kani_ngram_scanner::KaniNgramScanner;
+use fancy_regex::Regex;
 use std::sync::OnceLock;
 
 /// Port of `ichiran/characters:get-char-class` (`characters.lisp:44-45`).
@@ -80,26 +81,9 @@ where
     S: AsRef<str>,
     T: AsRef<str>,
 {
-    if map.is_empty() {
-        return s.to_string();
-    }
-    let pattern: String = map
-        .iter()
-        .map(|(k, _)| fancy_regex::escape(k.as_ref()).into_owned())
-        .collect::<Vec<_>>()
-        .join("|");
-    let re = Regex::new(&pattern).expect("simplify-ngrams alternation compiles");
-    re.replace_all(s, |caps: &Captures| -> String {
-        let m = caps
-            .get(0)
-            .expect("alternation always has group 0")
-            .as_str();
-        map.iter()
-            .find(|(k, _)| k.as_ref() == m)
-            .map(|(_, v)| v.as_ref().to_string())
-            .unwrap_or_default()
-    })
-    .into_owned()
+    // One-shot form. Hot-path callers with a fixed table hold a cached
+    // [`KaniNgramScanner`] instead of recompiling the alternation here.
+    KaniNgramScanner::new(map).simplify(s)
 }
 
 /// Port of `ichiran/characters:split-by-regex` (`characters.lisp:234-236`).

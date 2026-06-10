@@ -1,8 +1,9 @@
 use super::constants::{MUNICIPALITY_TYPES, MUNICIPALITY_TYPES_DESCRIPTION};
-use crate::characters::char_class::simplify_ngrams;
+use crate::characters::kani_ngram_scanner::KaniNgramScanner;
 use crate::core::methods::hepburn_simple;
 use crate::core::methods::RomanizationMethod;
 use crate::core::romanize::romanize_word_geo;
+use std::sync::LazyLock;
 
 /// Port of `ichiran/custom:municipality-short` (`dict-custom.lisp:120`).
 pub fn municipality_short(text: &str, reading: &str) -> (String, Option<String>) {
@@ -67,7 +68,9 @@ pub fn romanize_municipality(text: &str, reading: &str, include_type: Option<boo
 /// Port of `ichiran/custom:normalize-geo` (`dict-custom.lisp:173`).
 pub fn normalize_geo(word: &str) -> String {
     // dict-custom.lisp:174 (simplify-ngrams (string-downcase word) '("ū" "u" "ō" "o"))
-    simplify_ngrams(&word.to_lowercase(), &[("ū", "u"), ("ō", "o")])
+    static SCANNER: LazyLock<KaniNgramScanner> =
+        LazyLock::new(|| KaniNgramScanner::new(&[("ū", "u"), ("ō", "o")]));
+    SCANNER.simplify(&word.to_lowercase())
 }
 
 #[cfg(test)]
