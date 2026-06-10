@@ -151,9 +151,13 @@ impl KaniranContext {
 
 impl KaniranContext {
     /// Connect the pool and run every cache populator before returning.
+    /// Pool cap 25: small enough that two audit processes plus a
+    /// bystander session fit inside Postgres' default
+    /// `max_connections = 100`, large enough to feed the audit
+    /// runners' default task concurrency.
     pub async fn from_url(url: &str) -> Result<Arc<Self>, Error> {
         let pool = PgPoolOptions::new()
-            .max_connections(60)
+            .max_connections(25)
             .acquire_timeout(Duration::from_secs(10))
             .connect(url)
             .await

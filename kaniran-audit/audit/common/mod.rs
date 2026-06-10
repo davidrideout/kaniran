@@ -357,7 +357,7 @@ where
 
 /// Async flavor: same as [`run_sync`] but builds a [`KaniranContext`] via
 /// [`setup_ctx`] and passes it as the first argument to `audit_one`.
-/// Bounded concurrency. Pool is sized at `max_connections=100` in
+/// Bounded concurrency. Pool is sized at `max_connections=25` in
 /// `KaniranContext::from_url`; keep headroom for non-query work.
 ///
 /// Overridable via `KANI_AUDIT_CONCURRENCY` so a run can be throttled
