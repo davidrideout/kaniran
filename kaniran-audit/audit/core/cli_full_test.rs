@@ -9,6 +9,11 @@
 #[path = "../common/mod.rs"]
 mod common;
 
+// mimalloc over macOS system malloc: measured 1.57x end-to-end on the
+// allocation-bound segmentation pipeline (perf pass 2026-06-10).
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::core::methods::hepburn_traditional;
 use kaniran_core::core::methods::RomanizationMethod;

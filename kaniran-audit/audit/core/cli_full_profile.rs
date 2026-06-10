@@ -15,6 +15,11 @@
 #[path = "../common/mod.rs"]
 mod common;
 
+// Allocator diagnostic for the perf pass: the profile shows ~34% of
+// CPU in allocator page management under macOS system malloc.
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 

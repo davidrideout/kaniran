@@ -9,6 +9,11 @@ use std::io::Write;
 use clap::Parser;
 use serde_json::{json, Value};
 
+// mimalloc over the system allocator: measured 1.57x end-to-end on the
+// allocation-bound segmentation pipeline (perf pass 2026-06-10).
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use kaniran_core::characters::text::join;
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::core::methods::hepburn_traditional;

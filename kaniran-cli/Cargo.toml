@@ -21,6 +21,7 @@ required-features = ["rkyv-dump"]
 
 [dependencies]
 kaniran-core = { path = "../kaniran-core" }
+mimalloc = { workspace = true }
 serde_json = { workspace = true }
 sqlx = { workspace = true }
 tokio = { workspace = true }
