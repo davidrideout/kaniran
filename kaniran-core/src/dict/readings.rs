@@ -327,15 +327,17 @@ pub async fn find_substring_words(
     str: &str,
     sticky: &[usize],
 ) -> Result<SubstringHash, sqlx::Error> {
-    let mut substring_hash: SubstringHash = SubstringHash::new();
-    let mut kana_keys: Vec<String> = Vec::new();
-    let mut kanji_keys: Vec<String> = Vec::new();
-
     // dict.lisp:504-512 (loop for start ... loop for end ...). CONVENTIONS
     // §4.5: cl-ppcre / subseq index by character — collect the chars
     // once so the inner slice uses character offsets.
     let chars: Vec<char> = str.chars().collect();
     let n = chars.len();
+
+    // Upper bound on (start, end) pairs — sizes the keys vectors and
+    // keeps the hot loop free of growth reallocations.
+    let pair_bound = n * MAX_WORD_LENGTH;
+    let mut kana_keys: Vec<String> = Vec::with_capacity(pair_bound);
+    let mut kanji_keys: Vec<String> = Vec::with_capacity(pair_bound);
 
     for start in 0..n {
         if sticky.contains(&start) {
@@ -349,16 +351,7 @@ pub async fn find_substring_words(
             }
             // (subseq str start end) — character offsets per §4.5.
             let part: String = chars[start..end].iter().collect();
-            // dict.lisp:510 — pre-populate hash with an empty entry,
-            // then classify by kana vs. kanji.
-            let is_kana = test_word(&part, CharClass::Kana);
-            let empty = if is_kana {
-                FindWordRows::Kana(Vec::new())
-            } else {
-                FindWordRows::Kanji(Vec::new())
-            };
-            substring_hash.insert(part.clone(), empty);
-            if is_kana {
+            if test_word(&part, CharClass::Kana) {
                 kana_keys.push(part);
             } else {
                 kanji_keys.push(part);
@@ -376,29 +369,45 @@ pub async fn find_substring_words(
     kanji_keys.sort();
     kanji_keys.dedup();
 
+    // dict.lisp:510 — pre-populate the hash with an empty entry per
+    // substring. Done after dedup so the map is built once at exact
+    // capacity with one insert per unique key; the variant choice is a
+    // pure function of the text, so populating from the deduped keys
+    // produces the same map as populating inside the loop above.
+    let mut substring_hash: SubstringHash =
+        SubstringHash::with_capacity(kana_keys.len() + kanji_keys.len());
+    for key in &kana_keys {
+        substring_hash.insert(key.clone(), FindWordRows::Kana(Vec::new()));
+    }
+    for key in &kanji_keys {
+        substring_hash.insert(key.clone(), FindWordRows::Kanji(Vec::new()));
+    }
+
     // dict.lisp:514-518 — (loop for table in '(kana-text kanji-text)
     //   for keys in ... when keys do (query ...)). Unrolled by table
     //   here so the typed `query_as<KanaText>` / `query_as<KanjiText>`
     //   stays known at compile time.
     if !kana_keys.is_empty() {
         let rows: Vec<KanaText> = ctx.store.kana_texts_by_text_any(&kana_keys).await?;
-        for kt in rows {
-            // dict.lisp:517 — (push (cons table kt) (gethash (getf kt :text) substring-hash)).
-            // CL `push` prepends, so each bucket is the reverse of the SQL
-            // row order; `insert(0, …)` mirrors it. The order is
-            // load-bearing: find-word returns the bucket in this order and
-            // downstream homonym selection takes the last-iterated row.
-            if let Some(FindWordRows::Kana(v)) = substring_hash.get_mut(&kt.text) {
-                v.insert(0, kt);
+        // dict.lisp:517 — (push (cons table kt) (gethash (getf kt :text) substring-hash)).
+        // CL `push` prepends, so each bucket is the reverse of the SQL
+        // row order. The order is load-bearing: find-word returns the
+        // bucket in this order and downstream homonym selection takes
+        // the last-iterated row. Iterating the rows in reverse and
+        // appending produces the same bucket order as prepending each
+        // row in forward order, without shifting the bucket per insert.
+        for kt in rows.into_iter().rev() {
+            if let Some(FindWordRows::Kana(bucket)) = substring_hash.get_mut(&kt.text) {
+                bucket.push(kt);
             }
         }
     }
     if !kanji_keys.is_empty() {
         let rows: Vec<KanjiText> = ctx.store.kanji_texts_by_text_any(&kanji_keys).await?;
-        for kt in rows {
-            // dict.lisp:517 — prepend to mirror CL `push` (see kana loop).
-            if let Some(FindWordRows::Kanji(v)) = substring_hash.get_mut(&kt.text) {
-                v.insert(0, kt);
+        // dict.lisp:517 — reversed append mirrors CL `push` (see kana loop).
+        for kt in rows.into_iter().rev() {
+            if let Some(FindWordRows::Kanji(bucket)) = substring_hash.get_mut(&kt.text) {
+                bucket.push(kt);
             }
         }
     }
