@@ -411,6 +411,10 @@ name = "cli_full_test"
 path = "audit/core/cli_full_test.rs"
 
 [[bin]]
+name = "cli_full_profile"
+path = "audit/core/cli_full_profile.rs"
+
+[[bin]]
 name = "conj_prop_json_test"
 path = "audit/dict/conj_prop_json_test.rs"
 
