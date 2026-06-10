@@ -6,6 +6,12 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[features]
+# Snapshot schema for the rkyv-backed dictionary store: adds rkyv
+# derives to the DAO row structs and enables `conn::kani_snapshot`.
+# Off by default — the Postgres-only build never pays for it.
+rkyv = ["dep:rkyv"]
+
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -18,3 +24,4 @@ thiserror = { workspace = true }
 unicode-properties = { workspace = true }
 roxmltree = { workspace = true }
 indexmap = { workspace = true }
+rkyv = { workspace = true, optional = true }

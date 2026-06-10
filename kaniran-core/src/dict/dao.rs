@@ -9,6 +9,7 @@ use sqlx::{FromRow, Row};
 /// Row representation of one JMdict entry, mapped 1:1 to the
 /// `public.entry` Postgres table.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct Entry {
     pub seq: i32,
     pub content: String,
@@ -234,6 +235,7 @@ impl<'r> FromRow<'r, PgRow> for KanaText {
 /// Row of the `public.sense` table — one numbered meaning attached to
 /// an entry, ordered within the entry by the `ord` column.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct Sense {
     pub id: i32,
     pub seq: i32,
@@ -254,6 +256,7 @@ impl<'r> FromRow<'r, PgRow> for Sense {
 ///
 /// Row representation of one English gloss attached to a JMdict sense.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct Gloss {
     pub id: i32,
     pub sense_id: i32,
@@ -278,6 +281,7 @@ impl<'r> FromRow<'r, PgRow> for Gloss {
 /// sense, where `tag` is the property kind (`pos`, `stagk`, `misc`, …)
 /// and `text` holds its value.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct SenseProp {
     pub id: i32,
     pub tag: String,
@@ -309,6 +313,7 @@ impl<'r> FromRow<'r, PgRow> for SenseProp {
 /// pair with — used to filter readings to the subset valid for a
 /// given kanji surface.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct RestrictedReadings {
     pub id: i32,
     pub seq: i32,
@@ -333,6 +338,7 @@ impl<'r> FromRow<'r, PgRow> for RestrictedReadings {
 /// recording that entry `seq` was derived from entry `seq_from`,
 /// optionally via an intermediate entry `seq_via`.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct Conjugation {
     pub id: i32,
     pub seq: i32,
@@ -357,6 +363,7 @@ impl<'r> FromRow<'r, PgRow> for Conjugation {
 /// to a conjugation, the `(pos, conj-type, neg, fml)` quadruple naming
 /// which conjugation form of which part-of-speech the row describes.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct ConjProp {
     pub id: i32,
     pub conj_id: i32,
@@ -439,6 +446,7 @@ pub fn conj_prop_json(obj: &ConjProp) -> Value {
 /// source-text) pair giving a rendered conjugated form and the
 /// dictionary surface form it derives from.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct ConjSourceReading {
     pub id: i32,
     pub conj_id: i32,

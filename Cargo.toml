@@ -18,6 +18,8 @@ sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres"]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 config = "0.14"
 thiserror = "2"
+rkyv = "0.8"
+futures-util = "0.3"
 unicode-properties = "0.1"
 roxmltree = "0.21"
 indexmap = "2"

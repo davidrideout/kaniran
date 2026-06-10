@@ -7,6 +7,7 @@ use sqlx::{FromRow, Row};
 /// the classical (Kangxi) radical number; `radical_n` is the Nelson
 /// radical.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct Kanji {
     pub id: i32,
     pub text: String,
@@ -41,6 +42,7 @@ impl<'r> FromRow<'r, PgRow> for Kanji {
 /// to the `public.reading` Postgres table populated by ichiran's
 /// schema. `kanji_id` foreign-keys to `kanji.id`.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct Reading {
     pub id: i32,
     pub kanji_id: i32,
@@ -72,6 +74,7 @@ impl<'r> FromRow<'r, PgRow> for Reading {
 /// table populated by ichiran's schema. `reading_id` foreign-keys
 /// to `reading.id`.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct Okurigana {
     pub id: i32,
     pub reading_id: i32,
@@ -95,6 +98,7 @@ impl<'r> FromRow<'r, PgRow> for Okurigana {
 /// populated by ichiran's schema. `kanji_id` foreign-keys to
 /// `kanji.id`.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct Meaning {
     pub id: i32,
     pub kanji_id: i32,
