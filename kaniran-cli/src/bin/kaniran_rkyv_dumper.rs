@@ -17,6 +17,7 @@
 use clap::Parser;
 use futures_util::TryStreamExt;
 use kaniran_core::conn::get_ichiran_connection_env::get_ichiran_connection_env;
+use std::collections::{HashMap, HashSet};
 use kaniran_core::conn::kani_snapshot::{
     ArchivedKaniSnapshot, KaniKanaTextRow, KaniKanjiTextRow, KaniSnapshot, KaniSnapshotMeta,
     KANI_SNAPSHOT_FORMAT_VERSION,
@@ -124,6 +125,137 @@ where
     Ok(rows)
 }
 
+/// The tag set the runtime senses query asks for — must match `TAGS` in
+/// `kaniran-core/src/dict/senses.rs` (`get_senses_raw`).
+const SENSES_QUERY_TAGS: &[&str] = &["pos", "s_inf", "stagk", "stagr", "field"];
+
+/// Pin row order for the senses query where its ORDER BY is ambiguous.
+///
+/// The runtime senses query sorts by (sense.ord, tag, sense_prop.ord),
+/// but ichiran's errata inserts extra pos rows with ord = 0, so a few
+/// groups carry duplicate ords and Postgres breaks the tie with an
+/// unstable sort that a stable sort over the archive cannot reproduce.
+/// Re-run the exact runtime query for the affected seqs and renumber
+/// the archived ords to the order Postgres actually returned, making
+/// the sort key unique.
+async fn pin_ambiguous_sense_prop_order(
+    pool: &PgPool,
+    senses: &[Sense],
+    sense_props: &mut [SenseProp],
+) -> Result<(), sqlx::Error> {
+    let started = Instant::now();
+
+    // Groups (sense_id, tag) holding duplicate ord values, restricted to
+    // the tag set the runtime query asks for.
+    let mut ords_seen: HashMap<(i32, usize), HashSet<i32>> = HashMap::new();
+    let mut tied_groups: HashSet<(i32, usize)> = HashSet::new();
+    for prop in sense_props.iter() {
+        let Some(tag_index) = SENSES_QUERY_TAGS.iter().position(|tag| *tag == prop.tag) else {
+            continue;
+        };
+        let group_key = (prop.sense_id, tag_index);
+        if !ords_seen.entry(group_key).or_default().insert(prop.ord) {
+            tied_groups.insert(group_key);
+        }
+    }
+    if tied_groups.is_empty() {
+        println!("sense_prop order pinning: no ambiguous groups found");
+        return Ok(());
+    }
+
+    let mut affected_seqs: Vec<i32> = sense_props
+        .iter()
+        .filter(|prop| {
+            SENSES_QUERY_TAGS
+                .iter()
+                .position(|tag| *tag == prop.tag)
+                .is_some_and(|tag_index| tied_groups.contains(&(prop.sense_id, tag_index)))
+        })
+        .map(|prop| prop.seq)
+        .collect();
+    affected_seqs.sort_unstable();
+    affected_seqs.dedup();
+
+    let affected_seq_set: HashSet<i32> = affected_seqs.iter().copied().collect();
+    let mut sense_id_by_seq_ord: HashMap<(i32, i32), i32> = HashMap::new();
+    for sense in senses {
+        if affected_seq_set.contains(&sense.seq) {
+            sense_id_by_seq_ord.insert((sense.seq, sense.ord), sense.id);
+        }
+    }
+
+    // Observed order, captured with the same SQL the runtime backend
+    // sends (KaniPostgresBackend::sense_prop_rows_tagged).
+    let mut new_ord_by_text: HashMap<(i32, usize, String), i32> = HashMap::new();
+    let mut next_rank: HashMap<(i32, usize), i32> = HashMap::new();
+    for &seq in &affected_seqs {
+        let observed_rows: Vec<(i32, String, String)> = sqlx::query_as(
+            "SELECT sense.ord AS ord, sense_prop.tag AS tag, sense_prop.text AS text \
+             FROM sense, sense_prop \
+             WHERE sense.seq = $1 \
+               AND sense_prop.sense_id = sense.id \
+               AND sense_prop.tag = ANY($2) \
+             ORDER BY sense.ord, sense_prop.tag, sense_prop.ord",
+        )
+        .bind(seq)
+        .bind(SENSES_QUERY_TAGS)
+        .fetch_all(pool)
+        .await?;
+        for (sense_ord, tag, text) in observed_rows {
+            let Some(tag_index) = SENSES_QUERY_TAGS.iter().position(|candidate| *candidate == tag)
+            else {
+                continue;
+            };
+            let Some(&sense_id) = sense_id_by_seq_ord.get(&(seq, sense_ord)) else {
+                continue;
+            };
+            if !tied_groups.contains(&(sense_id, tag_index)) {
+                continue;
+            }
+            let rank = next_rank.entry((sense_id, tag_index)).or_insert(0);
+            if new_ord_by_text
+                .insert((sense_id, tag_index, text), *rank)
+                .is_some()
+            {
+                panic!(
+                    "sense_prop group (sense_id {sense_id}, tag {}) repeats a text — \
+                     observed order is ambiguous, cannot pin",
+                    SENSES_QUERY_TAGS[tag_index],
+                );
+            }
+            *rank += 1;
+        }
+    }
+
+    let mut renumbered = 0usize;
+    for prop in sense_props.iter_mut() {
+        let Some(tag_index) = SENSES_QUERY_TAGS.iter().position(|tag| *tag == prop.tag) else {
+            continue;
+        };
+        if !tied_groups.contains(&(prop.sense_id, tag_index)) {
+            continue;
+        }
+        match new_ord_by_text.get(&(prop.sense_id, tag_index, prop.text.clone())) {
+            Some(&rank) => {
+                prop.ord = rank;
+                renumbered += 1;
+            }
+            None => panic!(
+                "sense_prop row (sense_id {}, tag {}, text {}) missing from the \
+                 observed-order query",
+                prop.sense_id, prop.tag, prop.text,
+            ),
+        }
+    }
+    println!(
+        "pinned sense_prop order: {renumbered} rows renumbered across {} groups / {} seqs in {:.1}s",
+        tied_groups.len(),
+        affected_seqs.len(),
+        started.elapsed().as_secs_f64(),
+    );
+    Ok(())
+}
+
 /// Database name component of a Postgres URL — the last path segment,
 /// query string stripped. Credentials and host stay out of the archive.
 fn db_name_of(url: &str) -> String {
@@ -179,13 +311,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         fetch_table(&pool, 6, "conj_source_reading", args.limit).await?;
     let senses: Vec<Sense> = fetch_table(&pool, 7, "sense", args.limit).await?;
     let glosses: Vec<Gloss> = fetch_table(&pool, 8, "gloss", args.limit).await?;
-    let sense_props: Vec<SenseProp> = fetch_table(&pool, 9, "sense_prop", args.limit).await?;
+    let mut sense_props: Vec<SenseProp> = fetch_table(&pool, 9, "sense_prop", args.limit).await?;
     let restricted_readings: Vec<RestrictedReadings> =
         fetch_table(&pool, 10, "restricted_readings", args.limit).await?;
     let kanji: Vec<Kanji> = fetch_table(&pool, 11, "kanji", args.limit).await?;
     let readings: Vec<Reading> = fetch_table(&pool, 12, "reading", args.limit).await?;
     let okurigana: Vec<Okurigana> = fetch_table(&pool, 13, "okurigana", args.limit).await?;
     let meanings: Vec<Meaning> = fetch_table(&pool, 14, "meaning", args.limit).await?;
+    if args.limit.is_none() {
+        pin_ambiguous_sense_prop_order(&pool, &senses, &mut sense_props).await?;
+    } else {
+        println!("row cap active — skipping sense_prop order pinning");
+    }
     pool.close().await;
 
     let snapshot = KaniSnapshot {
