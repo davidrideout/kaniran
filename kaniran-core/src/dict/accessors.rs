@@ -248,11 +248,13 @@ impl Entry {
         if self.n_kanji <= 0 {
             return Ok(None);
         }
-        let (text,): (String,) =
-            sqlx::query_as("SELECT text FROM kanji_text WHERE seq = $1 AND ord = 0")
-                .bind(self.seq)
-                .fetch_one(&ctx.pool)
-                .await?;
+        // None → RowNotFound mirrors the original fetch_one (see the
+        // doc comment above on missing ord = 0 rows).
+        let text: String = ctx
+            .store
+            .headword_kanji_text(self.seq)
+            .await?
+            .ok_or(sqlx::Error::RowNotFound)?;
         Ok(Some(text))
     }
 }
@@ -328,22 +330,14 @@ async fn get_original_text_simple_text_arm(
         match word_type {
             WordType::Kanji => {
                 let fetched: Vec<KanjiText> =
-                    sqlx::query_as("SELECT * FROM kanji_text WHERE seq = $1 AND text = $2")
-                        .bind(seq_n)
-                        .bind(&txt)
-                        .fetch_all(&ctx.pool)
-                        .await?;
+                    ctx.store.kanji_texts_by_seq_and_text(seq_n, &txt).await?;
                 for row in fetched {
                     rows.push(KaniSimpleTextDispatchEnum::Kanji(row));
                 }
             }
             WordType::Kana => {
                 let fetched: Vec<KanaText> =
-                    sqlx::query_as("SELECT * FROM kana_text WHERE seq = $1 AND text = $2")
-                        .bind(seq_n)
-                        .bind(&txt)
-                        .fetch_all(&ctx.pool)
-                        .await?;
+                    ctx.store.kana_texts_by_seq_and_text(seq_n, &txt).await?;
                 for row in fetched {
                     rows.push(KaniSimpleTextDispatchEnum::Kana(row));
                 }

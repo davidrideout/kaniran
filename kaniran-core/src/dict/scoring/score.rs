@@ -3,6 +3,7 @@ use crate::characters::constants::{ITERATION_CHARACTERS, KANA_CHARACTERS, MODIFI
 use crate::characters::kana::{long_vowel_modifier_p, mora_length};
 use crate::characters::kani_kana_class::KanaClass;
 use crate::conn::kani_context::KaniranContext;
+use crate::conn::kani_postgres_backend::KaniPostgresBackend;
 use crate::dict::conj::ConjData;
 use crate::dict::errata::NO_KANJI_BREAK_PENALTY;
 use crate::dict::grammar::suffix::resolve::get_suffixes;
@@ -10,7 +11,6 @@ use crate::dict::kani_word::KaniWordDispatchEnum;
 use crate::dict::path::TopArray;
 use crate::dict::scoring::calc_score::calc_score;
 use crate::dict::text_classes::ScoreMod;
-use sqlx::PgPool;
 use std::collections::HashSet;
 
 /// Port of `ichiran/dict:*is-arch-cache*` (`dict.lisp:745`).
@@ -21,23 +21,9 @@ pub fn is_arch_cache(ctx: &KaniranContext) -> &HashSet<i32> {
     &ctx.is_arch
 }
 
-pub async fn build_is_arch(pool: &PgPool) -> Result<HashSet<i32>, sqlx::Error> {
-    let a1: Vec<i32> = sqlx::query_scalar(
-        "SELECT sense.seq FROM sense \
-         LEFT JOIN sense_prop sp \
-                ON sp.sense_id = sense.id \
-               AND sp.tag = 'misc' \
-               AND sp.text IN ('arch', 'obsc', 'rare') \
-         GROUP BY sense.seq \
-         HAVING bool_and(sp.id IS NOT NULL)",
-    )
-    .fetch_all(pool)
-    .await?;
-    let a2: Vec<i32> =
-        sqlx::query_scalar("SELECT DISTINCT seq FROM conjugation WHERE \"from\" = ANY($1)")
-            .bind(&a1)
-            .fetch_all(pool)
-            .await?;
+pub async fn build_is_arch(store: &KaniPostgresBackend) -> Result<HashSet<i32>, sqlx::Error> {
+    let a1: Vec<i32> = store.arch_only_seqs().await?;
+    let a2: Vec<i32> = store.conj_seqs_from_any(&a1).await?;
     let mut set: HashSet<i32> = a1.into_iter().collect();
     set.extend(a2);
     Ok(set)
@@ -406,20 +392,7 @@ pub async fn get_non_arch_posi(
     ctx: &KaniranContext,
     seq_set: &[i32],
 ) -> Result<Vec<String>, sqlx::Error> {
-    sqlx::query_scalar(
-        "SELECT DISTINCT sp1.text \
-         FROM sense_prop sp1 \
-         LEFT JOIN sense_prop sp2 \
-                ON sp1.sense_id = sp2.sense_id \
-               AND sp2.tag = 'misc' \
-               AND sp2.text IN ('arch', 'obsc', 'rare') \
-         WHERE sp1.seq = ANY($1) \
-           AND sp1.tag = 'pos' \
-           AND sp2.id IS NULL",
-    )
-    .bind(seq_set)
-    .fetch_all(&ctx.pool)
-    .await
+    ctx.store.non_arch_posi(seq_set).await
 }
 
 /// Port of `ichiran/dict:gen-score` (`dict.lisp:985`).

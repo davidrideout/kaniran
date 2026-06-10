@@ -138,12 +138,7 @@ pub async fn calc_score(
 
     // dict.lisp:803 (entry (and seq (get-dao 'entry seq)))
     let entry: Option<Entry> = match seq {
-        Some(s) => {
-            sqlx::query_as("SELECT * FROM entry WHERE seq = $1")
-                .bind(s)
-                .fetch_optional(&ctx.pool)
-                .await?
-        }
+        Some(s) => ctx.store.entry_by_seq(s).await?,
         None => None,
     };
 
@@ -216,13 +211,7 @@ pub async fn calc_score(
     let prefer_kana_sense_ids: Vec<i32> = if sp_seq_set.is_empty() {
         Vec::new()
     } else {
-        sqlx::query_scalar(
-            "SELECT sense_id FROM sense_prop \
-             WHERE seq = ANY($1) AND tag = 'misc' AND text = 'uk'",
-        )
-        .bind(&sp_seq_set)
-        .fetch_all(&ctx.pool)
-        .await?
+        ctx.store.uk_sense_ids(&sp_seq_set).await?
     };
     let prefer_kana = !prefer_kana_sense_ids.is_empty();
 
@@ -388,10 +377,7 @@ pub async fn calc_score(
                 // without re-checking this invariant.
                 let cond_d = if prefer_kana && kanji_p && ord == 0 {
                     let any_sense_ord_zero: Option<i32> =
-                        sqlx::query_scalar("SELECT id FROM sense WHERE id = ANY($1) AND ord = 0")
-                            .bind(&prefer_kana_sense_ids)
-                            .fetch_optional(&ctx.pool)
-                            .await?;
+                        ctx.store.sense_id_ord0(&prefer_kana_sense_ids).await?;
                     any_sense_ord_zero.is_none()
                 } else {
                     false

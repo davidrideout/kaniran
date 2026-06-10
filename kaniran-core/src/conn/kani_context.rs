@@ -6,6 +6,7 @@
 
 use crate::conn::_star_connection_env_var_star_::DATABASE_URL;
 use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;
+use crate::conn::kani_postgres_backend::KaniPostgresBackend;
 use crate::dict::counters::dispatchers::{build_counter_cache, CounterCache};
 use crate::dict::scoring::score::build_is_arch;
 use crate::dict::conj::build_no_conj_data;
@@ -34,6 +35,11 @@ pub enum Error {
 #[derive(Clone)]
 pub struct KaniranContext {
     pub pool: PgPool,
+    /// Dictionary lookup backend. All runtime (lookup-serving) SQL
+    /// goes through here; `pool` remains for build-time code that
+    /// writes the database (`dict/load`, `dict/errata`, kanjidic
+    /// loaders).
+    pub store: KaniPostgresBackend,
     /// Upstream `*no-conj-data*` (`dict.lisp:329`). See
     /// [`crate::dict::_star_no_conj_data_star_`].
     pub no_conj_data: Arc<HashSet<i32>>,
@@ -161,12 +167,14 @@ impl KaniranContext {
         // share the Arcs; each context still gets its own runtime-bound
         // pool (a shared pool's connections die when a per-test runtime is
         // torn down) and a fresh reading-cache. Production builds fresh.
+        let store = KaniPostgresBackend::new(pool.clone());
         #[cfg(test)]
         {
             let (no_conj_data, is_arch, counter_cache, suffix_cache, suffix_class) =
                 test_support::shared_caches(&pool).await?;
             return Ok(Arc::new(Self {
                 pool,
+                store,
                 no_conj_data,
                 is_arch,
                 counter_cache,
@@ -182,13 +190,14 @@ impl KaniranContext {
         }
         #[cfg(not(test))]
         {
-            let no_conj_data = Arc::new(build_no_conj_data(&pool).await?);
-            let is_arch = Arc::new(build_is_arch(&pool).await?);
+            let no_conj_data = Arc::new(build_no_conj_data(&store).await?);
+            let is_arch = Arc::new(build_is_arch(&store).await?);
             // counter_cache + suffix_cache populators call DB-touching fns
             // that take &KaniranContext — build a partial ctx first, then
             // swap the populated maps in.
             let mut ctx = Self {
                 pool,
+                store,
                 no_conj_data,
                 is_arch,
                 counter_cache: Arc::new(CounterCache::new()),
@@ -230,6 +239,7 @@ impl KaniranContext {
                 Error::from(e)
             })?;
         Ok(Arc::new(Self {
+            store: KaniPostgresBackend::new(pool.clone()),
             pool,
             no_conj_data: Arc::new(HashSet::new()),
             is_arch: Arc::new(HashSet::new()),
@@ -301,6 +311,7 @@ impl KaniranContext {
             .await
             .expect("connect to kaniran_test");
         KaniranContext {
+            store: KaniPostgresBackend::new(pool.clone()),
             pool,
             no_conj_data: Arc::new(HashSet::new()),
             is_arch: Arc::new(HashSet::new()),
@@ -349,10 +360,12 @@ mod test_support {
     /// throwaway context whose pool belongs to the first test that
     /// triggers the build. Only the resulting cache Arcs are retained.
     async fn build_once(pool: &PgPool) -> Result<Caches, Error> {
-        let no_conj_data = Arc::new(build_no_conj_data(pool).await?);
-        let is_arch = Arc::new(build_is_arch(pool).await?);
+        let store = KaniPostgresBackend::new(pool.clone());
+        let no_conj_data = Arc::new(build_no_conj_data(&store).await?);
+        let is_arch = Arc::new(build_is_arch(&store).await?);
         let mut ctx = KaniranContext {
             pool: pool.clone(),
+            store,
             no_conj_data: no_conj_data.clone(),
             is_arch: is_arch.clone(),
             counter_cache: Arc::new(CounterCache::new()),

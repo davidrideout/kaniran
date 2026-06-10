@@ -5,7 +5,6 @@ use crate::dict::counters::methods::{nokanji, text};
 use crate::dict::dao::{KanaText, KanjiText};
 use crate::dict::kani_word::KaniWordDispatchEnum;
 use serde_json::{Map, Value};
-use sqlx::Row;
 use std::fmt::Write;
 use std::future::Future;
 
@@ -24,22 +23,10 @@ pub struct RawSense {
 const TAGS: &[&str] = &["pos", "s_inf", "stagk", "stagr", "field"];
 
 pub async fn get_senses_raw(ctx: &KaniranContext, seq: i32) -> Result<Vec<RawSense>, sqlx::Error> {
-    let gloss_rows = sqlx::query(
-        "SELECT sense.ord AS ord, \
-                string_agg(gloss.text, '; ' ORDER BY gloss.ord) AS gloss \
-         FROM sense LEFT JOIN gloss ON gloss.sense_id = sense.id \
-         WHERE sense.seq = $1 \
-         GROUP BY sense.id \
-         ORDER BY sense.ord",
-    )
-    .bind(seq)
-    .fetch_all(&ctx.pool)
-    .await?;
+    let gloss_rows = ctx.store.sense_gloss_rows(seq).await?;
 
     let mut sense_list: Vec<RawSense> = Vec::with_capacity(gloss_rows.len());
-    for row in gloss_rows {
-        let ord: i32 = row.get("ord");
-        let gloss: Option<String> = row.get("gloss");
+    for (ord, gloss) in gloss_rows {
         sense_list.push(RawSense {
             ord,
             gloss: gloss.unwrap_or_default(),
@@ -47,29 +34,14 @@ pub async fn get_senses_raw(ctx: &KaniranContext, seq: i32) -> Result<Vec<RawSen
         });
     }
 
-    let prop_rows = sqlx::query(
-        "SELECT sense.ord AS ord, sense_prop.tag AS tag, sense_prop.text AS text \
-         FROM sense, sense_prop \
-         WHERE sense.seq = $1 \
-           AND sense_prop.sense_id = sense.id \
-           AND sense_prop.tag = ANY($2) \
-         ORDER BY sense.ord, sense_prop.tag, sense_prop.ord",
-    )
-    .bind(seq)
-    .bind(TAGS)
-    .fetch_all(&ctx.pool)
-    .await?;
+    let prop_rows = ctx.store.sense_prop_rows_tagged(seq, TAGS).await?;
 
     let mut cur_sord: Option<i32> = None;
     let mut cur_tag: Option<String> = None;
     let mut cur_idx: Option<usize> = None;
     let mut bag: Vec<String> = Vec::new();
 
-    for row in prop_rows {
-        let sord: i32 = row.get("ord");
-        let tag: String = row.get("tag");
-        let text: String = row.get("text");
-
+    for (sord, tag, text) in prop_rows {
         let changed = cur_sord != Some(sord) || cur_tag.as_deref() != Some(tag.as_str());
         if changed {
             // dict.lisp:1479 (in-loop transition) — emit prior bag in
@@ -260,21 +232,12 @@ pub async fn match_sense_restrictions(
         return Ok(None);
     }
     // dict.lisp:1524 (restricted (query (:select 'reading 'text :from 'restricted-readings :where (:= 'seq seq))))
-    let restricted: Vec<(String, String)> =
-        sqlx::query_as("SELECT reading, text FROM restricted_readings WHERE seq = $1")
-            .bind(seq)
-            .fetch_all(&ctx.pool)
-            .await?;
+    let restricted: Vec<(String, String)> = ctx.store.restricted_readings_by_seq(seq).await?;
     // dict.lisp:1525-1532 (case wtype …)
     match wtype {
         WordType::Kanji => {
             // dict.lisp:1527 (rkana (select-dao 'kana-text (:and (:= 'seq seq) (:in 'text (:set stagr)))))
-            let rkana: Vec<KanaText> =
-                sqlx::query_as("SELECT * FROM kana_text WHERE seq = $1 AND text = ANY($2)")
-                    .bind(seq)
-                    .bind(stagr)
-                    .fetch_all(&ctx.pool)
-                    .await?;
+            let rkana: Vec<KanaText> = ctx.store.kana_texts_by_seq_and_text_any(seq, stagr).await?;
             // dict.lisp:1528 (some (lambda (rk) (match-kana-kanji rk reading restricted)) rkana)
             Ok(rkana.into_iter().find_map(|rk| {
                 match_kana_kanji(&KaniWordDispatchEnum::Kana(rk), reading, &restricted)
@@ -282,12 +245,10 @@ pub async fn match_sense_restrictions(
         }
         WordType::Kana => {
             // dict.lisp:1530 (rkanji (select-dao 'kanji-text (:and (:= 'seq seq) (:in 'text (:set stagk)))))
-            let rkanji: Vec<KanjiText> =
-                sqlx::query_as("SELECT * FROM kanji_text WHERE seq = $1 AND text = ANY($2)")
-                    .bind(seq)
-                    .bind(stagk)
-                    .fetch_all(&ctx.pool)
-                    .await?;
+            let rkanji: Vec<KanjiText> = ctx
+                .store
+                .kanji_texts_by_seq_and_text_any(seq, stagk)
+                .await?;
             // dict.lisp:1531 (some (lambda (rk) (match-kana-kanji reading rk restricted)) rkanji)
             Ok(rkanji.into_iter().find_map(|rk| {
                 match_kana_kanji(reading, &KaniWordDispatchEnum::Kanji(rk), &restricted)
@@ -420,37 +381,8 @@ pub async fn short_sense_str(
     // dict.lisp:1562 — `,@(if with-pos …)` splices the sense-prop join
     // only when with-pos is supplied.
     let single: Option<Option<String>> = match with_pos {
-        Some(with_pos) => {
-            sqlx::query_scalar(
-                "SELECT (SELECT string_agg(gloss.text, '; ' ORDER BY gloss.ord) \
-                         FROM gloss WHERE gloss.sense_id = sense.id) \
-                 FROM sense \
-                 INNER JOIN sense_prop AS pos \
-                   ON (pos.sense_id = sense.id AND pos.tag = 'pos' AND pos.text = $2) \
-                 WHERE sense.seq = $1 \
-                 GROUP BY sense.id \
-                 ORDER BY sense.ord \
-                 LIMIT 1",
-            )
-            .bind(seq)
-            .bind(with_pos)
-            .fetch_optional(&ctx.pool)
-            .await?
-        }
-        None => {
-            sqlx::query_scalar(
-                "SELECT (SELECT string_agg(gloss.text, '; ' ORDER BY gloss.ord) \
-                         FROM gloss WHERE gloss.sense_id = sense.id) \
-                 FROM sense \
-                 WHERE sense.seq = $1 \
-                 GROUP BY sense.id \
-                 ORDER BY sense.ord \
-                 LIMIT 1",
-            )
-            .bind(seq)
-            .fetch_optional(&ctx.pool)
-            .await?
-        }
+        Some(with_pos) => ctx.store.first_sense_gloss_with_pos(seq, with_pos).await?,
+        None => ctx.store.first_sense_gloss(seq).await?,
     };
     Ok(single.flatten())
 }

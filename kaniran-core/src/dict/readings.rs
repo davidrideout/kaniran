@@ -19,10 +19,7 @@ pub async fn get_kanji_kana_old(
     obj: &KanjiText,
 ) -> Result<Option<String>, sqlx::Error> {
     let regex = kanji_regex(&obj.text);
-    let kts = sqlx::query_as::<_, KanaText>("SELECT * FROM kana_text WHERE seq = $1 ORDER BY ord")
-        .bind(obj.seq)
-        .fetch_all(&ctx.pool)
-        .await?;
+    let kts = ctx.store.kana_texts_by_seq_ordered(obj.seq).await?;
     for kt in &kts {
         if regex.is_match(&kt.text).unwrap_or(false) {
             return Ok(Some(kt.text.clone()));
@@ -100,20 +97,7 @@ pub async fn query_parents_kanji(
     seq: i32,
     text: &str,
 ) -> Result<Vec<(i32, i32)>, sqlx::Error> {
-    let rows: Vec<(i32, i32)> = sqlx::query_as(
-        "SELECT kt.id, conj.id \
-         FROM kanji_text kt, conj_source_reading csr, conjugation conj \
-         WHERE conj.seq = $1 \
-           AND conj.id = csr.conj_id \
-           AND csr.text = $2 \
-           AND kt.seq = CASE WHEN conj.via IS NOT NULL THEN conj.via ELSE conj.from END \
-           AND kt.text = csr.source_text",
-    )
-    .bind(seq)
-    .bind(text)
-    .fetch_all(&ctx.pool)
-    .await?;
-    Ok(rows)
+    ctx.store.parents_kanji(seq, text).await
 }
 
 /// Port of `ichiran/dict:query-parents-kana` (`dict.lisp:417`).
@@ -128,20 +112,7 @@ pub async fn query_parents_kana(
     seq: i32,
     text: &str,
 ) -> Result<Vec<(i32, i32)>, sqlx::Error> {
-    let rows: Vec<(i32, i32)> = sqlx::query_as(
-        "SELECT kt.id, conj.id \
-         FROM kana_text kt, conj_source_reading csr, conjugation conj \
-         WHERE conj.seq = $1 \
-           AND conj.id = csr.conj_id \
-           AND csr.text = $2 \
-           AND kt.seq = CASE WHEN conj.via IS NOT NULL THEN conj.via ELSE conj.from END \
-           AND kt.text = csr.source_text",
-    )
-    .bind(seq)
-    .bind(text)
-    .fetch_all(&ctx.pool)
-    .await?;
-    Ok(rows)
+    ctx.store.parents_kana(seq, text).await
 }
 
 /// Port of `ichiran/dict:best-kana-conj` (`dict.lisp:430`).
@@ -163,13 +134,11 @@ pub async fn best_kana_conj(
     let parents = query_parents_kanji(ctx, obj.seq, &obj.text).await?;
     for (pid, cid) in parents {
         // dict.lisp:436 (for parent-kt = (get-dao 'kanji-text pid))
-        // fetch_one mirrors upstream: a missing pid would surface as nil
-        // from get-dao and crash on the next slot access; propagating
-        // the sqlx error preserves that fail-loud stance.
-        let parent_kt: KanjiText = sqlx::query_as("SELECT * FROM kanji_text WHERE id = $1")
-            .bind(pid)
-            .fetch_one(&ctx.pool)
-            .await?;
+        // The store method's fetch_one mirrors upstream: a missing pid
+        // would surface as nil from get-dao and crash on the next slot
+        // access; propagating the sqlx error preserves that fail-loud
+        // stance.
+        let parent_kt: KanjiText = ctx.store.kanji_text_by_id(pid).await?;
         // dict.lisp:437 (for parent-bk = (best-kana-conj parent-kt))
         let parent_bk = Box::pin(best_kana_conj(ctx, &parent_kt)).await?;
         // dict.lisp:438 (unless (or (eql parent-bk :null)
@@ -187,14 +156,7 @@ pub async fn best_kana_conj(
 
         // dict.lisp:439-442 (query (:select 'text :from 'conj-source-reading
         //   :where (:and (:= 'conj-id cid) (:= 'source-text parent-bk))) :column)
-        let readings: Vec<String> = sqlx::query_scalar(
-            "SELECT text FROM conj_source_reading \
-             WHERE conj_id = $1 AND source_text = $2",
-        )
-        .bind(cid)
-        .bind(&parent_bk)
-        .fetch_all(&ctx.pool)
-        .await?;
+        let readings: Vec<String> = ctx.store.conj_source_reading_texts(cid, &parent_bk).await?;
         if readings.is_empty() {
             continue;
         }
@@ -250,10 +212,13 @@ pub async fn best_kanji_conj(
     if obj.nokanji {
         return Ok(None);
     }
-    let entry: Entry = sqlx::query_as("SELECT * FROM entry WHERE seq = $1")
-        .bind(obj.seq)
-        .fetch_one(&ctx.pool)
-        .await?;
+    // Option → RowNotFound mirrors the original fetch_one: a missing
+    // entry row is a data-integrity violation that must fail loud.
+    let entry: Entry = ctx
+        .store
+        .entry_by_seq(obj.seq)
+        .await?
+        .ok_or(sqlx::Error::RowNotFound)?;
     if entry.n_kanji == 0 {
         return Ok(None);
     }
@@ -261,10 +226,7 @@ pub async fn best_kanji_conj(
     let parents = query_parents_kana(ctx, obj.seq, &obj.text).await?;
     for (pid, cid) in parents {
         // dict.lisp:465 (for parent-bk = (best-kanji-conj (get-dao 'kana-text pid)))
-        let parent_kt: KanaText = sqlx::query_as("SELECT * FROM kana_text WHERE id = $1")
-            .bind(pid)
-            .fetch_one(&ctx.pool)
-            .await?;
+        let parent_kt: KanaText = ctx.store.kana_text_by_id(pid).await?;
         let parent_bk = Box::pin(best_kanji_conj(ctx, &parent_kt)).await?;
         // dict.lisp:466 (unless (or (eql parent-bk :null)
         //                           (and wc (or (eql wc :root) (not (find cid wc))))))
@@ -281,14 +243,7 @@ pub async fn best_kanji_conj(
 
         // dict.lisp:467-470 (query (:select 'text :from 'conj-source-reading
         //   :where (:and (:= 'conj-id cid) (:= 'source-text parent-bk))) :column)
-        let readings: Vec<String> = sqlx::query_scalar(
-            "SELECT text FROM conj_source_reading \
-             WHERE conj_id = $1 AND source_text = $2",
-        )
-        .bind(cid)
-        .bind(&parent_bk)
-        .fetch_all(&ctx.pool)
-        .await?;
+        let readings: Vec<String> = ctx.store.conj_source_reading_texts(cid, &parent_bk).await?;
         // dict.lisp:471-473 (some (lambda (reading) (and (kanji-match reading (text obj)) reading)) readings)
         if let Some(hit) = readings.into_iter().find(|r| kanji_match(r, &obj.text)) {
             return Ok(Some(hit));
@@ -343,36 +298,16 @@ pub async fn find_word(
     let kana = test_word(word, CharClass::Kana);
     if kana {
         let rows: Vec<KanaText> = if root_only {
-            sqlx::query_as(
-                "SELECT wt.* FROM kana_text wt \
-                 INNER JOIN entry ON wt.seq = entry.seq \
-                 WHERE wt.text = $1 AND entry.root_p",
-            )
-            .bind(word)
-            .fetch_all(&ctx.pool)
-            .await?
+            ctx.store.kana_texts_root_by_text(word).await?
         } else {
-            sqlx::query_as("SELECT * FROM kana_text WHERE text = $1")
-                .bind(word)
-                .fetch_all(&ctx.pool)
-                .await?
+            ctx.store.kana_texts_by_text(word).await?
         };
         Ok(FindWordRows::Kana(rows))
     } else {
         let rows: Vec<KanjiText> = if root_only {
-            sqlx::query_as(
-                "SELECT wt.* FROM kanji_text wt \
-                 INNER JOIN entry ON wt.seq = entry.seq \
-                 WHERE wt.text = $1 AND entry.root_p",
-            )
-            .bind(word)
-            .fetch_all(&ctx.pool)
-            .await?
+            ctx.store.kanji_texts_root_by_text(word).await?
         } else {
-            sqlx::query_as("SELECT * FROM kanji_text WHERE text = $1")
-                .bind(word)
-                .fetch_all(&ctx.pool)
-                .await?
+            ctx.store.kanji_texts_by_text(word).await?
         };
         Ok(FindWordRows::Kanji(rows))
     }
@@ -445,10 +380,7 @@ pub async fn find_substring_words(
     //   here so the typed `query_as<KanaText>` / `query_as<KanjiText>`
     //   stays known at compile time.
     if !kana_keys.is_empty() {
-        let rows: Vec<KanaText> = sqlx::query_as("SELECT * FROM kana_text WHERE text = ANY($1)")
-            .bind(&kana_keys)
-            .fetch_all(&ctx.pool)
-            .await?;
+        let rows: Vec<KanaText> = ctx.store.kana_texts_by_text_any(&kana_keys).await?;
         for kt in rows {
             // dict.lisp:517 — (push (cons table kt) (gethash (getf kt :text) substring-hash)).
             // CL `push` prepends, so each bucket is the reverse of the SQL
@@ -461,10 +393,7 @@ pub async fn find_substring_words(
         }
     }
     if !kanji_keys.is_empty() {
-        let rows: Vec<KanjiText> = sqlx::query_as("SELECT * FROM kanji_text WHERE text = ANY($1)")
-            .bind(&kanji_keys)
-            .fetch_all(&ctx.pool)
-            .await?;
+        let rows: Vec<KanjiText> = ctx.store.kanji_texts_by_text_any(&kanji_keys).await?;
         for kt in rows {
             // dict.lisp:517 — prepend to mirror CL `push` (see kana loop).
             if let Some(FindWordRows::Kanji(v)) = substring_hash.get_mut(&kt.text) {
@@ -499,24 +428,18 @@ pub async fn find_words_seqs(
     let mut out: Vec<KaniWordDispatchEnum> = Vec::new();
     // dict.lisp:532 (when kanji-words (select-dao 'kanji-text ...))
     if !kanji_words.is_empty() {
-        let kw: Vec<KanjiText> = sqlx::query_as::<_, KanjiText>(
-            "SELECT * FROM kanji_text WHERE text = ANY($1) AND seq = ANY($2)",
-        )
-        .bind(kanji_words.as_slice())
-        .bind(seqs)
-        .fetch_all(&ctx.pool)
-        .await?;
+        let kw: Vec<KanjiText> = ctx
+            .store
+            .kanji_texts_by_text_any_and_seq_any(&kanji_words, seqs)
+            .await?;
         out.extend(kw.into_iter().map(KaniWordDispatchEnum::Kanji));
     }
     // dict.lisp:533 (when kana-words (select-dao 'kana-text ...))
     if !kana_words.is_empty() {
-        let rw: Vec<KanaText> = sqlx::query_as::<_, KanaText>(
-            "SELECT * FROM kana_text WHERE text = ANY($1) AND seq = ANY($2)",
-        )
-        .bind(kana_words.as_slice())
-        .bind(seqs)
-        .fetch_all(&ctx.pool)
-        .await?;
+        let rw: Vec<KanaText> = ctx
+            .store
+            .kana_texts_by_text_any_and_seq_any(&kana_words, seqs)
+            .await?;
         out.extend(rw.into_iter().map(KaniWordDispatchEnum::Kana));
     }
     Ok(out)
@@ -533,24 +456,15 @@ pub async fn word_readings(
     word: &str,
 ) -> Result<(Vec<String>, Vec<String>), sqlx::Error> {
     // dict.lisp:537 (kana-seq (query (:select 'seq :from 'kana-text :where (:= 'text word)) :column))
-    let kana_seq: Vec<i32> = sqlx::query_scalar("SELECT seq FROM kana_text WHERE text = $1")
-        .bind(word)
-        .fetch_all(&ctx.pool)
-        .await?;
+    let kana_seq: Vec<i32> = ctx.store.kana_seqs_by_text(word).await?;
     // dict.lisp:538-545 (readings (if kana-seq (list word) …))
     let readings: Vec<String> = if !kana_seq.is_empty() {
         vec![word.to_string()]
     } else {
         // dict.lisp:540-541 (kanji-seq (query (:select 'seq :from 'kanji-text :where (:= 'text word)) :column))
-        let kanji_seq: Vec<i32> = sqlx::query_scalar("SELECT seq FROM kanji_text WHERE text = $1")
-            .bind(word)
-            .fetch_all(&ctx.pool)
-            .await?;
+        let kanji_seq: Vec<i32> = ctx.store.kanji_seqs_by_text(word).await?;
         // dict.lisp:542-545 (query (:order-by (:select 'text :from 'kana-text :where (:in 'seq (:set kanji-seq))) 'id) :column)
-        sqlx::query_scalar("SELECT text FROM kana_text WHERE seq = ANY($1) ORDER BY id")
-            .bind(&kanji_seq)
-            .fetch_all(&ctx.pool)
-            .await?
+        ctx.store.kana_reading_texts_by_seq_any(&kanji_seq).await?
     };
     // dict.lisp:546 (values readings (mapcar #'ichiran:romanize-word readings))
     let method = RomanizationMethod::TraditionalHepburn(default_romanization_method());

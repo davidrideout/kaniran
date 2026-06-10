@@ -32,24 +32,14 @@ pub async fn to_json(ctx: &KaniranContext, kanji: &Kanji) -> Result<Value, sqlx:
         Value::String(calculate_perc(kanji.stat_irregular, total)),
     );
     // kanji.lisp:379-383 ((select-dao 'reading (:and (:= 'kanji-id (id kanji)) (:not (:= 'type "ja_na"))) (:desc 'type) (:desc 'stat-common)))
-    let readings: Vec<Reading> = sqlx::query_as(
-        "SELECT * FROM reading WHERE kanji_id = $1 AND NOT (type = 'ja_na') \
-         ORDER BY type DESC, stat_common DESC",
-    )
-    .bind(kanji.id)
-    .fetch_all(&ctx.pool)
-    .await?;
+    let readings: Vec<Reading> = ctx.store.readings_non_nanori_by_kanji_id(kanji.id).await?;
     let mut readings_json = Vec::with_capacity(readings.len());
     for reading in &readings {
         readings_json.push(reading_info_json(ctx, reading, total).await?);
     }
     js.insert("readings".to_owned(), Value::Array(readings_json));
     // kanji.lisp:384 ((mapcar 'text (select-dao 'meaning (:= 'kanji-id (id kanji)) 'id)))
-    let meanings: Vec<Meaning> =
-        sqlx::query_as("SELECT * FROM meaning WHERE kanji_id = $1 ORDER BY id")
-            .bind(kanji.id)
-            .fetch_all(&ctx.pool)
-            .await?;
+    let meanings: Vec<Meaning> = ctx.store.meanings_by_kanji_id(kanji.id).await?;
     js.insert(
         "meanings".to_owned(),
         Value::Array(
@@ -106,11 +96,7 @@ pub async fn reading_info_json(
         Value::String(reading.reading_type.clone()),
     );
     // kanji.lisp:360 ((query (:select 'text :distinct :from 'okurigana :where (:= 'reading-id (id reading))) :column))
-    let okuri: Vec<String> =
-        sqlx::query_scalar("SELECT DISTINCT text FROM okurigana WHERE reading_id = $1")
-            .bind(reading.id)
-            .fetch_all(&ctx.pool)
-            .await?;
+    let okuri: Vec<String> = ctx.store.okurigana_texts_by_reading_id(reading.id).await?;
     js.insert(
         "okuri".to_owned(),
         Value::Array(okuri.into_iter().map(Value::String).collect()),
@@ -142,12 +128,7 @@ pub async fn kanji_info_json(
 ) -> Result<Option<Value>, sqlx::Error> {
     let str = char;
     // kanji.lisp:395 ((car (select-dao 'kanji (:= 'text str))))
-    let kanji: Option<Kanji> = sqlx::query_as("SELECT * FROM kanji WHERE text = $1")
-        .bind(str)
-        .fetch_all(&ctx.pool)
-        .await?
-        .into_iter()
-        .next();
+    let kanji: Option<Kanji> = ctx.store.kanji_by_text(str).await?.into_iter().next();
     match kanji {
         Some(kanji) => Ok(Some(to_json(ctx, &kanji).await?)),
         None => Ok(None),
@@ -335,7 +316,7 @@ pub async fn query_kanji_json(
 ) -> Result<Vec<Value>, sqlx::Error> {
     let mut result = Vec::new();
     // (query-dao 'kanji query)
-    let rows: Vec<Kanji> = sqlx::query_as(query).fetch_all(&ctx.pool).await?;
+    let rows: Vec<Kanji> = ctx.store.kanji_by_raw_query(query).await?;
     // (mapcar (lambda (var) (let ((js (to-json var))) (jsown:extend-js js …))) …)
     for var in &rows {
         let mut js = to_json(ctx, var).await?;

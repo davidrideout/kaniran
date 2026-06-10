@@ -751,17 +751,21 @@ pub async fn word_info_reading(
     // then (car (select-dao table (:= 'text true-text)))
     match word_info.kind {
         WordInfoType::Kanji => {
-            let row: Option<KanjiText> = sqlx::query_as("SELECT * FROM kanji_text WHERE text = $1")
-                .bind(true_text)
-                .fetch_optional(&ctx.pool)
-                .await?;
+            let row: Option<KanjiText> = ctx
+                .store
+                .kanji_texts_by_text(true_text)
+                .await?
+                .into_iter()
+                .next();
             Ok(row.map(KaniWordDispatchEnum::Kanji))
         }
         WordInfoType::Kana => {
-            let row: Option<KanaText> = sqlx::query_as("SELECT * FROM kana_text WHERE text = $1")
-                .bind(true_text)
-                .fetch_optional(&ctx.pool)
-                .await?;
+            let row: Option<KanaText> = ctx
+                .store
+                .kana_texts_by_text(true_text)
+                .await?
+                .into_iter()
+                .next();
             Ok(row.map(KaniWordDispatchEnum::Kana))
         }
         // (case …) has no :gap clause → table nil → guard fails → nil.

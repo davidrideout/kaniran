@@ -189,10 +189,7 @@ pub async fn check_easy_hints(
     // Upstream uses a single `:in (:set ...)` clause. Postgres parameterized arrays
     // are equivalent — bind a single `&[i32]` and let sqlx generate the
     // `seq = ANY($1)` form. (sqlx::postgres doesn't expose IN-list directly.)
-    let readings: Vec<KanaText> = sqlx::query_as("SELECT * FROM kana_text WHERE seq = ANY($1)")
-        .bind(easy_hints_seqs())
-        .fetch_all(&ctx.pool)
-        .await?;
+    let readings: Vec<KanaText> = ctx.store.kana_texts_by_seq_any(easy_hints_seqs()).await?;
 
     // dict-split.lisp:909 — (let ((*disable-hints* t))) wraps the
     // entire loop body, covering true-kanji, true-kana, and

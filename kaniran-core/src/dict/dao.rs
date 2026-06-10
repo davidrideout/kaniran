@@ -58,17 +58,11 @@ impl Entry {
     ///   absent (data-integrity violation), which the Rust port
     ///   surfaces as [`None`].
     pub async fn get_text(&self, ctx: &KaniranContext) -> Result<Option<String>, sqlx::Error> {
-        let table = if self.n_kanji > 0 {
-            "kanji_text"
+        if self.n_kanji > 0 {
+            ctx.store.headword_kanji_text(self.seq).await
         } else {
-            "kana_text"
-        };
-        let sql = format!("SELECT text FROM {} WHERE seq = $1 AND ord = 0", table);
-        let row: Option<(String,)> = sqlx::query_as(&sql)
-            .bind(self.seq)
-            .fetch_optional(&ctx.pool)
-            .await?;
-        Ok(row.map(|(t,)| t))
+            ctx.store.headword_kana_text(self.seq).await
+        }
     }
 
     /// `get-kana` override — `dict.lisp:44-45`:
@@ -94,12 +88,7 @@ impl Entry {
     ///   absent (data-integrity violation), which the Rust port
     ///   surfaces as [`None`].
     pub async fn get_kana(&self, ctx: &KaniranContext) -> Result<Option<String>, sqlx::Error> {
-        let row: Option<(String,)> =
-            sqlx::query_as("SELECT text FROM kana_text WHERE seq = $1 AND ord = 0")
-                .bind(self.seq)
-                .fetch_optional(&ctx.pool)
-                .await?;
-        Ok(row.map(|(t,)| t))
+        ctx.store.headword_kana_text(self.seq).await
     }
 }
 

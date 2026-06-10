@@ -13,7 +13,6 @@ use crate::dict::word_info::{
 };
 use crate::dict::word_info_str::word_info_gloss_json;
 use serde_json::Value;
-use sqlx::Row;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -27,15 +26,7 @@ pub async fn exists_reading(
     seq: i32,
     reading: &str,
 ) -> Result<Vec<i32>, sqlx::Error> {
-    let rows = sqlx::query("SELECT seq FROM kana_text WHERE seq = $1 AND text = $2")
-        .bind(seq)
-        .bind(reading)
-        .fetch_all(&ctx.pool)
-        .await?;
-    Ok(rows
-        .into_iter()
-        .map(|row| row.get::<i32, _>("seq"))
-        .collect())
+    ctx.store.kana_seqs_by_seq_and_text(seq, reading).await
 }
 
 /// Port of `ichiran/dict:find-word-info` (`dict.lisp:1849`).
@@ -158,13 +149,9 @@ async fn exists_reading_seq(
             Ok(!exists_reading(ctx, *single_seq, reading).await?.is_empty())
         }
         WordInfoSeq::Multi(_) => {
-            let query = format!(
-                "SELECT seq FROM kana_text WHERE seq = {} AND text = $1",
-                render_seq_row(seq),
-            );
-            let rows = sqlx::query(&query)
-                .bind(reading)
-                .fetch_all(&ctx.pool)
+            let rows = ctx
+                .store
+                .kana_seqs_by_seq_expr(&render_seq_row(seq), reading)
                 .await?;
             Ok(!rows.is_empty())
         }
@@ -218,10 +205,7 @@ pub async fn find_word_kana_pattern(
     pattern: &str,
 ) -> Result<Vec<KanaText>, sqlx::Error> {
     // (select-dao 'kana-text (:~ 'text pattern))
-    let mut rows: Vec<KanaText> = sqlx::query_as("SELECT * FROM kana_text WHERE text ~ $1")
-        .bind(pattern)
-        .fetch_all(&ctx.pool)
-        .await?;
+    let mut rows: Vec<KanaText> = ctx.store.kana_texts_by_regex(pattern).await?;
     // (stable-sort … #'compare-common :key (lambda (r) (and (not (eql (common r) :null)) (common r))))
     // — `common = None` mirrors the `:null` sentinel, so the key is the
     // row's `common` slot directly.
@@ -287,14 +271,7 @@ pub async fn get_glosses(
     ctx: &KaniranContext,
     seqs: &[i32],
 ) -> Result<Vec<(i32, Vec<String>)>, sqlx::Error> {
-    let glosses: Vec<(i32, String)> = sqlx::query_as(
-        "SELECT sense.seq, gloss.text FROM gloss, sense \
-         WHERE sense.seq = ANY($1) AND gloss.sense_id = sense.id \
-         ORDER BY sense.seq",
-    )
-    .bind(seqs)
-    .fetch_all(&ctx.pool)
-    .await?;
+    let glosses: Vec<(i32, String)> = ctx.store.glosses_by_seq_any(seqs).await?;
 
     let mut al: Vec<(i32, Vec<String>)> = Vec::new();
     for (seq, text) in glosses {
@@ -321,30 +298,9 @@ pub async fn get_candidates(
 ) -> Result<Vec<i32>, sqlx::Error> {
     let is_kana = test_word(text, CharClass::Kana);
     if is_kana {
-        let rows: Vec<(i32,)> = sqlx::query_as(
-            "SELECT e.seq FROM entry e \
-             LEFT JOIN kana_text r ON e.seq = r.seq \
-             LEFT JOIN kanji_text k ON e.seq = k.seq \
-             WHERE e.root_p AND k.text IS NULL AND r.text = $1 AND r.ord = 0 \
-             ORDER BY e.seq",
-        )
-        .bind(text)
-        .fetch_all(&ctx.pool)
-        .await?;
-        Ok(rows.into_iter().map(|(s,)| s).collect())
+        ctx.store.candidate_seqs_kana(text).await
     } else {
-        let rows: Vec<(i32,)> = sqlx::query_as(
-            "SELECT e.seq FROM entry e \
-             LEFT JOIN kana_text r ON e.seq = r.seq \
-             LEFT JOIN kanji_text k ON e.seq = k.seq \
-             WHERE k.text = $1 AND k.ord = 0 AND r.text = $2 AND r.ord = 0 \
-             ORDER BY e.seq",
-        )
-        .bind(text)
-        .bind(reading)
-        .fetch_all(&ctx.pool)
-        .await?;
-        Ok(rows.into_iter().map(|(s,)| s).collect())
+        ctx.store.candidate_seqs_kanji(text, reading).await
     }
 }
 

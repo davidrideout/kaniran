@@ -20,21 +20,14 @@ pub async fn get_readings_cache(
         Vec::new()
     } else {
         // kanji.lisp:206 ((:select 'r.text 'r.type :from (:as 'kanji 'k) ...))
-        // ORDER BY r.id diverges from upstream's unordered SELECT: it returns
-        // each kanji's readings in load_readings insertion order (= kanjidic2
-        // order), so get_normal_readings' first-occurrence dedup breaks
-        // ambiguous-gemination ties deterministically. Without it the JOIN
-        // order is unstable and reading.stat_common drifts run-to-run.
-        sqlx::query_as::<_, (String, String)>(
-            "SELECT r.text, r.type FROM kanji k \
-             INNER JOIN reading r ON r.kanji_id = k.id \
-             WHERE k.text = $1 AND r.type <> ALL($2) \
-             ORDER BY r.id", // order by is added and not in the original
-        )
-        .bind(text)
-        .bind(typeset)
-        .fetch_all(&ctx.pool)
-        .await?
+        // The store method's ORDER BY r.id diverges from upstream's
+        // unordered SELECT: it returns each kanji's readings in
+        // load_readings insertion order (= kanjidic2 order), so
+        // get_normal_readings' first-occurrence dedup breaks
+        // ambiguous-gemination ties deterministically. Without it the
+        // JOIN order is unstable and reading.stat_common drifts
+        // run-to-run.
+        ctx.store.kanji_reading_pairs(text, typeset).await?
     };
     {
         let mut cache = ctx.reading_cache.lock().unwrap();

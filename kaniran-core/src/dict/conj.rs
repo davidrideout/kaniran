@@ -1,4 +1,5 @@
 use crate::conn::kani_context::KaniranContext;
+use crate::conn::kani_postgres_backend::KaniPostgresBackend;
 use crate::dict::dao::{conj_info_short, conj_prop_json, ConjProp, Conjugation, WordConjugations};
 use crate::dict::kani_word::{KaniSimpleTextDispatchEnum, KaniWordDispatchEnum};
 use crate::dict::load::conjugate::lex_compare;
@@ -6,7 +7,6 @@ use crate::dict::readings::{find_words_seqs, get_original_text_once};
 use crate::dict::senses::get_senses_json;
 use crate::dict::word_info_str::{entry_info_short, reading_str_seq};
 use serde_json::{Map, Value};
-use sqlx::{PgPool, Row};
 use std::cmp::Ordering;
 use std::collections::HashSet;
 
@@ -21,14 +21,10 @@ pub fn no_conj_data_cache(ctx: &KaniranContext) -> &HashSet<i32> {
     &ctx.no_conj_data
 }
 
-pub async fn build_no_conj_data(pool: &PgPool) -> Result<HashSet<i32>, sqlx::Error> {
-    let seqs: Vec<i32> = sqlx::query_scalar(
-        "SELECT entry.seq FROM entry \
-         LEFT JOIN conjugation c ON entry.seq = c.seq \
-         WHERE c.seq IS NULL",
-    )
-    .fetch_all(pool)
-    .await?;
+pub async fn build_no_conj_data(
+    store: &KaniPostgresBackend,
+) -> Result<HashSet<i32>, sqlx::Error> {
+    let seqs: Vec<i32> = store.no_conj_seqs().await?;
     Ok(seqs.into_iter().collect())
 }
 
@@ -88,60 +84,26 @@ pub async fn get_conj_data(
     let texts_owned: Vec<String> = texts.iter().map(|s| (*s).to_string()).collect();
 
     let conjs: Vec<Conjugation> = match &from_or_conj_ids {
-        FromOrConjIds::All => {
-            sqlx::query_as("SELECT * FROM conjugation WHERE seq = $1")
-                .bind(seq)
-                .fetch_all(&ctx.pool)
-                .await?
-        }
-        FromOrConjIds::ConjIds(ids) => {
-            sqlx::query_as("SELECT * FROM conjugation WHERE seq = $1 AND id = ANY($2)")
-                .bind(seq)
-                .bind(ids)
-                .fetch_all(&ctx.pool)
-                .await?
-        }
-        FromOrConjIds::From(from) => {
-            sqlx::query_as("SELECT * FROM conjugation WHERE seq = $1 AND \"from\" = $2")
-                .bind(seq)
-                .bind(*from)
-                .fetch_all(&ctx.pool)
-                .await?
-        }
+        FromOrConjIds::All => ctx.store.conjs_by_seq(seq).await?,
+        FromOrConjIds::ConjIds(ids) => ctx.store.conjs_by_seq_and_ids(seq, ids).await?,
+        FromOrConjIds::From(from) => ctx.store.conjs_by_seq_and_from(seq, *from).await?,
         FromOrConjIds::Root => unreachable!("filtered out at the top of the function"),
     };
 
     let mut out: Vec<ConjData> = Vec::new();
     for conj in conjs {
-        let src_rows = if filter_by_texts {
-            sqlx::query(
-                "SELECT text, source_text FROM conj_source_reading \
-                 WHERE conj_id = $1 AND text = ANY($2)",
-            )
-            .bind(conj.id)
-            .bind(&texts_owned)
-            .fetch_all(&ctx.pool)
-            .await?
-        } else {
-            sqlx::query("SELECT text, source_text FROM conj_source_reading WHERE conj_id = $1")
-                .bind(conj.id)
-                .fetch_all(&ctx.pool)
+        let src_map: Vec<(String, String)> = if filter_by_texts {
+            ctx.store
+                .conj_source_readings_by_conj_id_and_texts(conj.id, &texts_owned)
                 .await?
+        } else {
+            ctx.store.conj_source_readings_by_conj_id(conj.id).await?
         };
-        let src_map: Vec<(String, String)> = src_rows
-            .into_iter()
-            .map(|row| -> Result<(String, String), sqlx::Error> {
-                Ok((row.try_get("text")?, row.try_get("source_text")?))
-            })
-            .collect::<Result<_, _>>()?;
         if filter_by_texts && src_map.is_empty() {
             continue;
         }
 
-        let props: Vec<ConjProp> = sqlx::query_as("SELECT * FROM conj_prop WHERE conj_id = $1")
-            .bind(conj.id)
-            .fetch_all(&ctx.pool)
-            .await?;
+        let props: Vec<ConjProp> = ctx.store.conj_props_by_conj_id(conj.id).await?;
         for prop in props {
             out.push(make_conj_data(
                 Some(conj.seq),
@@ -168,25 +130,12 @@ pub async fn select_conjs(
         // (if conj-ids …) truthy branch
         Some(WordConjugations::Root) => Ok(Vec::new()),
         // (select-dao 'conjugation (:and (:= 'seq seq) (:in 'id (:set conj-ids))))
-        Some(WordConjugations::Ids(ids)) => {
-            sqlx::query_as("SELECT * FROM conjugation WHERE seq = $1 AND id = ANY($2)")
-                .bind(seq)
-                .bind(ids)
-                .fetch_all(&ctx.pool)
-                .await
-        }
+        Some(WordConjugations::Ids(ids)) => ctx.store.conjs_by_seq_and_ids(seq, ids).await,
         // (or (select-dao … (:is-null 'via)) (select-dao … seq))
         None => {
-            let with_null_via: Vec<Conjugation> =
-                sqlx::query_as("SELECT * FROM conjugation WHERE seq = $1 AND via IS NULL")
-                    .bind(seq)
-                    .fetch_all(&ctx.pool)
-                    .await?;
+            let with_null_via: Vec<Conjugation> = ctx.store.conjs_by_seq_via_null(seq).await?;
             if with_null_via.is_empty() {
-                sqlx::query_as("SELECT * FROM conjugation WHERE seq = $1")
-                    .bind(seq)
-                    .fetch_all(&ctx.pool)
-                    .await
+                ctx.store.conjs_by_seq(seq).await
             } else {
                 Ok(with_null_via)
             }
@@ -269,10 +218,7 @@ pub async fn select_conjs_and_props(
     // (loop for conj in (select-conjs seq conj-ids) …)
     for conj in select_conjs(ctx, seq, conj_ids).await? {
         // (select-dao 'conj-prop (:= 'conj-id (id conj)))
-        let props: Vec<ConjProp> = sqlx::query_as("SELECT * FROM conj_prop WHERE conj_id = $1")
-            .bind(conj.id)
-            .fetch_all(&ctx.pool)
-            .await?;
+        let props: Vec<ConjProp> = ctx.store.conj_props_by_conj_id(conj.id).await?;
         // (loop for prop in props minimizing (conj-type-order (conj-type prop)))
         let val = props
             .iter()

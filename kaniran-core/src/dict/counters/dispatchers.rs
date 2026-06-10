@@ -14,7 +14,6 @@ use crate::dict::dao::KanaText;
 use crate::dict::grammar::suffix::kani_suffix_kind::SuffixKind;
 use crate::dict::dao::KanjiText;
 use crate::numbers::constants::{DIGIT_TO_KANA, POWER_TO_KANA};
-use sqlx::Row;
 use std::collections::{HashMap, HashSet};
 
 /// Port of `ichiran/dict:*counter-cache*` (`dict-counters.lisp:221`).
@@ -484,11 +483,7 @@ pub fn find_counter(
 /// Returns the sorted list of JMdict sequence numbers tagged
 /// `pos=ctr` (counter words) on at least one of their senses.
 pub async fn get_counter_ids(ctx: &KaniranContext) -> Result<Vec<i32>, sqlx::Error> {
-    let rows =
-        sqlx::query("SELECT DISTINCT seq FROM sense_prop WHERE tag = 'pos' AND text = 'ctr'")
-            .fetch_all(&ctx.pool)
-            .await?;
-    let mut seqs: Vec<i32> = rows.into_iter().map(|r| r.get::<i32, _>("seq")).collect();
+    let mut seqs: Vec<i32> = ctx.store.counter_seqs().await?;
     seqs.sort();
     Ok(seqs)
 }
@@ -508,34 +503,11 @@ pub async fn get_counter_stags(
     let mut stagks: HashMap<i32, Vec<String>> = HashMap::new();
     let mut stagrs: HashMap<i32, Vec<String>> = HashMap::new();
 
-    let sql = "SELECT sp.seq, sp.text \
-               FROM sense_prop sp, sense_prop sp1 \
-               WHERE sp.seq = sp1.seq \
-                 AND sp.sense_id = sp1.sense_id \
-                 AND sp.tag = $1 \
-                 AND sp1.tag = 'pos' \
-                 AND sp1.text = 'ctr' \
-                 AND sp.seq = ANY($2)";
-
-    for row in sqlx::query(sql)
-        .bind("stagk")
-        .bind(seqs)
-        .fetch_all(&ctx.pool)
-        .await?
-    {
-        let seq: i32 = row.get("seq");
-        let text: String = row.get("text");
+    for (seq, text) in ctx.store.counter_stag_rows("stagk", seqs).await? {
         stagks.entry(seq).or_default().push(text);
     }
 
-    for row in sqlx::query(sql)
-        .bind("stagr")
-        .bind(seqs)
-        .fetch_all(&ctx.pool)
-        .await?
-    {
-        let seq: i32 = row.get("seq");
-        let text: String = row.get("text");
+    for (seq, text) in ctx.store.counter_stag_rows("stagr", seqs).await? {
         stagrs.entry(seq).or_default().push(text);
     }
 
@@ -558,17 +530,9 @@ pub async fn get_counter_readings(ctx: &KaniranContext) -> Result<CounterReading
 
     let stags = get_counter_stags(ctx, &counter_ids).await?;
 
-    let kanji_readings: Vec<KanjiText> =
-        sqlx::query_as::<_, KanjiText>("SELECT * FROM kanji_text WHERE seq = ANY($1)")
-            .bind(&counter_ids)
-            .fetch_all(&ctx.pool)
-            .await?;
+    let kanji_readings: Vec<KanjiText> = ctx.store.kanji_texts_by_seq_any(&counter_ids).await?;
 
-    let kana_readings: Vec<KanaText> =
-        sqlx::query_as::<_, KanaText>("SELECT * FROM kana_text WHERE seq = ANY($1)")
-            .bind(&counter_ids)
-            .fetch_all(&ctx.pool)
-            .await?;
+    let kana_readings: Vec<KanaText> = ctx.store.kana_texts_by_seq_any(&counter_ids).await?;
 
     let mut hash: CounterReadings = HashMap::new();
 

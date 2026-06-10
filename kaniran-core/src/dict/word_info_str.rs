@@ -33,16 +33,8 @@ pub async fn reading_str_seq(
     ctx: &KaniranContext,
     seq: i32,
 ) -> Result<Option<String>, sqlx::Error> {
-    let kanji_text: Option<String> =
-        sqlx::query_scalar("SELECT text FROM kanji_text WHERE seq = $1 AND ord = 0")
-            .bind(seq)
-            .fetch_optional(&ctx.pool)
-            .await?;
-    let kana_text: Option<String> =
-        sqlx::query_scalar("SELECT text FROM kana_text WHERE seq = $1 AND ord = 0")
-            .bind(seq)
-            .fetch_optional(&ctx.pool)
-            .await?;
+    let kanji_text: Option<String> = ctx.store.headword_kanji_text(seq).await?;
+    let kana_text: Option<String> = ctx.store.headword_kana_text(seq).await?;
     Ok(reading_str_star_(
         kanji_text.as_deref(),
         kana_text.as_deref(),
@@ -455,19 +447,7 @@ pub async fn get_kanji_words(
     ctx: &KaniranContext,
     char: &str,
 ) -> Result<Vec<(i32, String, String, i32)>, sqlx::Error> {
-    sqlx::query_as(
-        "SELECT e.seq, k.text, r.text, k.common \
-         FROM entry AS e, kanji_text AS k, kana_text AS r \
-         WHERE e.seq = k.seq \
-           AND e.seq = r.seq \
-           AND r.text = k.best_kana \
-           AND k.common IS NOT NULL \
-           AND e.root_p \
-           AND k.text LIKE '%' || $1 || '%'",
-    )
-    .bind(char)
-    .fetch_all(&ctx.pool)
-    .await
+    ctx.store.kanji_words_containing_char(char).await
 }
 
 #[cfg(test)]

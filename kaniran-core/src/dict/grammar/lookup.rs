@@ -59,16 +59,7 @@ pub async fn get_kana_forms_star_(
     ctx: &KaniranContext,
     seq: i32,
 ) -> Result<Vec<KanaText>, sqlx::Error> {
-    let kts: Vec<KanaText> = sqlx::query_as(
-        "SELECT kt.* FROM kana_text kt WHERE kt.seq = $1 \
-         UNION \
-         SELECT kt.* FROM kana_text kt \
-         LEFT JOIN conjugation conj ON conj.seq = kt.seq \
-         WHERE conj.\"from\" = $1",
-    )
-    .bind(seq)
-    .fetch_all(&ctx.pool)
-    .await?;
+    let kts: Vec<KanaText> = ctx.store.kana_forms_rows(seq).await?;
 
     let mut out: Vec<KanaText> = Vec::with_capacity(kts.len());
     for mut kt in kts {
@@ -112,10 +103,9 @@ pub async fn get_kana_form(
     text: &str,
     conj: Option<WordConjugations>,
 ) -> Result<Option<KanaText>, sqlx::Error> {
-    let row = sqlx::query_as::<_, KanaText>("SELECT * FROM kana_text WHERE text = $1 AND seq = $2")
-        .bind(text)
-        .bind(seq)
-        .fetch_all(&ctx.pool)
+    let row = ctx
+        .store
+        .kana_texts_by_text_and_seq(text, seq)
         .await?
         .into_iter()
         .next();
@@ -257,10 +247,7 @@ async fn compute_key(
     let mut pairs: Vec<[i32; 2]> = Vec::with_capacity(conj_ids.len());
     for cid in &conj_ids {
         // dict-grammar.lisp:61 — (get-dao 'conjugation conj-id)
-        let conj: Conjugation = sqlx::query_as("SELECT * FROM conjugation WHERE id = $1")
-            .bind(cid)
-            .fetch_one(&ctx.pool)
-            .await?;
+        let conj: Conjugation = ctx.store.conj_by_id(*cid).await?;
         // dict-grammar.lisp:62 — (let ((via (seq-via conj))) (if (eql via :null) 0 via)).
         let via = conj.seq_via.unwrap_or(0);
         pairs.push([conj.seq_from, via]);
@@ -323,22 +310,13 @@ pub async fn find_word_seq(
     seqs: &[i32],
 ) -> Result<WordSeqRows, sqlx::Error> {
     if test_word(word, CharClass::Kana) {
-        let rows = sqlx::query_as::<_, KanaText>(
-            "SELECT * FROM kana_text WHERE text = $1 AND seq = ANY($2)",
-        )
-        .bind(word)
-        .bind(seqs)
-        .fetch_all(&ctx.pool)
-        .await?;
+        let rows = ctx.store.kana_texts_by_text_and_seq_any(word, seqs).await?;
         Ok(WordSeqRows::Kana(rows))
     } else {
-        let rows = sqlx::query_as::<_, KanjiText>(
-            "SELECT * FROM kanji_text WHERE text = $1 AND seq = ANY($2)",
-        )
-        .bind(word)
-        .bind(seqs)
-        .fetch_all(&ctx.pool)
-        .await?;
+        let rows = ctx
+            .store
+            .kanji_texts_by_text_and_seq_any(word, seqs)
+            .await?;
         Ok(WordSeqRows::Kanji(rows))
     }
 }
@@ -357,14 +335,7 @@ pub async fn find_word_conj_of(
 ) -> Result<WordSeqRows, sqlx::Error> {
     let primary = find_word_seq(ctx, word, seqs).await?;
     if test_word(word, CharClass::Kana) {
-        let conj_rows: Vec<KanaText> = sqlx::query_as::<_, KanaText>(
-            "SELECT kt.* FROM kana_text kt, conjugation conj \
-             WHERE kt.seq = conj.seq AND conj.\"from\" = ANY($1) AND kt.text = $2",
-        )
-        .bind(seqs)
-        .bind(word)
-        .fetch_all(&ctx.pool)
-        .await?;
+        let conj_rows: Vec<KanaText> = ctx.store.kana_texts_conj_of(seqs, word).await?;
         let primary_rows = match primary {
             WordSeqRows::Kana(v) => v,
             WordSeqRows::Kanji(_) => unreachable!(
@@ -377,14 +348,7 @@ pub async fn find_word_conj_of(
             |r| r.id,
         )))
     } else {
-        let conj_rows: Vec<KanjiText> = sqlx::query_as::<_, KanjiText>(
-            "SELECT kt.* FROM kanji_text kt, conjugation conj \
-             WHERE kt.seq = conj.seq AND conj.\"from\" = ANY($1) AND kt.text = $2",
-        )
-        .bind(seqs)
-        .bind(word)
-        .fetch_all(&ctx.pool)
-        .await?;
+        let conj_rows: Vec<KanjiText> = ctx.store.kanji_texts_conj_of(seqs, word).await?;
         let primary_rows = match primary {
             WordSeqRows::Kanji(v) => v,
             WordSeqRows::Kana(_) => unreachable!(
@@ -454,26 +418,10 @@ pub async fn find_word_with_pos(
     // dict/get_conj_data.rs:67 for the same pattern).
     let posi_owned: Vec<String> = posi.iter().map(|s| (*s).to_string()).collect();
     if test_word(word, CharClass::Kana) {
-        let rows = sqlx::query_as::<_, KanaText>(
-            "SELECT DISTINCT kt.* FROM kana_text kt \
-             INNER JOIN sense_prop sp ON sp.seq = kt.seq AND sp.tag = 'pos' \
-             WHERE kt.text = $1 AND sp.text = ANY($2)",
-        )
-        .bind(word)
-        .bind(&posi_owned)
-        .fetch_all(&ctx.pool)
-        .await?;
+        let rows = ctx.store.kana_texts_with_pos(word, &posi_owned).await?;
         Ok(WordWithPosRows::Kana(rows))
     } else {
-        let rows = sqlx::query_as::<_, KanjiText>(
-            "SELECT DISTINCT kt.* FROM kanji_text kt \
-             INNER JOIN sense_prop sp ON sp.seq = kt.seq AND sp.tag = 'pos' \
-             WHERE kt.text = $1 AND sp.text = ANY($2)",
-        )
-        .bind(word)
-        .bind(&posi_owned)
-        .fetch_all(&ctx.pool)
-        .await?;
+        let rows = ctx.store.kanji_texts_with_pos(word, &posi_owned).await?;
         Ok(WordWithPosRows::Kanji(rows))
     }
 }

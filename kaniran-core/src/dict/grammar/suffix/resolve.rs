@@ -128,13 +128,7 @@ pub async fn match_unique(
             let row_count = if seqs.is_empty() {
                 0
             } else {
-                let rows: Vec<i32> = sqlx::query_scalar(
-                    "SELECT seq FROM conjugation \
-                     WHERE seq = ANY($1) AND \"from\" = 2755350",
-                )
-                .bind(&seqs)
-                .fetch_all(&ctx.pool)
-                .await?;
+                let rows: Vec<i32> = ctx.store.conj_seqs_of_desu(&seqs).await?;
                 rows.len()
             };
             Ok(if row_count < matches.len() {
@@ -150,11 +144,7 @@ pub async fn match_unique(
                 // (and nil …) → nil → None.
                 return Ok(None);
             }
-            let rows: Vec<i32> =
-                sqlx::query_scalar("SELECT seq FROM entry WHERE seq = ANY($1) AND root_p")
-                    .bind(&seqs)
-                    .fetch_all(&ctx.pool)
-                    .await?;
+            let rows: Vec<i32> = ctx.store.root_seqs(&seqs).await?;
             // (and seqs (query …)) — non-empty seqs evaluate the
             // query; empty result is nil (falsy), non-empty is the
             // list of root seqs (truthy).
