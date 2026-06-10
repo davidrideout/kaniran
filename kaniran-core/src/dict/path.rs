@@ -12,7 +12,9 @@ use crate::dict::kani_lite_segment_list::KaniLiteSegmentList;
 use crate::dict::kani_lite_top_array::{
     kani_lite_get_array, kani_lite_register_item, KaniLiteTopArray,
 };
-use crate::dict::kani_lite_top_array_item::{KaniLitePathElement, KaniLiteTopArrayItem};
+use crate::dict::kani_lite_top_array_item::{
+    KaniLitePath, KaniLitePathElement, KaniLiteTopArrayItem,
+};
 use crate::dict::kani_word::KaniWordDispatchEnum;
 use crate::dict::readings::{find_substring_words, find_word, FindWordRows};
 use crate::dict::scoring::score::{
@@ -573,11 +575,7 @@ pub async fn find_best_path(
     let mut top = KaniLiteTopArray::new(limit);
 
     // dict.lisp:1193 (register-item top (gap-penalty 0 str-length) nil)
-    kani_lite_register_item(
-        &mut top,
-        gap_penalty(0, str_length) as i32,
-        Arc::<[KaniLitePathElement]>::from(Vec::new()),
-    );
+    kani_lite_register_item(&mut top, gap_penalty(0, str_length) as i32, KaniLitePath::nil());
 
     let n = lite_lists.len();
     // dict.lisp:1200 (loop for (seg1 . rest) on segment-lists ...)
@@ -598,13 +596,15 @@ pub async fn find_best_path(
             // dict.lisp:1206 (for score1 = (get-segment-score seg))
             let score1 = get_segment_score(&KaniSegmentScoreArg::KaniLiteSegmentList(&seg))
                 .expect("get-seg-initial output carries a scored first segment");
-            let payload: Arc<[KaniLitePathElement]> =
-                Arc::from(vec![KaniLitePathElement::SegmentList(Arc::clone(&seg))]);
+            let payload = KaniLitePath::cons(
+                KaniLitePathElement::SegmentList(Arc::clone(&seg)),
+                &KaniLitePath::nil(),
+            );
             // dict.lisp:1208 (register-item (segment-list-top seg1) (+ gap-left score1) (list seg))
             kani_lite_register_item(
                 &mut per_list_tops[i],
                 (gap_left_outer + score1 as i64) as i32,
-                Arc::clone(&payload),
+                payload.clone(),
             );
             // dict.lisp:1209 (register-item top (+ gap-left score1 gap-right) (list seg))
             kani_lite_register_item(
@@ -639,19 +639,18 @@ pub async fn find_best_path(
 
             for tai in tais {
                 // dict.lisp:1216 (for (seg-left . tail) = (tai-payload tai))
-                let payload_slice: &[KaniLitePathElement] = &tai.payload;
-                if payload_slice.is_empty() {
+                let head = tai.payload.head().unwrap_or_else(|| {
                     panic!(
                         "tai-payload must be non-empty (per-list top entries via dict.lisp:1208 / :1226)"
-                    );
-                }
-                let seg_left_sl = match &payload_slice[0] {
+                    )
+                });
+                let seg_left_sl = match head {
                     KaniLitePathElement::SegmentList(sl) => Arc::clone(sl),
                     KaniLitePathElement::Synergy(_) => {
                         panic!("tai-payload head is always a SegmentList")
                     }
                 };
-                let tail: &[KaniLitePathElement] = &payload_slice[1..];
+                let tail: KaniLitePath = tai.payload.tail();
 
                 let score3 =
                     get_segment_score(&KaniSegmentScoreArg::KaniLiteSegmentList(&seg_left_sl))
@@ -677,13 +676,16 @@ pub async fn find_best_path(
                     let accum_i64 = gap_left + max_score as i64 + score_tail as i64;
                     let accum = accum_i64 as i32;
 
-                    // dict.lisp:1225 (for path = (nconc split tail))
-                    let mut path_vec: Vec<KaniLitePathElement> = split;
-                    path_vec.extend_from_slice(tail);
-                    let path: Arc<[KaniLitePathElement]> = Arc::from(path_vec);
+                    // dict.lisp:1225 (for path = (nconc split tail)) — the
+                    // path reads split[0], split[1], …, tail front-to-back,
+                    // so the split folds onto the shared tail in reverse.
+                    let mut path = tail.clone();
+                    for elem in split.into_iter().rev() {
+                        path = KaniLitePath::cons(elem, &path);
+                    }
 
                     // dict.lisp:1226 (register-item (segment-list-top seg2) accum path)
-                    kani_lite_register_item(&mut per_list_tops[j], accum, Arc::clone(&path));
+                    kani_lite_register_item(&mut per_list_tops[j], accum, path.clone());
                     // dict.lisp:1227 (register-item top (+ accum gap-right) path)
                     kani_lite_register_item(&mut top, (accum_i64 + gap_right) as i32, path);
                 }
