@@ -39,3 +39,17 @@ strip = true
 inherits = "release"
 debug = true
 strip = "none"
+
+# Fast-compile near-release profile for test/audit iteration. Keeps
+# opt-level 3 (DB replay crawls under `dev`) but drops the expensive
+# whole-program steps — fat LTO, single codegen unit, strip — and turns
+# incremental back on, so edit-rebuild cycles take seconds instead of
+# minutes. Use `cargo build --profile testing --bin <name>` or
+# `cargo test --profile testing`; artifacts land in target/testing/.
+[profile.testing]
+inherits = "release"
+lto = false
+codegen-units = 16
+panic = "unwind"
+strip = "none"
+incremental = true
