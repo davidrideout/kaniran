@@ -7,7 +7,7 @@
 use std::io::Write;
 
 use clap::Parser;
-use serde_json::{json, Value};
+use serde_json::{Number, Value};
 
 // mimalloc over the system allocator: measured 1.57x end-to-end on the
 // allocation-bound segmentation pipeline (perf pass 2026-06-10).
@@ -73,9 +73,19 @@ async fn romanize_star_to_json(
                     let mut words = Vec::with_capacity(word_list.len());
                     for (romanized, word, _prop) in word_list {
                         let gloss = word_info_gloss_json(ctx, word, false).await?;
-                        words.push(json!([romanized, gloss, []]));
+                        // Build the triple directly so `gloss` is moved, not
+                        // re-serialized through json!'s to_value (which deep-
+                        // copies the whole tree through the serde machinery).
+                        words.push(Value::Array(vec![
+                            Value::String(romanized.clone()),
+                            gloss,
+                            Value::Array(Vec::new()),
+                        ]));
                     }
-                    pairs.push(json!([words, score]));
+                    pairs.push(Value::Array(vec![
+                        Value::Array(words),
+                        Value::Number(Number::from(*score)),
+                    ]));
                 }
                 parts.push(Value::Array(pairs));
             }
