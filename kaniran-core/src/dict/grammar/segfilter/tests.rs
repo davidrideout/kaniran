@@ -1,3 +1,36 @@
+use crate::dict::grammar::segfilter::{def_segfilter_must_follow_body, SegFilter};
+use crate::dict::kani_lite_segment::KaniLiteSegment;
+use crate::dict::kani_lite_segment_list::KaniLiteSegmentList;
+use std::sync::Arc;
+
+/// Re-expand a segfilter's pass-through `None` into the explicit
+/// `(left, right)` pair the pre-Option signature returned, so the
+/// branch assertions below keep their original shapes.
+fn resolved(
+    segfilter: SegFilter,
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+    segfilter(seg_left, seg_right)
+        .unwrap_or_else(|| vec![(seg_left.cloned(), Arc::clone(seg_right))])
+}
+
+/// [`resolved`] for direct `def_segfilter_must_follow_body` calls.
+fn resolved_body<FL, FR>(
+    seg_left: Option<&Arc<KaniLiteSegmentList>>,
+    seg_right: &Arc<KaniLiteSegmentList>,
+    filter_left: FL,
+    filter_right: FR,
+    allow_first: bool,
+) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>
+where
+    FL: Fn(&Arc<KaniLiteSegment>) -> bool,
+    FR: Fn(&Arc<KaniLiteSegment>) -> bool,
+{
+    def_segfilter_must_follow_body(seg_left, seg_right, filter_left, filter_right, allow_first)
+        .unwrap_or_else(|| vec![(seg_left.cloned(), Arc::clone(seg_right))])
+}
+
 mod penalty_short {
     use crate::dict::conj::ConjData;
     use crate::dict::grammar::segfilter::*;
@@ -609,7 +642,7 @@ mod def_segfilter_must_follow_macro {
     fn clause_1_no_right_match_passes_through() {
         let r = sl(0, 1, vec![seg(0, 1, vec![999])]);
         let result =
-            def_segfilter_must_follow_body(None, &r, |_| true, |s| s.seq_set.contains(&100), false);
+            super::resolved_body(None, &r, |_| true, |s| s.seq_set.contains(&100), false);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -620,7 +653,7 @@ mod def_segfilter_must_follow_macro {
     fn clause_1_allow_first_passes_through_when_l_none() {
         let r = sl(0, 1, vec![seg(0, 1, vec![100])]);
         let result =
-            def_segfilter_must_follow_body(None, &r, |_| true, |s| s.seq_set.contains(&100), true);
+            super::resolved_body(None, &r, |_| true, |s| s.seq_set.contains(&100), true);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
     }
@@ -630,7 +663,7 @@ mod def_segfilter_must_follow_macro {
     fn clause_2_l_none_all_right_matches_returns_empty() {
         let r = sl(0, 1, vec![seg(0, 1, vec![100])]);
         let result =
-            def_segfilter_must_follow_body(None, &r, |_| true, |s| s.seq_set.contains(&100), false);
+            super::resolved_body(None, &r, |_| true, |s| s.seq_set.contains(&100), false);
         assert!(result.is_empty());
     }
 
@@ -639,7 +672,7 @@ mod def_segfilter_must_follow_macro {
     fn clause_2_l_none_mixed_right_drops_matches() {
         let r = sl(0, 1, vec![seg(0, 1, vec![100]), seg(0, 1, vec![999])]);
         let result =
-            def_segfilter_must_follow_body(None, &r, |_| true, |s| s.seq_set.contains(&100), false);
+            super::resolved_body(None, &r, |_| true, |s| s.seq_set.contains(&100), false);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -651,7 +684,7 @@ mod def_segfilter_must_follow_macro {
     fn clause_2_gap_all_right_matches_returns_empty() {
         let l = sl(0, 1, vec![seg(0, 1, vec![999])]);
         let r = sl(2, 3, vec![seg(2, 3, vec![100])]);
-        let result = def_segfilter_must_follow_body(
+        let result = super::resolved_body(
             Some(&l),
             &r,
             |_| true,
@@ -666,7 +699,7 @@ mod def_segfilter_must_follow_macro {
     fn t_branch_all_left_satisfies_passes_through() {
         let l = sl(0, 1, vec![seg(0, 1, vec![999])]);
         let r = sl(1, 2, vec![seg(1, 2, vec![100])]);
-        let result = def_segfilter_must_follow_body(
+        let result = super::resolved_body(
             Some(&l),
             &r,
             |_| true,
@@ -684,7 +717,7 @@ mod def_segfilter_must_follow_macro {
     fn t_branch_mixed_both_emits_two_pairs() {
         let l = sl(0, 1, vec![seg(0, 1, vec![100]), seg(0, 1, vec![999])]);
         let r = sl(1, 2, vec![seg(1, 2, vec![100]), seg(1, 2, vec![999])]);
-        let result = def_segfilter_must_follow_body(
+        let result = super::resolved_body(
             Some(&l),
             &r,
             |s| s.seq_set.contains(&100),
@@ -706,7 +739,7 @@ mod def_segfilter_must_follow_macro {
     fn t_branch_no_left_satisfies_emits_base_only() {
         let l = sl(0, 1, vec![seg(0, 1, vec![999])]);
         let r = sl(1, 2, vec![seg(1, 2, vec![100]), seg(1, 2, vec![999])]);
-        let result = def_segfilter_must_follow_body(
+        let result = super::resolved_body(
             Some(&l),
             &r,
             |_| false,
@@ -724,7 +757,7 @@ mod def_segfilter_must_follow_macro {
     fn t_branch_no_right_contradicts_emits_sat_only() {
         let l = sl(0, 1, vec![seg(0, 1, vec![100]), seg(0, 1, vec![999])]);
         let r = sl(1, 2, vec![seg(1, 2, vec![100])]);
-        let result = def_segfilter_must_follow_body(
+        let result = super::resolved_body(
             Some(&l),
             &r,
             |s| s.seq_set.contains(&100),
@@ -837,7 +870,7 @@ mod segfilter_aux_verb {
     fn a_l_nil_r_no_match() {
         // No left, right has no aux-verb match: right passes through unchanged.
         let r = lite_sl(0, 2, vec![seg(0, 2, info_with_seq_set(vec![999]))]);
-        let result = segfilter_aux_verb(None, &r);
+        let result = super::resolved(segfilter_aux_verb, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -848,7 +881,7 @@ mod segfilter_aux_verb {
     fn b_l_nil_r_all_match() {
         // No left, every right segment is an aux verb: result is empty.
         let r = lite_sl(0, 2, vec![seg(0, 2, info_with_seq_set(vec![1342560]))]);
-        let result = segfilter_aux_verb(None, &r);
+        let result = super::resolved(segfilter_aux_verb, None, &r);
         assert!(result.is_empty());
     }
 
@@ -863,7 +896,7 @@ mod segfilter_aux_verb {
                 seg(0, 2, info_with_seq_set(vec![999])),
             ],
         );
-        let result = segfilter_aux_verb(None, &r);
+        let result = super::resolved(segfilter_aux_verb, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -883,7 +916,7 @@ mod segfilter_aux_verb {
                 seg(2, 4, info_with_seq_set(vec![999])),
             ],
         );
-        let result = segfilter_aux_verb(Some(&l), &r);
+        let result = super::resolved(segfilter_aux_verb, Some(&l), &r);
         assert_eq!(result.len(), 1);
         let (lp, rp) = &result[0];
         let lp_ref = lp.as_ref().unwrap();
@@ -905,7 +938,7 @@ mod segfilter_aux_verb {
                 seg(2, 4, info_with_seq_set(vec![999])),
             ],
         );
-        let result = segfilter_aux_verb(Some(&l), &r);
+        let result = super::resolved(segfilter_aux_verb, Some(&l), &r);
         assert_eq!(result.len(), 1);
         let (lp, rp) = &result[0];
         assert_eq!(lp.as_ref().unwrap().segments.len(), 1);
@@ -933,7 +966,7 @@ mod segfilter_aux_verb {
                 seg(2, 4, info_with_seq_set(vec![999])),
             ],
         );
-        let result = segfilter_aux_verb(Some(&l), &r);
+        let result = super::resolved(segfilter_aux_verb, Some(&l), &r);
         assert_eq!(result.len(), 2);
 
         // First pair: qualifying left × aux-verb right.
@@ -957,7 +990,7 @@ mod segfilter_aux_verb {
         // through unchanged.
         let l = lite_sl(0, 2, vec![seg(0, 2, info_with_conj(vec![cdata(13)]))]);
         let r = lite_sl(2, 4, vec![seg(2, 4, info_with_seq_set(vec![1342560]))]);
-        let result = segfilter_aux_verb(Some(&l), &r);
+        let result = super::resolved(segfilter_aux_verb, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -969,7 +1002,7 @@ mod segfilter_aux_verb {
         // unchanged.
         let l = lite_sl(0, 2, vec![seg(0, 2, info_with_conj(vec![cdata(13)]))]);
         let r = lite_sl(2, 4, vec![seg(2, 4, info_with_seq_set(vec![999]))]);
-        let result = segfilter_aux_verb(Some(&l), &r);
+        let result = super::resolved(segfilter_aux_verb, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -989,7 +1022,7 @@ mod segfilter_aux_verb {
             ],
         );
         let r = lite_sl(2, 4, vec![seg(2, 4, info_with_seq_set(vec![1342560]))]);
-        let result = segfilter_aux_verb(Some(&l), &r);
+        let result = super::resolved(segfilter_aux_verb, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -1061,7 +1094,7 @@ mod segfilter_tsu_iru {
     #[test]
     fn ti_a_l_nil_r_iru_pass_through() {
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1577980]))]);
-        let result = segfilter_tsu_iru(None, &r);
+        let result = super::resolved(segfilter_tsu_iru, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
     }
@@ -1069,7 +1102,7 @@ mod segfilter_tsu_iru {
     #[test]
     fn ti_b_l_nil_r_no_match() {
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
-        let result = segfilter_tsu_iru(None, &r);
+        let result = super::resolved(segfilter_tsu_iru, None, &r);
         assert_eq!(result.len(), 1);
     }
 
@@ -1077,7 +1110,7 @@ mod segfilter_tsu_iru {
     fn ti_c_l_not_tsu_r_iru() {
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1577980]))]);
-        let result = segfilter_tsu_iru(Some(&l), &r);
+        let result = super::resolved(segfilter_tsu_iru, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -1086,7 +1119,7 @@ mod segfilter_tsu_iru {
     fn ti_d_l_tsu_r_iru_empty() {
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2221640]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1577980]))]);
-        let result = segfilter_tsu_iru(Some(&l), &r);
+        let result = super::resolved(segfilter_tsu_iru, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -1101,7 +1134,7 @@ mod segfilter_tsu_iru {
             ],
         );
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1577980]))]);
-        let result = segfilter_tsu_iru(Some(&l), &r);
+        let result = super::resolved(segfilter_tsu_iru, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![999]);
@@ -1204,7 +1237,7 @@ mod segfilter_n {
                 info_with_seq_set(vec![2139720]),
             )],
         );
-        let result = segfilter_n(None, &r);
+        let result = super::resolved(segfilter_n, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -1218,7 +1251,7 @@ mod segfilter_n {
             1,
             vec![seg(0, 1, simple_word(999), info_with_seq_set(vec![999]))],
         );
-        let result = segfilter_n(None, &r);
+        let result = super::resolved(segfilter_n, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
     }
@@ -1234,7 +1267,7 @@ mod segfilter_n {
                 seg(0, 1, simple_word(999), info_with_seq_set(vec![999])),
             ],
         );
-        let result = segfilter_n(None, &r);
+        let result = super::resolved(segfilter_n, None, &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1.segments.len(), 2);
     }
@@ -1257,7 +1290,7 @@ mod segfilter_n {
                 info_with_seq_set(vec![2139720]),
             )],
         );
-        let result = segfilter_n(Some(&l), &r);
+        let result = super::resolved(segfilter_n, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -1285,7 +1318,7 @@ mod segfilter_n {
                 info_with_seq_set(vec![2139720]),
             )],
         );
-        let result = segfilter_n(Some(&l), &r);
+        let result = super::resolved(segfilter_n, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -1311,7 +1344,7 @@ mod segfilter_n {
                 seg(1, 2, simple_word(999), info_with_seq_set(vec![999])),
             ],
         );
-        let result = segfilter_n(Some(&l), &r);
+        let result = super::resolved(segfilter_n, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(
@@ -1344,7 +1377,7 @@ mod segfilter_n {
                 info_with_seq_set(vec![2139720]),
             )],
         );
-        let result = segfilter_n(Some(&l), &r);
+        let result = super::resolved(segfilter_n, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![999]);
@@ -1368,7 +1401,7 @@ mod segfilter_n {
                 seg(2, 3, simple_word(999), info_with_seq_set(vec![999])),
             ],
         );
-        let result = segfilter_n(Some(&l), &r);
+        let result = super::resolved(segfilter_n, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
         assert_eq!(result[0].1.segments[0].seq_set, vec![999]);
@@ -1392,7 +1425,7 @@ mod segfilter_n {
                 info_with_seq_set(vec![2139720]),
             )],
         );
-        let result = segfilter_n(Some(&l), &r);
+        let result = super::resolved(segfilter_n, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -1420,7 +1453,7 @@ mod segfilter_n {
                 info_with_seq_set(vec![2139720]),
             )],
         );
-        let result = segfilter_n(Some(&l), &r);
+        let result = super::resolved(segfilter_n, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -1491,7 +1524,7 @@ mod segfilter_wokarasu {
     fn w_a_l_nil_r_karasu_empty() {
         // No left, whole right is からす: result is empty.
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2087020]))]);
-        let result = segfilter_wokarasu(None, &r);
+        let result = super::resolved(segfilter_wokarasu, None, &r);
         assert!(result.is_empty());
     }
 
@@ -1506,7 +1539,7 @@ mod segfilter_wokarasu {
                 seg(0, 1, info_with_seq_set(vec![999])),
             ],
         );
-        let result = segfilter_wokarasu(None, &r);
+        let result = super::resolved(segfilter_wokarasu, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -1517,7 +1550,7 @@ mod segfilter_wokarasu {
     fn w_c_l_nil_r_no_match() {
         // No left, right has no からす match: right passes through.
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
-        let result = segfilter_wokarasu(None, &r);
+        let result = super::resolved(segfilter_wokarasu, None, &r);
         assert_eq!(result.len(), 1);
     }
 
@@ -1526,7 +1559,7 @@ mod segfilter_wokarasu {
         // Left を, right からす: both pass through.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2029010]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![2087020]))]);
-        let result = segfilter_wokarasu(Some(&l), &r);
+        let result = super::resolved(segfilter_wokarasu, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -1536,7 +1569,7 @@ mod segfilter_wokarasu {
         // Left is not を, right is からす: result is empty.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![2087020]))]);
-        let result = segfilter_wokarasu(Some(&l), &r);
+        let result = super::resolved(segfilter_wokarasu, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -1560,7 +1593,7 @@ mod segfilter_wokarasu {
                 seg(1, 2, info_with_seq_set(vec![888])),
             ],
         );
-        let result = segfilter_wokarasu(Some(&l), &r);
+        let result = super::resolved(segfilter_wokarasu, Some(&l), &r);
         assert_eq!(result.len(), 2);
 
         // First pair: を left × からす right.
@@ -1591,7 +1624,7 @@ mod segfilter_wokarasu {
                 seg(2, 3, info_with_seq_set(vec![888])),
             ],
         );
-        let result = segfilter_wokarasu(Some(&l), &r);
+        let result = super::resolved(segfilter_wokarasu, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
         assert_eq!(result[0].1.segments[0].seq_set, vec![888]);
@@ -1602,7 +1635,7 @@ mod segfilter_wokarasu {
         // Left not adjacent to right, whole right is からす: result is empty.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2029010]))]);
         let r = lite_sl(2, 3, vec![seg(2, 3, info_with_seq_set(vec![2087020]))]);
-        let result = segfilter_wokarasu(Some(&l), &r);
+        let result = super::resolved(segfilter_wokarasu, Some(&l), &r);
         assert!(result.is_empty());
     }
 }
@@ -1675,7 +1708,7 @@ mod segfilter_badend {
         // No left, every right segment is a bad ending: result is empty.
         let seg_chai = seg(1, 2, compound(&["ちゃい"]));
         let r = lite_sl(1, 2, vec![seg_chai]);
-        let result = segfilter_badend(None, &r);
+        let result = super::resolved(segfilter_badend, None, &r);
         assert!(result.is_empty());
     }
 
@@ -1685,7 +1718,7 @@ mod segfilter_badend {
         let seg_chai = seg(1, 2, compound(&["ちゃい"]));
         let seg_x = seg(1, 2, compound(&["x"]));
         let r = lite_sl(1, 2, vec![seg_chai, seg_x]);
-        let result = segfilter_badend(None, &r);
+        let result = super::resolved(segfilter_badend, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -1696,7 +1729,7 @@ mod segfilter_badend {
         // No left, right has no bad ending: right passes through.
         let seg_x = seg(1, 2, compound(&["x"]));
         let r = lite_sl(1, 2, vec![seg_x]);
-        let result = segfilter_badend(None, &r);
+        let result = super::resolved(segfilter_badend, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -1711,7 +1744,7 @@ mod segfilter_badend {
         let seg_x = seg(1, 3, compound(&["x"]));
         let l = lite_sl(0, 1, vec![seg_simp]);
         let r = lite_sl(1, 3, vec![seg_chai, seg_x]);
-        let result = segfilter_badend(Some(&l), &r);
+        let result = super::resolved(segfilter_badend, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -1724,7 +1757,7 @@ mod segfilter_badend {
         let seg_chai = seg(1, 3, compound(&["ちゃい"]));
         let l = lite_sl(0, 1, vec![seg_simp]);
         let r = lite_sl(1, 3, vec![seg_chai]);
-        let result = segfilter_badend(Some(&l), &r);
+        let result = super::resolved(segfilter_badend, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -1737,7 +1770,7 @@ mod segfilter_badend {
         let seg_x = seg(2, 4, compound(&["x"]));
         let l = lite_sl(0, 1, vec![seg_simp]);
         let r = lite_sl(2, 4, vec![seg_chai, seg_x]);
-        let result = segfilter_badend(Some(&l), &r);
+        let result = super::resolved(segfilter_badend, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -1750,7 +1783,7 @@ mod segfilter_badend {
         let seg_x = seg(1, 3, compound(&["x"]));
         let l = lite_sl(0, 1, vec![seg_simp]);
         let r = lite_sl(1, 3, vec![seg_x]);
-        let result = segfilter_badend(Some(&l), &r);
+        let result = super::resolved(segfilter_badend, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -1851,7 +1884,7 @@ mod segfilter_sukiyoki {
                 Some(info(vec![100], vec![cdata_54()])),
             )],
         );
-        let result = segfilter_sukiyoki(None, &r);
+        let result = super::resolved(segfilter_sukiyoki, None, &r);
         assert!(result.is_empty());
     }
 
@@ -1866,7 +1899,7 @@ mod segfilter_sukiyoki {
                 seg(0, 1, "abc", 999, Some(info(vec![999], vec![]))),
             ],
         );
-        let result = segfilter_sukiyoki(None, &r);
+        let result = super::resolved(segfilter_sukiyoki, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -1887,7 +1920,7 @@ mod segfilter_sukiyoki {
             1,
             vec![seg(0, 1, "abc", 999, Some(info(vec![999], vec![])))],
         );
-        let result = segfilter_sukiyoki(None, &r);
+        let result = super::resolved(segfilter_sukiyoki, None, &r);
         assert_eq!(result.len(), 1);
     }
 
@@ -1910,7 +1943,7 @@ mod segfilter_sukiyoki {
                 Some(info(vec![100], vec![cdata_54()])),
             )],
         );
-        let result = segfilter_sukiyoki(Some(&l), &r);
+        let result = super::resolved(segfilter_sukiyoki, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -1931,7 +1964,7 @@ mod segfilter_sukiyoki {
                 seg(1, 2, "abc", 999, Some(info(vec![999], vec![]))),
             ],
         );
-        let result = segfilter_sukiyoki(Some(&l), &r);
+        let result = super::resolved(segfilter_sukiyoki, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -1960,7 +1993,7 @@ mod segfilter_sukiyoki {
                 Some(info(vec![100], vec![cdata_54()])),
             )],
         );
-        let result = segfilter_sukiyoki(Some(&l), &r);
+        let result = super::resolved(segfilter_sukiyoki, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -1973,7 +2006,7 @@ mod segfilter_sukiyoki {
             1,
             vec![seg(0, 1, "好き", 100, Some(info(vec![100], vec![])))],
         );
-        let result = segfilter_sukiyoki(None, &r);
+        let result = super::resolved(segfilter_sukiyoki, None, &r);
         assert_eq!(result.len(), 1);
     }
 
@@ -1992,7 +2025,7 @@ mod segfilter_sukiyoki {
                 Some(info(vec![100], vec![cdata_54()])),
             )],
         );
-        let result = segfilter_sukiyoki(None, &r);
+        let result = super::resolved(segfilter_sukiyoki, None, &r);
         assert_eq!(result.len(), 1);
     }
 }
@@ -2072,7 +2105,7 @@ mod segfilter_roku {
     fn r_a_l_nil_r_ku_pass_through() {
         // No left, right is くる: right passes through.
         let r = lite_sl(0, 1, vec![simple_seg(0, 1, "くる", 100)]);
-        let result = segfilter_roku(None, &r);
+        let result = super::resolved(segfilter_roku, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
     }
@@ -2081,7 +2114,7 @@ mod segfilter_roku {
     fn r_b_l_nil_r_not_ku() {
         // No left, right is not くる: right passes through.
         let r = lite_sl(0, 1, vec![simple_seg(0, 1, "あさ", 100)]);
-        let result = segfilter_roku(None, &r);
+        let result = super::resolved(segfilter_roku, None, &r);
         assert_eq!(result.len(), 1);
     }
 
@@ -2090,7 +2123,7 @@ mod segfilter_roku {
         // Plain left, right くる: both pass through.
         let l = lite_sl(0, 1, vec![simple_seg(0, 1, "abc", 999)]);
         let r = lite_sl(1, 2, vec![simple_seg(1, 2, "くる", 100)]);
-        let result = segfilter_roku(Some(&l), &r);
+        let result = super::resolved(segfilter_roku, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -2100,7 +2133,7 @@ mod segfilter_roku {
         // Left ends in いろ, right is くる: result is empty.
         let l = lite_sl(0, 2, vec![compound_ending_seg(0, 2, "いろ", 50)]);
         let r = lite_sl(2, 3, vec![simple_seg(2, 3, "くる", 100)]);
-        let result = segfilter_roku(Some(&l), &r);
+        let result = super::resolved(segfilter_roku, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -2117,7 +2150,7 @@ mod segfilter_roku {
             ],
         );
         let r = lite_sl(2, 3, vec![simple_seg(2, 3, "くる", 100)]);
-        let result = segfilter_roku(Some(&l), &r);
+        let result = super::resolved(segfilter_roku, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         // Surviving L seg is the simple one (text="abc", seq=999).
@@ -2141,7 +2174,7 @@ mod segfilter_roku {
             3,
             vec![simple_seg(2, 3, "くる", 100), simple_seg(2, 3, "あさ", 999)],
         );
-        let result = segfilter_roku(Some(&l), &r);
+        let result = super::resolved(segfilter_roku, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
         match &result[0].1.segments[0].source.word {
@@ -2248,7 +2281,7 @@ mod segfilter_sae {
     fn s_a_l_nil_r_e_pass_through() {
         // No left, right is える: right passes through.
         let r = lite_sl(0, 1, vec![simple_seg(0, 1, "える", 100, None)]);
-        let result = segfilter_sae(None, &r);
+        let result = super::resolved(segfilter_sae, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
     }
@@ -2257,7 +2290,7 @@ mod segfilter_sae {
     fn s_b_l_nil_r_not_e() {
         // No left, right is not える: right passes through.
         let r = lite_sl(0, 1, vec![simple_seg(0, 1, "abc", 100, None)]);
-        let result = segfilter_sae(None, &r);
+        let result = super::resolved(segfilter_sae, None, &r);
         assert_eq!(result.len(), 1);
     }
 
@@ -2276,7 +2309,7 @@ mod segfilter_sae {
             )],
         );
         let r = lite_sl(1, 2, vec![simple_seg(1, 2, "える", 100, None)]);
-        let result = segfilter_sae(Some(&l), &r);
+        let result = super::resolved(segfilter_sae, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -2286,7 +2319,7 @@ mod segfilter_sae {
         // Left is a compound ending in さえ, right is える: result is empty.
         let l = lite_sl(0, 2, vec![compound_ending_seg(0, 2, 2029120)]);
         let r = lite_sl(2, 3, vec![simple_seg(2, 3, "える", 100, None)]);
-        let result = segfilter_sae(Some(&l), &r);
+        let result = super::resolved(segfilter_sae, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -2303,7 +2336,7 @@ mod segfilter_sae {
             ],
         );
         let r = lite_sl(2, 3, vec![simple_seg(2, 3, "える", 100, None)]);
-        let result = segfilter_sae(Some(&l), &r);
+        let result = super::resolved(segfilter_sae, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         match &result[0].0.as_ref().unwrap().segments[0].source.word {
@@ -2417,7 +2450,7 @@ mod segfilter_janai {
                 Some(info_with_seq_set(vec![1529520])),
             )],
         );
-        let result = segfilter_janai(None, &r);
+        let result = super::resolved(segfilter_janai, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -2447,7 +2480,7 @@ mod segfilter_janai {
                 Some(info_with_seq_set(vec![1529520])),
             )],
         );
-        let result = segfilter_janai(Some(&l), &r);
+        let result = super::resolved(segfilter_janai, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -2476,7 +2509,7 @@ mod segfilter_janai {
                 Some(info_with_seq_set(vec![1529520])),
             )],
         );
-        let result = segfilter_janai(Some(&l), &r);
+        let result = super::resolved(segfilter_janai, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -2507,7 +2540,7 @@ mod segfilter_janai {
                 Some(info_with_seq_set(vec![1529520])),
             )],
         );
-        let result = segfilter_janai(Some(&l), &r);
+        let result = super::resolved(segfilter_janai, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![999]);
@@ -2540,7 +2573,7 @@ mod segfilter_janai {
                 seg(2, 3, simple_word(999), Some(info_with_seq_set(vec![999]))),
             ],
         );
-        let result = segfilter_janai(Some(&l), &r);
+        let result = super::resolved(segfilter_janai, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -2613,7 +2646,7 @@ mod segfilter_nohayamete {
     fn nh_a_l_nil_r_match() {
         // No left, right matches: right passes through.
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1601080]))]);
-        let result = segfilter_nohayamete(None, &r);
+        let result = super::resolved(segfilter_nohayamete, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
     }
@@ -2622,7 +2655,7 @@ mod segfilter_nohayamete {
     fn nh_b_l_nil_r_no_match() {
         // No left, right has no match: right passes through.
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
-        let result = segfilter_nohayamete(None, &r);
+        let result = super::resolved(segfilter_nohayamete, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
     }
@@ -2632,7 +2665,7 @@ mod segfilter_nohayamete {
         // Left is not の, right is はやめて: both pass through.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1601080]))]);
-        let result = segfilter_nohayamete(Some(&l), &r);
+        let result = super::resolved(segfilter_nohayamete, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -2642,7 +2675,7 @@ mod segfilter_nohayamete {
         // Left is の, right is はやめて: result is empty.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1469800]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1601080]))]);
-        let result = segfilter_nohayamete(Some(&l), &r);
+        let result = super::resolved(segfilter_nohayamete, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -2659,7 +2692,7 @@ mod segfilter_nohayamete {
             ],
         );
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1601080]))]);
-        let result = segfilter_nohayamete(Some(&l), &r);
+        let result = super::resolved(segfilter_nohayamete, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![999]);
@@ -2679,7 +2712,7 @@ mod segfilter_nohayamete {
                 seg(2, 3, info_with_seq_set(vec![999])),
             ],
         );
-        let result = segfilter_nohayamete(Some(&l), &r);
+        let result = super::resolved(segfilter_nohayamete, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
         assert_eq!(result[0].1.segments[0].seq_set, vec![999]);
@@ -2751,7 +2784,7 @@ mod segfilter_toomou {
     fn tm_a_l_nil_r_omou_pass_through() {
         // No left, right is おもう: right passes through.
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1589350]))]);
-        let result = segfilter_toomou(None, &r);
+        let result = super::resolved(segfilter_toomou, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
     }
@@ -2760,7 +2793,7 @@ mod segfilter_toomou {
     fn tm_b_l_nil_r_no_match() {
         // No left, right has no match: right passes through.
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
-        let result = segfilter_toomou(None, &r);
+        let result = super::resolved(segfilter_toomou, None, &r);
         assert_eq!(result.len(), 1);
     }
 
@@ -2769,7 +2802,7 @@ mod segfilter_toomou {
         // Left is not なんだと, right is おもう: both pass through.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1589350]))]);
-        let result = segfilter_toomou(Some(&l), &r);
+        let result = super::resolved(segfilter_toomou, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -2779,7 +2812,7 @@ mod segfilter_toomou {
         // Left is なんだと, right is おもう: result is empty.
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2837117]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1589350]))]);
-        let result = segfilter_toomou(Some(&l), &r);
+        let result = super::resolved(segfilter_toomou, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -2796,7 +2829,7 @@ mod segfilter_toomou {
             ],
         );
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![1589350]))]);
-        let result = segfilter_toomou(Some(&l), &r);
+        let result = super::resolved(segfilter_toomou, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![999]);
@@ -2868,7 +2901,7 @@ mod segfilter_totte {
     #[test]
     fn t_a_l_nil_r_totte_pass_through() {
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![2086960]))]);
-        let result = segfilter_totte(None, &r);
+        let result = super::resolved(segfilter_totte, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
     }
@@ -2876,7 +2909,7 @@ mod segfilter_totte {
     #[test]
     fn t_b_l_nil_r_no_match() {
         let r = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
-        let result = segfilter_totte(None, &r);
+        let result = super::resolved(segfilter_totte, None, &r);
         assert_eq!(result.len(), 1);
     }
 
@@ -2884,7 +2917,7 @@ mod segfilter_totte {
     fn t_c_l_not_to_r_totte() {
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![999]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![2086960]))]);
-        let result = segfilter_totte(Some(&l), &r);
+        let result = super::resolved(segfilter_totte, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -2893,7 +2926,7 @@ mod segfilter_totte {
     fn t_d_l_to_r_totte_empty() {
         let l = lite_sl(0, 1, vec![seg(0, 1, info_with_seq_set(vec![1008490]))]);
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![2086960]))]);
-        let result = segfilter_totte(Some(&l), &r);
+        let result = super::resolved(segfilter_totte, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -2908,7 +2941,7 @@ mod segfilter_totte {
             ],
         );
         let r = lite_sl(1, 2, vec![seg(1, 2, info_with_seq_set(vec![2086960]))]);
-        let result = segfilter_totte(Some(&l), &r);
+        let result = super::resolved(segfilter_totte, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![999]);
@@ -2985,7 +3018,7 @@ mod segfilter_dashi {
             1,
             vec![seg(0, 1, Some(info_with_seq_set(vec![1157170])))],
         );
-        let result = segfilter_dashi(None, &r);
+        let result = super::resolved(segfilter_dashi, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -3002,7 +3035,7 @@ mod segfilter_dashi {
                 seg(0, 1, Some(info_with_seq_set(vec![999]))),
             ],
         );
-        let result = segfilter_dashi(None, &r);
+        let result = super::resolved(segfilter_dashi, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 2);
@@ -3017,7 +3050,7 @@ mod segfilter_dashi {
             vec![seg(0, 1, Some(info_with_seq_set(vec![2089020])))],
         );
         let r = lite_sl(1, 3, vec![seg(1, 3, Some(info_with_seq_set(vec![999])))]);
-        let result = segfilter_dashi(Some(&l), &r);
+        let result = super::resolved(segfilter_dashi, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -3032,7 +3065,7 @@ mod segfilter_dashi {
             3,
             vec![seg(1, 3, Some(info_with_seq_set(vec![1157170])))],
         );
-        let result = segfilter_dashi(Some(&l), &r);
+        let result = super::resolved(segfilter_dashi, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -3055,7 +3088,7 @@ mod segfilter_dashi {
                 seg(1, 3, Some(info_with_seq_set(vec![999]))),
             ],
         );
-        let result = segfilter_dashi(Some(&l), &r);
+        let result = super::resolved(segfilter_dashi, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -3075,7 +3108,7 @@ mod segfilter_dashi {
             3,
             vec![seg(1, 3, Some(info_with_seq_set(vec![1157170])))],
         );
-        let result = segfilter_dashi(Some(&l), &r);
+        let result = super::resolved(segfilter_dashi, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -3097,7 +3130,7 @@ mod segfilter_dashi {
             3,
             vec![seg(1, 3, Some(info_with_seq_set(vec![1157170])))],
         );
-        let result = segfilter_dashi(Some(&l), &r);
+        let result = super::resolved(segfilter_dashi, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(
@@ -3124,7 +3157,7 @@ mod segfilter_dashi {
                 seg(2, 4, Some(info_with_seq_set(vec![999]))),
             ],
         );
-        let result = segfilter_dashi(Some(&l), &r);
+        let result = super::resolved(segfilter_dashi, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -3141,7 +3174,7 @@ mod segfilter_dashi {
             3,
             vec![seg(1, 3, Some(info_with_seq_set(vec![1157170])))],
         );
-        let result = segfilter_dashi(Some(&l), &r);
+        let result = super::resolved(segfilter_dashi, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert!(result[0].0.as_ref().unwrap().segments[0].seq_set.is_empty());
@@ -3217,7 +3250,7 @@ mod segfilter_dekiru {
             1,
             vec![seg(0, 1, Some(info_with_seq_set(vec![2830009])))],
         );
-        let result = segfilter_dekiru(None, &r);
+        let result = super::resolved(segfilter_dekiru, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -3234,7 +3267,7 @@ mod segfilter_dekiru {
                 seg(0, 1, Some(info_with_seq_set(vec![2830009]))),
             ],
         );
-        let result = segfilter_dekiru(None, &r);
+        let result = super::resolved(segfilter_dekiru, None, &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1.segments.len(), 2);
     }
@@ -3248,7 +3281,7 @@ mod segfilter_dekiru {
             vec![seg(0, 1, Some(info_with_seq_set(vec![1896380])))],
         );
         let r = lite_sl(1, 2, vec![seg(1, 2, Some(info_with_seq_set(vec![999])))]);
-        let result = segfilter_dekiru(Some(&l), &r);
+        let result = super::resolved(segfilter_dekiru, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -3262,7 +3295,7 @@ mod segfilter_dekiru {
             2,
             vec![seg(1, 2, Some(info_with_seq_set(vec![2830009])))],
         );
-        let result = segfilter_dekiru(Some(&l), &r);
+        let result = super::resolved(segfilter_dekiru, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -3284,7 +3317,7 @@ mod segfilter_dekiru {
                 seg(1, 2, Some(info_with_seq_set(vec![999]))),
             ],
         );
-        let result = segfilter_dekiru(Some(&l), &r);
+        let result = super::resolved(segfilter_dekiru, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments[0].seq_set, vec![999]);
@@ -3310,7 +3343,7 @@ mod segfilter_dekiru {
                 seg(1, 2, Some(info_with_seq_set(vec![999]))),
             ],
         );
-        let result = segfilter_dekiru(Some(&l), &r);
+        let result = super::resolved(segfilter_dekiru, Some(&l), &r);
         assert_eq!(result.len(), 2);
 
         // First pair: non-出 left × 来る right.
@@ -3342,7 +3375,7 @@ mod segfilter_dekiru {
             2,
             vec![seg(1, 2, Some(info_with_seq_set(vec![2830009])))],
         );
-        let result = segfilter_dekiru(Some(&l), &r);
+        let result = super::resolved(segfilter_dekiru, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![888]);
@@ -3359,7 +3392,7 @@ mod segfilter_dekiru {
             2,
             vec![seg(1, 2, Some(info_with_seq_set(vec![2830009])))],
         );
-        let result = segfilter_dekiru(Some(&l), &r);
+        let result = super::resolved(segfilter_dekiru, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert!(result[0].0.as_ref().unwrap().segments[0].seq_set.is_empty());
@@ -3645,7 +3678,7 @@ mod segfilter_honorific {
             1,
             vec![seg(0, 1, Some(info_with_seq_set(vec![1247260])))],
         );
-        let result = segfilter_honorific(None, &r);
+        let result = super::resolved(segfilter_honorific, None, &r);
         assert!(result.is_empty());
     }
 
@@ -3660,7 +3693,7 @@ mod segfilter_honorific {
                 seg(0, 1, Some(info_with_seq_set(vec![999]))),
             ],
         );
-        let result = segfilter_honorific(None, &r);
+        let result = super::resolved(segfilter_honorific, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -3671,7 +3704,7 @@ mod segfilter_honorific {
     fn h_c_l_nil_r_no_match() {
         // No left, right has no honorific: right passes through.
         let r = lite_sl(0, 1, vec![seg(0, 1, Some(info_with_seq_set(vec![999])))]);
-        let result = segfilter_honorific(None, &r);
+        let result = super::resolved(segfilter_honorific, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -3686,7 +3719,7 @@ mod segfilter_honorific {
             2,
             vec![seg(1, 2, Some(info_with_seq_set(vec![1247260])))],
         );
-        let result = segfilter_honorific(Some(&l), &r);
+        let result = super::resolved(segfilter_honorific, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -3705,7 +3738,7 @@ mod segfilter_honorific {
             2,
             vec![seg(1, 2, Some(info_with_seq_set(vec![1247260])))],
         );
-        let result = segfilter_honorific(Some(&l), &r);
+        let result = super::resolved(segfilter_honorific, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -3726,7 +3759,7 @@ mod segfilter_honorific {
                 seg(1, 2, Some(info_with_seq_set(vec![999]))),
             ],
         );
-        let result = segfilter_honorific(Some(&l), &r);
+        let result = super::resolved(segfilter_honorific, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -3750,7 +3783,7 @@ mod segfilter_honorific {
             2,
             vec![seg(1, 2, Some(info_with_seq_set(vec![1247260])))],
         );
-        let result = segfilter_honorific(Some(&l), &r);
+        let result = super::resolved(segfilter_honorific, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![999]);
@@ -3770,7 +3803,7 @@ mod segfilter_honorific {
                 seg(2, 3, Some(info_with_seq_set(vec![999]))),
             ],
         );
-        let result = segfilter_honorific(Some(&l), &r);
+        let result = super::resolved(segfilter_honorific, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].1.segments.len(), 1);
@@ -3786,7 +3819,7 @@ mod segfilter_honorific {
             3,
             vec![seg(2, 3, Some(info_with_seq_set(vec![1247260])))],
         );
-        let result = segfilter_honorific(Some(&l), &r);
+        let result = super::resolved(segfilter_honorific, Some(&l), &r);
         assert!(result.is_empty());
     }
 }
@@ -3860,7 +3893,7 @@ mod segfilter_mononi {
             1,
             vec![seg(0, 1, Some(info_with_seq_set(vec![1009980])))],
         );
-        let result = segfilter_mononi(None, &r);
+        let result = super::resolved(segfilter_mononi, None, &r);
         assert_eq!(result.len(), 1);
         assert!(result[0].0.is_none());
         assert_eq!(result[0].1.segments.len(), 1);
@@ -3875,7 +3908,7 @@ mod segfilter_mononi {
             2,
             vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))],
         );
-        let result = segfilter_mononi(Some(&l), &r);
+        let result = super::resolved(segfilter_mononi, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
     }
@@ -3893,7 +3926,7 @@ mod segfilter_mononi {
             2,
             vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))],
         );
-        let result = segfilter_mononi(Some(&l), &r);
+        let result = super::resolved(segfilter_mononi, Some(&l), &r);
         assert!(result.is_empty());
     }
 
@@ -3914,7 +3947,7 @@ mod segfilter_mononi {
             2,
             vec![seg(1, 2, Some(info_with_seq_set(vec![1009980])))],
         );
-        let result = segfilter_mononi(Some(&l), &r);
+        let result = super::resolved(segfilter_mononi, Some(&l), &r);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments.len(), 1);
         assert_eq!(result[0].0.as_ref().unwrap().segments[0].seq_set, vec![999]);
