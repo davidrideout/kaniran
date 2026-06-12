@@ -17,9 +17,21 @@ mod common;
 
 // Allocator diagnostic for the perf pass: the profile shows ~34% of
 // CPU in allocator page management under macOS system malloc.
+#[cfg(not(feature = "dhat-heap"))]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
+// Allocation profiling (feature dhat-heap): dhat::Alloc records every
+// allocation with its backtrace while a dhat::Profiler is alive. The
+// profiler brackets only the run loop, so startup (archive load, index
+// build, populators) stays out of the numbers; outside the profiler's
+// lifetime dhat forwards to the system allocator unrecorded. Expect a
+// large slowdown — throughput numbers from a dhat run are meaningless.
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static GLOBAL: dhat::Alloc = dhat::Alloc;
+
+#[cfg(not(feature = "dhat-heap"))]
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
@@ -27,7 +39,7 @@ use arrow::array::{Array, StringArray};
 use clap::Parser;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use parquet::arrow::ProjectionMask;
-use serde_json::{json, Value};
+use serde_json::{Number, Value};
 
 use kaniran_core::conn::kani_context::KaniranContext;
 use kaniran_core::core::kani_romanize_method::KaniRomanizeMethod;
@@ -50,6 +62,10 @@ struct Args {
     /// pprof sampling frequency (Hz).
     #[arg(long, default_value_t = 250)]
     frequency: i32,
+    /// Where to write the dhat heap profile (feature dhat-heap only;
+    /// view at https://nnethercote.github.io/dh_view/dh_view.html).
+    #[arg(long, default_value = "/tmp/cli_full_profile_dhat.json")]
+    dhat_out: String,
 }
 
 /// Cumulative wall-clock split between the two pipeline halves.
@@ -84,9 +100,18 @@ async fn full_json(
                     let mut word_jsons = Vec::with_capacity(words.len());
                     for (romaji, word_info, _prop) in words {
                         let gloss = word_info_gloss_json(ctx, word_info, false).await?;
-                        word_jsons.push(json!([romaji, gloss, []]));
+                        // Move `gloss` instead of re-serializing it through
+                        // json!'s to_value (mirrors cli_full_test — keep in sync).
+                        word_jsons.push(Value::Array(vec![
+                            Value::String(romaji.clone()),
+                            gloss,
+                            Value::Array(Vec::new()),
+                        ]));
                     }
-                    alts.push(json!([word_jsons, score]));
+                    alts.push(Value::Array(vec![
+                        Value::Array(word_jsons),
+                        Value::Number(Number::from(*score)),
+                    ]));
                 }
                 top.push(Value::Array(alts));
             }
@@ -157,6 +182,7 @@ fn fmt_dur(secs: u64) -> String {
 /// Print a top-N table of self/total sample counts per symbol from the
 /// pprof report. `frames[0]` is the leaf (innermost) frame. The SVG is
 /// the authority; this is the terminal-readable summary.
+#[cfg(not(feature = "dhat-heap"))]
 fn print_top_symbols(report: &pprof::Report, top_n: usize) {
     let mut self_counts: HashMap<String, isize> = HashMap::new();
     let mut total_counts: HashMap<String, isize> = HashMap::new();
@@ -217,11 +243,16 @@ async fn main() {
     let ctx = common::setup_ctx().await;
     eprintln!("ctx ready in {:.1}s", ctx_start.elapsed().as_secs_f64());
 
+    #[cfg(not(feature = "dhat-heap"))]
     let guard = pprof::ProfilerGuardBuilder::default()
         .frequency(args.frequency)
         .blocklist(&["libc", "libgcc", "pthread", "vdso"])
         .build()
         .expect("pprof guard");
+    #[cfg(feature = "dhat-heap")]
+    let dhat_profiler = dhat::Profiler::builder()
+        .file_name(std::path::PathBuf::from(&args.dhat_out))
+        .build();
 
     let run_start = Instant::now();
     let mut last_tick = run_start;
@@ -270,9 +301,20 @@ async fn main() {
     }
     let wall = run_start.elapsed();
 
-    let report = guard.report().build().expect("pprof report");
-    let svg = std::fs::File::create(&args.flamegraph).expect("create flamegraph file");
-    report.flamegraph(svg).expect("write flamegraph");
+    #[cfg(feature = "dhat-heap")]
+    {
+        // Drop writes the JSON and prints total bytes/blocks to stderr.
+        drop(dhat_profiler);
+        eprintln!("dhat heap profile: {}", args.dhat_out);
+    }
+    #[cfg(not(feature = "dhat-heap"))]
+    {
+        let report = guard.report().build().expect("pprof report");
+        let svg = std::fs::File::create(&args.flamegraph).expect("create flamegraph file");
+        report.flamegraph(svg).expect("write flamegraph");
+        eprintln!("flamegraph: {}", args.flamegraph);
+        print_top_symbols(&report, 30);
+    }
 
     eprintln!(
         "\ndone: {} sentences in {:.1}s ({:.1}/s single-thread), errors={}",
@@ -289,6 +331,4 @@ async fn main() {
         100.0 * split.gloss.as_secs_f64() / wall.as_secs_f64().max(1e-6),
         (wall.saturating_sub(split.romanize).saturating_sub(split.gloss)).as_secs_f64(),
     );
-    eprintln!("flamegraph: {}", args.flamegraph);
-    print_top_symbols(&report, 30);
 }

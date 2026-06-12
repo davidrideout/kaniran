@@ -10,6 +10,10 @@ repository.workspace = true
 # Forwarded to kaniran-core so audit runners can replay against the
 # rkyv snapshot backend (select with KANI_RKYV_SNAPSHOT=<archive>).
 rkyv = ["kaniran-core/rkyv"]
+# Allocation profiling for cli_full_profile: swaps the global allocator
+# from mimalloc to dhat::Alloc and records every allocation with its
+# backtrace (bytes + block counts per site, exact not sampled).
+dhat-heap = ["dep:dhat"]
 
 [dependencies]
 kaniran-core = { path = "../kaniran-core" }
@@ -23,6 +27,7 @@ futures = "0.3"
 pprof = { version = "0.13", features = ["flamegraph"] }
 clap = { version = "4", features = ["derive"] }
 mimalloc = { workspace = true }
+dhat = { version = "0.3", optional = true }
 
 # Per-FQN fixture-replay runners. Each lives at audit/<pkg>/<fqn>_test.rs
 # mirroring kaniran-core/src/<pkg>/<fqn>.rs. Run manually from the repo root with:
