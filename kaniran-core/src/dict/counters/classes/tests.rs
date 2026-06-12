@@ -141,7 +141,7 @@ fn ordinal_recipe_propagates_to_base() {
 }
 
 // --- counter_hifumi_class ---
-fn make_ct(number: u64, kana: &str) -> CounterText {
+fn make_ct(number: u128, kana: &str) -> CounterText {
     CounterText {
         text: kana.to_string(),
         kana: kana.to_string(),

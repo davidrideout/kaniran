@@ -113,9 +113,9 @@ pub enum NumberToKanaOutput {
 }
 
 pub fn number_to_kana(
-    n: u64,
+    n: u128,
     separator: Option<char>,
-    kanji_method: impl Fn(u64) -> String,
+    kanji_method: impl Fn(u128) -> String,
 ) -> NumberToKanaOutput {
     let h = char_number_class_hash();
     let mut groups: Vec<Vec<(NumClass, u8)>> = Vec::new();

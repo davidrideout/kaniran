@@ -510,7 +510,7 @@ fn kanji_kana_compound_have_no_source() {
 // `corpus/extracted_counter_2026_05_08/dict/value_string.parquet`
 // replayed by `audit_fixtures`.
 
-fn value_string_base(number: u64, ordinalp: bool, descs: Vec<&str>) -> CounterText {
+fn value_string_base(number: u128, ordinalp: bool, descs: Vec<&str>) -> CounterText {
     CounterText {
         text: String::new(),
         kana: String::new(),
@@ -578,7 +578,7 @@ fn wari_emits_n_times_10_percent() {
 // `corpus/extracted_counter_2026_05_08/dict/verify.parquet`
 // (137,676 rows across 11 variants) replayed by `audit_fixtures`.
 
-fn verify_base(number: u64, allowed: Vec<i32>) -> CounterText {
+fn verify_base(number: u128, allowed: Vec<i32>) -> CounterText {
     CounterText {
         text: String::new(),
         kana: String::new(),
@@ -727,10 +727,3 @@ fn non_teen_twos_threes_etc_use_digit_suffix() {
     assert_eq!(ordinal_str(1000), "1000th");
 }
 
-#[test]
-fn negative_uses_floor_mod() {
-    // Lisp (mod -1 10) = 9, so digit "9" → "th". Format prints "-1".
-    assert_eq!(ordinal_str(-1), "-1th");
-    // (mod -21 10) = 9; (mod -21 100) = 79 (not in 11..=19) → "th".
-    assert_eq!(ordinal_str(-21), "-21th");
-}

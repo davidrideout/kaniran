@@ -21,7 +21,7 @@ pub struct CounterText {
     pub text: String,
     pub kana: String,
     pub number_text: String,
-    pub number: u64,
+    pub number: u128,
     pub source: Option<CounterSource>,
     pub ordinalp: bool,
     pub suffix: Option<String>,
@@ -53,8 +53,9 @@ impl CounterText {
     /// [`CounterTsu::verify`]: crate::dict::counters::classes::CounterTsu::verify
     /// [`CounterDaysOn::verify`]: crate::dict::counters::classes::CounterDaysOn::verify
     pub fn verify(&self, unique: bool) -> bool {
-        let n = self.number as i64;
-        let allowed_match = self.allowed.is_empty() || self.allowed.iter().any(|&a| a as i64 == n);
+        let n = self.number;
+        let allowed_match =
+            self.allowed.is_empty() || self.allowed.iter().any(|&a| i128::from(a) == n as i128);
         allowed_match && unique
     }
 
@@ -80,7 +81,7 @@ impl CounterText {
     /// [`CounterWari::value_string`]: crate::dict::counters::classes::CounterWari::value_string
     pub fn value_string(&self) -> String {
         let head = if self.ordinalp {
-            crate::dict::counters::methods::ordinal_str(self.number as i64)
+            crate::dict::counters::methods::ordinal_str(self.number)
         } else {
             self.number.to_string()
         };
@@ -118,7 +119,7 @@ impl CounterText {
         };
         crate::dict::counters::dispatchers::counter_join(
             counter,
-            n as i64,
+            n,
             number_kana,
             base.kana.clone(),
         )
@@ -383,8 +384,7 @@ impl CounterTsu {
     /// through to `call-next-method` (the counter-text base
     /// primary). Returns `None` to signal fall-through.
     pub fn get_kana(&self) -> Option<String> {
-        let n = self.0.number as i64;
-        Some(match n {
+        Some(match self.0.number {
             1 => "ひとつ".to_string(),
             2 => "ふたつ".to_string(),
             3 => "みっつ".to_string(),
@@ -436,8 +436,8 @@ impl CounterHifumi {
     /// - `None` when `value` is NOT in `digit_set` — upstream's
     ///   `(t (call-next-method))` arm.
     pub fn get_kana(&self) -> Option<String> {
-        let value = self.base.number as i64;
-        if !self.digit_set.iter().any(|&d| i64::from(d) == value) {
+        let value = self.base.number;
+        if !self.digit_set.iter().any(|&d| i128::from(d) == value as i128) {
             // outside digit-set → call-next-method
             return None;
         }
@@ -476,7 +476,7 @@ impl CounterDaysKun {
     /// to `call-next-method` because the `verify` restriction
     /// limits inputs to the table entries.
     pub fn get_kana(&self) -> Option<String> {
-        Some(match self.0.number as i64 {
+        Some(match self.0.number {
             1 => "ついたち".to_string(),
             2 => "ふつか".to_string(),
             3 => "みっか".to_string(),
@@ -583,7 +583,7 @@ impl CounterPeople {
     /// ひとり for 1, ふたり for 2, otherwise `None` to fall through
     /// to the counter-text base primary.
     pub fn get_kana(&self) -> Option<String> {
-        match self.0.number as i64 {
+        match self.0.number {
             1 => Some("ひとり".to_string()),
             2 => Some("ふたり".to_string()),
             _ => None,
@@ -623,7 +623,7 @@ impl CounterAge {
     /// はたち for 20, otherwise `None` to fall through to the
     /// counter-text base primary.
     pub fn get_kana(&self) -> Option<String> {
-        match self.0.number as i64 {
+        match self.0.number {
             20 => Some("はたち".to_string()),
             _ => None,
         }

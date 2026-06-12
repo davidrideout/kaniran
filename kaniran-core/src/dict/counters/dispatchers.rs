@@ -195,7 +195,7 @@ fn add_args(cache: &mut CounterCache, entry: CounterArgs) {
 /// and the standard `case digit` block covering digits 1-10000.
 pub fn counter_join(
     counter: &Counter,
-    n: i64,
+    n: u128,
     mut number_kana: String,
     mut counter_kana: String,
 ) -> String {
@@ -212,7 +212,7 @@ pub fn counter_join(
     let digit_entry = digit.and_then(|d| {
         base.digit_opts
             .iter()
-            .find(|e| matches!(e.key, DigitOptKey::Digit(dd) if i64::from(dd) == d))
+            .find(|e| matches!(e.key, DigitOptKey::Digit(dd) if i128::from(dd) == d as i128))
     });
     let off_present = base
         .digit_opts
@@ -438,7 +438,7 @@ pub fn counter_join(
 /// count under SBCL), so use [`str::chars`] / [`Iterator::count`] —
 /// not `String::len`, which is byte count and would split multi-byte
 /// kana wrong (every entry is in the BMP, 3 bytes per char in UTF-8).
-fn digit_kana_char_len(digit: i64) -> usize {
+fn digit_kana_char_len(digit: u128) -> usize {
     if digit < 10 {
         DIGIT_TO_KANA[digit as usize].chars().count()
     } else {

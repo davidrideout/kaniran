@@ -239,7 +239,7 @@ pub async fn setup_ctx() -> Arc<KaniranContext> {
 
 // --- runner harness --------------------------------------------------------
 
-const MAX_FIRST_FAILURES: usize = 10;
+const MAX_FIRST_FAILURES: usize = 1000;
 
 /// Sync fixture-replay driver: parses `--path`, loads the parquet, then
 /// invokes `audit_one(row)`. Rows are grouped by their `args` JSON so
@@ -1310,7 +1310,7 @@ fn parse_captured_counter(value: &Value, class: &str) -> Result<Counter, String>
         text: require_string(value, "text")?,
         kana: require_string(value, "kana")?,
         number_text: require_string(value, "number_text")?,
-        number: require_u64(value, "number")?,
+        number: u128::from(require_u64(value, "number")?),
         source,
         ordinalp: require_bool(value, "ordinalp")?,
         suffix: require_optional_string(value, "suffix")?,

@@ -22,15 +22,15 @@ pub struct NotANumber {
 /// is the recursion flag controlling whether a leading `一` is
 /// suppressed before `千` (`one_sen = false`) or only before `百`
 /// (`one_sen = true`).
-pub fn number_to_kanji(n: u64, digits: &str, powers: &str, one_sen: bool) -> String {
+pub fn number_to_kanji(n: u128, digits: &str, powers: &str, one_sen: bool) -> String {
     let digit_chars: Vec<char> = digits.chars().collect();
     let power_chars: Vec<char> = powers.chars().collect();
     if n == 0 {
         return digit_chars[0].to_string();
     }
-    let mut mp: u64 = 1;
+    let mut mp: u128 = 1;
     let mut mc: char = power_chars[0];
-    let mut p: u64 = 1;
+    let mut p: u128 = 1;
     for &c in &power_chars {
         if p > n {
             break;
@@ -49,7 +49,7 @@ pub fn number_to_kanji(n: u64, digits: &str, powers: &str, one_sen: bool) -> Str
     }
     let qt = n / mp;
     let rem = n % mp;
-    let head_threshold: u64 = if one_sen { 100 } else { 1000 };
+    let head_threshold: u128 = if one_sen { 100 } else { 1000 };
     let head = if qt == 1 && mp <= head_threshold {
         String::new()
     } else {
@@ -70,7 +70,13 @@ pub fn number_to_kanji(n: u64, digits: &str, powers: &str, one_sen: bool) -> Str
 /// splits around it: `left * 10^exponent + right`. If no power token is
 /// present, the slice is treated as a sequence of digits and reduced
 /// left-to-right (`a, b, c → a*100 + b*10 + c`).
-pub fn parse_number_star_(na: &[(NumClass, u8)]) -> u64 {
+///
+/// The Lisp computes in bignums; this port computes in `u128` and
+/// returns `None` past its range (a ~39-digit value — the segmenter's
+/// 20-char number gate at `dict.lisp:1095-1098` keeps reachable values
+/// at or below 10^35, so `None` can only occur through the ungated
+/// direct-lookup paths).
+pub fn parse_number_star_(na: &[(NumClass, u8)]) -> Option<u128> {
     let mut mp: u8 = 0;
     let mut mi: Option<usize> = None;
     for (i, &(class, val)) in na.iter().enumerate() {
@@ -80,24 +86,26 @@ pub fn parse_number_star_(na: &[(NumClass, u8)]) -> u64 {
         }
     }
     match mi {
-        None => na.iter().fold(0u64, |a, &(_class, v)| a * 10 + v as u64),
+        None => na.iter().try_fold(0u128, |acc, &(_class, v)| {
+            acc.checked_mul(10)?.checked_add(v as u128)
+        }),
         Some(idx) if idx == 0 => {
-            let head = 10u64.pow(mp as u32);
+            let head = 10u128.pow(mp as u32);
             let tail = if na.len() > 1 {
-                parse_number_star_(&na[1..])
+                parse_number_star_(&na[1..])?
             } else {
                 0
             };
-            head + tail
+            head.checked_add(tail)
         }
         Some(idx) => {
-            let left = parse_number_star_(&na[..idx]);
+            let left = parse_number_star_(&na[..idx])?;
             let right = if idx + 1 < na.len() {
-                parse_number_star_(&na[idx + 1..])
+                parse_number_star_(&na[idx + 1..])?
             } else {
                 0
             };
-            left * 10u64.pow(mp as u32) + right
+            left.checked_mul(10u128.pow(mp as u32))?.checked_add(right)
         }
     }
 }
@@ -105,14 +113,16 @@ pub fn parse_number_star_(na: &[(NumClass, u8)]) -> u64 {
 /// Port of `ichiran/numbers:parse-number` (`numbers.lisp:74`).
 ///
 /// Parse a string of digit / power glyphs (kanji, ASCII, or full-width)
-/// into a `u64`. Classifies each character via
+/// into a `u128`. Classifies each character via
 /// [`super::helpers::char_number_class_hash`]
 /// and delegates the structural arithmetic to
 /// [`super::parse_number_star__::parse_number_star_`].
 ///
 /// Returns [`Err`] with a [`NotANumber`] carrying the offending input
-/// and a per-character reason when any glyph is unclassifiable.
-pub fn parse_number(s: &str) -> Result<u64, NotANumber> {
+/// and a per-character reason when any glyph is unclassifiable, or
+/// when the value exceeds `u128` (the Lisp parses such values as
+/// bignums; refusing here drops the counter candidate instead).
+pub fn parse_number(s: &str) -> Result<u128, NotANumber> {
     let h = char_number_class_hash();
     let mut na = Vec::with_capacity(s.chars().count());
     for c in s.chars() {
@@ -126,7 +136,10 @@ pub fn parse_number(s: &str) -> Result<u64, NotANumber> {
             }
         }
     }
-    Ok(parse_number_star_(&na))
+    parse_number_star_(&na).ok_or_else(|| NotANumber {
+        text: s.to_string(),
+        reason: "Value exceeds u128 range".to_string(),
+    })
 }
 
 #[cfg(test)]

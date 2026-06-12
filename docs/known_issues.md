@@ -48,6 +48,28 @@ Both describe the same surface form (e.g. 居られる), so the word and its
 gloss are unchanged — only the conjugation label may read "Passive" where
 an ichiran run showed "Potential", or the reverse.
 
+## Conjugation base-form display pick
+
+Another visible consequence of unordered queries. When several writings
+of one entry conjugate to the same surface form — 体にいい and 体によい
+both negate to 体によくない — the conjugation block's "reading" line has
+to pick one base form to display. ichiran takes the first row of an
+unordered lookup:
+
+```lisp
+;; find-words-seqs: no ORDER BY; the caller keeps (car ...)
+(select-dao 'kanji-text (:and (:in 'text (:set kanji-words))
+                              (:in 'seq (:set seqs))))
+```
+
+**kaniran** queries the same way, so the winner follows each database
+instance's physical history (insert order, in-place updates,
+dump/restore). kaniran may display 体によい 【からだによい】 where a
+given ichiran run shows 体にいい 【からだにいい】. Both are listed
+writings of the same dictionary entry and the conjugated surface derives
+from both, so the word, reading, gloss, and score are identical — only
+which synonymous base form is named differs.
+
 ## Mid-session state in ichiran
 
 When ichiran assembles a compound word, it writes the compound's
