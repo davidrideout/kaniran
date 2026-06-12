@@ -478,6 +478,54 @@ where
     report_and_exit(expected_fqn, pass, fail, skipped, &first_failures)
 }
 
+/// Replay one batch's rows across scoped worker threads, each driving
+/// its own current-thread runtime — the same rkyv-path fan-out as
+/// [`run_async`]'s. `buffer_unordered` polls every row future from one
+/// task, and a task is the unit the runtime schedules, so when the
+/// awaits all resolve immediately (the rkyv path is pure CPU) the whole
+/// batch runs on one core while the other runtime workers park with
+/// nothing to steal. Worker threads restore the machine. Outcomes are
+/// returned sorted by row index so failure reporting is deterministic.
+fn replay_rows_across_threads<'rows, F>(
+    ctx_ref: &KaniranContext,
+    audit_one: &F,
+    rows: &'rows [CapturedRow],
+) -> Vec<(usize, Result<(), String>)>
+where
+    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
+{
+    let work: std::sync::Mutex<std::iter::Enumerate<std::slice::Iter<'rows, CapturedRow>>> =
+        std::sync::Mutex::new(rows.iter().enumerate());
+    let collected: std::sync::Mutex<Vec<(usize, Result<(), String>)>> =
+        std::sync::Mutex::new(Vec::with_capacity(rows.len()));
+    std::thread::scope(|scope| {
+        for _ in 0..async_concurrency() {
+            let work = &work;
+            let collected = &collected;
+            scope.spawn(move || {
+                let runtime = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("worker runtime");
+                runtime.block_on(async {
+                    loop {
+                        let next = work.lock().expect("work queue poisoned").next();
+                        let Some((local_idx, row)) = next else { break };
+                        let outcome = audit_one(ctx_ref, row).await;
+                        collected
+                            .lock()
+                            .expect("outcome sink poisoned")
+                            .push((local_idx, outcome));
+                    }
+                });
+            });
+        }
+    });
+    let mut outcomes = collected.into_inner().expect("outcome sink poisoned");
+    outcomes.sort_unstable_by_key(|(local_idx, _)| *local_idx);
+    outcomes
+}
+
 /// Streaming async runner: reads parquet batches lazily, parses each
 /// batch into [`CapturedRow`]s, and runs `audit_one` per row with
 /// bounded concurrency. Skips the [`group_by_args`] dedup-by-args
@@ -490,7 +538,7 @@ where
 /// (e.g. `GET-SPLIT`), use [`run_async`] instead.
 pub async fn run_async_streaming<F>(expected_fqn: &str, audit_one: F) -> !
 where
-    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String>,
+    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
 {
     use futures::stream::StreamExt;
 
@@ -514,6 +562,7 @@ where
     let mut progress = Progress::new(expected_fqn, total_rows);
     let mut done: usize = 0;
     let mut row_seq: usize = 0;
+    let rkyv_parallel = std::env::var("KANI_RKYV_SNAPSHOT").is_ok_and(|path| !path.is_empty());
 
     for batch in reader {
         let batch = batch.expect("batch");
@@ -554,15 +603,17 @@ where
             rows.push(CapturedRow { args, result, idxs: extract_idxs(&batch, row_idx) });
         }
 
-        let outcomes: Vec<(usize, Result<(), String>)> = futures::stream::iter(
-            rows.iter().enumerate().map(|(local_idx, row)| async move {
+        let outcomes: Vec<(usize, Result<(), String>)> = if rkyv_parallel {
+            replay_rows_across_threads(ctx_ref, audit_one, &rows)
+        } else {
+            futures::stream::iter(rows.iter().enumerate().map(|(local_idx, row)| async move {
                 let outcome = audit_one(ctx_ref, row).await;
                 (local_idx, outcome)
-            }),
-        )
-        .buffer_unordered(async_concurrency())
-        .collect()
-        .await;
+            }))
+            .buffer_unordered(async_concurrency())
+            .collect()
+            .await
+        };
 
         let batch_done_start = done;
         for (local_idx, outcome) in outcomes {
@@ -604,7 +655,7 @@ pub async fn run_async_streaming_with_post_hook<F, H>(
     post_hook: H,
 ) -> !
 where
-    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String>,
+    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
     H: FnOnce(),
 {
     use futures::stream::StreamExt;
@@ -629,6 +680,7 @@ where
     let mut progress = Progress::new(expected_fqn, total_rows);
     let mut done: usize = 0;
     let mut row_seq: usize = 0;
+    let rkyv_parallel = std::env::var("KANI_RKYV_SNAPSHOT").is_ok_and(|path| !path.is_empty());
 
     for batch in reader {
         let batch = batch.expect("batch");
@@ -669,15 +721,17 @@ where
             rows.push(CapturedRow { args, result, idxs: extract_idxs(&batch, row_idx) });
         }
 
-        let outcomes: Vec<(usize, Result<(), String>)> = futures::stream::iter(
-            rows.iter().enumerate().map(|(local_idx, row)| async move {
+        let outcomes: Vec<(usize, Result<(), String>)> = if rkyv_parallel {
+            replay_rows_across_threads(ctx_ref, audit_one, &rows)
+        } else {
+            futures::stream::iter(rows.iter().enumerate().map(|(local_idx, row)| async move {
                 let outcome = audit_one(ctx_ref, row).await;
                 (local_idx, outcome)
-            }),
-        )
-        .buffer_unordered(async_concurrency())
-        .collect()
-        .await;
+            }))
+            .buffer_unordered(async_concurrency())
+            .collect()
+            .await
+        };
 
         let batch_done_start = done;
         for (local_idx, outcome) in outcomes {
