@@ -374,7 +374,7 @@ fn async_concurrency() -> usize {
 
 pub async fn run_async<F>(expected_fqn: &str, audit_one: F) -> !
 where
-    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String>,
+    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
 {
     use futures::stream::StreamExt;
 
@@ -387,6 +387,70 @@ where
     let ctx = setup_ctx().await;
     let ctx_ref: &KaniranContext = &ctx;
     let audit_one = &audit_one;
+
+    let mut pass: usize = 0;
+    let mut fail: usize = 0;
+    let mut first_failures: Vec<String> = Vec::new();
+    let mut progress = Progress::new(expected_fqn, total);
+    let mut done: usize = 0;
+
+    // The rkyv path is pure CPU — its awaits resolve immediately, so
+    // buffer_unordered's single-task concurrency degenerates to one
+    // core. Fan the groups across worker THREADS instead, each driving
+    // its own current-thread runtime (futures never cross threads, so
+    // no Send bound on F's futures; scoped threads keep the borrows).
+    // The Postgres path stays on the in-task stream: its pool's
+    // connections belong to the main runtime and the awaits are real
+    // network waits, which one thread overlaps fine.
+    let rkyv_parallel = std::env::var("KANI_RKYV_SNAPSHOT").is_ok_and(|path| !path.is_empty());
+    if rkyv_parallel {
+        let work: std::sync::Mutex<std::vec::IntoIter<(usize, Vec<CapturedRow>)>> =
+            std::sync::Mutex::new(groups.into_iter().enumerate().collect::<Vec<_>>().into_iter());
+        let (sender, receiver) =
+            std::sync::mpsc::channel::<(usize, usize, Result<(), String>)>();
+        std::thread::scope(|scope| {
+            for _ in 0..async_concurrency() {
+                let sender = sender.clone();
+                let work = &work;
+                scope.spawn(move || {
+                    let runtime = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .expect("worker runtime");
+                    runtime.block_on(async {
+                        loop {
+                            let next = work.lock().expect("work queue poisoned").next();
+                            let Some((idx, group)) = next else { break };
+                            let size = group.len();
+                            let mut last_err: Option<String> = None;
+                            let mut group_ok = false;
+                            for row in &group {
+                                match audit_one(ctx_ref, row).await {
+                                    Ok(()) => { group_ok = true; break; }
+                                    Err(err) => { last_err = Some(err); }
+                                }
+                            }
+                            let outcome = if group_ok {
+                                Ok(())
+                            } else {
+                                Err(last_err.unwrap_or_default())
+                            };
+                            if sender.send((idx, size, outcome)).is_err() {
+                                break;
+                            }
+                        }
+                    });
+                });
+            }
+            drop(sender);
+            for (idx, size, outcome) in receiver {
+                record_outcome(outcome, idx, size, &mut pass, &mut fail, &mut first_failures);
+                done += 1;
+                progress.tick(done, pass, fail);
+            }
+        });
+        report_and_exit(expected_fqn, pass, fail, skipped, &first_failures)
+    }
 
     let stream = futures::stream::iter(groups.into_iter().enumerate().map(
         |(idx, group)| async move {
@@ -405,11 +469,6 @@ where
     ))
     .buffer_unordered(async_concurrency());
 
-    let mut pass: usize = 0;
-    let mut fail: usize = 0;
-    let mut first_failures: Vec<String> = Vec::new();
-    let mut progress = Progress::new(expected_fqn, total);
-    let mut done: usize = 0;
     let mut stream = Box::pin(stream);
     while let Some((idx, size, outcome)) = stream.next().await {
         record_outcome(outcome, idx, size, &mut pass, &mut fail, &mut first_failures);
