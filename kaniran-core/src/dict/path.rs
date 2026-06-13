@@ -22,9 +22,15 @@ use crate::dict::scoring::score::{
 use crate::dict::split::segsplit::get_segsplit;
 use crate::dict::text_classes::find_word_as_hiragana;
 use crate::dict::word_info::SuffixMapTemp;
+use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
+
+/// Split candidates between one adjacent segment-list pair, as returned
+/// by [`get_seg_splits`]. Inlined at capacity 1: the dominant pair
+/// yields a single no-synergy split that never touches the heap.
+pub type SegSplits = SmallVec<[KaniSegSplitEnum; 1]>;
 
 /// Port of `ichiran/dict:*max-word-length*` (`dict.lisp:486`).
 ///
@@ -496,10 +502,12 @@ pub fn get_seg_initial(seg: &Arc<KaniLiteSegmentList>) -> Vec<Arc<KaniLiteSegmen
 pub fn get_seg_splits(
     seg_left: &Arc<KaniLiteSegmentList>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<KaniSegSplitEnum> {
+) -> SegSplits {
     // dict.lisp:1176 (let ((splits (apply-segfilters seg-left seg-right))))
     let splits = apply_segfilters(Some(seg_left), seg_right);
-    let mut result: Vec<KaniSegSplitEnum> = Vec::new();
+    // Most pairs yield exactly one split (the get-penalties result with
+    // no synergies), so capacity 1 keeps the dominant case off the heap.
+    let mut result: SegSplits = SmallVec::new();
     // dict.lisp:1177-1178 (loop for (seg-left seg-right) in splits
     //                       nconcing (cons (get-penalties seg-left seg-right)
     //                                      (get-synergies seg-left seg-right)))

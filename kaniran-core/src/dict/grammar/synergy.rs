@@ -104,6 +104,14 @@ pub fn def_generic_synergy_body(
     if start != end {
         return vec![];
     }
+    // dict-grammar.lisp:740 (when (and left right)) — tested before
+    // materializing either filtered list, so the abut-but-no-match case
+    // (one side empties) allocates nothing.
+    if !segment_list_left.segments.iter().any(|s| filter_left(s))
+        || !segment_list_right.segments.iter().any(|s| filter_right(s))
+    {
+        return vec![];
+    }
     // dict-grammar.lisp:738-739 (remove-if-not filter-left/right over segment-list-segments)
     let left: Vec<Arc<KaniLiteSegment>> = segment_list_left
         .segments
@@ -117,10 +125,6 @@ pub fn def_generic_synergy_body(
         .filter(|s| filter_right(s))
         .cloned()
         .collect();
-    // dict-grammar.lisp:740 (when (and left right))
-    if left.is_empty() || right.is_empty() {
-        return vec![];
-    }
     // dict-grammar.lisp:741-746 (list (list (make-segment-list-from r right) (make-synergy ...) (make-segment-list-from l left)))
     let syn = Synergy {
         description: opts.description.map(|d| d.to_string()),

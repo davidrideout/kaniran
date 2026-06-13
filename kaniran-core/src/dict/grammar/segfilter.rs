@@ -9,7 +9,14 @@ use crate::dict::grammar::synergy::{
 use crate::dict::kani_lite_segment::KaniLiteSegment;
 use crate::dict::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
 use crate::dict::kani_seg_split_enum::KaniSegSplitEnum;
+use smallvec::SmallVec;
 use std::sync::Arc;
+
+/// A `(seg-left, seg-right)` candidate pair threaded through the
+/// segfilters. Inlined at capacity 1 because the overwhelmingly common
+/// outcome is a single pass-through pair that never spills to the heap.
+pub type SegfilterSplits =
+    SmallVec<[(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>); 1]>;
 
 /// Port of `ichiran/dict:penalty-short` (`dict-grammar.lisp:996-1001`).
 ///
@@ -549,18 +556,17 @@ pub fn segfilter_dekiru(
 pub fn apply_segfilters(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+) -> SegfilterSplits {
     // dict-grammar.lisp:1171 (`with splits = (list (list seg-left seg-right))`)
-    let mut splits: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> =
-        vec![(seg_left.cloned(), Arc::clone(seg_right))];
+    let mut splits: SegfilterSplits =
+        SmallVec::from_buf([(seg_left.cloned(), Arc::clone(seg_right))]);
     for segfilter in SEGFILTER_LIST {
         // dict-grammar.lisp:1173-1175 (inner loop nconc-ing each
         // filter's output across the current splits). The next
         // generation is materialized only once some pair is actually
         // rewritten; until then pass-through (None) results leave
         // `splits` untouched.
-        let mut next: Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> =
-            None;
+        let mut next: Option<SegfilterSplits> = None;
         for (index, (left, right)) in splits.iter().enumerate() {
             match segfilter(left.as_ref(), right) {
                 None => {
@@ -571,7 +577,7 @@ pub fn apply_segfilters(
                 Some(rewritten) => {
                     // First rewrite: start the new generation with the
                     // pass-through pairs already walked.
-                    next.get_or_insert_with(|| splits[..index].to_vec())
+                    next.get_or_insert_with(|| splits[..index].iter().cloned().collect())
                         .extend(rewritten);
                 }
             }
