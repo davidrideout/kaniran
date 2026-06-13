@@ -36,7 +36,7 @@ mod get_segsplit {
 
     /// Helper: find the reading for `text` at `seq`, gen-score it, return the segment.
     async fn segment_for_seq(ctx: &KaniranContext, text: &str, seq: i32) -> Segment {
-        let rows = find_word(ctx, text, false).await.unwrap();
+        let rows = find_word(ctx, text, false).await.unwrap().into_owned();
         let word = match rows {
             FindWordRows::Kana(v) => v
                 .into_iter()

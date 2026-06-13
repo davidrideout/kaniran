@@ -711,6 +711,7 @@ mod get_seg_initial {
 
 mod get_seg_splits {
     use crate::dict::conj::ConjData;
+    use crate::dict::kani_seg_split_enum::KaniSegSplitEnum;
     use crate::dict::dao::ConjProp;
     use crate::dict::dao::KanaText;
     use crate::dict::dao::SimpleText;
@@ -795,17 +796,25 @@ mod get_seg_splits {
         }))
     }
 
-    fn unwrap_sl(elem: &KaniLitePathElement) -> &Arc<KaniLiteSegmentList> {
-        match elem {
-            KaniLitePathElement::SegmentList(sl) => sl,
-            other => panic!("expected SegmentList, got {:?}", other),
+    fn unwrap_plain(
+        split: &KaniSegSplitEnum,
+    ) -> (&Arc<KaniLiteSegmentList>, &Arc<KaniLiteSegmentList>) {
+        match split {
+            KaniSegSplitEnum::Plain { right, left } => (right, left),
+            other => panic!("expected Plain, got {:?}", other),
         }
     }
 
-    fn unwrap_synergy(elem: &KaniLitePathElement) -> &Synergy {
-        match elem {
-            KaniLitePathElement::Synergy(s) => s,
-            other => panic!("expected Synergy, got {:?}", other),
+    fn unwrap_with_synergy(
+        split: &KaniSegSplitEnum,
+    ) -> (&Arc<KaniLiteSegmentList>, &Synergy, &Arc<KaniLiteSegmentList>) {
+        match split {
+            KaniSegSplitEnum::WithSynergy {
+                right,
+                synergy,
+                left,
+            } => (right, synergy, left),
+            other => panic!("expected WithSynergy, got {:?}", other),
         }
     }
 
@@ -833,11 +842,11 @@ mod get_seg_splits {
         );
         let got = get_seg_splits(&l, &r);
         assert_eq!(got.len(), 1);
-        assert_eq!(got[0].len(), 2);
-        assert_eq!(unwrap_sl(&got[0][0]).start, 3);
-        assert_eq!(unwrap_sl(&got[0][0]).end, 6);
-        assert_eq!(unwrap_sl(&got[0][1]).start, 0);
-        assert_eq!(unwrap_sl(&got[0][1]).end, 3);
+        let (right_sl, left_sl) = unwrap_plain(&got[0]);
+        assert_eq!(right_sl.start, 3);
+        assert_eq!(right_sl.end, 6);
+        assert_eq!(left_sl.start, 0);
+        assert_eq!(left_sl.end, 3);
     }
 
     #[test]
@@ -864,16 +873,15 @@ mod get_seg_splits {
         );
         let got = get_seg_splits(&l, &r);
         assert_eq!(got.len(), 1);
-        assert_eq!(got[0].len(), 3);
-        assert_eq!(unwrap_sl(&got[0][0]).start, 3);
-        assert_eq!(unwrap_sl(&got[0][0]).end, 4);
-        let syn = unwrap_synergy(&got[0][1]);
+        let (right_sl, syn, left_sl) = unwrap_with_synergy(&got[0]);
+        assert_eq!(right_sl.start, 3);
+        assert_eq!(right_sl.end, 4);
         assert_eq!(syn.description.as_deref(), Some("short"));
         assert_eq!(syn.score, -9);
         assert_eq!(syn.start, 1);
         assert_eq!(syn.end, 3);
-        assert_eq!(unwrap_sl(&got[0][2]).start, 0);
-        assert_eq!(unwrap_sl(&got[0][2]).end, 1);
+        assert_eq!(left_sl.start, 0);
+        assert_eq!(left_sl.end, 1);
     }
 
     #[test]
@@ -900,11 +908,10 @@ mod get_seg_splits {
         );
         let got = get_seg_splits(&l, &r);
         assert_eq!(got.len(), 2);
-        assert_eq!(got[0].len(), 2);
-        assert_eq!(unwrap_sl(&got[0][0]).start, 1);
-        assert_eq!(unwrap_sl(&got[0][1]).start, 0);
-        assert_eq!(got[1].len(), 3);
-        let syn = unwrap_synergy(&got[1][1]);
+        let (right_sl, left_sl) = unwrap_plain(&got[0]);
+        assert_eq!(right_sl.start, 1);
+        assert_eq!(left_sl.start, 0);
+        let (_right_sl, syn, _left_sl) = unwrap_with_synergy(&got[1]);
         assert_eq!(syn.description.as_deref(), Some("no-adjective"));
         assert_eq!(syn.score, 15);
         assert_eq!(syn.start, 1);
@@ -957,9 +964,9 @@ mod get_seg_splits {
         let got = get_seg_splits(&l, &r);
         assert_eq!(got.len(), 2);
         for outer in &got {
-            assert_eq!(outer.len(), 2);
-            assert_eq!(unwrap_sl(&outer[0]).start, 2);
-            assert_eq!(unwrap_sl(&outer[1]).start, 0);
+            let (right_sl, left_sl) = unwrap_plain(outer);
+            assert_eq!(right_sl.start, 2);
+            assert_eq!(left_sl.start, 0);
         }
     }
 
@@ -987,9 +994,9 @@ mod get_seg_splits {
         );
         let got = get_seg_splits(&l, &r);
         assert_eq!(got.len(), 1);
-        assert_eq!(got[0].len(), 2);
-        assert_eq!(unwrap_sl(&got[0][0]).start, 3);
-        assert_eq!(unwrap_sl(&got[0][1]).start, 0);
+        let (right_sl, left_sl) = unwrap_plain(&got[0]);
+        assert_eq!(right_sl.start, 3);
+        assert_eq!(left_sl.start, 0);
     }
 
     #[test]
@@ -1021,12 +1028,10 @@ mod get_seg_splits {
         );
         let got = get_seg_splits(&l, &r);
         assert_eq!(got.len(), 2);
-        assert_eq!(got[0].len(), 3);
-        let syn0 = unwrap_synergy(&got[0][1]);
+        let (_r0, syn0, _l0) = unwrap_with_synergy(&got[0]);
         assert_eq!(syn0.description.as_deref(), Some("semi-final not final"));
         assert_eq!(syn0.score, -15);
-        assert_eq!(got[1].len(), 3);
-        let syn1 = unwrap_synergy(&got[1][1]);
+        let (_r1, syn1, _l1) = unwrap_with_synergy(&got[1]);
         assert_eq!(syn1.description.as_deref(), Some("no-adjective"));
         assert_eq!(syn1.score, 15);
     }

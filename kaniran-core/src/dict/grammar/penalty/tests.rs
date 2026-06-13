@@ -267,6 +267,7 @@ mod synergy_oki {
 
 mod get_synergies {
     use crate::dict::conj::ConjData;
+    use crate::dict::kani_seg_split_enum::KaniSegSplitEnum;
     use crate::dict::grammar::penalty::*;
     use crate::dict::dao::KanaText;
     use crate::dict::kani_word::KaniWordDispatchEnum;
@@ -323,17 +324,24 @@ mod get_synergies {
         })
     }
 
-    fn unwrap_synergy(path: &[KaniLitePathElement]) -> &crate::dict::grammar::synergy::Synergy {
-        match &path[1] {
-            KaniLitePathElement::Synergy(s) => s,
-            other => panic!("expected Synergy at [1], got {:?}", other),
+    fn unwrap_synergy(split: &KaniSegSplitEnum) -> &crate::dict::grammar::synergy::Synergy {
+        match split {
+            KaniSegSplitEnum::WithSynergy { synergy, .. } => synergy,
+            other => panic!("expected WithSynergy, got {:?}", other),
         }
     }
 
-    fn unwrap_sl(elem: &KaniLitePathElement) -> &KaniLiteSegmentList {
-        match elem {
-            KaniLitePathElement::SegmentList(sl) => sl,
-            other => panic!("expected SegmentList, got {:?}", other),
+    fn unwrap_right(split: &KaniSegSplitEnum) -> &KaniLiteSegmentList {
+        match split {
+            KaniSegSplitEnum::WithSynergy { right, .. } => right,
+            KaniSegSplitEnum::Plain { right, .. } => right,
+        }
+    }
+
+    fn unwrap_left(split: &KaniSegSplitEnum) -> &KaniLiteSegmentList {
+        match split {
+            KaniSegSplitEnum::WithSynergy { left, .. } => left,
+            KaniSegSplitEnum::Plain { left, .. } => left,
         }
     }
 
@@ -372,10 +380,10 @@ mod get_synergies {
         assert_eq!(syn.score, 15);
         assert_eq!(syn.start, 1);
         assert_eq!(syn.end, 1);
-        assert_eq!(unwrap_sl(&got[0][0]).start, 1);
-        assert_eq!(unwrap_sl(&got[0][0]).end, 2);
-        assert_eq!(unwrap_sl(&got[0][2]).start, 0);
-        assert_eq!(unwrap_sl(&got[0][2]).end, 1);
+        assert_eq!(unwrap_right(&got[0]).start, 1);
+        assert_eq!(unwrap_right(&got[0]).end, 2);
+        assert_eq!(unwrap_left(&got[0]).start, 0);
+        assert_eq!(unwrap_left(&got[0]).end, 1);
     }
 
     #[test]
@@ -546,13 +554,13 @@ mod filter_short_kana {
 
     #[test]
     fn c1_empty_segments_is_false() {
-        let f = filter_short_kana(1, vec![]);
+        let f = filter_short_kana(1, &[]);
         assert!(!f(&lite_sl(0, 1, vec![])));
     }
 
     #[test]
     fn c2_span_exceeds_len_is_false() {
-        let f = filter_short_kana(1, vec![]);
+        let f = filter_short_kana(1, &[]);
         let s = seg(
             0,
             2,
@@ -564,7 +572,7 @@ mod filter_short_kana {
 
     #[test]
     fn c3_kpcl_first_set_is_false() {
-        let f = filter_short_kana(1, vec![]);
+        let f = filter_short_kana(1, &[]);
         let s = seg(
             0,
             1,
@@ -576,7 +584,7 @@ mod filter_short_kana {
 
     #[test]
     fn c4_all_pass_no_except_is_true() {
-        let f = filter_short_kana(1, vec![]);
+        let f = filter_short_kana(1, &[]);
         let s = seg(
             0,
             1,
@@ -588,7 +596,7 @@ mod filter_short_kana {
 
     #[test]
     fn c5_except_matches_text_is_false() {
-        let f = filter_short_kana(1, vec!["と".to_string()]);
+        let f = filter_short_kana(1, &["と"]);
         let s = seg(
             0,
             1,
@@ -600,7 +608,7 @@ mod filter_short_kana {
 
     #[test]
     fn c6_except_differs_from_text_is_true() {
-        let f = filter_short_kana(1, vec!["と".to_string()]);
+        let f = filter_short_kana(1, &["と"]);
         let s = seg(
             0,
             1,
@@ -612,7 +620,7 @@ mod filter_short_kana {
 
     #[test]
     fn c8_kpcl_second_set_first_nil_is_true() {
-        let f = filter_short_kana(1, vec![]);
+        let f = filter_short_kana(1, &[]);
         let s = seg(
             0,
             1,
@@ -624,14 +632,14 @@ mod filter_short_kana {
 
     #[test]
     fn c9_no_info_plist_is_true() {
-        let f = filter_short_kana(1, vec![]);
+        let f = filter_short_kana(1, &[]);
         let s = seg(0, 1, None, Some("あ"));
         assert!(f(&lite_sl(0, 1, vec![s])));
     }
 
     #[test]
     fn c10_span_equals_len_is_true() {
-        let f = filter_short_kana(1, vec![]);
+        let f = filter_short_kana(1, &[]);
         let s = seg(
             5,
             6,
@@ -643,7 +651,7 @@ mod filter_short_kana {
 
     #[test]
     fn c11_only_first_seg_examined() {
-        let f = filter_short_kana(1, vec![]);
+        let f = filter_short_kana(1, &[]);
         let s_good = seg(
             0,
             1,
@@ -661,7 +669,7 @@ mod filter_short_kana {
 
     #[test]
     fn c12_no_except_kw_text_to_is_true() {
-        let f = filter_short_kana(1, vec![]);
+        let f = filter_short_kana(1, &[]);
         let s = seg(
             0,
             1,
@@ -673,7 +681,7 @@ mod filter_short_kana {
 
     #[test]
     fn c13_except_empty_text_to_is_true() {
-        let f = filter_short_kana(1, vec![]);
+        let f = filter_short_kana(1, &[]);
         let s = seg(
             0,
             1,
@@ -685,7 +693,7 @@ mod filter_short_kana {
 
     #[test]
     fn c14_len_two_span_two_is_true() {
-        let f = filter_short_kana(2, vec![]);
+        let f = filter_short_kana(2, &[]);
         let s = seg(
             0,
             2,

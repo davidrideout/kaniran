@@ -1,5 +1,6 @@
 use crate::conn::kani_backend::KaniBackend;
 use crate::characters::char_class::{test_word, CharClass};
+use std::borrow::Cow;
 use crate::characters::kanji::{kanji_cross_match, kanji_match, kanji_regex};
 use crate::conn::kani_context::KaniranContext;
 use crate::core::methods::{default_romanization_method, RomanizationMethod};
@@ -271,11 +272,11 @@ pub enum FindWordRows {
     Kanji(Vec<KanjiText>),
 }
 
-pub async fn find_word(
-    ctx: &KaniranContext,
+pub async fn find_word<'a>(
+    ctx: &'a KaniranContext,
     word: &str,
     root_only: bool,
-) -> Result<FindWordRows, sqlx::Error> {
+) -> Result<Cow<'a, FindWordRows>, sqlx::Error> {
     // Mirror upstream evaluation order — `(when (<= (length word)
     // *max-word-length*) ...)` short-circuits before `test-word`
     // runs, so the over-length path returns an empty result without
@@ -286,13 +287,16 @@ pub async fn find_word(
     // contents, never the tag, so the choice is arbitrary and a
     // fixed value avoids the spurious `test_word` call.
     if word.chars().count() > MAX_WORD_LENGTH {
-        return Ok(FindWordRows::Kanji(Vec::new()));
+        return Ok(Cow::Owned(FindWordRows::Kanji(Vec::new())));
     }
     // dict.lisp:491 — (and *substring-hash* (gethash word *substring-hash*))
+    // A hit returns the cached bucket borrowed (the hash lives on ctx
+    // for the whole call tree), so the hot path stops deep-cloning
+    // every row; only callers that need ownership pay for a copy.
     if !root_only {
         if let Some(cache) = ctx.substring_hash.as_deref() {
             if let Some(rows) = cache.get(word) {
-                return Ok(rows.clone());
+                return Ok(Cow::Borrowed(rows));
             }
         }
     }
@@ -303,14 +307,14 @@ pub async fn find_word(
         } else {
             ctx.store.kana_texts_by_text(word).await?
         };
-        Ok(FindWordRows::Kana(rows))
+        Ok(Cow::Owned(FindWordRows::Kana(rows)))
     } else {
         let rows: Vec<KanjiText> = if root_only {
             ctx.store.kanji_texts_root_by_text(word).await?
         } else {
             ctx.store.kanji_texts_by_text(word).await?
         };
-        Ok(FindWordRows::Kanji(rows))
+        Ok(Cow::Owned(FindWordRows::Kanji(rows)))
     }
 }
 

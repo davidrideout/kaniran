@@ -8,7 +8,7 @@ use crate::dict::grammar::synergy::{
 };
 use crate::dict::kani_lite_segment::KaniLiteSegment;
 use crate::dict::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
-use crate::dict::kani_lite_top_array_item::KaniLitePathElement;
+use crate::dict::kani_seg_split_enum::KaniSegSplitEnum;
 use std::sync::Arc;
 
 /// Port of `ichiran/dict:penalty-short` (`dict-grammar.lisp:996-1001`).
@@ -19,8 +19,8 @@ pub fn penalty_short(l: &KaniLiteSegmentList, r: &KaniLiteSegmentList) -> Option
     def_generic_penalty_body(
         l,
         r,
-        filter_short_kana(1, vec![]),
-        filter_short_kana(1, vec!["と".to_string()]),
+        filter_short_kana(1, &[]),
+        filter_short_kana(1, &["と"]),
         &DefGenericPenaltyOpts {
             serial: false,
             description: "short",
@@ -86,29 +86,31 @@ pub static SEGFILTER_LIST: &[SegFilter] = &[
 ///
 /// Walks [`PENALTY_LIST`] in order, returning the first penalty that
 /// fires between `seg_left` and `seg_right`. Result is the
-/// three-element `(seg_right, penalty, seg_left)` shape when a penalty
-/// matched, else the two-element `(seg_right, seg_left)` shape.
+/// `(seg_right, penalty, seg_left)` shape when a penalty matched, else
+/// the plain `(seg_right, seg_left)` shape — both inline in
+/// [`KaniSegSplitEnum`], so the dominant no-penalty case stays off the
+/// heap.
 ///
 /// [`PENALTY_LIST`]: crate::dict::grammar::penalty::PENALTY_LIST
 pub fn get_penalties(
     seg_left: &Arc<KaniLiteSegmentList>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<KaniLitePathElement> {
+) -> KaniSegSplitEnum {
     for penalty_fn in PENALTY_LIST {
         if let Some(penalty) = penalty_fn(seg_left, seg_right) {
             // dict-grammar.lisp:1015 (`(return (list seg-right penalty seg-left))`)
-            return vec![
-                KaniLitePathElement::SegmentList(Arc::clone(seg_right)),
-                KaniLitePathElement::Synergy(penalty),
-                KaniLitePathElement::SegmentList(Arc::clone(seg_left)),
-            ];
+            return KaniSegSplitEnum::WithSynergy {
+                right: Arc::clone(seg_right),
+                synergy: penalty,
+                left: Arc::clone(seg_left),
+            };
         }
     }
     // dict-grammar.lisp:1016 (`(finally (return (list seg-right seg-left)))`)
-    vec![
-        KaniLitePathElement::SegmentList(Arc::clone(seg_right)),
-        KaniLitePathElement::SegmentList(Arc::clone(seg_left)),
-    ]
+    KaniSegSplitEnum::Plain {
+        right: Arc::clone(seg_right),
+        left: Arc::clone(seg_left),
+    }
 }
 
 /// Port of `ichiran/dict:classify` (`dict-grammar.lisp:1032`).

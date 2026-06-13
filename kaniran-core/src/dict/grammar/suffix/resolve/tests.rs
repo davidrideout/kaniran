@@ -775,7 +775,8 @@ mod find_word_suffix {
         // Build matches = find-word 私 (kana + kanji rows).
         let watashi_rows = crate::dict::readings::find_word(&ctx, "私", false)
             .await
-            .unwrap();
+            .unwrap()
+            .into_owned();
         let matches: Vec<KaniWordDispatchEnum> = match watashi_rows {
             crate::dict::readings::FindWordRows::Kana(v) => {
                 v.into_iter().map(KaniWordDispatchEnum::Kana).collect()

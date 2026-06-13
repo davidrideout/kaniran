@@ -464,14 +464,16 @@ pub async fn conj_info_json(
 ) -> Result<Vec<Value>, sqlx::Error> {
     // (apply 'conj-info-json* seq rest)
     let cij = conj_info_json_star_(ctx, seq, conjugations, text, has_gloss).await?;
-    // (remove-if-not (lambda (c) (jsown:val c "readok")) cij)
-    let fcij: Vec<Value> = cij
-        .iter()
+    // (remove-if-not (lambda (c) (jsown:val c "readok")) cij) / (or fcij cij)
+    // — decide which list survives first, then filter by move so the
+    // kept entries' JSON trees are never deep-cloned.
+    if !cij.iter().any(readok_truthy) {
+        return Ok(cij);
+    }
+    Ok(cij
+        .into_iter()
         .filter(|entry| readok_truthy(entry))
-        .cloned()
-        .collect();
-    // (or fcij cij)
-    Ok(if fcij.is_empty() { cij } else { fcij })
+        .collect())
 }
 
 /// Port of `ichiran/dict:simplify-reading-list` (`dict.lisp:1704`).

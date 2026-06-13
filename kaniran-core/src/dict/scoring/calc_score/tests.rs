@@ -13,7 +13,7 @@ mod calc_score {
     }
 
     async fn first_word_for(ctx: &KaniranContext, s: &str) -> KaniWordDispatchEnum {
-        match find_word(ctx, s, false).await.unwrap() {
+        match find_word(ctx, s, false).await.unwrap().into_owned() {
             FindWordRows::Kana(mut v) => KaniWordDispatchEnum::Kana(v.remove(0)),
             FindWordRows::Kanji(mut v) => KaniWordDispatchEnum::Kanji(v.remove(0)),
         }

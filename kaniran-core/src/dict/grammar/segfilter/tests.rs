@@ -272,6 +272,7 @@ mod penalty_semi_final {
 
 mod get_penalties {
     use crate::dict::conj::ConjData;
+    use crate::dict::kani_seg_split_enum::KaniSegSplitEnum;
     use crate::dict::errata::semi_final_prt;
     use crate::dict::grammar::segfilter::*;
     use crate::dict::dao::KanaText;
@@ -339,17 +340,29 @@ mod get_penalties {
         }))
     }
 
-    fn unwrap_sl(elem: &KaniLitePathElement) -> &Arc<KaniLiteSegmentList> {
-        match elem {
-            KaniLitePathElement::SegmentList(sl) => sl,
-            other => panic!("expected SegmentList, got {:?}", other),
+    fn unwrap_plain(
+        split: &KaniSegSplitEnum,
+    ) -> (&Arc<KaniLiteSegmentList>, &Arc<KaniLiteSegmentList>) {
+        match split {
+            KaniSegSplitEnum::Plain { right, left } => (right, left),
+            other => panic!("expected Plain, got {:?}", other),
         }
     }
 
-    fn unwrap_synergy(elem: &KaniLitePathElement) -> &crate::dict::grammar::synergy::Synergy {
-        match elem {
-            KaniLitePathElement::Synergy(s) => s,
-            other => panic!("expected Synergy, got {:?}", other),
+    fn unwrap_with_synergy(
+        split: &KaniSegSplitEnum,
+    ) -> (
+        &Arc<KaniLiteSegmentList>,
+        &crate::dict::grammar::synergy::Synergy,
+        &Arc<KaniLiteSegmentList>,
+    ) {
+        match split {
+            KaniSegSplitEnum::WithSynergy {
+                right,
+                synergy,
+                left,
+            } => (right, synergy, left),
+            other => panic!("expected WithSynergy, got {:?}", other),
         }
     }
 
@@ -366,13 +379,11 @@ mod get_penalties {
             vec![seg(3, 6, (true, false, false, false), vec![888], "def")],
         );
         let res = get_penalties(&l, &r);
-        assert_eq!(res.len(), 2);
-        let s0 = unwrap_sl(&res[0]);
+        let (s0, s1) = unwrap_plain(&res);
         assert_eq!(s0.start, 3);
         assert_eq!(s0.end, 6);
         assert_eq!(s0.segments.len(), 1);
         assert_eq!(s0.segments[0].text.as_ref(), "def");
-        let s1 = unwrap_sl(&res[1]);
         assert_eq!(s1.start, 0);
         assert_eq!(s1.end, 3);
         assert_eq!(s1.segments[0].text.as_ref(), "abc");
@@ -391,18 +402,15 @@ mod get_penalties {
             vec![seg(3, 4, (false, false, false, false), vec![888], "い")],
         );
         let res = get_penalties(&l, &r);
-        assert_eq!(res.len(), 3);
-        let s0 = unwrap_sl(&res[0]);
+        let (s0, syn, s2) = unwrap_with_synergy(&res);
         assert_eq!(s0.start, 3);
         assert_eq!(s0.end, 4);
         assert_eq!(s0.segments[0].text.as_ref(), "い");
-        let syn = unwrap_synergy(&res[1]);
         assert_eq!(syn.description.as_deref(), Some("short"));
         assert_eq!(syn.connector.as_deref(), Some(" "));
         assert_eq!(syn.score, -9);
         assert_eq!(syn.start, 1);
         assert_eq!(syn.end, 3);
-        let s2 = unwrap_sl(&res[2]);
         assert_eq!(s2.start, 0);
         assert_eq!(s2.end, 1);
         assert_eq!(s2.segments[0].text.as_ref(), "あ");
@@ -422,15 +430,12 @@ mod get_penalties {
             vec![seg(1, 2, (false, false, false, false), vec![999], "y")],
         );
         let res = get_penalties(&l, &r);
-        assert_eq!(res.len(), 3);
-        let s0 = unwrap_sl(&res[0]);
+        let (s0, syn, s2) = unwrap_with_synergy(&res);
         assert_eq!(s0.start, 1);
         assert_eq!(s0.end, 2);
         assert_eq!(s0.segments[0].seq_set, vec![999]);
-        let syn = unwrap_synergy(&res[1]);
         assert_eq!(syn.description.as_deref(), Some("semi-final not final"));
         assert_eq!(syn.score, -15);
-        let s2 = unwrap_sl(&res[2]);
         assert_eq!(s2.start, 0);
         assert_eq!(s2.end, 1);
         assert_eq!(s2.segments[0].seq_set, vec![semi_seq]);
@@ -450,8 +455,7 @@ mod get_penalties {
             vec![seg(1, 2, (false, false, false, false), vec![999], "y")],
         );
         let res = get_penalties(&l, &r);
-        assert_eq!(res.len(), 3);
-        let syn = unwrap_synergy(&res[1]);
+        let (_s0, syn, _s2) = unwrap_with_synergy(&res);
         assert_eq!(syn.description.as_deref(), Some("semi-final not final"));
         assert_eq!(syn.score, -15);
     }
@@ -469,17 +473,14 @@ mod get_penalties {
             vec![seg(13, 14, (false, false, false, false), vec![555], "β")],
         );
         let res = get_penalties(&l, &r);
-        assert_eq!(res.len(), 3);
-        let s0 = unwrap_sl(&res[0]);
+        let (s0, syn, s2) = unwrap_with_synergy(&res);
         assert_eq!(s0.start, 13);
         assert_eq!(s0.end, 14);
         assert_eq!(s0.segments[0].text.as_ref(), "β");
-        let syn = unwrap_synergy(&res[1]);
         assert_eq!(syn.description.as_deref(), Some("short"));
         assert_eq!(syn.score, -9);
         assert_eq!(syn.start, 11);
         assert_eq!(syn.end, 13);
-        let s2 = unwrap_sl(&res[2]);
         assert_eq!(s2.start, 10);
         assert_eq!(s2.end, 11);
         assert_eq!(s2.segments[0].text.as_ref(), "α");
@@ -510,12 +511,10 @@ mod get_penalties {
             )],
         );
         let res = get_penalties(&l, &r);
-        assert_eq!(res.len(), 2);
-        let s0 = unwrap_sl(&res[0]);
+        let (s0, s1) = unwrap_plain(&res);
         assert_eq!(s0.start, 13);
         assert_eq!(s0.end, 16);
         assert_eq!(s0.segments[0].text.as_ref(), "β-long");
-        let s1 = unwrap_sl(&res[1]);
         assert_eq!(s1.start, 10);
         assert_eq!(s1.end, 13);
         assert_eq!(s1.segments[0].text.as_ref(), "α-long");
@@ -530,12 +529,10 @@ mod get_penalties {
         );
         let l = lite_sl(0, 1, vec![]);
         let res = get_penalties(&l, &r);
-        assert_eq!(res.len(), 2);
-        let s0 = unwrap_sl(&res[0]);
+        let (s0, s1) = unwrap_plain(&res);
         assert_eq!(s0.start, 1);
         assert_eq!(s0.end, 2);
         assert_eq!(s0.segments.len(), 1);
-        let s1 = unwrap_sl(&res[1]);
         assert_eq!(s1.start, 0);
         assert_eq!(s1.end, 1);
         assert_eq!(s1.segments.len(), 0);

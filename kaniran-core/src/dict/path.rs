@@ -6,15 +6,14 @@ use crate::dict::counters::dispatchers::find_counter;
 use crate::dict::errata::{FORCE_KANJI_BREAK, NO_KANJI_BREAK};
 use crate::dict::grammar::penalty::get_synergies;
 use crate::dict::grammar::segfilter::{apply_segfilters, get_penalties};
+use crate::dict::kani_seg_split_enum::KaniSegSplitEnum;
 use crate::dict::grammar::suffix::resolve::{find_word_suffix, get_suffix_map};
 use crate::dict::grammar::synergy::Synergy;
 use crate::dict::kani_lite_segment_list::KaniLiteSegmentList;
 use crate::dict::kani_lite_top_array::{
     kani_lite_get_array, kani_lite_register_item, KaniLiteTopArray,
 };
-use crate::dict::kani_lite_top_array_item::{
-    KaniLitePath, KaniLitePathElement, KaniLiteTopArrayItem,
-};
+use crate::dict::kani_lite_top_array_item::{KaniLitePath, KaniLitePathElement};
 use crate::dict::kani_word::KaniWordDispatchEnum;
 use crate::dict::readings::{find_substring_words, find_word, FindWordRows};
 use crate::dict::scoring::score::{
@@ -23,6 +22,7 @@ use crate::dict::scoring::score::{
 use crate::dict::split::segsplit::get_segsplit;
 use crate::dict::text_classes::find_word_as_hiragana;
 use crate::dict::word_info::SuffixMapTemp;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -112,21 +112,27 @@ pub async fn find_word_full(
 
     // Pre-collect simple words as KaniWordDispatchEnum values for the
     // suffix / hiragana branches that need `:matches` / `:exclude`
-    // references against them.
-    let simple_words: Vec<KaniWordDispatchEnum> = match &simple_words_rows {
-        FindWordRows::Kana(rows) => rows
+    // references against them. Owned rows (cache miss) move straight
+    // into the enums; borrowed rows (substring-hash hit) are cloned
+    // once here.
+    let simple_words: Vec<KaniWordDispatchEnum> = match simple_words_rows {
+        Cow::Owned(FindWordRows::Kana(rows)) => {
+            rows.into_iter().map(KaniWordDispatchEnum::Kana).collect()
+        }
+        Cow::Owned(FindWordRows::Kanji(rows)) => {
+            rows.into_iter().map(KaniWordDispatchEnum::Kanji).collect()
+        }
+        Cow::Borrowed(FindWordRows::Kana(rows)) => rows
             .iter()
             .cloned()
             .map(KaniWordDispatchEnum::Kana)
             .collect(),
-        FindWordRows::Kanji(rows) => rows
+        Cow::Borrowed(FindWordRows::Kanji(rows)) => rows
             .iter()
             .cloned()
             .map(KaniWordDispatchEnum::Kanji)
             .collect(),
     };
-
-    let mut out: Vec<KaniWordDispatchEnum> = simple_words.clone();
 
     // dict.lisp:1055 (find-word-suffix word :matches simple-words)
     // find_word_suffix returns Vec<KaniWordDispatchEnum> directly —
@@ -134,10 +140,11 @@ pub async fn find_word_full(
     // (def-abbr-suffix output) variants per the etypecase at
     // dict-grammar.lisp:565-577.
     let suffix_words = find_word_suffix(ctx, word, &simple_words).await?;
-    out.extend(suffix_words);
 
     // dict.lisp:1056-1057 (when as-hiragana (find-word-as-hiragana …))
-    if as_hiragana {
+    // — resolved before `out` assembly so simple_words can move into
+    // `out` instead of being cloned; appended below in upstream order.
+    let hiragana_proxies = if as_hiragana {
         // (mapcar 'seq simple-words) — simple-words are kanji-text /
         // kana-text rows; (seq r) is the i32 slot. Mirror with a
         // direct field read keyed by variant.
@@ -149,9 +156,15 @@ pub async fn find_word_full(
                 _ => None,
             })
             .collect();
-        let proxies = find_word_as_hiragana(ctx, word, &exclude, None).await?;
-        out.extend(proxies.into_iter().map(KaniWordDispatchEnum::Proxy));
-    }
+        find_word_as_hiragana(ctx, word, &exclude, None).await?
+    } else {
+        Vec::new()
+    };
+
+    let simple_words_empty = simple_words.is_empty();
+    let mut out: Vec<KaniWordDispatchEnum> = simple_words;
+    out.extend(suffix_words);
+    out.extend(hiragana_proxies.into_iter().map(KaniWordDispatchEnum::Proxy));
 
     // dict.lisp:1058-1067 (when counter …)
     if let Some(counter_arg) = counter {
@@ -175,7 +188,7 @@ pub async fn find_word_full(
                 let number = subseq_slice(None, word, 0, Some(idx));
                 let counter_text = subseq_slice(None, word, idx, Some(word_len));
                 // dict.lisp:1067 (:unique (not simple-words))
-                let unique = simple_words.is_empty();
+                let unique = simple_words_empty;
                 let counters = find_counter(ctx, number, counter_text, Some(unique));
                 out.extend(counters.into_iter().map(KaniWordDispatchEnum::Counter));
             }
@@ -483,10 +496,10 @@ pub fn get_seg_initial(seg: &Arc<KaniLiteSegmentList>) -> Vec<Arc<KaniLiteSegmen
 pub fn get_seg_splits(
     seg_left: &Arc<KaniLiteSegmentList>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<Vec<KaniLitePathElement>> {
+) -> Vec<KaniSegSplitEnum> {
     // dict.lisp:1176 (let ((splits (apply-segfilters seg-left seg-right))))
     let splits = apply_segfilters(Some(seg_left), seg_right);
-    let mut result: Vec<Vec<KaniLitePathElement>> = Vec::new();
+    let mut result: Vec<KaniSegSplitEnum> = Vec::new();
     // dict.lisp:1177-1178 (loop for (seg-left seg-right) in splits
     //                       nconcing (cons (get-penalties seg-left seg-right)
     //                                      (get-synergies seg-left seg-right)))
@@ -495,9 +508,7 @@ pub fn get_seg_splits(
             .as_ref()
             .expect("apply_segfilters preserves Some-left when input left is Some");
         result.push(get_penalties(left, right));
-        for synergy_path in get_synergies(left, right) {
-            result.push(synergy_path);
-        }
+        result.extend(get_synergies(left, right));
     }
     result
 }
@@ -637,14 +648,19 @@ pub async fn find_best_path(
             let gap_left = gap_penalty(seg1_end, seg2_start);
             let gap_right = gap_penalty(seg2_end, str_length);
 
-            // dict.lisp:1215 — snapshot seg1.top entries before
-            // mutating seg2.top in the inner loop.
-            let tais: Vec<KaniLiteTopArrayItem> = kani_lite_get_array(&per_list_tops[i])
-                .iter()
-                .filter_map(|slot| slot.clone())
-                .collect();
+            // dict.lisp:1215 — upstream snapshots seg1.top before
+            // mutating seg2.top; only seg2.top (j > i) and `top` are
+            // written below, so reading seg1.top live through a
+            // disjoint borrow observes the same entries the snapshot
+            // would, without copying them.
+            let (head_tops, tail_tops) = per_list_tops.split_at_mut(i + 1);
+            let seg1_top = &head_tops[i];
+            let seg2_top = &mut tail_tops[j - i - 1];
 
-            for tai in tais {
+            for tai in kani_lite_get_array(seg1_top)
+                .iter()
+                .filter_map(|slot| slot.as_ref())
+            {
                 // dict.lisp:1216 (for (seg-left . tail) = (tai-payload tai))
                 let head = tai.payload.head().unwrap_or_else(|| {
                     panic!(
@@ -666,33 +682,43 @@ pub async fn find_best_path(
 
                 let splits = get_seg_splits(&seg_left_sl, &seg2);
                 for split in splits {
-                    let split_sum: i32 = split
-                        .iter()
-                        .map(|elem| {
-                            let arg = match elem {
-                                KaniLitePathElement::SegmentList(sl) => {
-                                    KaniSegmentScoreArg::KaniLiteSegmentList(sl)
-                                }
-                                KaniLitePathElement::Synergy(s) => KaniSegmentScoreArg::Synergy(s),
-                            };
-                            get_segment_score(&arg)
-                                .expect("split element is scored (get-seg-splits output)")
-                        })
-                        .sum();
+                    let (split_right, split_synergy, split_left) = match split {
+                        KaniSegSplitEnum::Plain { right, left } => (right, None, left),
+                        KaniSegSplitEnum::WithSynergy {
+                            right,
+                            synergy,
+                            left,
+                        } => (right, Some(synergy), left),
+                    };
+                    let mut split_sum: i32 = get_segment_score(
+                        &KaniSegmentScoreArg::KaniLiteSegmentList(&split_right),
+                    )
+                    .expect("split element is scored (get-seg-splits output)")
+                        + get_segment_score(&KaniSegmentScoreArg::KaniLiteSegmentList(
+                            &split_left,
+                        ))
+                        .expect("split element is scored (get-seg-splits output)");
+                    if let Some(synergy) = &split_synergy {
+                        split_sum += get_segment_score(&KaniSegmentScoreArg::Synergy(synergy))
+                            .expect("split element is scored (get-seg-splits output)");
+                    }
                     let max_score = split_sum.max(score3 + 1).max(score2 + 1);
                     let accum_i64 = gap_left + max_score as i64 + score_tail as i64;
                     let accum = accum_i64 as i32;
 
                     // dict.lisp:1225 (for path = (nconc split tail)) — the
-                    // path reads split[0], split[1], …, tail front-to-back,
-                    // so the split folds onto the shared tail in reverse.
-                    let mut path = tail.clone();
-                    for elem in split.into_iter().rev() {
-                        path = KaniLitePath::cons(elem, &path);
+                    // path reads (seg-right [synergy] seg-left) then tail
+                    // front-to-back, so the split folds onto the shared
+                    // tail in reverse: left, synergy, right.
+                    let mut path =
+                        KaniLitePath::cons(KaniLitePathElement::SegmentList(split_left), &tail);
+                    if let Some(synergy) = split_synergy {
+                        path = KaniLitePath::cons(KaniLitePathElement::Synergy(synergy), &path);
                     }
+                    path = KaniLitePath::cons(KaniLitePathElement::SegmentList(split_right), &path);
 
                     // dict.lisp:1226 (register-item (segment-list-top seg2) accum path)
-                    kani_lite_register_item(&mut per_list_tops[j], accum, path.clone());
+                    kani_lite_register_item(seg2_top, accum, path.clone());
                     // dict.lisp:1227 (register-item top (+ accum gap-right) path)
                     kani_lite_register_item(&mut top, (accum_i64 + gap_right) as i32, path);
                 }

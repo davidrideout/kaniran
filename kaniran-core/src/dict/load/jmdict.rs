@@ -274,7 +274,7 @@ pub async fn load_entry(
     let parsed = Document::parse(content).expect("load_entry: malformed entry XML");
     // dict-load.lisp:123-132 (seq (cond ...))
     let seq: i32 = match seq {
-        LoadEntrySeq::Str(s) => match find_word(ctx, s, false).await? {
+        LoadEntrySeq::Str(s) => match &*find_word(ctx, s, false).await? {
             FindWordRows::Kana(rows) => match rows.first() {
                 Some(row) => row.seq,
                 None => next_seq(ctx).await?,

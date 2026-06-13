@@ -66,7 +66,9 @@ pub async fn find_word_info(
     // (all-words (if root-only (find-word text :root-only t)
     //                (find-word-full text :as-hiragana (test-word text :katakana) :counter :auto)))
     let all_words: Vec<KaniWordDispatchEnum> = if root_only {
-        match find_word(&ctx2, text, true).await? {
+        // root_only skips the substring-hash, so the Cow is always
+        // Owned here and into_owned() moves rather than clones.
+        match find_word(&ctx2, text, true).await?.into_owned() {
             FindWordRows::Kana(rows) => rows.into_iter().map(KaniWordDispatchEnum::Kana).collect(),
             FindWordRows::Kanji(rows) => {
                 rows.into_iter().map(KaniWordDispatchEnum::Kanji).collect()

@@ -38,7 +38,8 @@ async fn audit_one(
 
     let actual = find_word(ctx, word, root_only)
         .await
-        .map_err(|err| format!("find_word query: {}", err))?;
+        .map_err(|err| format!("find_word query: {}", err))?
+        .into_owned();
 
     let expected_list = unwrap_result_list(&row.result)?;
     compare(actual, expected_list)

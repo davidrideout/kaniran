@@ -19,7 +19,7 @@ use serde_json::Value;
 use kaniran_core::dict::conj::ConjData;
 use kaniran_core::dict::path::get_seg_splits;
 use kaniran_core::dict::kani_lite_segment_list::KaniLiteSegmentList;
-use kaniran_core::dict::kani_lite_top_array_item::KaniLitePathElement;
+use kaniran_core::dict::kani_seg_split_enum::KaniSegSplitEnum;
 use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
 use kaniran_core::dict::path::SegmentList;
 use kaniran_core::dict::scoring::score::{
@@ -58,15 +58,20 @@ async fn audit_one(
     // the lite refactor).
     let actual: Vec<Vec<PathElement>> = lite_result
         .into_iter()
-        .map(|path| {
-            path.into_iter()
-                .map(|elem| match elem {
-                    KaniLitePathElement::SegmentList(lite) => {
-                        PathElement::SegmentList(lite.to_segment_list())
-                    }
-                    KaniLitePathElement::Synergy(s) => PathElement::Synergy(s),
-                })
-                .collect()
+        .map(|split| match split {
+            KaniSegSplitEnum::Plain { right, left } => vec![
+                PathElement::SegmentList(right.to_segment_list()),
+                PathElement::SegmentList(left.to_segment_list()),
+            ],
+            KaniSegSplitEnum::WithSynergy {
+                right,
+                synergy,
+                left,
+            } => vec![
+                PathElement::SegmentList(right.to_segment_list()),
+                PathElement::Synergy(synergy),
+                PathElement::SegmentList(left.to_segment_list()),
+            ],
         })
         .collect();
 

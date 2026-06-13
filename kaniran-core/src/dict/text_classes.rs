@@ -63,7 +63,7 @@ pub async fn find_word_as_hiragana(
         // root_only=true, so the substring-hash short-circuit doesn't
         // apply (find_word skips the cache check for root_only); the
         // ctx.substring_hash slot is read inside find_word.
-        None => find_word(ctx, &as_hira, true).await?,
+        None => find_word(ctx, &as_hira, true).await?.into_owned(),
     };
     let proxies = match words {
         FindWordRows::Kana(rows) => rows

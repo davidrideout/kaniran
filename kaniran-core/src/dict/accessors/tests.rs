@@ -911,7 +911,7 @@ mod reading_str {
     }
 
     async fn first_simple_text(ctx: &KaniranContext, word: &str) -> KaniSimpleTextDispatchEnum {
-        match find_word(ctx, word, false).await.unwrap() {
+        match find_word(ctx, word, false).await.unwrap().into_owned() {
             FindWordRows::Kanji(rows) => KaniSimpleTextDispatchEnum::Kanji(
                 rows.into_iter()
                     .next()
@@ -1723,7 +1723,7 @@ mod word_conjugations {
         // A freshly-loaded word row has no conjugation annotation yet.
         // Needs a live database.
         let ctx = ctx_from_env().await;
-        let rows = find_word(&ctx, "ねこ", false).await.unwrap();
+        let rows = find_word(&ctx, "ねこ", false).await.unwrap().into_owned();
         let row = match rows {
             FindWordRows::Kana(v) => v.into_iter().next().expect("kana row for ねこ"),
             FindWordRows::Kanji(_) => panic!("expected kana rows for ねこ"),

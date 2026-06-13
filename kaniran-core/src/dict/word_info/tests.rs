@@ -273,7 +273,7 @@ mod word_info_from_segment {
     }
 
     async fn first_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
-        let rows = find_word(ctx, word, false).await.unwrap();
+        let rows = find_word(ctx, word, false).await.unwrap().into_owned();
         match rows {
             FindWordRows::Kanji(v) => v
                 .into_iter()
@@ -423,7 +423,7 @@ mod word_info_from_segment_list {
     }
 
     async fn one_kana_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
-        let rows = find_word(ctx, word, false).await.unwrap();
+        let rows = find_word(ctx, word, false).await.unwrap().into_owned();
         match rows {
             FindWordRows::Kanji(v) => v
                 .into_iter()
@@ -714,7 +714,7 @@ mod fill_segment_path {
     }
 
     async fn first_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
-        let rows = find_word(ctx, word, false).await.unwrap();
+        let rows = find_word(ctx, word, false).await.unwrap().into_owned();
         match rows {
             FindWordRows::Kanji(v) => v
                 .into_iter()

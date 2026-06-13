@@ -613,11 +613,12 @@ pub async fn calc_score(
         }
     }
 
-    // dict.lisp:976-980 — final info construction
+    // dict.lisp:976-980 — final info construction; posi / seq_set /
+    // conj_data have no readers past this point, so they move in.
     let info = KaniSegmentInfo {
-        posi: posi.clone(),
-        seq_set: seq_set.clone(),
-        conj: conj_data.clone(),
+        posi,
+        seq_set,
+        conj: conj_data,
         common: if common_p { common_of } else { None },
         score_info: KaniScoreInfo {
             prop_score,
