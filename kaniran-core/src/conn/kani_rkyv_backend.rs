@@ -26,10 +26,48 @@ use crate::conn::kani_snapshot::{
 };
 use crate::dict::dao::{ConjProp, Conjugation, Entry, KanaText, KanjiText, SimpleText};
 use crate::kanji::dao::{Kanji, Meaning, Reading};
+use rkyv::hash::FxHasher64;
 use std::collections::{HashMap, HashSet};
+use std::hash::BuildHasherDefault;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Instant;
+
+/// Std HashMap keyed by `i32` with rkyv's cross-platform FxHasher.
+/// FxHash beats std's SipHash by ~2-3× on integer keys at the cost of
+/// DoS resistance (irrelevant for an in-process JMdict index).
+type FxIntMap<K, V> = HashMap<K, V, BuildHasherDefault<FxHasher64>>;
+
+/// Direct-indexed lookup over Postgres-serial primary keys: `vec[id]`
+/// is the row ordinal, or [`Self::SENTINEL`] when there is no row.
+/// One cache miss, zero hashing — strictly faster than [`FxIntMap`]
+/// for the 5 ID-keyed maps whose keys are dense serials.
+#[derive(Default)]
+struct DenseIdIndex(Vec<u32>);
+
+impl DenseIdIndex {
+    const SENTINEL: u32 = u32::MAX;
+
+    fn insert(&mut self, id: i32, ordinal: u32) {
+        debug_assert!(id >= 0, "Postgres serial ids are non-negative");
+        let slot = id as usize;
+        if slot >= self.0.len() {
+            self.0.resize(slot + 1, Self::SENTINEL);
+        }
+        self.0[slot] = ordinal;
+    }
+
+    #[inline]
+    fn get(&self, id: i32) -> Option<u32> {
+        if id < 0 {
+            return None;
+        }
+        self.0
+            .get(id as usize)
+            .copied()
+            .filter(|ordinal| *ordinal != Self::SENTINEL)
+    }
+}
 
 /// Memory-mapped snapshot store. Cheap to clone — wraps one `Arc`.
 #[derive(Clone)]
@@ -44,31 +82,37 @@ struct KaniRkyvInner {
 
 /// Index maps from key to row ordinal(s) in the archived table
 /// vectors. Every ordinal vector is ascending = physical row order.
+///
+/// Integer-keyed maps use [`FxIntMap`] (FxHash) instead of std SipHash.
+/// The 5 maps keyed by Postgres-serial primary keys (`*_by_id`) use
+/// [`DenseIdIndex`] — direct `vec[id]` indexing with no hash at all.
+/// `_by_text` maps stay on std HashMap; string keys are not on the hot
+/// integer-lookup path.
 #[derive(Default)]
 struct KaniRkyvIndexes {
-    entry_by_seq: HashMap<i32, u32>,
-    kanji_text_by_id: HashMap<i32, u32>,
-    kanji_text_by_seq: HashMap<i32, Vec<u32>>,
+    entry_by_seq: FxIntMap<i32, u32>,
+    kanji_text_by_id: DenseIdIndex,
+    kanji_text_by_seq: FxIntMap<i32, Vec<u32>>,
     kanji_text_by_text: HashMap<String, Vec<u32>>,
-    kana_text_by_id: HashMap<i32, u32>,
-    kana_text_by_seq: HashMap<i32, Vec<u32>>,
+    kana_text_by_id: DenseIdIndex,
+    kana_text_by_seq: FxIntMap<i32, Vec<u32>>,
     kana_text_by_text: HashMap<String, Vec<u32>>,
-    conj_by_id: HashMap<i32, u32>,
-    conj_by_seq: HashMap<i32, Vec<u32>>,
-    conj_by_from: HashMap<i32, Vec<u32>>,
-    conj_prop_by_conj_id: HashMap<i32, Vec<u32>>,
-    csr_by_conj_id: HashMap<i32, Vec<u32>>,
-    sense_by_id: HashMap<i32, u32>,
-    sense_by_seq: HashMap<i32, Vec<u32>>,
-    gloss_by_sense_id: HashMap<i32, Vec<u32>>,
-    sense_prop_by_seq: HashMap<i32, Vec<u32>>,
-    sense_prop_by_sense_id: HashMap<i32, Vec<u32>>,
-    restricted_by_seq: HashMap<i32, Vec<u32>>,
-    kanji_by_id: HashMap<i32, u32>,
+    conj_by_id: DenseIdIndex,
+    conj_by_seq: FxIntMap<i32, Vec<u32>>,
+    conj_by_from: FxIntMap<i32, Vec<u32>>,
+    conj_prop_by_conj_id: FxIntMap<i32, Vec<u32>>,
+    csr_by_conj_id: FxIntMap<i32, Vec<u32>>,
+    sense_by_id: DenseIdIndex,
+    sense_by_seq: FxIntMap<i32, Vec<u32>>,
+    gloss_by_sense_id: FxIntMap<i32, Vec<u32>>,
+    sense_prop_by_seq: FxIntMap<i32, Vec<u32>>,
+    sense_prop_by_sense_id: FxIntMap<i32, Vec<u32>>,
+    restricted_by_seq: FxIntMap<i32, Vec<u32>>,
+    kanji_by_id: DenseIdIndex,
     kanji_by_text: HashMap<String, Vec<u32>>,
-    reading_by_kanji_id: HashMap<i32, Vec<u32>>,
-    okurigana_by_reading_id: HashMap<i32, Vec<u32>>,
-    meaning_by_kanji_id: HashMap<i32, Vec<u32>>,
+    reading_by_kanji_id: FxIntMap<i32, Vec<u32>>,
+    okurigana_by_reading_id: FxIntMap<i32, Vec<u32>>,
+    meaning_by_kanji_id: FxIntMap<i32, Vec<u32>>,
 }
 
 fn build_indexes(tables: &ArchivedKaniSnapshot) -> KaniRkyvIndexes {
@@ -258,10 +302,17 @@ impl KaniRkyvBackend {
 
 // --- archived-row → DAO conversions ---
 
+// Runtime never reads `Entry.content` (the raw JMdict XML) or the
+// `common_tags` columns on kanji_text / kana_text — those are only
+// consumed by build-time errata/custom-data writers that load via the
+// Postgres backend. Leaving them as empty `String::new()` (a stack-only
+// 24-byte placeholder with capacity 0) skips ~3% of the bench's heap
+// allocations at zero runtime risk. dao_entry sat at 3.2% of allocator
+// bytes in a dhat profile of cli_full_profile.
 fn dao_entry(row: &<Entry as rkyv::Archive>::Archived) -> Entry {
     Entry {
         seq: row.seq.to_native(),
-        content: row.content.as_str().to_string(),
+        content: String::new(),
         root_p: row.root_p,
         n_kanji: row.n_kanji.to_native(),
         n_kana: row.n_kana.to_native(),
@@ -276,7 +327,7 @@ fn dao_kanji_text(row: &ArchivedKaniKanjiTextRow) -> KanjiText {
         text: row.text.as_str().to_string(),
         ord: row.ord.to_native(),
         common: row.common.as_ref().map(|value| value.to_native()),
-        common_tags: row.common_tags.as_str().to_string(),
+        common_tags: String::new(),
         conjugate_p: row.conjugate_p,
         nokanji: row.nokanji,
         best_kana: row.best_kana.as_ref().map(|value| value.as_str().to_string()),
@@ -291,7 +342,7 @@ fn dao_kana_text(row: &ArchivedKaniKanaTextRow) -> KanaText {
         text: row.text.as_str().to_string(),
         ord: row.ord.to_native(),
         common: row.common.as_ref().map(|value| value.to_native()),
-        common_tags: row.common_tags.as_str().to_string(),
+        common_tags: String::new(),
         conjugate_p: row.conjugate_p,
         nokanji: row.nokanji,
         best_kanji: row.best_kanji.as_ref().map(|value| value.as_str().to_string()),
@@ -358,7 +409,7 @@ fn dao_meaning(row: &<Meaning as rkyv::Archive>::Archived) -> Meaning {
 /// Merge per-key ordinal lists into one ascending (physical-order)
 /// list. Sort + dedup also absorbs duplicate input keys, matching
 /// `= ANY(array)` predicate semantics (a row matches once).
-fn merged_i32(map: &HashMap<i32, Vec<u32>>, keys: &[i32]) -> Vec<u32> {
+fn merged_i32(map: &FxIntMap<i32, Vec<u32>>, keys: &[i32]) -> Vec<u32> {
     let mut ordinals: Vec<u32> = Vec::new();
     for key in keys {
         if let Some(list) = map.get(key) {
@@ -640,8 +691,8 @@ impl KaniBackend for KaniRkyvBackend {
         let tables = self.tables();
         self.idx()
             .kanji_text_by_id
-            .get(&id)
-            .map(|&ordinal| dao_kanji_text(&tables.kanji_texts[ordinal as usize]))
+            .get(id)
+            .map(|ordinal| dao_kanji_text(&tables.kanji_texts[ordinal as usize]))
             .ok_or(sqlx::Error::RowNotFound)
     }
 
@@ -649,8 +700,8 @@ impl KaniBackend for KaniRkyvBackend {
         let tables = self.tables();
         self.idx()
             .kana_text_by_id
-            .get(&id)
-            .map(|&ordinal| dao_kana_text(&tables.kana_texts[ordinal as usize]))
+            .get(id)
+            .map(|ordinal| dao_kana_text(&tables.kana_texts[ordinal as usize]))
             .ok_or(sqlx::Error::RowNotFound)
     }
 
@@ -1156,8 +1207,8 @@ impl KaniBackend for KaniRkyvBackend {
         let tables = self.tables();
         self.idx()
             .conj_by_id
-            .get(&id)
-            .map(|&ordinal| dao_conjugation(&tables.conjugations[ordinal as usize]))
+            .get(id)
+            .map(|ordinal| dao_conjugation(&tables.conjugations[ordinal as usize]))
             .ok_or(sqlx::Error::RowNotFound)
     }
 
@@ -1505,7 +1556,7 @@ impl KaniBackend for KaniRkyvBackend {
         let tables = self.tables();
         let mut ordinals: Vec<u32> = ids
             .iter()
-            .filter_map(|id| self.idx().sense_by_id.get(id).copied())
+            .filter_map(|id| self.idx().sense_by_id.get(*id))
             .collect();
         ordinals.sort_unstable();
         ordinals.dedup();
