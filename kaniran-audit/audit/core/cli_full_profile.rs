@@ -5,8 +5,7 @@
 //! expected-output comparison, under a pprof sampling guard.
 //!
 //! Run with:
-//!   KANI_RKYV_SNAPSHOT=corpus/kaniran_ichiran_latest_2026_06_10.rkyv \
-//!   DATABASE_URL=postgres://david@localhost/ichiran_latest \
+//!   DATABASE_URL=memory://corpus/kaniran_ichiran_latest_2026_06_10.rkyv \
 //!   cargo run --profile profiling -p kaniran-audit --features rkyv \
 //!     --bin cli_full_profile -- \
 //!     --path corpus/cli_full_ichiran_latest_2026_06_09.parquet \

@@ -31,7 +31,6 @@ pub enum Error {
     Database(#[from] sqlx::Error),
     #[error("database URL is not set: env var `{0}` is empty or missing")]
     MissingConnection(&'static str),
-    #[cfg(feature = "rkyv")]
     #[error("rkyv snapshot: {0}")]
     Snapshot(String),
 }
@@ -42,9 +41,11 @@ pub struct KaniranContext {
     /// Dictionary lookup backend. All runtime (lookup-serving)
     /// queries go through here; `pool` remains for build-time code
     /// that writes the database (`dict/load`, `dict/errata`, kanjidic
-    /// loaders). Postgres by default; with the `rkyv` feature, setting
-    /// `KANI_RKYV_SNAPSHOT=<archive path>` selects the memory-mapped
-    /// snapshot backend instead.
+    /// loaders). Postgres by default. With the `rkyv` feature, a
+    /// `DATABASE_URL=memory://<archive path>` selects the
+    /// memory-mapped snapshot backend instead; in that mode `pool`
+    /// holds a lazy placeholder that never connects — build-time
+    /// tools require a real `postgres://` URL.
     pub store: KaniStore,
     /// Upstream `*no-conj-data*` (`dict.lisp:329`). See
     /// [`crate::dict::_star_no_conj_data_star_`].
@@ -153,31 +154,41 @@ impl KaniranContext {
     pub fn with_segsplit_map(&self) -> Self {
         Self { split_map: SplitMapKind::SegSplit, ..self.clone() }
     }
+
+    /// True when the runtime store is the rkyv snapshot backend
+    /// (`DATABASE_URL=memory://...`). Audit harness uses this to pick
+    /// CPU-parallel vs pool-driven concurrency without re-reading env.
+    pub fn is_rkyv(&self) -> bool {
+        #[cfg(feature = "rkyv")]
+        {
+            matches!(self.store, KaniStore::Rkyv(_))
+        }
+        #[cfg(not(feature = "rkyv"))]
+        {
+            false
+        }
+    }
 }
 
 impl KaniranContext {
     /// Connect the pool and run every cache populator before returning.
-    /// Pool cap 25: small enough that two audit processes plus a
-    /// bystander session fit inside Postgres' default
-    /// `max_connections = 100`, large enough to feed the audit
-    /// runners' default task concurrency.
+    /// Dispatches on URL scheme:
+    /// - `postgres://...` → Postgres backend (pool cap 25: small enough
+    ///   that two audit processes plus a bystander session fit inside
+    ///   Postgres' default `max_connections = 100`, large enough to feed
+    ///   the audit runners' default task concurrency).
+    /// - `memory://<path>` → rkyv snapshot loaded from `<path>` (feature
+    ///   `rkyv` required); the `pool` field holds a `connect_lazy`
+    ///   placeholder that never connects, so any build-time code path
+    ///   that uses `&ctx.pool` fails on first use.
     pub async fn from_url(url: &str) -> Result<Arc<Self>, Error> {
-        let pool = PgPoolOptions::new()
-            .max_connections(25)
-            .acquire_timeout(Duration::from_secs(10))
-            .connect(url)
-            .await
-            .map_err(|e| {
-                eprintln!("kaniran: failed to connect to database at `{url}`: {e}");
-                Error::from(e)
-            })?;
+        let (pool, store) = build_backend(url).await?;
         // The DB-derived caches are identical across every context built
         // in a single test process and dominate build time (~5s of table
         // scans each). During the crate's own tests, build them once and
         // share the Arcs; each context still gets its own runtime-bound
         // pool (a shared pool's connections die when a per-test runtime is
         // torn down) and a fresh reading-cache. Production builds fresh.
-        let store = kani_store_from_env(&pool)?;
         #[cfg(test)]
         {
             let (no_conj_data, is_arch, counter_cache, suffix_cache, suffix_class) =
@@ -236,9 +247,18 @@ impl KaniranContext {
     /// shells. Callers must not invoke functions that read these caches
     /// (`find-word` / `get-counter-ids` / suffix dispatch / …) — they
     /// would silently see empty maps.
+    ///
+    /// `memory://` URLs are rejected: this constructor is for build-time
+    /// tools that write the database and need a real Postgres pool.
     pub async fn pool_only_from_url(url: &str) -> Result<Arc<Self>, Error> {
         use std::collections::HashMap;
 
+        if url.starts_with("memory://") {
+            return Err(Error::Snapshot(
+                "pool_only_from_url is for build-time tools and requires a postgres:// URL — \
+                 memory:// (rkyv snapshot) is read-only".into(),
+            ));
+        }
         let pool = PgPoolOptions::new()
             .max_connections(60)
             .acquire_timeout(Duration::from_secs(10))
@@ -339,23 +359,55 @@ impl KaniranContext {
     }
 }
 
-/// Store selection for [`KaniranContext::from_url`]: Postgres unless
-/// the `rkyv` feature is compiled in AND `KANI_RKYV_SNAPSHOT` names an
-/// archive path.
-fn kani_store_from_env(pool: &PgPool) -> Result<KaniStore, Error> {
-    #[cfg(feature = "rkyv")]
-    {
-        if let Ok(path) = std::env::var("KANI_RKYV_SNAPSHOT") {
-            if !path.is_empty() {
-                let backend = crate::conn::kani_rkyv_backend::KaniRkyvBackend::from_file(
-                    std::path::Path::new(&path),
-                )
-                .map_err(Error::Snapshot)?;
-                return Ok(KaniStore::Rkyv(backend));
-            }
+/// Connect/load the backend for [`KaniranContext::from_url`] based on
+/// the URL scheme:
+///
+/// - `postgres://...` — connect a 25-conn pool and serve via
+///   [`KaniPostgresBackend`].
+/// - `memory://<path>` (feature `rkyv` only) — `mmap` the rkyv
+///   snapshot at `<path>` and serve via [`KaniRkyvBackend`]. The
+///   returned `pool` is a `connect_lazy` placeholder that never opens
+///   a TCP connection; any code path that calls `&ctx.pool` for SQL
+///   will fail on first use, which is intentional — build-time tools
+///   (`kanjidic-load`, dumper, etc.) require a real `postgres://`
+///   URL.
+async fn build_backend(url: &str) -> Result<(PgPool, KaniStore), Error> {
+    if let Some(path) = url.strip_prefix("memory://") {
+        #[cfg(not(feature = "rkyv"))]
+        {
+            let _ = path;
+            return Err(Error::Snapshot(
+                "memory:// URL requires the `rkyv` feature to be enabled".into(),
+            ));
+        }
+        #[cfg(feature = "rkyv")]
+        {
+            let backend = crate::conn::kani_rkyv_backend::KaniRkyvBackend::from_file(
+                std::path::Path::new(path),
+            )
+            .map_err(Error::Snapshot)?;
+            // Placeholder pool — connect_lazy validates URL syntax but
+            // never opens a connection. The URL is bogus on purpose so
+            // accidental use surfaces a recognizable host.
+            let pool = PgPoolOptions::new()
+                .max_connections(1)
+                .connect_lazy("postgres://kaniran-memory-mode@localhost/_unused_in_memory_mode")
+                .map_err(Error::from)?;
+            return Ok((pool, KaniStore::Rkyv(backend)));
         }
     }
-    Ok(KaniStore::Postgres(KaniPostgresBackend::new(pool.clone())))
+
+    let pool = PgPoolOptions::new()
+        .max_connections(25)
+        .acquire_timeout(Duration::from_secs(10))
+        .connect(url)
+        .await
+        .map_err(|err| {
+            eprintln!("kaniran: failed to connect to database at `{url}`: {err}");
+            Error::from(err)
+        })?;
+    let store = KaniStore::Postgres(KaniPostgresBackend::new(pool.clone()));
+    Ok((pool, store))
 }
 
 /// Shared cache builder for the crate's own test runs. The five

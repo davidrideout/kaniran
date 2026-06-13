@@ -278,6 +278,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         None => get_ichiran_connection_env()?
             .ok_or("database URL is not set — pass --db-url or define DATABASE_URL")?,
     };
+    if db_url.starts_with("memory://") {
+        return Err(
+            "the dumper reads from Postgres; pass --db-url postgres://... or set \
+             DATABASE_URL=postgres://... (memory:// is the read-only runtime backend)"
+                .into(),
+        );
+    }
     let pool = PgPoolOptions::new()
         .max_connections(4)
         .connect(&db_url)

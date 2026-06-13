@@ -8,7 +8,7 @@ repository.workspace = true
 
 [features]
 # Forwarded to kaniran-core so audit runners can replay against the
-# rkyv snapshot backend (select with KANI_RKYV_SNAPSHOT=<archive>).
+# rkyv snapshot backend (select with DATABASE_URL=memory://<archive>).
 rkyv = ["kaniran-core/rkyv"]
 # Allocation profiling for cli_full_profile: swaps the global allocator
 # from mimalloc to dhat::Alloc and records every allocation with its

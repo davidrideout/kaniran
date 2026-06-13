@@ -402,7 +402,7 @@ where
     // The Postgres path stays on the in-task stream: its pool's
     // connections belong to the main runtime and the awaits are real
     // network waits, which one thread overlaps fine.
-    let rkyv_parallel = std::env::var("KANI_RKYV_SNAPSHOT").is_ok_and(|path| !path.is_empty());
+    let rkyv_parallel = ctx_ref.is_rkyv();
     if rkyv_parallel {
         let work: std::sync::Mutex<std::vec::IntoIter<(usize, Vec<CapturedRow>)>> =
             std::sync::Mutex::new(groups.into_iter().enumerate().collect::<Vec<_>>().into_iter());
@@ -562,7 +562,7 @@ where
     let mut progress = Progress::new(expected_fqn, total_rows);
     let mut done: usize = 0;
     let mut row_seq: usize = 0;
-    let rkyv_parallel = std::env::var("KANI_RKYV_SNAPSHOT").is_ok_and(|path| !path.is_empty());
+    let rkyv_parallel = ctx_ref.is_rkyv();
 
     for batch in reader {
         let batch = batch.expect("batch");
@@ -680,7 +680,7 @@ where
     let mut progress = Progress::new(expected_fqn, total_rows);
     let mut done: usize = 0;
     let mut row_seq: usize = 0;
-    let rkyv_parallel = std::env::var("KANI_RKYV_SNAPSHOT").is_ok_and(|path| !path.is_empty());
+    let rkyv_parallel = ctx_ref.is_rkyv();
 
     for batch in reader {
         let batch = batch.expect("batch");

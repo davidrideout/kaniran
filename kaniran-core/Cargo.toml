@@ -9,8 +9,8 @@ repository.workspace = true
 [features]
 # The rkyv-backed dictionary store: adds rkyv derives to the DAO row
 # structs and enables `conn::kani_snapshot` + `conn::kani_rkyv_backend`
-# (selected at runtime via KANI_RKYV_SNAPSHOT). Off by default — the
-# Postgres-only build never pays for it.
+# (selected at runtime via DATABASE_URL=memory://<archive path>). Off
+# by default — the Postgres-only build never pays for it.
 rkyv = ["dep:rkyv", "dep:memmap2"]
 
 [dependencies]
