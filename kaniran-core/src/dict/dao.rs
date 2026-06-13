@@ -9,11 +9,17 @@ use sqlx::{FromRow, Row};
 ///
 /// Row representation of one JMdict entry, mapped 1:1 to the
 /// `public.entry` Postgres table.
+///
+/// The DB `content` column (raw JMdict XML, ~80 MB across the corpus)
+/// is intentionally not materialized here: nothing at runtime reads
+/// it, and the errata UPDATEs that used to round-trip it have been
+/// rewritten to skip the column. JMdict loaders write the column on
+/// initial DB population for audit/debugging — Postgres keeps it,
+/// Rust never lifts it back.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct Entry {
     pub seq: i32,
-    pub content: String,
     pub root_p: bool,
     pub n_kanji: i32,
     pub n_kana: i32,
@@ -24,7 +30,6 @@ impl<'r> FromRow<'r, PgRow> for Entry {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         Ok(Entry {
             seq: row.try_get("seq")?,
-            content: row.try_get("content")?,
             root_p: row.try_get("root_p")?,
             n_kanji: row.try_get("n_kanji")?,
             n_kana: row.try_get("n_kana")?,

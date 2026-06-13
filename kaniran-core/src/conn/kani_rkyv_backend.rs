@@ -302,17 +302,14 @@ impl KaniRkyvBackend {
 
 // --- archived-row → DAO conversions ---
 
-// Runtime never reads `Entry.content` (the raw JMdict XML) or the
-// `common_tags` columns on kanji_text / kana_text — those are only
-// consumed by build-time errata/custom-data writers that load via the
-// Postgres backend. Leaving them as empty `String::new()` (a stack-only
-// 24-byte placeholder with capacity 0) skips ~3% of the bench's heap
-// allocations at zero runtime risk. dao_entry sat at 3.2% of allocator
-// bytes in a dhat profile of cli_full_profile.
+// Runtime never reads the `common_tags` columns on kanji_text /
+// kana_text — those are only consumed by build-time errata writers
+// that load via the Postgres backend. Leaving them as empty
+// `String::new()` (a stack-only 24-byte placeholder with capacity 0)
+// skips per-call heap allocations at zero runtime risk.
 fn dao_entry(row: &<Entry as rkyv::Archive>::Archived) -> Entry {
     Entry {
         seq: row.seq.to_native(),
-        content: String::new(),
         root_p: row.root_p,
         n_kanji: row.n_kanji.to_native(),
         n_kana: row.n_kana.to_native(),

@@ -1167,11 +1167,6 @@ pub fn parse_captured_word(value: &Value) -> Result<KaniWordDispatchEnum, String
 fn parse_captured_entry(value: &Value) -> Result<Entry, String> {
     Ok(Entry {
         seq: require_i32(value, "seq")?,
-        // `content` is intentionally omitted by the projector;
-        // empty-string is the audit-side substitute and no consumer
-        // reads it. The omission is the single documented exception
-        // to the capture-everything rule.
-        content: String::new(),
         root_p: require_bool(value, "root_p")?,
         n_kanji: require_i32(value, "n_kanji")?,
         n_kana: require_i32(value, "n_kana")?,

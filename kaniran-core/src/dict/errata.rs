@@ -235,11 +235,10 @@ pub async fn add_reading(
             }
         }
         sqlx::query(
-            "UPDATE entry SET content = $2, root_p = $3, n_kanji = $4, \
-             n_kana = $5, primary_nokanji = $6 WHERE seq = $1",
+            "UPDATE entry SET root_p = $2, n_kanji = $3, \
+             n_kana = $4, primary_nokanji = $5 WHERE seq = $1",
         )
         .bind(entry.seq)
-        .bind(&entry.content)
         .bind(entry.root_p)
         .bind(entry.n_kanji)
         .bind(entry.n_kana)
@@ -397,11 +396,10 @@ pub async fn delete_reading(
             KaniReadingTable::Kanji => entry.n_kanji -= deleted,
         }
         sqlx::query(
-            "UPDATE entry SET content = $2, root_p = $3, n_kanji = $4, \
-             n_kana = $5, primary_nokanji = $6 WHERE seq = $1",
+            "UPDATE entry SET root_p = $2, n_kanji = $3, \
+             n_kana = $4, primary_nokanji = $5 WHERE seq = $1",
         )
         .bind(entry.seq)
-        .bind(&entry.content)
         .bind(entry.root_p)
         .bind(entry.n_kanji)
         .bind(entry.n_kana)
@@ -579,11 +577,10 @@ pub async fn add_conj_reading(
             entry.n_kanji += 1;
         }
         sqlx::query(
-            "UPDATE entry SET content = $2, root_p = $3, n_kanji = $4, \
-             n_kana = $5, primary_nokanji = $6 WHERE seq = $1",
+            "UPDATE entry SET root_p = $2, n_kanji = $3, \
+             n_kana = $4, primary_nokanji = $5 WHERE seq = $1",
         )
         .bind(entry.seq)
-        .bind(&entry.content)
         .bind(entry.root_p)
         .bind(entry.n_kanji)
         .bind(entry.n_kana)
@@ -959,11 +956,10 @@ pub async fn add_errata(ctx: &KaniranContext) -> Result<(), LoadCustomDataError>
         .await?;
     entry.root_p = false;
     sqlx::query(
-        "UPDATE entry SET content = $2, root_p = $3, n_kanji = $4, \
-         n_kana = $5, primary_nokanji = $6 WHERE seq = $1",
+        "UPDATE entry SET root_p = $2, n_kanji = $3, \
+         n_kana = $4, primary_nokanji = $5 WHERE seq = $1",
     )
     .bind(entry.seq)
-    .bind(&entry.content)
     .bind(entry.root_p)
     .bind(entry.n_kanji)
     .bind(entry.n_kana)
@@ -1262,11 +1258,10 @@ pub async fn remove_hiragana_nokanji(ctx: &KaniranContext) -> Result<(), sqlx::E
     for mut entry in entries {
         entry.primary_nokanji = false;
         sqlx::query(
-            "UPDATE entry SET content = $2, root_p = $3, n_kanji = $4, \
-             n_kana = $5, primary_nokanji = $6 WHERE seq = $1",
+            "UPDATE entry SET root_p = $2, n_kanji = $3, \
+             n_kana = $4, primary_nokanji = $5 WHERE seq = $1",
         )
         .bind(entry.seq)
-        .bind(&entry.content)
         .bind(entry.root_p)
         .bind(entry.n_kanji)
         .bind(entry.n_kana)
@@ -1295,11 +1290,10 @@ pub async fn set_primary_nokanji(
     entry.primary_nokanji = value;
     // dict-errata.lisp:227 (update-dao entry)
     sqlx::query(
-        "UPDATE entry SET content = $2, root_p = $3, n_kanji = $4, \
-         n_kana = $5, primary_nokanji = $6 WHERE seq = $1",
+        "UPDATE entry SET root_p = $2, n_kanji = $3, \
+         n_kana = $4, primary_nokanji = $5 WHERE seq = $1",
     )
     .bind(entry.seq)
-    .bind(&entry.content)
     .bind(entry.root_p)
     .bind(entry.n_kanji)
     .bind(entry.n_kana)

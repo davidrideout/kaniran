@@ -15,7 +15,10 @@ use crate::kanji::dao::{Kanji, Meaning, Okurigana, Reading};
 /// Bumped on any change to [`KaniSnapshot`] or the row structs it
 /// contains. Readers must refuse an archive whose
 /// [`KaniSnapshotMeta::format_version`] differs.
-pub const KANI_SNAPSHOT_FORMAT_VERSION: u32 = 1;
+///
+/// v2: dropped the unused `Entry.content` field (raw JMdict XML,
+/// ~80 MB across the corpus).
+pub const KANI_SNAPSHOT_FORMAT_VERSION: u32 = 2;
 
 /// Identity stamp recorded inside every archive, so audits can name
 /// the snapshot they ran against.
