@@ -35,8 +35,14 @@ pub enum Error {
     Snapshot(String),
 }
 
-#[derive(Clone)]
-pub struct KaniranContext {
+/// The process-lifetime, immutable half of [`KaniranContext`]: the
+/// connection pool, the lookup backend, and every populated cache. Held
+/// behind a single `Arc` on the context so a per-call binding rebind
+/// ([`KaniranContext::with_disable_hints`] and siblings) bumps one
+/// refcount instead of one per cache — cloning every cache Arc on each
+/// rebind was the segmenter's dominant multi-thread serialization point
+/// (contended refcount atomics on the shared caches).
+pub struct KaniranShared {
     pub pool: PgPool,
     /// Dictionary lookup backend. All runtime (lookup-serving)
     /// queries go through here; `pool` remains for build-time code
@@ -65,6 +71,15 @@ pub struct KaniranContext {
     /// Upstream `*reading-cache*` (`kanji.lisp:199`). See
     /// [`crate::kanji::_star_reading_cache_star_`].
     pub reading_cache: Arc<ReadingCache>,
+}
+
+#[derive(Clone)]
+pub struct KaniranContext {
+    /// Process-lifetime shared state — pool, store, and every cache.
+    /// One `Arc`, so a per-call binding rebind clones a single refcount.
+    /// Its fields are reachable directly as `ctx.<name>` through the
+    /// [`Deref`](std::ops::Deref) to [`KaniranShared`].
+    pub shared: Arc<KaniranShared>,
 
     /// Upstream `*disable-hints*` (`dict.lisp:78`) — recursion guard
     /// for the `simple-text :around` method on
@@ -120,7 +135,27 @@ pub struct KaniranContext {
     pub split_map: SplitMapKind,
 }
 
+impl std::ops::Deref for KaniranContext {
+    type Target = KaniranShared;
+    fn deref(&self) -> &Self::Target {
+        &self.shared
+    }
+}
+
 impl KaniranContext {
+    /// Wrap process-lifetime [`KaniranShared`] state into a fresh
+    /// context with every per-call binding at its default.
+    fn from_shared(shared: KaniranShared) -> Self {
+        Self {
+            shared: Arc::new(shared),
+            disable_hints: false,
+            substring_hash: None,
+            suffix_map_temp: None,
+            suffix_next_end: None,
+            split_map: SplitMapKind::Default,
+        }
+    }
+
     /// `(let ((*disable-hints* v)) …)` — return a sibling context with
     /// the hint-recursion guard rebound. Cheap because the cache
     /// fields are `Arc`-shared.
@@ -193,7 +228,7 @@ impl KaniranContext {
         {
             let (no_conj_data, is_arch, counter_cache, suffix_cache, suffix_class) =
                 test_support::shared_caches(&pool).await?;
-            return Ok(Arc::new(Self {
+            return Ok(Arc::new(Self::from_shared(KaniranShared {
                 pool,
                 store,
                 no_conj_data,
@@ -202,40 +237,55 @@ impl KaniranContext {
                 suffix_cache,
                 suffix_class,
                 reading_cache: Arc::new(new_reading_cache()),
-                disable_hints: false,
-                substring_hash: None,
-                suffix_map_temp: None,
-                suffix_next_end: None,
-                split_map: SplitMapKind::Default,
-            }));
+            })));
         }
         #[cfg(not(test))]
         {
             let no_conj_data = Arc::new(build_no_conj_data(&store).await?);
             let is_arch = Arc::new(build_is_arch(&store).await?);
-            // counter_cache + suffix_cache populators call DB-touching fns
-            // that take &KaniranContext — build a partial ctx first, then
-            // swap the populated maps in.
-            let mut ctx = Self {
+            let reading_cache = Arc::new(new_reading_cache());
+            // The counter / suffix populators take a &KaniranContext (they
+            // query the DB through it). The cache fields now live behind an
+            // immutable Arc<KaniranShared>, so instead of swapping maps into
+            // a mutable ctx, run each populator against a partial context,
+            // then assemble the final shared state. Startup only.
+            let counter_cache = {
+                let partial = Self::from_shared(KaniranShared {
+                    pool: pool.clone(),
+                    store: store.clone(),
+                    no_conj_data: no_conj_data.clone(),
+                    is_arch: is_arch.clone(),
+                    counter_cache: Arc::new(CounterCache::new()),
+                    suffix_cache: Arc::new(SuffixCache::new()),
+                    suffix_class: Arc::new(SuffixClass::new()),
+                    reading_cache: reading_cache.clone(),
+                });
+                Arc::new(build_counter_cache(&partial).await?)
+            };
+            // build_suffix_caches reads the now-populated counter cache.
+            let (suffix_cache, suffix_class) = {
+                let partial = Self::from_shared(KaniranShared {
+                    pool: pool.clone(),
+                    store: store.clone(),
+                    no_conj_data: no_conj_data.clone(),
+                    is_arch: is_arch.clone(),
+                    counter_cache: counter_cache.clone(),
+                    suffix_cache: Arc::new(SuffixCache::new()),
+                    suffix_class: Arc::new(SuffixClass::new()),
+                    reading_cache: reading_cache.clone(),
+                });
+                build_suffix_caches(&partial).await?
+            };
+            Ok(Arc::new(Self::from_shared(KaniranShared {
                 pool,
                 store,
                 no_conj_data,
                 is_arch,
-                counter_cache: Arc::new(CounterCache::new()),
-                suffix_cache: Arc::new(SuffixCache::new()),
-                suffix_class: Arc::new(SuffixClass::new()),
-                reading_cache: Arc::new(new_reading_cache()),
-                disable_hints: false,
-                substring_hash: None,
-                suffix_map_temp: None,
-                suffix_next_end: None,
-                split_map: SplitMapKind::Default,
-            };
-            ctx.counter_cache = Arc::new(build_counter_cache(&ctx).await?);
-            let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;
-            ctx.suffix_cache = Arc::new(suffix_cache);
-            ctx.suffix_class = Arc::new(suffix_class);
-            Ok(Arc::new(ctx))
+                counter_cache,
+                suffix_cache: Arc::new(suffix_cache),
+                suffix_class: Arc::new(suffix_class),
+                reading_cache,
+            })))
         }
     }
 
@@ -268,7 +318,7 @@ impl KaniranContext {
                 eprintln!("kaniran: failed to connect to database at `{url}`: {e}");
                 Error::from(e)
             })?;
-        Ok(Arc::new(Self {
+        Ok(Arc::new(Self::from_shared(KaniranShared {
             store: KaniStore::Postgres(KaniPostgresBackend::new(pool.clone())),
             pool,
             no_conj_data: Arc::new(HashSet::new()),
@@ -277,12 +327,7 @@ impl KaniranContext {
             suffix_cache: Arc::new(HashMap::new()),
             suffix_class: Arc::new(HashMap::new()),
             reading_cache: Arc::new(new_reading_cache()),
-            disable_hints: false,
-            substring_hash: None,
-            suffix_map_temp: None,
-            suffix_next_end: None,
-            split_map: SplitMapKind::Default,
-        }))
+        })))
     }
 
     /// Read a Postgres URL via [`config::Config`] (file + env layered)
@@ -317,7 +362,6 @@ impl KaniranContext {
     /// differs from `DATABASE_URL`. This guards `init_tables` (and any
     /// other DDL test) from ever wiping the production corpus.
     pub(crate) async fn pool_only_test_ctx() -> Self {
-        use crate::dict::split::split_map::SplitMapKind;
         use std::collections::HashMap;
 
         let test_url = std::env::var("KANIRAN_TEST_DATABASE_URL").expect(
@@ -341,7 +385,7 @@ impl KaniranContext {
             .connect(&test_url)
             .await
             .expect("connect to kaniran_test");
-        KaniranContext {
+        KaniranContext::from_shared(KaniranShared {
             store: KaniStore::Postgres(KaniPostgresBackend::new(pool.clone())),
             pool,
             no_conj_data: Arc::new(HashSet::new()),
@@ -350,12 +394,7 @@ impl KaniranContext {
             suffix_cache: Arc::new(HashMap::new()),
             suffix_class: Arc::new(HashMap::new()),
             reading_cache: Arc::new(new_reading_cache()),
-            disable_hints: false,
-            substring_hash: None,
-            suffix_map_temp: None,
-            suffix_next_end: None,
-            split_map: SplitMapKind::Default,
-        }
+        })
     }
 }
 
@@ -445,24 +484,34 @@ mod test_support {
         let store = KaniStore::Postgres(KaniPostgresBackend::new(pool.clone()));
         let no_conj_data = Arc::new(build_no_conj_data(&store).await?);
         let is_arch = Arc::new(build_is_arch(&store).await?);
-        let mut ctx = KaniranContext {
-            pool: pool.clone(),
-            store,
-            no_conj_data: no_conj_data.clone(),
-            is_arch: is_arch.clone(),
-            counter_cache: Arc::new(CounterCache::new()),
-            suffix_cache: Arc::new(SuffixCache::new()),
-            suffix_class: Arc::new(SuffixClass::new()),
-            reading_cache: Arc::new(new_reading_cache()),
-            disable_hints: false,
-            substring_hash: None,
-            suffix_map_temp: None,
-            suffix_next_end: None,
-            split_map: SplitMapKind::Default,
+        let reading_cache = Arc::new(new_reading_cache());
+        let counter_cache = {
+            let partial = KaniranContext::from_shared(KaniranShared {
+                pool: pool.clone(),
+                store: store.clone(),
+                no_conj_data: no_conj_data.clone(),
+                is_arch: is_arch.clone(),
+                counter_cache: Arc::new(CounterCache::new()),
+                suffix_cache: Arc::new(SuffixCache::new()),
+                suffix_class: Arc::new(SuffixClass::new()),
+                reading_cache: reading_cache.clone(),
+            });
+            Arc::new(build_counter_cache(&partial).await?)
         };
-        let counter_cache = Arc::new(build_counter_cache(&ctx).await?);
-        ctx.counter_cache = counter_cache.clone();
-        let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;
+        // build_suffix_caches reads the now-populated counter cache.
+        let (suffix_cache, suffix_class) = {
+            let partial = KaniranContext::from_shared(KaniranShared {
+                pool: pool.clone(),
+                store,
+                no_conj_data: no_conj_data.clone(),
+                is_arch: is_arch.clone(),
+                counter_cache: counter_cache.clone(),
+                suffix_cache: Arc::new(SuffixCache::new()),
+                suffix_class: Arc::new(SuffixClass::new()),
+                reading_cache,
+            });
+            build_suffix_caches(&partial).await?
+        };
         Ok((
             no_conj_data,
             is_arch,
