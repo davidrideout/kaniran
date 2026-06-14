@@ -59,10 +59,10 @@ fn print_romanize_info(info: &[(String, String)]) {
 // The word-info renders via word-info-gloss-json (the cli.lisp method) and
 // the prop is the default (constantly nil) wordprop-fn's nil, which jsown
 // renders as [].
-async fn romanize_star_to_json(
+fn romanize_star_to_json(
     ctx: &KaniranContext,
     result: &[RomanizeStarSegment<()>],
-) -> Result<Value, sqlx::Error> {
+) -> Result<Value, kaniran_core::conn::KaniDbError> {
     let mut parts = Vec::with_capacity(result.len());
     for segment in result {
         match segment {
@@ -72,7 +72,7 @@ async fn romanize_star_to_json(
                 for (word_list, score) in alternatives {
                     let mut words = Vec::with_capacity(word_list.len());
                     for (romanized, word, _prop) in word_list {
-                        let gloss = word_info_gloss_json(ctx, word, false).await?;
+                        let gloss = word_info_gloss_json(ctx, word, false)?;
                         // Build the triple directly so `gloss` is moved, not
                         // re-serialized through json!'s to_value (which deep-
                         // copies the whole tree through the serde machinery).
@@ -95,11 +95,10 @@ async fn romanize_star_to_json(
 }
 
 // cli.lisp:48 (main)
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = Cli::parse();
     // (load-connection-from-env)
-    let ctx = KaniranContext::from_env().await?;
+    let ctx = KaniranContext::from_env()?;
     // method defaults to *default-romanization-method* (= *hepburn-traditional*).
     let method =
         KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(hepburn_traditional()));
@@ -107,17 +106,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = join(" ", &options.input);
     if options.info {
         // ((getf options :info) …)
-        let (r, info) = romanize(&ctx, &input, method, true).await?;
+        let (r, info) = romanize(&ctx, &input, method, true)?;
         print!("{r}");
         print_romanize_info(&info);
     } else if options.full {
         // ((getf options :full) …)
-        let result = romanize_star_(&ctx, &input, method, Some(options.limit), |_, _| ()).await?;
-        let json = romanize_star_to_json(&ctx, &result).await?;
+        let result = romanize_star_(&ctx, &input, method, Some(options.limit), |_, _| ())?;
+        let json = romanize_star_to_json(&ctx, &result)?;
         print!("{}", serde_json::to_string(&json)?);
     } else {
         // (t …)
-        let (r, _) = romanize(&ctx, &input, method, true).await?;
+        let (r, _) = romanize(&ctx, &input, method, true)?;
         print!("{r}");
     }
     // (terpri) (finish-output)
@@ -131,9 +130,8 @@ mod tests {
     //! Ground truth from `(princ (jsown:to-json (romanize* input :limit 1)))`
     use super::*;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
             .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
     }
 
@@ -141,9 +139,9 @@ mod tests {
         KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(hepburn_traditional()))
     }
 
-    #[tokio::test]
-    async fn full_json_matches_cli() {
-        let ctx = ctx().await;
+    #[test]
+    fn full_json_matches_cli() {
+        let ctx = ctx();
         // (input, limit, expected jsown:to-json output)
         let cases: &[(&str, usize, &str)] = &[
             // single word split, one alternative.
@@ -154,10 +152,8 @@ mod tests {
             ("三人", 1, r#"[[[[["sannin",{"reading":"三人 【さんにん】","text":"三人","kana":"さんにん","score":325,"seq":1301000,"gloss":[{"pos":"[n]","gloss":"three people"}],"conj":[]},[]]],325]]]"#),
         ];
         for (input, limit, expected) in cases {
-            let result = romanize_star_(&ctx, input, method(), Some(*limit), |_, _| ())
-                .await
-                .unwrap();
-            let json = romanize_star_to_json(&ctx, &result).await.unwrap();
+            let result = romanize_star_(&ctx, input, method(), Some(*limit), |_, _| ()).unwrap();
+            let json = romanize_star_to_json(&ctx, &result).unwrap();
             assert_eq!(serde_json::to_string(&json).unwrap(), *expected, "input={input}");
         }
     }
