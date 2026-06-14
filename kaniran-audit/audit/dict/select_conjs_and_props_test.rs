@@ -148,7 +148,7 @@ fn captured_fps(v: &Value) -> Result<Vec<String>, String> {
     Ok(fps)
 }
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.len() != 3 {
         return Err(format!("expected 3 args, got {}", row.args.len()));
     }
@@ -166,7 +166,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     };
 
     let actual = select_conjs_and_props(ctx, seq, conj_ids.as_ref(), text)
-        .await
+        
         .map_err(|e| e.to_string())?;
     let actual_fps = rust_fps(&actual);
 
@@ -179,7 +179,6 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     }
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

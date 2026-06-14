@@ -23,7 +23,7 @@ use common::{parse_captured_word, CapturedRow};
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:PAIR-WORDS-BY-CONJ";
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     let mut word_groups: Vec<Vec<KaniWordDispatchEnum>> = Vec::with_capacity(row.args.len());
     for (g_idx, group_val) in row.args.iter().enumerate() {
         let group = parse_group(group_val)
@@ -32,7 +32,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     }
 
     let actual = pair_words_by_conj(ctx, &word_groups)
-        .await
+        
         .map_err(|e| format!("pair_words_by_conj: {}", e))?;
 
     let expected_value = unwrap_result(&row.result)?;
@@ -132,7 +132,6 @@ fn canonical_fingerprints(
     fps
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

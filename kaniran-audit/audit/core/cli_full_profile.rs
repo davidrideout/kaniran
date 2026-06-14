@@ -76,16 +76,16 @@ struct PhaseSplit {
 
 /// Mirror of `cli_full_test::full_json` with per-phase timers; the
 /// produced JSON is returned so the optimizer can't drop the work.
-async fn full_json(
+fn full_json(
     ctx: &KaniranContext,
     text: &str,
     split: &mut PhaseSplit,
-) -> Result<Value, sqlx::Error> {
+) -> Result<Value, kaniran_core::conn::KaniDbError> {
     let method = KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(
         hepburn_traditional(),
     ));
     let romanize_start = Instant::now();
-    let segments = romanize_star_(ctx, text, method, Some(5), |_, _| ()).await?;
+    let segments = romanize_star_(ctx, text, method, Some(5), |_, _| ())?;
     split.romanize += romanize_start.elapsed();
 
     let gloss_start = Instant::now();
@@ -98,7 +98,7 @@ async fn full_json(
                 for (words, score) in alternatives {
                     let mut word_jsons = Vec::with_capacity(words.len());
                     for (romaji, word_info, _prop) in words {
-                        let gloss = word_info_gloss_json(ctx, word_info, false).await?;
+                        let gloss = word_info_gloss_json(ctx, word_info, false)?;
                         // Move `gloss` instead of re-serializing it through
                         // json!'s to_value (mirrors cli_full_test — keep in sync).
                         word_jsons.push(Value::Array(vec![
@@ -226,8 +226,7 @@ fn print_top_symbols(report: &pprof::Report, top_n: usize) {
     }
 }
 
-#[tokio::main(flavor = "current_thread")]
-async fn main() {
+fn main() {
     let args = Args::parse();
 
     let load_start = Instant::now();
@@ -239,7 +238,7 @@ async fn main() {
     );
 
     let ctx_start = Instant::now();
-    let ctx = common::setup_ctx().await;
+    let ctx = common::setup_ctx();
     eprintln!("ctx ready in {:.1}s", ctx_start.elapsed().as_secs_f64());
 
     #[cfg(not(feature = "dhat-heap"))]
@@ -260,7 +259,7 @@ async fn main() {
     let mut errors: usize = 0;
     let total = sentences.len();
     for (idx, sentence) in sentences.iter().enumerate() {
-        match full_json(&ctx, sentence, &mut split).await {
+        match full_json(&ctx, sentence, &mut split) {
             Ok(value) => {
                 std::hint::black_box(&value);
             }

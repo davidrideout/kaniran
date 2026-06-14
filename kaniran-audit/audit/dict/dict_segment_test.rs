@@ -21,7 +21,7 @@ use kaniran_core::dict::word_info::WordInfo;
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:DICT-SEGMENT";
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     // Args: [str, ":LIMIT", limit].
     if row.args.len() != 3 {
         return Err(format!(
@@ -43,7 +43,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
         .ok_or_else(|| format!("arg 2 (limit): not int: {}", row.args[2]))? as usize;
 
     let actual = dict_segment(ctx, str, Some(limit))
-        .await
+        
         .map_err(|err| format!("dict_segment: {}", err))?;
 
     // Result: [[<cons>...]].
@@ -109,7 +109,6 @@ fn compare_path_score_pair(
     Ok(())
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

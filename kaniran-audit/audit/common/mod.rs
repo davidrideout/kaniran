@@ -230,9 +230,8 @@ pub fn parse_path_arg() -> PathBuf {
 
 // --- KaniranContext setup ---------------------------------------------
 
-pub async fn setup_ctx() -> Arc<KaniranContext> {
+pub fn setup_ctx() -> Arc<KaniranContext> {
     KaniranContext::from_env()
-        .await
         .expect("KaniranContext::from_env failed (DATABASE_URL or kaniran.toml not configured?)")
 }
 
@@ -372,19 +371,17 @@ fn async_concurrency() -> usize {
         .unwrap_or(50)
 }
 
-pub async fn run_async<F>(expected_fqn: &str, audit_one: F) -> !
+pub fn run_async<F>(expected_fqn: &str, audit_one: F) -> !
 where
-    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
+    F: Fn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
 {
-    use futures::stream::StreamExt;
-
     let path = parse_path_arg();
     let file = load_parquet(&path);
     let skipped = file.skipped;
     let groups = group_by_args(file.rows);
     let total = groups.len();
 
-    let ctx = setup_ctx().await;
+    let ctx = setup_ctx();
     let ctx_ref: &KaniranContext = &ctx;
     let audit_one = &audit_one;
 
@@ -394,14 +391,9 @@ where
     let mut progress = Progress::new(expected_fqn, total);
     let mut done: usize = 0;
 
-    // The rkyv path is pure CPU — its awaits resolve immediately, so
-    // buffer_unordered's single-task concurrency degenerates to one
-    // core. Fan the groups across worker THREADS instead, each driving
-    // its own current-thread runtime (futures never cross threads, so
-    // no Send bound on F's futures; scoped threads keep the borrows).
-    // The Postgres path stays on the in-task stream: its pool's
-    // connections belong to the main runtime and the awaits are real
-    // network waits, which one thread overlaps fine.
+    // The rkyv path is pure CPU. Fan the groups across worker THREADS so
+    // the audit uses every core; scoped threads keep the borrows. The
+    // Postgres path runs the same groups sequentially on this thread.
     let rkyv_parallel = ctx_ref.is_rkyv();
     if rkyv_parallel {
         let work: std::sync::Mutex<std::vec::IntoIter<(usize, Vec<CapturedRow>)>> =
@@ -413,33 +405,27 @@ where
                 let sender = sender.clone();
                 let work = &work;
                 scope.spawn(move || {
-                    let runtime = tokio::runtime::Builder::new_current_thread()
-                        .enable_all()
-                        .build()
-                        .expect("worker runtime");
-                    runtime.block_on(async {
-                        loop {
-                            let next = work.lock().expect("work queue poisoned").next();
-                            let Some((idx, group)) = next else { break };
-                            let size = group.len();
-                            let mut last_err: Option<String> = None;
-                            let mut group_ok = false;
-                            for row in &group {
-                                match audit_one(ctx_ref, row).await {
-                                    Ok(()) => { group_ok = true; break; }
-                                    Err(err) => { last_err = Some(err); }
-                                }
-                            }
-                            let outcome = if group_ok {
-                                Ok(())
-                            } else {
-                                Err(last_err.unwrap_or_default())
-                            };
-                            if sender.send((idx, size, outcome)).is_err() {
-                                break;
+                    loop {
+                        let next = work.lock().expect("work queue poisoned").next();
+                        let Some((idx, group)) = next else { break };
+                        let size = group.len();
+                        let mut last_err: Option<String> = None;
+                        let mut group_ok = false;
+                        for row in &group {
+                            match audit_one(ctx_ref, row) {
+                                Ok(()) => { group_ok = true; break; }
+                                Err(err) => { last_err = Some(err); }
                             }
                         }
-                    });
+                        let outcome = if group_ok {
+                            Ok(())
+                        } else {
+                            Err(last_err.unwrap_or_default())
+                        };
+                        if sender.send((idx, size, outcome)).is_err() {
+                            break;
+                        }
+                    }
                 });
             }
             drop(sender);
@@ -452,25 +438,17 @@ where
         report_and_exit(expected_fqn, pass, fail, skipped, &first_failures)
     }
 
-    let stream = futures::stream::iter(groups.into_iter().enumerate().map(
-        |(idx, group)| async move {
-            let size = group.len();
-            let mut last_err: Option<String> = None;
-            let mut group_ok = false;
-            for row in &group {
-                match audit_one(ctx_ref, row).await {
-                    Ok(()) => { group_ok = true; break; }
-                    Err(err) => { last_err = Some(err); }
-                }
+    for (idx, group) in groups.into_iter().enumerate() {
+        let size = group.len();
+        let mut last_err: Option<String> = None;
+        let mut group_ok = false;
+        for row in &group {
+            match audit_one(ctx_ref, row) {
+                Ok(()) => { group_ok = true; break; }
+                Err(err) => { last_err = Some(err); }
             }
-            let outcome = if group_ok { Ok(()) } else { Err(last_err.unwrap_or_default()) };
-            (idx, size, outcome)
-        },
-    ))
-    .buffer_unordered(async_concurrency());
-
-    let mut stream = Box::pin(stream);
-    while let Some((idx, size, outcome)) = stream.next().await {
+        }
+        let outcome = if group_ok { Ok(()) } else { Err(last_err.unwrap_or_default()) };
         record_outcome(outcome, idx, size, &mut pass, &mut fail, &mut first_failures);
         done += 1;
         progress.tick(done, pass, fail);
@@ -478,13 +456,9 @@ where
     report_and_exit(expected_fqn, pass, fail, skipped, &first_failures)
 }
 
-/// Replay one batch's rows across scoped worker threads, each driving
-/// its own current-thread runtime — the same rkyv-path fan-out as
-/// [`run_async`]'s. `buffer_unordered` polls every row future from one
-/// task, and a task is the unit the runtime schedules, so when the
-/// awaits all resolve immediately (the rkyv path is pure CPU) the whole
-/// batch runs on one core while the other runtime workers park with
-/// nothing to steal. Worker threads restore the machine. Outcomes are
+/// Replay one batch's rows across scoped worker threads — the same
+/// rkyv-path fan-out as [`run_async`]'s. The audit work is pure CPU, so
+/// spreading rows over worker threads uses every core. Outcomes are
 /// returned sorted by row index so failure reporting is deterministic.
 fn replay_rows_across_threads<'rows, F>(
     ctx_ref: &KaniranContext,
@@ -492,7 +466,7 @@ fn replay_rows_across_threads<'rows, F>(
     rows: &'rows [CapturedRow],
 ) -> Vec<(usize, Result<(), String>)>
 where
-    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
+    F: Fn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
 {
     let work: std::sync::Mutex<std::iter::Enumerate<std::slice::Iter<'rows, CapturedRow>>> =
         std::sync::Mutex::new(rows.iter().enumerate());
@@ -503,21 +477,15 @@ where
             let work = &work;
             let collected = &collected;
             scope.spawn(move || {
-                let runtime = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .expect("worker runtime");
-                runtime.block_on(async {
-                    loop {
-                        let next = work.lock().expect("work queue poisoned").next();
-                        let Some((local_idx, row)) = next else { break };
-                        let outcome = audit_one(ctx_ref, row).await;
-                        collected
-                            .lock()
-                            .expect("outcome sink poisoned")
-                            .push((local_idx, outcome));
-                    }
-                });
+                loop {
+                    let next = work.lock().expect("work queue poisoned").next();
+                    let Some((local_idx, row)) = next else { break };
+                    let outcome = audit_one(ctx_ref, row);
+                    collected
+                        .lock()
+                        .expect("outcome sink poisoned")
+                        .push((local_idx, outcome));
+                }
             });
         }
     });
@@ -536,12 +504,10 @@ where
 /// Each captured row is checked exactly once against the produced
 /// output (no equivalence classes). For nondeterministic captures
 /// (e.g. `GET-SPLIT`), use [`run_async`] instead.
-pub async fn run_async_streaming<F>(expected_fqn: &str, audit_one: F) -> !
+pub fn run_async_streaming<F>(expected_fqn: &str, audit_one: F) -> !
 where
-    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
+    F: Fn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
 {
-    use futures::stream::StreamExt;
-
     let path = parse_path_arg();
     let file = std::fs::File::open(&path)
         .unwrap_or_else(|err| panic!("open {:?}: {}", path, err));
@@ -551,7 +517,7 @@ where
     eprintln!("streaming: {} rows from {:?}", total_rows, path);
     let reader = builder.build().expect("build reader");
 
-    let ctx = setup_ctx().await;
+    let ctx = setup_ctx();
     let ctx_ref: &KaniranContext = &ctx;
     let audit_one = &audit_one;
 
@@ -606,13 +572,10 @@ where
         let outcomes: Vec<(usize, Result<(), String>)> = if rkyv_parallel {
             replay_rows_across_threads(ctx_ref, audit_one, &rows)
         } else {
-            futures::stream::iter(rows.iter().enumerate().map(|(local_idx, row)| async move {
-                let outcome = audit_one(ctx_ref, row).await;
-                (local_idx, outcome)
-            }))
-            .buffer_unordered(async_concurrency())
-            .collect()
-            .await
+            rows.iter()
+                .enumerate()
+                .map(|(local_idx, row)| (local_idx, audit_one(ctx_ref, row)))
+                .collect()
         };
 
         let batch_done_start = done;
@@ -649,17 +612,15 @@ where
 /// streaming loop completes but before the process exits. Used by
 /// [`find_best_path_test`] to assert lite-field coverage of the
 /// corpus once every row has been replayed.
-pub async fn run_async_streaming_with_post_hook<F, H>(
+pub fn run_async_streaming_with_post_hook<F, H>(
     expected_fqn: &str,
     audit_one: F,
     post_hook: H,
 ) -> !
 where
-    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
+    F: Fn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
     H: FnOnce(),
 {
-    use futures::stream::StreamExt;
-
     let path = parse_path_arg();
     let file = std::fs::File::open(&path)
         .unwrap_or_else(|err| panic!("open {:?}: {}", path, err));
@@ -669,7 +630,7 @@ where
     eprintln!("streaming: {} rows from {:?}", total_rows, path);
     let reader = builder.build().expect("build reader");
 
-    let ctx = setup_ctx().await;
+    let ctx = setup_ctx();
     let ctx_ref: &KaniranContext = &ctx;
     let audit_one = &audit_one;
 
@@ -724,13 +685,10 @@ where
         let outcomes: Vec<(usize, Result<(), String>)> = if rkyv_parallel {
             replay_rows_across_threads(ctx_ref, audit_one, &rows)
         } else {
-            futures::stream::iter(rows.iter().enumerate().map(|(local_idx, row)| async move {
-                let outcome = audit_one(ctx_ref, row).await;
-                (local_idx, outcome)
-            }))
-            .buffer_unordered(async_concurrency())
-            .collect()
-            .await
+            rows.iter()
+                .enumerate()
+                .map(|(local_idx, row)| (local_idx, audit_one(ctx_ref, row)))
+                .collect()
         };
 
         let batch_done_start = done;

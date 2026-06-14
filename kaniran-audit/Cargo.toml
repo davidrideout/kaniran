@@ -436,9 +436,10 @@ path = "audit/dict/conj_info_json_star_test.rs"
 name = "select_conjs_and_props_test"
 path = "audit/dict/select_conjs_and_props_test.rs"
 
-[[bin]]
-name = "e2e_load_kanjidic"
-path = "audit/kanji/e2e_load_kanjidic.rs"
+# e2e_load_kanjidic is parked: it drives kaniran_core::kanji::loaders /
+# stats / pool_only_from_url, which live behind the (intentionally
+# unbuilt) `loaders` feature. Re-add this bin when the loaders move to
+# the standalone loader crate.
 
 [[bin]]
 name = "multiset_compare"

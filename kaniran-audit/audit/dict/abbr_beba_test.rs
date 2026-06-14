@@ -23,7 +23,7 @@ use common::{parse_captured_simple_text, parse_captured_word, CapturedRow};
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:ABBR-BEBA";
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.len() != 3 {
         return Err(format!("expected 3 args, got {}", row.args.len()));
     }
@@ -36,7 +36,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     verify_suf_shape(&row.args[2])?;
 
     let actual = abbr_beba(ctx, root, sv, None)
-        .await
+        
         .map_err(|e| format!("abbr_beba: {}", e))?;
 
     let expected = parse_expected(unwrap_result(&row.result)?)?;
@@ -124,7 +124,6 @@ fn canonical_fingerprints(words: &[KaniWordDispatchEnum]) -> Vec<String> {
     fps
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

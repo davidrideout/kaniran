@@ -35,7 +35,7 @@ struct CapturedProxy {
 }
 
 
-async fn audit_one(
+fn audit_one(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -81,7 +81,7 @@ async fn audit_one(
     }
 
     let actual = find_word_as_hiragana(ctx, str_, &exclude, None)
-        .await
+        
         .map_err(|err| format!("find_word_as_hiragana query: {}", err))?;
 
     if row.result.is_empty() {
@@ -208,7 +208,6 @@ fn project_expected(v: &Value) -> Result<Vec<CapturedProxy>, String> {
 }
 
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

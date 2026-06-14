@@ -23,7 +23,7 @@ use common::{captured_class, CapturedKanaText, CapturedKanjiText, CapturedRow};
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:FIND-WORD-WITH-POS";
 
 
-async fn audit_one(
+fn audit_one(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -42,7 +42,7 @@ async fn audit_one(
     }
 
     let actual = find_word_with_pos(ctx, word, &posi)
-        .await
+        
         .map_err(|err| format!("find_word_with_pos query: {}", err))?;
 
     let expected_list = unwrap_result_list(&row.result)?;
@@ -151,7 +151,6 @@ fn captured_kanji_sort_key(a: &CapturedKanjiText, b: &CapturedKanjiText) -> std:
 }
 
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

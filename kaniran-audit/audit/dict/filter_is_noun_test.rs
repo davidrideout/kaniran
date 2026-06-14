@@ -32,7 +32,7 @@ use common::{
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:FILTER-IS-NOUN";
 
-async fn audit_one(_ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(_ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.len() != 1 {
         return Err(format!(
             "expected 1 arg (segment), got {}",
@@ -154,7 +154,6 @@ fn require_field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
         .ok_or_else(|| format!("missing field {} on: {}", key, value))
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

@@ -154,11 +154,10 @@ fn rust_to_json(actual: Vec<(&str, &str, Option<&KanaText>)>) -> Vec<Value> {
         .collect()
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let path = parse_path_arg();
     let file = load_parquet(&path);
-    let ctx = setup_ctx().await;
+    let ctx = setup_ctx();
 
     let mut fail_count: usize = 0;
     for (idx, row) in file.rows.iter().enumerate() {

@@ -21,7 +21,7 @@ use common::{
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:TRUE-KANA";
 
 
-async fn audit_one(
+fn audit_one(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -37,7 +37,7 @@ async fn audit_one(
 
     let ctx2 = ctx.with_disable_hints(disable_hints);
     let actual = true_kana(&ctx2, &obj)
-        .await
+        
         .map_err(|err| format!("true_kana: {} ({})", err, describe_word(&obj)))?;
 
     let result = single_result(&row.result)?;
@@ -64,7 +64,6 @@ async fn audit_one(
 }
 
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

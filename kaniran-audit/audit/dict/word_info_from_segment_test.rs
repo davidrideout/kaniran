@@ -18,7 +18,7 @@ use kaniran_core::dict::word_info::word_info_from_segment;
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:WORD-INFO-FROM-SEGMENT";
 
-async fn audit_one(
+fn audit_one(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -31,14 +31,13 @@ async fn audit_one(
     let mut segment = parse_captured_segment(&row.args[0])?;
 
     let actual = word_info_from_segment(ctx, &mut segment)
-        .await
+        
         .map_err(|err| format!("word_info_from_segment: {}", err))?;
 
     let expected = single_result(&row.result)?;
     compare_captured_word_info(&actual, expected)
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

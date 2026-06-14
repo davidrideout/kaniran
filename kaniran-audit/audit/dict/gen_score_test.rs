@@ -30,7 +30,7 @@ use common::{
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:GEN-SCORE";
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.is_empty() {
         return Err("gen-score args empty".into());
     }
@@ -46,7 +46,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     let (final_, kanji_break) = walk_keywords(&row.args[1..])?;
 
     gen_score(ctx, &mut segment, final_, &kanji_break)
-        .await
+        
         .map_err(|e| format!("gen_score: {}", e))?;
 
     if row.result.len() != 1 {
@@ -544,7 +544,6 @@ fn compare_score_info(actual: &KaniScoreInfo, expected: &KaniScoreInfo) -> Resul
 }
 
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

@@ -27,7 +27,7 @@ use common::{
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:KANJI-BREAK-PENALTY";
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.len() < 2 {
         return Err(format!("kbp args: expected ≥2, got {}", row.args.len()));
     }
@@ -46,7 +46,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
         use_length,
         score_mod.as_ref(),
     )
-    .await
+    
     .map_err(|e| format!("kanji_break_penalty: {}", e))?;
 
     if row.result.len() != 1 {
@@ -203,7 +203,6 @@ fn parse_info_plist(v: &Value) -> Result<KaniSegmentInfo, String> {
     })
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

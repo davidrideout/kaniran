@@ -30,11 +30,11 @@ const EXPECTED_FQN: &str = "CL-USER::CLI-FULL";
 /// default (traditional-hepburn) the capture ran under; `wordprop-fn` is
 /// `(constantly nil)` upstream, and jsown renders the resulting nil `prop`
 /// as `[]`.
-async fn full_json(ctx: &KaniranContext, text: &str) -> Result<Value, sqlx::Error> {
+fn full_json(ctx: &KaniranContext, text: &str) -> Result<Value, kaniran_core::conn::KaniDbError> {
     let method = KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(
         hepburn_traditional(),
     ));
-    let segments = romanize_star_(ctx, text, method, Some(5), |_, _| ()).await?;
+    let segments = romanize_star_(ctx, text, method, Some(5), |_, _| ())?;
 
     let mut top = Vec::with_capacity(segments.len());
     for segment in &segments {
@@ -45,7 +45,7 @@ async fn full_json(ctx: &KaniranContext, text: &str) -> Result<Value, sqlx::Erro
                 for (words, score) in alternatives {
                     let mut word_jsons = Vec::with_capacity(words.len());
                     for (romaji, word_info, _prop) in words {
-                        let gloss = word_info_gloss_json(ctx, word_info, false).await?;
+                        let gloss = word_info_gloss_json(ctx, word_info, false)?;
                         word_jsons.push(json!([romaji, gloss, []]));
                     }
                     alts.push(json!([word_jsons, score]));
@@ -138,7 +138,7 @@ fn normalize(v: &Value) -> Value {
     }
 }
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     let text = row
         .args
         .first()
@@ -150,7 +150,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     let expected: Value =
         serde_json::from_str(expected_str).map_err(|e| format!("expected JSON parse failed: {e}"))?;
 
-    let actual = full_json(ctx, text).await.map_err(|e| e.to_string())?;
+    let actual = full_json(ctx, text).map_err(|e| e.to_string())?;
 
     let actual = normalize(&actual);
     let expected = normalize(&expected);
@@ -162,7 +162,6 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     }
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

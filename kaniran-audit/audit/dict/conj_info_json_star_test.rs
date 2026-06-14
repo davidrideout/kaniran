@@ -119,7 +119,7 @@ fn first_diff(rust: &Value, lisp: &Value, path: &str) -> Option<String> {
     }
 }
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     let seq = row
         .args
         .first()
@@ -140,7 +140,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     };
 
     let actual = conj_info_json_star_(ctx, seq, conjugations.as_ref(), text, has_gloss)
-        .await
+        
         .map_err(|e| e.to_string())?;
     let actual = normalize(&Value::Array(actual));
 
@@ -159,7 +159,6 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     }
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

@@ -24,7 +24,7 @@ use kaniran_core::dict::path::PathElement;
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:FILL-SEGMENT-PATH";
 
-async fn audit_one(
+fn audit_one(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -39,7 +39,7 @@ async fn audit_one(
         .ok_or_else(|| format!("arg 0 not string: {}", row.args[0]))?;
     let path_arr = match &row.args[1] {
         Value::Array(arr) => arr,
-        Value::Null => return run_with_empty_path(ctx, str, &row.result).await,
+        Value::Null => return run_with_empty_path(ctx, str, &row.result),
         other => return Err(format!("arg 1: expected array / null, got {}", other)),
     };
     let mut path: Vec<PathElement> = path_arr
@@ -48,19 +48,19 @@ async fn audit_one(
         .collect::<Result<_, _>>()?;
 
     let actual = fill_segment_path(ctx, str, &mut path)
-        .await
+        
         .map_err(|err| format!("fill_segment_path: {}", err))?;
 
     compare_word_info_list(&actual, &row.result)
 }
 
-async fn run_with_empty_path(
+fn run_with_empty_path(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     str: &str,
     result: &[Value],
 ) -> Result<(), String> {
     let actual = fill_segment_path(ctx, str, &mut [])
-        .await
+        
         .map_err(|err| format!("fill_segment_path: {}", err))?;
     compare_word_info_list(&actual, result)
 }
@@ -89,10 +89,9 @@ fn compare_word_info_list(
     Ok(())
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     // Stream rows batch-by-batch — fill_segment_path's bulk corpus
     // (~2.6M rows, 1.2GB) exceeds memory when buffered. Each captured
     // (str, path) is deterministic, so no dedup-by-args pass is needed.
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

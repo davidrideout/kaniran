@@ -13,7 +13,6 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-use std::pin::Pin;
 use std::sync::Arc;
 
 use serde_json::Value;
@@ -83,7 +82,7 @@ enum CapturedRows {
     Proxy(Vec<CapturedProxy>),
 }
 
-async fn audit_one(
+fn audit_one(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -112,18 +111,15 @@ async fn audit_one(
     let posi_for_closure = Arc::clone(&posi_arc);
     let finder: OrAsHiraganaFinder<'_> = Arc::new(move |w: String| {
         let posi_inner = Arc::clone(&posi_for_closure);
-        Box::pin(async move {
-            let refs: Vec<&str> = posi_inner.iter().map(|s| s.as_str()).collect();
-            let rows = find_word_with_pos(ctx, &w, &refs).await?;
-            Ok(match rows {
-                WordWithPosRows::Kana(v) => FindWordRows::Kana(v),
-                WordWithPosRows::Kanji(v) => FindWordRows::Kanji(v),
-            })
-        }) as Pin<Box<dyn std::future::Future<Output = _> + Send>>
+        let refs: Vec<&str> = posi_inner.iter().map(|s| s.as_str()).collect();
+        let rows = find_word_with_pos(ctx, &w, &refs)?;
+        Ok(match rows {
+            WordWithPosRows::Kana(v) => FindWordRows::Kana(v),
+            WordWithPosRows::Kanji(v) => FindWordRows::Kanji(v),
+        })
     });
 
     let actual = or_as_hiragana(ctx, &word, finder)
-        .await
         .map_err(|err| format!("or_as_hiragana query: {}", err))?;
 
     if row.result.is_empty() {
@@ -352,7 +348,6 @@ fn captured_source_sort_id(s: &CapturedSource) -> (i32, String) {
     }
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

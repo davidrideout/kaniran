@@ -35,7 +35,7 @@ use common::{
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:GET-SEG-SPLITS";
 
-async fn audit_one(
+fn audit_one(
     _ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -561,10 +561,9 @@ fn require_field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
         .ok_or_else(|| format!("missing field {} on: {}", key, value))
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     // Stream rows batch-by-batch — chunk_b's get_seg_splits parquet is
     // ~15GB (the dedup parquet on .103 at 2026-05-19). Buffering the
     // whole file would OOM (`feedback_audit_must_stream`).
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

@@ -30,7 +30,7 @@ use common::{
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:JOIN-SUBSTRING-WORDS";
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.is_empty() {
         return Err("join-substring-words args empty".into());
     }
@@ -39,7 +39,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
         .ok_or_else(|| format!("arg 0 (str) not string: {}", row.args[0]))?;
 
     let mut actual = join_substring_words(ctx, str)
-        .await
+        
         .map_err(|err| format!("join_substring_words query: {}", err))?;
     for sl in actual.iter_mut() {
         for segment in sl.segments.iter_mut() {
@@ -357,7 +357,6 @@ fn strip_ids_counter(counter: &mut Counter) {
     }
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

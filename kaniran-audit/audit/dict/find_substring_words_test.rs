@@ -68,7 +68,7 @@ fn fp_from_kanji(k: &KanjiText) -> RowFp {
     }
 }
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     // --- args: [str, ":STICKY", null | [positions]] ---
     if row.args.len() != 3 {
         return Err(format!(
@@ -86,7 +86,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     let sticky = parse_sticky(&row.args[2])?;
 
     let h = find_substring_words(ctx, str, &sticky)
-        .await
+        
         .map_err(|err| format!("find_substring_words query: {}", err))?;
 
     // --- actual: hash -> map<key, ordered RowFp vec> ---
@@ -264,7 +264,6 @@ fn parse_proj_bool(v: Option<&Value>, key: &str) -> Result<bool, String> {
     }
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

@@ -21,7 +21,7 @@ use common::{captured_class, parse_captured_word, single_result, CapturedRow};
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:GET-KANJI";
 
 
-async fn audit_one(
+fn audit_one(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -36,7 +36,7 @@ async fn audit_one(
 
     let word = parse_captured_word(&row.args[0])?;
     let actual = get_kanji(ctx, &word)
-        .await
+        
         .map_err(|err| format!("get_kanji: {}", err))?;
 
     let result = single_result(&row.result)?;
@@ -55,7 +55,6 @@ async fn audit_one(
 }
 
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }
