@@ -545,6 +545,70 @@ pub fn segfilter_dekiru(
     )
 }
 
+/// Conjugation type the sukiyoki filter keys on (`+conj-adjective-literary+`,
+/// `dict-errata.lisp:1240`); also used as a gate trigger by
+/// [`seg_right_may_fire`].
+const SUKIYOKI_CONJ_TYPE: i32 = 54;
+
+/// Sorted union of every segfilter's right-side trigger seq, built once
+/// from the per-filter constants themselves — not a re-typed literal
+/// list — so the gate can't drift from the seqs the filters actually
+/// test. Each constant is the `filter_right` seq set of the segfilter
+/// named alongside it; the four non-seq filters (sukiyoki conj-type,
+/// roku/sae text prefix, badend compound-end) are handled directly in
+/// [`seg_right_may_fire`]. Add a filter's constant here when adding a
+/// seq-based segfilter to [`SEGFILTER_LIST`].
+fn segfilter_trigger_seqs() -> &'static [i32] {
+    use std::sync::OnceLock;
+    static SEQS: OnceLock<Vec<i32>> = OnceLock::new();
+    SEQS.get_or_init(|| {
+        let mut seqs: Vec<i32> = Vec::new();
+        for set in [
+            MONONI_SEQS,
+            HONORIFICS,
+            KURU_SEQS,
+            SURU_SETE_SEQS,
+            TOTTE_SEQS,
+            OMOU_IU_SEQS,
+            HAYAMETE_SEQS,
+            JANAI_SEQS,
+            KARASU_SEQS,
+            N_SEQS,
+            IRU_SEQS,
+            AUX_VERBS,
+        ] {
+            seqs.extend_from_slice(set);
+        }
+        seqs.sort_unstable();
+        seqs.dedup();
+        seqs
+    })
+}
+
+/// True when some segment of `seg_right` could satisfy at least one
+/// segfilter's right-side test. When false, every filter short-circuits
+/// to `None` (the `!any(filter_right)` arm of
+/// [`def_segfilter_must_follow_body`]), so [`apply_segfilters`] can
+/// return the identity split without running the loop. Conservative: the
+/// conj-type arm over-approximates sukiyoki (which also wants a 好き
+/// suffix), and the text arm covers roku (く) and sae (え) by first char.
+fn seg_right_may_fire(seg_right: &KaniLiteSegmentList) -> bool {
+    let triggers = segfilter_trigger_seqs();
+    seg_right.segments.iter().any(|segment| {
+        segment
+            .seq_set
+            .iter()
+            .any(|seq| triggers.binary_search(seq).is_ok())
+            || segment.conj_types.contains(&SUKIYOKI_CONJ_TYPE)
+            || segment.text.starts_with(E_CHAR)
+            || segment.text.starts_with(KU_CHAR)
+            || segment
+                .compound_end_text
+                .as_deref()
+                .is_some_and(|end| BADEND_TEXTS.contains(&end))
+    })
+}
+
 /// Port of `ichiran/dict:apply-segfilters` (`dict-grammar.lisp:1170`).
 ///
 /// Threads `(seg-left, seg-right)` through each filter in
@@ -557,6 +621,13 @@ pub fn apply_segfilters(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
 ) -> SegfilterSplits {
+    // Fast path: if no segment of seg_right can satisfy any segfilter's
+    // right-side test, every filter returns None and the pair passes
+    // through unchanged. Decide that in one scan instead of running all
+    // 16 filters. Byte-identical to the loop below (see seg_right_may_fire).
+    if !seg_right_may_fire(seg_right) {
+        return SmallVec::from_buf([(seg_left.cloned(), Arc::clone(seg_right))]);
+    }
     // dict-grammar.lisp:1171 (`with splits = (list (list seg-left seg-right))`)
     let mut splits: SegfilterSplits =
         SmallVec::from_buf([(seg_left.cloned(), Arc::clone(seg_right))]);

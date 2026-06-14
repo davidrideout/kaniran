@@ -223,8 +223,16 @@ pub fn join_substring_words_star_(
     ctx: &KaniranContext,
     str: &str,
 ) -> Result<(Vec<(usize, usize, Vec<Segment>)>, Vec<usize>), crate::conn::KaniDbError> {
-    let chars: Vec<char> = str.chars().collect();
-    let length = chars.len();
+    // Byte offset of every character boundary (plus the final length),
+    // so the inner loop slices `str` directly instead of rebuilding an
+    // owned String per (start, end) pair — every consumer of the slice
+    // below takes `&str`.
+    let byte_offsets: Vec<usize> = str
+        .char_indices()
+        .map(|(byte_index, _)| byte_index)
+        .chain(std::iter::once(str.len()))
+        .collect();
+    let length = byte_offsets.len() - 1;
 
     let sticky = find_sticky_positions(str);
     let substring_hash = Arc::new(find_substring_words(ctx, str, &sticky)?);
@@ -270,8 +278,9 @@ pub fn join_substring_words_star_(
             if sticky.contains(&end) {
                 continue;
             }
-            // (subseq str start end)
-            let part: String = chars[start..end].iter().collect();
+            // (subseq str start end) — a borrowed slice, not an owned
+            // String; every consumer below takes `&str`.
+            let part: &str = &str[byte_offsets[start]..byte_offsets[end]];
             // :as-hiragana (and katakana-group-end (= end katakana-group-end))
             let as_hiragana = katakana_group_end == Some(end);
             // :counter (and number-group-end (<= number-group-end end)
@@ -293,7 +302,7 @@ pub fn join_substring_words_star_(
                 .with_suffix_map_temp(Some(Arc::clone(&suffix_map)))
                 .with_suffix_next_end(Some(end as i32))
                 .with_substring_hash(Arc::clone(&substring_hash));
-            let words = find_word_full(&ctx2, &part, as_hiragana, counter)?;
+            let words = find_word_full(&ctx2, part, as_hiragana, counter)?;
             // (mapcar (lambda (word) (make-segment :start start :end end :word word)) ...)
             let segments: Vec<Segment> = words
                 .into_iter()
@@ -311,13 +320,13 @@ pub fn join_substring_words_star_(
             if !segments.is_empty() {
                 // (when (or (= start 0) (find start ends)) (setf kanji-break (nconc (cond ...) kanji-break)))
                 if start == 0 || ends.contains(&start) {
-                    let new_positions: Vec<usize> = if FORCE_KANJI_BREAK.contains(&part.as_str()) {
+                    let new_positions: Vec<usize> = if FORCE_KANJI_BREAK.contains(&part) {
                         // (alexandria:iota (1- (length part)) :start (1+ start))
                         ((start + 1)..end).collect()
-                    } else if NO_KANJI_BREAK.contains(&part.as_str()) {
+                    } else if NO_KANJI_BREAK.contains(&part) {
                         Vec::new()
                     } else {
-                        sequential_kanji_positions(&part, start)
+                        sequential_kanji_positions(part, start)
                     };
                     // (nconc new-positions kanji-break)
                     let mut combined = new_positions;
