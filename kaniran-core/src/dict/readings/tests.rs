@@ -271,10 +271,13 @@ mod find_substring_words {
     fn bucket_is_reverse_of_fetch_order() {
         let ctx = ctx_from_env();
         let keys = vec!["行って".to_string()];
-        let fetch: Vec<i32> = sqlx::query_scalar("SELECT seq FROM kanji_text WHERE text = ANY($1)")
-            .bind(&keys)
-            .fetch_all(&ctx.pool)
-            
+        let fetch: Vec<i32> = tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_scalar("SELECT seq FROM kanji_text WHERE text = ANY($1)")
+                    .bind(&keys)
+                    .fetch_all(ctx.pool.as_ref().expect("postgres pool")),
+            )
             .unwrap();
         assert!(fetch.len() > 1, "test needs a multi-row bucket");
         let h = find_substring_words(&ctx, "行って", &[]).unwrap();

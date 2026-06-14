@@ -11,10 +11,13 @@ fn to_json_ctx() -> Arc<KaniranContext> {
 
 #[cfg(feature = "postgres")]
 fn kanji(to_json_ctx: &KaniranContext, text: &str) -> Kanji {
-    sqlx::query_as::<_, Kanji>("SELECT * FROM kanji WHERE text = $1")
-        .bind(text)
-        .fetch_one(&to_json_ctx.pool)
-        
+    tokio::runtime::Runtime::new()
+        .expect("tokio runtime")
+        .block_on(
+            sqlx::query_as::<_, Kanji>("SELECT * FROM kanji WHERE text = $1")
+                .bind(text)
+                .fetch_one(to_json_ctx.pool.as_ref().expect("postgres pool")),
+        )
         .expect("kanji row exists")
 }
 
@@ -62,10 +65,13 @@ fn reading_info_json_ctx() -> Arc<KaniranContext> {
 
 #[cfg(feature = "postgres")]
 fn reading(reading_info_json_ctx: &KaniranContext, id: i32) -> Reading {
-    sqlx::query_as::<_, Reading>("SELECT * FROM reading WHERE id = $1")
-        .bind(id)
-        .fetch_one(&reading_info_json_ctx.pool)
-        
+    tokio::runtime::Runtime::new()
+        .expect("tokio runtime")
+        .block_on(
+            sqlx::query_as::<_, Reading>("SELECT * FROM reading WHERE id = $1")
+                .bind(id)
+                .fetch_one(reading_info_json_ctx.pool.as_ref().expect("postgres pool")),
+        )
         .expect("reading row exists")
 }
 

@@ -459,10 +459,13 @@ mod match_unique {
 
     #[cfg(feature = "postgres")]
     fn fetch_kana_rows_for_seq(ctx: &KaniranContext, seq_val: i32) -> Vec<KanaText> {
-        sqlx::query_as::<_, KanaText>("SELECT * FROM kana_text WHERE seq = $1")
-            .bind(seq_val)
-            .fetch_all(&ctx.pool)
-            
+        tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_as::<_, KanaText>("SELECT * FROM kana_text WHERE seq = $1")
+                    .bind(seq_val)
+                    .fetch_all(ctx.pool.as_ref().expect("postgres pool")),
+            )
             .expect("query kana_text")
     }
 

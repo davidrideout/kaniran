@@ -50,6 +50,7 @@ pub struct KaniSnapshotMeta {
 ///     nokanji: false, best_kana: Some("よぞら"),
 /// }
 /// ```
+#[cfg_attr(feature = "postgres", derive(sqlx::FromRow))]
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct KaniKanjiTextRow {
     pub id: i32,
@@ -74,6 +75,7 @@ pub struct KaniKanjiTextRow {
 ///     nokanji: false, best_kanji: Some("臥児狼徳"),
 /// }
 /// ```
+#[cfg_attr(feature = "postgres", derive(sqlx::FromRow))]
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct KaniKanaTextRow {
     pub id: i32,

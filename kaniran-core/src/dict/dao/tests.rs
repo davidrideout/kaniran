@@ -58,7 +58,7 @@ mod recalc_entry_stats {
             let (n_kanji, n_kana): (i32, i32) =
                 sqlx::query_as("SELECT n_kanji, n_kana FROM entry WHERE seq = $1")
                     .bind(seq)
-                    .fetch_one(&ctx.pool)
+                    .fetch_one(ctx.pool.as_ref().expect("postgres pool"))
                     
                     .expect("entry row");
             assert_eq!(n_kanji, *exp_kanji, "seq={seq} n_kanji");
@@ -67,13 +67,13 @@ mod recalc_entry_stats {
             let actual_kanji: i64 =
                 sqlx::query_scalar("SELECT COUNT(id) FROM kanji_text WHERE seq = $1")
                     .bind(seq)
-                    .fetch_one(&ctx.pool)
+                    .fetch_one(ctx.pool.as_ref().expect("postgres pool"))
                     
                     .expect("kanji count");
             let actual_kana: i64 =
                 sqlx::query_scalar("SELECT COUNT(id) FROM kana_text WHERE seq = $1")
                     .bind(seq)
-                    .fetch_one(&ctx.pool)
+                    .fetch_one(ctx.pool.as_ref().expect("postgres pool"))
                     
                     .expect("kana count");
             assert_eq!(
@@ -102,7 +102,7 @@ mod recalc_entry_stats_all {
         let affected = recalc_entry_stats_all(&ctx).expect("recalc-all");
 
         let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM entry")
-            .fetch_one(&ctx.pool)
+            .fetch_one(ctx.pool.as_ref().expect("postgres pool"))
             
             .expect("count entries");
         assert_eq!(affected, total as u64, "affected != total entry rows");
@@ -122,7 +122,7 @@ mod recalc_entry_stats_all {
             let (n_kanji, n_kana): (i32, i32) =
                 sqlx::query_as("SELECT n_kanji, n_kana FROM entry WHERE seq = $1")
                     .bind(seq)
-                    .fetch_one(&ctx.pool)
+                    .fetch_one(ctx.pool.as_ref().expect("postgres pool"))
                     
                     .expect("entry row");
             assert_eq!(n_kanji, *exp_kanji, "seq={seq} n_kanji");
@@ -131,13 +131,13 @@ mod recalc_entry_stats_all {
             let actual_kanji: i64 =
                 sqlx::query_scalar("SELECT COUNT(id) FROM kanji_text WHERE seq = $1")
                     .bind(seq)
-                    .fetch_one(&ctx.pool)
+                    .fetch_one(ctx.pool.as_ref().expect("postgres pool"))
                     
                     .expect("kanji count");
             let actual_kana: i64 =
                 sqlx::query_scalar("SELECT COUNT(id) FROM kana_text WHERE seq = $1")
                     .bind(seq)
-                    .fetch_one(&ctx.pool)
+                    .fetch_one(ctx.pool.as_ref().expect("postgres pool"))
                     
                     .expect("kana count");
             assert_eq!(
@@ -163,10 +163,13 @@ mod entry_digest {
 
     #[cfg(feature = "postgres")]
     fn load_entry(ctx: &KaniranContext, seq: i32) -> Entry {
-        sqlx::query_as::<_, Entry>("SELECT * FROM entry WHERE seq = $1")
-            .bind(seq)
-            .fetch_one(&ctx.pool)
-            
+        tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_as::<_, Entry>("SELECT * FROM entry WHERE seq = $1")
+                    .bind(seq)
+                    .fetch_one(ctx.pool.as_ref().expect("postgres pool")),
+            )
             .unwrap()
     }
 

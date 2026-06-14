@@ -24,14 +24,17 @@ mod calc_score {
     /// (no upstream ORDER BY) would make a test flaky.
     #[cfg(feature = "postgres")]
     fn kana_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
-        let rows: Vec<crate::dict::dao::KanaText> = sqlx::query_as(
-            "SELECT * FROM kana_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
-        )
-        .bind(seq)
-        .bind(text)
-        .fetch_all(&ctx.pool)
-        
-        .expect("query");
+        let rows: Vec<crate::dict::dao::KanaText> = tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_as(
+                    "SELECT * FROM kana_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
+                )
+                .bind(seq)
+                .bind(text)
+                .fetch_all(ctx.pool.as_ref().expect("postgres pool")),
+            )
+            .expect("query");
         KaniWordDispatchEnum::Kana(rows.into_iter().next().expect("row exists"))
     }
 

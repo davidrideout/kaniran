@@ -44,6 +44,10 @@ pub enum Error {
 /// rebind was the segmenter's dominant multi-thread serialization point
 /// (contended refcount atomics on the shared caches).
 pub struct KaniranShared {
+    #[cfg(feature = "postgres")]
+    /// Postgres connection pool when the store is the Postgres backend
+    /// (`None` for the rkyv snapshot). Used by the build-time loaders.
+    pub pool: Option<sqlx::PgPool>,
     /// Dictionary lookup backend (the memory-mapped rkyv snapshot). All
     /// runtime lookup-serving queries go through here.
     pub store: KaniStore,
@@ -198,7 +202,11 @@ impl KaniranContext {
     /// populator before returning. Only `memory://<path>` URLs are
     /// supported (feature `rkyv` required).
     pub fn from_url(url: &str) -> Result<Arc<Self>, Error> {
-        let store = build_backend(url)?;
+        let BuiltBackend {
+            store,
+            #[cfg(feature = "postgres")]
+            pool,
+        } = build_backend(url)?;
         let no_conj_data = Arc::new(build_no_conj_data(&store)?);
         let is_arch = Arc::new(build_is_arch(&store)?);
         let reading_cache = Arc::new(new_reading_cache());
@@ -209,6 +217,8 @@ impl KaniranContext {
         // then assemble the final shared state. Startup only.
         let counter_cache = {
             let partial = Self::from_shared(KaniranShared {
+                #[cfg(feature = "postgres")]
+                pool: pool.clone(),
                 store: store.clone(),
                 no_conj_data: no_conj_data.clone(),
                 is_arch: is_arch.clone(),
@@ -222,6 +232,8 @@ impl KaniranContext {
         // build_suffix_caches reads the now-populated counter cache.
         let (suffix_cache, suffix_class) = {
             let partial = Self::from_shared(KaniranShared {
+                #[cfg(feature = "postgres")]
+                pool: pool.clone(),
                 store: store.clone(),
                 no_conj_data: no_conj_data.clone(),
                 is_arch: is_arch.clone(),
@@ -233,6 +245,8 @@ impl KaniranContext {
             build_suffix_caches(&partial)?
         };
         Ok(Arc::new(Self::from_shared(KaniranShared {
+            #[cfg(feature = "postgres")]
+            pool: pool.clone(),
             store,
             no_conj_data,
             is_arch,
@@ -263,10 +277,17 @@ impl KaniranContext {
     }
 }
 
-/// Load the backend for [`KaniranContext::from_url`]. Only
-/// `memory://<path>` (rkyv snapshot) URLs are supported after the
-/// Postgres backend removal.
-fn build_backend(url: &str) -> Result<KaniStore, Error> {
+/// Backend plus the optional Postgres pool produced alongside it.
+struct BuiltBackend {
+    store: KaniStore,
+    #[cfg(feature = "postgres")]
+    pool: Option<sqlx::PgPool>,
+}
+
+/// Load the backend for [`KaniranContext::from_url`]. Supports
+/// `memory://<path>` (rkyv snapshot) and, under the `postgres` feature,
+/// `postgres://` / `postgresql://` connection URLs.
+fn build_backend(url: &str) -> Result<BuiltBackend, Error> {
     if let Some(path) = url.strip_prefix("memory://") {
         #[cfg(not(feature = "rkyv"))]
         {
@@ -281,8 +302,35 @@ fn build_backend(url: &str) -> Result<KaniStore, Error> {
                 std::path::Path::new(path),
             )
             .map_err(Error::Snapshot)?;
-            return Ok(KaniStore::Rkyv(backend));
+            return Ok(BuiltBackend {
+                store: KaniStore::Rkyv(backend),
+                #[cfg(feature = "postgres")]
+                pool: None,
+            });
         }
+    }
+    #[cfg(feature = "postgres")]
+    if url.starts_with("postgres://") || url.starts_with("postgresql://") {
+        let rt = std::sync::Arc::new(
+            tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .map_err(|e| Error::Snapshot(format!("tokio runtime: {e}")))?,
+        );
+        let pool = rt
+            .block_on(
+                sqlx::postgres::PgPoolOptions::new()
+                    .max_connections(25)
+                    .acquire_timeout(std::time::Duration::from_secs(10))
+                    .connect(url),
+            )
+            .map_err(|e| Error::Snapshot(format!("postgres connect: {e}")))?;
+        let backend =
+            crate::conn::kani_postgres_backend::KaniPostgresBackend::new(pool.clone(), rt);
+        return Ok(BuiltBackend {
+            store: KaniStore::Postgres(backend),
+            pool: Some(pool),
+        });
     }
     Err(Error::Snapshot(format!(
         "only memory://<archive> URLs are supported after the Postgres backend removal; got `{url}`"

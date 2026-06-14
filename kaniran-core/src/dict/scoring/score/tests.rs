@@ -195,12 +195,15 @@ mod kanji_break_penalty {
         use crate::dict::kani_word::KaniWordDispatchEnum;
         use crate::dict::scoring::calc_score::calc_score;
         let ctx = KaniranContext::from_env().expect("ctx");
-        let rows: Vec<crate::dict::dao::KanjiText> = sqlx::query_as(
-            "SELECT * FROM kanji_text WHERE seq = 1467640 AND text = '猫' ORDER BY id LIMIT 1",
-        )
-        .fetch_all(&ctx.pool)
-        
-        .expect("猫 1467640 row");
+        let rows: Vec<crate::dict::dao::KanjiText> = tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_as(
+                    "SELECT * FROM kanji_text WHERE seq = 1467640 AND text = '猫' ORDER BY id LIMIT 1",
+                )
+                .fetch_all(ctx.pool.as_ref().expect("postgres pool")),
+            )
+            .expect("猫 1467640 row");
         let w = KaniWordDispatchEnum::Kanji(rows.into_iter().next().unwrap());
         let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).unwrap();
         assert_eq!(score, 19);
@@ -219,12 +222,15 @@ mod kanji_break_penalty {
         use crate::dict::kani_word::KaniWordDispatchEnum;
         use crate::dict::scoring::calc_score::calc_score;
         let ctx = KaniranContext::from_env().expect("ctx");
-        let rows: Vec<crate::dict::dao::KanjiText> = sqlx::query_as(
-            "SELECT * FROM kanji_text WHERE seq = 1169870 AND text = '飲む' ORDER BY id LIMIT 1",
-        )
-        .fetch_all(&ctx.pool)
-        
-        .expect("飲む 1169870 row");
+        let rows: Vec<crate::dict::dao::KanjiText> = tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_as(
+                    "SELECT * FROM kanji_text WHERE seq = 1169870 AND text = '飲む' ORDER BY id LIMIT 1",
+                )
+                .fetch_all(ctx.pool.as_ref().expect("postgres pool")),
+            )
+            .expect("飲む 1169870 row");
         let w = KaniWordDispatchEnum::Kanji(rows.into_iter().next().unwrap());
         let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).unwrap();
         let info = info.unwrap();
@@ -243,12 +249,15 @@ mod kanji_break_penalty {
         use crate::dict::kani_word::KaniWordDispatchEnum;
         use crate::dict::scoring::calc_score::calc_score;
         let ctx = KaniranContext::from_env().expect("ctx");
-        let rows: Vec<crate::dict::dao::KanjiText> = sqlx::query_as(
-            "SELECT * FROM kanji_text WHERE seq = 1277450 AND text = '好き' ORDER BY id LIMIT 1",
-        )
-        .fetch_all(&ctx.pool)
-        
-        .expect("好き 1277450 row");
+        let rows: Vec<crate::dict::dao::KanjiText> = tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_as(
+                    "SELECT * FROM kanji_text WHERE seq = 1277450 AND text = '好き' ORDER BY id LIMIT 1",
+                )
+                .fetch_all(ctx.pool.as_ref().expect("postgres pool")),
+            )
+            .expect("好き 1277450 row");
         let w = KaniWordDispatchEnum::Kanji(rows.into_iter().next().unwrap());
         let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).unwrap();
         let info = info.unwrap();
@@ -428,27 +437,33 @@ mod gen_score {
     /// runs / databases.
     #[cfg(feature = "postgres")]
     fn kana_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
-        let rows: Vec<crate::dict::dao::KanaText> = sqlx::query_as(
-            "SELECT * FROM kana_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
-        )
-        .bind(seq)
-        .bind(text)
-        .fetch_all(&ctx.pool)
-
-        .expect("query");
+        let rows: Vec<crate::dict::dao::KanaText> = tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_as(
+                    "SELECT * FROM kana_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
+                )
+                .bind(seq)
+                .bind(text)
+                .fetch_all(ctx.pool.as_ref().expect("postgres pool")),
+            )
+            .expect("query");
         KaniWordDispatchEnum::Kana(rows.into_iter().next().expect("row exists"))
     }
 
     #[cfg(feature = "postgres")]
     fn kanji_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
-        let rows: Vec<crate::dict::dao::KanjiText> = sqlx::query_as(
-            "SELECT * FROM kanji_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
-        )
-        .bind(seq)
-        .bind(text)
-        .fetch_all(&ctx.pool)
-        
-        .expect("query");
+        let rows: Vec<crate::dict::dao::KanjiText> = tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_as(
+                    "SELECT * FROM kanji_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
+                )
+                .bind(seq)
+                .bind(text)
+                .fetch_all(ctx.pool.as_ref().expect("postgres pool")),
+            )
+            .expect("query");
         KaniWordDispatchEnum::Kanji(rows.into_iter().next().expect("row exists"))
     }
 

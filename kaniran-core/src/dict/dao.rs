@@ -2,6 +2,10 @@ use crate::conn::kani_backend::KaniBackend;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::load::conj_rules::get_conj_description;
 use serde_json::{Map, Value};
+#[cfg(feature = "postgres")]
+use sqlx::postgres::PgRow;
+#[cfg(feature = "postgres")]
+use sqlx::{FromRow, Row};
 
 /// Port of `ichiran/dict:entry` (`dict.lisp:26`).
 ///
@@ -319,6 +323,143 @@ pub struct ConjSourceReading {
     pub conj_id: i32,
     pub text: String,
     pub source_text: String,
+}
+
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for Entry {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Entry {
+            seq: row.try_get("seq")?,
+            root_p: row.try_get("root_p")?,
+            n_kanji: row.try_get("n_kanji")?,
+            n_kana: row.try_get("n_kana")?,
+            primary_nokanji: row.try_get("primary_nokanji")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for KanjiText {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(KanjiText {
+            id: row.try_get("id")?,
+            seq: row.try_get("seq")?,
+            text: row.try_get("text")?,
+            ord: row.try_get("ord")?,
+            common: row.try_get("common")?,
+            common_tags: row.try_get("common_tags")?,
+            conjugate_p: row.try_get("conjugate_p")?,
+            nokanji: row.try_get("nokanji")?,
+            best_kana: row.try_get("best_kana")?,
+            state: SimpleText::default(),
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for KanaText {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(KanaText {
+            id: row.try_get("id")?,
+            seq: row.try_get("seq")?,
+            text: row.try_get("text")?,
+            ord: row.try_get("ord")?,
+            common: row.try_get("common")?,
+            common_tags: row.try_get("common_tags")?,
+            conjugate_p: row.try_get("conjugate_p")?,
+            nokanji: row.try_get("nokanji")?,
+            best_kanji: row.try_get("best_kanji")?,
+            state: SimpleText::default(),
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for Sense {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Sense {
+            id: row.try_get("id")?,
+            seq: row.try_get("seq")?,
+            ord: row.try_get("ord")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for Gloss {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Gloss {
+            id: row.try_get("id")?,
+            sense_id: row.try_get("sense_id")?,
+            text: row.try_get("text")?,
+            ord: row.try_get("ord")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for SenseProp {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(SenseProp {
+            id: row.try_get("id")?,
+            tag: row.try_get("tag")?,
+            sense_id: row.try_get("sense_id")?,
+            text: row.try_get("text")?,
+            ord: row.try_get("ord")?,
+            seq: row.try_get("seq")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for RestrictedReadings {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(RestrictedReadings {
+            id: row.try_get("id")?,
+            seq: row.try_get("seq")?,
+            reading: row.try_get("reading")?,
+            text: row.try_get("text")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for Conjugation {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Conjugation {
+            id: row.try_get("id")?,
+            seq: row.try_get("seq")?,
+            seq_from: row.try_get("from")?,
+            seq_via: row.try_get("via")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for ConjProp {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(ConjProp {
+            id: row.try_get("id")?,
+            conj_id: row.try_get("conj_id")?,
+            conj_type: row.try_get("conj_type")?,
+            pos: row.try_get("pos")?,
+            neg: row.try_get("neg")?,
+            fml: row.try_get("fml")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for ConjSourceReading {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(ConjSourceReading {
+            id: row.try_get("id")?,
+            conj_id: row.try_get("conj_id")?,
+            text: row.try_get("text")?,
+            source_text: row.try_get("source_text")?,
+        })
+    }
 }
 
 

@@ -223,7 +223,7 @@ async fn next_seq_returns_max_plus_one() {
          VALUES (1000000, '', TRUE, 0, 0, FALSE), \
                 (1000042, '', TRUE, 0, 0, FALSE)",
     )
-    .execute(&ctx.pool)
+    .execute(ctx.pool.as_ref().expect("postgres pool"))
     .await
     .unwrap();
     assert_eq!(next_seq(&ctx).await.unwrap(), 1000043);

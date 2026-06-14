@@ -1,13 +1,13 @@
-//! Rust-only sidecar: the dictionary-lookup error type.
+//! Rust-only sidecar: the backend-neutral dictionary-lookup error type.
 //!
-//! Replaces `crate::conn::KaniDbError` after the Postgres backend was removed in the
-//! async-removal proof-of-concept. The rkyv snapshot backend serves
-//! every lookup synchronously from a memory-mapped archive, so the only
-//! genuine failure modes left are a missing single-row lookup, a
-//! caller-synthesized always-failing probe, and a regex compile/match
-//! failure. The three variants below carry exactly those, mapping 1:1
-//! onto the `crate::conn::KaniDbError` variants the port previously constructed
-//! (`RowNotFound`, `Protocol`, `Database`).
+//! Returned by every [`KaniBackend`](crate::conn::kani_backend::KaniBackend)
+//! method. The rkyv snapshot backend serves lookups synchronously from a
+//! memory-mapped archive, so it only ever produces a missing single-row
+//! lookup (`RowNotFound`), a bad regex or a Postgres-only entry point
+//! reached on rkyv (`Protocol`), or a wrapped lower-level error
+//! (`Database`, e.g. the synthesized `exists-reading` probe in
+//! `find_word_info`). With the `postgres` feature, the Postgres backend
+//! maps every `sqlx::Error` into these three via the `From` impl below.
 
 /// Dictionary-store lookup error.
 #[derive(Debug)]
@@ -39,6 +39,19 @@ impl std::error::Error for KaniDbError {
         match self {
             KaniDbError::Database(source) => Some(source.as_ref()),
             _ => None,
+        }
+    }
+}
+
+/// Maps the Postgres backend's `sqlx::Error` into the backend-neutral
+/// error: a missing row becomes [`KaniDbError::RowNotFound`]; everything
+/// else is wrapped as [`KaniDbError::Database`].
+#[cfg(feature = "postgres")]
+impl From<sqlx::Error> for KaniDbError {
+    fn from(err: sqlx::Error) -> Self {
+        match err {
+            sqlx::Error::RowNotFound => KaniDbError::RowNotFound,
+            other => KaniDbError::Database(Box::new(other)),
         }
     }
 }

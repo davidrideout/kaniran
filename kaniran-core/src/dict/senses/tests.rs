@@ -489,22 +489,26 @@ mod match_sense_restrictions {
         kanji: bool,
     ) -> KaniWordDispatchEnum {
         if kanji {
-            let row: KanjiText =
-                sqlx::query_as("SELECT * FROM kanji_text WHERE seq = $1 AND text = $2")
-                    .bind(seq)
-                    .bind(text)
-                    .fetch_one(&ctx.pool)
-                    
-                    .unwrap();
+            let row: KanjiText = tokio::runtime::Runtime::new()
+                .expect("tokio runtime")
+                .block_on(
+                    sqlx::query_as("SELECT * FROM kanji_text WHERE seq = $1 AND text = $2")
+                        .bind(seq)
+                        .bind(text)
+                        .fetch_one(ctx.pool.as_ref().expect("postgres pool")),
+                )
+                .unwrap();
             KaniWordDispatchEnum::Kanji(row)
         } else {
-            let row: KanaText =
-                sqlx::query_as("SELECT * FROM kana_text WHERE seq = $1 AND text = $2")
-                    .bind(seq)
-                    .bind(text)
-                    .fetch_one(&ctx.pool)
-                    
-                    .unwrap();
+            let row: KanaText = tokio::runtime::Runtime::new()
+                .expect("tokio runtime")
+                .block_on(
+                    sqlx::query_as("SELECT * FROM kana_text WHERE seq = $1 AND text = $2")
+                        .bind(seq)
+                        .bind(text)
+                        .fetch_one(ctx.pool.as_ref().expect("postgres pool")),
+                )
+                .unwrap();
             KaniWordDispatchEnum::Kana(row)
         }
     }
@@ -718,23 +722,28 @@ mod get_senses_json {
 
     #[cfg(feature = "postgres")]
     fn kanji_reading(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
-        let row: KanjiText =
-            sqlx::query_as("SELECT * FROM kanji_text WHERE seq = $1 AND text = $2")
-                .bind(seq)
-                .bind(text)
-                .fetch_one(&ctx.pool)
-                
-                .unwrap();
+        let row: KanjiText = tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_as("SELECT * FROM kanji_text WHERE seq = $1 AND text = $2")
+                    .bind(seq)
+                    .bind(text)
+                    .fetch_one(ctx.pool.as_ref().expect("postgres pool")),
+            )
+            .unwrap();
         KaniWordDispatchEnum::Kanji(row)
     }
 
     #[cfg(feature = "postgres")]
     fn kana_reading(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
-        let row: KanaText = sqlx::query_as("SELECT * FROM kana_text WHERE seq = $1 AND text = $2")
-            .bind(seq)
-            .bind(text)
-            .fetch_one(&ctx.pool)
-            
+        let row: KanaText = tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_as("SELECT * FROM kana_text WHERE seq = $1 AND text = $2")
+                    .bind(seq)
+                    .bind(text)
+                    .fetch_one(ctx.pool.as_ref().expect("postgres pool")),
+            )
             .unwrap();
         KaniWordDispatchEnum::Kana(row)
     }

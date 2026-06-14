@@ -324,7 +324,16 @@ mod find_word_info {
             
             .expect_err("compound list-seq exists-reading must raise a DB error");
         match err {
-            crate::conn::KaniDbError::Database(db) => assert_eq!(db.code().as_deref(), Some("42883")),
+            crate::conn::KaniDbError::Database(db) => {
+                // The Postgres backend boxes its `sqlx::Error` into the
+                // backend-neutral `Database` variant; downcast back to reach
+                // the SQLSTATE the probe was rejected with.
+                let sqlx_err = db
+                    .downcast_ref::<sqlx::Error>()
+                    .expect("Database variant wraps a sqlx::Error");
+                let code = sqlx_err.as_database_error().and_then(|db| db.code());
+                assert_eq!(code.as_deref(), Some("42883"));
+            }
             other => panic!("expected SQLSTATE 42883 database error, got {other:?}"),
         }
     }
