@@ -27,10 +27,10 @@ use crate::conn::kani_snapshot::{
 use crate::dict::dao::{ConjProp, Conjugation, Entry, KanaText, KanjiText, SimpleText};
 use crate::kanji::dao::{Kanji, Meaning, Reading};
 use rkyv::hash::FxHasher64;
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::hash::BuildHasherDefault;
 use std::path::Path;
-use std::sync::Arc;
 use std::time::Instant;
 
 /// Std HashMap keyed by `i32` with rkyv's cross-platform FxHasher.
@@ -69,10 +69,14 @@ impl DenseIdIndex {
     }
 }
 
-/// Memory-mapped snapshot store. Cheap to clone — wraps one `Arc`.
-#[derive(Clone)]
+/// Memory-mapped snapshot store. Cheap to clone — a `Copy` of one
+/// `&'static` pointer into the leaked, process-lifetime archive (see
+/// [`Self::from_file`]). The `'static` lifetime is what lets the DAO
+/// rows hand out `Cow::Borrowed` views straight into the mmap instead
+/// of copying every string field out on each lookup.
+#[derive(Clone, Copy)]
 pub struct KaniRkyvBackend {
-    inner: Arc<KaniRkyvInner>,
+    inner: &'static KaniRkyvInner,
 }
 
 struct KaniRkyvInner {
@@ -283,16 +287,23 @@ impl KaniRkyvBackend {
             );
             indexes
         };
+        // Leak the inner so the mmap lives at a fixed address for the
+        // whole process. A snapshot is single and process-lifetime, so
+        // never unloading it costs nothing operationally — and it lets
+        // `tables()` yield `&'static`, the borrow the `Cow` rows need.
         Ok(Self {
-            inner: Arc::new(KaniRkyvInner { mmap, indexes }),
+            inner: Box::leak(Box::new(KaniRkyvInner { mmap, indexes })),
         })
     }
 
     /// The archived root. The buffer was validated once in
     /// [`Self::from_file`]; unchecked access afterwards is sound
-    /// because the mmap is read-only and never remapped.
-    fn tables(&self) -> &ArchivedKaniSnapshot {
-        unsafe { rkyv::access_unchecked::<ArchivedKaniSnapshot>(&self.inner.mmap[..]) }
+    /// because the mmap is read-only, leaked, and never remapped. The
+    /// `&'static` return rides on that leak: the archive bytes outlive
+    /// every borrow handed out from them.
+    fn tables(&self) -> &'static ArchivedKaniSnapshot {
+        let inner: &'static KaniRkyvInner = self.inner;
+        unsafe { rkyv::access_unchecked::<ArchivedKaniSnapshot>(&inner.mmap[..]) }
     }
 
     fn idx(&self) -> &KaniRkyvIndexes {
@@ -304,9 +315,10 @@ impl KaniRkyvBackend {
 
 // Runtime never reads the `common_tags` columns on kanji_text /
 // kana_text — those are only consumed by build-time errata writers
-// that load via the Postgres backend. Leaving them as empty
-// `String::new()` (a stack-only 24-byte placeholder with capacity 0)
-// skips per-call heap allocations at zero runtime risk.
+// that load via the Postgres backend. Leaving them as an empty
+// `Cow::Borrowed("")` skips per-call heap allocations at zero runtime
+// risk. The other string fields become `Cow::Borrowed` views straight
+// into the leaked `'static` mmap — no copy out per lookup.
 fn dao_entry(row: &<Entry as rkyv::Archive>::Archived) -> Entry {
     Entry {
         seq: row.seq.to_native(),
@@ -317,32 +329,32 @@ fn dao_entry(row: &<Entry as rkyv::Archive>::Archived) -> Entry {
     }
 }
 
-fn dao_kanji_text(row: &ArchivedKaniKanjiTextRow) -> KanjiText {
+fn dao_kanji_text(row: &'static ArchivedKaniKanjiTextRow) -> KanjiText {
     KanjiText {
         id: row.id.to_native(),
         seq: row.seq.to_native(),
-        text: row.text.as_str().to_string(),
+        text: Cow::Borrowed(row.text.as_str()),
         ord: row.ord.to_native(),
         common: row.common.as_ref().map(|value| value.to_native()),
-        common_tags: String::new(),
+        common_tags: Cow::Borrowed(""),
         conjugate_p: row.conjugate_p,
         nokanji: row.nokanji,
-        best_kana: row.best_kana.as_ref().map(|value| value.as_str().to_string()),
+        best_kana: row.best_kana.as_ref().map(|value| Cow::Borrowed(value.as_str())),
         state: SimpleText::default(),
     }
 }
 
-fn dao_kana_text(row: &ArchivedKaniKanaTextRow) -> KanaText {
+fn dao_kana_text(row: &'static ArchivedKaniKanaTextRow) -> KanaText {
     KanaText {
         id: row.id.to_native(),
         seq: row.seq.to_native(),
-        text: row.text.as_str().to_string(),
+        text: Cow::Borrowed(row.text.as_str()),
         ord: row.ord.to_native(),
         common: row.common.as_ref().map(|value| value.to_native()),
-        common_tags: String::new(),
+        common_tags: Cow::Borrowed(""),
         conjugate_p: row.conjugate_p,
         nokanji: row.nokanji,
-        best_kanji: row.best_kanji.as_ref().map(|value| value.as_str().to_string()),
+        best_kanji: row.best_kanji.as_ref().map(|value| Cow::Borrowed(value.as_str())),
         state: SimpleText::default(),
     }
 }
@@ -528,10 +540,10 @@ impl KaniBackend for KaniRkyvBackend {
     fn kanji_words_containing_char(
         &self,
         char: &str,
-    ) -> Result<Vec<(i32, String, String, i32)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(i32, Cow<'static, str>, Cow<'static, str>, i32)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
-        let mut out: Vec<(i32, String, String, i32)> = Vec::new();
+        let mut out: Vec<(i32, Cow<'static, str>, Cow<'static, str>, i32)> = Vec::new();
         for row in tables.kanji_texts.iter() {
             let Some(common) = row.common.as_ref() else {
                 continue;
@@ -555,8 +567,8 @@ impl KaniBackend for KaniRkyvBackend {
                     if kana_row.text.as_str() == best_kana.as_str() {
                         out.push((
                             seq,
-                            row.text.as_str().to_string(),
-                            kana_row.text.as_str().to_string(),
+                            Cow::Borrowed(row.text.as_str()),
+                            Cow::Borrowed(kana_row.text.as_str()),
                             common.to_native(),
                         ));
                     }
@@ -568,23 +580,23 @@ impl KaniBackend for KaniRkyvBackend {
 
     // --- kanji_text / kana_text ---
 
-    fn headword_kanji_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError> {
+    fn headword_kanji_text(&self, seq: i32) -> Result<Option<Cow<'static, str>>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self.idx().kanji_text_by_seq.get(&seq).and_then(|list| {
             list.iter()
                 .map(|&ordinal| &tables.kanji_texts[ordinal as usize])
                 .find(|row| row.ord.to_native() == 0)
-                .map(|row| row.text.as_str().to_string())
+                .map(|row| Cow::Borrowed(row.text.as_str()))
         }))
     }
 
-    fn headword_kana_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError> {
+    fn headword_kana_text(&self, seq: i32) -> Result<Option<Cow<'static, str>>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self.idx().kana_text_by_seq.get(&seq).and_then(|list| {
             list.iter()
                 .map(|&ordinal| &tables.kana_texts[ordinal as usize])
                 .find(|row| row.ord.to_native() == 0)
-                .map(|row| row.text.as_str().to_string())
+                .map(|row| Cow::Borrowed(row.text.as_str()))
         }))
     }
 
@@ -1062,13 +1074,13 @@ impl KaniBackend for KaniRkyvBackend {
     fn kana_reading_texts_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError> {
         let tables = self.tables();
-        let mut rows: Vec<(i32, String)> = merged_i32(&self.idx().kana_text_by_seq, seqs)
+        let mut rows: Vec<(i32, Cow<'static, str>)> = merged_i32(&self.idx().kana_text_by_seq, seqs)
             .into_iter()
             .map(|ordinal| {
                 let row = &tables.kana_texts[ordinal as usize];
-                (row.id.to_native(), row.text.as_str().to_string())
+                (row.id.to_native(), Cow::Borrowed(row.text.as_str()))
             })
             .collect();
         rows.sort_by_key(|(id, _)| *id);
@@ -1269,7 +1281,7 @@ impl KaniBackend for KaniRkyvBackend {
     fn conj_source_readings_by_conj_id(
         &self,
         conj_id: i32,
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1280,8 +1292,8 @@ impl KaniBackend for KaniRkyvBackend {
                     .map(|&ordinal| {
                         let row = &tables.conj_source_readings[ordinal as usize];
                         (
-                            row.text.as_str().to_string(),
-                            row.source_text.as_str().to_string(),
+                            Cow::Borrowed(row.text.as_str()),
+                            Cow::Borrowed(row.source_text.as_str()),
                         )
                     })
                     .collect()
@@ -1293,7 +1305,7 @@ impl KaniBackend for KaniRkyvBackend {
         &self,
         conj_id: i32,
         texts: &[String],
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1305,8 +1317,8 @@ impl KaniBackend for KaniRkyvBackend {
                     .filter(|row| texts.iter().any(|text| text == row.text.as_str()))
                     .map(|row| {
                         (
-                            row.text.as_str().to_string(),
-                            row.source_text.as_str().to_string(),
+                            Cow::Borrowed(row.text.as_str()),
+                            Cow::Borrowed(row.source_text.as_str()),
                         )
                     })
                     .collect()
@@ -1318,7 +1330,7 @@ impl KaniBackend for KaniRkyvBackend {
         &self,
         conj_id: i32,
         source_text: &str,
-    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1328,7 +1340,7 @@ impl KaniBackend for KaniRkyvBackend {
                 list.iter()
                     .map(|&ordinal| &tables.conj_source_readings[ordinal as usize])
                     .filter(|row| row.source_text.as_str() == source_text)
-                    .map(|row| row.text.as_str().to_string())
+                    .map(|row| Cow::Borrowed(row.text.as_str()))
                     .collect()
             })
             .unwrap_or_default())
@@ -1441,10 +1453,10 @@ impl KaniBackend for KaniRkyvBackend {
         &self,
         seq: i32,
         tags: &[&str],
-    ) -> Result<Vec<(i32, String, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(i32, Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
-        let mut rows: Vec<(i32, String, String, i32)> = Vec::new();
+        let mut rows: Vec<(i32, Cow<'static, str>, Cow<'static, str>, i32)> = Vec::new();
         if let Some(sense_list) = indexes.sense_by_seq.get(&seq) {
             for &sense_ordinal in sense_list {
                 let sense = &tables.senses[sense_ordinal as usize];
@@ -1456,8 +1468,8 @@ impl KaniBackend for KaniRkyvBackend {
                         if tags.contains(&prop.tag.as_str()) {
                             rows.push((
                                 sense_ord,
-                                prop.tag.as_str().to_string(),
-                                prop.text.as_str().to_string(),
+                                Cow::Borrowed(prop.tag.as_str()),
+                                Cow::Borrowed(prop.text.as_str()),
                                 prop.ord.to_native(),
                             ));
                         }
@@ -1516,13 +1528,13 @@ impl KaniBackend for KaniRkyvBackend {
     fn glosses_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(i32, Cow<'static, str>)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut unique_seqs: Vec<i32> = seqs.to_vec();
         unique_seqs.sort_unstable();
         unique_seqs.dedup();
-        let mut out: Vec<(i32, String)> = Vec::new();
+        let mut out: Vec<(i32, Cow<'static, str>)> = Vec::new();
         for seq in unique_seqs {
             if let Some(sense_list) = indexes.sense_by_seq.get(&seq) {
                 for &sense_ordinal in sense_list {
@@ -1530,7 +1542,7 @@ impl KaniBackend for KaniRkyvBackend {
                     if let Some(gloss_list) = indexes.gloss_by_sense_id.get(&sense_id) {
                         for &gloss_ordinal in gloss_list {
                             let gloss = &tables.glosses[gloss_ordinal as usize];
-                            out.push((seq, gloss.text.as_str().to_string()));
+                            out.push((seq, Cow::Borrowed(gloss.text.as_str())));
                         }
                     }
                 }
@@ -1564,11 +1576,11 @@ impl KaniBackend for KaniRkyvBackend {
             .map(|row| row.id.to_native()))
     }
 
-    fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<String>, crate::conn::KaniDbError> {
+    fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
-        let mut seen: HashSet<String> = HashSet::new();
-        let mut out: Vec<String> = Vec::new();
+        let mut seen: HashSet<&'static str> = HashSet::new();
+        let mut out: Vec<Cow<'static, str>> = Vec::new();
         for ordinal in merged_i32(&indexes.sense_prop_by_seq, seqs) {
             let prop = &tables.sense_props[ordinal as usize];
             if prop.tag.as_str() != "pos" {
@@ -1587,9 +1599,9 @@ impl KaniBackend for KaniRkyvBackend {
             if sense_is_arch {
                 continue;
             }
-            let text = prop.text.as_str().to_string();
-            if seen.insert(text.clone()) {
-                out.push(text);
+            let text = prop.text.as_str();
+            if seen.insert(text) {
+                out.push(Cow::Borrowed(text));
             }
         }
         Ok(out)
@@ -1647,10 +1659,10 @@ impl KaniBackend for KaniRkyvBackend {
         &self,
         tag: &str,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(i32, Cow<'static, str>)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
-        let mut out: Vec<(i32, String)> = Vec::new();
+        let mut out: Vec<(i32, Cow<'static, str>)> = Vec::new();
         for ordinal in merged_i32(&indexes.sense_prop_by_seq, seqs) {
             let prop = &tables.sense_props[ordinal as usize];
             if prop.tag.as_str() != tag {
@@ -1672,7 +1684,7 @@ impl KaniBackend for KaniRkyvBackend {
                 })
                 .unwrap_or(0);
             for _ in 0..ctr_matches {
-                out.push((prop.seq.to_native(), prop.text.as_str().to_string()));
+                out.push((prop.seq.to_native(), Cow::Borrowed(prop.text.as_str())));
             }
         }
         Ok(out)
@@ -1681,7 +1693,7 @@ impl KaniBackend for KaniRkyvBackend {
     fn restricted_readings_by_seq(
         &self,
         seq: i32,
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1692,8 +1704,8 @@ impl KaniBackend for KaniRkyvBackend {
                     .map(|&ordinal| {
                         let row = &tables.restricted_readings[ordinal as usize];
                         (
-                            row.reading.as_str().to_string(),
-                            row.text.as_str().to_string(),
+                            Cow::Borrowed(row.reading.as_str()),
+                            Cow::Borrowed(row.text.as_str()),
                         )
                     })
                     .collect()
@@ -1748,15 +1760,15 @@ impl KaniBackend for KaniRkyvBackend {
     fn okurigana_texts_by_reading_id(
         &self,
         reading_id: i32,
-    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError> {
         let tables = self.tables();
-        let mut seen: HashSet<String> = HashSet::new();
-        let mut out: Vec<String> = Vec::new();
+        let mut seen: HashSet<&'static str> = HashSet::new();
+        let mut out: Vec<Cow<'static, str>> = Vec::new();
         if let Some(list) = self.idx().okurigana_by_reading_id.get(&reading_id) {
             for &ordinal in list {
-                let text = tables.okurigana[ordinal as usize].text.as_str().to_string();
-                if seen.insert(text.clone()) {
-                    out.push(text);
+                let text = tables.okurigana[ordinal as usize].text.as_str();
+                if seen.insert(text) {
+                    out.push(Cow::Borrowed(text));
                 }
             }
         }
@@ -1814,10 +1826,10 @@ impl KaniBackend for KaniRkyvBackend {
         &self,
         text: &str,
         typeset: &[String],
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
-        let mut rows: Vec<(i32, String, String)> = Vec::new();
+        let mut rows: Vec<(i32, Cow<'static, str>, Cow<'static, str>)> = Vec::new();
         if let Some(kanji_list) = indexes.kanji_by_text.get(text) {
             for &kanji_ordinal in kanji_list {
                 let kanji_id = tables.kanji[kanji_ordinal as usize].id.to_native();
@@ -1830,8 +1842,8 @@ impl KaniBackend for KaniRkyvBackend {
                         }
                         rows.push((
                             reading_row.id.to_native(),
-                            reading_row.text.as_str().to_string(),
-                            reading_type.to_string(),
+                            Cow::Borrowed(reading_row.text.as_str()),
+                            Cow::Borrowed(reading_type),
                         ));
                     }
                 }

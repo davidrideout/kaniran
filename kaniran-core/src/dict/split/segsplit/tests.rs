@@ -391,7 +391,7 @@ mod get_segsplit {
             text: "ところ".into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kanji: None,

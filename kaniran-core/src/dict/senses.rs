@@ -42,7 +42,7 @@ pub fn get_senses_raw(ctx: &KaniranContext, seq: i32) -> Result<Vec<RawSense>, c
     let mut bag: Vec<String> = Vec::new();
 
     for (sord, tag, text) in prop_rows {
-        let changed = cur_sord != Some(sord) || cur_tag.as_deref() != Some(tag.as_str());
+        let changed = cur_sord != Some(sord) || cur_tag.as_deref() != Some(tag.as_ref());
         if changed {
             // dict.lisp:1479 (in-loop transition) — emit prior bag in
             // upstream insertion order (Lisp `(reverse bag)` flips
@@ -54,11 +54,11 @@ pub fn get_senses_raw(ctx: &KaniranContext, seq: i32) -> Result<Vec<RawSense>, c
                 sense_list[idx].props.insert(0, (prev_tag, prev_bag));
             }
             cur_sord = Some(sord);
-            cur_tag = Some(tag);
+            cur_tag = Some(tag.into_owned());
             bag.clear();
             cur_idx = sense_list.iter().position(|s| s.ord == sord);
         }
-        bag.push(text);
+        bag.push(text.into_owned());
     }
     // dict.lisp:1483 (finally clause) — upstream emits `(cons curtag
     // bag)` without `reverse`, leaving the final group's texts in
@@ -232,7 +232,12 @@ pub fn match_sense_restrictions(
         return Ok(None);
     }
     // dict.lisp:1524 (restricted (query (:select 'reading 'text :from 'restricted-readings :where (:= 'seq seq))))
-    let restricted: Vec<(String, String)> = ctx.store.restricted_readings_by_seq(seq)?;
+    let restricted: Vec<(String, String)> = ctx
+        .store
+        .restricted_readings_by_seq(seq)?
+        .into_iter()
+        .map(|(reading, text)| (reading.into_owned(), text.into_owned()))
+        .collect();
     // dict.lisp:1525-1532 (case wtype …)
     match wtype {
         WordType::Kanji => {

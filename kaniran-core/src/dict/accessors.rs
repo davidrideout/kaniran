@@ -208,7 +208,7 @@ pub fn get_kanji(
 ) -> Result<Option<String>, crate::conn::KaniDbError> {
     match obj {
         // dict.lisp:108-109 (defmethod get-kanji ((obj kanji-text))) — (text obj)
-        KaniWordDispatchEnum::Kanji(k) => Ok(Some(k.text.clone())),
+        KaniWordDispatchEnum::Kanji(k) => Ok(Some(k.text.to_string())),
         // dict.lisp:153-155 (defmethod get-kanji ((obj kana-text)))
         // (let ((bk (best-kanji-conj obj))) (unless (eql bk :null) bk))
         KaniWordDispatchEnum::Kana(k) => best_kanji_conj(ctx, k),
@@ -255,7 +255,8 @@ impl Entry {
             .store
             .headword_kanji_text(self.seq)
             ?
-            .ok_or(crate::conn::KaniDbError::RowNotFound)?;
+            .ok_or(crate::conn::KaniDbError::RowNotFound)?
+            .into_owned();
         Ok(Some(text))
     }
 }
@@ -292,13 +293,13 @@ fn get_original_text_simple_text_arm(
         KaniSimpleTextDispatchEnum::Kanji(k) => (
             k.seq,
             &k.state.conjugations,
-            k.text.as_str(),
+            &*k.text,
             WordType::Kanji,
         ),
         KaniSimpleTextDispatchEnum::Kana(k) => (
             k.seq,
             &k.state.conjugations,
-            k.text.as_str(),
+            &*k.text,
             WordType::Kana,
         ),
         KaniSimpleTextDispatchEnum::Proxy(_) => unreachable!("dispatched above"),

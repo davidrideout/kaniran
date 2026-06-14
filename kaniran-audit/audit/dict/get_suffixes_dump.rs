@@ -53,7 +53,7 @@ fn diff_fields(c: &CapturedKanaText, a: &KanaText) -> Vec<String> {
     if c.nokanji != a.nokanji {
         diffs.push(format!("nokanji r={} l={}", a.nokanji, c.nokanji));
     }
-    if c.best_kanji != a.best_kanji {
+    if c.best_kanji.as_deref() != a.best_kanji.as_deref() {
         diffs.push(format!("best_kanji r={:?} l={:?}", a.best_kanji, c.best_kanji));
     }
     if c.conjugations != a.state.conjugations {

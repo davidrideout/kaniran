@@ -242,10 +242,10 @@ mod pair_words_by_conj {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq,
-            text: text.to_string(),
+            text: text.to_string().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kanji: None,
@@ -768,8 +768,8 @@ mod or_as_hiragana {
         let mut sources: Vec<(i32, i32, String)> = proxies
             .iter()
             .map(|p| match p.source.as_ref() {
-                KaniSimpleTextDispatchEnum::Kana(row) => (row.seq, row.id, row.text.clone()),
-                KaniSimpleTextDispatchEnum::Kanji(row) => (row.seq, row.id, row.text.clone()),
+                KaniSimpleTextDispatchEnum::Kana(row) => (row.seq, row.id, row.text.to_string()),
+                KaniSimpleTextDispatchEnum::Kanji(row) => (row.seq, row.id, row.text.to_string()),
                 KaniSimpleTextDispatchEnum::Proxy(_) => {
                     panic!("REPL pinned source to KANA-TEXT; got nested PROXY-TEXT")
                 }

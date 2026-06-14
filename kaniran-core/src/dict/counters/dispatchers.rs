@@ -505,11 +505,11 @@ pub fn get_counter_stags(
     let mut stagrs: HashMap<i32, Vec<String>> = HashMap::new();
 
     for (seq, text) in ctx.store.counter_stag_rows("stagk", seqs)? {
-        stagks.entry(seq).or_default().push(text);
+        stagks.entry(seq).or_default().push(text.into_owned());
     }
 
     for (seq, text) in ctx.store.counter_stag_rows("stagr", seqs)? {
-        stagrs.entry(seq).or_default().push(text);
+        stagrs.entry(seq).or_default().push(text.into_owned());
     }
 
     Ok((stagks, stagrs))

@@ -860,10 +860,10 @@ mod cull_segments {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,

@@ -141,7 +141,7 @@ impl KaniSimpleTextDispatchEnum {
                 }
             }
             // dict.lisp:150-151 (defmethod get-kana ((obj kana-text))) — (text obj)
-            Self::Kana(k) => Ok(Some(k.text.clone())),
+            Self::Kana(k) => Ok(Some(k.text.to_string())),
             // dict.lisp:552 (kana :reader get-kana :initarg :kana) on proxy-text
             Self::Proxy(p) => Ok(Some(p.kana.clone())),
         }

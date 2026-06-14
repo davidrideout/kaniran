@@ -393,7 +393,12 @@ pub fn get_non_arch_posi(
     ctx: &KaniranContext,
     seq_set: &[i32],
 ) -> Result<Vec<String>, crate::conn::KaniDbError> {
-    ctx.store.non_arch_posi(seq_set)
+    Ok(ctx
+        .store
+        .non_arch_posi(seq_set)?
+        .into_iter()
+        .map(|posi| posi.into_owned())
+        .collect())
 }
 
 /// Port of `ichiran/dict:gen-score` (`dict.lisp:985`).

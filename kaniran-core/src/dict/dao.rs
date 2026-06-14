@@ -2,6 +2,7 @@ use crate::conn::kani_backend::KaniBackend;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::load::conj_rules::get_conj_description;
 use serde_json::{Map, Value};
+use std::borrow::Cow;
 #[cfg(feature = "postgres")]
 use sqlx::postgres::PgRow;
 #[cfg(feature = "postgres")]
@@ -57,9 +58,9 @@ impl Entry {
     ///   surfaces as [`None`].
     pub fn get_text(&self, ctx: &KaniranContext) -> Result<Option<String>, crate::conn::KaniDbError> {
         if self.n_kanji > 0 {
-            ctx.store.headword_kanji_text(self.seq)
+            Ok(ctx.store.headword_kanji_text(self.seq)?.map(|text| text.into_owned()))
         } else {
-            ctx.store.headword_kana_text(self.seq)
+            Ok(ctx.store.headword_kana_text(self.seq)?.map(|text| text.into_owned()))
         }
     }
 
@@ -86,7 +87,7 @@ impl Entry {
     ///   absent (data-integrity violation), which the Rust port
     ///   surfaces as [`None`].
     pub fn get_kana(&self, ctx: &KaniranContext) -> Result<Option<String>, crate::conn::KaniDbError> {
-        ctx.store.headword_kana_text(self.seq)
+        Ok(ctx.store.headword_kana_text(self.seq)?.map(|text| text.into_owned()))
     }
 }
 
@@ -135,13 +136,13 @@ pub enum WordConjugations {
 pub struct KanjiText {
     pub id: i32,
     pub seq: i32,
-    pub text: String,
+    pub text: Cow<'static, str>,
     pub ord: i32,
     pub common: Option<i32>,
-    pub common_tags: String,
+    pub common_tags: Cow<'static, str>,
     pub conjugate_p: bool,
     pub nokanji: bool,
-    pub best_kana: Option<String>,
+    pub best_kana: Option<Cow<'static, str>>,
     pub state: SimpleText,
 }
 
@@ -153,13 +154,13 @@ pub struct KanjiText {
 pub struct KanaText {
     pub id: i32,
     pub seq: i32,
-    pub text: String,
+    pub text: Cow<'static, str>,
     pub ord: i32,
     pub common: Option<i32>,
-    pub common_tags: String,
+    pub common_tags: Cow<'static, str>,
     pub conjugate_p: bool,
     pub nokanji: bool,
-    pub best_kanji: Option<String>,
+    pub best_kanji: Option<Cow<'static, str>>,
     pub state: SimpleText,
 }
 
@@ -345,13 +346,13 @@ impl<'r> FromRow<'r, PgRow> for KanjiText {
         Ok(KanjiText {
             id: row.try_get("id")?,
             seq: row.try_get("seq")?,
-            text: row.try_get("text")?,
+            text: Cow::Owned(row.try_get("text")?),
             ord: row.try_get("ord")?,
             common: row.try_get("common")?,
-            common_tags: row.try_get("common_tags")?,
+            common_tags: Cow::Owned(row.try_get("common_tags")?),
             conjugate_p: row.try_get("conjugate_p")?,
             nokanji: row.try_get("nokanji")?,
-            best_kana: row.try_get("best_kana")?,
+            best_kana: row.try_get::<Option<String>, _>("best_kana")?.map(Cow::Owned),
             state: SimpleText::default(),
         })
     }
@@ -363,13 +364,13 @@ impl<'r> FromRow<'r, PgRow> for KanaText {
         Ok(KanaText {
             id: row.try_get("id")?,
             seq: row.try_get("seq")?,
-            text: row.try_get("text")?,
+            text: Cow::Owned(row.try_get("text")?),
             ord: row.try_get("ord")?,
             common: row.try_get("common")?,
-            common_tags: row.try_get("common_tags")?,
+            common_tags: Cow::Owned(row.try_get("common_tags")?),
             conjugate_p: row.try_get("conjugate_p")?,
             nokanji: row.try_get("nokanji")?,
-            best_kanji: row.try_get("best_kanji")?,
+            best_kanji: row.try_get::<Option<String>, _>("best_kanji")?.map(Cow::Owned),
             state: SimpleText::default(),
         })
     }

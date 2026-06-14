@@ -269,7 +269,12 @@ pub fn get_glosses(
     ctx: &KaniranContext,
     seqs: &[i32],
 ) -> Result<Vec<(i32, Vec<String>)>, crate::conn::KaniDbError> {
-    let glosses: Vec<(i32, String)> = ctx.store.glosses_by_seq_any(seqs)?;
+    let glosses: Vec<(i32, String)> = ctx
+        .store
+        .glosses_by_seq_any(seqs)?
+        .into_iter()
+        .map(|(seq, text)| (seq, text.into_owned()))
+        .collect();
 
     let mut al: Vec<(i32, Vec<String>)> = Vec::new();
     for (seq, text) in glosses {

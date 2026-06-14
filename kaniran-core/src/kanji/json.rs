@@ -97,7 +97,12 @@ pub fn reading_info_json(
         Value::String(reading.reading_type.clone()),
     );
     // kanji.lisp:360 ((query (:select 'text :distinct :from 'okurigana :where (:= 'reading-id (id reading))) :column))
-    let okuri: Vec<String> = ctx.store.okurigana_texts_by_reading_id(reading.id)?;
+    let okuri: Vec<String> = ctx
+        .store
+        .okurigana_texts_by_reading_id(reading.id)?
+        .into_iter()
+        .map(|text| text.into_owned())
+        .collect();
     js.insert(
         "okuri".to_owned(),
         Value::Array(okuri.into_iter().map(Value::String).collect()),

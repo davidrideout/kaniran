@@ -157,8 +157,8 @@ fn captured_proxy_sort_key(a: &CapturedProxy, b: &CapturedProxy) -> std::cmp::Or
 
 fn source_sort_id(s: &KaniSimpleTextDispatchEnum) -> (i32, String) {
     match s {
-        KaniSimpleTextDispatchEnum::Kana(k) => (k.seq, k.text.clone()),
-        KaniSimpleTextDispatchEnum::Kanji(k) => (k.seq, k.text.clone()),
+        KaniSimpleTextDispatchEnum::Kana(k) => (k.seq, k.text.to_string()),
+        KaniSimpleTextDispatchEnum::Kanji(k) => (k.seq, k.text.to_string()),
         KaniSimpleTextDispatchEnum::Proxy(_) => (0, String::new()),
     }
 }

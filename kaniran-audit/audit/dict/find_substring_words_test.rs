@@ -46,11 +46,11 @@ fn fp_from_kana(k: &KanaText) -> RowFp {
         seq: k.seq,
         ord: k.ord,
         common: k.common,
-        common_tags: k.common_tags.clone(),
+        common_tags: k.common_tags.to_string(),
         conjugate_p: k.conjugate_p,
         nokanji: k.nokanji,
-        best: k.best_kanji.clone(),
-        text: k.text.clone(),
+        best: k.best_kanji.as_deref().map(str::to_string),
+        text: k.text.to_string(),
     }
 }
 
@@ -60,11 +60,11 @@ fn fp_from_kanji(k: &KanjiText) -> RowFp {
         seq: k.seq,
         ord: k.ord,
         common: k.common,
-        common_tags: k.common_tags.clone(),
+        common_tags: k.common_tags.to_string(),
         conjugate_p: k.conjugate_p,
         nokanji: k.nokanji,
-        best: k.best_kana.clone(),
-        text: k.text.clone(),
+        best: k.best_kana.as_deref().map(str::to_string),
+        text: k.text.to_string(),
     }
 }
 

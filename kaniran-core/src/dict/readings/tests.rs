@@ -302,8 +302,8 @@ mod find_words_seqs {
 
     fn describe(word: &KaniWordDispatchEnum) -> (&'static str, i32, &str) {
         match word {
-            KaniWordDispatchEnum::Kanji(k) => ("kanji", k.seq, k.text.as_str()),
-            KaniWordDispatchEnum::Kana(k) => ("kana", k.seq, k.text.as_str()),
+            KaniWordDispatchEnum::Kanji(k) => ("kanji", k.seq, k.text.as_ref()),
+            KaniWordDispatchEnum::Kana(k) => ("kana", k.seq, k.text.as_ref()),
             _ => panic!("find_words_seqs must only return kanji-text / kana-text"),
         }
     }

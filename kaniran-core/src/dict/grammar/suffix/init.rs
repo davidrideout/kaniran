@@ -138,7 +138,7 @@ pub fn build_suffix_caches(
     // doc-comment for the parity rationale.
     let iru_kfs = get_kana_forms(ctx, 1577980)?;
     for kf in iru_kfs {
-        let tkf = kf.text.clone();
+        let tkf: String = kf.text.to_string();
         let key = if tkf.chars().count() > 1 {
             "teiru+"
         } else {
@@ -180,7 +180,7 @@ pub fn build_suffix_caches(
     // below pins that "only if absent" semantics.
     let iku_kfs = get_kana_forms(ctx, 1578850)?;
     for kf in iku_kfs {
-        let tkf = kf.text.clone();
+        let tkf: String = kf.text.to_string();
         if tkf.chars().next() != Some('\u{3044}') {
             continue;
         }

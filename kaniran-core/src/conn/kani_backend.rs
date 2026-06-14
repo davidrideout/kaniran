@@ -22,6 +22,7 @@ use crate::conn::kani_postgres_backend::KaniPostgresBackend;
 use crate::conn::kani_rkyv_backend::KaniRkyvBackend;
 use crate::dict::dao::{ConjProp, Conjugation, Entry, KanaText, KanjiText};
 use crate::kanji::dao::{Kanji, Meaning, Reading};
+use std::borrow::Cow;
 
 /// Every runtime dictionary lookup, one method per distinct query.
 /// Implementations must reproduce Postgres result ORDER — including
@@ -58,7 +59,7 @@ pub trait KaniBackend {
     fn kanji_words_containing_char(
         &self,
         char: &str,
-    ) -> Result<Vec<(i32, String, String, i32)>, crate::conn::KaniDbError>;
+    ) -> Result<Vec<(i32, Cow<'static, str>, Cow<'static, str>, i32)>, crate::conn::KaniDbError>;
 
     // --- kanji_text / kana_text: the kanji writings and kana
     // spellings of each entry. The bulk of segmentation traffic lands
@@ -67,11 +68,11 @@ pub trait KaniBackend {
 
     /// Ord-0 kanji headword text — `entry` `get-kanji`/`get-text`
     /// (`dict.lisp:47,51`), `reading-str-seq` (`dict.lisp:1584`).
-    fn headword_kanji_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError>;
+    fn headword_kanji_text(&self, seq: i32) -> Result<Option<Cow<'static, str>>, crate::conn::KaniDbError>;
 
     /// Ord-0 kana headword text — `entry` `get-kana`/`get-text`
     /// (`dict.lisp:44,47`), `reading-str-seq` (`dict.lisp:1584`).
-    fn headword_kana_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError>;
+    fn headword_kana_text(&self, seq: i32) -> Result<Option<Cow<'static, str>>, crate::conn::KaniDbError>;
 
     /// `get-original-text` simple-text arm, kanji table (`dict.lisp:399`).
     fn kanji_texts_by_seq_and_text(
@@ -215,7 +216,7 @@ pub trait KaniBackend {
     fn kana_reading_texts_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<String>, crate::conn::KaniDbError>;
+    ) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError>;
 
     /// `exists-reading` (`dict.lisp:1846`).
     fn kana_seqs_by_seq_and_text(
@@ -290,7 +291,7 @@ pub trait KaniBackend {
     fn conj_source_readings_by_conj_id(
         &self,
         conj_id: i32,
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError>;
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError>;
 
     /// `(text, source_text)` pairs restricted to surface texts —
     /// `get-conj-data` (`dict.lisp:340`).
@@ -298,7 +299,7 @@ pub trait KaniBackend {
         &self,
         conj_id: i32,
         texts: &[String],
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError>;
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError>;
 
     /// Rendered texts of a conjugation derived from `source_text` —
     /// `best-kana-conj` (`dict.lisp:439`), `best-kanji-conj`
@@ -307,7 +308,7 @@ pub trait KaniBackend {
         &self,
         conj_id: i32,
         source_text: &str,
-    ) -> Result<Vec<String>, crate::conn::KaniDbError>;
+    ) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError>;
 
     /// `query-parents-kanji` (`dict.lisp:404`).
     fn parents_kanji(
@@ -337,7 +338,7 @@ pub trait KaniBackend {
         &self,
         seq: i32,
         tags: &[&str],
-    ) -> Result<Vec<(i32, String, String)>, crate::conn::KaniDbError>;
+    ) -> Result<Vec<(i32, Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError>;
 
     /// First-sense joined gloss — `short-sense-str` (`dict.lisp:1562`).
     /// Outer [`Option`] is row presence, inner is the nullable aggregate.
@@ -356,7 +357,7 @@ pub trait KaniBackend {
     fn glosses_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError>;
+    ) -> Result<Vec<(i32, Cow<'static, str>)>, crate::conn::KaniDbError>;
 
     /// Sense ids tagged `misc=uk` (usually-kana) — `calc-score`
     /// (`dict.lisp:822`).
@@ -367,7 +368,7 @@ pub trait KaniBackend {
     fn sense_id_ord0(&self, ids: &[i32]) -> Result<Option<i32>, crate::conn::KaniDbError>;
 
     /// `get-non-arch-posi` anti-join (`dict.lisp:762`).
-    fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<String>, crate::conn::KaniDbError>;
+    fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError>;
 
     /// Seqs whose every sense is archaic/obscure/rare — `build_is_arch`
     /// first pass (upstream `*is-arch-cache*`, `dict.lisp:745`).
@@ -384,14 +385,14 @@ pub trait KaniBackend {
         &self,
         tag: &str,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError>;
+    ) -> Result<Vec<(i32, Cow<'static, str>)>, crate::conn::KaniDbError>;
 
     /// `(reading, text)` restriction pairs of a seq —
     /// `match-sense-restrictions` (`dict.lisp:1524`).
     fn restricted_readings_by_seq(
         &self,
         seq: i32,
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError>;
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError>;
 
     // --- kanjidic: per-character info serving the kanji-info JSON
     // output and the lazily-filled reading-stats cache. Not to be
@@ -412,7 +413,7 @@ pub trait KaniBackend {
     fn okurigana_texts_by_reading_id(
         &self,
         reading_id: i32,
-    ) -> Result<Vec<String>, crate::conn::KaniDbError>;
+    ) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError>;
 
     /// `(select-dao 'kanji (:= 'text str))` — `kanji-info-json`
     /// (`kanji.lisp:395`).
@@ -436,7 +437,7 @@ pub trait KaniBackend {
         &self,
         text: &str,
         typeset: &[String],
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError>;
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError>;
 }
 
 /// Runtime dictionary store held by `ctx.store`. The default build has
@@ -508,15 +509,15 @@ impl KaniBackend for KaniStore {
     fn kanji_words_containing_char(
         &self,
         char: &str,
-    ) -> Result<Vec<(i32, String, String, i32)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(i32, Cow<'static, str>, Cow<'static, str>, i32)>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.kanji_words_containing_char(char))
     }
 
-    fn headword_kanji_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError> {
+    fn headword_kanji_text(&self, seq: i32) -> Result<Option<Cow<'static, str>>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.headword_kanji_text(seq))
     }
 
-    fn headword_kana_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError> {
+    fn headword_kana_text(&self, seq: i32) -> Result<Option<Cow<'static, str>>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.headword_kana_text(seq))
     }
 
@@ -681,7 +682,7 @@ impl KaniBackend for KaniStore {
     fn kana_reading_texts_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.kana_reading_texts_by_seq_any(seqs))
     }
 
@@ -752,7 +753,7 @@ impl KaniBackend for KaniStore {
     fn conj_source_readings_by_conj_id(
         &self,
         conj_id: i32,
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.conj_source_readings_by_conj_id(conj_id))
     }
 
@@ -760,7 +761,7 @@ impl KaniBackend for KaniStore {
         &self,
         conj_id: i32,
         texts: &[String],
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.conj_source_readings_by_conj_id_and_texts(conj_id, texts))
     }
 
@@ -768,7 +769,7 @@ impl KaniBackend for KaniStore {
         &self,
         conj_id: i32,
         source_text: &str,
-    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.conj_source_reading_texts(conj_id, source_text))
     }
 
@@ -799,7 +800,7 @@ impl KaniBackend for KaniStore {
         &self,
         seq: i32,
         tags: &[&str],
-    ) -> Result<Vec<(i32, String, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(i32, Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.sense_prop_rows_tagged(seq, tags))
     }
 
@@ -818,7 +819,7 @@ impl KaniBackend for KaniStore {
     fn glosses_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(i32, Cow<'static, str>)>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.glosses_by_seq_any(seqs))
     }
 
@@ -830,7 +831,7 @@ impl KaniBackend for KaniStore {
         kani_store_delegate!(self, backend => backend.sense_id_ord0(ids))
     }
 
-    fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<String>, crate::conn::KaniDbError> {
+    fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.non_arch_posi(seqs))
     }
 
@@ -846,14 +847,14 @@ impl KaniBackend for KaniStore {
         &self,
         tag: &str,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(i32, Cow<'static, str>)>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.counter_stag_rows(tag, seqs))
     }
 
     fn restricted_readings_by_seq(
         &self,
         seq: i32,
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.restricted_readings_by_seq(seq))
     }
 
@@ -871,7 +872,7 @@ impl KaniBackend for KaniStore {
     fn okurigana_texts_by_reading_id(
         &self,
         reading_id: i32,
-    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.okurigana_texts_by_reading_id(reading_id))
     }
 
@@ -892,7 +893,7 @@ impl KaniBackend for KaniStore {
         &self,
         text: &str,
         typeset: &[String],
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
         kani_store_delegate!(self, backend => backend.kanji_reading_pairs(text, typeset))
     }
 }

@@ -93,10 +93,16 @@ pub fn get_conj_data(
     for conj in conjs {
         let src_map: Vec<(String, String)> = if filter_by_texts {
             ctx.store
-                .conj_source_readings_by_conj_id_and_texts(conj.id, &texts_owned)
-                ?
+                .conj_source_readings_by_conj_id_and_texts(conj.id, &texts_owned)?
+                .into_iter()
+                .map(|(text, source)| (text.into_owned(), source.into_owned()))
+                .collect()
         } else {
-            ctx.store.conj_source_readings_by_conj_id(conj.id)?
+            ctx.store
+                .conj_source_readings_by_conj_id(conj.id)?
+                .into_iter()
+                .map(|(text, source)| (text.into_owned(), source.into_owned()))
+                .collect()
         };
         if filter_by_texts && src_map.is_empty() {
             continue;

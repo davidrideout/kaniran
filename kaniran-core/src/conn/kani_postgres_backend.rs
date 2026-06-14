@@ -14,6 +14,7 @@ use crate::conn::kani_backend::KaniBackend;
 use crate::dict::dao::{ConjProp, Conjugation, Entry, KanaText, KanjiText};
 use crate::kanji::dao::{Kanji, Meaning, Reading};
 use sqlx::PgPool;
+use std::borrow::Cow;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 
@@ -112,8 +113,9 @@ impl KaniBackend for KaniPostgresBackend {
     fn kanji_words_containing_char(
         &self,
         char: &str,
-    ) -> Result<Vec<(i32, String, String, i32)>, crate::conn::KaniDbError> {
-        self.rt
+    ) -> Result<Vec<(i32, Cow<'static, str>, Cow<'static, str>, i32)>, crate::conn::KaniDbError> {
+        let rows: Vec<(i32, String, String, i32)> = self
+            .rt
             .block_on(async {
                 sqlx::query_as(
                     "SELECT e.seq, k.text, r.text, k.common \
@@ -129,12 +131,18 @@ impl KaniBackend for KaniPostgresBackend {
                 .fetch_all(&self.pool)
                 .await
             })
-            .map_err(crate::conn::KaniDbError::from)
+            .map_err(crate::conn::KaniDbError::from)?;
+        Ok(rows
+            .into_iter()
+            .map(|(seq, kanji, kana, common)| {
+                (seq, Cow::Owned(kanji), Cow::Owned(kana), common)
+            })
+            .collect())
     }
 
     // --- kanji_text / kana_text ---
 
-    fn headword_kanji_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError> {
+    fn headword_kanji_text(&self, seq: i32) -> Result<Option<Cow<'static, str>>, crate::conn::KaniDbError> {
         self.rt
             .block_on(async {
                 sqlx::query_scalar("SELECT text FROM kanji_text WHERE seq = $1 AND ord = 0")
@@ -142,10 +150,11 @@ impl KaniBackend for KaniPostgresBackend {
                     .fetch_optional(&self.pool)
                     .await
             })
+            .map(|opt: Option<String>| opt.map(Cow::Owned))
             .map_err(crate::conn::KaniDbError::from)
     }
 
-    fn headword_kana_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError> {
+    fn headword_kana_text(&self, seq: i32) -> Result<Option<Cow<'static, str>>, crate::conn::KaniDbError> {
         self.rt
             .block_on(async {
                 sqlx::query_scalar("SELECT text FROM kana_text WHERE seq = $1 AND ord = 0")
@@ -153,6 +162,7 @@ impl KaniBackend for KaniPostgresBackend {
                     .fetch_optional(&self.pool)
                     .await
             })
+            .map(|opt: Option<String>| opt.map(Cow::Owned))
             .map_err(crate::conn::KaniDbError::from)
     }
 
@@ -536,15 +546,17 @@ impl KaniBackend for KaniPostgresBackend {
     fn kana_reading_texts_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
-        self.rt
+    ) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError> {
+        let rows: Vec<String> = self
+            .rt
             .block_on(async {
                 sqlx::query_scalar("SELECT text FROM kana_text WHERE seq = ANY($1) ORDER BY id")
                     .bind(seqs)
                     .fetch_all(&self.pool)
                     .await
             })
-            .map_err(crate::conn::KaniDbError::from)
+            .map_err(crate::conn::KaniDbError::from)?;
+        Ok(rows.into_iter().map(Cow::Owned).collect())
     }
 
     fn kana_seqs_by_seq_and_text(
@@ -724,23 +736,29 @@ impl KaniBackend for KaniPostgresBackend {
     fn conj_source_readings_by_conj_id(
         &self,
         conj_id: i32,
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
-        self.rt
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
+        let rows: Vec<(String, String)> = self
+            .rt
             .block_on(async {
                 sqlx::query_as("SELECT text, source_text FROM conj_source_reading WHERE conj_id = $1")
                     .bind(conj_id)
                     .fetch_all(&self.pool)
                     .await
             })
-            .map_err(crate::conn::KaniDbError::from)
+            .map_err(crate::conn::KaniDbError::from)?;
+        Ok(rows
+            .into_iter()
+            .map(|(text, source)| (Cow::Owned(text), Cow::Owned(source)))
+            .collect())
     }
 
     fn conj_source_readings_by_conj_id_and_texts(
         &self,
         conj_id: i32,
         texts: &[String],
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
-        self.rt
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
+        let rows: Vec<(String, String)> = self
+            .rt
             .block_on(async {
                 sqlx::query_as(
                     "SELECT text, source_text FROM conj_source_reading \
@@ -751,15 +769,20 @@ impl KaniBackend for KaniPostgresBackend {
                 .fetch_all(&self.pool)
                 .await
             })
-            .map_err(crate::conn::KaniDbError::from)
+            .map_err(crate::conn::KaniDbError::from)?;
+        Ok(rows
+            .into_iter()
+            .map(|(text, source)| (Cow::Owned(text), Cow::Owned(source)))
+            .collect())
     }
 
     fn conj_source_reading_texts(
         &self,
         conj_id: i32,
         source_text: &str,
-    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
-        self.rt
+    ) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError> {
+        let rows: Vec<String> = self
+            .rt
             .block_on(async {
                 sqlx::query_scalar(
                     "SELECT text FROM conj_source_reading \
@@ -770,7 +793,8 @@ impl KaniBackend for KaniPostgresBackend {
                 .fetch_all(&self.pool)
                 .await
             })
-            .map_err(crate::conn::KaniDbError::from)
+            .map_err(crate::conn::KaniDbError::from)?;
+        Ok(rows.into_iter().map(Cow::Owned).collect())
     }
 
     fn parents_kanji(
@@ -848,8 +872,9 @@ impl KaniBackend for KaniPostgresBackend {
         &self,
         seq: i32,
         tags: &[&str],
-    ) -> Result<Vec<(i32, String, String)>, crate::conn::KaniDbError> {
-        self.rt
+    ) -> Result<Vec<(i32, Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
+        let rows: Vec<(i32, String, String)> = self
+            .rt
             .block_on(async {
                 sqlx::query_as(
                     "SELECT sense.ord AS ord, sense_prop.tag AS tag, sense_prop.text AS text \
@@ -864,7 +889,11 @@ impl KaniBackend for KaniPostgresBackend {
                 .fetch_all(&self.pool)
                 .await
             })
-            .map_err(crate::conn::KaniDbError::from)
+            .map_err(crate::conn::KaniDbError::from)?;
+        Ok(rows
+            .into_iter()
+            .map(|(ord, tag, text)| (ord, Cow::Owned(tag), Cow::Owned(text)))
+            .collect())
     }
 
     fn first_sense_gloss(
@@ -918,8 +947,9 @@ impl KaniBackend for KaniPostgresBackend {
     fn glosses_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError> {
-        self.rt
+    ) -> Result<Vec<(i32, Cow<'static, str>)>, crate::conn::KaniDbError> {
+        let rows: Vec<(i32, String)> = self
+            .rt
             .block_on(async {
                 sqlx::query_as(
                     "SELECT sense.seq, gloss.text FROM gloss, sense \
@@ -930,7 +960,11 @@ impl KaniBackend for KaniPostgresBackend {
                 .fetch_all(&self.pool)
                 .await
             })
-            .map_err(crate::conn::KaniDbError::from)
+            .map_err(crate::conn::KaniDbError::from)?;
+        Ok(rows
+            .into_iter()
+            .map(|(seq, text)| (seq, Cow::Owned(text)))
+            .collect())
     }
 
     fn uk_sense_ids(&self, seqs: &[i32]) -> Result<Vec<i32>, crate::conn::KaniDbError> {
@@ -958,8 +992,9 @@ impl KaniBackend for KaniPostgresBackend {
             .map_err(crate::conn::KaniDbError::from)
     }
 
-    fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<String>, crate::conn::KaniDbError> {
-        self.rt
+    fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError> {
+        let rows: Vec<String> = self
+            .rt
             .block_on(async {
                 sqlx::query_scalar(
                     "SELECT DISTINCT sp1.text \
@@ -976,7 +1011,8 @@ impl KaniBackend for KaniPostgresBackend {
                 .fetch_all(&self.pool)
                 .await
             })
-            .map_err(crate::conn::KaniDbError::from)
+            .map_err(crate::conn::KaniDbError::from)?;
+        Ok(rows.into_iter().map(Cow::Owned).collect())
     }
 
     fn arch_only_seqs(&self) -> Result<Vec<i32>, crate::conn::KaniDbError> {
@@ -1013,8 +1049,9 @@ impl KaniBackend for KaniPostgresBackend {
         &self,
         tag: &str,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError> {
-        self.rt
+    ) -> Result<Vec<(i32, Cow<'static, str>)>, crate::conn::KaniDbError> {
+        let rows: Vec<(i32, String)> = self
+            .rt
             .block_on(async {
                 sqlx::query_as(
                     "SELECT sp.seq, sp.text \
@@ -1031,21 +1068,30 @@ impl KaniBackend for KaniPostgresBackend {
                 .fetch_all(&self.pool)
                 .await
             })
-            .map_err(crate::conn::KaniDbError::from)
+            .map_err(crate::conn::KaniDbError::from)?;
+        Ok(rows
+            .into_iter()
+            .map(|(seq, text)| (seq, Cow::Owned(text)))
+            .collect())
     }
 
     fn restricted_readings_by_seq(
         &self,
         seq: i32,
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
-        self.rt
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
+        let rows: Vec<(String, String)> = self
+            .rt
             .block_on(async {
                 sqlx::query_as("SELECT reading, text FROM restricted_readings WHERE seq = $1")
                     .bind(seq)
                     .fetch_all(&self.pool)
                     .await
             })
-            .map_err(crate::conn::KaniDbError::from)
+            .map_err(crate::conn::KaniDbError::from)?;
+        Ok(rows
+            .into_iter()
+            .map(|(reading, text)| (Cow::Owned(reading), Cow::Owned(text)))
+            .collect())
     }
 
     // --- kanjidic ---
@@ -1081,15 +1127,17 @@ impl KaniBackend for KaniPostgresBackend {
     fn okurigana_texts_by_reading_id(
         &self,
         reading_id: i32,
-    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
-        self.rt
+    ) -> Result<Vec<Cow<'static, str>>, crate::conn::KaniDbError> {
+        let rows: Vec<String> = self
+            .rt
             .block_on(async {
                 sqlx::query_scalar("SELECT DISTINCT text FROM okurigana WHERE reading_id = $1")
                     .bind(reading_id)
                     .fetch_all(&self.pool)
                     .await
             })
-            .map_err(crate::conn::KaniDbError::from)
+            .map_err(crate::conn::KaniDbError::from)?;
+        Ok(rows.into_iter().map(Cow::Owned).collect())
     }
 
     fn kanji_by_text(&self, text: &str) -> Result<Vec<Kanji>, crate::conn::KaniDbError> {
@@ -1128,8 +1176,9 @@ impl KaniBackend for KaniPostgresBackend {
         &self,
         text: &str,
         typeset: &[String],
-    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
-        self.rt
+    ) -> Result<Vec<(Cow<'static, str>, Cow<'static, str>)>, crate::conn::KaniDbError> {
+        let rows: Vec<(String, String)> = self
+            .rt
             .block_on(async {
                 sqlx::query_as(
                     "SELECT r.text, r.type FROM kanji k \
@@ -1142,6 +1191,10 @@ impl KaniBackend for KaniPostgresBackend {
                 .fetch_all(&self.pool)
                 .await
             })
-            .map_err(crate::conn::KaniDbError::from)
+            .map_err(crate::conn::KaniDbError::from)?;
+        Ok(rows
+            .into_iter()
+            .map(|(reading, reading_type)| (Cow::Owned(reading), Cow::Owned(reading_type)))
+            .collect())
     }
 }

@@ -32,8 +32,10 @@ pub fn reading_str_seq(
     ctx: &KaniranContext,
     seq: i32,
 ) -> Result<Option<String>, crate::conn::KaniDbError> {
-    let kanji_text: Option<String> = ctx.store.headword_kanji_text(seq)?;
-    let kana_text: Option<String> = ctx.store.headword_kana_text(seq)?;
+    let kanji_text: Option<String> =
+        ctx.store.headword_kanji_text(seq)?.map(|text| text.into_owned());
+    let kana_text: Option<String> =
+        ctx.store.headword_kana_text(seq)?.map(|text| text.into_owned());
     Ok(reading_str_star_(
         kanji_text.as_deref(),
         kana_text.as_deref(),
@@ -444,7 +446,12 @@ pub fn get_kanji_words(
     ctx: &KaniranContext,
     char: &str,
 ) -> Result<Vec<(i32, String, String, i32)>, crate::conn::KaniDbError> {
-    ctx.store.kanji_words_containing_char(char)
+    Ok(ctx
+        .store
+        .kanji_words_containing_char(char)?
+        .into_iter()
+        .map(|(seq, kanji, kana, common)| (seq, kanji.into_owned(), kana.into_owned(), common))
+        .collect())
 }
 
 #[cfg(test)]

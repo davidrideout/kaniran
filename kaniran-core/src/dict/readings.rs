@@ -24,10 +24,10 @@ pub fn get_kanji_kana_old(
     let kts = ctx.store.kana_texts_by_seq_ordered(obj.seq)?;
     for kt in &kts {
         if regex.is_match(&kt.text).unwrap_or(false) {
-            return Ok(Some(kt.text.clone()));
+            return Ok(Some(kt.text.to_string()));
         }
     }
-    Ok(kts.into_iter().next().map(|kt| kt.text))
+    Ok(kts.into_iter().next().map(|kt| kt.text.into_owned()))
 }
 
 /// Transliteration of `ichiran/dict:get-original-text-once` (`dict.lisp:371`).
@@ -130,7 +130,7 @@ pub fn best_kana_conj(
     // dict.lisp:431-433 ((and (or (not wc) (eql wc :root)) (not (eql (best-kana obj) :null))))
     let root_or_unset = matches!(wc, None | Some(WordConjugations::Root));
     if root_or_unset && obj.best_kana.is_some() {
-        return Ok(obj.best_kana.clone());
+        return Ok(obj.best_kana.clone().map(Cow::into_owned));
     }
 
     let parents = query_parents_kanji(ctx, obj.seq, &obj.text)?;
@@ -158,7 +158,12 @@ pub fn best_kana_conj(
 
         // dict.lisp:439-442 (query (:select 'text :from 'conj-source-reading
         //   :where (:and (:= 'conj-id cid) (:= 'source-text parent-bk))) :column)
-        let readings: Vec<String> = ctx.store.conj_source_reading_texts(cid, &parent_bk)?;
+        let readings: Vec<String> = ctx
+            .store
+            .conj_source_reading_texts(cid, &parent_bk)?
+            .into_iter()
+            .map(|reading| reading.into_owned())
+            .collect();
         if readings.is_empty() {
             continue;
         }
@@ -207,7 +212,7 @@ pub fn best_kanji_conj(
     // dict.lisp:458-460 ((and (or (not wc) (eql wc :root)) (not (eql (best-kanji obj) :null))))
     let root_or_unset = matches!(wc, None | Some(WordConjugations::Root));
     if root_or_unset && obj.best_kanji.is_some() {
-        return Ok(obj.best_kanji.clone());
+        return Ok(obj.best_kanji.clone().map(Cow::into_owned));
     }
 
     // dict.lisp:461-462 ((or (nokanji obj) (= (n-kanji (get-dao 'entry (seq obj))) 0)) :null)
@@ -245,7 +250,12 @@ pub fn best_kanji_conj(
 
         // dict.lisp:467-470 (query (:select 'text :from 'conj-source-reading
         //   :where (:and (:= 'conj-id cid) (:= 'source-text parent-bk))) :column)
-        let readings: Vec<String> = ctx.store.conj_source_reading_texts(cid, &parent_bk)?;
+        let readings: Vec<String> = ctx
+            .store
+            .conj_source_reading_texts(cid, &parent_bk)?
+            .into_iter()
+            .map(|reading| reading.into_owned())
+            .collect();
         // dict.lisp:471-473 (some (lambda (reading) (and (kanji-match reading (text obj)) reading)) readings)
         if let Some(hit) = readings.into_iter().find(|r| kanji_match(r, &obj.text)) {
             return Ok(Some(hit));
@@ -401,7 +411,7 @@ pub fn find_substring_words(
         // appending produces the same bucket order as prepending each
         // row in forward order, without shifting the bucket per insert.
         for kt in rows.into_iter().rev() {
-            if let Some(FindWordRows::Kana(bucket)) = substring_hash.get_mut(&kt.text) {
+            if let Some(FindWordRows::Kana(bucket)) = substring_hash.get_mut(&*kt.text) {
                 bucket.push(kt);
             }
         }
@@ -410,7 +420,7 @@ pub fn find_substring_words(
         let rows: Vec<KanjiText> = ctx.store.kanji_texts_by_text_any(&kanji_keys)?;
         // dict.lisp:517 — reversed append mirrors CL `push` (see kana loop).
         for kt in rows.into_iter().rev() {
-            if let Some(FindWordRows::Kanji(bucket)) = substring_hash.get_mut(&kt.text) {
+            if let Some(FindWordRows::Kanji(bucket)) = substring_hash.get_mut(&*kt.text) {
                 bucket.push(kt);
             }
         }
@@ -478,7 +488,11 @@ pub fn word_readings(
         // dict.lisp:540-541 (kanji-seq (query (:select 'seq :from 'kanji-text :where (:= 'text word)) :column))
         let kanji_seq: Vec<i32> = ctx.store.kanji_seqs_by_text(word)?;
         // dict.lisp:542-545 (query (:order-by (:select 'text :from 'kana-text :where (:in 'seq (:set kanji-seq))) 'id) :column)
-        ctx.store.kana_reading_texts_by_seq_any(&kanji_seq)?
+        ctx.store
+            .kana_reading_texts_by_seq_any(&kanji_seq)?
+            .into_iter()
+            .map(|reading| reading.into_owned())
+            .collect()
     };
     // dict.lisp:546 (values readings (mapcar #'ichiran:romanize-word readings))
     let method = RomanizationMethod::TraditionalHepburn(default_romanization_method());

@@ -979,7 +979,7 @@ impl CapturedKanaText {
             && self.common_tags == actual.common_tags
             && self.conjugate_p == actual.conjugate_p
             && self.nokanji == actual.nokanji
-            && self.best_kanji == actual.best_kanji
+            && self.best_kanji.as_deref() == actual.best_kanji.as_deref()
             && self.conjugations == actual.state.conjugations
             && self.hintedp == actual.state.hintedp
     }
@@ -992,13 +992,13 @@ impl CapturedKanaText {
             // reads it.
             id: self.id.unwrap_or(0),
             seq: self.seq,
-            text: self.text,
+            text: self.text.into(),
             ord: self.ord,
             common: self.common,
-            common_tags: self.common_tags,
+            common_tags: self.common_tags.into(),
             conjugate_p: self.conjugate_p,
             nokanji: self.nokanji,
-            best_kanji: self.best_kanji,
+            best_kanji: self.best_kanji.map(Into::into),
             state: SimpleText {
                 conjugations: self.conjugations,
                 hintedp: self.hintedp,
@@ -1022,7 +1022,7 @@ impl CapturedKanjiText {
             && self.common_tags == actual.common_tags
             && self.conjugate_p == actual.conjugate_p
             && self.nokanji == actual.nokanji
-            && self.best_kana == actual.best_kana
+            && self.best_kana.as_deref() == actual.best_kana.as_deref()
             && self.conjugations == actual.state.conjugations
             && self.hintedp == actual.state.hintedp
     }
@@ -1032,13 +1032,13 @@ impl CapturedKanjiText {
             // Synthesized rows have no id; see [`CapturedKanaText::into_dao`].
             id: self.id.unwrap_or(0),
             seq: self.seq,
-            text: self.text,
+            text: self.text.into(),
             ord: self.ord,
             common: self.common,
-            common_tags: self.common_tags,
+            common_tags: self.common_tags.into(),
             conjugate_p: self.conjugate_p,
             nokanji: self.nokanji,
-            best_kana: self.best_kana,
+            best_kana: self.best_kana.map(Into::into),
             state: SimpleText {
                 conjugations: self.conjugations,
                 hintedp: self.hintedp,

@@ -28,7 +28,11 @@ pub fn get_readings_cache(
         // ambiguous-gemination ties deterministically. Without it the
         // JOIN order is unstable and reading.stat_common drifts
         // run-to-run.
-        ctx.store.kanji_reading_pairs(text, typeset)?
+        ctx.store
+            .kanji_reading_pairs(text, typeset)?
+            .into_iter()
+            .map(|(reading, reading_type)| (reading.into_owned(), reading_type.into_owned()))
+            .collect()
     };
     {
         let mut cache = ctx.reading_cache.lock().unwrap();
