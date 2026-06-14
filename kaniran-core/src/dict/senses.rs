@@ -7,7 +7,6 @@ use crate::dict::dao::{KanaText, KanjiText};
 use crate::dict::kani_word::KaniWordDispatchEnum;
 use serde_json::{Map, Value};
 use std::fmt::Write;
-use std::future::Future;
 
 /// Transliteration of `ichiran/dict:get-senses-raw` (`dict.lisp:1458`).
 ///

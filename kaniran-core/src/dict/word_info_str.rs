@@ -11,8 +11,6 @@ use crate::dict::word_info::{
 use serde_json::{Map, Value};
 use std::borrow::Cow;
 use std::fmt::Write;
-use std::future::Future;
-use std::pin::Pin;
 
 /// Port of `ichiran/dict:reading-str*` (`dict.lisp:1580`).
 ///

@@ -316,6 +316,7 @@ mod find_word_info {
     /// A compound whose kana differs from the supplied reading triggers a
     /// reading lookup against its list of seqs, which the database rejects
     /// with SQLSTATE 42883.
+    #[cfg(feature = "postgres")]
     #[test]
     fn compound_reading_mismatch_errors() {
         let ctx = ctx();

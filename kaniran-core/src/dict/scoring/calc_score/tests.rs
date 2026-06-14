@@ -22,6 +22,7 @@ mod calc_score {
     /// Fetch a specific kana_text row by (seq, text) — deterministic
     /// alternative to `first_word_for` when find-word's row order
     /// (no upstream ORDER BY) would make a test flaky.
+    #[cfg(feature = "postgres")]
     fn kana_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
         let rows: Vec<crate::dict::dao::KanaText> = sqlx::query_as(
             "SELECT * FROM kana_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
@@ -115,6 +116,7 @@ mod calc_score {
     /// order, which would otherwise alternate between the noun reading and
     /// the copula. Exercises the copula branch and the common=0 arm of the
     /// common-bonus cascade.
+    #[cfg(feature = "postgres")]
     #[test]
     fn da_copula_cop_da_p_branch() {
         let ctx = ctx_from_env();

@@ -13,8 +13,6 @@ use crate::dict::grammar::suffix::rules::{
 use crate::dict::dao::KanaText;
 use crate::dict::kani_word::KaniWordDispatchEnum;
 use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
 use std::sync::OnceLock;
 
 /// Port of `ichiran/dict:*suffix-cache*` (`dict-grammar.lisp:5`).

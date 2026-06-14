@@ -9,6 +9,7 @@ fn to_json_ctx() -> Arc<KaniranContext> {
         .expect("DATABASE_URL / kaniran.toml required")
 }
 
+#[cfg(feature = "postgres")]
 fn kanji(to_json_ctx: &KaniranContext, text: &str) -> Kanji {
     sqlx::query_as::<_, Kanji>("SELECT * FROM kanji WHERE text = $1")
         .bind(text)
@@ -22,6 +23,7 @@ fn kanji(to_json_ctx: &KaniranContext, text: &str) -> Kanji {
 /// null). Also covers `irr_perc` with total=0 → `--.--%` (薔, 檸) vs nonzero
 /// (人, 鬱); readings ordered by type then sample; suffix readings (人's り/と);
 /// and kun readings carrying okurigana (鬱).
+#[cfg(feature = "postgres")]
 #[test]
 fn to_json_fixtures() {
     let to_json_ctx = to_json_ctx();
@@ -58,6 +60,7 @@ fn reading_info_json_ctx() -> Arc<KaniranContext> {
         .expect("DATABASE_URL / kaniran.toml required")
 }
 
+#[cfg(feature = "postgres")]
 fn reading(reading_info_json_ctx: &KaniranContext, id: i32) -> Reading {
     sqlx::query_as::<_, Reading>("SELECT * FROM reading WHERE id = $1")
         .bind(id)
@@ -71,6 +74,7 @@ fn reading(reading_info_json_ctx: &KaniranContext, id: i32) -> Reading {
 /// prefix and suffix flags in every combination; the percentage with total=0 →
 /// `--.--%` (575), sample=0 with total>0 → `0.00%` (575), and nonzero (315 →
 /// `100.00%`); and romanization keeping long vowels (もう→`mou`, not `mō`).
+#[cfg(feature = "postgres")]
 #[test]
 fn reading_info_json_fixtures() {
     let reading_info_json_ctx = reading_info_json_ctx();

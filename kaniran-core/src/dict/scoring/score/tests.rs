@@ -189,6 +189,7 @@ mod kanji_break_penalty {
 
     /// For 猫 (a common noun), none of the short-circuit conditions apply,
     /// so the penalty falls through and halves the score: 19 → 10.
+    #[cfg(feature = "postgres")]
     #[test]
     fn info_fall_through_penalty() {
         use crate::dict::kani_word::KaniWordDispatchEnum;
@@ -212,6 +213,7 @@ mod kanji_break_penalty {
 
     /// 飲む is on the no-kanji-break-penalty list, so the score is returned
     /// unchanged regardless of the arithmetic.
+    #[cfg(feature = "postgres")]
     #[test]
     fn no_penalty_list_short_circuit() {
         use crate::dict::kani_word::KaniWordDispatchEnum;
@@ -235,6 +237,7 @@ mod kanji_break_penalty {
     /// 好き is on the no-kanji-break-penalty list, so the score is
     /// unchanged regardless of text. Even without that, its す-prefix would
     /// also short-circuit the penalty.
+    #[cfg(feature = "postgres")]
     #[test]
     fn suki_seq_short_circuit() {
         use crate::dict::kani_word::KaniWordDispatchEnum;
@@ -423,6 +426,7 @@ mod gen_score {
     /// Deterministic single-row fetch — `find-word`'s SQL has no
     /// ORDER BY, so the same lookup can rotate first rows between
     /// runs / databases.
+    #[cfg(feature = "postgres")]
     fn kana_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
         let rows: Vec<crate::dict::dao::KanaText> = sqlx::query_as(
             "SELECT * FROM kana_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
@@ -430,11 +434,12 @@ mod gen_score {
         .bind(seq)
         .bind(text)
         .fetch_all(&ctx.pool)
-        
+
         .expect("query");
         KaniWordDispatchEnum::Kana(rows.into_iter().next().expect("row exists"))
     }
 
+    #[cfg(feature = "postgres")]
     fn kanji_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
         let rows: Vec<crate::dict::dao::KanjiText> = sqlx::query_as(
             "SELECT * FROM kanji_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
@@ -482,6 +487,7 @@ mod gen_score {
     /// A kanji-break passed to gen_score propagates through calc_score
     /// into the segment's info. Uses a deterministic-row helper to avoid
     /// the unordered find-word lookup.
+    #[cfg(feature = "postgres")]
     #[test]
     fn neko_kanji_break_propagates_through_calc_score() {
         let ctx = ctx_from_env();
@@ -502,6 +508,7 @@ mod gen_score {
     }
 
     /// A common noun reading of ね scored in final position.
+    #[cfg(feature = "postgres")]
     #[test]
     fn ne_final_common_n_branch() {
         let ctx = ctx_from_env();

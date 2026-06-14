@@ -22,8 +22,6 @@ use crate::dict::accessors::word_conjugations;
 use crate::dict::word_info::WordInfoSeq;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::future::Future;
-use std::pin::Pin;
 use std::sync::Arc;
 
 /// Port of `ichiran/dict:get-kana-forms-conj-data-filter` (`dict-grammar.lisp:10`).

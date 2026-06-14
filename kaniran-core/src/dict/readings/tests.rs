@@ -266,6 +266,7 @@ mod find_substring_words {
     /// order. Compared unsorted, unlike the other tests here — that's the
     /// point. The expected order is derived from the same query the
     /// populator runs, so it pins the reversal rather than hard-coded seqs.
+    #[cfg(feature = "postgres")]
     #[test]
     fn bucket_is_reverse_of_fetch_order() {
         let ctx = ctx_from_env();

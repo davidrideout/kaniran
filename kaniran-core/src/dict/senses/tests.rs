@@ -481,6 +481,7 @@ mod match_sense_restrictions {
             .props
     }
 
+    #[cfg(feature = "postgres")]
     fn reading_of(
         ctx: &KaniranContext,
         seq: i32,
@@ -514,6 +515,7 @@ mod match_sense_restrictions {
     /// restriction list resolved against the database to accept or reject a
     /// kanji; and the case where a kana reading resolves to a specific
     /// matched kanji string.
+    #[cfg(feature = "postgres")]
     #[test]
     fn match_sense_restrictions_fixtures() {
         let ctx = ctx_from_env();
@@ -697,13 +699,12 @@ mod split_pos {
 }
 
 mod get_senses_json {
-    use crate::dict::dao::KanaText;
-    use crate::dict::dao::KanjiText;
+    
+    
     use crate::dict::senses::*;
-    use std::future::Ready;
     use std::sync::Arc;
 
-    type GetterFut = Ready<Result<Option<KaniWordDispatchEnum>, crate::conn::KaniDbError>>;
+    type GetterFut = fn() -> Result<Option<KaniWordDispatchEnum>, crate::conn::KaniDbError>;
 
     fn ctx_from_env() -> Arc<KaniranContext> {
         KaniranContext::from_env()
@@ -715,6 +716,7 @@ mod get_senses_json {
         serde_json::to_string(values).unwrap()
     }
 
+    #[cfg(feature = "postgres")]
     fn kanji_reading(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
         let row: KanjiText =
             sqlx::query_as("SELECT * FROM kanji_text WHERE seq = $1 AND text = $2")
@@ -726,6 +728,7 @@ mod get_senses_json {
         KaniWordDispatchEnum::Kanji(row)
     }
 
+    #[cfg(feature = "postgres")]
     fn kana_reading(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
         let row: KanaText = sqlx::query_as("SELECT * FROM kana_text WHERE seq = $1 AND text = $2")
             .bind(seq)
@@ -826,6 +829,7 @@ mod get_senses_json {
     /// When a reading is supplied, senses are filtered by their reading
     /// restrictions: a listed kanji or kana passes, a non-listed kanji is
     /// dropped, and a kana that resolves to a listed kanji passes.
+    #[cfg(feature = "postgres")]
     #[test]
     fn reading_restriction() {
         let ctx = ctx_from_env();
@@ -870,6 +874,7 @@ mod get_senses_json {
     /// reading: a getter yielding 出汁 filters the restricted sense out, and a
     /// getter yielding nothing leaves it in. The getter fires only once even
     /// across multiple restricted senses; the resolved reading is reused.
+    #[cfg(feature = "postgres")]
     #[test]
     fn reading_getter_path() {
         let ctx = ctx_from_env();
@@ -879,21 +884,21 @@ mod get_senses_json {
 
         // Getter yields 出汁: sense 1 is filtered out.
         let reading = kanji_reading(&ctx, 1339160, "出汁");
-        let getter = std::future::ready(Ok(Some(reading)));
+        let getter = move || Ok(Some(reading));
         let result = get_senses_json(&ctx, 1339160, &[], None, Some(getter))
             
             .unwrap();
         assert_eq!(json(&result), one_dashi, "getter 出汁");
 
         // Getter yields nothing: the restricted sense passes.
-        let getter = std::future::ready(Ok(None));
+        let getter = || Ok(None);
         let result = get_senses_json(&ctx, 1339160, &[], None, Some(getter))
             
             .unwrap();
         assert_eq!(json(&result), both_dashi, "getter nil");
 
         // Two restricted senses, getter yields nothing: both senses kept.
-        let getter = std::future::ready(Ok(None));
+        let getter = || Ok(None);
         let result = get_senses_json(&ctx, 1011960, &[], None, Some(getter))
             
             .unwrap();
@@ -902,7 +907,7 @@ mod get_senses_json {
         // Two restricted senses, getter yields ぼたぼた (listed in both):
         // the resolved reading is reused, all three senses kept.
         let reading = kana_reading(&ctx, 1011960, "ぼたぼた");
-        let getter = std::future::ready(Ok(Some(reading)));
+        let getter = move || Ok(Some(reading));
         let result = get_senses_json(&ctx, 1011960, &[], None, Some(getter))
             
             .unwrap();

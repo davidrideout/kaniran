@@ -633,12 +633,10 @@ mod or_as_hiragana {
     // dict-grammar.lisp:506 (or-as-hiragana 'find-word-with-pos root …)
     fn make_pos_finder<'a>(ctx: &'a KaniranContext, posi: &'a [&'a str]) -> OrAsHiraganaFinder<'a> {
         Arc::new(move |word: String| {
-            Box::pin(async move {
-                let rows = find_word_with_pos(ctx, &word, posi)?;
-                Ok(match rows {
-                    WordWithPosRows::Kana(v) => FindWordRows::Kana(v),
-                    WordWithPosRows::Kanji(v) => FindWordRows::Kanji(v),
-                })
+            let rows = find_word_with_pos(ctx, &word, posi)?;
+            Ok(match rows {
+                WordWithPosRows::Kana(v) => FindWordRows::Kana(v),
+                WordWithPosRows::Kanji(v) => FindWordRows::Kanji(v),
             })
         })
     }

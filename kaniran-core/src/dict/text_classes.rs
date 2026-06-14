@@ -8,8 +8,6 @@ use crate::dict::split::segsplit::KANA_HINT_SPACE;
 use crate::numbers::constants::{DIGIT_KANJI_DEFAULT, POWER_KANJI};
 use crate::numbers::kana_form::{number_to_kana, NumberToKanaOutput};
 use crate::numbers::kanji_form::number_to_kanji;
-use std::future::Future;
-use std::pin::Pin;
 
 /// Port of `ichiran/dict:proxy-text` (`dict.lisp:550`).
 ///

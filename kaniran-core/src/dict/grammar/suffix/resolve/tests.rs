@@ -457,6 +457,7 @@ mod match_unique {
             .expect("KaniranContext::from_env (set DATABASE_URL)")
     }
 
+    #[cfg(feature = "postgres")]
     fn fetch_kana_rows_for_seq(ctx: &KaniranContext, seq_val: i32) -> Vec<KanaText> {
         sqlx::query_as::<_, KanaText>("SELECT * FROM kana_text WHERE seq = $1")
             .bind(seq_val)
@@ -527,6 +528,7 @@ mod match_unique {
 
     // REPL: matches = kana-text rows for seq=10243330 only (non-root).
     //       (match-unique :sa matches) => NIL
+    #[cfg(feature = "postgres")]
     #[test]
     fn sa_with_only_non_root_seqs_returns_none() {
         let c = ctx();
@@ -541,6 +543,7 @@ mod match_unique {
 
     // REPL: matches = kana-text rows for seq=10243330 + seq=1586010
     //       (the latter is root-p). (match-unique :sa matches) => (1586010)
+    #[cfg(feature = "postgres")]
     #[test]
     fn sa_with_mixed_root_returns_root_seqs() {
         let c = ctx();
@@ -554,6 +557,7 @@ mod match_unique {
     // REPL: (match-unique :sa (find-word "はや"))
     //   matches seqs: 1586010 1956580 2638250 10243330
     //     => (1586010 1956580 2638250)
+    #[cfg(feature = "postgres")]
     #[test]
     fn sa_with_haya_matches_returns_three_root_seqs() {
         let c = ctx();
@@ -591,6 +595,7 @@ mod match_unique {
     // REPL: matches = 2 kana_text rows for seq=10597478 (じゃないです variants)
     //       seqs unique → 1; conj rows from 2755350 → 1; (< 1 2) = T
     //       (match-unique :desu matches) => T
+    #[cfg(feature = "postgres")]
     #[test]
     fn desu_with_duplicate_jyanai_seqs_returns_desu() {
         let c = ctx();
@@ -607,6 +612,7 @@ mod match_unique {
     // REPL: matches = all kana_text rows for seqs 10597478, 10597479, 10597480
     //       len=8; conj rows from 2755350 (3 unique seqs) = 3; (< 3 8) = T
     //       (match-unique :desu matches) => T
+    #[cfg(feature = "postgres")]
     #[test]
     fn desu_with_all_jyanai_derived_returns_desu() {
         let c = ctx();
@@ -627,6 +633,7 @@ mod match_unique {
     // REPL: matches = 2 rows for seq=10597478 + 3 rows for seq=1586010 (not じゃない-derived)
     //       conj rows for {10597478, 1586010} from 2755350 = 1; (< 1 5) = T
     //       (match-unique :desu mixed) => T
+    #[cfg(feature = "postgres")]
     #[test]
     fn desu_with_mixed_jyanai_and_other_returns_desu() {
         let c = ctx();

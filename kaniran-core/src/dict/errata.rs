@@ -1,20 +1,9 @@
-use super::grammar::suffix::rules::apply_patch;
 use super::conj::ConjData;
 use super::dao::ConjProp;
-use super::dao::ConjSourceReading;
-use super::dao::Conjugation;
 use super::load::conj_rules::ConjugationRule;
-use super::dao::Entry;
 use super::load::pos::get_pos;
 use super::load::pos::get_pos_index;
-use super::dao::Gloss;
-use super::dao::KanaText;
 use super::kani_conj_form::{ConjForm, FormToken};
-use super::kani_reading_table::KaniReadingTable;
-use super::dao::KanjiText;
-use super::dao::SenseProp;
-use crate::characters::char_class::{test_word, CharClass};
-use crate::conn::kani_context::KaniranContext;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 

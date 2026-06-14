@@ -1,3 +1,4 @@
+#[cfg(feature = "loaders")]
 mod recalc_entry_stats {
     use crate::dict::dao::*;
 
@@ -87,6 +88,7 @@ mod recalc_entry_stats {
     }
 }
 
+#[cfg(feature = "loaders")]
 mod recalc_entry_stats_all {
     use crate::dict::dao::*;
 
@@ -159,6 +161,7 @@ mod entry_digest {
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
+    #[cfg(feature = "postgres")]
     fn load_entry(ctx: &KaniranContext, seq: i32) -> Entry {
         sqlx::query_as::<_, Entry>("SELECT * FROM entry WHERE seq = $1")
             .bind(seq)
@@ -169,6 +172,7 @@ mod entry_digest {
 
     /// Entry digest for kanji-bearing entries (text comes from the kanji
     /// form) and kana-only entries (text equals the kana).
+    #[cfg(feature = "postgres")]
     #[test]
     fn entry_digest_fixtures() {
         let ctx = ctx_from_env();

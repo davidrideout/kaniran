@@ -1,11 +1,8 @@
 use crate::characters::char_class::{test_word, CharClass};
-use crate::conn::kani_context::KaniranContext;
 use crate::dict::load::conj_rules::{
-    get_conj_rules, ConjugationRule, DO_NOT_CONJUGATE, DO_NOT_CONJUGATE_SEQ, POS_WITH_CONJ_RULES,
-    SECONDARY_CONJUGATION_TYPES, SECONDARY_CONJUGATION_TYPES_FROM,
+    get_conj_rules, ConjugationRule,
 };
-use crate::dict::load::pos::{get_pos, get_pos_index};
-use std::cmp::Ordering;
+use crate::dict::load::pos::get_pos_index;
 use std::collections::{HashMap, HashSet};
 
 /// Port of `ichiran/dict:construct-conjugation` (`dict-load.lisp:284`).
