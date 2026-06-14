@@ -4,40 +4,40 @@ mod recalc_entry_stats {
     // Affected count is the number of matched entry rows, not changed
     // rows; on a consistent dictionary the recalc rewrites each to the
     // same value. Needs a live database.
-    #[tokio::test]
-    async fn affected_count_matches_matched_rows() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
+    #[test]
+    fn affected_count_matches_matched_rows() {
+        let ctx = KaniranContext::from_env().expect("ctx");
 
         // One present seq -> 1 row affected.
-        let one = recalc_entry_stats(&ctx, &[1591050]).await.expect("one");
+        let one = recalc_entry_stats(&ctx, &[1591050]).expect("one");
         assert_eq!(one, 1);
 
         // Three present seqs -> 3.
         let multi = recalc_entry_stats(&ctx, &[1591050, 1495740, 1221520])
-            .await
+            
             .expect("multi");
         assert_eq!(multi, 3);
 
         // Empty set -> 0.
-        let empty = recalc_entry_stats(&ctx, &[]).await.expect("empty");
+        let empty = recalc_entry_stats(&ctx, &[]).expect("empty");
         assert_eq!(empty, 0);
 
         // A seq with no matching entry row -> 0 affected.
         let missing = recalc_entry_stats(&ctx, &[99999999])
-            .await
+            
             .expect("missing");
         assert_eq!(missing, 0);
 
         // Mixed present/absent -> only the present seq counts (1).
         let mixed = recalc_entry_stats(&ctx, &[1591050, 99999999])
-            .await
+            
             .expect("mixed");
         assert_eq!(mixed, 1);
     }
 
-    #[tokio::test]
-    async fn stats_match_child_counts_after_recalc() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
+    #[test]
+    fn stats_match_child_counts_after_recalc() {
+        let ctx = KaniranContext::from_env().expect("ctx");
 
         // Varied vocabulary spanning the kanji/kana count combinations.
         // seq -> (n_kanji, n_kana)
@@ -50,7 +50,7 @@ mod recalc_entry_stats {
         ];
         let seqs: Vec<i32> = cases.iter().map(|(seq, _, _)| *seq).collect();
 
-        let affected = recalc_entry_stats(&ctx, &seqs).await.expect("recalc");
+        let affected = recalc_entry_stats(&ctx, &seqs).expect("recalc");
         assert_eq!(affected, seqs.len() as u64);
 
         for (seq, exp_kanji, exp_kana) in cases {
@@ -58,7 +58,7 @@ mod recalc_entry_stats {
                 sqlx::query_as("SELECT n_kanji, n_kana FROM entry WHERE seq = $1")
                     .bind(seq)
                     .fetch_one(&ctx.pool)
-                    .await
+                    
                     .expect("entry row");
             assert_eq!(n_kanji, *exp_kanji, "seq={seq} n_kanji");
             assert_eq!(n_kana, *exp_kana, "seq={seq} n_kana");
@@ -67,13 +67,13 @@ mod recalc_entry_stats {
                 sqlx::query_scalar("SELECT COUNT(id) FROM kanji_text WHERE seq = $1")
                     .bind(seq)
                     .fetch_one(&ctx.pool)
-                    .await
+                    
                     .expect("kanji count");
             let actual_kana: i64 =
                 sqlx::query_scalar("SELECT COUNT(id) FROM kana_text WHERE seq = $1")
                     .bind(seq)
                     .fetch_one(&ctx.pool)
-                    .await
+                    
                     .expect("kana count");
             assert_eq!(
                 n_kanji as i64, actual_kanji,
@@ -93,15 +93,15 @@ mod recalc_entry_stats_all {
     // Affected count is the total entry row count (matched rows, not
     // changed rows), and afterwards every entry's stored stats equal its
     // child-row counts. Needs a live database.
-    #[tokio::test]
-    async fn affects_all_entries_and_stats_match_children() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
+    #[test]
+    fn affects_all_entries_and_stats_match_children() {
+        let ctx = KaniranContext::from_env().expect("ctx");
 
-        let affected = recalc_entry_stats_all(&ctx).await.expect("recalc-all");
+        let affected = recalc_entry_stats_all(&ctx).expect("recalc-all");
 
         let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM entry")
             .fetch_one(&ctx.pool)
-            .await
+            
             .expect("count entries");
         assert_eq!(affected, total as u64, "affected != total entry rows");
 
@@ -121,7 +121,7 @@ mod recalc_entry_stats_all {
                 sqlx::query_as("SELECT n_kanji, n_kana FROM entry WHERE seq = $1")
                     .bind(seq)
                     .fetch_one(&ctx.pool)
-                    .await
+                    
                     .expect("entry row");
             assert_eq!(n_kanji, *exp_kanji, "seq={seq} n_kanji");
             assert_eq!(n_kana, *exp_kana, "seq={seq} n_kana");
@@ -130,13 +130,13 @@ mod recalc_entry_stats_all {
                 sqlx::query_scalar("SELECT COUNT(id) FROM kanji_text WHERE seq = $1")
                     .bind(seq)
                     .fetch_one(&ctx.pool)
-                    .await
+                    
                     .expect("kanji count");
             let actual_kana: i64 =
                 sqlx::query_scalar("SELECT COUNT(id) FROM kana_text WHERE seq = $1")
                     .bind(seq)
                     .fetch_one(&ctx.pool)
-                    .await
+                    
                     .expect("kana count");
             assert_eq!(
                 n_kanji as i64, actual_kanji,
@@ -153,25 +153,25 @@ mod recalc_entry_stats_all {
 mod entry_digest {
     use crate::dict::dao::*;
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
-    async fn load_entry(ctx: &KaniranContext, seq: i32) -> Entry {
+    fn load_entry(ctx: &KaniranContext, seq: i32) -> Entry {
         sqlx::query_as::<_, Entry>("SELECT * FROM entry WHERE seq = $1")
             .bind(seq)
             .fetch_one(&ctx.pool)
-            .await
+            
             .unwrap()
     }
 
     /// Entry digest for kanji-bearing entries (text comes from the kanji
     /// form) and kana-only entries (text equals the kana).
-    #[tokio::test]
-    async fn entry_digest_fixtures() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn entry_digest_fixtures() {
+        let ctx = ctx_from_env();
         let cases: &[(i32, &str, &str)] = &[
             (1257590, "憲法", "けんぽう"),
             (1386690, "雪崩", "なだれ"),
@@ -180,8 +180,8 @@ mod entry_digest {
             (1010900, "ぴったり", "ぴったり"),
         ];
         for (seq, text, kana) in cases {
-            let entry = load_entry(&ctx, *seq).await;
-            let digest = entry_digest(&ctx, &entry).await.unwrap();
+            let entry = load_entry(&ctx, *seq);
+            let digest = entry_digest(&ctx, &entry).unwrap();
             assert_eq!(
                 (digest.0, digest.1.as_deref(), digest.2.as_deref()),
                 (*seq, Some(*text), Some(*kana)),

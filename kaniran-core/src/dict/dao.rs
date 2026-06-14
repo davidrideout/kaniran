@@ -2,8 +2,6 @@ use crate::conn::kani_backend::KaniBackend;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::load::conj_rules::get_conj_description;
 use serde_json::{Map, Value};
-use sqlx::postgres::PgRow;
-use sqlx::{FromRow, Row};
 
 /// Port of `ichiran/dict:entry` (`dict.lisp:26`).
 ///
@@ -26,17 +24,6 @@ pub struct Entry {
     pub primary_nokanji: bool,
 }
 
-impl<'r> FromRow<'r, PgRow> for Entry {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Entry {
-            seq: row.try_get("seq")?,
-            root_p: row.try_get("root_p")?,
-            n_kanji: row.try_get("n_kanji")?,
-            n_kana: row.try_get("n_kana")?,
-            primary_nokanji: row.try_get("primary_nokanji")?,
-        })
-    }
-}
 
 impl Entry {
     /// `get-text` override — `dict.lisp:47-49`:
@@ -64,11 +51,11 @@ impl Entry {
     ///   upstream errors on `(text nil)` if the headword row is
     ///   absent (data-integrity violation), which the Rust port
     ///   surfaces as [`None`].
-    pub async fn get_text(&self, ctx: &KaniranContext) -> Result<Option<String>, sqlx::Error> {
+    pub fn get_text(&self, ctx: &KaniranContext) -> Result<Option<String>, crate::conn::KaniDbError> {
         if self.n_kanji > 0 {
-            ctx.store.headword_kanji_text(self.seq).await
+            ctx.store.headword_kanji_text(self.seq)
         } else {
-            ctx.store.headword_kana_text(self.seq).await
+            ctx.store.headword_kana_text(self.seq)
         }
     }
 
@@ -94,55 +81,24 @@ impl Entry {
     ///   upstream errors on `(text nil)` if the headword row is
     ///   absent (data-integrity violation), which the Rust port
     ///   surfaces as [`None`].
-    pub async fn get_kana(&self, ctx: &KaniranContext) -> Result<Option<String>, sqlx::Error> {
-        ctx.store.headword_kana_text(self.seq).await
+    pub fn get_kana(&self, ctx: &KaniranContext) -> Result<Option<String>, crate::conn::KaniDbError> {
+        ctx.store.headword_kana_text(self.seq)
     }
 }
 
-/// Port of `ichiran/dict:recalc-entry-stats` (`dict.lisp:55`).
-///
-/// Recomputes the `n_kanji` / `n_kana` row-count caches on the `entry`
-/// rows whose `seq` is in `entries`, from their current `kanji_text` /
-/// `kana_text` children.
-pub async fn recalc_entry_stats(ctx: &KaniranContext, entries: &[i32]) -> Result<u64, sqlx::Error> {
-    let result = sqlx::query(
-        "UPDATE entry SET \
-         n_kanji = (SELECT COUNT(id) FROM kanji_text WHERE kanji_text.seq = entry.seq), \
-         n_kana = (SELECT COUNT(id) FROM kana_text WHERE kana_text.seq = entry.seq) \
-         WHERE entry.seq = ANY($1)",
-    )
-    .bind(entries)
-    .execute(&ctx.pool)
-    .await?;
-    Ok(result.rows_affected())
-}
 
-/// Port of `ichiran/dict:recalc-entry-stats-all` (`dict.lisp:61`).
-///
-/// Recomputes the `n_kanji` / `n_kana` row-count caches on every
-/// `entry` from its current `kanji_text` / `kana_text` children.
-pub async fn recalc_entry_stats_all(ctx: &KaniranContext) -> Result<u64, sqlx::Error> {
-    let result = sqlx::query(
-        "UPDATE entry SET \
-         n_kanji = (SELECT COUNT(id) FROM kanji_text WHERE kanji_text.seq = entry.seq), \
-         n_kana = (SELECT COUNT(id) FROM kana_text WHERE kana_text.seq = entry.seq)",
-    )
-    .execute(&ctx.pool)
-    .await?;
-    Ok(result.rows_affected())
-}
 
 /// Port of `ichiran/dict:entry-digest` (`dict.lisp:64`).
 ///
 /// Returns `(seq, text, kana)` for an entry.
-pub async fn entry_digest(
+pub fn entry_digest(
     ctx: &KaniranContext,
     entry: &Entry,
-) -> Result<(i32, Option<String>, Option<String>), sqlx::Error> {
+) -> Result<(i32, Option<String>, Option<String>), crate::conn::KaniDbError> {
     Ok((
         entry.seq,
-        entry.get_text(ctx).await?,
-        entry.get_kana(ctx).await?,
+        entry.get_text(ctx)?,
+        entry.get_kana(ctx)?,
     ))
 }
 
@@ -185,22 +141,6 @@ pub struct KanjiText {
     pub state: SimpleText,
 }
 
-impl<'r> FromRow<'r, PgRow> for KanjiText {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(KanjiText {
-            id: row.try_get("id")?,
-            seq: row.try_get("seq")?,
-            text: row.try_get("text")?,
-            ord: row.try_get("ord")?,
-            common: row.try_get("common")?,
-            common_tags: row.try_get("common_tags")?,
-            conjugate_p: row.try_get("conjugate_p")?,
-            nokanji: row.try_get("nokanji")?,
-            best_kana: row.try_get("best_kana")?,
-            state: SimpleText::default(),
-        })
-    }
-}
 
 /// Port of `ichiran/dict:kana-text` (`dict.lisp:128`).
 ///
@@ -219,22 +159,6 @@ pub struct KanaText {
     pub state: SimpleText,
 }
 
-impl<'r> FromRow<'r, PgRow> for KanaText {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(KanaText {
-            id: row.try_get("id")?,
-            seq: row.try_get("seq")?,
-            text: row.try_get("text")?,
-            ord: row.try_get("ord")?,
-            common: row.try_get("common")?,
-            common_tags: row.try_get("common_tags")?,
-            conjugate_p: row.try_get("conjugate_p")?,
-            nokanji: row.try_get("nokanji")?,
-            best_kanji: row.try_get("best_kanji")?,
-            state: SimpleText::default(),
-        })
-    }
-}
 
 /// Port of `ichiran/dict:sense` (`dict.lisp:166`).
 ///
@@ -248,15 +172,6 @@ pub struct Sense {
     pub ord: i32,
 }
 
-impl<'r> FromRow<'r, PgRow> for Sense {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Sense {
-            id: row.try_get("id")?,
-            seq: row.try_get("seq")?,
-            ord: row.try_get("ord")?,
-        })
-    }
-}
 
 /// Port of `ichiran/dict:gloss` (`dict.lisp:178`).
 ///
@@ -270,16 +185,6 @@ pub struct Gloss {
     pub ord: i32,
 }
 
-impl<'r> FromRow<'r, PgRow> for Gloss {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Gloss {
-            id: row.try_get("id")?,
-            sense_id: row.try_get("sense_id")?,
-            text: row.try_get("text")?,
-            ord: row.try_get("ord")?,
-        })
-    }
-}
 
 /// Port of `ichiran/dict:sense-prop` (`dict.lisp:197`).
 ///
@@ -297,18 +202,6 @@ pub struct SenseProp {
     pub seq: i32,
 }
 
-impl<'r> FromRow<'r, PgRow> for SenseProp {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(SenseProp {
-            id: row.try_get("id")?,
-            tag: row.try_get("tag")?,
-            sense_id: row.try_get("sense_id")?,
-            text: row.try_get("text")?,
-            ord: row.try_get("ord")?,
-            seq: row.try_get("seq")?,
-        })
-    }
-}
 
 /// Port of `ichiran/dict:restricted-readings` (`dict.lisp:221`).
 ///
@@ -327,16 +220,6 @@ pub struct RestrictedReadings {
     pub text: String,
 }
 
-impl<'r> FromRow<'r, PgRow> for RestrictedReadings {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(RestrictedReadings {
-            id: row.try_get("id")?,
-            seq: row.try_get("seq")?,
-            reading: row.try_get("reading")?,
-            text: row.try_get("text")?,
-        })
-    }
-}
 
 /// Port of `ichiran/dict:conjugation` (`dict.lisp:238`).
 ///
@@ -352,16 +235,6 @@ pub struct Conjugation {
     pub seq_via: Option<i32>,
 }
 
-impl<'r> FromRow<'r, PgRow> for Conjugation {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Conjugation {
-            id: row.try_get("id")?,
-            seq: row.try_get("seq")?,
-            seq_from: row.try_get("from")?,
-            seq_via: row.try_get("via")?,
-        })
-    }
-}
 
 /// Port of `ichiran/dict:conj-prop` (`dict.lisp:262`).
 ///
@@ -379,18 +252,6 @@ pub struct ConjProp {
     pub fml: Option<bool>,
 }
 
-impl<'r> FromRow<'r, PgRow> for ConjProp {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(ConjProp {
-            id: row.try_get("id")?,
-            conj_id: row.try_get("conj_id")?,
-            conj_type: row.try_get("conj_type")?,
-            pos: row.try_get("pos")?,
-            neg: row.try_get("neg")?,
-            fml: row.try_get("fml")?,
-        })
-    }
-}
 
 /// Port of `ichiran/dict:conj-info-short` (`dict.lisp:277`).
 ///
@@ -460,16 +321,6 @@ pub struct ConjSourceReading {
     pub source_text: String,
 }
 
-impl<'r> FromRow<'r, PgRow> for ConjSourceReading {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(ConjSourceReading {
-            id: row.try_get("id")?,
-            conj_id: row.try_get("conj_id")?,
-            text: row.try_get("text")?,
-            source_text: row.try_get("source_text")?,
-        })
-    }
-}
 
 #[cfg(test)]
 mod tests;

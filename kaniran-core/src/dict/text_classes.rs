@@ -37,33 +37,28 @@ pub struct ProxyText {
 /// `or-as-hiragana`'s `(lambda (w) (apply fn w args))` callback shape
 /// (`dict-grammar.lisp:97-100`): a one-shot unary call that takes
 /// the hiragana surface form and returns either a [`FindWordRows`]
-/// list or a `sqlx::Error`. `Send` so the result composes with
+/// list or a `crate::conn::KaniDbError`. `Send` so the result composes with
 /// `tokio::task::spawn` paths (audit harness, segmenter pipeline).
 pub type HiraganaFinder<'a> = Box<
-    dyn FnOnce(
-            String,
-        )
-            -> Pin<Box<dyn Future<Output = Result<FindWordRows, sqlx::Error>> + Send + 'a>>
-        + Send
-        + 'a,
+    dyn FnOnce(String) -> Result<FindWordRows, crate::conn::KaniDbError> + Send + 'a,
 >;
 
-pub async fn find_word_as_hiragana(
+pub fn find_word_as_hiragana(
     ctx: &KaniranContext,
     str_: &str,
     exclude: &[i32],
     finder: Option<HiraganaFinder<'_>>,
-) -> Result<Vec<ProxyText>, sqlx::Error> {
+) -> Result<Vec<ProxyText>, crate::conn::KaniDbError> {
     let as_hira = as_hiragana(str_);
     if str_ == as_hira {
         return Ok(Vec::new());
     }
     let words = match finder {
-        Some(f) => f(as_hira).await?,
+        Some(f) => f(as_hira)?,
         // root_only=true, so the substring-hash short-circuit doesn't
         // apply (find_word skips the cache check for root_only); the
         // ctx.substring_hash slot is read inside find_word.
-        None => find_word(ctx, &as_hira, true).await?.into_owned(),
+        None => find_word(ctx, &as_hira, true)?.into_owned(),
     };
     let proxies = match words {
         FindWordRows::Kana(rows) => rows

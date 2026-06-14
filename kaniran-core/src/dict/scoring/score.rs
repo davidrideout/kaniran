@@ -22,9 +22,9 @@ pub fn is_arch_cache(ctx: &KaniranContext) -> &HashSet<i32> {
     &ctx.is_arch
 }
 
-pub async fn build_is_arch(store: &KaniStore) -> Result<HashSet<i32>, sqlx::Error> {
-    let a1: Vec<i32> = store.arch_only_seqs().await?;
-    let a2: Vec<i32> = store.conj_seqs_from_any(&a1).await?;
+pub fn build_is_arch(store: &KaniStore) -> Result<HashSet<i32>, crate::conn::KaniDbError> {
+    let a1: Vec<i32> = store.arch_only_seqs()?;
+    let a2: Vec<i32> = store.conj_seqs_from_any(&a1)?;
     let mut set: HashSet<i32> = a1.into_iter().collect();
     set.extend(a2);
     Ok(set)
@@ -269,7 +269,7 @@ fn classify_end(kanji_break: &[usize]) -> KanjiBreakEnd {
     }
 }
 
-pub async fn kanji_break_penalty(
+pub fn kanji_break_penalty(
     ctx: &KaniranContext,
     kanji_break: &[usize],
     score: i32,
@@ -277,7 +277,7 @@ pub async fn kanji_break_penalty(
     text: &str,
     use_length: Option<i32>,
     score_mod: Option<&ScoreMod>,
-) -> Result<i32, sqlx::Error> {
+) -> Result<i32, crate::conn::KaniDbError> {
     // dict.lisp:703-707 (let ((end ...) (bonus 0) (ratio 2) (posi (and info (getf info :posi)))))
     let end = classify_end(kanji_break);
     let mut bonus: i32 = 0;
@@ -336,15 +336,15 @@ pub async fn kanji_break_penalty(
                 //                     :score-mod score-mod)
                 let use_length_recur = use_length.map(|ul| ul - offset);
                 let kf_word: KaniWordDispatchEnum = KaniWordDispatchEnum::Kana((*kf).clone());
-                let (suffix_score, _info) = Box::pin(calc_score(
+                let (suffix_score, _info) = calc_score(
                     ctx,
                     &kf_word,
                     false,
                     use_length_recur,
                     score_mod,
                     &[],
-                ))
-                .await?;
+                )
+                ?;
                 // dict.lisp:721 (return-from kanji-break-penalty (min score (+ suffix-score 50)))
                 return Ok(score.min(suffix_score + 50));
             }
@@ -389,11 +389,11 @@ pub fn is_arch(ctx: &KaniranContext, seq: i32) -> bool {
 /// Returns the distinct list of `pos`-tagged property values for senses
 /// inside `seq_set` whose containing sense does NOT carry an `arch` /
 /// `obsc` / `rare` misc tag (an anti-join via `sp2.id IS NULL`).
-pub async fn get_non_arch_posi(
+pub fn get_non_arch_posi(
     ctx: &KaniranContext,
     seq_set: &[i32],
-) -> Result<Vec<String>, sqlx::Error> {
-    ctx.store.non_arch_posi(seq_set).await
+) -> Result<Vec<String>, crate::conn::KaniDbError> {
+    ctx.store.non_arch_posi(seq_set)
 }
 
 /// Port of `ichiran/dict:gen-score` (`dict.lisp:985`).
@@ -401,12 +401,12 @@ pub async fn get_non_arch_posi(
 /// Mutates `segment.score` and `segment.info` in place with the
 /// `(score, info)` pair returned by [`calc_score`], then returns the
 /// same segment so call sites can chain.
-pub async fn gen_score<'a>(
+pub fn gen_score<'a>(
     ctx: &KaniranContext,
     segment: &'a mut Segment,
     final_: bool,
     kanji_break: &[usize],
-) -> Result<&'a mut Segment, sqlx::Error> {
+) -> Result<&'a mut Segment, crate::conn::KaniDbError> {
     // dict.lisp:986-987 — (setf (values (segment-score segment) (segment-info segment))
     //                       (calc-score (segment-word segment) :final final :kanji-break kanji-break))
     let (score, info) = calc_score(
@@ -417,7 +417,7 @@ pub async fn gen_score<'a>(
         /* score_mod */ None,
         kanji_break,
     )
-    .await?;
+    ?;
     segment.score = Some(score);
     segment.info = info;
     // dict.lisp:988 — segment (the function returns the same segment).

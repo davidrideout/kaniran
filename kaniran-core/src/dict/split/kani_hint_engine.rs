@@ -65,16 +65,16 @@ pub fn safe_hint(kind: KaniHintKind, pos: i64) -> Option<(KaniHintKind, usize)> 
 /// the inner `:around` skips its hint branch. `Box::pin` breaks the
 /// static-recursion cycle through get_kana ↔ get_hint ↔
 /// hint_map_dispatch.
-pub async fn finish_simple_hint(
+pub fn finish_simple_hint(
     ctx: &KaniranContext,
     reading: &KaniWordDispatchEnum,
     hints: Vec<(KaniHintKind, usize)>,
-) -> Result<Option<String>, sqlx::Error> {
+) -> Result<Option<String>, crate::conn::KaniDbError> {
     // get_kana returning None means upstream `(text nil)` —
     // no kana representation exists for this reading. The
     // hint body's `(insert-hints (get-kana reading) ...)`
     // would crash upstream; mirror as no-hint here.
-    let Some(kana) = Box::pin(get_kana(ctx, reading)).await? else {
+    let Some(kana) = get_kana(ctx, reading)? else {
         return Ok(None);
     };
     Ok(Some(insert_hints(&kana, &hints)))
@@ -85,11 +85,11 @@ pub async fn finish_simple_hint(
 /// (,length-var (length ,kana-var)) ...))` prologue. Returns
 /// `Ok(None)` when `true_kana` would surface upstream's `(text nil)`
 /// crash — caller treats as a no-hint result.
-pub async fn true_kana_and_len(
+pub fn true_kana_and_len(
     ctx: &KaniranContext,
     reading: &KaniWordDispatchEnum,
-) -> Result<Option<(String, i64)>, sqlx::Error> {
-    let Some(k) = true_kana(ctx, reading).await? else {
+) -> Result<Option<(String, i64)>, crate::conn::KaniDbError> {
+    let Some(k) = true_kana(ctx, reading)? else {
         return Ok(None);
     };
     let l = k.chars().count() as i64;
@@ -142,11 +142,11 @@ fn parsed_easy_hint(hint: &EasyHint) -> &'static ParsedEasyHint {
 /// list is the unhinted kana; we still wrap in `Some` to mirror
 /// the upstream `(insert-hints (get-kana reading) ...)` returning
 /// the kana string).
-pub async fn run_easy_hint(
+pub fn run_easy_hint(
     ctx: &KaniranContext,
     hint: &EasyHint,
     reading: &KaniWordDispatchEnum,
-) -> Result<Option<String>, sqlx::Error> {
+) -> Result<Option<String>, crate::conn::KaniDbError> {
     // dict-split.lisp:931 — (when (typep ,reading-var 'simple-text))
     match reading {
         KaniWordDispatchEnum::Kanji(_)
@@ -162,7 +162,7 @@ pub async fn run_easy_hint(
     let parsed = parsed_easy_hint(hint);
 
     // dict-split.lisp:932 — (rtext = (true-kanji reading))
-    let Some(rtext) = true_kanji(ctx, reading).await? else {
+    let Some(rtext) = true_kanji(ctx, reading)? else {
         return Ok(None);
     };
 
@@ -179,10 +179,10 @@ pub async fn run_easy_hint(
         .collect();
 
     // dict-split.lisp:934 — (kr = (match-readings rtext (true-kana reading)))
-    let Some(tk) = true_kana(ctx, reading).await? else {
+    let Some(tk) = true_kana(ctx, reading)? else {
         return Ok(None);
     };
-    let Some(kr) = match_readings(ctx, &rtext, &tk).await? else {
+    let Some(kr) = match_readings(ctx, &rtext, &tk)? else {
         return Ok(None);
     };
     let kr_parts: Vec<KaniMatchPart> = kr
@@ -209,7 +209,7 @@ pub async fn run_easy_hint(
     // the inner get_kana reads true and skips the hint branch). None
     // propagates from upstream's `(insert-hints nil ...)` no-kana
     // case.
-    let Some(kana) = Box::pin(get_kana(ctx, reading)).await? else {
+    let Some(kana) = get_kana(ctx, reading)? else {
         return Ok(None);
     };
     Ok(Some(insert_hints(&kana, &translated2)))

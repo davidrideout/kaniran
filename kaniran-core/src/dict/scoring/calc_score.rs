@@ -32,14 +32,14 @@ use std::borrow::Cow;
 /// [`KaniSegmentInfo`] property bag that the downstream scoring loop
 /// (penalties, synergies, kanji-break) reads, dispatching on
 /// compound-text, counter-text, and simple-text readings.
-pub async fn calc_score(
+pub fn calc_score(
     ctx: &KaniranContext,
     reading: &KaniWordDispatchEnum,
     final_: bool,
     use_length: Option<i32>,
     score_mod: Option<&ScoreMod>,
     kanji_break: &[usize],
-) -> Result<(i32, Option<KaniSegmentInfo>), sqlx::Error> {
+) -> Result<(i32, Option<KaniSegmentInfo>), crate::conn::KaniDbError> {
     // dict.lisp:780-792 (typecase reading (compound-text …) (counter-text (setf ctr-mode t)))
     if let KaniWordDispatchEnum::Compound(comp) = reading {
         // dict.lisp:782-784 — (args (list (score-base reading)
@@ -51,15 +51,15 @@ pub async fn calc_score(
         let score_mod_rec: Option<&ScoreMod> = Some(&comp.score_mod);
 
         // dict.lisp:785 (multiple-value-bind (score info) (apply 'calc-score args))
-        let (mut rec_score, rec_info) = Box::pin(calc_score(
+        let (mut rec_score, rec_info) = calc_score(
             ctx,
             base,
             false,
             use_length_rec,
             score_mod_rec,
             &[],
-        ))
-        .await?;
+        )
+        ?;
 
         // dict.lisp:785-786 — `(multiple-value-bind (score info) (apply 'calc-score args))`
         // followed by `(setf (getf info :conj) (word-conj-data reading))`.
@@ -89,14 +89,14 @@ pub async fn calc_score(
             },
             kpcl: (false, false, false, false),
         });
-        info.conj = word_conj_data(ctx, reading).await?;
+        info.conj = word_conj_data(ctx, reading)?;
 
         // dict.lisp:787-788 (when kanji-break
         //                     (setf score (apply 'kanji-break-penalty kanji-break score
         //                                        :info info :text (text (car args)) (cdr args))))
         if !kanji_break.is_empty() {
             let base_text = text_fn(base);
-            rec_score = Box::pin(kanji_break_penalty(
+            rec_score = kanji_break_penalty(
                 ctx,
                 kanji_break,
                 rec_score,
@@ -104,8 +104,8 @@ pub async fn calc_score(
                 &base_text,
                 use_length_rec,
                 score_mod_rec,
-            ))
-            .await?;
+            )
+            ?;
         }
         return Ok((rec_score, Some(info)));
     }
@@ -139,7 +139,7 @@ pub async fn calc_score(
 
     // dict.lisp:803 (entry (and seq (get-dao 'entry seq)))
     let entry: Option<Entry> = match seq {
-        Some(s) => ctx.store.entry_by_seq(s).await?,
+        Some(s) => ctx.store.entry_by_seq(s)?,
         None => None,
     };
 
@@ -151,7 +151,7 @@ pub async fn calc_score(
     let root_p = ctr_mode || (!conj_only && entry.as_ref().map(|e| e.root_p).unwrap_or(false));
 
     // dict.lisp:806 (conj-data (word-conj-data reading))
-    let mut conj_data: Vec<ConjData> = word_conj_data(ctx, reading).await?;
+    let mut conj_data: Vec<ConjData> = word_conj_data(ctx, reading)?;
 
     // dict.lisp:808-811 (secondary-conj-p …) — `(or (every via …) (and (setf … delete-if …) nil))`
     let secondary_conj_p: bool = if conj_data.is_empty() {
@@ -212,7 +212,7 @@ pub async fn calc_score(
     let prefer_kana_sense_ids: Vec<i32> = if sp_seq_set.is_empty() {
         Vec::new()
     } else {
-        ctx.store.uk_sense_ids(&sp_seq_set).await?
+        ctx.store.uk_sense_ids(&sp_seq_set)?
     };
     let prefer_kana = !prefer_kana_sense_ids.is_empty();
 
@@ -225,7 +225,7 @@ pub async fn calc_score(
     } else if seq_set.is_empty() {
         Vec::new()
     } else {
-        get_non_arch_posi(ctx, &seq_set).await?
+        get_non_arch_posi(ctx, &seq_set)?
     };
 
     // dict.lisp:828-830 (common / common-of / common-p)
@@ -295,7 +295,7 @@ pub async fn calc_score(
                 unreachable!("conj-data block reached for non-simple-text reading")
             }
         };
-        let orig_texts = get_original_text(ctx, &reading_simple, Some(&conj_data)).await?;
+        let orig_texts = get_original_text(ctx, &reading_simple, Some(&conj_data))?;
 
         // dict.lisp:860-861 collect (list (common ot) (ord ot))
         let conj_of_data: Vec<(Option<i32>, i32)> = orig_texts
@@ -378,7 +378,7 @@ pub async fn calc_score(
                 // without re-checking this invariant.
                 let cond_d = if prefer_kana && kanji_p && ord == 0 {
                     let any_sense_ord_zero: Option<i32> =
-                        ctx.store.sense_id_ord0(&prefer_kana_sense_ids).await?;
+                        ctx.store.sense_id_ord0(&prefer_kana_sense_ids)?;
                     any_sense_ord_zero.is_none()
                 } else {
                     false
@@ -509,7 +509,7 @@ pub async fn calc_score(
                 unreachable!("split branch only reached for simple-text")
             }
         };
-        if let Some((parts, score_mod_split)) = get_split(ctx, &reading_simple, &conj_of).await? {
+        if let Some((parts, score_mod_split)) = get_split(ctx, &reading_simple, &conj_of)? {
             // dict.lisp:943-945 ((member :score split) …)
             if parts.iter().any(|p| matches!(p, SplitPart::Score)) {
                 score += score_mod_split;
@@ -589,15 +589,15 @@ pub async fn calc_score(
                     // dict.lisp:970 (if last score-mod 0) — pass score_mod when last, else default.
                     let part_score_mod: Option<&ScoreMod> = if last { score_mod } else { None };
 
-                    let (part_score, _info) = Box::pin(calc_score(
+                    let (part_score, _info) = calc_score(
                         ctx,
                         &tpart,
                         final_ && last,
                         part_use_length,
                         part_score_mod,
                         &[],
-                    ))
-                    .await?;
+                    )
+                    ?;
                     part_scores.push(part_score);
                 }
 
@@ -631,7 +631,7 @@ pub async fn calc_score(
 
     // dict.lisp:981-982 (when kanji-break …)
     let final_score = if !kanji_break.is_empty() {
-        Box::pin(kanji_break_penalty(
+        kanji_break_penalty(
             ctx,
             kanji_break,
             score,
@@ -639,8 +639,8 @@ pub async fn calc_score(
             &text,
             use_length,
             score_mod,
-        ))
-        .await?
+        )
+        ?
     } else {
         score
     };

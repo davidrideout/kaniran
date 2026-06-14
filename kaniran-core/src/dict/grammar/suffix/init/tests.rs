@@ -1,18 +1,18 @@
 mod get_suffix_description {
     use crate::dict::grammar::suffix::init::*;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
     }
 
     /// Looks up a description by sequence across all four paths: the
     /// sequence's class has a description, the class has none, the
     /// sequence is a direct description key, and a miss on both tables.
-    #[tokio::test]
-    async fn get_suffix_description_paths() {
-        let ctx = ctx().await;
+    #[test]
+    fn get_suffix_description_paths() {
+        let ctx = ctx();
         let cases: &[(i32, Option<&str>)] = &[
             // Sequence belongs to a suffix class that has a description.
             (2013800, Some("indicates completion (to finish ...)")), // chau

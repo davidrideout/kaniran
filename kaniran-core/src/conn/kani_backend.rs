@@ -16,6 +16,7 @@
 //! compound-seq `exists-reading` probe (its always-failing query is
 //! synthesized at the callsite in [`crate::dict::find_word_info`]).
 
+#[cfg(feature = "postgres")]
 use crate::conn::kani_postgres_backend::KaniPostgresBackend;
 #[cfg(feature = "rkyv")]
 use crate::conn::kani_rkyv_backend::KaniRkyvBackend;
@@ -27,37 +28,37 @@ use crate::kanji::dao::{Kanji, Meaning, Reading};
 /// the physical-row (insertion) order Postgres yields for queries with
 /// no `ORDER BY` — because segmentation scoring is order-sensitive.
 ///
-/// Callers always dispatch through concrete types ([`KaniStore`] or a
-/// backend directly), so the returned futures' auto traits resolve
-/// structurally and no `Send` bounds are needed on the trait itself.
-#[allow(async_fn_in_trait)]
+/// Synchronous since the async-removal proof-of-concept: the rkyv
+/// snapshot backend resolves every lookup from a memory-mapped archive
+/// with no I/O, so the methods that previously returned futures now
+/// return their results directly.
 pub trait KaniBackend {
     // --- entry: the JMdict entry header rows carrying `seq`,
     // `root_p`, and the `n_kanji`/`n_kana` reading counts. ---
 
     /// `(get-dao 'entry seq)` — `calc-score` (`dict.lisp:803`),
     /// `best-kanji-conj` (`dict.lisp:461`).
-    async fn entry_by_seq(&self, seq: i32) -> Result<Option<Entry>, sqlx::Error>;
+    fn entry_by_seq(&self, seq: i32) -> Result<Option<Entry>, crate::conn::KaniDbError>;
 
     /// Root-flagged seqs among `seqs` — `match-unique` `:sa` arm
     /// (`dict-grammar.lisp:486`).
-    async fn root_seqs(&self, seqs: &[i32]) -> Result<Vec<i32>, sqlx::Error>;
+    fn root_seqs(&self, seqs: &[i32]) -> Result<Vec<i32>, crate::conn::KaniDbError>;
 
     /// `get-candidates` kana branch (`dict.lisp:1902`).
-    async fn candidate_seqs_kana(&self, text: &str) -> Result<Vec<i32>, sqlx::Error>;
+    fn candidate_seqs_kana(&self, text: &str) -> Result<Vec<i32>, crate::conn::KaniDbError>;
 
     /// `get-candidates` kanji branch (`dict.lisp:1902`).
-    async fn candidate_seqs_kanji(
+    fn candidate_seqs_kanji(
         &self,
         text: &str,
         reading: Option<&str>,
-    ) -> Result<Vec<i32>, sqlx::Error>;
+    ) -> Result<Vec<i32>, crate::conn::KaniDbError>;
 
     /// `get-kanji-words` (`dict.lisp:1834`).
-    async fn kanji_words_containing_char(
+    fn kanji_words_containing_char(
         &self,
         char: &str,
-    ) -> Result<Vec<(i32, String, String, i32)>, sqlx::Error>;
+    ) -> Result<Vec<(i32, String, String, i32)>, crate::conn::KaniDbError>;
 
     // --- kanji_text / kana_text: the kanji writings and kana
     // spellings of each entry. The bulk of segmentation traffic lands
@@ -66,214 +67,214 @@ pub trait KaniBackend {
 
     /// Ord-0 kanji headword text — `entry` `get-kanji`/`get-text`
     /// (`dict.lisp:47,51`), `reading-str-seq` (`dict.lisp:1584`).
-    async fn headword_kanji_text(&self, seq: i32) -> Result<Option<String>, sqlx::Error>;
+    fn headword_kanji_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError>;
 
     /// Ord-0 kana headword text — `entry` `get-kana`/`get-text`
     /// (`dict.lisp:44,47`), `reading-str-seq` (`dict.lisp:1584`).
-    async fn headword_kana_text(&self, seq: i32) -> Result<Option<String>, sqlx::Error>;
+    fn headword_kana_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError>;
 
     /// `get-original-text` simple-text arm, kanji table (`dict.lisp:399`).
-    async fn kanji_texts_by_seq_and_text(
+    fn kanji_texts_by_seq_and_text(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<KanjiText>, sqlx::Error>;
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError>;
 
     /// `get-original-text` simple-text arm, kana table (`dict.lisp:399`).
-    async fn kana_texts_by_seq_and_text(
+    fn kana_texts_by_seq_and_text(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<KanaText>, sqlx::Error>;
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `match-sense-restrictions` stagr rows (`dict.lisp:1527`).
-    async fn kana_texts_by_seq_and_text_any(
+    fn kana_texts_by_seq_and_text_any(
         &self,
         seq: i32,
         texts: &[String],
-    ) -> Result<Vec<KanaText>, sqlx::Error>;
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `match-sense-restrictions` stagk rows (`dict.lisp:1530`).
-    async fn kanji_texts_by_seq_and_text_any(
+    fn kanji_texts_by_seq_and_text_any(
         &self,
         seq: i32,
         texts: &[String],
-    ) -> Result<Vec<KanjiText>, sqlx::Error>;
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError>;
 
     /// `get-kanji-kana-old` kana walk (`dict.lisp:117`).
-    async fn kana_texts_by_seq_ordered(&self, seq: i32) -> Result<Vec<KanaText>, sqlx::Error>;
+    fn kana_texts_by_seq_ordered(&self, seq: i32) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `(get-dao 'kanji-text pid)` — `best-kana-conj` (`dict.lisp:436`).
-    /// Errors with [`sqlx::Error::RowNotFound`] on a missing id,
+    /// Errors with [`crate::conn::KaniDbError::RowNotFound`] on a missing id,
     /// preserving the fail-loud stance of the callsite.
-    async fn kanji_text_by_id(&self, id: i32) -> Result<KanjiText, sqlx::Error>;
+    fn kanji_text_by_id(&self, id: i32) -> Result<KanjiText, crate::conn::KaniDbError>;
 
     /// `(get-dao 'kana-text pid)` — `best-kanji-conj` (`dict.lisp:465`).
-    async fn kana_text_by_id(&self, id: i32) -> Result<KanaText, sqlx::Error>;
+    fn kana_text_by_id(&self, id: i32) -> Result<KanaText, crate::conn::KaniDbError>;
 
     /// `find-word` kana arm (`dict.lisp:489`), `word-info-reading`
     /// (`dict.lisp:1773`).
-    async fn kana_texts_by_text(&self, text: &str) -> Result<Vec<KanaText>, sqlx::Error>;
+    fn kana_texts_by_text(&self, text: &str) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `find-word` kanji arm (`dict.lisp:489`), `word-info-reading`
     /// (`dict.lisp:1773`).
-    async fn kanji_texts_by_text(&self, text: &str) -> Result<Vec<KanjiText>, sqlx::Error>;
+    fn kanji_texts_by_text(&self, text: &str) -> Result<Vec<KanjiText>, crate::conn::KaniDbError>;
 
     /// `find-word` `:root-only` kana arm (`dict.lisp:489`).
-    async fn kana_texts_root_by_text(&self, text: &str) -> Result<Vec<KanaText>, sqlx::Error>;
+    fn kana_texts_root_by_text(&self, text: &str) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `find-word` `:root-only` kanji arm (`dict.lisp:489`).
-    async fn kanji_texts_root_by_text(&self, text: &str) -> Result<Vec<KanjiText>, sqlx::Error>;
+    fn kanji_texts_root_by_text(&self, text: &str) -> Result<Vec<KanjiText>, crate::conn::KaniDbError>;
 
     /// `find-substring-words` kana bulk fetch (`dict.lisp:514`).
-    async fn kana_texts_by_text_any(
+    fn kana_texts_by_text_any(
         &self,
         texts: &[String],
-    ) -> Result<Vec<KanaText>, sqlx::Error>;
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `find-substring-words` kanji bulk fetch (`dict.lisp:514`).
-    async fn kanji_texts_by_text_any(
+    fn kanji_texts_by_text_any(
         &self,
         texts: &[String],
-    ) -> Result<Vec<KanjiText>, sqlx::Error>;
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError>;
 
     /// `find-words-seqs` kanji arm (`dict.lisp:532`).
-    async fn kanji_texts_by_text_any_and_seq_any(
+    fn kanji_texts_by_text_any_and_seq_any(
         &self,
         texts: &[&str],
         seqs: &[i32],
-    ) -> Result<Vec<KanjiText>, sqlx::Error>;
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError>;
 
     /// `find-words-seqs` kana arm (`dict.lisp:533`).
-    async fn kana_texts_by_text_any_and_seq_any(
+    fn kana_texts_by_text_any_and_seq_any(
         &self,
         texts: &[&str],
         seqs: &[i32],
-    ) -> Result<Vec<KanaText>, sqlx::Error>;
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `find-word-seq` kana arm (`dict-grammar.lisp:75`).
-    async fn kana_texts_by_text_and_seq_any(
+    fn kana_texts_by_text_and_seq_any(
         &self,
         text: &str,
         seqs: &[i32],
-    ) -> Result<Vec<KanaText>, sqlx::Error>;
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `find-word-seq` kanji arm (`dict-grammar.lisp:75`).
-    async fn kanji_texts_by_text_and_seq_any(
+    fn kanji_texts_by_text_and_seq_any(
         &self,
         text: &str,
         seqs: &[i32],
-    ) -> Result<Vec<KanjiText>, sqlx::Error>;
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError>;
 
     /// `find-word-conj-of` kana join (`dict-grammar.lisp:79`).
-    async fn kana_texts_conj_of(
+    fn kana_texts_conj_of(
         &self,
         seqs: &[i32],
         text: &str,
-    ) -> Result<Vec<KanaText>, sqlx::Error>;
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `find-word-conj-of` kanji join (`dict-grammar.lisp:79`).
-    async fn kanji_texts_conj_of(
+    fn kanji_texts_conj_of(
         &self,
         seqs: &[i32],
         text: &str,
-    ) -> Result<Vec<KanjiText>, sqlx::Error>;
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError>;
 
     /// `find-word-with-pos` kana arm (`dict-grammar.lisp:89`).
-    async fn kana_texts_with_pos(
+    fn kana_texts_with_pos(
         &self,
         text: &str,
         posi: &[String],
-    ) -> Result<Vec<KanaText>, sqlx::Error>;
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `find-word-with-pos` kanji arm (`dict-grammar.lisp:89`).
-    async fn kanji_texts_with_pos(
+    fn kanji_texts_with_pos(
         &self,
         text: &str,
         posi: &[String],
-    ) -> Result<Vec<KanjiText>, sqlx::Error>;
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError>;
 
     /// `get-kana-forms*` union of direct and derived rows
     /// (`dict-grammar.lisp:17`).
-    async fn kana_forms_rows(&self, seq: i32) -> Result<Vec<KanaText>, sqlx::Error>;
+    fn kana_forms_rows(&self, seq: i32) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `get-kana-form` (`dict-grammar.lisp:38`).
-    async fn kana_texts_by_text_and_seq(
+    fn kana_texts_by_text_and_seq(
         &self,
         text: &str,
         seq: i32,
-    ) -> Result<Vec<KanaText>, sqlx::Error>;
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `word-readings` kana-seq probe (`dict.lisp:537`).
-    async fn kana_seqs_by_text(&self, text: &str) -> Result<Vec<i32>, sqlx::Error>;
+    fn kana_seqs_by_text(&self, text: &str) -> Result<Vec<i32>, crate::conn::KaniDbError>;
 
     /// `word-readings` kanji-seq probe (`dict.lisp:540`).
-    async fn kanji_seqs_by_text(&self, text: &str) -> Result<Vec<i32>, sqlx::Error>;
+    fn kanji_seqs_by_text(&self, text: &str) -> Result<Vec<i32>, crate::conn::KaniDbError>;
 
     /// `word-readings` kana spellings for kanji seqs (`dict.lisp:542`).
-    async fn kana_reading_texts_by_seq_any(
+    fn kana_reading_texts_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<String>, sqlx::Error>;
+    ) -> Result<Vec<String>, crate::conn::KaniDbError>;
 
     /// `exists-reading` (`dict.lisp:1846`).
-    async fn kana_seqs_by_seq_and_text(
+    fn kana_seqs_by_seq_and_text(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<i32>, sqlx::Error>;
+    ) -> Result<Vec<i32>, crate::conn::KaniDbError>;
 
     /// `find-word-kana-pattern` POSIX-regex match (`dict.lisp:1877`).
-    async fn kana_texts_by_regex(&self, pattern: &str) -> Result<Vec<KanaText>, sqlx::Error>;
+    fn kana_texts_by_regex(&self, pattern: &str) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `check-easy-hints` (`dict-split.lisp:908`), `get-counter-readings`
     /// kana rows (`dict-counters.lisp:332`).
-    async fn kana_texts_by_seq_any(&self, seqs: &[i32]) -> Result<Vec<KanaText>, sqlx::Error>;
+    fn kana_texts_by_seq_any(&self, seqs: &[i32]) -> Result<Vec<KanaText>, crate::conn::KaniDbError>;
 
     /// `get-counter-readings` kanji rows (`dict-counters.lisp:332`).
-    async fn kanji_texts_by_seq_any(&self, seqs: &[i32]) -> Result<Vec<KanjiText>, sqlx::Error>;
+    fn kanji_texts_by_seq_any(&self, seqs: &[i32]) -> Result<Vec<KanjiText>, crate::conn::KaniDbError>;
 
     // --- conjugation: links recording that entry `seq` was derived
     // from entry `from`, optionally via an intermediate entry. ---
 
     /// All conjugation rows for a seq — `get-conj-data` (`dict.lisp:340`),
     /// `select-conjs` fallback (`dict.lisp:1603`).
-    async fn conjs_by_seq(&self, seq: i32) -> Result<Vec<Conjugation>, sqlx::Error>;
+    fn conjs_by_seq(&self, seq: i32) -> Result<Vec<Conjugation>, crate::conn::KaniDbError>;
 
     /// Conjugation rows restricted to ids — `get-conj-data`
     /// (`dict.lisp:340`), `select-conjs` (`dict.lisp:1603`).
-    async fn conjs_by_seq_and_ids(
+    fn conjs_by_seq_and_ids(
         &self,
         seq: i32,
         ids: &[i32],
-    ) -> Result<Vec<Conjugation>, sqlx::Error>;
+    ) -> Result<Vec<Conjugation>, crate::conn::KaniDbError>;
 
     /// Conjugation rows by source seq — `get-conj-data` (`dict.lisp:340`).
-    async fn conjs_by_seq_and_from(
+    fn conjs_by_seq_and_from(
         &self,
         seq: i32,
         from: i32,
-    ) -> Result<Vec<Conjugation>, sqlx::Error>;
+    ) -> Result<Vec<Conjugation>, crate::conn::KaniDbError>;
 
     /// Null-via (root) conjugation rows — `select-conjs` (`dict.lisp:1603`).
-    async fn conjs_by_seq_via_null(&self, seq: i32) -> Result<Vec<Conjugation>, sqlx::Error>;
+    fn conjs_by_seq_via_null(&self, seq: i32) -> Result<Vec<Conjugation>, crate::conn::KaniDbError>;
 
     /// `(get-dao 'conjugation conj-id)` — `pair-words-by-conj`
     /// (`dict-grammar.lisp:61`). Errors with
-    /// [`sqlx::Error::RowNotFound`] on a missing id.
-    async fn conj_by_id(&self, id: i32) -> Result<Conjugation, sqlx::Error>;
+    /// [`crate::conn::KaniDbError::RowNotFound`] on a missing id.
+    fn conj_by_id(&self, id: i32) -> Result<Conjugation, crate::conn::KaniDbError>;
 
     /// Seqs among `seqs` that are conjugations of です (seq 2755350) —
     /// `match-unique` `:desu` arm (`dict-grammar.lisp:478`).
-    async fn conj_seqs_of_desu(&self, seqs: &[i32]) -> Result<Vec<i32>, sqlx::Error>;
+    fn conj_seqs_of_desu(&self, seqs: &[i32]) -> Result<Vec<i32>, crate::conn::KaniDbError>;
 
     /// Distinct derived seqs of the given roots — `build_is_arch`
     /// second pass (upstream `*is-arch-cache*`, `dict.lisp:745`).
-    async fn conj_seqs_from_any(&self, seqs: &[i32]) -> Result<Vec<i32>, sqlx::Error>;
+    fn conj_seqs_from_any(&self, seqs: &[i32]) -> Result<Vec<i32>, crate::conn::KaniDbError>;
 
     /// Seqs with no conjugation rows — `build_no_conj_data` (upstream
     /// `*no-conj-data*`, `dict.lisp:329`).
-    async fn no_conj_seqs(&self) -> Result<Vec<i32>, sqlx::Error>;
+    fn no_conj_seqs(&self) -> Result<Vec<i32>, crate::conn::KaniDbError>;
 
     // --- conj_prop (which grammatical form a conjugation row
     // represents) and conj_source_reading (pairs tying a rendered
@@ -282,42 +283,42 @@ pub trait KaniBackend {
 
     /// `(select-dao 'conj-prop (:= 'conj-id …))` — `get-conj-data`
     /// (`dict.lisp:340`), `select-conjs-and-props` (`dict.lisp:1638`).
-    async fn conj_props_by_conj_id(&self, conj_id: i32) -> Result<Vec<ConjProp>, sqlx::Error>;
+    fn conj_props_by_conj_id(&self, conj_id: i32) -> Result<Vec<ConjProp>, crate::conn::KaniDbError>;
 
     /// `(text, source_text)` pairs of a conjugation — `get-conj-data`
     /// (`dict.lisp:340`).
-    async fn conj_source_readings_by_conj_id(
+    fn conj_source_readings_by_conj_id(
         &self,
         conj_id: i32,
-    ) -> Result<Vec<(String, String)>, sqlx::Error>;
+    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError>;
 
     /// `(text, source_text)` pairs restricted to surface texts —
     /// `get-conj-data` (`dict.lisp:340`).
-    async fn conj_source_readings_by_conj_id_and_texts(
+    fn conj_source_readings_by_conj_id_and_texts(
         &self,
         conj_id: i32,
         texts: &[String],
-    ) -> Result<Vec<(String, String)>, sqlx::Error>;
+    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError>;
 
     /// Rendered texts of a conjugation derived from `source_text` —
     /// `best-kana-conj` (`dict.lisp:439`), `best-kanji-conj`
     /// (`dict.lisp:467`).
-    async fn conj_source_reading_texts(
+    fn conj_source_reading_texts(
         &self,
         conj_id: i32,
         source_text: &str,
-    ) -> Result<Vec<String>, sqlx::Error>;
+    ) -> Result<Vec<String>, crate::conn::KaniDbError>;
 
     /// `query-parents-kanji` (`dict.lisp:404`).
-    async fn parents_kanji(
+    fn parents_kanji(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<(i32, i32)>, sqlx::Error>;
+    ) -> Result<Vec<(i32, i32)>, crate::conn::KaniDbError>;
 
     /// `query-parents-kana` (`dict.lisp:417`).
-    async fn parents_kana(&self, seq: i32, text: &str)
-        -> Result<Vec<(i32, i32)>, sqlx::Error>;
+    fn parents_kana(&self, seq: i32, text: &str)
+        -> Result<Vec<(i32, i32)>, crate::conn::KaniDbError>;
 
     // --- sense / gloss / sense_prop / restricted_readings: the
     // meaning-side tables, plus the startup scans for the `is_arch`
@@ -325,72 +326,72 @@ pub trait KaniBackend {
 
     /// `(ord, joined-gloss)` per sense of a seq — `get-senses-raw`
     /// (`dict.lisp:1458`).
-    async fn sense_gloss_rows(
+    fn sense_gloss_rows(
         &self,
         seq: i32,
-    ) -> Result<Vec<(i32, Option<String>)>, sqlx::Error>;
+    ) -> Result<Vec<(i32, Option<String>)>, crate::conn::KaniDbError>;
 
     /// `(sense-ord, tag, text)` prop rows of a seq restricted to `tags`
     /// — `get-senses-raw` (`dict.lisp:1458`).
-    async fn sense_prop_rows_tagged(
+    fn sense_prop_rows_tagged(
         &self,
         seq: i32,
         tags: &[&str],
-    ) -> Result<Vec<(i32, String, String)>, sqlx::Error>;
+    ) -> Result<Vec<(i32, String, String)>, crate::conn::KaniDbError>;
 
     /// First-sense joined gloss — `short-sense-str` (`dict.lisp:1562`).
     /// Outer [`Option`] is row presence, inner is the nullable aggregate.
-    async fn first_sense_gloss(&self, seq: i32) -> Result<Option<Option<String>>, sqlx::Error>;
+    fn first_sense_gloss(&self, seq: i32) -> Result<Option<Option<String>>, crate::conn::KaniDbError>;
 
     /// First-sense joined gloss restricted to a pos tag —
     /// `short-sense-str` (`dict.lisp:1562`).
-    async fn first_sense_gloss_with_pos(
+    fn first_sense_gloss_with_pos(
         &self,
         seq: i32,
         pos: &str,
-    ) -> Result<Option<Option<String>>, sqlx::Error>;
+    ) -> Result<Option<Option<String>>, crate::conn::KaniDbError>;
 
     /// `(seq, gloss-text)` rows for a seq set — `get-glosses`
     /// (`dict.lisp:1892`).
-    async fn glosses_by_seq_any(
+    fn glosses_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, sqlx::Error>;
+    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError>;
 
     /// Sense ids tagged `misc=uk` (usually-kana) — `calc-score`
     /// (`dict.lisp:822`).
-    async fn uk_sense_ids(&self, seqs: &[i32]) -> Result<Vec<i32>, sqlx::Error>;
+    fn uk_sense_ids(&self, seqs: &[i32]) -> Result<Vec<i32>, crate::conn::KaniDbError>;
 
     /// Any of `ids` belonging to an ord-0 sense — `calc-score`
     /// (`dict.lisp:884`).
-    async fn sense_id_ord0(&self, ids: &[i32]) -> Result<Option<i32>, sqlx::Error>;
+    fn sense_id_ord0(&self, ids: &[i32]) -> Result<Option<i32>, crate::conn::KaniDbError>;
 
     /// `get-non-arch-posi` anti-join (`dict.lisp:762`).
-    async fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<String>, sqlx::Error>;
+    fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<String>, crate::conn::KaniDbError>;
 
     /// Seqs whose every sense is archaic/obscure/rare — `build_is_arch`
     /// first pass (upstream `*is-arch-cache*`, `dict.lisp:745`).
-    async fn arch_only_seqs(&self) -> Result<Vec<i32>, sqlx::Error>;
+    fn arch_only_seqs(&self) -> Result<Vec<i32>, crate::conn::KaniDbError>;
 
     /// Seqs tagged `pos=ctr` — `get-counter-ids`
     /// (`dict-counters.lisp:283`).
-    async fn counter_seqs(&self) -> Result<Vec<i32>, sqlx::Error>;
+    fn counter_seqs(&self) -> Result<Vec<i32>, crate::conn::KaniDbError>;
 
     /// `(seq, text)` restriction rows on counter senses for one stag
     /// tag (`stagk` or `stagr`) — `get-counter-stags`
     /// (`dict-counters.lisp:291`).
-    async fn counter_stag_rows(
+    fn counter_stag_rows(
         &self,
         tag: &str,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, sqlx::Error>;
+    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError>;
 
     /// `(reading, text)` restriction pairs of a seq —
     /// `match-sense-restrictions` (`dict.lisp:1524`).
-    async fn restricted_readings_by_seq(
+    fn restricted_readings_by_seq(
         &self,
         seq: i32,
-    ) -> Result<Vec<(String, String)>, sqlx::Error>;
+    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError>;
 
     // --- kanjidic: per-character info serving the kanji-info JSON
     // output and the lazily-filled reading-stats cache. Not to be
@@ -398,51 +399,53 @@ pub trait KaniBackend {
     // writings, these hold single-character kanjidic data. ---
 
     /// Non-nanori readings of a kanji row — `to-json` (`kanji.lisp:379`).
-    async fn readings_non_nanori_by_kanji_id(
+    fn readings_non_nanori_by_kanji_id(
         &self,
         kanji_id: i32,
-    ) -> Result<Vec<Reading>, sqlx::Error>;
+    ) -> Result<Vec<Reading>, crate::conn::KaniDbError>;
 
     /// Meanings of a kanji row — `to-json` (`kanji.lisp:384`).
-    async fn meanings_by_kanji_id(&self, kanji_id: i32) -> Result<Vec<Meaning>, sqlx::Error>;
+    fn meanings_by_kanji_id(&self, kanji_id: i32) -> Result<Vec<Meaning>, crate::conn::KaniDbError>;
 
     /// Distinct okurigana of a reading — `reading-info-json`
     /// (`kanji.lisp:360`).
-    async fn okurigana_texts_by_reading_id(
+    fn okurigana_texts_by_reading_id(
         &self,
         reading_id: i32,
-    ) -> Result<Vec<String>, sqlx::Error>;
+    ) -> Result<Vec<String>, crate::conn::KaniDbError>;
 
     /// `(select-dao 'kanji (:= 'text str))` — `kanji-info-json`
     /// (`kanji.lisp:395`).
-    async fn kanji_by_text(&self, text: &str) -> Result<Vec<Kanji>, sqlx::Error>;
+    fn kanji_by_text(&self, text: &str) -> Result<Vec<Kanji>, crate::conn::KaniDbError>;
 
     /// `(reading.stat_common, kanji.stat_common, kanji.grade)` rows for
     /// a `(kanji, reading, type)` match — `get-reading-stats`
     /// (`kanji.lisp:399`).
-    async fn reading_stats_rows(
+    fn reading_stats_rows(
         &self,
         kanji: &str,
         reading: &str,
         reading_type: &str,
-    ) -> Result<Vec<(i32, i32, Option<i32>)>, sqlx::Error>;
+    ) -> Result<Vec<(i32, i32, Option<i32>)>, crate::conn::KaniDbError>;
 
     /// `(text, type)` reading pairs of a kanji excluding `typeset` —
     /// `get-readings-cache` (`kanji.lisp:201`). The `ORDER BY r.id` is
     /// a deliberate divergence from upstream's unordered SELECT (see
     /// the callsite comment in [`crate::kanji::readings`]).
-    async fn kanji_reading_pairs(
+    fn kanji_reading_pairs(
         &self,
         text: &str,
         typeset: &[String],
-    ) -> Result<Vec<(String, String)>, sqlx::Error>;
+    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError>;
 }
 
-/// Runtime-selected dictionary store held by `ctx.store`. Statically
-/// dispatched: each call is a match on the variant, fully inlinable.
-/// Cheap to clone — both backends are reference-counted handles.
+/// Runtime dictionary store held by `ctx.store`. The default build has
+/// only the rkyv snapshot variant; the `postgres` feature adds a
+/// runtime-swappable Postgres variant. Kept as an enum so dispatch is a
+/// static match. Cheap to clone — the backend is a reference-counted handle.
 #[derive(Clone)]
 pub enum KaniStore {
+    #[cfg(feature = "postgres")]
     Postgres(KaniPostgresBackend),
     #[cfg(feature = "rkyv")]
     Rkyv(KaniRkyvBackend),
@@ -450,16 +453,21 @@ pub enum KaniStore {
 
 impl KaniStore {
     /// `(query-dao 'kanji query)` — `query-kanji-json` (`kanji.lisp:458`);
-    /// the caller supplies the full SQL statement, so this is
-    /// Postgres-only and lives outside [`KaniBackend`]. Non-Postgres
-    /// backends fail loud.
-    pub async fn kanji_by_raw_query(&self, query: &str) -> Result<Vec<Kanji>, sqlx::Error> {
+    /// the caller supplies the full SQL statement. Only the Postgres
+    /// backend can run it; the rkyv snapshot has no SQL engine, so it
+    /// fails loud there.
+    pub fn kanji_by_raw_query(&self, query: &str) -> Result<Vec<Kanji>, crate::conn::KaniDbError> {
         match self {
-            KaniStore::Postgres(backend) => backend.kanji_by_raw_query(query).await,
+            #[cfg(feature = "postgres")]
+            KaniStore::Postgres(backend) => backend.kanji_by_raw_query(query),
             #[cfg(feature = "rkyv")]
-            KaniStore::Rkyv(_) => Err(sqlx::Error::Protocol(
-                "kanji_by_raw_query takes caller-supplied SQL and is Postgres-only".into(),
-            )),
+            KaniStore::Rkyv(_) => {
+                let _ = query;
+                Err(crate::conn::KaniDbError::Protocol(
+                    "kanji_by_raw_query takes caller-supplied SQL and requires the Postgres backend"
+                        .into(),
+                ))
+            }
         }
     }
 }
@@ -468,6 +476,7 @@ impl KaniStore {
 macro_rules! kani_store_delegate {
     ($self:ident, $backend:ident => $call:expr) => {
         match $self {
+            #[cfg(feature = "postgres")]
             KaniStore::Postgres($backend) => $call,
             #[cfg(feature = "rkyv")]
             KaniStore::Rkyv($backend) => $call,
@@ -476,414 +485,414 @@ macro_rules! kani_store_delegate {
 }
 
 impl KaniBackend for KaniStore {
-    async fn entry_by_seq(&self, seq: i32) -> Result<Option<Entry>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.entry_by_seq(seq).await)
+    fn entry_by_seq(&self, seq: i32) -> Result<Option<Entry>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.entry_by_seq(seq))
     }
 
-    async fn root_seqs(&self, seqs: &[i32]) -> Result<Vec<i32>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.root_seqs(seqs).await)
+    fn root_seqs(&self, seqs: &[i32]) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.root_seqs(seqs))
     }
 
-    async fn candidate_seqs_kana(&self, text: &str) -> Result<Vec<i32>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.candidate_seqs_kana(text).await)
+    fn candidate_seqs_kana(&self, text: &str) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.candidate_seqs_kana(text))
     }
 
-    async fn candidate_seqs_kanji(
+    fn candidate_seqs_kanji(
         &self,
         text: &str,
         reading: Option<&str>,
-    ) -> Result<Vec<i32>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.candidate_seqs_kanji(text, reading).await)
+    ) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.candidate_seqs_kanji(text, reading))
     }
 
-    async fn kanji_words_containing_char(
+    fn kanji_words_containing_char(
         &self,
         char: &str,
-    ) -> Result<Vec<(i32, String, String, i32)>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_words_containing_char(char).await)
+    ) -> Result<Vec<(i32, String, String, i32)>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_words_containing_char(char))
     }
 
-    async fn headword_kanji_text(&self, seq: i32) -> Result<Option<String>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.headword_kanji_text(seq).await)
+    fn headword_kanji_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.headword_kanji_text(seq))
     }
 
-    async fn headword_kana_text(&self, seq: i32) -> Result<Option<String>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.headword_kana_text(seq).await)
+    fn headword_kana_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.headword_kana_text(seq))
     }
 
-    async fn kanji_texts_by_seq_and_text(
+    fn kanji_texts_by_seq_and_text(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_texts_by_seq_and_text(seq, text).await)
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_texts_by_seq_and_text(seq, text))
     }
 
-    async fn kana_texts_by_seq_and_text(
+    fn kana_texts_by_seq_and_text(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_texts_by_seq_and_text(seq, text).await)
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_texts_by_seq_and_text(seq, text))
     }
 
-    async fn kana_texts_by_seq_and_text_any(
+    fn kana_texts_by_seq_and_text_any(
         &self,
         seq: i32,
         texts: &[String],
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_texts_by_seq_and_text_any(seq, texts).await)
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_texts_by_seq_and_text_any(seq, texts))
     }
 
-    async fn kanji_texts_by_seq_and_text_any(
+    fn kanji_texts_by_seq_and_text_any(
         &self,
         seq: i32,
         texts: &[String],
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_texts_by_seq_and_text_any(seq, texts).await)
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_texts_by_seq_and_text_any(seq, texts))
     }
 
-    async fn kana_texts_by_seq_ordered(&self, seq: i32) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_texts_by_seq_ordered(seq).await)
+    fn kana_texts_by_seq_ordered(&self, seq: i32) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_texts_by_seq_ordered(seq))
     }
 
-    async fn kanji_text_by_id(&self, id: i32) -> Result<KanjiText, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_text_by_id(id).await)
+    fn kanji_text_by_id(&self, id: i32) -> Result<KanjiText, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_text_by_id(id))
     }
 
-    async fn kana_text_by_id(&self, id: i32) -> Result<KanaText, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_text_by_id(id).await)
+    fn kana_text_by_id(&self, id: i32) -> Result<KanaText, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_text_by_id(id))
     }
 
-    async fn kana_texts_by_text(&self, text: &str) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_texts_by_text(text).await)
+    fn kana_texts_by_text(&self, text: &str) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_texts_by_text(text))
     }
 
-    async fn kanji_texts_by_text(&self, text: &str) -> Result<Vec<KanjiText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_texts_by_text(text).await)
+    fn kanji_texts_by_text(&self, text: &str) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_texts_by_text(text))
     }
 
-    async fn kana_texts_root_by_text(&self, text: &str) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_texts_root_by_text(text).await)
+    fn kana_texts_root_by_text(&self, text: &str) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_texts_root_by_text(text))
     }
 
-    async fn kanji_texts_root_by_text(&self, text: &str) -> Result<Vec<KanjiText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_texts_root_by_text(text).await)
+    fn kanji_texts_root_by_text(&self, text: &str) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_texts_root_by_text(text))
     }
 
-    async fn kana_texts_by_text_any(
+    fn kana_texts_by_text_any(
         &self,
         texts: &[String],
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_texts_by_text_any(texts).await)
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_texts_by_text_any(texts))
     }
 
-    async fn kanji_texts_by_text_any(
+    fn kanji_texts_by_text_any(
         &self,
         texts: &[String],
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_texts_by_text_any(texts).await)
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_texts_by_text_any(texts))
     }
 
-    async fn kanji_texts_by_text_any_and_seq_any(
+    fn kanji_texts_by_text_any_and_seq_any(
         &self,
         texts: &[&str],
         seqs: &[i32],
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_texts_by_text_any_and_seq_any(texts, seqs).await)
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_texts_by_text_any_and_seq_any(texts, seqs))
     }
 
-    async fn kana_texts_by_text_any_and_seq_any(
+    fn kana_texts_by_text_any_and_seq_any(
         &self,
         texts: &[&str],
         seqs: &[i32],
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_texts_by_text_any_and_seq_any(texts, seqs).await)
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_texts_by_text_any_and_seq_any(texts, seqs))
     }
 
-    async fn kana_texts_by_text_and_seq_any(
+    fn kana_texts_by_text_and_seq_any(
         &self,
         text: &str,
         seqs: &[i32],
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_texts_by_text_and_seq_any(text, seqs).await)
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_texts_by_text_and_seq_any(text, seqs))
     }
 
-    async fn kanji_texts_by_text_and_seq_any(
+    fn kanji_texts_by_text_and_seq_any(
         &self,
         text: &str,
         seqs: &[i32],
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_texts_by_text_and_seq_any(text, seqs).await)
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_texts_by_text_and_seq_any(text, seqs))
     }
 
-    async fn kana_texts_conj_of(
+    fn kana_texts_conj_of(
         &self,
         seqs: &[i32],
         text: &str,
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_texts_conj_of(seqs, text).await)
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_texts_conj_of(seqs, text))
     }
 
-    async fn kanji_texts_conj_of(
+    fn kanji_texts_conj_of(
         &self,
         seqs: &[i32],
         text: &str,
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_texts_conj_of(seqs, text).await)
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_texts_conj_of(seqs, text))
     }
 
-    async fn kana_texts_with_pos(
+    fn kana_texts_with_pos(
         &self,
         text: &str,
         posi: &[String],
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_texts_with_pos(text, posi).await)
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_texts_with_pos(text, posi))
     }
 
-    async fn kanji_texts_with_pos(
+    fn kanji_texts_with_pos(
         &self,
         text: &str,
         posi: &[String],
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_texts_with_pos(text, posi).await)
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_texts_with_pos(text, posi))
     }
 
-    async fn kana_forms_rows(&self, seq: i32) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_forms_rows(seq).await)
+    fn kana_forms_rows(&self, seq: i32) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_forms_rows(seq))
     }
 
-    async fn kana_texts_by_text_and_seq(
+    fn kana_texts_by_text_and_seq(
         &self,
         text: &str,
         seq: i32,
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_texts_by_text_and_seq(text, seq).await)
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_texts_by_text_and_seq(text, seq))
     }
 
-    async fn kana_seqs_by_text(&self, text: &str) -> Result<Vec<i32>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_seqs_by_text(text).await)
+    fn kana_seqs_by_text(&self, text: &str) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_seqs_by_text(text))
     }
 
-    async fn kanji_seqs_by_text(&self, text: &str) -> Result<Vec<i32>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_seqs_by_text(text).await)
+    fn kanji_seqs_by_text(&self, text: &str) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_seqs_by_text(text))
     }
 
-    async fn kana_reading_texts_by_seq_any(
+    fn kana_reading_texts_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<String>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_reading_texts_by_seq_any(seqs).await)
+    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_reading_texts_by_seq_any(seqs))
     }
 
-    async fn kana_seqs_by_seq_and_text(
+    fn kana_seqs_by_seq_and_text(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<i32>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_seqs_by_seq_and_text(seq, text).await)
+    ) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_seqs_by_seq_and_text(seq, text))
     }
 
-    async fn kana_texts_by_regex(&self, pattern: &str) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_texts_by_regex(pattern).await)
+    fn kana_texts_by_regex(&self, pattern: &str) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_texts_by_regex(pattern))
     }
 
-    async fn kana_texts_by_seq_any(&self, seqs: &[i32]) -> Result<Vec<KanaText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kana_texts_by_seq_any(seqs).await)
+    fn kana_texts_by_seq_any(&self, seqs: &[i32]) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kana_texts_by_seq_any(seqs))
     }
 
-    async fn kanji_texts_by_seq_any(&self, seqs: &[i32]) -> Result<Vec<KanjiText>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_texts_by_seq_any(seqs).await)
+    fn kanji_texts_by_seq_any(&self, seqs: &[i32]) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_texts_by_seq_any(seqs))
     }
 
-    async fn conjs_by_seq(&self, seq: i32) -> Result<Vec<Conjugation>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.conjs_by_seq(seq).await)
+    fn conjs_by_seq(&self, seq: i32) -> Result<Vec<Conjugation>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.conjs_by_seq(seq))
     }
 
-    async fn conjs_by_seq_and_ids(
+    fn conjs_by_seq_and_ids(
         &self,
         seq: i32,
         ids: &[i32],
-    ) -> Result<Vec<Conjugation>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.conjs_by_seq_and_ids(seq, ids).await)
+    ) -> Result<Vec<Conjugation>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.conjs_by_seq_and_ids(seq, ids))
     }
 
-    async fn conjs_by_seq_and_from(
+    fn conjs_by_seq_and_from(
         &self,
         seq: i32,
         from: i32,
-    ) -> Result<Vec<Conjugation>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.conjs_by_seq_and_from(seq, from).await)
+    ) -> Result<Vec<Conjugation>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.conjs_by_seq_and_from(seq, from))
     }
 
-    async fn conjs_by_seq_via_null(&self, seq: i32) -> Result<Vec<Conjugation>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.conjs_by_seq_via_null(seq).await)
+    fn conjs_by_seq_via_null(&self, seq: i32) -> Result<Vec<Conjugation>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.conjs_by_seq_via_null(seq))
     }
 
-    async fn conj_by_id(&self, id: i32) -> Result<Conjugation, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.conj_by_id(id).await)
+    fn conj_by_id(&self, id: i32) -> Result<Conjugation, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.conj_by_id(id))
     }
 
-    async fn conj_seqs_of_desu(&self, seqs: &[i32]) -> Result<Vec<i32>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.conj_seqs_of_desu(seqs).await)
+    fn conj_seqs_of_desu(&self, seqs: &[i32]) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.conj_seqs_of_desu(seqs))
     }
 
-    async fn conj_seqs_from_any(&self, seqs: &[i32]) -> Result<Vec<i32>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.conj_seqs_from_any(seqs).await)
+    fn conj_seqs_from_any(&self, seqs: &[i32]) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.conj_seqs_from_any(seqs))
     }
 
-    async fn no_conj_seqs(&self) -> Result<Vec<i32>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.no_conj_seqs().await)
+    fn no_conj_seqs(&self) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.no_conj_seqs())
     }
 
-    async fn conj_props_by_conj_id(&self, conj_id: i32) -> Result<Vec<ConjProp>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.conj_props_by_conj_id(conj_id).await)
+    fn conj_props_by_conj_id(&self, conj_id: i32) -> Result<Vec<ConjProp>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.conj_props_by_conj_id(conj_id))
     }
 
-    async fn conj_source_readings_by_conj_id(
+    fn conj_source_readings_by_conj_id(
         &self,
         conj_id: i32,
-    ) -> Result<Vec<(String, String)>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.conj_source_readings_by_conj_id(conj_id).await)
+    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.conj_source_readings_by_conj_id(conj_id))
     }
 
-    async fn conj_source_readings_by_conj_id_and_texts(
+    fn conj_source_readings_by_conj_id_and_texts(
         &self,
         conj_id: i32,
         texts: &[String],
-    ) -> Result<Vec<(String, String)>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.conj_source_readings_by_conj_id_and_texts(conj_id, texts).await)
+    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.conj_source_readings_by_conj_id_and_texts(conj_id, texts))
     }
 
-    async fn conj_source_reading_texts(
+    fn conj_source_reading_texts(
         &self,
         conj_id: i32,
         source_text: &str,
-    ) -> Result<Vec<String>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.conj_source_reading_texts(conj_id, source_text).await)
+    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.conj_source_reading_texts(conj_id, source_text))
     }
 
-    async fn parents_kanji(
+    fn parents_kanji(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<(i32, i32)>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.parents_kanji(seq, text).await)
+    ) -> Result<Vec<(i32, i32)>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.parents_kanji(seq, text))
     }
 
-    async fn parents_kana(
+    fn parents_kana(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<(i32, i32)>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.parents_kana(seq, text).await)
+    ) -> Result<Vec<(i32, i32)>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.parents_kana(seq, text))
     }
 
-    async fn sense_gloss_rows(
+    fn sense_gloss_rows(
         &self,
         seq: i32,
-    ) -> Result<Vec<(i32, Option<String>)>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.sense_gloss_rows(seq).await)
+    ) -> Result<Vec<(i32, Option<String>)>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.sense_gloss_rows(seq))
     }
 
-    async fn sense_prop_rows_tagged(
+    fn sense_prop_rows_tagged(
         &self,
         seq: i32,
         tags: &[&str],
-    ) -> Result<Vec<(i32, String, String)>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.sense_prop_rows_tagged(seq, tags).await)
+    ) -> Result<Vec<(i32, String, String)>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.sense_prop_rows_tagged(seq, tags))
     }
 
-    async fn first_sense_gloss(&self, seq: i32) -> Result<Option<Option<String>>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.first_sense_gloss(seq).await)
+    fn first_sense_gloss(&self, seq: i32) -> Result<Option<Option<String>>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.first_sense_gloss(seq))
     }
 
-    async fn first_sense_gloss_with_pos(
+    fn first_sense_gloss_with_pos(
         &self,
         seq: i32,
         pos: &str,
-    ) -> Result<Option<Option<String>>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.first_sense_gloss_with_pos(seq, pos).await)
+    ) -> Result<Option<Option<String>>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.first_sense_gloss_with_pos(seq, pos))
     }
 
-    async fn glosses_by_seq_any(
+    fn glosses_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.glosses_by_seq_any(seqs).await)
+    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.glosses_by_seq_any(seqs))
     }
 
-    async fn uk_sense_ids(&self, seqs: &[i32]) -> Result<Vec<i32>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.uk_sense_ids(seqs).await)
+    fn uk_sense_ids(&self, seqs: &[i32]) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.uk_sense_ids(seqs))
     }
 
-    async fn sense_id_ord0(&self, ids: &[i32]) -> Result<Option<i32>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.sense_id_ord0(ids).await)
+    fn sense_id_ord0(&self, ids: &[i32]) -> Result<Option<i32>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.sense_id_ord0(ids))
     }
 
-    async fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<String>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.non_arch_posi(seqs).await)
+    fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<String>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.non_arch_posi(seqs))
     }
 
-    async fn arch_only_seqs(&self) -> Result<Vec<i32>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.arch_only_seqs().await)
+    fn arch_only_seqs(&self) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.arch_only_seqs())
     }
 
-    async fn counter_seqs(&self) -> Result<Vec<i32>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.counter_seqs().await)
+    fn counter_seqs(&self) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.counter_seqs())
     }
 
-    async fn counter_stag_rows(
+    fn counter_stag_rows(
         &self,
         tag: &str,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.counter_stag_rows(tag, seqs).await)
+    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.counter_stag_rows(tag, seqs))
     }
 
-    async fn restricted_readings_by_seq(
+    fn restricted_readings_by_seq(
         &self,
         seq: i32,
-    ) -> Result<Vec<(String, String)>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.restricted_readings_by_seq(seq).await)
+    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.restricted_readings_by_seq(seq))
     }
 
-    async fn readings_non_nanori_by_kanji_id(
+    fn readings_non_nanori_by_kanji_id(
         &self,
         kanji_id: i32,
-    ) -> Result<Vec<Reading>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.readings_non_nanori_by_kanji_id(kanji_id).await)
+    ) -> Result<Vec<Reading>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.readings_non_nanori_by_kanji_id(kanji_id))
     }
 
-    async fn meanings_by_kanji_id(&self, kanji_id: i32) -> Result<Vec<Meaning>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.meanings_by_kanji_id(kanji_id).await)
+    fn meanings_by_kanji_id(&self, kanji_id: i32) -> Result<Vec<Meaning>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.meanings_by_kanji_id(kanji_id))
     }
 
-    async fn okurigana_texts_by_reading_id(
+    fn okurigana_texts_by_reading_id(
         &self,
         reading_id: i32,
-    ) -> Result<Vec<String>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.okurigana_texts_by_reading_id(reading_id).await)
+    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.okurigana_texts_by_reading_id(reading_id))
     }
 
-    async fn kanji_by_text(&self, text: &str) -> Result<Vec<Kanji>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_by_text(text).await)
+    fn kanji_by_text(&self, text: &str) -> Result<Vec<Kanji>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_by_text(text))
     }
 
-    async fn reading_stats_rows(
+    fn reading_stats_rows(
         &self,
         kanji: &str,
         reading: &str,
         reading_type: &str,
-    ) -> Result<Vec<(i32, i32, Option<i32>)>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.reading_stats_rows(kanji, reading, reading_type).await)
+    ) -> Result<Vec<(i32, i32, Option<i32>)>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.reading_stats_rows(kanji, reading, reading_type))
     }
 
-    async fn kanji_reading_pairs(
+    fn kanji_reading_pairs(
         &self,
         text: &str,
         typeset: &[String],
-    ) -> Result<Vec<(String, String)>, sqlx::Error> {
-        kani_store_delegate!(self, backend => backend.kanji_reading_pairs(text, typeset).await)
+    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
+        kani_store_delegate!(self, backend => backend.kanji_reading_pairs(text, typeset))
     }
 }

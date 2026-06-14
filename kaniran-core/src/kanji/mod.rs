@@ -7,6 +7,9 @@
 
 pub mod kani_kanji_reading;
 pub mod dao;
+// Kanjidic XML loader — sources into Postgres; parked behind `loaders`
+// until it moves to the standalone `kaniran-loader` crate.
+#[cfg(feature = "loaders")]
 pub mod loaders;
 pub mod readings;
 pub mod matching;

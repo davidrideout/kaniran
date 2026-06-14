@@ -7,19 +7,28 @@ license.workspace = true
 repository.workspace = true
 
 [features]
-# The rkyv-backed dictionary store: adds rkyv derives to the DAO row
-# structs and enables `conn::kani_snapshot` + `conn::kani_rkyv_backend`
-# (selected at runtime via DATABASE_URL=memory://<archive path>). Off
-# by default — the Postgres-only build never pays for it.
+default = ["rkyv"]
+# The rkyv-backed dictionary store — the default runtime backend. Reads
+# every lookup from a memory-mapped archive
+# (DATABASE_URL=memory://<archive path>), so the default build is
+# synchronous and never links sqlx or tokio.
 rkyv = ["dep:rkyv", "dep:memmap2"]
+# Optional Postgres backend, runtime-swappable with rkyv
+# (DATABASE_URL=postgres://...). Pulls in sqlx + tokio; the Postgres
+# queries run synchronously by blocking on a private tokio runtime.
+postgres = ["dep:sqlx", "dep:tokio"]
+# The build-the-archive data loaders (JMdict / kanjidic / custom dict /
+# maintenance). Source from a Postgres database, so implies `postgres`.
+# Slated to move to a standalone `kaniran-loader` crate.
+loaders = ["postgres"]
 
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
 fancy-regex = { workspace = true }
 similar = { workspace = true }
-sqlx = { workspace = true }
-tokio = { workspace = true }
+sqlx = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
 config = { workspace = true }
 thiserror = { workspace = true }
 unicode-properties = { workspace = true }

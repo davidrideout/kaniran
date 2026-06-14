@@ -6,14 +6,14 @@ mod calc_score {
     use crate::dict::scoring::score::KaniSplitInfo;
     use crate::dict::text_classes::CompoundText;
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
-    async fn first_word_for(ctx: &KaniranContext, s: &str) -> KaniWordDispatchEnum {
-        match find_word(ctx, s, false).await.unwrap().into_owned() {
+    fn first_word_for(ctx: &KaniranContext, s: &str) -> KaniWordDispatchEnum {
+        match find_word(ctx, s, false).unwrap().into_owned() {
             FindWordRows::Kana(mut v) => KaniWordDispatchEnum::Kana(v.remove(0)),
             FindWordRows::Kanji(mut v) => KaniWordDispatchEnum::Kanji(v.remove(0)),
         }
@@ -22,24 +22,24 @@ mod calc_score {
     /// Fetch a specific kana_text row by (seq, text) — deterministic
     /// alternative to `first_word_for` when find-word's row order
     /// (no upstream ORDER BY) would make a test flaky.
-    async fn kana_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
+    fn kana_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
         let rows: Vec<crate::dict::dao::KanaText> = sqlx::query_as(
             "SELECT * FROM kana_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
         )
         .bind(seq)
         .bind(text)
         .fetch_all(&ctx.pool)
-        .await
+        
         .expect("query");
         KaniWordDispatchEnum::Kana(rows.into_iter().next().expect("row exists"))
     }
 
     /// Baseline score for the common noun ねこ.
-    #[tokio::test]
-    async fn nekko_baseline() {
-        let ctx = ctx_from_env().await;
-        let w = first_word_for(&ctx, "ねこ").await;
-        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).await.unwrap();
+    #[test]
+    fn nekko_baseline() {
+        let ctx = ctx_from_env();
+        let w = first_word_for(&ctx, "ねこ");
+        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).unwrap();
         assert_eq!(score, 16);
         let info = info.unwrap();
         assert_eq!(info.posi, vec!["n".to_string()]);
@@ -54,11 +54,11 @@ mod calc_score {
     }
 
     /// The particle の scored in non-final position.
-    #[tokio::test]
-    async fn no_particle_non_final() {
-        let ctx = ctx_from_env().await;
-        let w = first_word_for(&ctx, "の").await;
-        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).await.unwrap();
+    #[test]
+    fn no_particle_non_final() {
+        let ctx = ctx_from_env();
+        let w = first_word_for(&ctx, "の");
+        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).unwrap();
         assert_eq!(score, 11);
         let info = info.unwrap();
         assert_eq!(info.posi, vec!["prt".to_string()]);
@@ -73,11 +73,11 @@ mod calc_score {
     }
 
     /// The particle の in final position gets the final-particle bonus.
-    #[tokio::test]
-    async fn no_particle_final_branch_bonus() {
-        let ctx = ctx_from_env().await;
-        let w = first_word_for(&ctx, "の").await;
-        let (score, info) = calc_score(&ctx, &w, true, None, None, &[]).await.unwrap();
+    #[test]
+    fn no_particle_final_branch_bonus() {
+        let ctx = ctx_from_env();
+        let w = first_word_for(&ctx, "の");
+        let (score, info) = calc_score(&ctx, &w, true, None, None, &[]).unwrap();
         assert_eq!(score, 16);
         let info = info.unwrap();
         assert_eq!(info.posi, vec!["prt".to_string()]);
@@ -92,11 +92,11 @@ mod calc_score {
     }
 
     /// An uncommon noun reading of は (common rank absent).
-    #[tokio::test]
-    async fn ha_n_uncommon() {
-        let ctx = ctx_from_env().await;
-        let w = first_word_for(&ctx, "は").await;
-        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).await.unwrap();
+    #[test]
+    fn ha_n_uncommon() {
+        let ctx = ctx_from_env();
+        let w = first_word_for(&ctx, "は");
+        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).unwrap();
         assert_eq!(score, 1);
         let info = info.unwrap();
         assert_eq!(info.posi, vec!["n".to_string()]);
@@ -115,11 +115,11 @@ mod calc_score {
     /// order, which would otherwise alternate between the noun reading and
     /// the copula. Exercises the copula branch and the common=0 arm of the
     /// common-bonus cascade.
-    #[tokio::test]
-    async fn da_copula_cop_da_p_branch() {
-        let ctx = ctx_from_env().await;
-        let w = kana_by_seq_text(&ctx, 2089020, "だ").await;
-        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).await.unwrap();
+    #[test]
+    fn da_copula_cop_da_p_branch() {
+        let ctx = ctx_from_env();
+        let w = kana_by_seq_text(&ctx, 2089020, "だ");
+        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).unwrap();
         assert_eq!(score, 16);
         let info = info.unwrap();
         let mut posi_sorted = info.posi.clone();
@@ -139,16 +139,16 @@ mod calc_score {
 
         // :final t produces the same value — particle_p is false (no "prt" in posi),
         // so the final-particle bonus block is skipped.
-        let (score, _) = calc_score(&ctx, &w, true, None, None, &[]).await.unwrap();
+        let (score, _) = calc_score(&ctx, &w, true, None, None, &[]).unwrap();
         assert_eq!(score, 16);
     }
 
     /// The root verb 食べる.
-    #[tokio::test]
-    async fn taberu_root_verb() {
-        let ctx = ctx_from_env().await;
-        let w = first_word_for(&ctx, "食べる").await;
-        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).await.unwrap();
+    #[test]
+    fn taberu_root_verb() {
+        let ctx = ctx_from_env();
+        let w = first_word_for(&ctx, "食べる");
+        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).unwrap();
         assert_eq!(score, 504);
         let info = info.unwrap();
         let mut p = info.posi.clone();
@@ -167,11 +167,11 @@ mod calc_score {
     /// A kanji-break only adjusts the outer score; it does not mutate any
     /// field of `info`, so every non-score-info field matches
     /// [`taberu_root_verb`].
-    #[tokio::test]
-    async fn taberu_with_kanji_break() {
-        let ctx = ctx_from_env().await;
-        let w = first_word_for(&ctx, "食べる").await;
-        let (score, info) = calc_score(&ctx, &w, false, None, None, &[0]).await.unwrap();
+    #[test]
+    fn taberu_with_kanji_break() {
+        let ctx = ctx_from_env();
+        let w = first_word_for(&ctx, "食べる");
+        let (score, info) = calc_score(&ctx, &w, false, None, None, &[0]).unwrap();
         assert_eq!(score, 252);
         let info = info.unwrap();
         let mut p = info.posi.clone();
@@ -188,11 +188,11 @@ mod calc_score {
     }
 
     /// A long interjection (ありがとう).
-    #[tokio::test]
-    async fn arigatou_interjection_long() {
-        let ctx = ctx_from_env().await;
-        let w = first_word_for(&ctx, "ありがとう").await;
-        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).await.unwrap();
+    #[test]
+    fn arigatou_interjection_long() {
+        let ctx = ctx_from_env();
+        let w = first_word_for(&ctx, "ありがとう");
+        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).unwrap();
         assert_eq!(score, 525);
         let info = info.unwrap();
         assert_eq!(info.posi, vec!["int".to_string()]);
@@ -207,11 +207,11 @@ mod calc_score {
     }
 
     /// A long katakana noun (コンピューター).
-    #[tokio::test]
-    async fn computer_katakana_path() {
-        let ctx = ctx_from_env().await;
-        let w = first_word_for(&ctx, "コンピューター").await;
-        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).await.unwrap();
+    #[test]
+    fn computer_katakana_path() {
+        let ctx = ctx_from_env();
+        let w = first_word_for(&ctx, "コンピューター");
+        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).unwrap();
         assert_eq!(score, 440);
         let info = info.unwrap();
         assert_eq!(info.posi, vec!["n".to_string()]);
@@ -228,10 +228,10 @@ mod calc_score {
 
     /// How the use-length bonus scales the score for ねこ at lengths 5, 3,
     /// and 2 (only the score and length bonus change).
-    #[tokio::test]
-    async fn neko_use_length_variations() {
-        let ctx = ctx_from_env().await;
-        let w = first_word_for(&ctx, "ねこ").await;
+    #[test]
+    fn neko_use_length_variations() {
+        let ctx = ctx_from_env();
+        let w = first_word_for(&ctx, "ねこ");
 
         // Helper to assert every field other than score / use_length_bonus,
         // which are the only quantities that change with use_length.
@@ -247,7 +247,7 @@ mod calc_score {
         };
 
         let (score, info) = calc_score(&ctx, &w, false, Some(5), None, &[])
-            .await
+            
             .unwrap();
         assert_eq!(score, 80);
         let info = info.unwrap();
@@ -255,7 +255,7 @@ mod calc_score {
         assert_eq!(info.score_info.use_length_bonus, 64);
 
         let (score, info) = calc_score(&ctx, &w, false, Some(3), None, &[])
-            .await
+            
             .unwrap();
         assert_eq!(score, 32);
         let info = info.unwrap();
@@ -263,7 +263,7 @@ mod calc_score {
         assert_eq!(info.score_info.use_length_bonus, 16);
 
         let (score, info) = calc_score(&ctx, &w, false, Some(2), None, &[])
-            .await
+            
             .unwrap();
         assert_eq!(score, 16);
         let info = info.unwrap();
@@ -278,9 +278,9 @@ mod calc_score {
     /// Compound `れちゃう` with no score-base (falls back to its primary).
     /// The last word ちゃう has no conjugation data on the real DB, so the
     /// synthesized info carries an empty conj list.
-    #[tokio::test]
-    async fn compound_skipword_partial_info_conj_null() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn compound_skipword_partial_info_conj_null() {
+        let ctx = ctx_from_env();
 
         let primary = KanaText {
             id: 532088,
@@ -326,7 +326,7 @@ mod calc_score {
         let word = KaniWordDispatchEnum::Compound(compound);
 
         let (score, info) = calc_score(&ctx, &word, false, None, None, &[])
-            .await
+            
             .unwrap();
         assert_eq!(score, 0);
         let info = info.expect(
@@ -353,9 +353,9 @@ mod calc_score {
     /// Compound `られなくなりました` with no score-base. Its last word
     /// なりました does have conjugation data (from なる), so the
     /// synthesized info carries a single conj-data entry.
-    #[tokio::test]
-    async fn compound_skipword_partial_info_conj_non_null() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn compound_skipword_partial_info_conj_non_null() {
+        let ctx = ctx_from_env();
 
         let rare = KanaText {
             id: 0,
@@ -417,7 +417,7 @@ mod calc_score {
         let word = KaniWordDispatchEnum::Compound(compound);
 
         let (score, info) = calc_score(&ctx, &word, false, None, None, &[])
-            .await
+            
             .unwrap();
         assert_eq!(score, 0);
         let info = info.expect(

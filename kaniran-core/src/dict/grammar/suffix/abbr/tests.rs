@@ -2,19 +2,19 @@ mod abbr_nee {
     use crate::dict::grammar::suffix::abbr::*;
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
     /// REPL NEE1: `(abbr-nee "食べ" "ねえ" nil)` → 1 PROXY
     /// text="食べねえ" kana="たべねえ" hintedp=T source=KANJI-TEXT
     /// (seq 10092227, text "食べない").
-    #[tokio::test]
-    async fn nee1_taberu_kanji() {
-        let ctx = ctx().await;
-        let result = abbr_nee(&ctx, "食べ", "ねえ", None).await.unwrap();
+    #[test]
+    fn nee1_taberu_kanji() {
+        let ctx = ctx();
+        let result = abbr_nee(&ctx, "食べ", "ねえ", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -36,10 +36,10 @@ mod abbr_nee {
     /// REPL NEE2: `(abbr-nee "知ら" "ねえ" nil)` → 2 PROXY
     /// text="知らねえ" kana="しらねえ" hintedp=T source-seqs sorted
     /// {1420420, 10105960}.
-    #[tokio::test]
-    async fn nee2_shiraneru_polysemy() {
-        let ctx = ctx().await;
-        let result = abbr_nee(&ctx, "知ら", "ねえ", None).await.unwrap();
+    #[test]
+    fn nee2_shiraneru_polysemy() {
+        let ctx = ctx();
+        let result = abbr_nee(&ctx, "知ら", "ねえ", None).unwrap();
         assert_eq!(result.len(), 2);
         for w in &result {
             let KaniWordDispatchEnum::Proxy(p) = w else {
@@ -71,10 +71,10 @@ mod abbr_nee {
     /// (seq 1577980) is blocked, but other "いない" entries (10033628,
     /// 10128866, 10303114, 10362292, 10423265, 1155180) pass the
     /// filter — exercises the from-not-in-blocklist branch.
-    #[tokio::test]
-    async fn nee3_i_blocks_iru_passes_others() {
-        let ctx = ctx().await;
-        let result = abbr_nee(&ctx, "い", "ねえ", None).await.unwrap();
+    #[test]
+    fn nee3_i_blocks_iru_passes_others() {
+        let ctx = ctx();
+        let result = abbr_nee(&ctx, "い", "ねえ", None).unwrap();
         assert_eq!(result.len(), 6);
         let mut seqs: Vec<i32> = result
             .iter()
@@ -99,10 +99,10 @@ mod abbr_nee {
     /// KANA-TEXT seq=2398700. 来ない (from=1547720) is blocked but
     /// "こない" entry 2398700 derives from a different from and
     /// passes.
-    #[tokio::test]
-    async fn nee4_ko_blocks_kuru_passes_konai() {
-        let ctx = ctx().await;
-        let result = abbr_nee(&ctx, "こ", "ねえ", None).await.unwrap();
+    #[test]
+    fn nee4_ko_blocks_kuru_passes_konai() {
+        let ctx = ctx();
+        let result = abbr_nee(&ctx, "こ", "ねえ", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -118,19 +118,19 @@ mod abbr_nx {
     use crate::dict::grammar::suffix::abbr::*;
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
     /// REPL NX1: `(abbr-nx "知ら" "ず" nil)` → 1 PROXY
     /// text="知らず" kana="しらず" hintedp=T source=KANJI-TEXT
     /// (seq 10105960, text "知らない"). Exercises the t-arm filter.
-    #[tokio::test]
-    async fn nx1_shira_zu_kanji() {
-        let ctx = ctx().await;
-        let result = abbr_nx(&ctx, "知ら", "ず", None).await.unwrap();
+    #[test]
+    fn nx1_shira_zu_kanji() {
+        let ctx = ctx();
+        let result = abbr_nx(&ctx, "知ら", "ず", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -146,10 +146,10 @@ mod abbr_nx {
 
     /// REPL NX2: `(abbr-nx "食べ" "ず" nil)` → 1 PROXY
     /// text="食べず" kana="たべず" source=KANJI-TEXT seq=10092227.
-    #[tokio::test]
-    async fn nx2_tabe_zu_kanji() {
-        let ctx = ctx().await;
-        let result = abbr_nx(&ctx, "食べ", "ず", None).await.unwrap();
+    #[test]
+    fn nx2_tabe_zu_kanji() {
+        let ctx = ctx();
+        let result = abbr_nx(&ctx, "食べ", "ず", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -166,10 +166,10 @@ mod abbr_nx {
     /// kana="せず" source=KANA-TEXT (seq=10152244, text "しない").
     /// Exercises the patch branch: `destem("しない", 3) = ""` +
     /// patch-cdr "せ" + suf-var "ず" → "せず".
-    #[tokio::test]
-    async fn nx3_se_zu_patch_branch() {
-        let ctx = ctx().await;
-        let result = abbr_nx(&ctx, "せ", "ず", None).await.unwrap();
+    #[test]
+    fn nx3_se_zu_patch_branch() {
+        let ctx = ctx();
+        let result = abbr_nx(&ctx, "せ", "ず", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -187,10 +187,10 @@ mod abbr_nx {
 
     /// REPL NX4: `(abbr-nx "せ" "ざる" nil)` → 1 PROXY text="せざる"
     /// kana="せざる" (patch branch with different suf-var).
-    #[tokio::test]
-    async fn nx4_se_zaru_patch_branch() {
-        let ctx = ctx().await;
-        let result = abbr_nx(&ctx, "せ", "ざる", None).await.unwrap();
+    #[test]
+    fn nx4_se_zaru_patch_branch() {
+        let ctx = ctx();
+        let result = abbr_nx(&ctx, "せ", "ざる", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -201,10 +201,10 @@ mod abbr_nx {
 
     /// REPL NX5: `(abbr-nx "せ" "ぬ" nil)` → 1 PROXY text="せぬ"
     /// kana="せぬ" (patch branch with yet another suf-var).
-    #[tokio::test]
-    async fn nx5_se_nu_patch_branch() {
-        let ctx = ctx().await;
-        let result = abbr_nx(&ctx, "せ", "ぬ", None).await.unwrap();
+    #[test]
+    fn nx5_se_nu_patch_branch() {
+        let ctx = ctx();
+        let result = abbr_nx(&ctx, "せ", "ぬ", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -218,19 +218,19 @@ mod abbr_n {
     use crate::dict::grammar::suffix::abbr::*;
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
     /// REPL N1: `(abbr-n "知ら" "ん" nil)` → 1 PROXY text="知らん"
     /// kana="しらん" hintedp=T source=KANJI-TEXT (seq 10105960,
     /// text "知らない").
-    #[tokio::test]
-    async fn n1_shira_n_kanji() {
-        let ctx = ctx().await;
-        let result = abbr_n(&ctx, "知ら", "ん", None).await.unwrap();
+    #[test]
+    fn n1_shira_n_kanji() {
+        let ctx = ctx();
+        let result = abbr_n(&ctx, "知ら", "ん", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -246,10 +246,10 @@ mod abbr_n {
 
     /// REPL N2: `(abbr-n "食べ" "ん" nil)` → 1 PROXY text="食べん"
     /// kana="たべん" source=KANJI-TEXT (seq 10092227).
-    #[tokio::test]
-    async fn n2_tabe_n_kanji() {
-        let ctx = ctx().await;
-        let result = abbr_n(&ctx, "食べ", "ん", None).await.unwrap();
+    #[test]
+    fn n2_tabe_n_kanji() {
+        let ctx = ctx();
+        let result = abbr_n(&ctx, "食べ", "ん", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -269,10 +269,10 @@ mod abbr_n {
     /// `abbr-n` omits — so we observe 5 here vs 6 for abbr-nee.
     /// Source-seqs sorted: {10033628, 10128866, 10303114, 10362292,
     /// 10423265}.
-    #[tokio::test]
-    async fn n3_i_kana_source_no_allow_root() {
-        let ctx = ctx().await;
-        let result = abbr_n(&ctx, "い", "ん", None).await.unwrap();
+    #[test]
+    fn n3_i_kana_source_no_allow_root() {
+        let ctx = ctx();
+        let result = abbr_n(&ctx, "い", "ん", None).unwrap();
         assert_eq!(result.len(), 5);
         for w in &result {
             let KaniWordDispatchEnum::Proxy(p) = w else {
@@ -313,19 +313,19 @@ mod abbr_nakereba {
     use crate::dict::grammar::suffix::abbr::*;
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
     /// REPL NAKEREBA1: `(abbr-nakereba "行か" "なきゃ" nil)` → 1 PROXY
     /// text="行かなきゃ" kana="いかなきゃ" hintedp=T source=KANJI-TEXT
     /// (seq 10349404, text "行かなければ").
-    #[tokio::test]
-    async fn nakereba1_ika_nakya() {
-        let ctx = ctx().await;
-        let result = abbr_nakereba(&ctx, "行か", "なきゃ", None).await.unwrap();
+    #[test]
+    fn nakereba1_ika_nakya() {
+        let ctx = ctx();
+        let result = abbr_nakereba(&ctx, "行か", "なきゃ", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -342,10 +342,10 @@ mod abbr_nakereba {
     /// REPL NAKEREBA2: `(abbr-nakereba "食べ" "なくちゃ" nil)` → 1 PROXY
     /// text="食べなくちゃ" kana="たべなくちゃ" source=KANJI-TEXT
     /// (seq 10092239, text "食べなければ").
-    #[tokio::test]
-    async fn nakereba2_tabe_nakucha() {
-        let ctx = ctx().await;
-        let result = abbr_nakereba(&ctx, "食べ", "なくちゃ", None).await.unwrap();
+    #[test]
+    fn nakereba2_tabe_nakucha() {
+        let ctx = ctx();
+        let result = abbr_nakereba(&ctx, "食べ", "なくちゃ", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -361,10 +361,10 @@ mod abbr_nakereba {
     /// REPL NAKEREBA3: `(abbr-nakereba "やら" "ねば" nil)` → 4 PROXY
     /// text="やらねば" kana="やらねば" source=KANA-TEXT sorted seqs
     /// {10038002, 10366027, 10402893, 10463965}. Polysemy.
-    #[tokio::test]
-    async fn nakereba3_yara_neba_polysemy() {
-        let ctx = ctx().await;
-        let result = abbr_nakereba(&ctx, "やら", "ねば", None).await.unwrap();
+    #[test]
+    fn nakereba3_yara_neba_polysemy() {
+        let ctx = ctx();
+        let result = abbr_nakereba(&ctx, "やら", "ねば", None).unwrap();
         assert_eq!(result.len(), 4);
         for w in &result {
             let KaniWordDispatchEnum::Proxy(p) = w else {
@@ -391,9 +391,9 @@ mod abbr_nakereba {
 mod abbr_shimasho {
     use crate::dict::grammar::suffix::abbr::*;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
@@ -406,11 +406,11 @@ mod abbr_shimasho {
     /// in-place to the abbreviated forms. primary, words, score_mod,
     /// score_base on the compound are NOT touched
     /// (dict-grammar.lisp:575-578 only `setf`s `stext` and `skana`).
-    #[tokio::test]
-    async fn shimasho1_benkyou_shimasho_compound_branch() {
+    #[test]
+    fn shimasho1_benkyou_shimasho_compound_branch() {
         use crate::dict::kani_word::KaniWordDispatchEnum as W;
-        let ctx = ctx().await;
-        let result = abbr_shimasho(&ctx, "勉強", "しましょ", None).await.unwrap();
+        let ctx = ctx();
+        let result = abbr_shimasho(&ctx, "勉強", "しましょ", None).unwrap();
         assert_eq!(result.len(), 1);
         let W::Compound(c) = &result[0] else {
             panic!("expected Compound");
@@ -441,9 +441,9 @@ mod abbr_shimasho {
 mod abbr_dewanai {
     use crate::dict::grammar::suffix::abbr::*;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
@@ -451,10 +451,10 @@ mod abbr_dewanai {
     /// `find-word-full "犬ではない"` returns no rows (it's a phrase,
     /// not an entry / conjugated form), so primary-words is empty
     /// and mapcar yields nil.
-    #[tokio::test]
-    async fn dewanai1_inu_dehanai_empty() {
-        let ctx = ctx().await;
-        let result = abbr_dewanai(&ctx, "犬", "じゃない", None).await.unwrap();
+    #[test]
+    fn dewanai1_inu_dehanai_empty() {
+        let ctx = ctx();
+        let result = abbr_dewanai(&ctx, "犬", "じゃない", None).unwrap();
         assert!(result.is_empty());
     }
 }
@@ -463,19 +463,19 @@ mod abbr_teba {
     use crate::dict::grammar::suffix::abbr::*;
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
     /// REPL TEBA1: `(abbr-teba "立" "ちゃ" nil)` → 1 PROXY
     /// text="立ちゃ" kana="たちゃ" hintedp=T source=KANJI-TEXT
     /// (seq 10435976, text "立てば").
-    #[tokio::test]
-    async fn teba1_tatsu_cha() {
-        let ctx = ctx().await;
-        let result = abbr_teba(&ctx, "立", "ちゃ", None).await.unwrap();
+    #[test]
+    fn teba1_tatsu_cha() {
+        let ctx = ctx();
+        let result = abbr_teba(&ctx, "立", "ちゃ", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -491,10 +491,10 @@ mod abbr_teba {
 
     /// REPL TEBA2: `(abbr-teba "勝" "ちゃ" nil)` → 1 PROXY
     /// text="勝ちゃ" kana="かちゃ" source=KANJI-TEXT (seq 10316061).
-    #[tokio::test]
-    async fn teba2_katsu_cha() {
-        let ctx = ctx().await;
-        let result = abbr_teba(&ctx, "勝", "ちゃ", None).await.unwrap();
+    #[test]
+    fn teba2_katsu_cha() {
+        let ctx = ctx();
+        let result = abbr_teba(&ctx, "勝", "ちゃ", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -512,19 +512,19 @@ mod abbr_reba {
     use crate::dict::grammar::suffix::abbr::*;
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
     /// REPL REBA1: `(abbr-reba "見" "りゃ" nil)` → 1 PROXY
     /// text="見りゃ" kana="みりゃ" hintedp=T source=KANJI-TEXT
     /// (seq 10315017, text "見れば").
-    #[tokio::test]
-    async fn reba1_miru_rya() {
-        let ctx = ctx().await;
-        let result = abbr_reba(&ctx, "見", "りゃ", None).await.unwrap();
+    #[test]
+    fn reba1_miru_rya() {
+        let ctx = ctx();
+        let result = abbr_reba(&ctx, "見", "りゃ", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -543,19 +543,19 @@ mod abbr_keba {
     use crate::dict::grammar::suffix::abbr::*;
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
     /// REPL KEBA1: `(abbr-keba "書" "きゃ" nil)` → 1 PROXY
     /// text="書きゃ" kana="かきゃ" hintedp=T source=KANJI-TEXT
     /// (seq 10526936, text "書けば").
-    #[tokio::test]
-    async fn keba1_kaku_kya() {
-        let ctx = ctx().await;
-        let result = abbr_keba(&ctx, "書", "きゃ", None).await.unwrap();
+    #[test]
+    fn keba1_kaku_kya() {
+        let ctx = ctx();
+        let result = abbr_keba(&ctx, "書", "きゃ", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -574,19 +574,19 @@ mod abbr_geba {
     use crate::dict::grammar::suffix::abbr::*;
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
     /// REPL GEBA1: `(abbr-geba "泳" "ぎゃ" nil)` → 1 PROXY
     /// text="泳ぎゃ" kana="およぎゃ" hintedp=T source=KANJI-TEXT
     /// (seq 10485536, text "泳げば").
-    #[tokio::test]
-    async fn geba1_oyogu_gya() {
-        let ctx = ctx().await;
-        let result = abbr_geba(&ctx, "泳", "ぎゃ", None).await.unwrap();
+    #[test]
+    fn geba1_oyogu_gya() {
+        let ctx = ctx();
+        let result = abbr_geba(&ctx, "泳", "ぎゃ", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -605,19 +605,19 @@ mod abbr_neba {
     use crate::dict::grammar::suffix::abbr::*;
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
     /// REPL NEBA1: `(abbr-neba "死" "にゃ" nil)` → 1 PROXY
     /// text="死にゃ" kana="しにゃ" hintedp=T source=KANJI-TEXT
     /// (seq 10236417, text "死ねば").
-    #[tokio::test]
-    async fn neba1_shinu_nya() {
-        let ctx = ctx().await;
-        let result = abbr_neba(&ctx, "死", "にゃ", None).await.unwrap();
+    #[test]
+    fn neba1_shinu_nya() {
+        let ctx = ctx();
+        let result = abbr_neba(&ctx, "死", "にゃ", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -636,9 +636,9 @@ mod abbr_beba {
     use crate::dict::grammar::suffix::abbr::*;
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
@@ -648,10 +648,10 @@ mod abbr_beba {
     /// 10225128 (kana="あそぶ"), both source-text="遊べば" but
     /// distinct source-kanas → distinct proxy kanas
     /// "すさびゃ" / "あそびゃ".
-    #[tokio::test]
-    async fn beba1_asobu_polysemy() {
-        let ctx = ctx().await;
-        let result = abbr_beba(&ctx, "遊", "びゃ", None).await.unwrap();
+    #[test]
+    fn beba1_asobu_polysemy() {
+        let ctx = ctx();
+        let result = abbr_beba(&ctx, "遊", "びゃ", None).unwrap();
         assert_eq!(result.len(), 2);
         for w in &result {
             let KaniWordDispatchEnum::Proxy(p) = w else {
@@ -693,19 +693,19 @@ mod abbr_meba {
     use crate::dict::grammar::suffix::abbr::*;
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
     /// REPL MEBA1: `(abbr-meba "飲" "みゃ" nil)` → 1 PROXY
     /// text="飲みゃ" kana="のみゃ" hintedp=T source=KANJI-TEXT
     /// (seq 10665831, text "飲めば").
-    #[tokio::test]
-    async fn meba1_nomu_mya() {
-        let ctx = ctx().await;
-        let result = abbr_meba(&ctx, "飲", "みゃ", None).await.unwrap();
+    #[test]
+    fn meba1_nomu_mya() {
+        let ctx = ctx();
+        let result = abbr_meba(&ctx, "飲", "みゃ", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -724,19 +724,19 @@ mod abbr_seba {
     use crate::dict::grammar::suffix::abbr::*;
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
     /// REPL SEBA1: `(abbr-seba "話" "しゃ" nil)` → 1 PROXY
     /// text="話しゃ" kana="はなしゃ" hintedp=T source=KANJI-TEXT
     /// (seq 10143263, text "話せば").
-    #[tokio::test]
-    async fn seba1_hanasu_sha() {
-        let ctx = ctx().await;
-        let result = abbr_seba(&ctx, "話", "しゃ", None).await.unwrap();
+    #[test]
+    fn seba1_hanasu_sha() {
+        let ctx = ctx();
+        let result = abbr_seba(&ctx, "話", "しゃ", None).unwrap();
         assert_eq!(result.len(), 1);
         let KaniWordDispatchEnum::Proxy(p) = &result[0] else {
             panic!("expected Proxy");
@@ -754,27 +754,27 @@ mod abbr_seba {
 mod abbr_ii {
     use crate::dict::grammar::suffix::abbr::*;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
+    fn ctx() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("DATABASE_URL / kaniran.toml required")
     }
 
     /// REPL II1: `(abbr-ii "良" "ええ" nil)` → NIL.
     /// `find-word-full "良いい"` returns no rows.
-    #[tokio::test]
-    async fn ii1_yoi_empty() {
-        let ctx = ctx().await;
-        let result = abbr_ii(&ctx, "良", "ええ", None).await.unwrap();
+    #[test]
+    fn ii1_yoi_empty() {
+        let ctx = ctx();
+        let result = abbr_ii(&ctx, "良", "ええ", None).unwrap();
         assert!(result.is_empty());
     }
 
     /// REPL II2: `(abbr-ii "い" "ええ" nil)` → NIL.
     /// `find-word-full "いいい"` returns no rows.
-    #[tokio::test]
-    async fn ii2_i_empty() {
-        let ctx = ctx().await;
-        let result = abbr_ii(&ctx, "い", "ええ", None).await.unwrap();
+    #[test]
+    fn ii2_i_empty() {
+        let ctx = ctx();
+        let result = abbr_ii(&ctx, "い", "ええ", None).unwrap();
         assert!(result.is_empty());
     }
 }

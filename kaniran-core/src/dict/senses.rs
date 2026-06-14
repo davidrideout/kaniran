@@ -23,8 +23,8 @@ pub struct RawSense {
 
 const TAGS: &[&str] = &["pos", "s_inf", "stagk", "stagr", "field"];
 
-pub async fn get_senses_raw(ctx: &KaniranContext, seq: i32) -> Result<Vec<RawSense>, sqlx::Error> {
-    let gloss_rows = ctx.store.sense_gloss_rows(seq).await?;
+pub fn get_senses_raw(ctx: &KaniranContext, seq: i32) -> Result<Vec<RawSense>, crate::conn::KaniDbError> {
+    let gloss_rows = ctx.store.sense_gloss_rows(seq)?;
 
     let mut sense_list: Vec<RawSense> = Vec::with_capacity(gloss_rows.len());
     for (ord, gloss) in gloss_rows {
@@ -35,7 +35,7 @@ pub async fn get_senses_raw(ctx: &KaniranContext, seq: i32) -> Result<Vec<RawSen
         });
     }
 
-    let prop_rows = ctx.store.sense_prop_rows_tagged(seq, TAGS).await?;
+    let prop_rows = ctx.store.sense_prop_rows_tagged(seq, TAGS)?;
 
     let mut cur_sord: Option<i32> = None;
     let mut cur_tag: Option<String> = None;
@@ -81,8 +81,8 @@ pub async fn get_senses_raw(ctx: &KaniranContext, seq: i32) -> Result<Vec<RawSen
 /// `[...]`.
 pub type SenseEntry = (String, String, Vec<(String, Vec<String>)>);
 
-pub async fn get_senses(ctx: &KaniranContext, seq: i32) -> Result<Vec<SenseEntry>, sqlx::Error> {
-    let raw = get_senses_raw(ctx, seq).await?;
+pub fn get_senses(ctx: &KaniranContext, seq: i32) -> Result<Vec<SenseEntry>, crate::conn::KaniDbError> {
+    let raw = get_senses_raw(ctx, seq)?;
     let mut out: Vec<SenseEntry> = Vec::with_capacity(raw.len());
     for sense in raw {
         let pos_str = {
@@ -103,8 +103,8 @@ pub async fn get_senses(ctx: &KaniranContext, seq: i32) -> Result<Vec<SenseEntry
 ///
 /// Renders an entry's senses as a numbered, newline-separated string,
 /// each line showing the pos, optional field/info, and gloss.
-pub async fn get_senses_str(ctx: &KaniranContext, seq: i32) -> Result<String, sqlx::Error> {
-    let senses = get_senses(ctx, seq).await?;
+pub fn get_senses_str(ctx: &KaniranContext, seq: i32) -> Result<String, crate::conn::KaniDbError> {
+    let senses = get_senses(ctx, seq)?;
     let mut out = String::new();
     let mut rpos: &str = "";
     for (i, (pos, gloss, props)) in senses.iter().enumerate() {
@@ -194,12 +194,12 @@ pub fn match_kana_kanji(
 /// the reading is listed, false when the wrong word-type is restricted
 /// away, otherwise a `restricted-readings` lookup paired with
 /// [`crate::dict::match_kana_kanji`].
-pub async fn match_sense_restrictions(
+pub fn match_sense_restrictions(
     ctx: &KaniranContext,
     seq: i32,
     props: &[(String, Vec<String>)],
     reading: &KaniWordDispatchEnum,
-) -> Result<Option<MatchKanaKanjiResult>, sqlx::Error> {
+) -> Result<Option<MatchKanaKanjiResult>, crate::conn::KaniDbError> {
     // dict.lisp:1516-1517 (stagk/stagr (cdr (assoc … props :test 'equal)))
     let stagk: &[String] = props
         .iter()
@@ -233,12 +233,12 @@ pub async fn match_sense_restrictions(
         return Ok(None);
     }
     // dict.lisp:1524 (restricted (query (:select 'reading 'text :from 'restricted-readings :where (:= 'seq seq))))
-    let restricted: Vec<(String, String)> = ctx.store.restricted_readings_by_seq(seq).await?;
+    let restricted: Vec<(String, String)> = ctx.store.restricted_readings_by_seq(seq)?;
     // dict.lisp:1525-1532 (case wtype …)
     match wtype {
         WordType::Kanji => {
             // dict.lisp:1527 (rkana (select-dao 'kana-text (:and (:= 'seq seq) (:in 'text (:set stagr)))))
-            let rkana: Vec<KanaText> = ctx.store.kana_texts_by_seq_and_text_any(seq, stagr).await?;
+            let rkana: Vec<KanaText> = ctx.store.kana_texts_by_seq_and_text_any(seq, stagr)?;
             // dict.lisp:1528 (some (lambda (rk) (match-kana-kanji rk reading restricted)) rkana)
             Ok(rkana.into_iter().find_map(|rk| {
                 match_kana_kanji(&KaniWordDispatchEnum::Kana(rk), reading, &restricted)
@@ -249,7 +249,7 @@ pub async fn match_sense_restrictions(
             let rkanji: Vec<KanjiText> = ctx
                 .store
                 .kanji_texts_by_seq_and_text_any(seq, stagk)
-                .await?;
+                ?;
             // dict.lisp:1531 (some (lambda (rk) (match-kana-kanji reading rk restricted)) rkanji)
             Ok(rkanji.into_iter().find_map(|rk| {
                 match_kana_kanji(reading, &KaniWordDispatchEnum::Kanji(rk), &restricted)
@@ -285,15 +285,15 @@ pub fn split_pos(pos_str: &str) -> Vec<&str> {
 /// `field` and `info`) for an entry, filtering by `pos_list` and, when
 /// a reading is supplied, by sense restrictions. The `reading_getter`
 /// thunk is awaited at most once across the loop.
-pub async fn get_senses_json<Fut>(
+pub fn get_senses_json<Getter>(
     ctx: &KaniranContext,
     seq: i32,
     pos_list: &[String],
     reading: Option<KaniWordDispatchEnum>,
-    reading_getter: Option<Fut>,
-) -> Result<Vec<Value>, sqlx::Error>
+    reading_getter: Option<Getter>,
+) -> Result<Vec<Value>, crate::conn::KaniDbError>
 where
-    Fut: Future<Output = Result<Option<KaniWordDispatchEnum>, sqlx::Error>>,
+    Getter: FnOnce() -> Result<Option<KaniWordDispatchEnum>, crate::conn::KaniDbError>,
 {
     let has_reading_getter = reading_getter.is_some();
     let mut reading_getter = reading_getter;
@@ -304,7 +304,7 @@ where
     let mut first = true;
     let mut out: Vec<Value> = Vec::new();
 
-    for (pos, gloss, props) in get_senses(ctx, seq).await? {
+    for (pos, gloss, props) in get_senses(ctx, seq)? {
         let emptypos = pos == "[]";
         // for rpos / lpos = … then (if emptypos … …): first iteration uses
         // the raw value, later iterations keep the prior on an empty pos.
@@ -340,14 +340,14 @@ where
             if reading.is_none() && !readp {
                 readp = true;
                 reading = match reading_getter.take() {
-                    Some(fut) => fut.await?,
+                    Some(getter) => getter()?,
                     None => None,
                 };
             }
             // (if rr (match-sense-restrictions seq props rr) t)
             match &reading {
                 Some(rr) => match_sense_restrictions(ctx, seq, &props, rr)
-                    .await?
+                    ?
                     .is_some(),
                 None => true,
             }
@@ -374,16 +374,16 @@ where
 /// Returns the joined gloss string of the first sense (lowest `ord`)
 /// for `seq`, optionally restricted to senses tagged with the given
 /// part of speech.
-pub async fn short_sense_str(
+pub fn short_sense_str(
     ctx: &KaniranContext,
     seq: i32,
     with_pos: Option<&str>,
-) -> Result<Option<String>, sqlx::Error> {
+) -> Result<Option<String>, crate::conn::KaniDbError> {
     // dict.lisp:1562 — `,@(if with-pos …)` splices the sense-prop join
     // only when with-pos is supplied.
     let single: Option<Option<String>> = match with_pos {
-        Some(with_pos) => ctx.store.first_sense_gloss_with_pos(seq, with_pos).await?,
-        None => ctx.store.first_sense_gloss(seq).await?,
+        Some(with_pos) => ctx.store.first_sense_gloss_with_pos(seq, with_pos)?,
+        None => ctx.store.first_sense_gloss(seq)?,
     };
     Ok(single.flatten())
 }

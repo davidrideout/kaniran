@@ -143,41 +143,41 @@ mod kanji_break_penalty {
 
     // ----- pure-arithmetic cases (no info, no DB) -----
 
-    #[tokio::test]
-    async fn no_info_above_cutoff_halves_with_ceiling() {
+    #[test]
+    fn no_info_above_cutoff_halves_with_ceiling() {
         // 100 >= cutoff → max(5, ceil(100/2)) = 50
-        let ctx = KaniranContext::from_env().await.expect("ctx");
+        let ctx = KaniranContext::from_env().expect("ctx");
         let got = kanji_break_penalty(&ctx, &[0], 100, None, "", None, None)
-            .await
+            
             .unwrap();
         assert_eq!(got, 50);
     }
 
-    #[tokio::test]
-    async fn no_info_odd_score_rounds_up() {
+    #[test]
+    fn no_info_odd_score_rounds_up() {
         // Same arithmetic; the end branch is unused without posi.
-        let ctx = KaniranContext::from_env().await.expect("ctx");
+        let ctx = KaniranContext::from_env().expect("ctx");
         let got = kanji_break_penalty(&ctx, &[1], 100, None, "", None, None)
-            .await
+            
             .unwrap();
         assert_eq!(got, 50);
     }
 
-    #[tokio::test]
-    async fn no_info_both_branch() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
+    #[test]
+    fn no_info_both_branch() {
+        let ctx = KaniranContext::from_env().expect("ctx");
         let got = kanji_break_penalty(&ctx, &[0, 5], 100, None, "", None, None)
-            .await
+            
             .unwrap();
         assert_eq!(got, 50);
     }
 
-    #[tokio::test]
-    async fn below_cutoff_returns_unchanged() {
+    #[test]
+    fn below_cutoff_returns_unchanged() {
         // A score below the cutoff (5) is returned unchanged.
-        let ctx = KaniranContext::from_env().await.expect("ctx");
+        let ctx = KaniranContext::from_env().expect("ctx");
         let got = kanji_break_penalty(&ctx, &[0], 4, None, "", None, None)
-            .await
+            
             .unwrap();
         assert_eq!(got, 4);
     }
@@ -189,45 +189,45 @@ mod kanji_break_penalty {
 
     /// For 猫 (a common noun), none of the short-circuit conditions apply,
     /// so the penalty falls through and halves the score: 19 → 10.
-    #[tokio::test]
-    async fn info_fall_through_penalty() {
+    #[test]
+    fn info_fall_through_penalty() {
         use crate::dict::kani_word::KaniWordDispatchEnum;
         use crate::dict::scoring::calc_score::calc_score;
-        let ctx = KaniranContext::from_env().await.expect("ctx");
+        let ctx = KaniranContext::from_env().expect("ctx");
         let rows: Vec<crate::dict::dao::KanjiText> = sqlx::query_as(
             "SELECT * FROM kanji_text WHERE seq = 1467640 AND text = '猫' ORDER BY id LIMIT 1",
         )
         .fetch_all(&ctx.pool)
-        .await
+        
         .expect("猫 1467640 row");
         let w = KaniWordDispatchEnum::Kanji(rows.into_iter().next().unwrap());
-        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).await.unwrap();
+        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).unwrap();
         assert_eq!(score, 19);
         let info = info.unwrap();
         let got = kanji_break_penalty(&ctx, &[0], score, Some(&info), "猫", None, None)
-            .await
+            
             .unwrap();
         assert_eq!(got, 10);
     }
 
     /// 飲む is on the no-kanji-break-penalty list, so the score is returned
     /// unchanged regardless of the arithmetic.
-    #[tokio::test]
-    async fn no_penalty_list_short_circuit() {
+    #[test]
+    fn no_penalty_list_short_circuit() {
         use crate::dict::kani_word::KaniWordDispatchEnum;
         use crate::dict::scoring::calc_score::calc_score;
-        let ctx = KaniranContext::from_env().await.expect("ctx");
+        let ctx = KaniranContext::from_env().expect("ctx");
         let rows: Vec<crate::dict::dao::KanjiText> = sqlx::query_as(
             "SELECT * FROM kanji_text WHERE seq = 1169870 AND text = '飲む' ORDER BY id LIMIT 1",
         )
         .fetch_all(&ctx.pool)
-        .await
+        
         .expect("飲む 1169870 row");
         let w = KaniWordDispatchEnum::Kanji(rows.into_iter().next().unwrap());
-        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).await.unwrap();
+        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).unwrap();
         let info = info.unwrap();
         let got = kanji_break_penalty(&ctx, &[0], score, Some(&info), "飲む", None, None)
-            .await
+            
             .unwrap();
         assert_eq!(got, score);
     }
@@ -235,34 +235,34 @@ mod kanji_break_penalty {
     /// 好き is on the no-kanji-break-penalty list, so the score is
     /// unchanged regardless of text. Even without that, its す-prefix would
     /// also short-circuit the penalty.
-    #[tokio::test]
-    async fn suki_seq_short_circuit() {
+    #[test]
+    fn suki_seq_short_circuit() {
         use crate::dict::kani_word::KaniWordDispatchEnum;
         use crate::dict::scoring::calc_score::calc_score;
-        let ctx = KaniranContext::from_env().await.expect("ctx");
+        let ctx = KaniranContext::from_env().expect("ctx");
         let rows: Vec<crate::dict::dao::KanjiText> = sqlx::query_as(
             "SELECT * FROM kanji_text WHERE seq = 1277450 AND text = '好き' ORDER BY id LIMIT 1",
         )
         .fetch_all(&ctx.pool)
-        .await
+        
         .expect("好き 1277450 row");
         let w = KaniWordDispatchEnum::Kanji(rows.into_iter().next().unwrap());
-        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).await.unwrap();
+        let (score, info) = calc_score(&ctx, &w, false, None, None, &[]).unwrap();
         let info = info.unwrap();
         let got_kanji_text =
             kanji_break_penalty(&ctx, &[0], score, Some(&info), "好き", None, None)
-                .await
+                
                 .unwrap();
         let got_kana_text = kanji_break_penalty(&ctx, &[0], score, Some(&info), "すき", None, None)
-            .await
+            
             .unwrap();
         // Both leave the score unchanged — the seq-set check fires first.
         assert_eq!(got_kanji_text, score);
         assert_eq!(got_kana_text, score);
     }
 
-    #[tokio::test]
-    async fn classify_end_results() {
+    #[test]
+    fn classify_end_results() {
         // A multi-element break is Both; a single 0 is Beg; anything else
         // (including empty) is End.
         assert_eq!(classify_end(&[]), KanjiBreakEnd::End);
@@ -286,52 +286,52 @@ mod get_non_arch_posi {
         v
     }
 
-    #[tokio::test]
-    async fn taberu_single_seq() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
-        let got = get_non_arch_posi(&ctx, &[1357400]).await.expect("query");
+    #[test]
+    fn taberu_single_seq() {
+        let ctx = KaniranContext::from_env().expect("ctx");
+        let got = get_non_arch_posi(&ctx, &[1357400]).expect("query");
         assert_eq!(sorted(got), vec!["v5m".to_string(), "vt".to_string()]);
     }
 
-    #[tokio::test]
-    async fn no_particle_seq() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
-        let got = get_non_arch_posi(&ctx, &[2089020]).await.expect("query");
+    #[test]
+    fn no_particle_seq() {
+        let ctx = KaniranContext::from_env().expect("ctx");
+        let got = get_non_arch_posi(&ctx, &[2089020]).expect("query");
         assert_eq!(
             sorted(got),
             vec!["aux-v".to_string(), "cop".to_string(), "cop-da".to_string(),]
         );
     }
 
-    #[tokio::test]
-    async fn dummy_seq_1000220() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
-        let got = get_non_arch_posi(&ctx, &[1000220]).await.expect("query");
+    #[test]
+    fn dummy_seq_1000220() {
+        let ctx = KaniranContext::from_env().expect("ctx");
+        let got = get_non_arch_posi(&ctx, &[1000220]).expect("query");
         assert_eq!(sorted(got), vec!["adj-na".to_string()]);
     }
 
-    #[tokio::test]
-    async fn hon_noun_seq() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
-        let got = get_non_arch_posi(&ctx, &[1522150]).await.expect("query");
+    #[test]
+    fn hon_noun_seq() {
+        let ctx = KaniranContext::from_env().expect("ctx");
+        let got = get_non_arch_posi(&ctx, &[1522150]).expect("query");
         assert_eq!(
             sorted(got),
             vec!["ctr".to_string(), "n".to_string(), "pref".to_string()]
         );
     }
 
-    #[tokio::test]
-    async fn counter_seq_1325880() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
-        let got = get_non_arch_posi(&ctx, &[1325880]).await.expect("query");
+    #[test]
+    fn counter_seq_1325880() {
+        let ctx = KaniranContext::from_env().expect("ctx");
+        let got = get_non_arch_posi(&ctx, &[1325880]).expect("query");
         assert_eq!(sorted(got), vec!["n".to_string()]);
     }
 
-    #[tokio::test]
-    async fn two_seqs_union() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
+    #[test]
+    fn two_seqs_union() {
+        let ctx = KaniranContext::from_env().expect("ctx");
         let got = get_non_arch_posi(&ctx, &[1357400, 2089020])
-            .await
+            
             .expect("query");
         assert_eq!(
             sorted(got),
@@ -345,32 +345,32 @@ mod get_non_arch_posi {
         );
     }
 
-    #[tokio::test]
-    async fn zo_particle_seq() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
-        let got = get_non_arch_posi(&ctx, &[2029110]).await.expect("query");
+    #[test]
+    fn zo_particle_seq() {
+        let ctx = KaniranContext::from_env().expect("ctx");
+        let got = get_non_arch_posi(&ctx, &[2029110]).expect("query");
         assert_eq!(sorted(got), vec!["int".to_string(), "prt".to_string()]);
     }
 
-    #[tokio::test]
-    async fn unknown_seq_returns_empty() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
-        let got = get_non_arch_posi(&ctx, &[99999999]).await.expect("query");
+    #[test]
+    fn unknown_seq_returns_empty() {
+        let ctx = KaniranContext::from_env().expect("ctx");
+        let got = get_non_arch_posi(&ctx, &[99999999]).expect("query");
         assert!(got.is_empty(), "expected NIL, got {got:?}");
     }
 
-    #[tokio::test]
-    async fn empty_seq_set_returns_empty() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
-        let got = get_non_arch_posi(&ctx, &[]).await.expect("query");
+    #[test]
+    fn empty_seq_set_returns_empty() {
+        let ctx = KaniranContext::from_env().expect("ctx");
+        let got = get_non_arch_posi(&ctx, &[]).expect("query");
         assert!(got.is_empty(), "expected NIL, got {got:?}");
     }
 
-    #[tokio::test]
-    async fn many_seqs_union() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
+    #[test]
+    fn many_seqs_union() {
+        let ctx = KaniranContext::from_env().expect("ctx");
         let got = get_non_arch_posi(&ctx, &[1357400, 2089020, 1522150, 1000220])
-            .await
+            
             .expect("query");
         assert_eq!(
             sorted(got),
@@ -388,11 +388,11 @@ mod get_non_arch_posi {
         );
     }
 
-    #[tokio::test]
-    async fn taberu_with_conj_root() {
-        let ctx = KaniranContext::from_env().await.expect("ctx");
+    #[test]
+    fn taberu_with_conj_root() {
+        let ctx = KaniranContext::from_env().expect("ctx");
         let got = get_non_arch_posi(&ctx, &[1357400, 2027820])
-            .await
+            
             .expect("query");
         assert_eq!(
             sorted(got),
@@ -407,14 +407,14 @@ mod gen_score {
     use crate::dict::scoring::score::*;
     use crate::dict::scoring::score::{KaniSplitInfo, Segment};
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
-    async fn first_kana_for(ctx: &KaniranContext, s: &str) -> KaniWordDispatchEnum {
-        match find_word(ctx, s, false).await.unwrap().into_owned() {
+    fn first_kana_for(ctx: &KaniranContext, s: &str) -> KaniWordDispatchEnum {
+        match find_word(ctx, s, false).unwrap().into_owned() {
             FindWordRows::Kana(mut v) => KaniWordDispatchEnum::Kana(v.remove(0)),
             FindWordRows::Kanji(mut v) => KaniWordDispatchEnum::Kanji(v.remove(0)),
         }
@@ -423,26 +423,26 @@ mod gen_score {
     /// Deterministic single-row fetch — `find-word`'s SQL has no
     /// ORDER BY, so the same lookup can rotate first rows between
     /// runs / databases.
-    async fn kana_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
+    fn kana_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
         let rows: Vec<crate::dict::dao::KanaText> = sqlx::query_as(
             "SELECT * FROM kana_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
         )
         .bind(seq)
         .bind(text)
         .fetch_all(&ctx.pool)
-        .await
+        
         .expect("query");
         KaniWordDispatchEnum::Kana(rows.into_iter().next().expect("row exists"))
     }
 
-    async fn kanji_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
+    fn kanji_by_seq_text(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
         let rows: Vec<crate::dict::dao::KanjiText> = sqlx::query_as(
             "SELECT * FROM kanji_text WHERE seq = $1 AND text = $2 ORDER BY id LIMIT 1",
         )
         .bind(seq)
         .bind(text)
         .fetch_all(&ctx.pool)
-        .await
+        
         .expect("query");
         KaniWordDispatchEnum::Kanji(rows.into_iter().next().expect("row exists"))
     }
@@ -460,12 +460,12 @@ mod gen_score {
     }
 
     /// Scoring a ねこ segment writes both its score and its info.
-    #[tokio::test]
-    async fn neko_baseline_writes_score_and_info() {
-        let ctx = ctx_from_env().await;
-        let w = first_kana_for(&ctx, "ねこ").await;
+    #[test]
+    fn neko_baseline_writes_score_and_info() {
+        let ctx = ctx_from_env();
+        let w = first_kana_for(&ctx, "ねこ");
         let mut seg = make_segment(w, 2, "ねこ");
-        gen_score(&ctx, &mut seg, false, &[]).await.unwrap();
+        gen_score(&ctx, &mut seg, false, &[]).unwrap();
         assert_eq!(seg.score, Some(16));
         let info = seg.info.as_ref().unwrap();
         assert_eq!(info.posi, vec!["n".to_string()]);
@@ -482,12 +482,12 @@ mod gen_score {
     /// A kanji-break passed to gen_score propagates through calc_score
     /// into the segment's info. Uses a deterministic-row helper to avoid
     /// the unordered find-word lookup.
-    #[tokio::test]
-    async fn neko_kanji_break_propagates_through_calc_score() {
-        let ctx = ctx_from_env().await;
-        let w = kanji_by_seq_text(&ctx, 2698030, "猫").await;
+    #[test]
+    fn neko_kanji_break_propagates_through_calc_score() {
+        let ctx = ctx_from_env();
+        let w = kanji_by_seq_text(&ctx, 2698030, "猫");
         let mut seg = make_segment(w, 1, "猫");
-        gen_score(&ctx, &mut seg, false, &[0]).await.unwrap();
+        gen_score(&ctx, &mut seg, false, &[0]).unwrap();
         assert_eq!(seg.score, Some(3));
         let info = seg.info.as_ref().unwrap();
         assert!(info.posi.is_empty());
@@ -502,12 +502,12 @@ mod gen_score {
     }
 
     /// A common noun reading of ね scored in final position.
-    #[tokio::test]
-    async fn ne_final_common_n_branch() {
-        let ctx = ctx_from_env().await;
-        let w = kana_by_seq_text(&ctx, 1290020, "ね").await;
+    #[test]
+    fn ne_final_common_n_branch() {
+        let ctx = ctx_from_env();
+        let w = kana_by_seq_text(&ctx, 1290020, "ね");
         let mut seg = make_segment(w, 1, "ね");
-        gen_score(&ctx, &mut seg, true, &[]).await.unwrap();
+        gen_score(&ctx, &mut seg, true, &[]).unwrap();
         assert_eq!(seg.score, Some(4));
         let info = seg.info.as_ref().unwrap();
         assert_eq!(info.posi, vec!["n".to_string()]);

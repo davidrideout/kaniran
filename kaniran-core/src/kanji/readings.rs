@@ -5,11 +5,11 @@ use crate::conn::kani_context::KaniranContext;
 use std::collections::HashSet;
 
 /// Port of `ichiran/kanji:get-readings-cache` (`kanji.lisp:201`).
-pub async fn get_readings_cache(
+pub fn get_readings_cache(
     ctx: &KaniranContext,
     text: &str,
     typeset: &[String],
-) -> Result<Vec<(String, String)>, sqlx::Error> {
+) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
     let key = (text.to_string(), typeset.to_vec());
     {
         let cache = ctx.reading_cache.lock().unwrap();
@@ -28,7 +28,7 @@ pub async fn get_readings_cache(
         // ambiguous-gemination ties deterministically. Without it the
         // JOIN order is unstable and reading.stat_common drifts
         // run-to-run.
-        ctx.store.kanji_reading_pairs(text, typeset).await?
+        ctx.store.kanji_reading_pairs(text, typeset)?
     };
     {
         let mut cache = ctx.reading_cache.lock().unwrap();
@@ -42,18 +42,18 @@ pub async fn get_readings_cache(
 /// Looks up the kanjidic2 readings of `char`, defaulting to everything
 /// except `ja_na` (named-reading) entries. With `names` set the typeset
 /// filter is empty and the call returns an empty `Vec`.
-pub async fn get_readings(
+pub fn get_readings(
     ctx: &KaniranContext,
     char: char,
     names: bool,
-) -> Result<Vec<(String, String)>, sqlx::Error> {
+) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
     let str: String = char.into();
     let typeset: Vec<String> = if names {
         Vec::new()
     } else {
         vec!["ja_na".to_string()]
     };
-    get_readings_cache(ctx, &str, &typeset).await
+    get_readings_cache(ctx, &str, &typeset)
 }
 
 /// Port of `ichiran/kanji:get-reading-alternatives` (`kanji.lisp:218`).
@@ -134,14 +134,14 @@ pub fn get_reading_alternatives(
 /// Looks up the kun/on readings of `char` (excluding `ja_na`
 /// named-reading rows), expands each into geminate / rendaku variants,
 /// then deduplicates by reading text keeping the first occurrence.
-pub async fn get_normal_readings(
+pub fn get_normal_readings(
     ctx: &KaniranContext,
     char: char,
     rendaku: bool,
-) -> Result<Vec<KanjiReading>, sqlx::Error> {
+) -> Result<Vec<KanjiReading>, crate::conn::KaniDbError> {
     let str: String = char.into();
     let typeset = vec!["ja_na".to_string()];
-    let readings = get_readings_cache(ctx, &str, &typeset).await?;
+    let readings = get_readings_cache(ctx, &str, &typeset)?;
 
     let mut main_readings: Vec<KanjiReading> = Vec::new();
     let mut alt_readings: Vec<KanjiReading> = Vec::new();

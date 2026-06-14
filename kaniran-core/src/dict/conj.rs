@@ -22,8 +22,8 @@ pub fn no_conj_data_cache(ctx: &KaniranContext) -> &HashSet<i32> {
     &ctx.no_conj_data
 }
 
-pub async fn build_no_conj_data(store: &KaniStore) -> Result<HashSet<i32>, sqlx::Error> {
-    let seqs: Vec<i32> = store.no_conj_seqs().await?;
+pub fn build_no_conj_data(store: &KaniStore) -> Result<HashSet<i32>, crate::conn::KaniDbError> {
+    let seqs: Vec<i32> = store.no_conj_seqs()?;
     Ok(seqs.into_iter().collect())
 }
 
@@ -69,12 +69,12 @@ pub enum FromOrConjIds {
     ConjIds(Vec<i32>),
 }
 
-pub async fn get_conj_data(
+pub fn get_conj_data(
     ctx: &KaniranContext,
     seq: i32,
     from_or_conj_ids: FromOrConjIds,
     texts: &[&str],
-) -> Result<Vec<ConjData>, sqlx::Error> {
+) -> Result<Vec<ConjData>, crate::conn::KaniDbError> {
     if matches!(from_or_conj_ids, FromOrConjIds::Root) || no_conj_data(ctx, seq) {
         return Ok(Vec::new());
     }
@@ -83,9 +83,9 @@ pub async fn get_conj_data(
     let texts_owned: Vec<String> = texts.iter().map(|s| (*s).to_string()).collect();
 
     let conjs: Vec<Conjugation> = match &from_or_conj_ids {
-        FromOrConjIds::All => ctx.store.conjs_by_seq(seq).await?,
-        FromOrConjIds::ConjIds(ids) => ctx.store.conjs_by_seq_and_ids(seq, ids).await?,
-        FromOrConjIds::From(from) => ctx.store.conjs_by_seq_and_from(seq, *from).await?,
+        FromOrConjIds::All => ctx.store.conjs_by_seq(seq)?,
+        FromOrConjIds::ConjIds(ids) => ctx.store.conjs_by_seq_and_ids(seq, ids)?,
+        FromOrConjIds::From(from) => ctx.store.conjs_by_seq_and_from(seq, *from)?,
         FromOrConjIds::Root => unreachable!("filtered out at the top of the function"),
     };
 
@@ -94,15 +94,15 @@ pub async fn get_conj_data(
         let src_map: Vec<(String, String)> = if filter_by_texts {
             ctx.store
                 .conj_source_readings_by_conj_id_and_texts(conj.id, &texts_owned)
-                .await?
+                ?
         } else {
-            ctx.store.conj_source_readings_by_conj_id(conj.id).await?
+            ctx.store.conj_source_readings_by_conj_id(conj.id)?
         };
         if filter_by_texts && src_map.is_empty() {
             continue;
         }
 
-        let props: Vec<ConjProp> = ctx.store.conj_props_by_conj_id(conj.id).await?;
+        let props: Vec<ConjProp> = ctx.store.conj_props_by_conj_id(conj.id)?;
         for prop in props {
             out.push(make_conj_data(
                 Some(conj.seq),
@@ -120,21 +120,21 @@ pub async fn get_conj_data(
 ///
 /// Selects the conjugation rows for `seq`: restricted to `conj_ids`
 /// when given, or the root (null-via) rows otherwise.
-pub async fn select_conjs(
+pub fn select_conjs(
     ctx: &KaniranContext,
     seq: i32,
     conj_ids: Option<&WordConjugations>,
-) -> Result<Vec<Conjugation>, sqlx::Error> {
+) -> Result<Vec<Conjugation>, crate::conn::KaniDbError> {
     match conj_ids {
         // (if conj-ids …) truthy branch
         Some(WordConjugations::Root) => Ok(Vec::new()),
         // (select-dao 'conjugation (:and (:= 'seq seq) (:in 'id (:set conj-ids))))
-        Some(WordConjugations::Ids(ids)) => ctx.store.conjs_by_seq_and_ids(seq, ids).await,
+        Some(WordConjugations::Ids(ids)) => ctx.store.conjs_by_seq_and_ids(seq, ids),
         // (or (select-dao … (:is-null 'via)) (select-dao … seq))
         None => {
-            let with_null_via: Vec<Conjugation> = ctx.store.conjs_by_seq_via_null(seq).await?;
+            let with_null_via: Vec<Conjugation> = ctx.store.conjs_by_seq_via_null(seq)?;
             if with_null_via.is_empty() {
-                ctx.store.conjs_by_seq(seq).await
+                ctx.store.conjs_by_seq(seq)
             } else {
                 Ok(with_null_via)
             }
@@ -207,17 +207,17 @@ pub fn filter_props<'a>(props: &'a [ConjProp], text: FilterPropsText<'_>) -> Vec
 ///
 /// Looks up the conjugations for `seq`, pairs each with its filtered
 /// conjugation properties, and sorts by (root-vs-via, conj-type-order).
-pub async fn select_conjs_and_props(
+pub fn select_conjs_and_props(
     ctx: &KaniranContext,
     seq: i32,
     conj_ids: Option<&WordConjugations>,
     text: FilterPropsText<'_>,
-) -> Result<Vec<(Conjugation, Vec<ConjProp>, [i32; 2])>, sqlx::Error> {
+) -> Result<Vec<(Conjugation, Vec<ConjProp>, [i32; 2])>, crate::conn::KaniDbError> {
     let mut result: Vec<(Conjugation, Vec<ConjProp>, [i32; 2])> = Vec::new();
     // (loop for conj in (select-conjs seq conj-ids) …)
-    for conj in select_conjs(ctx, seq, conj_ids).await? {
+    for conj in select_conjs(ctx, seq, conj_ids)? {
         // (select-dao 'conj-prop (:= 'conj-id (id conj)))
-        let props: Vec<ConjProp> = ctx.store.conj_props_by_conj_id(conj.id).await?;
+        let props: Vec<ConjProp> = ctx.store.conj_props_by_conj_id(conj.id)?;
         // (loop for prop in props minimizing (conj-type-order (conj-type prop)))
         let val = props
             .iter()
@@ -248,16 +248,16 @@ pub async fn select_conjs_and_props(
 ///
 /// Writes a human-readable conjugation chain for `seq` into `out`,
 /// recursing through each `via` source entry it hasn't already printed.
-pub async fn print_conj_info(
+pub fn print_conj_info(
     ctx: &KaniranContext,
     seq: i32,
     conjugations: Option<&WordConjugations>,
     out: &mut String,
-) -> Result<(), sqlx::Error> {
+) -> Result<(), crate::conn::KaniDbError> {
     let mut via_used: Vec<Option<i32>> = Vec::new();
     // (select-conjs-and-props seq conjugations) — print-conj-info passes no text
     for (conj, props, _) in
-        select_conjs_and_props(ctx, seq, conjugations, FilterPropsText::None).await?
+        select_conjs_and_props(ctx, seq, conjugations, FilterPropsText::None)?
     {
         let via = conj.seq_via;
         // unless (member via via-used)
@@ -280,14 +280,14 @@ pub async fn print_conj_info(
                 // (format out "~%  ~a" (entry-info-short (seq-from conj)))
                 out.push_str(&format!(
                     "\n  {}",
-                    entry_info_short(ctx, conj.seq_from, None).await?
+                    entry_info_short(ctx, conj.seq_from, None)?
                 ));
             }
             Some(via_seq) => {
                 // (format out "~% --(via)--")
                 out.push_str("\n --(via)--");
                 // (print-conj-info via :out out)
-                Box::pin(print_conj_info(ctx, via_seq, None, out)).await?;
+                print_conj_info(ctx, via_seq, None, out)?;
                 // (push via via-used)
                 via_used.push(via);
             }
@@ -303,13 +303,13 @@ pub async fn print_conj_info(
 /// Builds the per-conjugation JSON objects (prop list, reading, gloss,
 /// and any `via` chain) for an entry's conjugation data, recursing into
 /// [`crate::dict::conj::conj_info_json`] for `via`-linked sources.
-pub async fn conj_info_json_star_(
+pub fn conj_info_json_star_(
     ctx: &KaniranContext,
     seq: i32,
     conjugations: Option<&WordConjugations>,
     text: FilterPropsText<'_>,
     has_gloss: bool,
-) -> Result<Vec<Value>, sqlx::Error> {
+) -> Result<Vec<Value>, crate::conn::KaniDbError> {
     // (get-original-text-once … text) coerces a lone string to a list.
     let one_text;
     let texts: &[&str] = match text {
@@ -324,7 +324,7 @@ pub async fn conj_info_json_star_(
     let mut via_used: Vec<i32> = Vec::new();
     let mut result: Vec<Value> = Vec::new();
 
-    for (conj, props, _key) in select_conjs_and_props(ctx, seq, conjugations, text).await? {
+    for (conj, props, _key) in select_conjs_and_props(ctx, seq, conjugations, text)? {
         let via = conj.seq_via;
         // unless (member via via-used) — via-used only ever holds non-null vias
         if let Some(via) = via {
@@ -335,7 +335,7 @@ pub async fn conj_info_json_star_(
 
         // (get-original-text-once (get-conj-data seq (list (id conj))) text)
         let conj_datas =
-            get_conj_data(ctx, seq, FromOrConjIds::ConjIds(vec![conj.id]), &[]).await?;
+            get_conj_data(ctx, seq, FromOrConjIds::ConjIds(vec![conj.id]), &[])?;
         let orig_text = get_original_text_once(&conj_datas, texts);
         let orig_text_refs: Vec<&str> = orig_text.iter().map(String::as_str).collect();
 
@@ -357,7 +357,7 @@ pub async fn conj_info_json_star_(
                 } else {
                     // (car (find-words-seqs orig-text (seq-from conj)))
                     find_words_seqs(ctx, &orig_text_refs, &[conj.seq_from])
-                        .await?
+                        ?
                         .into_iter()
                         .next()
                 };
@@ -371,15 +371,15 @@ pub async fn conj_info_json_star_(
                     Some(KaniWordDispatchEnum::Kanji(kanji_text)) => {
                         KaniSimpleTextDispatchEnum::Kanji(kanji_text.clone())
                             .reading_str(ctx)
-                            .await?
+                            ?
                     }
                     Some(KaniWordDispatchEnum::Kana(kana_text)) => {
                         KaniSimpleTextDispatchEnum::Kana(kana_text.clone())
                             .reading_str(ctx)
-                            .await?
+                            ?
                     }
                     Some(_) => panic!("find-words-seqs returns only kanji-text / kana-text"),
-                    None => reading_str_seq(ctx, conj.seq_from).await?,
+                    None => reading_str_seq(ctx, conj.seq_from)?,
                 };
                 let reading = match reading {
                     Some(reading) => Value::String(reading),
@@ -392,9 +392,9 @@ pub async fn conj_info_json_star_(
                     conj.seq_from,
                     &conj_pos,
                     None,
-                    Some(std::future::ready(Ok(orig_reading))),
+                    Some(move || Ok(orig_reading)),
                 )
-                .await?;
+                ?;
                 js.insert("reading".to_owned(), reading);
                 js.insert("gloss".to_owned(), Value::Array(gloss));
                 // ("readok" (when orig-reading t))
@@ -409,14 +409,14 @@ pub async fn conj_info_json_star_(
             }
             // dict.lisp:1688 (progn (let ((cij (conj-info-json via …))) …) (push via via-used))
             Some(via) => {
-                let cij = Box::pin(conj_info_json(
+                let cij = conj_info_json(
                     ctx,
                     via,
                     None,
                     FilterPropsText::Many(&orig_text_refs),
                     has_gloss,
-                ))
-                .await?;
+                )
+                ?;
                 if !cij.is_empty() {
                     // ("readok" (jsown:val (car cij) "readok")) — jsown:val errors on an
                     // absent readok (a via chain whose recursive result is empty); the
@@ -455,15 +455,15 @@ fn readok_truthy(entry: &Value) -> bool {
     }
 }
 
-pub async fn conj_info_json(
+pub fn conj_info_json(
     ctx: &KaniranContext,
     seq: i32,
     conjugations: Option<&WordConjugations>,
     text: FilterPropsText<'_>,
     has_gloss: bool,
-) -> Result<Vec<Value>, sqlx::Error> {
+) -> Result<Vec<Value>, crate::conn::KaniDbError> {
     // (apply 'conj-info-json* seq rest)
-    let cij = conj_info_json_star_(ctx, seq, conjugations, text, has_gloss).await?;
+    let cij = conj_info_json_star_(ctx, seq, conjugations, text, has_gloss)?;
     // (remove-if-not (lambda (c) (jsown:val c "readok")) cij) / (or fcij cij)
     // — decide which list survives first, then filter by move so the
     // kept entries' JSON trees are never deep-cloned.

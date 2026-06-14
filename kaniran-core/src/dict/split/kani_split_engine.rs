@@ -13,7 +13,7 @@ use crate::dict::accessors::WordType;
 /// [`run_split`].
 /// One registered split callsite — the macro arguments collapsed into
 /// data. Every `dict/split_*.rs` exposes one of these as `pub static`
-/// and a 3-line `pub async fn` shim that calls [`run_split`] on it.
+/// and a 3-line `pub fn` shim that calls [`run_split`] on it.
 pub struct SplitDef {
     /// JMdict seq the upstream `def-simple-split` registers under.
     pub seq: i32,
@@ -187,11 +187,11 @@ impl Modify {
     }
 }
 
-async fn resolve_pseq(ctx: &KaniranContext, pseq: &PartSeq) -> Result<Vec<i32>, sqlx::Error> {
+fn resolve_pseq(ctx: &KaniranContext, pseq: &PartSeq) -> Result<Vec<i32>, crate::conn::KaniDbError> {
     match pseq {
         PartSeq::Static(s) => Ok(s.to_vec()),
         PartSeq::Dynamic { text, seq } => {
-            let lookup = find_word_conj_of(ctx, text, &[*seq]).await?;
+            let lookup = find_word_conj_of(ctx, text, &[*seq])?;
             Ok(lookup.first_seq().into_iter().collect())
         }
     }
@@ -201,11 +201,11 @@ async fn resolve_pseq(ctx: &KaniranContext, pseq: &PartSeq) -> Result<Vec<i32>, 
 /// expansion of `def-simple-split` (`dict-split.lisp:13`) statement-by-
 /// statement: the `:end` `go` target is encoded as an early `Ok`
 /// return.
-pub async fn run_split(
+pub fn run_split(
     def: &SplitDef,
     ctx: &KaniranContext,
     reading: &KaniSimpleTextDispatchEnum,
-) -> Result<(Vec<Option<SplitPart>>, i32), sqlx::Error> {
+) -> Result<(Vec<Option<SplitPart>>, i32), crate::conn::KaniDbError> {
     let txt: String = reading.true_text().to_string();
     let len_: usize = txt.chars().count();
     let mut offset: usize = 0;
@@ -233,7 +233,7 @@ pub async fn run_split(
                 parts.push(Some(p.to_part()));
             }
             Step::Word(w) => {
-                let pseq_vec = resolve_pseq(ctx, &w.seq).await?;
+                let pseq_vec = resolve_pseq(ctx, &w.seq)?;
                 let part_length = w.length.eval(&txt, len_);
                 let part_txt = safe_subseq(&txt, offset, part_length.map(|pl| offset + pl));
                 let pushed: Option<SplitPart> = if pseq_vec.contains(&def.seq) {
@@ -242,11 +242,11 @@ pub async fn run_split(
                     let pt_modified = w.modify.apply(&pt);
                     match w.finder {
                         Finder::Seq => find_word_seq(ctx, &pt_modified, &pseq_vec)
-                            .await?
+                            ?
                             .first_word()
                             .map(SplitPart::Word),
                         Finder::ConjOf => find_word_conj_of(ctx, &pt_modified, &pseq_vec)
-                            .await?
+                            ?
                             .first_word()
                             .map(SplitPart::Word),
                     }

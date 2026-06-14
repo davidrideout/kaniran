@@ -22,12 +22,12 @@ use std::sync::Arc;
 ///
 /// Returns the `seq` of every `kana_text` row matching `(seq, reading)`
 /// — a non-empty result means the reading is recorded for that entry.
-pub async fn exists_reading(
+pub fn exists_reading(
     ctx: &KaniranContext,
     seq: i32,
     reading: &str,
-) -> Result<Vec<i32>, sqlx::Error> {
-    ctx.store.kana_seqs_by_seq_and_text(seq, reading).await
+) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+    ctx.store.kana_seqs_by_seq_and_text(seq, reading)
 }
 
 /// Port of `ichiran/dict:find-word-info` (`dict.lisp:1849`).
@@ -35,12 +35,12 @@ pub async fn exists_reading(
 /// Finds every reading for `text`, scores and sorts each as a segment,
 /// converts to word-infos, and (when `reading` is given) keeps only
 /// those whose kana matches or that carry `reading` as an alternate.
-pub async fn find_word_info(
+pub fn find_word_info(
     ctx: &KaniranContext,
     text: &str,
     reading: Option<&str>,
     root_only: bool,
-) -> Result<Vec<WordInfo>, sqlx::Error> {
+) -> Result<Vec<WordInfo>, crate::conn::KaniDbError> {
     // &aux (end (length text))
     let end = text.chars().count();
 
@@ -68,7 +68,7 @@ pub async fn find_word_info(
     let all_words: Vec<KaniWordDispatchEnum> = if root_only {
         // root_only skips the substring-hash, so the Cow is always
         // Owned here and into_owned() moves rather than clones.
-        match find_word(&ctx2, text, true).await?.into_owned() {
+        match find_word(&ctx2, text, true)?.into_owned() {
             FindWordRows::Kana(rows) => rows.into_iter().map(KaniWordDispatchEnum::Kana).collect(),
             FindWordRows::Kanji(rows) => {
                 rows.into_iter().map(KaniWordDispatchEnum::Kanji).collect()
@@ -81,7 +81,7 @@ pub async fn find_word_info(
             test_word(text, CharClass::Katakana),
             Some(CounterArg::Auto),
         )
-        .await?
+        ?
     };
 
     // (segments (loop for word in all-words
@@ -97,7 +97,7 @@ pub async fn find_word_info(
             top: None,
             text: Some(text.to_string()),
         };
-        gen_score(&ctx2, &mut segment, false, &[]).await?;
+        gen_score(&ctx2, &mut segment, false, &[])?;
         segments.push(segment);
     }
 
@@ -107,7 +107,7 @@ pub async fn find_word_info(
     // (wis (mapcar #'word-info-from-segment segments))
     let mut wis: Vec<WordInfo> = Vec::with_capacity(segments.len());
     for segment in &segments {
-        wis.push(word_info_from_segment(&ctx2, segment).await?);
+        wis.push(word_info_from_segment(&ctx2, segment)?);
     }
 
     // (when reading (setf wis (loop …)))
@@ -121,7 +121,7 @@ pub async fn find_word_info(
                 filtered.push(wi);
             // else if (and seq (exists-reading seq reading))
             } else if let Some(seq) = seq {
-                if exists_reading_seq(&ctx2, &seq, reading).await? {
+                if exists_reading_seq(&ctx2, &seq, reading)? {
                     // do (setf (word-info-kana wi) reading) and collect wi
                     wi.kana = Some(WordInfoKana::Single(reading.to_string()));
                     filtered.push(wi);
@@ -142,16 +142,16 @@ pub async fn find_word_info(
 /// rejects with `operator does not exist: integer = record` (SQLSTATE
 /// 42883); the equivalent error is synthesized here without a round
 /// trip so the failure propagates identically on every backend.
-async fn exists_reading_seq(
+fn exists_reading_seq(
     ctx: &KaniranContext,
     seq: &WordInfoSeq,
     reading: &str,
-) -> Result<bool, sqlx::Error> {
+) -> Result<bool, crate::conn::KaniDbError> {
     match seq {
         WordInfoSeq::Single(single_seq) => {
-            Ok(!exists_reading(ctx, *single_seq, reading).await?.is_empty())
+            Ok(!exists_reading(ctx, *single_seq, reading)?.is_empty())
         }
-        WordInfoSeq::Multi(_) => Err(sqlx::Error::Database(Box::new(
+        WordInfoSeq::Multi(_) => Err(crate::conn::KaniDbError::Database(Box::new(
             KaniSeqRecordMismatchError,
         ))),
     }
@@ -175,46 +175,20 @@ impl std::fmt::Display for KaniSeqRecordMismatchError {
 
 impl std::error::Error for KaniSeqRecordMismatchError {}
 
-impl sqlx::error::DatabaseError for KaniSeqRecordMismatchError {
-    fn message(&self) -> &str {
-        Self::MESSAGE
-    }
-
-    fn code(&self) -> Option<std::borrow::Cow<'_, str>> {
-        Some(std::borrow::Cow::Borrowed("42883"))
-    }
-
-    fn as_error(&self) -> &(dyn std::error::Error + Send + Sync + 'static) {
-        self
-    }
-
-    fn as_error_mut(&mut self) -> &mut (dyn std::error::Error + Send + Sync + 'static) {
-        self
-    }
-
-    fn into_error(self: Box<Self>) -> Box<dyn std::error::Error + Send + Sync + 'static> {
-        self
-    }
-
-    fn kind(&self) -> sqlx::error::ErrorKind {
-        sqlx::error::ErrorKind::Other
-    }
-}
-
 /// Port of `ichiran/dict:find-word-info-json` (`dict.lisp:1871`).
 ///
 /// Runs [`find_word_info`] and renders each result through
 /// [`word_info_gloss_json`].
-pub async fn find_word_info_json(
+pub fn find_word_info_json(
     ctx: &KaniranContext,
     text: &str,
     reading: Option<&str>,
     root_only: bool,
-) -> Result<Vec<Value>, sqlx::Error> {
-    let word_infos = find_word_info(ctx, text, reading, root_only).await?;
+) -> Result<Vec<Value>, crate::conn::KaniDbError> {
+    let word_infos = find_word_info(ctx, text, reading, root_only)?;
     let mut out = Vec::with_capacity(word_infos.len());
     for word_info in &word_infos {
-        out.push(word_info_gloss_json(ctx, word_info, root_only).await?);
+        out.push(word_info_gloss_json(ctx, word_info, root_only)?);
     }
     Ok(out)
 }
@@ -224,12 +198,12 @@ pub async fn find_word_info_json(
 /// Selects every `kana_text` row whose `text` matches the POSIX regex
 /// `pattern`, then stable-sorts the rows by [`compare_common`] over each
 /// row's `common` rank (the `:null` sentinel sorts last).
-pub async fn find_word_kana_pattern(
+pub fn find_word_kana_pattern(
     ctx: &KaniranContext,
     pattern: &str,
-) -> Result<Vec<KanaText>, sqlx::Error> {
+) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
     // (select-dao 'kana-text (:~ 'text pattern))
-    let mut rows: Vec<KanaText> = ctx.store.kana_texts_by_regex(pattern).await?;
+    let mut rows: Vec<KanaText> = ctx.store.kana_texts_by_regex(pattern)?;
     // (stable-sort … #'compare-common :key (lambda (r) (and (not (eql (common r) :null)) (common r))))
     // — `common = None` mirrors the `:null` sentinel, so the key is the
     // row's `common` slot directly.
@@ -252,17 +226,17 @@ pub async fn find_word_kana_pattern(
 /// For each `kana_text` row matching `pattern`, collects its
 /// `get-kanji` surface (when non-nil) and its `text`, then returns both
 /// lists with duplicates removed keeping the first occurrence.
-pub async fn find_kanji_for_pattern(
+pub fn find_kanji_for_pattern(
     ctx: &KaniranContext,
     pattern: &str,
-) -> Result<(Vec<String>, Vec<String>), sqlx::Error> {
+) -> Result<(Vec<String>, Vec<String>), crate::conn::KaniDbError> {
     let mut kanji: Vec<String> = Vec::new();
     let mut kana: Vec<String> = Vec::new();
     // (loop for r in (find-word-kana-pattern pattern) …)
-    for r in find_word_kana_pattern(ctx, pattern).await? {
+    for r in find_word_kana_pattern(ctx, pattern)? {
         let r = KaniWordDispatchEnum::Kana(r);
         // for k = (get-kanji r) / when k collect k into kanji
-        if let Some(k) = get_kanji(ctx, &r).await? {
+        if let Some(k) = get_kanji(ctx, &r)? {
             kanji.push(k);
         }
         // collect (text r) into kana
@@ -291,11 +265,11 @@ fn remove_duplicates_from_end(items: Vec<String>) -> Vec<String> {
 /// Joins `gloss` to `sense`, filters `sense.seq` to the requested set,
 /// and groups rows by `seq` into `(seq, glosses)` pairs. Within each
 /// group the glosses appear in reverse physical-row order.
-pub async fn get_glosses(
+pub fn get_glosses(
     ctx: &KaniranContext,
     seqs: &[i32],
-) -> Result<Vec<(i32, Vec<String>)>, sqlx::Error> {
-    let glosses: Vec<(i32, String)> = ctx.store.glosses_by_seq_any(seqs).await?;
+) -> Result<Vec<(i32, Vec<String>)>, crate::conn::KaniDbError> {
+    let glosses: Vec<(i32, String)> = ctx.store.glosses_by_seq_any(seqs)?;
 
     let mut al: Vec<(i32, Vec<String>)> = Vec::new();
     for (seq, text) in glosses {
@@ -315,16 +289,16 @@ pub async fn get_glosses(
 /// entries (`k.text IS NULL`) whose primary kana row equals `text`;
 /// otherwise it treats `text` as a kanji writing and requires both the
 /// primary kanji row and the primary kana row to match.
-pub async fn get_candidates(
+pub fn get_candidates(
     ctx: &KaniranContext,
     text: &str,
     reading: Option<&str>,
-) -> Result<Vec<i32>, sqlx::Error> {
+) -> Result<Vec<i32>, crate::conn::KaniDbError> {
     let is_kana = test_word(text, CharClass::Kana);
     if is_kana {
-        ctx.store.candidate_seqs_kana(text).await
+        ctx.store.candidate_seqs_kana(text)
     } else {
-        ctx.store.candidate_seqs_kanji(text, reading).await
+        ctx.store.candidate_seqs_kanji(text, reading)
     }
 }
 
@@ -349,15 +323,15 @@ pub enum MatchValue {
     SeqAndGloss(i32, String),
 }
 
-pub async fn match_glosses(
+pub fn match_glosses(
     ctx: &KaniranContext,
     text: &str,
     reading: Option<&str>,
     words: &[&str],
     normalize: Option<&dyn Fn(&str) -> String>,
     update_gloss: Option<&fancy_regex::Regex>,
-) -> Result<Option<(MatchValue, bool)>, sqlx::Error> {
-    let candidates = get_candidates(ctx, text, reading).await?;
+) -> Result<Option<(MatchValue, bool)>, crate::conn::KaniDbError> {
+    let candidates = get_candidates(ctx, text, reading)?;
     if candidates.is_empty() {
         return Ok(None);
     }
@@ -371,7 +345,7 @@ pub async fn match_glosses(
         .collect();
 
     // dict.lisp:1925 — `(loop for (seq . glosses) in (get-glosses candidates) ...)`
-    let groups = get_glosses(ctx, &candidates).await?;
+    let groups = get_glosses(ctx, &candidates)?;
     for (seq, glosses) in groups {
         // dict.lisp:1926 — `(loop for gloss in (nreverse glosses) ...)`
         let dbo_glosses: Vec<String> = glosses.into_iter().rev().collect();

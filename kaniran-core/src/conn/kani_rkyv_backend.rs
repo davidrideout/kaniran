@@ -433,7 +433,7 @@ fn merged_str<S: AsRef<str>>(map: &HashMap<String, Vec<u32>>, keys: &[S]) -> Vec
 impl KaniBackend for KaniRkyvBackend {
     // --- entry ---
 
-    async fn entry_by_seq(&self, seq: i32) -> Result<Option<Entry>, sqlx::Error> {
+    fn entry_by_seq(&self, seq: i32) -> Result<Option<Entry>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -442,7 +442,7 @@ impl KaniBackend for KaniRkyvBackend {
             .map(|&ordinal| dao_entry(&tables.entries[ordinal as usize])))
     }
 
-    async fn root_seqs(&self, seqs: &[i32]) -> Result<Vec<i32>, sqlx::Error> {
+    fn root_seqs(&self, seqs: &[i32]) -> Result<Vec<i32>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let mut ordinals: Vec<u32> = seqs
             .iter()
@@ -458,7 +458,7 @@ impl KaniBackend for KaniRkyvBackend {
             .collect())
     }
 
-    async fn candidate_seqs_kana(&self, text: &str) -> Result<Vec<i32>, sqlx::Error> {
+    fn candidate_seqs_kana(&self, text: &str) -> Result<Vec<i32>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut seqs_out: Vec<i32> = Vec::new();
@@ -487,11 +487,11 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(seqs_out)
     }
 
-    async fn candidate_seqs_kanji(
+    fn candidate_seqs_kanji(
         &self,
         text: &str,
         reading: Option<&str>,
-    ) -> Result<Vec<i32>, sqlx::Error> {
+    ) -> Result<Vec<i32>, crate::conn::KaniDbError> {
         // `r.text = NULL` is never true in SQL, so a missing reading
         // matches nothing.
         let Some(reading) = reading else {
@@ -525,10 +525,10 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(seqs_out)
     }
 
-    async fn kanji_words_containing_char(
+    fn kanji_words_containing_char(
         &self,
         char: &str,
-    ) -> Result<Vec<(i32, String, String, i32)>, sqlx::Error> {
+    ) -> Result<Vec<(i32, String, String, i32)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut out: Vec<(i32, String, String, i32)> = Vec::new();
@@ -568,7 +568,7 @@ impl KaniBackend for KaniRkyvBackend {
 
     // --- kanji_text / kana_text ---
 
-    async fn headword_kanji_text(&self, seq: i32) -> Result<Option<String>, sqlx::Error> {
+    fn headword_kanji_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self.idx().kanji_text_by_seq.get(&seq).and_then(|list| {
             list.iter()
@@ -578,7 +578,7 @@ impl KaniBackend for KaniRkyvBackend {
         }))
     }
 
-    async fn headword_kana_text(&self, seq: i32) -> Result<Option<String>, sqlx::Error> {
+    fn headword_kana_text(&self, seq: i32) -> Result<Option<String>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self.idx().kana_text_by_seq.get(&seq).and_then(|list| {
             list.iter()
@@ -588,11 +588,11 @@ impl KaniBackend for KaniRkyvBackend {
         }))
     }
 
-    async fn kanji_texts_by_seq_and_text(
+    fn kanji_texts_by_seq_and_text(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -608,11 +608,11 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kana_texts_by_seq_and_text(
+    fn kana_texts_by_seq_and_text(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -628,11 +628,11 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kana_texts_by_seq_and_text_any(
+    fn kana_texts_by_seq_and_text_any(
         &self,
         seq: i32,
         texts: &[String],
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -648,11 +648,11 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kanji_texts_by_seq_and_text_any(
+    fn kanji_texts_by_seq_and_text_any(
         &self,
         seq: i32,
         texts: &[String],
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -668,7 +668,7 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kana_texts_by_seq_ordered(&self, seq: i32) -> Result<Vec<KanaText>, sqlx::Error> {
+    fn kana_texts_by_seq_ordered(&self, seq: i32) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let mut rows: Vec<KanaText> = self
             .idx()
@@ -684,25 +684,25 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(rows)
     }
 
-    async fn kanji_text_by_id(&self, id: i32) -> Result<KanjiText, sqlx::Error> {
+    fn kanji_text_by_id(&self, id: i32) -> Result<KanjiText, crate::conn::KaniDbError> {
         let tables = self.tables();
         self.idx()
             .kanji_text_by_id
             .get(id)
             .map(|ordinal| dao_kanji_text(&tables.kanji_texts[ordinal as usize]))
-            .ok_or(sqlx::Error::RowNotFound)
+            .ok_or(crate::conn::KaniDbError::RowNotFound)
     }
 
-    async fn kana_text_by_id(&self, id: i32) -> Result<KanaText, sqlx::Error> {
+    fn kana_text_by_id(&self, id: i32) -> Result<KanaText, crate::conn::KaniDbError> {
         let tables = self.tables();
         self.idx()
             .kana_text_by_id
             .get(id)
             .map(|ordinal| dao_kana_text(&tables.kana_texts[ordinal as usize]))
-            .ok_or(sqlx::Error::RowNotFound)
+            .ok_or(crate::conn::KaniDbError::RowNotFound)
     }
 
-    async fn kana_texts_by_text(&self, text: &str) -> Result<Vec<KanaText>, sqlx::Error> {
+    fn kana_texts_by_text(&self, text: &str) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -716,7 +716,7 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kanji_texts_by_text(&self, text: &str) -> Result<Vec<KanjiText>, sqlx::Error> {
+    fn kanji_texts_by_text(&self, text: &str) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -730,7 +730,7 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kana_texts_root_by_text(&self, text: &str) -> Result<Vec<KanaText>, sqlx::Error> {
+    fn kana_texts_root_by_text(&self, text: &str) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         Ok(indexes
@@ -753,7 +753,7 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kanji_texts_root_by_text(&self, text: &str) -> Result<Vec<KanjiText>, sqlx::Error> {
+    fn kanji_texts_root_by_text(&self, text: &str) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         Ok(indexes
@@ -776,10 +776,10 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kana_texts_by_text_any(
+    fn kana_texts_by_text_any(
         &self,
         texts: &[String],
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(merged_str(&self.idx().kana_text_by_text, texts)
             .into_iter()
@@ -787,10 +787,10 @@ impl KaniBackend for KaniRkyvBackend {
             .collect())
     }
 
-    async fn kanji_texts_by_text_any(
+    fn kanji_texts_by_text_any(
         &self,
         texts: &[String],
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(merged_str(&self.idx().kanji_text_by_text, texts)
             .into_iter()
@@ -798,11 +798,11 @@ impl KaniBackend for KaniRkyvBackend {
             .collect())
     }
 
-    async fn kanji_texts_by_text_any_and_seq_any(
+    fn kanji_texts_by_text_any_and_seq_any(
         &self,
         texts: &[&str],
         seqs: &[i32],
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let seq_set: HashSet<i32> = seqs.iter().copied().collect();
         Ok(merged_str(&self.idx().kanji_text_by_text, texts)
@@ -813,11 +813,11 @@ impl KaniBackend for KaniRkyvBackend {
             .collect())
     }
 
-    async fn kana_texts_by_text_any_and_seq_any(
+    fn kana_texts_by_text_any_and_seq_any(
         &self,
         texts: &[&str],
         seqs: &[i32],
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let seq_set: HashSet<i32> = seqs.iter().copied().collect();
         Ok(merged_str(&self.idx().kana_text_by_text, texts)
@@ -828,11 +828,11 @@ impl KaniBackend for KaniRkyvBackend {
             .collect())
     }
 
-    async fn kana_texts_by_text_and_seq_any(
+    fn kana_texts_by_text_and_seq_any(
         &self,
         text: &str,
         seqs: &[i32],
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let seq_set: HashSet<i32> = seqs.iter().copied().collect();
         Ok(self
@@ -849,11 +849,11 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kanji_texts_by_text_and_seq_any(
+    fn kanji_texts_by_text_and_seq_any(
         &self,
         text: &str,
         seqs: &[i32],
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let seq_set: HashSet<i32> = seqs.iter().copied().collect();
         Ok(self
@@ -870,11 +870,11 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kana_texts_conj_of(
+    fn kana_texts_conj_of(
         &self,
         seqs: &[i32],
         text: &str,
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let from_set: HashSet<i32> = seqs.iter().copied().collect();
@@ -897,11 +897,11 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(out)
     }
 
-    async fn kanji_texts_conj_of(
+    fn kanji_texts_conj_of(
         &self,
         seqs: &[i32],
         text: &str,
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let from_set: HashSet<i32> = seqs.iter().copied().collect();
@@ -922,11 +922,11 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(out)
     }
 
-    async fn kana_texts_with_pos(
+    fn kana_texts_with_pos(
         &self,
         text: &str,
         posi: &[String],
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         Ok(indexes
@@ -955,11 +955,11 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kanji_texts_with_pos(
+    fn kanji_texts_with_pos(
         &self,
         text: &str,
         posi: &[String],
-    ) -> Result<Vec<KanjiText>, sqlx::Error> {
+    ) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         Ok(indexes
@@ -986,7 +986,7 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kana_forms_rows(&self, seq: i32) -> Result<Vec<KanaText>, sqlx::Error> {
+    fn kana_forms_rows(&self, seq: i32) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut ordinals: Vec<u32> = indexes
@@ -1011,11 +1011,11 @@ impl KaniBackend for KaniRkyvBackend {
             .collect())
     }
 
-    async fn kana_texts_by_text_and_seq(
+    fn kana_texts_by_text_and_seq(
         &self,
         text: &str,
         seq: i32,
-    ) -> Result<Vec<KanaText>, sqlx::Error> {
+    ) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1031,7 +1031,7 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kana_seqs_by_text(&self, text: &str) -> Result<Vec<i32>, sqlx::Error> {
+    fn kana_seqs_by_text(&self, text: &str) -> Result<Vec<i32>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1045,7 +1045,7 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kanji_seqs_by_text(&self, text: &str) -> Result<Vec<i32>, sqlx::Error> {
+    fn kanji_seqs_by_text(&self, text: &str) -> Result<Vec<i32>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1059,10 +1059,10 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kana_reading_texts_by_seq_any(
+    fn kana_reading_texts_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<String>, sqlx::Error> {
+    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let mut rows: Vec<(i32, String)> = merged_i32(&self.idx().kana_text_by_seq, seqs)
             .into_iter()
@@ -1075,11 +1075,11 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(rows.into_iter().map(|(_, text)| text).collect())
     }
 
-    async fn kana_seqs_by_seq_and_text(
+    fn kana_seqs_by_seq_and_text(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<i32>, sqlx::Error> {
+    ) -> Result<Vec<i32>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1095,15 +1095,15 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn kana_texts_by_regex(&self, pattern: &str) -> Result<Vec<KanaText>, sqlx::Error> {
+    fn kana_texts_by_regex(&self, pattern: &str) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let matcher = fancy_regex::Regex::new(pattern).map_err(|regex_error| {
-            sqlx::Error::Protocol(format!("kana_texts_by_regex pattern: {regex_error}"))
+            crate::conn::KaniDbError::Protocol(format!("kana_texts_by_regex pattern: {regex_error}"))
         })?;
         let mut out: Vec<KanaText> = Vec::new();
         for row in tables.kana_texts.iter() {
             let is_match = matcher.is_match(row.text.as_str()).map_err(|regex_error| {
-                sqlx::Error::Protocol(format!("kana_texts_by_regex match: {regex_error}"))
+                crate::conn::KaniDbError::Protocol(format!("kana_texts_by_regex match: {regex_error}"))
             })?;
             if is_match {
                 out.push(dao_kana_text(row));
@@ -1112,7 +1112,7 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(out)
     }
 
-    async fn kana_texts_by_seq_any(&self, seqs: &[i32]) -> Result<Vec<KanaText>, sqlx::Error> {
+    fn kana_texts_by_seq_any(&self, seqs: &[i32]) -> Result<Vec<KanaText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(merged_i32(&self.idx().kana_text_by_seq, seqs)
             .into_iter()
@@ -1120,7 +1120,7 @@ impl KaniBackend for KaniRkyvBackend {
             .collect())
     }
 
-    async fn kanji_texts_by_seq_any(&self, seqs: &[i32]) -> Result<Vec<KanjiText>, sqlx::Error> {
+    fn kanji_texts_by_seq_any(&self, seqs: &[i32]) -> Result<Vec<KanjiText>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(merged_i32(&self.idx().kanji_text_by_seq, seqs)
             .into_iter()
@@ -1130,7 +1130,7 @@ impl KaniBackend for KaniRkyvBackend {
 
     // --- conjugation ---
 
-    async fn conjs_by_seq(&self, seq: i32) -> Result<Vec<Conjugation>, sqlx::Error> {
+    fn conjs_by_seq(&self, seq: i32) -> Result<Vec<Conjugation>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1144,11 +1144,11 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn conjs_by_seq_and_ids(
+    fn conjs_by_seq_and_ids(
         &self,
         seq: i32,
         ids: &[i32],
-    ) -> Result<Vec<Conjugation>, sqlx::Error> {
+    ) -> Result<Vec<Conjugation>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1164,11 +1164,11 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn conjs_by_seq_and_from(
+    fn conjs_by_seq_and_from(
         &self,
         seq: i32,
         from: i32,
-    ) -> Result<Vec<Conjugation>, sqlx::Error> {
+    ) -> Result<Vec<Conjugation>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1184,7 +1184,7 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn conjs_by_seq_via_null(&self, seq: i32) -> Result<Vec<Conjugation>, sqlx::Error> {
+    fn conjs_by_seq_via_null(&self, seq: i32) -> Result<Vec<Conjugation>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1200,16 +1200,16 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn conj_by_id(&self, id: i32) -> Result<Conjugation, sqlx::Error> {
+    fn conj_by_id(&self, id: i32) -> Result<Conjugation, crate::conn::KaniDbError> {
         let tables = self.tables();
         self.idx()
             .conj_by_id
             .get(id)
             .map(|ordinal| dao_conjugation(&tables.conjugations[ordinal as usize]))
-            .ok_or(sqlx::Error::RowNotFound)
+            .ok_or(crate::conn::KaniDbError::RowNotFound)
     }
 
-    async fn conj_seqs_of_desu(&self, seqs: &[i32]) -> Result<Vec<i32>, sqlx::Error> {
+    fn conj_seqs_of_desu(&self, seqs: &[i32]) -> Result<Vec<i32>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let seq_set: HashSet<i32> = seqs.iter().copied().collect();
         Ok(self
@@ -1226,7 +1226,7 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn conj_seqs_from_any(&self, seqs: &[i32]) -> Result<Vec<i32>, sqlx::Error> {
+    fn conj_seqs_from_any(&self, seqs: &[i32]) -> Result<Vec<i32>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let mut seen: HashSet<i32> = HashSet::new();
         let mut out: Vec<i32> = Vec::new();
@@ -1239,7 +1239,7 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(out)
     }
 
-    async fn no_conj_seqs(&self) -> Result<Vec<i32>, sqlx::Error> {
+    fn no_conj_seqs(&self) -> Result<Vec<i32>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         Ok(tables
@@ -1252,7 +1252,7 @@ impl KaniBackend for KaniRkyvBackend {
 
     // --- conj_prop / conj_source_reading ---
 
-    async fn conj_props_by_conj_id(&self, conj_id: i32) -> Result<Vec<ConjProp>, sqlx::Error> {
+    fn conj_props_by_conj_id(&self, conj_id: i32) -> Result<Vec<ConjProp>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1266,10 +1266,10 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn conj_source_readings_by_conj_id(
+    fn conj_source_readings_by_conj_id(
         &self,
         conj_id: i32,
-    ) -> Result<Vec<(String, String)>, sqlx::Error> {
+    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1289,11 +1289,11 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn conj_source_readings_by_conj_id_and_texts(
+    fn conj_source_readings_by_conj_id_and_texts(
         &self,
         conj_id: i32,
         texts: &[String],
-    ) -> Result<Vec<(String, String)>, sqlx::Error> {
+    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1314,11 +1314,11 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn conj_source_reading_texts(
+    fn conj_source_reading_texts(
         &self,
         conj_id: i32,
         source_text: &str,
-    ) -> Result<Vec<String>, sqlx::Error> {
+    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1334,11 +1334,11 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn parents_kanji(
+    fn parents_kanji(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<(i32, i32)>, sqlx::Error> {
+    ) -> Result<Vec<(i32, i32)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut out: Vec<(i32, i32)> = Vec::new();
@@ -1372,11 +1372,11 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(out)
     }
 
-    async fn parents_kana(
+    fn parents_kana(
         &self,
         seq: i32,
         text: &str,
-    ) -> Result<Vec<(i32, i32)>, sqlx::Error> {
+    ) -> Result<Vec<(i32, i32)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut out: Vec<(i32, i32)> = Vec::new();
@@ -1412,10 +1412,10 @@ impl KaniBackend for KaniRkyvBackend {
 
     // --- sense / gloss / sense_prop / restricted_readings ---
 
-    async fn sense_gloss_rows(
+    fn sense_gloss_rows(
         &self,
         seq: i32,
-    ) -> Result<Vec<(i32, Option<String>)>, sqlx::Error> {
+    ) -> Result<Vec<(i32, Option<String>)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut senses: Vec<(i32, i32)> = indexes
@@ -1437,11 +1437,11 @@ impl KaniBackend for KaniRkyvBackend {
             .collect())
     }
 
-    async fn sense_prop_rows_tagged(
+    fn sense_prop_rows_tagged(
         &self,
         seq: i32,
         tags: &[&str],
-    ) -> Result<Vec<(i32, String, String)>, sqlx::Error> {
+    ) -> Result<Vec<(i32, String, String)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut rows: Vec<(i32, String, String, i32)> = Vec::new();
@@ -1477,7 +1477,7 @@ impl KaniBackend for KaniRkyvBackend {
             .collect())
     }
 
-    async fn first_sense_gloss(&self, seq: i32) -> Result<Option<Option<String>>, sqlx::Error> {
+    fn first_sense_gloss(&self, seq: i32) -> Result<Option<Option<String>>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let first_sense = self.idx().sense_by_seq.get(&seq).and_then(|list| {
             list.iter()
@@ -1487,11 +1487,11 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(first_sense.map(|sense| self.joined_gloss(sense.id.to_native())))
     }
 
-    async fn first_sense_gloss_with_pos(
+    fn first_sense_gloss_with_pos(
         &self,
         seq: i32,
         pos: &str,
-    ) -> Result<Option<Option<String>>, sqlx::Error> {
+    ) -> Result<Option<Option<String>>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let first_sense = indexes.sense_by_seq.get(&seq).and_then(|list| {
@@ -1513,10 +1513,10 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(first_sense.map(|sense| self.joined_gloss(sense.id.to_native())))
     }
 
-    async fn glosses_by_seq_any(
+    fn glosses_by_seq_any(
         &self,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, sqlx::Error> {
+    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut unique_seqs: Vec<i32> = seqs.to_vec();
@@ -1539,7 +1539,7 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(out)
     }
 
-    async fn uk_sense_ids(&self, seqs: &[i32]) -> Result<Vec<i32>, sqlx::Error> {
+    fn uk_sense_ids(&self, seqs: &[i32]) -> Result<Vec<i32>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(merged_i32(&self.idx().sense_prop_by_seq, seqs)
             .into_iter()
@@ -1549,7 +1549,7 @@ impl KaniBackend for KaniRkyvBackend {
             .collect())
     }
 
-    async fn sense_id_ord0(&self, ids: &[i32]) -> Result<Option<i32>, sqlx::Error> {
+    fn sense_id_ord0(&self, ids: &[i32]) -> Result<Option<i32>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let mut ordinals: Vec<u32> = ids
             .iter()
@@ -1564,7 +1564,7 @@ impl KaniBackend for KaniRkyvBackend {
             .map(|row| row.id.to_native()))
     }
 
-    async fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<String>, sqlx::Error> {
+    fn non_arch_posi(&self, seqs: &[i32]) -> Result<Vec<String>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut seen: HashSet<String> = HashSet::new();
@@ -1595,7 +1595,7 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(out)
     }
 
-    async fn arch_only_seqs(&self) -> Result<Vec<i32>, sqlx::Error> {
+    fn arch_only_seqs(&self) -> Result<Vec<i32>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut first_seen: Vec<i32> = Vec::new();
@@ -1628,7 +1628,7 @@ impl KaniBackend for KaniRkyvBackend {
             .collect())
     }
 
-    async fn counter_seqs(&self) -> Result<Vec<i32>, sqlx::Error> {
+    fn counter_seqs(&self) -> Result<Vec<i32>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let mut seen: HashSet<i32> = HashSet::new();
         let mut out: Vec<i32> = Vec::new();
@@ -1643,11 +1643,11 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(out)
     }
 
-    async fn counter_stag_rows(
+    fn counter_stag_rows(
         &self,
         tag: &str,
         seqs: &[i32],
-    ) -> Result<Vec<(i32, String)>, sqlx::Error> {
+    ) -> Result<Vec<(i32, String)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut out: Vec<(i32, String)> = Vec::new();
@@ -1678,10 +1678,10 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(out)
     }
 
-    async fn restricted_readings_by_seq(
+    fn restricted_readings_by_seq(
         &self,
         seq: i32,
-    ) -> Result<Vec<(String, String)>, sqlx::Error> {
+    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1703,10 +1703,10 @@ impl KaniBackend for KaniRkyvBackend {
 
     // --- kanjidic ---
 
-    async fn readings_non_nanori_by_kanji_id(
+    fn readings_non_nanori_by_kanji_id(
         &self,
         kanji_id: i32,
-    ) -> Result<Vec<Reading>, sqlx::Error> {
+    ) -> Result<Vec<Reading>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let mut rows: Vec<Reading> = self
             .idx()
@@ -1729,7 +1729,7 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(rows)
     }
 
-    async fn meanings_by_kanji_id(&self, kanji_id: i32) -> Result<Vec<Meaning>, sqlx::Error> {
+    fn meanings_by_kanji_id(&self, kanji_id: i32) -> Result<Vec<Meaning>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let mut rows: Vec<Meaning> = self
             .idx()
@@ -1745,10 +1745,10 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(rows)
     }
 
-    async fn okurigana_texts_by_reading_id(
+    fn okurigana_texts_by_reading_id(
         &self,
         reading_id: i32,
-    ) -> Result<Vec<String>, sqlx::Error> {
+    ) -> Result<Vec<String>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let mut seen: HashSet<String> = HashSet::new();
         let mut out: Vec<String> = Vec::new();
@@ -1763,7 +1763,7 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(out)
     }
 
-    async fn kanji_by_text(&self, text: &str) -> Result<Vec<Kanji>, sqlx::Error> {
+    fn kanji_by_text(&self, text: &str) -> Result<Vec<Kanji>, crate::conn::KaniDbError> {
         let tables = self.tables();
         Ok(self
             .idx()
@@ -1777,12 +1777,12 @@ impl KaniBackend for KaniRkyvBackend {
             .unwrap_or_default())
     }
 
-    async fn reading_stats_rows(
+    fn reading_stats_rows(
         &self,
         kanji: &str,
         reading: &str,
         reading_type: &str,
-    ) -> Result<Vec<(i32, i32, Option<i32>)>, sqlx::Error> {
+    ) -> Result<Vec<(i32, i32, Option<i32>)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut out: Vec<(i32, i32, Option<i32>)> = Vec::new();
@@ -1810,11 +1810,11 @@ impl KaniBackend for KaniRkyvBackend {
         Ok(out)
     }
 
-    async fn kanji_reading_pairs(
+    fn kanji_reading_pairs(
         &self,
         text: &str,
         typeset: &[String],
-    ) -> Result<Vec<(String, String)>, sqlx::Error> {
+    ) -> Result<Vec<(String, String)>, crate::conn::KaniDbError> {
         let tables = self.tables();
         let indexes = self.idx();
         let mut rows: Vec<(i32, String, String)> = Vec::new();

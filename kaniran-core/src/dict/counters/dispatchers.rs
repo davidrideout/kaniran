@@ -27,7 +27,7 @@ pub fn counter_cache(ctx: &KaniranContext) -> &CounterCache {
     &ctx.counter_cache
 }
 
-pub async fn build_counter_cache(ctx: &KaniranContext) -> Result<CounterCache, sqlx::Error> {
+pub fn build_counter_cache(ctx: &KaniranContext) -> Result<CounterCache, crate::conn::KaniDbError> {
     let mut cache: CounterCache = HashMap::new();
 
     add_args(
@@ -35,7 +35,7 @@ pub async fn build_counter_cache(ctx: &KaniranContext) -> Result<CounterCache, s
         CounterArgs::new(CounterClass::NumberText, "", ""),
     );
 
-    let readings = get_counter_readings(ctx).await?;
+    let readings = get_counter_readings(ctx)?;
     let specials = special_counters();
     let foreign_set: std::collections::HashSet<i32> = COUNTER_FOREIGN.iter().copied().collect();
 
@@ -483,8 +483,8 @@ pub fn find_counter(
 ///
 /// Returns the sorted list of JMdict sequence numbers tagged
 /// `pos=ctr` (counter words) on at least one of their senses.
-pub async fn get_counter_ids(ctx: &KaniranContext) -> Result<Vec<i32>, sqlx::Error> {
-    let mut seqs: Vec<i32> = ctx.store.counter_seqs().await?;
+pub fn get_counter_ids(ctx: &KaniranContext) -> Result<Vec<i32>, crate::conn::KaniDbError> {
+    let mut seqs: Vec<i32> = ctx.store.counter_seqs()?;
     seqs.sort();
     Ok(seqs)
 }
@@ -497,18 +497,18 @@ pub async fn get_counter_ids(ctx: &KaniranContext) -> Result<Vec<i32>, sqlx::Err
 /// Seqs with no restrictions are absent from the maps.
 pub type CounterStags = (HashMap<i32, Vec<String>>, HashMap<i32, Vec<String>>);
 
-pub async fn get_counter_stags(
+pub fn get_counter_stags(
     ctx: &KaniranContext,
     seqs: &[i32],
-) -> Result<CounterStags, sqlx::Error> {
+) -> Result<CounterStags, crate::conn::KaniDbError> {
     let mut stagks: HashMap<i32, Vec<String>> = HashMap::new();
     let mut stagrs: HashMap<i32, Vec<String>> = HashMap::new();
 
-    for (seq, text) in ctx.store.counter_stag_rows("stagk", seqs).await? {
+    for (seq, text) in ctx.store.counter_stag_rows("stagk", seqs)? {
         stagks.entry(seq).or_default().push(text);
     }
 
-    for (seq, text) in ctx.store.counter_stag_rows("stagr", seqs).await? {
+    for (seq, text) in ctx.store.counter_stag_rows("stagr", seqs)? {
         stagrs.entry(seq).or_default().push(text);
     }
 
@@ -523,17 +523,17 @@ pub async fn get_counter_stags(
 /// rows the same way against `stagr`); survivors sort by `ord`.
 pub type CounterReadings = HashMap<i32, (Vec<KanjiText>, Vec<KanaText>)>;
 
-pub async fn get_counter_readings(ctx: &KaniranContext) -> Result<CounterReadings, sqlx::Error> {
-    let mut counter_ids: Vec<i32> = get_counter_ids(ctx).await?;
+pub fn get_counter_readings(ctx: &KaniranContext) -> Result<CounterReadings, crate::conn::KaniDbError> {
+    let mut counter_ids: Vec<i32> = get_counter_ids(ctx)?;
     counter_ids.extend(EXTRA_COUNTER_IDS.iter().copied());
     let skip: HashSet<i32> = SKIP_COUNTER_IDS.iter().copied().collect();
     counter_ids.retain(|id| !skip.contains(id));
 
-    let stags = get_counter_stags(ctx, &counter_ids).await?;
+    let stags = get_counter_stags(ctx, &counter_ids)?;
 
-    let kanji_readings: Vec<KanjiText> = ctx.store.kanji_texts_by_seq_any(&counter_ids).await?;
+    let kanji_readings: Vec<KanjiText> = ctx.store.kanji_texts_by_seq_any(&counter_ids)?;
 
-    let kana_readings: Vec<KanaText> = ctx.store.kana_texts_by_seq_any(&counter_ids).await?;
+    let kana_readings: Vec<KanaText> = ctx.store.kana_texts_by_seq_any(&counter_ids)?;
 
     let mut hash: CounterReadings = HashMap::new();
 

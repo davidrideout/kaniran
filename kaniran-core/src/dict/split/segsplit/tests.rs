@@ -28,15 +28,15 @@ mod get_segsplit {
     use crate::dict::scoring::score::gen_score;
     use crate::dict::split::segsplit::*;
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
         KaniranContext::from_env()
-            .await
+            
             .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
     }
 
     /// Helper: find the reading for `text` at `seq`, gen-score it, return the segment.
-    async fn segment_for_seq(ctx: &KaniranContext, text: &str, seq: i32) -> Segment {
-        let rows = find_word(ctx, text, false).await.unwrap().into_owned();
+    fn segment_for_seq(ctx: &KaniranContext, text: &str, seq: i32) -> Segment {
+        let rows = find_word(ctx, text, false).unwrap().into_owned();
         let word = match rows {
             FindWordRows::Kana(v) => v
                 .into_iter()
@@ -58,7 +58,7 @@ mod get_segsplit {
             top: None,
             text: Some(text.into()),
         };
-        gen_score(ctx, &mut seg, false, &[]).await.unwrap();
+        gen_score(ctx, &mut seg, false, &[]).unwrap();
         seg
     }
 
@@ -85,17 +85,17 @@ mod get_segsplit {
         }
     }
 
-    #[tokio::test]
-    async fn tokorode_root_keyword_marks_index_1() {
-        let ctx = ctx_from_env().await;
-        let mut seg = segment_for_seq(&ctx, "ところで", 1343110).await;
+    #[test]
+    fn tokorode_root_keyword_marks_index_1() {
+        let ctx = ctx_from_env();
+        let mut seg = segment_for_seq(&ctx, "ところで", 1343110);
         // Set non-default start/end/top so the test catches any regression
         // that zeroes them.
         seg.start = 11;
         seg.end = 15;
         seg.top = None;
         let pre_score = seg.score.expect("gen-score sets score");
-        let result = get_segsplit(&ctx, &seg).await.unwrap();
+        let result = get_segsplit(&ctx, &seg).unwrap();
         let new_seg = result.expect("ところで matches split-tokorode (segsplit-map)");
 
         // start/end/top are carried over unchanged; only word/text/score/info
@@ -137,16 +137,16 @@ mod get_segsplit {
     }
 
     // A three-part split (ところ / で / は) with default attributes.
-    #[tokio::test]
-    async fn tokorodewa_three_part_split_default_attrs() {
-        let ctx = ctx_from_env().await;
-        let mut seg = segment_for_seq(&ctx, "ところでは", 1897510).await;
+    #[test]
+    fn tokorodewa_three_part_split_default_attrs() {
+        let ctx = ctx_from_env();
+        let mut seg = segment_for_seq(&ctx, "ところでは", 1897510);
         seg.start = 3;
         seg.end = 8;
         seg.top = None;
         let pre_score = seg.score.expect("gen-score sets score");
         let new_seg = get_segsplit(&ctx, &seg)
-            .await
+            
             .unwrap()
             .expect("segsplit hit");
 
@@ -185,16 +185,16 @@ mod get_segsplit {
 
     // お店 splits into お / 店, with the second part as primary and an
     // empty connector joining the kana directly (おみせ).
-    #[tokio::test]
-    async fn omise_primary_and_connector_keywords() {
-        let ctx = ctx_from_env().await;
-        let mut seg = segment_for_seq(&ctx, "お店", 2409240).await;
+    #[test]
+    fn omise_primary_and_connector_keywords() {
+        let ctx = ctx_from_env();
+        let mut seg = segment_for_seq(&ctx, "お店", 2409240);
         seg.start = 4;
         seg.end = 6;
         seg.top = None;
         let pre_score = seg.score.expect("gen-score sets score");
         let new_seg = get_segsplit(&ctx, &seg)
-            .await
+            
             .unwrap()
             .expect("segsplit hit");
 
@@ -231,16 +231,16 @@ mod get_segsplit {
 
     // だから splits into だ / から with default attributes, the default
     // connector joining the kana with a space (だ から).
-    #[tokio::test]
-    async fn dakara_basic_default_attrs() {
-        let ctx = ctx_from_env().await;
-        let mut seg = segment_for_seq(&ctx, "だから", 1007310).await;
+    #[test]
+    fn dakara_basic_default_attrs() {
+        let ctx = ctx_from_env();
+        let mut seg = segment_for_seq(&ctx, "だから", 1007310);
         seg.start = 2;
         seg.end = 5;
         seg.top = None;
         let pre_score = seg.score.expect("gen-score sets score");
         let new_seg = get_segsplit(&ctx, &seg)
-            .await
+            
             .unwrap()
             .expect("segsplit hit");
 
@@ -277,16 +277,16 @@ mod get_segsplit {
 
     // から元気 splits into から / 元気 with the second part (the kanji) as
     // primary.
-    #[tokio::test]
-    async fn karagenki_kanji_input_primary_1() {
-        let ctx = ctx_from_env().await;
-        let mut seg = segment_for_seq(&ctx, "から元気", 1675330).await;
+    #[test]
+    fn karagenki_kanji_input_primary_1() {
+        let ctx = ctx_from_env();
+        let mut seg = segment_for_seq(&ctx, "から元気", 1675330);
         seg.start = 6;
         seg.end = 10;
         seg.top = None;
         let pre_score = seg.score.expect("gen-score sets score");
         let new_seg = get_segsplit(&ctx, &seg)
-            .await
+            
             .unwrap()
             .expect("segsplit hit");
 
@@ -322,27 +322,27 @@ mod get_segsplit {
     }
 
     // A word with no registered split returns nothing.
-    #[tokio::test]
-    async fn neko_no_segsplit() {
-        let ctx = ctx_from_env().await;
-        let seg = segment_for_seq(&ctx, "猫", 1467640).await;
-        let result = get_segsplit(&ctx, &seg).await.unwrap();
+    #[test]
+    fn neko_no_segsplit() {
+        let ctx = ctx_from_env();
+        let seg = segment_for_seq(&ctx, "猫", 1467640);
+        let result = get_segsplit(&ctx, &seg).unwrap();
         assert!(result.is_none(), "猫 (1467640) is not in *segsplit-map*");
     }
 
     // はぐったり is a conjugated form, so the split is found via the word's
     // base form rather than a direct seq match — the only test here that
     // exercises that fallback path.
-    #[tokio::test]
-    async fn hagguttari_conj_of_fallback_dispatch() {
-        let ctx = ctx_from_env().await;
-        let mut seg = segment_for_seq(&ctx, "はぐったり", 10494835).await;
+    #[test]
+    fn hagguttari_conj_of_fallback_dispatch() {
+        let ctx = ctx_from_env();
+        let mut seg = segment_for_seq(&ctx, "はぐったり", 10494835);
         seg.start = 9;
         seg.end = 14;
         seg.top = None;
         let pre_score = seg.score.expect("gen-score sets score");
         let new_seg = get_segsplit(&ctx, &seg)
-            .await
+            
             .unwrap()
             .expect("segsplit hit via conj-of");
 
@@ -380,11 +380,11 @@ mod get_segsplit {
     }
 
     // A compound-text input is not a simple word, so it returns nothing.
-    #[tokio::test]
-    async fn compound_text_input_returns_none() {
+    #[test]
+    fn compound_text_input_returns_none() {
         use crate::dict::dao::KanaText;
         use crate::dict::dao::SimpleText;
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let kana = KanaText {
             id: 0,
             seq: 1,
@@ -427,21 +427,21 @@ mod get_segsplit {
             top: None,
             text: Some("ところで".into()),
         };
-        let result = get_segsplit(&ctx, &seg).await.unwrap();
+        let result = get_segsplit(&ctx, &seg).unwrap();
         assert!(result.is_none(), "compound-text input fails typep check");
     }
 
     // The result keeps the source segment's start/end/top; only
     // word/text/score/info are rewritten.
-    #[tokio::test]
-    async fn copy_segment_preserves_start_end_top() {
-        let ctx = ctx_from_env().await;
-        let mut seg = segment_for_seq(&ctx, "だから", 1007310).await;
+    #[test]
+    fn copy_segment_preserves_start_end_top() {
+        let ctx = ctx_from_env();
+        let mut seg = segment_for_seq(&ctx, "だから", 1007310);
         // Re-anchor at non-default start/end so the test catches any drift.
         seg.start = 7;
         seg.end = 10;
         seg.top = None;
-        let new_seg = get_segsplit(&ctx, &seg).await.unwrap().unwrap();
+        let new_seg = get_segsplit(&ctx, &seg).unwrap().unwrap();
         assert_eq!(new_seg.start, 7);
         assert_eq!(new_seg.end, 10);
         assert!(new_seg.top.is_none());

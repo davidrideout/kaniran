@@ -68,15 +68,15 @@ impl SuffixCacheBuilder {
         self.class.insert(kf_seq, resolved_class);
     }
 
-    async fn load_conjs(
+    fn load_conjs(
         &mut self,
         ctx: &KaniranContext,
         key: &str,
         seq: i32,
         class: Option<&str>,
         join: bool,
-    ) -> Result<(), sqlx::Error> {
-        let kfs = get_kana_forms(ctx, seq).await?;
+    ) -> Result<(), crate::conn::KaniDbError> {
+        let kfs = get_kana_forms(ctx, seq)?;
         for kf in kfs {
             self.load_kf(key, kf, class, None, join);
         }
@@ -90,45 +90,45 @@ impl SuffixCacheBuilder {
 
 /// Look up a `(seq, text)` kana_form row that the populator depends on
 /// being present. Missing means the JMdict dump is incomplete; surface
-/// it as a sqlx::Error::RowNotFound so the construction error path
+/// it as a crate::conn::KaniDbError::RowNotFound so the construction error path
 /// reports meaningfully.
-async fn require_kana_form(
+fn require_kana_form(
     ctx: &KaniranContext,
     seq: i32,
     text: &str,
     conj: Option<WordConjugations>,
-) -> Result<KanaText, sqlx::Error> {
+) -> Result<KanaText, crate::conn::KaniDbError> {
     get_kana_form(ctx, seq, text, conj)
-        .await?
-        .ok_or(sqlx::Error::RowNotFound)
+        ?
+        .ok_or(crate::conn::KaniDbError::RowNotFound)
 }
 
-pub async fn build_suffix_caches(
+pub fn build_suffix_caches(
     ctx: &KaniranContext,
-) -> Result<(SuffixCache, SuffixClass), sqlx::Error> {
+) -> Result<(SuffixCache, SuffixClass), crate::conn::KaniDbError> {
     let mut b = SuffixCacheBuilder::default();
 
     // ちゃう
-    b.load_conjs(ctx, "chau", 2013800, None, false).await?;
+    b.load_conjs(ctx, "chau", 2013800, None, false)?;
     // ちまう
-    b.load_conjs(ctx, "chau", 2210750, None, false).await?;
+    b.load_conjs(ctx, "chau", 2210750, None, false)?;
     // (load-kf :chau (get-kana-form 2028920 "は") :class :ha :text "ちゃ"/"じゃ")
-    let ha_kf = require_kana_form(ctx, 2028920, "は", None).await?;
+    let ha_kf = require_kana_form(ctx, 2028920, "は", None)?;
     b.load_kf("chau", ha_kf.clone(), Some("ha"), Some("ちゃ"), false);
     b.load_kf("chau", ha_kf, Some("ha"), Some("じゃ"), false);
 
-    b.load_conjs(ctx, "tai", 2017560, None, false).await?;
+    b.load_conjs(ctx, "tai", 2017560, None, false)?;
     // たそう (synthetic seq 900000)
-    let tasou_kf = require_kana_form(ctx, 900000, "たそう", None).await?;
+    let tasou_kf = require_kana_form(ctx, 900000, "たそう", None)?;
     b.load_kf("tai", tasou_kf, Some("tasou"), None, false);
 
     b.load_conjs(ctx, "ren-", 2772730, Some("nikui"), false)
-        .await?;
+        ?;
     b.load_conjs(ctx, "ren-", 2867504, Some("gatai"), false)
-        .await?;
+        ?;
 
-    b.load_conjs(ctx, "te", 1577985, Some("oru"), false).await?; // おる
-    b.load_conjs(ctx, "te", 1296400, Some("aru"), false).await?; // ある
+    b.load_conjs(ctx, "te", 1577985, Some("oru"), false)?; // おる
+    b.load_conjs(ctx, "te", 1296400, Some("aru"), false)?; // ある
 
     // いる (る) — direct setf with teiru / teiru+ split.
     // Mirrors dict-grammar.lisp:210-215: upstream writes the long-form
@@ -136,7 +136,7 @@ pub async fn build_suffix_caches(
     // straight via `(setf (gethash …))`, never routing through the
     // labels-local `update-suffix-cache` — see this file's helper
     // doc-comment for the parity rationale.
-    let iru_kfs = get_kana_forms(ctx, 1577980).await?;
+    let iru_kfs = get_kana_forms(ctx, 1577980)?;
     for kf in iru_kfs {
         let tkf = kf.text.clone();
         let key = if tkf.chars().count() > 1 {
@@ -157,20 +157,20 @@ pub async fn build_suffix_caches(
     }
 
     b.load_conjs(ctx, "te", 1547720, Some("kuru"), false)
-        .await?; // くる
+        ?; // くる
 
-    b.load_conjs(ctx, "te", 1421850, Some("oku"), false).await?; // おく
-    b.load_conjs(ctx, "to", 2108590, Some("oku"), false).await?; // とく
+    b.load_conjs(ctx, "te", 1421850, Some("oku"), false)?; // おく
+    b.load_conjs(ctx, "to", 2108590, Some("oku"), false)?; // とく
 
     b.load_conjs(ctx, "te", 1305380, Some("chau"), false)
-        .await?; // しまう
+        ?; // しまう
 
     b.load_conjs(ctx, "te+space", 1269130, Some("kureru"), false)
-        .await?; // くれる
+        ?; // くれる
     b.load_conjs(ctx, "te+space", 1535910, Some("morau"), false)
-        .await?; // もらう
+        ?; // もらう
     b.load_conjs(ctx, "te+space", 1587290, Some("itadaku"), false)
-        .await?; // いただく
+        ?; // いただく
 
     // いく/く — direct setf, gated on first char being い (HIRAGANA_LETTER_I).
     // Mirrors dict-grammar.lisp:233-236: upstream writes the long form
@@ -178,7 +178,7 @@ pub async fn build_suffix_caches(
     // — i.e. first-write-wins for the short variant — bypassing
     // `update-suffix-cache`. The `b.cache.entry(short).or_insert(val)`
     // below pins that "only if absent" semantics.
-    let iku_kfs = get_kana_forms(ctx, 1578850).await?;
+    let iku_kfs = get_kana_forms(ctx, 1578850)?;
     for kf in iku_kfs {
         let tkf = kf.text.clone();
         if tkf.chars().next() != Some('\u{3044}') {
@@ -191,89 +191,89 @@ pub async fn build_suffix_caches(
         b.cache.entry(short).or_insert(val);
     }
 
-    let ii_kf = require_kana_form(ctx, 2820690, "いい", None).await?;
+    let ii_kf = require_kana_form(ctx, 2820690, "いい", None)?;
     b.load_kf("teii", ii_kf, Some("ii"), None, false);
-    let moii_kf = require_kana_form(ctx, 900001, "もいい", None).await?;
+    let moii_kf = require_kana_form(ctx, 900001, "もいい", None)?;
     b.load_kf("teii", moii_kf, Some("ii"), Some("もいい"), false);
-    let mo_kf = require_kana_form(ctx, 2028940, "も", None).await?;
+    let mo_kf = require_kana_form(ctx, 2028940, "も", None)?;
     b.load_kf("te", mo_kf, Some("mo"), None, false);
 
     let kudasai_kf =
-        require_kana_form(ctx, 1184270, "ください", Some(WordConjugations::Root)).await?;
+        require_kana_form(ctx, 1184270, "ください", Some(WordConjugations::Root))?;
     b.load_kf("kudasai", kudasai_kf, None, None, false);
 
-    b.load_conjs(ctx, "suru", 1157170, None, false).await?; // する
+    b.load_conjs(ctx, "suru", 1157170, None, false)?; // する
     b.load_conjs(ctx, "suru", 1421900, Some("itasu"), false)
-        .await?; // いたす
+        ?; // いたす
     b.load_conjs(ctx, "suru", 2269820, Some("sareru"), false)
-        .await?; // される
+        ?; // される
     b.load_conjs(ctx, "suru", 1005160, Some("saseru"), false)
-        .await?; // させる
+        ?; // させる
 
-    b.load_conjs(ctx, "sou", 1006610, None, false).await?; // そう
-    b.load_conjs(ctx, "sou+", 2141080, None, false).await?; // そうにない
+    b.load_conjs(ctx, "sou", 1006610, None, false)?; // そう
+    b.load_conjs(ctx, "sou+", 2141080, None, false)?; // そうにない
 
-    let darou_kf = require_kana_form(ctx, 1928670, "だろう", None).await?;
+    let darou_kf = require_kana_form(ctx, 1928670, "だろう", None)?;
     b.load_kf("rou", darou_kf, None, Some("ろう"), false);
 
-    b.load_conjs(ctx, "sugiru", 1195970, None, false).await?; // すぎる
+    b.load_conjs(ctx, "sugiru", 1195970, None, false)?; // すぎる
 
-    let sa_kf = require_kana_form(ctx, 2029120, "さ", None).await?;
+    let sa_kf = require_kana_form(ctx, 2029120, "さ", None)?;
     b.load_kf("sa", sa_kf, None, None, false);
 
-    let tsutsu_kf = require_kana_form(ctx, 1008120, "つつ", None).await?;
+    let tsutsu_kf = require_kana_form(ctx, 1008120, "つつ", None)?;
     b.load_kf("ren", tsutsu_kf, Some("tsutsu"), None, false);
     b.load_conjs(ctx, "ren", 2027910, Some("tsutsuaru"), false)
-        .await?;
+        ?;
 
-    let uru_kf = require_kana_form(ctx, 1454500, "うる", None).await?;
+    let uru_kf = require_kana_form(ctx, 1454500, "うる", None)?;
     b.load_kf("ren", uru_kf, Some("uru"), None, false);
 
     // (load-kf :neg (car (find-word-conj-of "なく" 1529520)) :class :nai)
-    let naku_rows = find_word_conj_of(ctx, "なく", &[1529520]).await?;
+    let naku_rows = find_word_conj_of(ctx, "なく", &[1529520])?;
     let naku_kf = match naku_rows {
-        WordSeqRows::Kana(mut v) => v.drain(..).next().ok_or(sqlx::Error::RowNotFound)?,
+        WordSeqRows::Kana(mut v) => v.drain(..).next().ok_or(crate::conn::KaniDbError::RowNotFound)?,
         WordSeqRows::Kanji(_) => unreachable!("'なく' is kana"),
     };
     b.load_kf("neg", naku_kf, Some("nai"), None, false);
 
     b.load_conjs(ctx, "adv", 1375610, Some("naru"), false)
-        .await?; // なる
+        ?; // なる
 
     b.load_conjs(ctx, "teren", 1012740, Some("yagaru"), false)
-        .await?;
+        ?;
 
-    let ra_kf = require_kana_form(ctx, 2067770, "ら", None).await?;
+    let ra_kf = require_kana_form(ctx, 2067770, "ら", None)?;
     b.load_kf("ra", ra_kf, None, None, false);
 
-    b.load_conjs(ctx, "rashii", 1013240, None, false).await?;
+    b.load_conjs(ctx, "rashii", 1013240, None, false)?;
 
-    let desu_kf = require_kana_form(ctx, 1628500, "です", None).await?;
+    let desu_kf = require_kana_form(ctx, 1628500, "です", None)?;
     b.load_kf("desu", desu_kf, None, None, false);
 
-    let deshou_kf = require_kana_form(ctx, 1008420, "でしょう", None).await?;
+    let deshou_kf = require_kana_form(ctx, 1008420, "でしょう", None)?;
     b.load_kf("desho", deshou_kf, None, None, false);
-    let desho_kf = require_kana_form(ctx, 1008420, "でしょ", None).await?;
+    let desho_kf = require_kana_form(ctx, 1008420, "でしょ", None)?;
     b.load_kf("desho", desho_kf, None, None, false);
 
-    b.load_conjs(ctx, "tosuru", 2136890, None, false).await?; // とする
+    b.load_conjs(ctx, "tosuru", 2136890, None, false)?; // とする
 
-    let kurai_kf = require_kana_form(ctx, 1154340, "くらい", None).await?;
+    let kurai_kf = require_kana_form(ctx, 1154340, "くらい", None)?;
     b.load_kf("kurai", kurai_kf, None, None, false);
-    let gurai_kf = require_kana_form(ctx, 1154340, "ぐらい", None).await?;
+    let gurai_kf = require_kana_form(ctx, 1154340, "ぐらい", None)?;
     b.load_kf("kurai", gurai_kf, None, None, false);
 
-    b.load_conjs(ctx, "garu", 1631750, None, false).await?; // がる
+    b.load_conjs(ctx, "garu", 1631750, None, false)?; // がる
 
-    let gachi_kf = require_kana_form(ctx, 2016470, "がち", None).await?;
+    let gachi_kf = require_kana_form(ctx, 2016470, "がち", None)?;
     b.load_kf("ren", gachi_kf, Some("gachi"), None, false);
 
-    let ge_kf = require_kana_form(ctx, 2006580, "げ", None).await?;
+    let ge_kf = require_kana_form(ctx, 2006580, "げ", None)?;
     b.load_kf("iadj", ge_kf, None, None, false);
-    let me_kf = require_kana_form(ctx, 1604890, "め", None).await?;
+    let me_kf = require_kana_form(ctx, 1604890, "め", None)?;
     b.load_kf("iadj", me_kf, Some("me"), None, false);
 
-    let gai_kf = require_kana_form(ctx, 2606690, "がい", None).await?;
+    let gai_kf = require_kana_form(ctx, 2606690, "がい", None)?;
     b.load_kf("ren-", gai_kf, Some("gai"), None, false);
 
     // load-abbr block

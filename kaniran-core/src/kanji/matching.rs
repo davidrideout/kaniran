@@ -137,7 +137,7 @@ pub enum RmapEntry {
     Readings(Vec<KanjiReading>),
 }
 
-pub async fn make_rmap(ctx: &KaniranContext, str: &str) -> Result<Vec<RmapEntry>, sqlx::Error> {
+pub fn make_rmap(ctx: &KaniranContext, str: &str) -> Result<Vec<RmapEntry>, crate::conn::KaniDbError> {
     let chars: Vec<char> = str.chars().collect();
     let mut out: Vec<RmapEntry> = Vec::with_capacity(chars.len());
     let mut prev_kanji: Option<char> = None;
@@ -148,7 +148,7 @@ pub async fn make_rmap(ctx: &KaniranContext, str: &str) -> Result<Vec<RmapEntry>
                 '々' => {
                     // kanji.lisp:279-281 (eql char #\々) — propagate prev with rendaku
                     let readings = match prev_kanji {
-                        Some(prev) => get_normal_readings(ctx, prev, true).await?,
+                        Some(prev) => get_normal_readings(ctx, prev, true)?,
                         None => Vec::new(),
                     };
                     prev_kanji = None;
@@ -194,7 +194,7 @@ pub async fn make_rmap(ctx: &KaniranContext, str: &str) -> Result<Vec<RmapEntry>
                     // kanji.lisp:288-289 (t (setf prev-kanji char) ...)
                     prev_kanji = Some(c);
                     let rendaku = start > 0;
-                    RmapEntry::Readings(get_normal_readings(ctx, c, rendaku).await?)
+                    RmapEntry::Readings(get_normal_readings(ctx, c, rendaku)?)
                 }
             };
             out.push(entry);
@@ -232,12 +232,12 @@ pub enum MatchedSegment {
     },
 }
 
-pub async fn match_readings(
+pub fn match_readings(
     ctx: &KaniranContext,
     str: &str,
     reading: &str,
-) -> Result<Option<Vec<MatchedSegment>>, sqlx::Error> {
-    let rmap = make_rmap(ctx, str).await?;
+) -> Result<Option<Vec<MatchedSegment>>, crate::conn::KaniDbError> {
+    let rmap = make_rmap(ctx, str)?;
     let match_result = match_readings_star(&rmap, reading);
     let items = match match_result {
         MatchResult::None => return Ok(None),

@@ -65,11 +65,11 @@ fn rewrite_deha_to_ja_cases() {
 /// All readings for an entry, plus a missing seq. The query has no
 /// ORDER BY, so the returned order is unspecified and assertions
 /// compare sorted sets.
-#[tokio::test]
+#[test]
 #[ignore = "DB test; requires KANIRAN_TEST_DATABASE_URL"]
-async fn get_all_readings_corpus() {
+fn get_all_readings_corpus() {
     let ctx = crate::conn::kani_context::KaniranContext::from_env()
-        .await
+        
         .expect("from_env");
     let cases: &[(i32, Vec<&str>)] = &[
         // seq 1582920 — この (with kanji writings 此の / 斯の and kana この / こん)
@@ -80,7 +80,7 @@ async fn get_all_readings_corpus() {
         (9000000, vec![]),
     ];
     for (seq, expected) in cases {
-        let mut got = get_all_readings(&ctx, *seq).await.expect("query");
+        let mut got = get_all_readings(&ctx, *seq).expect("query");
         got.sort();
         let mut want: Vec<String> = expected.iter().map(|s| s.to_string()).collect();
         want.sort();

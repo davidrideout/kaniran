@@ -24,7 +24,7 @@ use std::borrow::Cow;
 /// compound it extends that compound (concatenating text/kana and
 /// growing `score-mod`). Defaults `text`/`kana` to the concatenation
 /// of the two inputs and `score-mod` to `0`.
-pub async fn adjoin_word(
+pub fn adjoin_word(
     ctx: &KaniranContext,
     word1: KaniWordDispatchEnum,
     word2: KaniSimpleTextDispatchEnum,
@@ -32,7 +32,7 @@ pub async fn adjoin_word(
     kana: Option<String>,
     score_mod: Option<ScoreMod>,
     score_base: Option<KaniWordDispatchEnum>,
-) -> Result<CompoundText, sqlx::Error> {
+) -> Result<CompoundText, crate::conn::KaniDbError> {
     // dict.lisp:635-640 (defmethod adjoin-word :around (t t))
     let resolved_text = match text {
         Some(t) => t,
@@ -51,8 +51,8 @@ pub async fn adjoin_word(
             // Upstream `(concatenate 'string nil ...)` accepts nil as
             // the empty sequence; the Rust `Option<String>` from
             // `get_kana` mirrors that with `.unwrap_or_default()`.
-            let k1 = get_kana(ctx, &word1).await?.unwrap_or_default();
-            let k2 = get_kana(ctx, &word2_as_word).await?.unwrap_or_default();
+            let k1 = get_kana(ctx, &word1)?.unwrap_or_default();
+            let k2 = get_kana(ctx, &word2_as_word)?.unwrap_or_default();
             format!("{}{}", k1, k2)
         }
     };
@@ -164,10 +164,10 @@ pub fn get_array(obj: &TopArray) -> &[Option<TopArrayItem>] {
 ///
 /// Generic function returning the most popular kana representation
 /// for a word, dispatching over the word variant.
-pub async fn get_kana(
+pub fn get_kana(
     ctx: &KaniranContext,
     obj: &KaniWordDispatchEnum,
-) -> Result<Option<String>, sqlx::Error> {
+) -> Result<Option<String>, crate::conn::KaniDbError> {
     match obj {
         // simple-text family handles its own `:around` internally
         // (dict.lisp:80-84) — see [`KaniSimpleTextDispatchEnum::get_kana`].
@@ -177,17 +177,17 @@ pub async fn get_kana(
         KaniWordDispatchEnum::Kanji(k) => {
             KaniSimpleTextDispatchEnum::Kanji(k.clone())
                 .get_kana(ctx)
-                .await
+                
         }
         KaniWordDispatchEnum::Kana(k) => {
             KaniSimpleTextDispatchEnum::Kana(k.clone())
                 .get_kana(ctx)
-                .await
+                
         }
         KaniWordDispatchEnum::Proxy(p) => {
             KaniSimpleTextDispatchEnum::Proxy(p.clone())
                 .get_kana(ctx)
-                .await
+                
         }
         // counter-text family handles its own `:around` (suffix
         // append) and per-subclass overrides internally — see
@@ -202,16 +202,16 @@ pub async fn get_kana(
 ///
 /// Generic function returning the most popular kanji representation
 /// for a word, dispatching over the word variant.
-pub async fn get_kanji(
+pub fn get_kanji(
     ctx: &KaniranContext,
     obj: &KaniWordDispatchEnum,
-) -> Result<Option<String>, sqlx::Error> {
+) -> Result<Option<String>, crate::conn::KaniDbError> {
     match obj {
         // dict.lisp:108-109 (defmethod get-kanji ((obj kanji-text))) — (text obj)
         KaniWordDispatchEnum::Kanji(k) => Ok(Some(k.text.clone())),
         // dict.lisp:153-155 (defmethod get-kanji ((obj kana-text)))
         // (let ((bk (best-kanji-conj obj))) (unless (eql bk :null) bk))
-        KaniWordDispatchEnum::Kana(k) => best_kanji_conj(ctx, k).await,
+        KaniWordDispatchEnum::Kana(k) => best_kanji_conj(ctx, k),
         // dict-counters.lisp:61-62 (defmethod get-kanji ((obj counter-text)))
         // (concatenate 'string (number-to-kanji (number-value obj)) (counter-text obj))
         KaniWordDispatchEnum::Counter(c) => {
@@ -243,9 +243,9 @@ impl Entry {
     /// upstream dynamic `*connection*` per
     /// [`crate::conn::kani_context`]. `None` mirrors upstream falling
     /// off the `when` when `n-kanji = 0`; a missing `ord = 0` row
-    /// propagates as [`sqlx::Error::RowNotFound`], matching upstream
+    /// propagates as [`crate::conn::KaniDbError::RowNotFound`], matching upstream
     /// erroring on `(text nil)`.
-    pub async fn get_kanji(&self, ctx: &KaniranContext) -> Result<Option<String>, sqlx::Error> {
+    pub fn get_kanji(&self, ctx: &KaniranContext) -> Result<Option<String>, crate::conn::KaniDbError> {
         if self.n_kanji <= 0 {
             return Ok(None);
         }
@@ -254,8 +254,8 @@ impl Entry {
         let text: String = ctx
             .store
             .headword_kanji_text(self.seq)
-            .await?
-            .ok_or(sqlx::Error::RowNotFound)?;
+            ?
+            .ok_or(crate::conn::KaniDbError::RowNotFound)?;
         Ok(Some(text))
     }
 }
@@ -266,28 +266,28 @@ impl Entry {
 /// simple-text, resolves `(text, seq)` pairs through
 /// [`get_original_text_star_`] and looks each up in `kanji_text` or
 /// `kana_text` per word type; for proxy-text, recurses on its source.
-pub async fn get_original_text(
+pub fn get_original_text(
     ctx: &KaniranContext,
     reading: &KaniSimpleTextDispatchEnum,
     conj_data: Option<&[ConjData]>,
-) -> Result<Vec<KaniSimpleTextDispatchEnum>, sqlx::Error> {
+) -> Result<Vec<KaniSimpleTextDispatchEnum>, crate::conn::KaniDbError> {
     match reading {
         // dict.lisp:589-590 (defmethod get-original-text ((reading proxy-text)))
         KaniSimpleTextDispatchEnum::Proxy(p) => {
-            Box::pin(get_original_text(ctx, &p.source, conj_data)).await
+            get_original_text(ctx, &p.source, conj_data)
         }
         // dict.lisp:396-400 (defmethod get-original-text ((reading simple-text)))
         KaniSimpleTextDispatchEnum::Kanji(_) | KaniSimpleTextDispatchEnum::Kana(_) => {
-            get_original_text_simple_text_arm(ctx, reading, conj_data).await
+            get_original_text_simple_text_arm(ctx, reading, conj_data)
         }
     }
 }
 
-async fn get_original_text_simple_text_arm(
+fn get_original_text_simple_text_arm(
     ctx: &KaniranContext,
     reading: &KaniSimpleTextDispatchEnum,
     conj_data: Option<&[ConjData]>,
-) -> Result<Vec<KaniSimpleTextDispatchEnum>, sqlx::Error> {
+) -> Result<Vec<KaniSimpleTextDispatchEnum>, crate::conn::KaniDbError> {
     let (seq_value, conjugations, reading_text, word_type) = match reading {
         KaniSimpleTextDispatchEnum::Kanji(k) => (
             k.seq,
@@ -318,12 +318,12 @@ async fn get_original_text_simple_text_arm(
                 Some(WordConjugations::Root) => FromOrConjIds::Root,
                 Some(WordConjugations::Ids(ids)) => FromOrConjIds::ConjIds(ids.clone()),
             };
-            owned_cd = get_conj_data(ctx, seq_value, from_or_conj_ids, &[reading_text]).await?;
+            owned_cd = get_conj_data(ctx, seq_value, from_or_conj_ids, &[reading_text])?;
             &owned_cd
         }
     };
 
-    let orig_texts = get_original_text_star_(ctx, cd, &[reading_text]).await?;
+    let orig_texts = get_original_text_star_(ctx, cd, &[reading_text])?;
 
     let mut rows: Vec<KaniSimpleTextDispatchEnum> = Vec::new();
     for (txt, seq_n) in orig_texts {
@@ -331,14 +331,14 @@ async fn get_original_text_simple_text_arm(
         match word_type {
             WordType::Kanji => {
                 let fetched: Vec<KanjiText> =
-                    ctx.store.kanji_texts_by_seq_and_text(seq_n, &txt).await?;
+                    ctx.store.kanji_texts_by_seq_and_text(seq_n, &txt)?;
                 for row in fetched {
                     rows.push(KaniSimpleTextDispatchEnum::Kanji(row));
                 }
             }
             WordType::Kana => {
                 let fetched: Vec<KanaText> =
-                    ctx.store.kana_texts_by_seq_and_text(seq_n, &txt).await?;
+                    ctx.store.kana_texts_by_seq_and_text(seq_n, &txt)?;
                 for row in fetched {
                     rows.push(KaniSimpleTextDispatchEnum::Kana(row));
                 }
@@ -407,9 +407,9 @@ impl WordInfo {
 
 impl KaniSimpleTextDispatchEnum {
     // dict.lisp:1589-1590 (defmethod reading-str ((obj simple-text)))
-    pub async fn reading_str(&self, ctx: &KaniranContext) -> Result<Option<String>, sqlx::Error> {
-        let kanji = get_kanji(ctx, &self.to_word()).await?;
-        let kana = self.get_kana(ctx).await?;
+    pub fn reading_str(&self, ctx: &KaniranContext) -> Result<Option<String>, crate::conn::KaniDbError> {
+        let kanji = get_kanji(ctx, &self.to_word())?;
+        let kana = self.get_kana(ctx)?;
         Ok(reading_str_star_(kanji.as_deref(), kana.as_deref()))
     }
 }
@@ -472,10 +472,10 @@ pub fn score_base(word: &CompoundText) -> &KaniWordDispatchEnum {
 ///
 /// Returns the kana writing for a reading via [`get_kana`], descending
 /// through any `proxy-text` wrappers to the underlying source first.
-pub async fn true_kana(
+pub fn true_kana(
     ctx: &KaniranContext,
     obj: &KaniWordDispatchEnum,
-) -> Result<Option<String>, sqlx::Error> {
+) -> Result<Option<String>, crate::conn::KaniDbError> {
     match obj {
         // dict.lisp:562 (:method ((obj proxy-text)) (true-kana (source obj)))
         KaniWordDispatchEnum::Proxy(p) => {
@@ -487,10 +487,10 @@ pub async fn true_kana(
                     unreachable!("unwrap_proxy_chain terminates at Kanji or Kana")
                 }
             };
-            Box::pin(get_kana(ctx, &lifted)).await
+            get_kana(ctx, &lifted)
         }
         // dict.lisp:561 (:method (obj) (get-kana obj))
-        other => Box::pin(get_kana(ctx, other)).await,
+        other => get_kana(ctx, other),
     }
 }
 
@@ -509,10 +509,10 @@ fn true_kana_unwrap_proxy_chain(start: &ProxyText) -> &KaniSimpleTextDispatchEnu
 /// Returns the kanji writing for a reading via [`get_kanji`],
 /// descending through any `proxy-text` wrappers to the underlying
 /// source first.
-pub async fn true_kanji(
+pub fn true_kanji(
     ctx: &KaniranContext,
     obj: &KaniWordDispatchEnum,
-) -> Result<Option<String>, sqlx::Error> {
+) -> Result<Option<String>, crate::conn::KaniDbError> {
     match obj {
         // dict.lisp:566 (:method ((obj proxy-text)) (true-kanji (source obj)))
         KaniWordDispatchEnum::Proxy(p) => {
@@ -523,10 +523,10 @@ pub async fn true_kanji(
                     unreachable!("unwrap_proxy_chain terminates at Kanji or Kana")
                 }
             };
-            get_kanji(ctx, &lifted).await
+            get_kanji(ctx, &lifted)
         }
         // dict.lisp:565 (:method (obj) (get-kanji obj))
-        other => get_kanji(ctx, other).await,
+        other => get_kanji(ctx, other),
     }
 }
 
@@ -568,10 +568,10 @@ fn true_text_unwrap_proxy_chain(start: &ProxyText) -> &str {
 /// Returns the conjugation data for a word via
 /// [`crate::dict::conj::get_conj_data`] — recursing into the last
 /// word for compounds and yielding nothing for counters.
-pub async fn word_conj_data(
+pub fn word_conj_data(
     ctx: &KaniranContext,
     word: &KaniWordDispatchEnum,
-) -> Result<Vec<ConjData>, sqlx::Error> {
+) -> Result<Vec<ConjData>, crate::conn::KaniDbError> {
     match word {
         // dict-counters.lisp:87 (defmethod word-conj-data ((obj counter-text)) nil)
         KaniWordDispatchEnum::Counter(_) => Ok(Vec::new()),
@@ -582,15 +582,15 @@ pub async fn word_conj_data(
                 .words
                 .last()
                 .expect("compound-text always has at least one word (adjoin-word ctor)");
-            Box::pin(word_conj_data(ctx, last)).await
+            word_conj_data(ctx, last)
         }
 
         // dict.lisp:657-658 (defmethod word-conj-data ((word simple-text)))
         KaniWordDispatchEnum::Kanji(k) => {
-            word_conj_data_simple_text_arm(ctx, k.seq, &k.state.conjugations, &k.text).await
+            word_conj_data_simple_text_arm(ctx, k.seq, &k.state.conjugations, &k.text)
         }
         KaniWordDispatchEnum::Kana(k) => {
-            word_conj_data_simple_text_arm(ctx, k.seq, &k.state.conjugations, &k.text).await
+            word_conj_data_simple_text_arm(ctx, k.seq, &k.state.conjugations, &k.text)
         }
         KaniWordDispatchEnum::Proxy(p) => {
             // dict.lisp:657-658 — proxy's seq / word-conjugations / true-text gfs
@@ -598,23 +598,23 @@ pub async fn word_conj_data(
             // and supplies all three slot reads.
             let leaf = leaf_of(p);
             let (seq, conj, text) = leaf_slots(leaf);
-            word_conj_data_simple_text_arm(ctx, seq, conj, text).await
+            word_conj_data_simple_text_arm(ctx, seq, conj, text)
         }
     }
 }
 
-async fn word_conj_data_simple_text_arm(
+fn word_conj_data_simple_text_arm(
     ctx: &KaniranContext,
     seq: i32,
     conjugations: &Option<WordConjugations>,
     true_text: &str,
-) -> Result<Vec<ConjData>, sqlx::Error> {
+) -> Result<Vec<ConjData>, crate::conn::KaniDbError> {
     let from_or_conj_ids = match conjugations {
         None => FromOrConjIds::All,
         Some(WordConjugations::Root) => FromOrConjIds::Root,
         Some(WordConjugations::Ids(ids)) => FromOrConjIds::ConjIds(ids.clone()),
     };
-    get_conj_data(ctx, seq, from_or_conj_ids, &[true_text]).await
+    get_conj_data(ctx, seq, from_or_conj_ids, &[true_text])
 }
 
 fn leaf_of(p: &ProxyText) -> &KaniSimpleTextDispatchEnum {

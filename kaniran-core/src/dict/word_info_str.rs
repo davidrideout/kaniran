@@ -30,12 +30,12 @@ pub fn reading_str_star_(kanji: Option<&str>, kana: Option<&str>) -> Option<Stri
 ///
 /// Looks up the ord-0 kanji and kana surface forms for `seq` and formats
 /// them via `reading-str*`.
-pub async fn reading_str_seq(
+pub fn reading_str_seq(
     ctx: &KaniranContext,
     seq: i32,
-) -> Result<Option<String>, sqlx::Error> {
-    let kanji_text: Option<String> = ctx.store.headword_kanji_text(seq).await?;
-    let kana_text: Option<String> = ctx.store.headword_kana_text(seq).await?;
+) -> Result<Option<String>, crate::conn::KaniDbError> {
+    let kanji_text: Option<String> = ctx.store.headword_kanji_text(seq)?;
+    let kana_text: Option<String> = ctx.store.headword_kana_text(seq)?;
     Ok(reading_str_star_(
         kanji_text.as_deref(),
         kana_text.as_deref(),
@@ -45,16 +45,16 @@ pub async fn reading_str_seq(
 /// Port of `ichiran/dict:entry-info-short` (`dict.lisp:1595`).
 ///
 /// Formats a seq as `"<reading> : <short sense str>"`.
-pub async fn entry_info_short(
+pub fn entry_info_short(
     ctx: &KaniranContext,
     seq: i32,
     with_pos: Option<&str>,
-) -> Result<String, sqlx::Error> {
-    let sense_str = short_sense_str(ctx, seq, with_pos).await?;
+) -> Result<String, crate::conn::KaniDbError> {
+    let sense_str = short_sense_str(ctx, seq, with_pos)?;
     // ~a of a nil reading prints "NIL"
     let mut s = format!(
         "{} : ",
-        reading_str_seq(ctx, seq).await?.as_deref().unwrap_or("NIL")
+        reading_str_seq(ctx, seq)?.as_deref().unwrap_or("NIL")
     );
     if let Some(sense_str) = sense_str {
         s.push_str(&sense_str);
@@ -66,14 +66,14 @@ pub async fn entry_info_short(
 ///
 /// Formats a seq as its number, reading line, and full sense text;
 /// the reading line is omitted when the reading is nil.
-pub async fn entry_info_long(ctx: &KaniranContext, seq: i32) -> Result<String, sqlx::Error> {
+pub fn entry_info_long(ctx: &KaniranContext, seq: i32) -> Result<String, crate::conn::KaniDbError> {
     let mut out = seq.to_string();
     // dict.lisp:1601 (~@[ ~a~%~]) — " <reading>\n" only when reading-str-seq
     // is non-nil; nil prints nothing (unlike entry-info-short's bare ~a).
-    if let Some(reading) = reading_str_seq(ctx, seq).await? {
+    if let Some(reading) = reading_str_seq(ctx, seq)? {
         writeln!(out, " {}", reading).unwrap();
     }
-    out.push_str(&get_senses_str(ctx, seq).await?);
+    out.push_str(&get_senses_str(ctx, seq)?);
     Ok(out)
 }
 
@@ -140,10 +140,10 @@ fn princ_kana(kana: &WordInfoKana) -> Cow<'_, str> {
 /// Renders a [`WordInfo`] to its human-readable string form — one
 /// numbered block per component for an alternative word-info,
 /// otherwise a single block.
-pub async fn word_info_str(
+pub fn word_info_str(
     ctx: &KaniranContext,
     word_info: &WordInfo,
-) -> Result<String, sqlx::Error> {
+) -> Result<String, crate::conn::KaniDbError> {
     let mut s = String::new();
     if word_info.alternative {
         // dict.lisp:1775-1779 (loop for wi … for i from 1 when (> i 1) do (terpri s) do (format s "<~a>. " i) (inner wi nil nil))
@@ -153,22 +153,22 @@ pub async fn word_info_str(
                 s.push('\n');
             }
             write!(s, "<{}>. ", i).unwrap();
-            word_info_str_inner(ctx, wi, false, false, &mut s).await?;
+            word_info_str_inner(ctx, wi, false, false, &mut s)?;
         }
     } else {
-        word_info_str_inner(ctx, word_info, false, false, &mut s).await?;
+        word_info_str_inner(ctx, word_info, false, false, &mut s)?;
     }
     Ok(s)
 }
 
 // dict.lisp:1748 (labels word_info_str_inner (word-info &optional suffix marker))
-async fn word_info_str_inner(
+fn word_info_str_inner(
     ctx: &KaniranContext,
     word_info: &WordInfo,
     suffix: bool,
     marker: bool,
     s: &mut String,
-) -> Result<(), sqlx::Error> {
+) -> Result<(), crate::conn::KaniDbError> {
     if marker {
         s.push_str(" * ");
     }
@@ -185,7 +185,7 @@ async fn word_info_str_inner(
         // dict.lisp:1755-1757 (dolist (comp components) (terpri s) (inner comp (not (word-info-primary comp)) t))
         for comp in &word_info.components {
             s.push('\n');
-            Box::pin(word_info_str_inner(ctx, comp, !comp.primary, true, s)).await?;
+            word_info_str_inner(ctx, comp, !comp.primary, true, s)?;
         }
     } else if let Some((value, _ordinal)) = &word_info.counter {
         // dict.lisp:1759-1763 (destructuring-bind (value ordinal) (word-info-counter …) (terpri s) (princ value s) …)
@@ -193,7 +193,7 @@ async fn word_info_str_inner(
         s.push_str(value);
         if let Some(seq) = word_info_seq_single(word_info) {
             s.push('\n');
-            s.push_str(&get_senses_str(ctx, seq).await?);
+            s.push_str(&get_senses_str(ctx, seq)?);
         }
     } else {
         // dict.lisp:1765-1774
@@ -212,13 +212,13 @@ async fn word_info_str_inner(
         } else if conjs.is_none() || matches!(conjs, Some(WordConjugations::Root)) {
             s.push('\n');
             match seq {
-                Some(seq) => s.push_str(&get_senses_str(ctx, seq).await?),
+                Some(seq) => s.push_str(&get_senses_str(ctx, seq)?),
                 None => s.push_str("???"),
             }
         }
         // (when seq (print-conj-info seq :out s :conjugations conjs))
         if let Some(seq) = seq {
-            print_conj_info(ctx, seq, conjs, s).await?;
+            print_conj_info(ctx, seq, conjs, s)?;
         }
     }
     Ok(())
@@ -281,8 +281,7 @@ fn word_info_gloss_json_inner<'a>(
     word_info: &'a WordInfo,
     suffix: bool,
     root_only: bool,
-) -> Pin<Box<dyn Future<Output = Result<Value, sqlx::Error>> + 'a>> {
-    Box::pin(async move {
+) -> Result<Value, crate::conn::KaniDbError> {
         let mut js = Map::new();
         // ("reading" (reading-str word-info)) / ("text" …) / ("kana" …)
         js.insert(
@@ -316,7 +315,7 @@ fn word_info_gloss_json_inner<'a>(
                 // (inner wi (not (word-info-primary wi)))
                 components.push(
                     word_info_gloss_json_inner(ctx, component, !component.primary, root_only)
-                        .await?,
+                        ?,
                 );
             }
             js.insert("components".to_owned(), Value::Array(components));
@@ -339,9 +338,9 @@ fn word_info_gloss_json_inner<'a>(
                     seq,
                     &pos_list,
                     None,
-                    Some(word_info_reading(ctx, word_info)),
+                    Some(|| word_info_reading(ctx, word_info)),
                 )
-                .await?;
+                ?;
                 // (when gloss …)
                 if !gloss.is_empty() {
                     js.insert("gloss".to_owned(), Value::Array(gloss));
@@ -365,9 +364,9 @@ fn word_info_gloss_json_inner<'a>(
                             seq,
                             &[],
                             None,
-                            Some(word_info_reading(ctx, word_info)),
+                            Some(|| word_info_reading(ctx, word_info)),
                         )
-                        .await?
+                        ?
                     }
                     None => Vec::new(),
                 };
@@ -393,9 +392,9 @@ fn word_info_gloss_json_inner<'a>(
                             seq,
                             &[],
                             None,
-                            Some(word_info_reading(ctx, word_info)),
+                            Some(|| word_info_reading(ctx, word_info)),
                         )
-                        .await?;
+                        ?;
                         // (when gloss (setf has-gloss t) ("gloss" gloss))
                         if !gloss.is_empty() {
                             has_gloss = true;
@@ -412,30 +411,29 @@ fn word_info_gloss_json_inner<'a>(
                 };
                 let conj =
                     conj_info_json(ctx, seq, word_info.conjugations.as_ref(), text, has_gloss)
-                        .await?;
+                        ?;
                 js.insert("conj".to_owned(), Value::Array(conj));
             }
         }
         Ok(Value::Object(js))
-    })
 }
 
-pub async fn word_info_gloss_json(
+pub fn word_info_gloss_json(
     ctx: &KaniranContext,
     word_info: &WordInfo,
     root_only: bool,
-) -> Result<Value, sqlx::Error> {
+) -> Result<Value, crate::conn::KaniDbError> {
     if word_info.alternative {
         // (jsown:new-js ("alternative" (mapcar #'word_info_gloss_json_inner (word-info-components word-info))))
         let mut alternatives = Vec::with_capacity(word_info.components.len());
         for component in &word_info.components {
-            alternatives.push(word_info_gloss_json_inner(ctx, component, false, root_only).await?);
+            alternatives.push(word_info_gloss_json_inner(ctx, component, false, root_only)?);
         }
         let mut js = Map::new();
         js.insert("alternative".to_owned(), Value::Array(alternatives));
         Ok(Value::Object(js))
     } else {
-        word_info_gloss_json_inner(ctx, word_info, false, root_only).await
+        word_info_gloss_json_inner(ctx, word_info, false, root_only)
     }
 }
 
@@ -444,11 +442,11 @@ pub async fn word_info_gloss_json(
 /// Returns `(seq, kanji-text, kana-text, common)` rows for every root
 /// entry whose kanji writing contains `char` as a substring, restricted
 /// to the best-kana reading with a non-null `common`.
-pub async fn get_kanji_words(
+pub fn get_kanji_words(
     ctx: &KaniranContext,
     char: &str,
-) -> Result<Vec<(i32, String, String, i32)>, sqlx::Error> {
-    ctx.store.kanji_words_containing_char(char).await
+) -> Result<Vec<(i32, String, String, i32)>, crate::conn::KaniDbError> {
+    ctx.store.kanji_words_containing_char(char)
 }
 
 #[cfg(test)]

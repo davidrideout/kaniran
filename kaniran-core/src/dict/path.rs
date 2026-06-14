@@ -107,14 +107,14 @@ pub enum CounterArg {
     At(usize),
 }
 
-pub async fn find_word_full(
+pub fn find_word_full(
     ctx: &KaniranContext,
     word: &str,
     as_hiragana: bool,
     counter: Option<CounterArg>,
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+) -> Result<Vec<KaniWordDispatchEnum>, crate::conn::KaniDbError> {
     // dict.lisp:1053 (find-word word)
-    let simple_words_rows = find_word(ctx, word, false).await?;
+    let simple_words_rows = find_word(ctx, word, false)?;
 
     // Pre-collect simple words as KaniWordDispatchEnum values for the
     // suffix / hiragana branches that need `:matches` / `:exclude`
@@ -145,7 +145,7 @@ pub async fn find_word_full(
     // it carries both Compound (def-simple-suffix output) and Proxy
     // (def-abbr-suffix output) variants per the etypecase at
     // dict-grammar.lisp:565-577.
-    let suffix_words = find_word_suffix(ctx, word, &simple_words).await?;
+    let suffix_words = find_word_suffix(ctx, word, &simple_words)?;
 
     // dict.lisp:1056-1057 (when as-hiragana (find-word-as-hiragana …))
     // — resolved before `out` assembly so simple_words can move into
@@ -162,7 +162,7 @@ pub async fn find_word_full(
                 _ => None,
             })
             .collect();
-        find_word_as_hiragana(ctx, word, &exclude, None).await?
+        find_word_as_hiragana(ctx, word, &exclude, None)?
     } else {
         Vec::new()
     };
@@ -211,15 +211,15 @@ pub async fn find_word_full(
 /// [`find_word_full`] yields for each, and accumulates the kanji-break
 /// positions reachable from prior segment ends. Offsets are character
 /// positions.
-pub async fn join_substring_words_star_(
+pub fn join_substring_words_star_(
     ctx: &KaniranContext,
     str: &str,
-) -> Result<(Vec<(usize, usize, Vec<Segment>)>, Vec<usize>), sqlx::Error> {
+) -> Result<(Vec<(usize, usize, Vec<Segment>)>, Vec<usize>), crate::conn::KaniDbError> {
     let chars: Vec<char> = str.chars().collect();
     let length = chars.len();
 
     let sticky = find_sticky_positions(str);
-    let substring_hash = Arc::new(find_substring_words(ctx, str, &sticky).await?);
+    let substring_hash = Arc::new(find_substring_words(ctx, str, &sticky)?);
     let katakana_groups = consecutive_char_groups(CharClass::Katakana, str, 0, length);
     let number_groups = consecutive_char_groups(CharClass::Number, str, 0, length);
     // (get-suffix-map str) returns triples borrowing str / ctx.suffix_cache;
@@ -285,7 +285,7 @@ pub async fn join_substring_words_star_(
                 .with_suffix_map_temp(Some(Arc::clone(&suffix_map)))
                 .with_suffix_next_end(Some(end as i32))
                 .with_substring_hash(Arc::clone(&substring_hash));
-            let words = find_word_full(&ctx2, &part, as_hiragana, counter).await?;
+            let words = find_word_full(&ctx2, &part, as_hiragana, counter)?;
             // (mapcar (lambda (word) (make-segment :start start :end end :word word)) ...)
             let segments: Vec<Segment> = words
                 .into_iter()
@@ -350,12 +350,12 @@ fn remove_duplicates(items: &[usize]) -> Vec<usize> {
 /// slice, drops those below [`SCORE_CUTOFF`], and wraps each surviving,
 /// [`cull_segments`]-filtered group in a [`SegmentList`] tagged with its
 /// pre-filter `matches` count.
-pub async fn join_substring_words(
+pub fn join_substring_words(
     ctx: &KaniranContext,
     str: &str,
-) -> Result<Vec<SegmentList>, sqlx::Error> {
+) -> Result<Vec<SegmentList>, crate::conn::KaniDbError> {
     // (multiple-value-bind (result kanji-break) (join-substring-words* str) ...)
-    let (result, kanji_break) = join_substring_words_star_(ctx, str).await?;
+    let (result, kanji_break) = join_substring_words_star_(ctx, str)?;
     let length = str.chars().count();
     // dict.lisp:1116 — (alexandria:ends-with #\ー str)
     let ends_with_lw = str.chars().last() == Some('ー');
@@ -386,7 +386,7 @@ pub async fn join_substring_words(
             // dict.lisp:1121-1123 — :final (or (= (segment-end segment) (length str))
             //   (and ends-with-lw (= (segment-end segment) (1- (length str)))))
             let final_ = segment.end == length || (ends_with_lw && segment.end == length - 1);
-            gen_score(ctx, &mut segment, final_, &kb).await?;
+            gen_score(ctx, &mut segment, final_, &kb)?;
             if segment.score.expect("gen-score populates segment.score") >= SCORE_CUTOFF {
                 sl.push(segment);
             }
@@ -409,11 +409,11 @@ pub async fn join_substring_words(
 ///
 /// Re-indexes `join-substring-words`' output by each segment-list's
 /// `(start, end)` slice.
-pub async fn substring_index(
+pub fn substring_index(
     ctx: &KaniranContext,
     str: &str,
-) -> Result<HashMap<(usize, usize), SegmentList>, sqlx::Error> {
-    let sls = join_substring_words(ctx, str).await?;
+) -> Result<HashMap<(usize, usize), SegmentList>, crate::conn::KaniDbError> {
+    let sls = join_substring_words(ctx, str)?;
     let mut index: HashMap<(usize, usize), SegmentList> = HashMap::new();
     for sl in sls {
         index.insert((sl.start, sl.end), sl);
@@ -528,10 +528,10 @@ pub fn get_seg_splits(
 /// decomposition per row; each non-nil result is appended next to the
 /// original and counted against `matches`. The whole list is then
 /// stable-sorted high-to-low by `segment-score`.
-pub async fn expand_segment_list(
+pub fn expand_segment_list(
     ctx: &KaniranContext,
     segment_list: &mut SegmentList,
-) -> Result<(), sqlx::Error> {
+) -> Result<(), crate::conn::KaniDbError> {
     // dict.lisp:1183-1187 — `(loop for segment in segments for segsplit = (get-segsplit segment) collect segment when segsplit collect segsplit and do (incf matches))`.
     // Move the existing segments out so we can hand each one to
     // get_segsplit by reference, then push owned values into the new
@@ -539,7 +539,7 @@ pub async fn expand_segment_list(
     let pre_segments = std::mem::take(&mut segment_list.segments);
     let mut working: Vec<Arc<Segment>> = Vec::with_capacity(pre_segments.len() * 2);
     for segment in pre_segments {
-        let segsplit = get_segsplit(ctx, &segment).await?;
+        let segsplit = get_segsplit(ctx, &segment)?;
         working.push(segment);
         if let Some(segsplit) = segsplit {
             working.push(Arc::new(segsplit));
@@ -572,19 +572,19 @@ pub async fn expand_segment_list(
 /// [`crate::dict::grammar::synergy::Synergy`]s (inter-slice bonuses).
 const DEFAULT_LIMIT: usize = 5;
 
-pub async fn find_best_path(
+pub fn find_best_path(
     ctx: &KaniranContext,
     segment_lists: &mut [SegmentList],
     str_length: usize,
     limit: Option<usize>,
-) -> Result<Vec<(Vec<PathElement>, i32)>, sqlx::Error> {
+) -> Result<Vec<(Vec<PathElement>, i32)>, crate::conn::KaniDbError> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT);
 
     // dict.lisp:1195-1196 — expand-segment-list mutates each input
     // SegmentList. Do this on the FULL list before lite conversion so
     // the slot mutation is preserved upstream.
     for sl in segment_lists.iter_mut() {
-        expand_segment_list(ctx, sl).await?;
+        expand_segment_list(ctx, sl)?;
     }
 
     // Build lite sidecars; the per-list top-arrays live in a parallel

@@ -16,12 +16,12 @@ use crate::dict::path::{SubstringHash, MAX_WORD_LENGTH};
 /// from the kanji-text's surface form, walks the entry's `kana_text`
 /// rows in `ord` order and returns the first kana whose text matches;
 /// if none match, returns the first kana row's text.
-pub async fn get_kanji_kana_old(
+pub fn get_kanji_kana_old(
     ctx: &KaniranContext,
     obj: &KanjiText,
-) -> Result<Option<String>, sqlx::Error> {
+) -> Result<Option<String>, crate::conn::KaniDbError> {
     let regex = kanji_regex(&obj.text);
-    let kts = ctx.store.kana_texts_by_seq_ordered(obj.seq).await?;
+    let kts = ctx.store.kana_texts_by_seq_ordered(obj.seq)?;
     for kt in &kts {
         if regex.is_match(&kt.text).unwrap_or(false) {
             return Ok(Some(kt.text.clone()));
@@ -53,11 +53,11 @@ pub fn get_original_text_once(conj_datas: &[ConjData], texts: &[&str]) -> Vec<St
 /// up: matched `src_text` paired with the conj-data's `from` when `via`
 /// is nil, else recursing through [`get_conj_data`] to peel one layer
 /// of secondary conjugation when `via` is set.
-pub async fn get_original_text_star_(
+pub fn get_original_text_star_(
     ctx: &KaniranContext,
     conj_datas: &[ConjData],
     texts: &[&str],
-) -> Result<Vec<(String, i32)>, sqlx::Error> {
+) -> Result<Vec<(String, i32)>, crate::conn::KaniDbError> {
     let mut out: Vec<(String, i32)> = Vec::new();
     for conj_data in conj_datas {
         let src_text: Vec<&str> = conj_data
@@ -78,8 +78,8 @@ pub async fn get_original_text_star_(
             }
             Some(via) => {
                 // dict.lisp:391-392 (recursive get-conj-data + get-original-text*)
-                let new_cd = get_conj_data(ctx, via, FromOrConjIds::From(from), &[]).await?;
-                let inner = Box::pin(get_original_text_star_(ctx, &new_cd, &src_text)).await?;
+                let new_cd = get_conj_data(ctx, via, FromOrConjIds::From(from), &[])?;
+                let inner = get_original_text_star_(ctx, &new_cd, &src_text)?;
                 out.extend(inner);
             }
         }
@@ -94,12 +94,12 @@ pub async fn get_original_text_star_(
 /// parent reading of the `conj-source-reading` that produced
 /// `(seq, text)` — the source `seq` resolves to the conjugation's `via`
 /// when set, otherwise its `from`.
-pub async fn query_parents_kanji(
+pub fn query_parents_kanji(
     ctx: &KaniranContext,
     seq: i32,
     text: &str,
-) -> Result<Vec<(i32, i32)>, sqlx::Error> {
-    ctx.store.parents_kanji(seq, text).await
+) -> Result<Vec<(i32, i32)>, crate::conn::KaniDbError> {
+    ctx.store.parents_kanji(seq, text)
 }
 
 /// Port of `ichiran/dict:query-parents-kana` (`dict.lisp:417`).
@@ -109,12 +109,12 @@ pub async fn query_parents_kanji(
 /// parent reading of the `conj-source-reading` that produced
 /// `(seq, text)` — the source `seq` resolves to the conjugation's `via`
 /// when set, otherwise its `from`.
-pub async fn query_parents_kana(
+pub fn query_parents_kana(
     ctx: &KaniranContext,
     seq: i32,
     text: &str,
-) -> Result<Vec<(i32, i32)>, sqlx::Error> {
-    ctx.store.parents_kana(seq, text).await
+) -> Result<Vec<(i32, i32)>, crate::conn::KaniDbError> {
+    ctx.store.parents_kana(seq, text)
 }
 
 /// Port of `ichiran/dict:best-kana-conj` (`dict.lisp:430`).
@@ -122,10 +122,10 @@ pub async fn query_parents_kana(
 /// For a [`KanjiText`] reading row, return the kana surface form to
 /// display, walking the conjugation chain back through parent readings
 /// when the pre-baked `best_kana` slot doesn't apply.
-pub async fn best_kana_conj(
+pub fn best_kana_conj(
     ctx: &KaniranContext,
     obj: &KanjiText,
-) -> Result<Option<String>, sqlx::Error> {
+) -> Result<Option<String>, crate::conn::KaniDbError> {
     let wc = &obj.state.conjugations;
     // dict.lisp:431-433 ((and (or (not wc) (eql wc :root)) (not (eql (best-kana obj) :null))))
     let root_or_unset = matches!(wc, None | Some(WordConjugations::Root));
@@ -133,16 +133,16 @@ pub async fn best_kana_conj(
         return Ok(obj.best_kana.clone());
     }
 
-    let parents = query_parents_kanji(ctx, obj.seq, &obj.text).await?;
+    let parents = query_parents_kanji(ctx, obj.seq, &obj.text)?;
     for (pid, cid) in parents {
         // dict.lisp:436 (for parent-kt = (get-dao 'kanji-text pid))
         // The store method's fetch_one mirrors upstream: a missing pid
         // would surface as nil from get-dao and crash on the next slot
         // access; propagating the sqlx error preserves that fail-loud
         // stance.
-        let parent_kt: KanjiText = ctx.store.kanji_text_by_id(pid).await?;
+        let parent_kt: KanjiText = ctx.store.kanji_text_by_id(pid)?;
         // dict.lisp:437 (for parent-bk = (best-kana-conj parent-kt))
-        let parent_bk = Box::pin(best_kana_conj(ctx, &parent_kt)).await?;
+        let parent_bk = best_kana_conj(ctx, &parent_kt)?;
         // dict.lisp:438 (unless (or (eql parent-bk :null)
         //                           (and wc (or (eql wc :root) (not (find cid wc))))))
         let skip = parent_bk.is_none()
@@ -158,7 +158,7 @@ pub async fn best_kana_conj(
 
         // dict.lisp:439-442 (query (:select 'text :from 'conj-source-reading
         //   :where (:and (:= 'conj-id cid) (:= 'source-text parent-bk))) :column)
-        let readings: Vec<String> = ctx.store.conj_source_reading_texts(cid, &parent_bk).await?;
+        let readings: Vec<String> = ctx.store.conj_source_reading_texts(cid, &parent_bk)?;
         if readings.is_empty() {
             continue;
         }
@@ -199,10 +199,10 @@ pub async fn best_kana_conj(
 /// Given a [`KanaText`] reading row, return the kanji surface form to
 /// display, walking the conjugation chain back through parent readings
 /// when the pre-baked `best_kanji` slot doesn't apply.
-pub async fn best_kanji_conj(
+pub fn best_kanji_conj(
     ctx: &KaniranContext,
     obj: &KanaText,
-) -> Result<Option<String>, sqlx::Error> {
+) -> Result<Option<String>, crate::conn::KaniDbError> {
     let wc = &obj.state.conjugations;
     // dict.lisp:458-460 ((and (or (not wc) (eql wc :root)) (not (eql (best-kanji obj) :null))))
     let root_or_unset = matches!(wc, None | Some(WordConjugations::Root));
@@ -219,17 +219,17 @@ pub async fn best_kanji_conj(
     let entry: Entry = ctx
         .store
         .entry_by_seq(obj.seq)
-        .await?
-        .ok_or(sqlx::Error::RowNotFound)?;
+        ?
+        .ok_or(crate::conn::KaniDbError::RowNotFound)?;
     if entry.n_kanji == 0 {
         return Ok(None);
     }
 
-    let parents = query_parents_kana(ctx, obj.seq, &obj.text).await?;
+    let parents = query_parents_kana(ctx, obj.seq, &obj.text)?;
     for (pid, cid) in parents {
         // dict.lisp:465 (for parent-bk = (best-kanji-conj (get-dao 'kana-text pid)))
-        let parent_kt: KanaText = ctx.store.kana_text_by_id(pid).await?;
-        let parent_bk = Box::pin(best_kanji_conj(ctx, &parent_kt)).await?;
+        let parent_kt: KanaText = ctx.store.kana_text_by_id(pid)?;
+        let parent_bk = best_kanji_conj(ctx, &parent_kt)?;
         // dict.lisp:466 (unless (or (eql parent-bk :null)
         //                           (and wc (or (eql wc :root) (not (find cid wc))))))
         let skip = parent_bk.is_none()
@@ -245,7 +245,7 @@ pub async fn best_kanji_conj(
 
         // dict.lisp:467-470 (query (:select 'text :from 'conj-source-reading
         //   :where (:and (:= 'conj-id cid) (:= 'source-text parent-bk))) :column)
-        let readings: Vec<String> = ctx.store.conj_source_reading_texts(cid, &parent_bk).await?;
+        let readings: Vec<String> = ctx.store.conj_source_reading_texts(cid, &parent_bk)?;
         // dict.lisp:471-473 (some (lambda (reading) (and (kanji-match reading (text obj)) reading)) readings)
         if let Some(hit) = readings.into_iter().find(|r| kanji_match(r, &obj.text)) {
             return Ok(Some(hit));
@@ -272,11 +272,11 @@ pub enum FindWordRows {
     Kanji(Vec<KanjiText>),
 }
 
-pub async fn find_word<'a>(
+pub fn find_word<'a>(
     ctx: &'a KaniranContext,
     word: &str,
     root_only: bool,
-) -> Result<Cow<'a, FindWordRows>, sqlx::Error> {
+) -> Result<Cow<'a, FindWordRows>, crate::conn::KaniDbError> {
     // Mirror upstream evaluation order — `(when (<= (length word)
     // *max-word-length*) ...)` short-circuits before `test-word`
     // runs, so the over-length path returns an empty result without
@@ -303,16 +303,16 @@ pub async fn find_word<'a>(
     let kana = test_word(word, CharClass::Kana);
     if kana {
         let rows: Vec<KanaText> = if root_only {
-            ctx.store.kana_texts_root_by_text(word).await?
+            ctx.store.kana_texts_root_by_text(word)?
         } else {
-            ctx.store.kana_texts_by_text(word).await?
+            ctx.store.kana_texts_by_text(word)?
         };
         Ok(Cow::Owned(FindWordRows::Kana(rows)))
     } else {
         let rows: Vec<KanjiText> = if root_only {
-            ctx.store.kanji_texts_root_by_text(word).await?
+            ctx.store.kanji_texts_root_by_text(word)?
         } else {
-            ctx.store.kanji_texts_by_text(word).await?
+            ctx.store.kanji_texts_by_text(word)?
         };
         Ok(Cow::Owned(FindWordRows::Kanji(rows)))
     }
@@ -326,11 +326,11 @@ pub async fn find_word<'a>(
 /// bulk-fetches the matching `kana_text` / `kanji_text` rows, bucketed
 /// by substring text. Substrings absent from the database still get an
 /// empty hash entry, signalling that the lookup already ran.
-pub async fn find_substring_words(
+pub fn find_substring_words(
     ctx: &KaniranContext,
     str: &str,
     sticky: &[usize],
-) -> Result<SubstringHash, sqlx::Error> {
+) -> Result<SubstringHash, crate::conn::KaniDbError> {
     // dict.lisp:504-512 (loop for start ... loop for end ...). CONVENTIONS
     // §4.5: cl-ppcre / subseq index by character — collect the chars
     // once so the inner slice uses character offsets.
@@ -392,7 +392,7 @@ pub async fn find_substring_words(
     //   here so the typed `query_as<KanaText>` / `query_as<KanjiText>`
     //   stays known at compile time.
     if !kana_keys.is_empty() {
-        let rows: Vec<KanaText> = ctx.store.kana_texts_by_text_any(&kana_keys).await?;
+        let rows: Vec<KanaText> = ctx.store.kana_texts_by_text_any(&kana_keys)?;
         // dict.lisp:517 — (push (cons table kt) (gethash (getf kt :text) substring-hash)).
         // CL `push` prepends, so each bucket is the reverse of the SQL
         // row order. The order is load-bearing: find-word returns the
@@ -407,7 +407,7 @@ pub async fn find_substring_words(
         }
     }
     if !kanji_keys.is_empty() {
-        let rows: Vec<KanjiText> = ctx.store.kanji_texts_by_text_any(&kanji_keys).await?;
+        let rows: Vec<KanjiText> = ctx.store.kanji_texts_by_text_any(&kanji_keys)?;
         // dict.lisp:517 — reversed append mirrors CL `push` (see kana loop).
         for kt in rows.into_iter().rev() {
             if let Some(FindWordRows::Kanji(bucket)) = substring_hash.get_mut(&kt.text) {
@@ -424,11 +424,11 @@ pub async fn find_substring_words(
 /// Partitions `words` into kana vs kanji, fetches the `kanji_text` rows
 /// and `kana_text` rows whose text matches and whose seq is among `seqs`,
 /// and returns the kanji rows followed by the kana rows.
-pub async fn find_words_seqs(
+pub fn find_words_seqs(
     ctx: &KaniranContext,
     words: &[&str],
     seqs: &[i32],
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+) -> Result<Vec<KaniWordDispatchEnum>, crate::conn::KaniDbError> {
     let mut kana_words: Vec<&str> = Vec::new();
     let mut kanji_words: Vec<&str> = Vec::new();
     for &word in words {
@@ -445,7 +445,7 @@ pub async fn find_words_seqs(
         let kw: Vec<KanjiText> = ctx
             .store
             .kanji_texts_by_text_any_and_seq_any(&kanji_words, seqs)
-            .await?;
+            ?;
         out.extend(kw.into_iter().map(KaniWordDispatchEnum::Kanji));
     }
     // dict.lisp:533 (when kana-words (select-dao 'kana-text ...))
@@ -453,7 +453,7 @@ pub async fn find_words_seqs(
         let rw: Vec<KanaText> = ctx
             .store
             .kana_texts_by_text_any_and_seq_any(&kana_words, seqs)
-            .await?;
+            ?;
         out.extend(rw.into_iter().map(KaniWordDispatchEnum::Kana));
     }
     Ok(out)
@@ -465,20 +465,20 @@ pub async fn find_words_seqs(
 /// word; otherwise the kana spellings of every `kanji-text` entry with
 /// that surface form, ordered by id. Returns the readings alongside
 /// their romanizations.
-pub async fn word_readings(
+pub fn word_readings(
     ctx: &KaniranContext,
     word: &str,
-) -> Result<(Vec<String>, Vec<String>), sqlx::Error> {
+) -> Result<(Vec<String>, Vec<String>), crate::conn::KaniDbError> {
     // dict.lisp:537 (kana-seq (query (:select 'seq :from 'kana-text :where (:= 'text word)) :column))
-    let kana_seq: Vec<i32> = ctx.store.kana_seqs_by_text(word).await?;
+    let kana_seq: Vec<i32> = ctx.store.kana_seqs_by_text(word)?;
     // dict.lisp:538-545 (readings (if kana-seq (list word) …))
     let readings: Vec<String> = if !kana_seq.is_empty() {
         vec![word.to_string()]
     } else {
         // dict.lisp:540-541 (kanji-seq (query (:select 'seq :from 'kanji-text :where (:= 'text word)) :column))
-        let kanji_seq: Vec<i32> = ctx.store.kanji_seqs_by_text(word).await?;
+        let kanji_seq: Vec<i32> = ctx.store.kanji_seqs_by_text(word)?;
         // dict.lisp:542-545 (query (:order-by (:select 'text :from 'kana-text :where (:in 'seq (:set kanji-seq))) 'id) :column)
-        ctx.store.kana_reading_texts_by_seq_any(&kanji_seq).await?
+        ctx.store.kana_reading_texts_by_seq_any(&kanji_seq)?
     };
     // dict.lisp:546 (values readings (mapcar #'ichiran:romanize-word readings))
     let method = RomanizationMethod::TraditionalHepburn(default_romanization_method());

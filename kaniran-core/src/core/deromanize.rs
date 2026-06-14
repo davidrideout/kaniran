@@ -186,13 +186,13 @@ pub fn romaji_kana(s: &str) -> Option<(String, String)> {
 /// Deromanizes `s`, looks up the kanji and kana matching the resulting
 /// kana pattern, and returns a `{"hiragana", "katakana", "kanji"}`
 /// object (`None` when `s` does not deromanize).
-pub async fn romaji_suggest(ctx: &KaniranContext, s: &str) -> Result<Option<Value>, sqlx::Error> {
+pub fn romaji_suggest(ctx: &KaniranContext, s: &str) -> Result<Option<Value>, crate::conn::KaniDbError> {
     // (multiple-value-bind (canon pattern) (romaji-kana s) (when pattern …))
     let Some((canon, pattern)) = romaji_kana(s) else {
         return Ok(None);
     };
     // (multiple-value-bind (pkanji pkana) (find-kanji-for-pattern pattern) …)
-    let (pkanji, pkana) = find_kanji_for_pattern(ctx, &pattern).await?;
+    let (pkanji, pkana) = find_kanji_for_pattern(ctx, &pattern)?;
     // (remove-duplicates (cons canon pkana) :test 'equal :from-end t)
     let mut hiragana_src = Vec::with_capacity(pkana.len() + 1);
     hiragana_src.push(canon);
