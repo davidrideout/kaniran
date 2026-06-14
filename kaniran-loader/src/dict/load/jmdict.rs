@@ -1,16 +1,15 @@
-use crate::characters::text::join;
-use crate::conn::kani_context::KaniranContext;
+use kaniran_core::characters::text::join;
+use kaniran_core::conn::kani_context::KaniranContext;
 use crate::custom::load::{load_custom_data, LoadCustomDataError};
-use crate::dict::dao::Entry;
+use kaniran_core::dict::dao::Entry;
 use crate::dict::errata::add_errata;
-use crate::dict::readings::{find_word, FindWordRows};
-use crate::dict::senses::{get_senses_raw, RawSense};
-use crate::dict::load::conj_rules::POS_WITH_CONJ_RULES;
+use kaniran_core::dict::readings::{find_word, FindWordRows};
+use kaniran_core::dict::senses::{get_senses_raw, RawSense};
+use kaniran_core::dict::load::conj_rules::POS_WITH_CONJ_RULES;
 use crate::dict::load::conjugate::{
     conjugate_entry_outer, load_conjugations, load_secondary_conjugations,
 };
 use crate::dict::load::readings::{insert_readings, ReadingTable};
-use crate::dict::dao::recalc_entry_stats_all;
 use fancy_regex::{Captures, Regex};
 use roxmltree::{Document, Node, NodeType, ParsingOptions};
 use std::path::Path;
@@ -67,7 +66,7 @@ pub async fn insert_sense_traits(
         .bind(&text)
         .bind(ord as i32)
         .bind(seq)
-        .execute(&ctx.pool)
+        .execute(ctx.pool.as_ref().expect("postgres pool"))
         .await?;
     }
     Ok(())
@@ -90,7 +89,7 @@ pub async fn insert_senses(
             sqlx::query_scalar("INSERT INTO sense (seq, ord) VALUES ($1, $2) RETURNING id")
                 .bind(seq)
                 .bind(ord as i32)
-                .fetch_one(&ctx.pool)
+                .fetch_one(ctx.pool.as_ref().expect("postgres pool"))
                 .await?;
         for (gord, gloss_node) in node
             .descendants()
@@ -102,7 +101,7 @@ pub async fn insert_senses(
                 .bind(sense_id)
                 .bind(&text)
                 .bind(gord as i32)
-                .execute(&ctx.pool)
+                .execute(ctx.pool.as_ref().expect("postgres pool"))
                 .await?;
         }
         for tag in SENSE_PROP_TAGS {
@@ -153,7 +152,7 @@ pub async fn add_new_sense(
     positions: &[String],
     glosses: &[String],
 ) -> Result<Option<(i32, i32)>, sqlx::Error> {
-    let senses = get_senses_raw(ctx, seq).await?;
+    let senses = get_senses_raw(ctx, seq).map_err(crate::kani_db_to_sqlx)?;
     if sense_exists_p(&senses, positions, glosses) {
         return Ok(None);
     }
@@ -170,14 +169,14 @@ pub async fn add_new_sense(
         sqlx::query_scalar("INSERT INTO sense (seq, ord) VALUES ($1, $2) RETURNING id")
             .bind(seq)
             .bind(ord)
-            .fetch_one(&ctx.pool)
+            .fetch_one(ctx.pool.as_ref().expect("postgres pool"))
             .await?;
     for (gord, gloss) in glosses.iter().enumerate() {
         sqlx::query("INSERT INTO gloss (sense_id, text, ord) VALUES ($1, $2, $3)")
             .bind(sense_id)
             .bind(gloss)
             .bind(gord as i32)
-            .execute(&ctx.pool)
+            .execute(ctx.pool.as_ref().expect("postgres pool"))
             .await?;
     }
     let last_pos_matches = match last_pos {
@@ -194,7 +193,7 @@ pub async fn add_new_sense(
             .bind(pos)
             .bind(sord as i32)
             .bind(seq)
-            .execute(&ctx.pool)
+            .execute(ctx.pool.as_ref().expect("postgres pool"))
             .await?;
         }
     }
@@ -224,7 +223,7 @@ pub async fn init_tables(ctx: &KaniranContext) -> Result<(), sqlx::Error> {
          conjugation, conj_prop, conj_source_reading, restricted_readings \
          RESTART IDENTITY CASCADE",
     )
-    .execute(&ctx.pool)
+    .execute(ctx.pool.as_ref().expect("postgres pool"))
     .await?;
     Ok(())
 }
@@ -234,7 +233,7 @@ pub async fn init_tables(ctx: &KaniranContext) -> Result<(), sqlx::Error> {
 /// `MAX(seq) + 1` from `entry`. Panics if the table is empty
 pub async fn next_seq(ctx: &KaniranContext) -> Result<i32, sqlx::Error> {
     let max: Option<i32> = sqlx::query_scalar("SELECT MAX(seq) FROM entry")
-        .fetch_one(&ctx.pool)
+        .fetch_one(ctx.pool.as_ref().expect("postgres pool"))
         .await?;
     Ok(max.expect("next_seq: entry table is empty") + 1)
 }
@@ -249,7 +248,7 @@ pub async fn next_seq(ctx: &KaniranContext) -> Result<i32, sqlx::Error> {
 /// `content` is the serialized XML for a single entry (one `<entry>`
 /// element, entities already expanded by [`fix_entities`]).
 ///
-/// [`fix_entities`]: crate::dict::fix_entities
+/// [`fix_entities`]: crate::dict::load::jmdict::fix_entities
 pub enum LoadEntryIfExists {
     None,
     Skip,
@@ -274,7 +273,7 @@ pub async fn load_entry(
     let parsed = Document::parse(content).expect("load_entry: malformed entry XML");
     // dict-load.lisp:123-132 (seq (cond ...))
     let seq: i32 = match seq {
-        LoadEntrySeq::Str(s) => match &*find_word(ctx, s, false).await? {
+        LoadEntrySeq::Str(s) => match &*find_word(ctx, s, false).map_err(crate::kani_db_to_sqlx)? {
             FindWordRows::Kana(rows) => match rows.first() {
                 Some(row) => row.seq,
                 None => next_seq(ctx).await?,
@@ -303,10 +302,10 @@ pub async fn load_entry(
     if let Some((up_seq, up_text)) = upstream {
         let entry: Option<Entry> = sqlx::query_as("SELECT * FROM entry WHERE seq = $1")
             .bind(up_seq)
-            .fetch_optional(&ctx.pool)
+            .fetch_optional(ctx.pool.as_ref().expect("postgres pool"))
             .await?;
         if let Some(entry) = entry {
-            if let Some(text) = entry.get_text(ctx).await? {
+            if let Some(text) = entry.get_text(ctx).map_err(crate::kani_db_to_sqlx)? {
                 if text == up_text {
                     return Ok(None);
                 }
@@ -318,7 +317,7 @@ pub async fn load_entry(
         LoadEntryIfExists::Skip => {
             let exists: Option<i32> = sqlx::query_scalar("SELECT seq FROM entry WHERE seq = $1")
                 .bind(seq)
-                .fetch_optional(&ctx.pool)
+                .fetch_optional(ctx.pool.as_ref().expect("postgres pool"))
                 .await?;
             if exists.is_some() {
                 return Ok(None);
@@ -327,7 +326,7 @@ pub async fn load_entry(
         LoadEntryIfExists::Overwrite => {
             sqlx::query("DELETE FROM entry WHERE seq = $1")
                 .bind(seq)
-                .execute(&ctx.pool)
+                .execute(ctx.pool.as_ref().expect("postgres pool"))
                 .await?;
         }
         LoadEntryIfExists::None => {}
@@ -341,7 +340,7 @@ pub async fn load_entry(
     )
     .bind(seq)
     .bind(content)
-    .execute(&ctx.pool)
+    .execute(ctx.pool.as_ref().expect("postgres pool"))
     .await?;
 
     // dict-load.lisp:143-148 (let* ((kanji-nodes ...) (kana-nodes ...) (sense-nodes ...)) ...)
@@ -385,7 +384,7 @@ pub async fn load_entry(
         )
         .bind(seq)
         .bind(POS_WITH_CONJ_RULES)
-        .fetch_all(&ctx.pool)
+        .fetch_all(ctx.pool.as_ref().expect("postgres pool"))
         .await?;
         if !posi.is_empty() {
             conjugate_entry_outer(ctx, seq, None, None, Some(&posi)).await?;
@@ -424,9 +423,9 @@ pub fn fix_entities(source: &str) -> String {
 /// Port of `ichiran/dict:load-jmdict` (`dict-load.lisp:170`).
 ///
 /// Rebuilds the entry-package tables from a JMdict XML dump: clears
-/// the schema via [`crate::dict::init_tables`], iterates every `<entry>` in
-/// the source, hands each to [`crate::dict::load_entry`], and (when
-/// requested) chains [`crate::dict::load_extras`] for the conjugation /
+/// the schema via [`init_tables`], iterates every `<entry>` in
+/// the source, hands each to [`load_entry`], and (when
+/// requested) chains [`load_extras`] for the conjugation /
 /// errata / custom-data pass.
 pub async fn load_jmdict(
     ctx: &KaniranContext,
@@ -475,7 +474,7 @@ pub async fn load_jmdict(
         }
     }
     recalc_entry_stats_all(ctx).await?;
-    sqlx::query("ANALYZE").execute(&ctx.pool).await?;
+    sqlx::query("ANALYZE").execute(ctx.pool.as_ref().expect("postgres pool")).await?;
     println!("{cnt} entries total");
     if load_extras_p {
         load_extras(ctx).await?;
@@ -618,7 +617,7 @@ pub async fn load_extras(ctx: &KaniranContext) -> Result<(), LoadCustomDataError
     load_custom_data(ctx, &[], true).await?;
     add_errata(ctx).await?;
     recalc_entry_stats_all(ctx).await?;
-    sqlx::query("ANALYZE").execute(&ctx.pool).await?;
+    sqlx::query("ANALYZE").execute(ctx.pool.as_ref().expect("postgres pool")).await?;
     Ok(())
 }
 
@@ -629,18 +628,35 @@ pub async fn load_extras(ctx: &KaniranContext) -> Result<(), LoadCustomDataError
 /// and every non-root `entry` row.
 pub async fn drop_extras(ctx: &KaniranContext) -> Result<(), sqlx::Error> {
     sqlx::query("DELETE FROM conj_prop")
-        .execute(&ctx.pool)
+        .execute(ctx.pool.as_ref().expect("postgres pool"))
         .await?;
     sqlx::query("DELETE FROM conj_source_reading")
-        .execute(&ctx.pool)
+        .execute(ctx.pool.as_ref().expect("postgres pool"))
         .await?;
     sqlx::query("DELETE FROM conjugation")
-        .execute(&ctx.pool)
+        .execute(ctx.pool.as_ref().expect("postgres pool"))
         .await?;
     sqlx::query("DELETE FROM entry WHERE NOT root_p")
-        .execute(&ctx.pool)
+        .execute(ctx.pool.as_ref().expect("postgres pool"))
         .await?;
     Ok(())
+}
+
+/// Port of `ichiran/dict:recalc-entry-stats-all` (`dict.lisp`).
+///
+/// Recomputes `n_kanji` / `n_kana` on every `entry` row from the live
+/// kanji_text / kana_text counts in one UPDATE; returns the number of
+/// rows touched. Was a free `pub async fn` in `kaniran-core`'s `dao.rs`
+/// before the load-time half split out into this crate.
+pub async fn recalc_entry_stats_all(ctx: &KaniranContext) -> Result<u64, sqlx::Error> {
+    let result = sqlx::query(
+        "UPDATE entry SET \
+         n_kanji = (SELECT COUNT(id) FROM kanji_text WHERE kanji_text.seq = entry.seq), \
+         n_kana = (SELECT COUNT(id) FROM kana_text WHERE kana_text.seq = entry.seq)",
+    )
+    .execute(ctx.pool.as_ref().expect("postgres pool"))
+    .await?;
+    Ok(result.rows_affected())
 }
 
 #[cfg(test)]

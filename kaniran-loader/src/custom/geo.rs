@@ -1,8 +1,8 @@
 use super::constants::{MUNICIPALITY_TYPES, MUNICIPALITY_TYPES_DESCRIPTION};
-use crate::characters::kani_ngram_scanner::KaniNgramScanner;
-use crate::core::methods::hepburn_simple;
-use crate::core::methods::RomanizationMethod;
-use crate::core::romanize::romanize_word_geo;
+use kaniran_core::characters::kani_ngram_scanner::KaniNgramScanner;
+use kaniran_core::core::methods::hepburn_simple;
+use kaniran_core::core::methods::RomanizationMethod;
+use kaniran_core::core::romanize::romanize_word_geo;
 use std::sync::LazyLock;
 
 /// Port of `ichiran/custom:municipality-short` (`dict-custom.lisp:120`).

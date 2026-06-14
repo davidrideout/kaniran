@@ -1,9 +1,9 @@
 use super::constants::MUNICIPALITY_TYPES_ORDER;
 use super::geo::{municipality_short, romanize_municipality};
-use crate::characters::kana::as_hiragana;
-use crate::characters::kana::normalize;
-use crate::characters::kana::NormalizationContext;
-use crate::conn::kani_context::KaniranContext;
+use kaniran_core::characters::kana::as_hiragana;
+use kaniran_core::characters::kana::normalize;
+use kaniran_core::characters::kana::NormalizationContext;
+use kaniran_core::conn::kani_context::KaniranContext;
 use crate::dict::load::jmdict::{load_entry, LoadEntryIfExists, LoadEntrySeq};
 use crate::dict::load::jmdict::node_text;
 use roxmltree::Document;

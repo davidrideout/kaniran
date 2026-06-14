@@ -14,13 +14,13 @@ use std::time::Instant;
 use clap::Parser;
 
 use kaniran_core::conn::kani_context::KaniranContext;
-use kaniran_core::custom::load::load_custom_data;
-use kaniran_core::dict::load::readings::load_best_readings;
-use kaniran_core::dict::load::jmdict::load_jmdict;
-use kaniran_core::dict::dao::recalc_entry_stats_all;
-use kaniran_core::kanji::stats::load_kanji_stats;
-use kaniran_core::kanji::loaders::load_kanjidic;
-use kaniran_core::maintenance::add_errata::add_errata;
+use kaniran_loader::custom::load::load_custom_data;
+use kaniran_loader::dict::load::readings::load_best_readings;
+use kaniran_loader::dict::load::jmdict::load_jmdict;
+use kaniran_loader::dict::load::jmdict::recalc_entry_stats_all;
+use kaniran_loader::kanji::loaders::load_kanji_stats;
+use kaniran_loader::kanji::loaders::load_kanjidic;
+use kaniran_loader::maintenance::add_errata::add_errata;
 
 #[derive(Parser)]
 struct Args {
@@ -104,7 +104,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("e2e: resume — load_best_readings");
         load_best_readings(&ctx, true).await?;
         println!("e2e: resume — ANALYZE");
-        sqlx::query("ANALYZE").execute(&ctx.pool).await?;
+        sqlx::query("ANALYZE").execute(ctx.pool.as_ref().expect("postgres pool")).await?;
         println!("e2e: resume done in {:.1}s", t0.elapsed().as_secs_f64());
     } else {
         println!("e2e: load_jmdict from {}", args.jmdict_path.display());

@@ -3,7 +3,7 @@ use super::entry::insert;
 use super::types::{
     CustomEntry, CustomLoader, Municipality, MunicipalityCsv, Ward, WardCsv, XmlLoader,
 };
-use crate::conn::kani_context::KaniranContext;
+use kaniran_core::conn::kani_context::KaniranContext;
 use std::path::PathBuf;
 
 /// Port of `ichiran/custom:get-words` (gf — `dict-custom.lisp:176`).

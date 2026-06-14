@@ -1,6 +1,7 @@
-use super::dao::Reading;
-use crate::characters::kana::as_hiragana;
-use crate::conn::kani_context::KaniranContext;
+use kaniran_core::kanji::dao::{Kanji, Reading};
+use kaniran_core::characters::kana::as_hiragana;
+use kaniran_core::conn::kani_context::KaniranContext;
+use kaniran_core::kanji::stats::kanji_word_stats;
 use crate::dict::load::jmdict::node_text;
 use indexmap::IndexMap;
 use roxmltree::{Document, Node, NodeType, ParsingOptions};
@@ -20,7 +21,7 @@ pub const TABLE_NAMES: &[&str] = &["kanji", "reading", "okurigana", "meaning"];
 
 pub async fn init_tables(ctx: &KaniranContext) -> Result<(), sqlx::Error> {
     sqlx::query("TRUNCATE kanji, reading, okurigana, meaning RESTART IDENTITY CASCADE")
-        .execute(&ctx.pool)
+        .execute(ctx.pool.as_ref().expect("postgres pool"))
         .await?;
     Ok(())
 }
@@ -143,14 +144,14 @@ pub async fn load_readings(
         .bind(&text)
         .bind(info.suffixp)
         .bind(info.prefixp)
-        .fetch_one(&ctx.pool)
+        .fetch_one(ctx.pool.as_ref().expect("postgres pool"))
         .await?;
         // kanji.lisp:149-151 (loop with rid = (id robj) for of in okuri do …)
         for of in &info.okuri {
             sqlx::query("INSERT INTO okurigana (reading_id, text) VALUES ($1, $2)")
                 .bind(robj.id)
                 .bind(of)
-                .execute(&ctx.pool)
+                .execute(ctx.pool.as_ref().expect("postgres pool"))
                 .await?;
         }
     }
@@ -262,7 +263,7 @@ pub async fn load_kanji(ctx: &KaniranContext, content: &str) -> Result<(), sqlx:
     .bind(grade)
     .bind(strokes)
     .bind(freq)
-    .fetch_one(&ctx.pool)
+    .fetch_one(ctx.pool.as_ref().expect("postgres pool"))
     .await?;
     // kanji.lisp:178 (load-readings node-reading kanji-id)
     load_readings(ctx, &node_reading, kanji_id).await?;
@@ -276,7 +277,7 @@ pub async fn load_kanji(ctx: &KaniranContext, content: &str) -> Result<(), sqlx:
         )
         .bind(kanji_id)
         .bind(&nanori_text)
-        .execute(&ctx.pool)
+        .execute(ctx.pool.as_ref().expect("postgres pool"))
         .await?;
     }
     // kanji.lisp:181-185 (dom:do-node-list (node node-meaning) …)
@@ -288,7 +289,7 @@ pub async fn load_kanji(ctx: &KaniranContext, content: &str) -> Result<(), sqlx:
             sqlx::query("INSERT INTO meaning (kanji_id, text) VALUES ($1, $2)")
                 .bind(kanji_id)
                 .bind(&text)
-                .execute(&ctx.pool)
+                .execute(ctx.pool.as_ref().expect("postgres pool"))
                 .await?;
         }
     }
@@ -336,7 +337,7 @@ pub async fn load_kanjidic(ctx: &KaniranContext, path: &Path) -> Result<(), sqlx
         cnt += 1;
     }
     // kanji.lisp:197 (finally (query "ANALYZE") (format t "~a entries total~%" cnt))
-    sqlx::query("ANALYZE").execute(&ctx.pool).await?;
+    sqlx::query("ANALYZE").execute(ctx.pool.as_ref().expect("postgres pool")).await?;
     println!("{cnt} entries total");
     Ok(())
 }
@@ -405,6 +406,76 @@ fn write_escaped_attr(s: &str, out: &mut String) {
             _ => out.push(c),
         }
     }
+}
+
+/// Port of `ichiran/kanji:load-kanji-stats` (`kanji.lisp:333`).
+///
+/// Recomputes the per-kanji and per-reading frequency statistics over
+/// every grade-1..8 kanji from the live corpus: zeroes the existing
+/// counters, walks each kanji through [`kanji_word_stats`], and writes
+/// the resulting `stat_common` / `stat_irregular` totals back. Ends with
+/// an `ANALYZE`. Was a `pub async fn` in `kaniran-core`'s `kanji/stats.rs`
+/// before the load-time half split into this crate; the now-sync
+/// `kanji_word_stats` lookup is called without `.await`.
+pub async fn load_kanji_stats(ctx: &KaniranContext) -> Result<(), sqlx::Error> {
+    // kanji.lisp:334 (query (:update 'kanji :set 'stat-common 0 'stat-irregular 0))
+    sqlx::query("UPDATE kanji SET stat_common = 0, stat_irregular = 0")
+        .execute(ctx.pool.as_ref().expect("postgres pool"))
+        .await?;
+    // kanji.lisp:335 (query (:update 'reading :set 'stat-common 0))
+    sqlx::query("UPDATE reading SET stat_common = 0")
+        .execute(ctx.pool.as_ref().expect("postgres pool"))
+        .await?;
+    // kanji.lisp:336 (select-dao 'kanji (:<= 'grade 8))
+    let kanji_rows: Vec<Kanji> = sqlx::query_as("SELECT * FROM kanji WHERE grade <= 8")
+        .fetch_all(ctx.pool.as_ref().expect("postgres pool"))
+        .await?;
+    // kanji.lisp:336-347 (loop for kanji in … …)
+    // `cnt` starts at 1 and steps after each body (CL loop `for cnt from 1`
+    // post-increments), so the `finally` clause sees `cnt = N+1`.
+    let mut cnt: i32 = 1;
+    for kanji in &kanji_rows {
+        // kanji.lisp:338 ((reading-stats irregular total) = (multiple-value-list (kanji-word-stats (text kanji))))
+        let (reading_stats, irregular, total) =
+            kanji_word_stats(ctx, &kanji.text).map_err(crate::kani_db_to_sqlx)?;
+        // kanji.lisp:339 (readings = (select-dao 'reading (:= 'kanji-id (id kanji))))
+        let readings: Vec<Reading> = sqlx::query_as("SELECT * FROM reading WHERE kanji_id = $1")
+            .bind(kanji.id)
+            .fetch_all(ctx.pool.as_ref().expect("postgres pool"))
+            .await?;
+        // kanji.lisp:340-342 (setf (stat-common kanji) total (stat-irregular kanji) irregular) (update-dao kanji)
+        sqlx::query("UPDATE kanji SET stat_common = $1, stat_irregular = $2 WHERE id = $3")
+            .bind(total as i32)
+            .bind(irregular)
+            .bind(kanji.id)
+            .execute(ctx.pool.as_ref().expect("postgres pool"))
+            .await?;
+        // kanji.lisp:343-345 (loop for ((rtext rtype) . rcount) in reading-stats …)
+        for ((rtext, rtype), rcount) in &reading_stats {
+            // kanji.lisp:344 (find-if (lambda (r) (and (equal (text r) rtext) (equal (reading-type r) rtype))) readings)
+            let reading = readings
+                .iter()
+                .find(|r| r.text == *rtext && r.reading_type == *rtype);
+            if let Some(reading) = reading {
+                sqlx::query("UPDATE reading SET stat_common = $1 WHERE id = $2")
+                    .bind(*rcount)
+                    .bind(reading.id)
+                    .execute(ctx.pool.as_ref().expect("postgres pool"))
+                    .await?;
+            }
+        }
+        // kanji.lisp:346 (if (zerop (mod cnt 100)) do (format t "~a kanji processed~%" cnt))
+        if cnt % 100 == 0 {
+            println!("{cnt} kanji processed");
+        }
+        cnt += 1;
+    }
+    // kanji.lisp:347 (finally (query "ANALYZE") (format t "~a kanji total~%" cnt))
+    sqlx::query("ANALYZE")
+        .execute(ctx.pool.as_ref().expect("postgres pool"))
+        .await?;
+    println!("{cnt} kanji total");
+    Ok(())
 }
 
 #[cfg(test)]

@@ -40,28 +40,6 @@ fn root_diff_fn_fixtures() {
     assert_eq!(f4("ねた"), "たずねた");
 }
 
-// --- add_deha_ja_readings ---
-/// Rewrites a leading では to じゃ, including the exactly-two-char では.
-#[cfg(feature = "loaders")]
-#[test]
-fn rewrite_deha_to_ja_cases() {
-    let cases: &[(&str, &str)] = &[
-        ("ではない", "じゃない"),
-        ("ではなかった", "じゃなかった"),
-        ("ではありませんでした", "じゃありませんでした"),
-        ("ではないで", "じゃないで"),
-        ("ではなくて", "じゃなくて"),
-        ("ではなかったら", "じゃなかったら"),
-        ("ではありませんでしたら", "じゃありませんでしたら"),
-        ("ではありません", "じゃありません"),
-        ("ではないです", "じゃないです"),
-        ("では", "じゃ"),
-    ];
-    for (input, expected) in cases {
-        assert_eq!(&rewrite_deha_to_ja(input), expected, "input={input}");
-    }
-}
-
 // --- errata_conj_rules_hook ---
 type RuleTuple = (i32, i32, bool, bool, i32, i32, String, String, String);
 

@@ -1452,13 +1452,9 @@ name = "kaniran-cli"
 version = "0.1.0"
 dependencies = [
  "clap",
- "futures-util",
  "kaniran-core",
  "mimalloc",
- "rkyv",
  "serde_json",
- "sqlx",
- "tokio",
 ]
 
 [[package]]
@@ -1479,6 +1475,25 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "unicode-properties",
+]
+
+[[package]]
+name = "kaniran-loader"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "fancy-regex",
+ "futures-util",
+ "indexmap",
+ "kaniran-core",
+ "memmap2",
+ "rkyv",
+ "roxmltree",
+ "serde_json",
+ "similar",
+ "sqlx",
+ "thiserror 2.0.18",
+ "tokio",
 ]
 
 [[package]]

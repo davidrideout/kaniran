@@ -1,6 +1,6 @@
-use crate::conn::kani_context::KaniranContext;
-use crate::dict::dao::KanaText;
-use crate::dict::dao::KanjiText;
+use kaniran_core::conn::kani_context::KaniranContext;
+use kaniran_core::dict::dao::KanaText;
+use kaniran_core::dict::dao::KanjiText;
 use crate::dict::load::jmdict::node_text;
 use roxmltree::Node;
 
@@ -30,13 +30,13 @@ async fn set_reading_kanji(ctx: &KaniranContext, obj: &mut KanjiText) -> Result<
     let restricted: Vec<(String, String)> =
         sqlx::query_as("SELECT reading, text FROM restricted_readings WHERE seq = $1")
             .bind(seq)
-            .fetch_all(&ctx.pool)
+            .fetch_all(ctx.pool.as_ref().expect("postgres pool"))
             .await?;
     // dict-load.lisp:494 (loop for reading in (select-dao 'kana-text (:= 'seq seq) 'ord))
     let readings: Vec<KanaText> =
         sqlx::query_as("SELECT * FROM kana_text WHERE seq = $1 ORDER BY ord")
             .bind(seq)
-            .fetch_all(&ctx.pool)
+            .fetch_all(ctx.pool.as_ref().expect("postgres pool"))
             .await?;
     for reading in &readings {
         let rtext = &reading.text;
@@ -48,11 +48,11 @@ async fn set_reading_kanji(ctx: &KaniranContext, obj: &mut KanjiText) -> Result<
         // dict-load.lisp:497-499 (when (and (not (nokanji reading)) (or (not restr) (member (text obj) restr :test 'equal))))
         if !reading.nokanji && (restr.is_empty() || restr.iter().any(|kt| *kt == &obj.text)) {
             // dict-load.lisp:500-501 (unless (equal cur-best (text reading)) (setf (best-kana obj) (text reading)) (update-dao obj))
-            if cur_best.as_deref() != Some(rtext.as_str()) {
+            if cur_best.as_deref() != Some(&**rtext) {
                 sqlx::query("UPDATE kanji_text SET best_kana = $1 WHERE id = $2")
                     .bind(rtext)
                     .bind(obj.id)
-                    .execute(&ctx.pool)
+                    .execute(ctx.pool.as_ref().expect("postgres pool"))
                     .await?;
                 obj.best_kana = Some(rtext.clone());
             }
@@ -64,7 +64,7 @@ async fn set_reading_kanji(ctx: &KaniranContext, obj: &mut KanjiText) -> Result<
     if cur_best.is_some() {
         sqlx::query("UPDATE kanji_text SET best_kana = NULL WHERE id = $1")
             .bind(obj.id)
-            .execute(&ctx.pool)
+            .execute(ctx.pool.as_ref().expect("postgres pool"))
             .await?;
         obj.best_kana = None;
     }
@@ -85,7 +85,7 @@ async fn set_reading_kana(ctx: &KaniranContext, obj: &mut KanaText) -> Result<()
         sqlx::query_scalar("SELECT text FROM restricted_readings WHERE seq = $1 AND reading = $2")
             .bind(seq)
             .bind(&rtext)
-            .fetch_all(&ctx.pool)
+            .fetch_all(ctx.pool.as_ref().expect("postgres pool"))
             .await?;
     // dict-load.lisp:517-521 (if restricted
     //   (select-dao 'kanji-text (:and (:= 'seq seq) (:in 'text (:set restricted))) 'ord)
@@ -94,29 +94,29 @@ async fn set_reading_kana(ctx: &KaniranContext, obj: &mut KanaText) -> Result<()
         sqlx::query_as("SELECT * FROM kanji_text WHERE seq = $1 AND text = ANY($2) ORDER BY ord")
             .bind(seq)
             .bind(&restricted)
-            .fetch_all(&ctx.pool)
+            .fetch_all(ctx.pool.as_ref().expect("postgres pool"))
             .await?
     } else {
         sqlx::query_as("SELECT * FROM kanji_text WHERE seq = $1 ORDER BY ord")
             .bind(seq)
-            .fetch_all(&ctx.pool)
+            .fetch_all(ctx.pool.as_ref().expect("postgres pool"))
             .await?
     };
     // dict-load.lisp:522-530 (cond (kanji-list ...) (t ...))
     if let Some(first_kt) = kanji_list.first() {
         let ktext = &first_kt.text;
-        if cur_best.as_deref() != Some(ktext.as_str()) {
+        if cur_best.as_deref() != Some(&**ktext) {
             sqlx::query("UPDATE kana_text SET best_kanji = $1 WHERE id = $2")
                 .bind(ktext)
                 .bind(obj.id)
-                .execute(&ctx.pool)
+                .execute(ctx.pool.as_ref().expect("postgres pool"))
                 .await?;
             obj.best_kanji = Some(ktext.clone());
         }
     } else if cur_best.is_some() {
         sqlx::query("UPDATE kana_text SET best_kanji = NULL WHERE id = $1")
             .bind(obj.id)
-            .execute(&ctx.pool)
+            .execute(ctx.pool.as_ref().expect("postgres pool"))
             .await?;
         obj.best_kanji = None;
     }
@@ -213,7 +213,7 @@ pub async fn insert_readings(
                 .bind(seq)
                 .bind(&reading_text)
                 .bind(&restr)
-                .execute(&ctx.pool)
+                .execute(ctx.pool.as_ref().expect("postgres pool"))
                 .await?;
             }
             for pri_node in node
@@ -254,7 +254,7 @@ pub async fn insert_readings(
             .bind(*common)
             .bind(common_tags)
             .bind(*nokanji)
-            .execute(&ctx.pool)
+            .execute(ctx.pool.as_ref().expect("postgres pool"))
             .await?;
     }
 
@@ -262,7 +262,7 @@ pub async fn insert_readings(
         .bind(primary_nokanji)
         .bind(n_added)
         .bind(seq)
-        .execute(&ctx.pool)
+        .execute(ctx.pool.as_ref().expect("postgres pool"))
         .await?;
 
     Ok(())
@@ -278,10 +278,10 @@ pub async fn load_best_readings(ctx: &KaniranContext, reset: bool) -> Result<(),
     // dict-load.lisp:534-536 (when reset ...)
     if reset {
         sqlx::query("UPDATE kanji_text SET best_kana = NULL")
-            .execute(&ctx.pool)
+            .execute(ctx.pool.as_ref().expect("postgres pool"))
             .await?;
         sqlx::query("UPDATE kana_text SET best_kanji = NULL")
-            .execute(&ctx.pool)
+            .execute(ctx.pool.as_ref().expect("postgres pool"))
             .await?;
     }
     // dict-load.lisp:537-542 (loop for kanji in (query-dao 'kanji-text ...))
@@ -289,7 +289,7 @@ pub async fn load_best_readings(ctx: &KaniranContext, reset: bool) -> Result<(),
         "SELECT kt.* FROM kanji_text kt, entry \
          WHERE kt.seq = entry.seq AND kt.best_kana IS NULL AND entry.root_p",
     )
-    .fetch_all(&ctx.pool)
+    .fetch_all(ctx.pool.as_ref().expect("postgres pool"))
     .await?;
     for mut kanji in kanji_rows {
         set_reading(ctx, SetReadingObj::Kanji(&mut kanji)).await?;
@@ -299,7 +299,7 @@ pub async fn load_best_readings(ctx: &KaniranContext, reset: bool) -> Result<(),
         "SELECT kt.* FROM kana_text kt, entry \
          WHERE kt.seq = entry.seq AND kt.best_kanji IS NULL AND entry.root_p",
     )
-    .fetch_all(&ctx.pool)
+    .fetch_all(ctx.pool.as_ref().expect("postgres pool"))
     .await?;
     for mut kana in kana_rows {
         set_reading(ctx, SetReadingObj::Kana(&mut kana)).await?;

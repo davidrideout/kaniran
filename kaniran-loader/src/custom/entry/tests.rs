@@ -172,16 +172,15 @@ fn process_entry_municipality_town_two_items() {
 // --- test_entry ---
 // Needs a live Postgres database.
 
-async fn ctx_from_env() -> Arc<KaniranContext> {
+fn ctx_from_env() -> Arc<KaniranContext> {
     KaniranContext::from_env()
-        .await
         .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
 }
 
 /// An entry already in the dictionary is skipped.
 #[tokio::test]
 async fn test_entry_municipality_skip_path() {
-    let ctx = ctx_from_env().await;
+    let ctx = ctx_from_env();
     let loader = CustomLoader::Municipality(MunicipalityCsv::new(PathBuf::from("/tmp/x.csv")));
     let entry = CustomEntry::Municipality(Municipality {
         text: "東京".to_string(),
@@ -197,7 +196,7 @@ async fn test_entry_municipality_skip_path() {
 /// An entry with no matching dictionary candidate is inserted.
 #[tokio::test]
 async fn test_entry_municipality_insert_path() {
-    let ctx = ctx_from_env().await;
+    let ctx = ctx_from_env();
     let loader = CustomLoader::Municipality(MunicipalityCsv::new(PathBuf::from("/tmp/x.csv")));
     let entry = CustomEntry::Municipality(Municipality {
         text: "ZZZ".to_string(),
@@ -213,7 +212,7 @@ async fn test_entry_municipality_insert_path() {
 /// An entry matching an existing sequence updates that sequence.
 #[tokio::test]
 async fn test_entry_municipality_update_path() {
-    let ctx = ctx_from_env().await;
+    let ctx = ctx_from_env();
     let loader = CustomLoader::Municipality(MunicipalityCsv::new(PathBuf::from("/tmp/x.csv")));
     let entry = CustomEntry::Municipality(Municipality {
         text: "漢字".to_string(),
@@ -229,7 +228,7 @@ async fn test_entry_municipality_update_path() {
 /// A ward entry already in the dictionary is skipped.
 #[tokio::test]
 async fn test_entry_ward_skip_path() {
-    let ctx = ctx_from_env().await;
+    let ctx = ctx_from_env();
     let loader = CustomLoader::Ward(WardCsv::new(PathBuf::from("/tmp/x.csv")));
     let entry = CustomEntry::Ward(Ward {
         text: "中央区".to_string(),

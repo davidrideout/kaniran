@@ -1,6 +1,6 @@
 use super::types::CustomEntry;
-use crate::characters::char_class::CharClass;
-use crate::characters::char_class::test_word;
+use kaniran_core::characters::char_class::CharClass;
+use kaniran_core::characters::char_class::test_word;
 
 /// Port of `ichiran/custom:as-xml` (gf — `dict-custom.lisp:220`).
 pub fn as_xml(entry: &CustomEntry) -> String {

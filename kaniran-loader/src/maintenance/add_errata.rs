@@ -2,7 +2,7 @@
 //!
 //! Public-facing wrapper around [`crate::dict::errata::add_errata`].
 
-use crate::conn::kani_context::KaniranContext;
+use kaniran_core::conn::kani_context::KaniranContext;
 use crate::custom::load::LoadCustomDataError;
 
 pub async fn add_errata(ctx: &KaniranContext) -> Result<(), LoadCustomDataError> {

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["kaniran-core", "kaniran-cli", "kaniran-audit"]
+members = ["kaniran-core", "kaniran-cli", "kaniran-audit", "kaniran-loader"]
 # Future siblings (kaniran-demo, ...) get added to `members`.
 
 [workspace.package]

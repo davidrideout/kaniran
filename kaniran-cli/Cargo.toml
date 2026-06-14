@@ -6,36 +6,12 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
-[features]
-# Builds the optional `kaniran-rkyv-dumper` binary: it queries Postgres
-# and serializes the rkyv archive, so it needs the Postgres backend's
-# `FromRow` derives on the snapshot rows.
-rkyv-dump = ["kaniran-core/rkyv", "kaniran-core/postgres", "dep:rkyv", "dep:futures-util"]
-# Builds the `full_e2e_load` / `e2e_load_kanjidic` binaries, which drive
-# the build-the-archive loaders. Parked until those loaders move to the
-# `kaniran-loader` crate.
-loaders = ["kaniran-core/loaders"]
-
 [[bin]]
 name = "kaniran-cli"
 path = "src/main.rs"
-
-[[bin]]
-name = "kaniran-rkyv-dumper"
-path = "src/bin/kaniran_rkyv_dumper.rs"
-required-features = ["rkyv-dump"]
-
-[[bin]]
-name = "full_e2e_load"
-path = "src/bin/full_e2e_load.rs"
-required-features = ["loaders"]
 
 [dependencies]
 kaniran-core = { path = "../kaniran-core" }
 mimalloc = { workspace = true }
 serde_json = { workspace = true }
-sqlx = { workspace = true }
-tokio = { workspace = true }
 clap = { version = "4", features = ["derive"] }
-rkyv = { workspace = true, optional = true }
-futures-util = { workspace = true, optional = true }

@@ -2,10 +2,10 @@ use super::geo::normalize_geo;
 use super::load::get_words;
 use super::types::{CustomEntry, CustomLoader, Municipality, Ward};
 use super::xml::as_xml;
-use crate::conn::kani_context::KaniranContext;
+use kaniran_core::conn::kani_context::KaniranContext;
 use crate::dict::load::jmdict::add_new_sense;
 use crate::dict::load::jmdict::{load_entry, LoadEntryIfExists, LoadEntrySeq};
-use crate::dict::find_word_info::{match_glosses, MatchValue};
+use kaniran_core::dict::find_word_info::{match_glosses, MatchValue};
 use crate::dict::load::jmdict::next_seq;
 use fancy_regex::Regex;
 
@@ -133,7 +133,7 @@ async fn test_entry_municipality(
         Some(normalize_fn),
         update_gloss.as_ref(),
     )
-    .await?;
+    .map_err(crate::kani_db_to_sqlx)?;
     Ok(map_match_glosses_to_disposition(result))
 }
 
@@ -154,7 +154,7 @@ async fn test_entry_ward(
         Some(normalize_fn),
         None,
     )
-    .await?;
+    .map_err(crate::kani_db_to_sqlx)?;
     // dict-custom.lisp:298-300 (cond ((not seq) (values t nil)) (match-p (values nil seq)) (t (values t seq)))
     Ok(match result {
         None => TestEntryResult::Insert,
@@ -243,7 +243,7 @@ pub async fn update_entry_gloss(
     .bind(&new_gloss)
     .bind(seq)
     .bind(gloss)
-    .execute(&ctx.pool)
+    .execute(ctx.pool.as_ref().expect("postgres pool"))
     .await?;
     Ok(())
 }
