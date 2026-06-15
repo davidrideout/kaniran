@@ -33,6 +33,15 @@ impl KaniPostgresBackend {
         Self { pool, rt }
     }
 
+    /// Drive a future on the pool's runtime. The build-time data loaders
+    /// in `kaniran-loader` are async and must run their `sqlx` queries
+    /// against `pool` on the runtime it was created on; this hands them
+    /// that runtime — the same one the synchronous lookup methods below
+    /// already block on.
+    pub fn block_on<F: std::future::Future>(&self, fut: F) -> F::Output {
+        self.rt.block_on(fut)
+    }
+
     /// `(query-dao 'kanji query)` — `query-kanji-json` (`kanji.lisp:458`);
     /// the caller supplies the full SQL statement. Inherent rather than
     /// part of [`KaniBackend`]: raw SQL cannot be served by other

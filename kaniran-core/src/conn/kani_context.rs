@@ -275,6 +275,56 @@ impl KaniranContext {
         };
         Self::from_url(&url)
     }
+
+    /// Build a pool-only context for the build-time data loaders
+    /// (`kaniran-loader`): connect the Postgres pool — and the runtime it
+    /// lives on — via [`build_backend`], but leave every cache empty.
+    /// [`from_url`](Self::from_url)'s cache populators read dictionary
+    /// tables that are empty on a fresh schema, so they can't run here; a
+    /// load starts from nothing and fills those tables itself.
+    ///
+    /// The loaders only touch [`Self::pool`], and they are async, so drive
+    /// their futures with [`Self::block_on`] — it runs them on the same
+    /// runtime the pool was created on.
+    #[cfg(feature = "postgres")]
+    pub fn pool_only_from_url(url: &str) -> Result<Arc<Self>, Error> {
+        let BuiltBackend { store, pool } = build_backend(url)?;
+        let pool = pool.ok_or_else(|| {
+            Error::Snapshot(format!(
+                "pool_only_from_url is for the build-time loaders and needs a \
+                 postgres:// URL; got `{url}`"
+            ))
+        })?;
+        Ok(Arc::new(Self::from_shared(KaniranShared {
+            pool: Some(pool),
+            store,
+            no_conj_data: Arc::new(HashSet::new()),
+            is_arch: Arc::new(HashSet::new()),
+            counter_cache: Arc::new(CounterCache::new()),
+            suffix_cache: Arc::new(SuffixCache::new()),
+            suffix_class: Arc::new(SuffixClass::new()),
+            reading_cache: Arc::new(new_reading_cache()),
+        })))
+    }
+
+    /// Drive a future on the Postgres pool's runtime. The build-time
+    /// loaders are async and must execute against [`Self::pool`] on the
+    /// runtime it was created on; this forwards to that runtime, mirroring
+    /// how the synchronous lookup facade already blocks on it.
+    ///
+    /// # Panics
+    /// Panics on a non-Postgres backend — the loaders only ever build a
+    /// context with [`pool_only_from_url`](Self::pool_only_from_url).
+    #[cfg(feature = "postgres")]
+    pub fn block_on<F: std::future::Future>(&self, fut: F) -> F::Output {
+        match &self.store {
+            KaniStore::Postgres(backend) => backend.block_on(fut),
+            #[cfg(feature = "rkyv")]
+            KaniStore::Rkyv(_) => {
+                panic!("KaniranContext::block_on requires the Postgres backend (build-time loaders)")
+            }
+        }
+    }
 }
 
 /// Backend plus the optional Postgres pool produced alongside it.

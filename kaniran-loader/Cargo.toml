@@ -25,9 +25,6 @@ clap = { version = "4", features = ["derive"] }
 name = "kaniran-rkyv-dumper"
 path = "src/bin/kaniran_rkyv_dumper.rs"
 
-# full_e2e_load is parked under parked/full_e2e_load.rs (not a built bin):
-# it needs a pool-only KaniranContext with empty caches for a fresh load,
-# which the de-async core no longer exposes (the old pool_only_from_url
-# constructor was dropped, and from_url now runs the cache populators that
-# require an already-populated schema). Re-add this bin once the core
-# offers a build-time pool-only context constructor again.
+[[bin]]
+name = "full_e2e_load"
+path = "src/bin/full_e2e_load.rs"
