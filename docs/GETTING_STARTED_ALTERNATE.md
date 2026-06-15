@@ -4,7 +4,12 @@ This builds a kaniran Postgres database from source dictionary data:
 JMdict (Japanese-English dictionary) and kanjidic2 (kanji database), both
 published by the [Electronic Dictionary Research and Development Group
 (EDRDG)](http://www.edrdg.org/). The kaniran loader parses the raw XML and
-populates every table the segmenter/romanizer reads at runtime.
+populates the dictionary tables.
+
+**Postgres is a build-time dependency only.** kaniran does not connect to a
+database at runtime — it reads from a memory-mapped rkyv archive. The
+database you build here is just the source the archive is dumped from
+(step 4); once the archive exists you don't need Postgres to run kaniran.
 
 If you only want a working database and don't care about rebuilding from
 source, restore ichiran's prebuilt `.pgdump` instead (see the top-level
@@ -13,7 +18,7 @@ source, restore ichiran's prebuilt `.pgdump` instead (see the top-level
 ## Prerequisites
 
 - PostgreSQL (client tools `createdb` / `dropdb` / `psql` on your `PATH`,
-  and a running server you can connect to).
+  and a running server you can connect to) — build-time only, see above.
 - A Rust toolchain (`cargo`), to build the loader.
 - This repository checked out. The custom-data files
   (`kaniran-core/data/sources/{extra.xml,gyoseiku.csv,jichitai.csv}`) ship
