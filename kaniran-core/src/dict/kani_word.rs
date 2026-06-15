@@ -154,5 +154,10 @@ pub enum KaniWordDispatchEnum {
     Kana(KanaText),
     Proxy(ProxyText),
     Compound(CompoundText),
-    Counter(Counter),
+    // Boxed: `Counter` is a ~400-byte enum of counter classes and the
+    // lone size outlier (next variant is 128). Counter words are the
+    // rare path, so the indirection lands off the hot route while every
+    // common-case move of this enum — and lattice-path `Vec`s of it —
+    // stays small.
+    Counter(Box<Counter>),
 }

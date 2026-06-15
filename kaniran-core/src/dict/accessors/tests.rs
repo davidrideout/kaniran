@@ -1193,7 +1193,7 @@ mod word_type {
         // "1" + "人" → "1人" contains kanji, so the word counts as kanji.
         let c = counter("1", "人", None);
         assert_eq!(
-            word_type(&KaniWordDispatchEnum::Counter(c)),
+            word_type(&KaniWordDispatchEnum::Counter(Box::new(c))),
             WordType::Kanji,
         );
     }
@@ -1202,7 +1202,7 @@ mod word_type {
     fn counter_with_only_kana_text() {
         // "1" + "つ" → "1つ"; no kanji.
         let c = counter("1", "つ", None);
-        assert_eq!(word_type(&KaniWordDispatchEnum::Counter(c)), WordType::Kana,);
+        assert_eq!(word_type(&KaniWordDispatchEnum::Counter(Box::new(c))), WordType::Kana,);
     }
 
     #[test]
@@ -1580,7 +1580,7 @@ mod set_word_conjugations {
             allowed: Vec::new(),
             foreign: false,
         });
-        let mut w = KaniWordDispatchEnum::Counter(counter);
+        let mut w = KaniWordDispatchEnum::Counter(Box::new(counter));
         set_word_conjugations(&mut w, Some(WordConjugations::Root));
     }
 }
@@ -1672,7 +1672,7 @@ mod word_conjugations {
             allowed: Vec::new(),
             foreign: false,
         });
-        assert!(word_conjugations(&KaniWordDispatchEnum::Counter(counter)).is_none());
+        assert!(word_conjugations(&KaniWordDispatchEnum::Counter(Box::new(counter))).is_none());
     }
 
     #[test]

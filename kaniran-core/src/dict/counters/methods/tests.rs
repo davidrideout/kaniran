@@ -82,7 +82,7 @@ fn counter_score_short_circuits() {
         Common::Score(7),
         Some(CounterSource::Kana(kana_with_common(Some(99)))),
     );
-    assert_eq!(common(&KaniWordDispatchEnum::Counter(c)), Common::Score(7));
+    assert_eq!(common(&KaniWordDispatchEnum::Counter(Box::new(c))), Common::Score(7));
 }
 
 #[test]
@@ -93,7 +93,7 @@ fn counter_explicit_null_short_circuits() {
         Common::Null,
         Some(CounterSource::Kana(kana_with_common(Some(3)))),
     );
-    assert_eq!(common(&KaniWordDispatchEnum::Counter(c)), Common::Null);
+    assert_eq!(common(&KaniWordDispatchEnum::Counter(Box::new(c))), Common::Null);
 }
 
 #[test]
@@ -102,14 +102,14 @@ fn counter_inherit_recurses_on_source() {
         Common::Inherit,
         Some(CounterSource::Kanji(kanji_with_common(Some(11)))),
     );
-    assert_eq!(common(&KaniWordDispatchEnum::Counter(c)), Common::Score(11));
+    assert_eq!(common(&KaniWordDispatchEnum::Counter(Box::new(c))), Common::Score(11));
 }
 
 #[test]
 fn counter_inherit_no_source_returns_zero() {
     // dict-counters.lisp:75-76 — `(or nil (if nil ... 0))` → 0.
     let c = counter(Common::Inherit, None);
-    assert_eq!(common(&KaniWordDispatchEnum::Counter(c)), Common::Score(0));
+    assert_eq!(common(&KaniWordDispatchEnum::Counter(Box::new(c))), Common::Score(0));
 }
 
 #[test]
@@ -119,7 +119,7 @@ fn counter_inherit_source_with_db_null() {
         Common::Inherit,
         Some(CounterSource::Kana(kana_with_common(None))),
     );
-    assert_eq!(common(&KaniWordDispatchEnum::Counter(c)), Common::Null);
+    assert_eq!(common(&KaniWordDispatchEnum::Counter(Box::new(c))), Common::Null);
 }
 
 #[test]
@@ -232,19 +232,19 @@ fn nokanji_proxy_recurses_through_source_chain() {
 #[test]
 fn counter_without_source_is_false() {
     let c = nokanji_counter_with_source(None);
-    assert_eq!(nokanji(&KaniWordDispatchEnum::Counter(c)), Some(false));
+    assert_eq!(nokanji(&KaniWordDispatchEnum::Counter(Box::new(c))), Some(false));
 }
 
 #[test]
 fn counter_with_kana_source_propagates_flag() {
     let c = nokanji_counter_with_source(Some(CounterSource::Kana(kana_with(true))));
-    assert_eq!(nokanji(&KaniWordDispatchEnum::Counter(c)), Some(true));
+    assert_eq!(nokanji(&KaniWordDispatchEnum::Counter(Box::new(c))), Some(true));
 }
 
 #[test]
 fn counter_with_kanji_source_propagates_flag() {
     let c = nokanji_counter_with_source(Some(CounterSource::Kanji(kanji_with(false))));
-    assert_eq!(nokanji(&KaniWordDispatchEnum::Counter(c)), Some(false));
+    assert_eq!(nokanji(&KaniWordDispatchEnum::Counter(Box::new(c))), Some(false));
 }
 
 // --- seq ---
@@ -338,7 +338,7 @@ fn seq_proxy_recurses_through_source_chain() {
 fn counter_with_source_returns_source_seq() {
     let c = seq_counter_with_source(Some(CounterSource::Kana(seq_kana(2220330))));
     assert_eq!(
-        seq(&KaniWordDispatchEnum::Counter(c)),
+        seq(&KaniWordDispatchEnum::Counter(Box::new(c))),
         Some(WordInfoSeq::Single(2220330)),
     );
 }
@@ -346,7 +346,7 @@ fn counter_with_source_returns_source_seq() {
 #[test]
 fn counter_without_source_returns_none() {
     let c = seq_counter_with_source(None);
-    assert_eq!(seq(&KaniWordDispatchEnum::Counter(c)), None);
+    assert_eq!(seq(&KaniWordDispatchEnum::Counter(Box::new(c))), None);
 }
 
 #[test]
@@ -382,7 +382,7 @@ fn compound_preserves_sourceless_counter_words_as_nil() {
     // contributes a `nil` entry which becomes [`None`] in the Vec.
     let words = vec![
         KaniWordDispatchEnum::Kana(seq_kana(10)),
-        KaniWordDispatchEnum::Counter(seq_counter_with_source(None)),
+        KaniWordDispatchEnum::Counter(Box::new(seq_counter_with_source(None))),
         KaniWordDispatchEnum::Kana(seq_kana(20)),
     ];
     let primary = Box::new(words[0].clone());
@@ -456,7 +456,7 @@ fn source_counter_with_source(source: Option<CounterSource>) -> Counter {
 #[test]
 fn counter_kanji_source() {
     let c = source_counter_with_source(Some(CounterSource::Kanji(source_kanji(42))));
-    match source(&KaniWordDispatchEnum::Counter(c)) {
+    match source(&KaniWordDispatchEnum::Counter(Box::new(c))) {
         Some(SourceRef::CounterKanji(k)) => assert_eq!(k.seq, 42),
         other => panic!("expected CounterKanji, got {:?}", other),
     }
@@ -465,7 +465,7 @@ fn counter_kanji_source() {
 #[test]
 fn counter_kana_source() {
     let c = source_counter_with_source(Some(CounterSource::Kana(source_kana(7))));
-    match source(&KaniWordDispatchEnum::Counter(c)) {
+    match source(&KaniWordDispatchEnum::Counter(Box::new(c))) {
         Some(SourceRef::CounterKana(k)) => assert_eq!(k.seq, 7),
         other => panic!("expected CounterKana, got {:?}", other),
     }
@@ -474,7 +474,7 @@ fn counter_kana_source() {
 #[test]
 fn counter_no_source_returns_none() {
     let c = source_counter_with_source(None);
-    assert!(source(&KaniWordDispatchEnum::Counter(c)).is_none());
+    assert!(source(&KaniWordDispatchEnum::Counter(Box::new(c))).is_none());
 }
 
 #[test]

@@ -1,8 +1,10 @@
-//! Single-thread profiling driver for the e2e cli_full pipeline on the
-//! rkyv backend (MEM_PLAN performance pass). Runs the same JSON
-//! reproduction as `cli_full_test` (`full_json` mirrored from there —
-//! keep in sync) but sequentially on a current-thread runtime, with no
-//! expected-output comparison, under a pprof sampling guard.
+//! Profiling / speed driver for the e2e cli_full pipeline on the rkyv
+//! backend (MEM_PLAN performance pass). Runs the same JSON reproduction
+//! as `cli_full_test` (`full_json` mirrored from there — keep in sync)
+//! with no expected-output comparison, under a pprof sampling guard.
+//! `--concurrency 1` (default) is the documented single-thread baseline;
+//! higher values fan sentences across worker threads to measure engine
+//! throughput scaling without the audit harness's per-row overhead.
 //!
 //! Run with:
 //!   DATABASE_URL=memory://corpus/kaniran_ichiran_latest_2026_06_10.rkyv \
@@ -32,6 +34,7 @@ static GLOBAL: dhat::Alloc = dhat::Alloc;
 
 #[cfg(not(feature = "dhat-heap"))]
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
 use arrow::array::{Array, StringArray};
@@ -65,6 +68,12 @@ struct Args {
     /// view at https://nnethercote.github.io/dh_view/dh_view.html).
     #[arg(long, default_value = "/tmp/cli_full_profile_dhat.json")]
     dhat_out: String,
+    /// Worker threads to fan sentences across (1 = sequential, the
+    /// documented single-thread baseline). Each thread pulls the next
+    /// sentence via a shared atomic counter; the reported rate is the
+    /// aggregate across threads.
+    #[arg(long, default_value_t = 1)]
+    concurrency: usize,
 }
 
 /// Cumulative wall-clock split between the two pipeline halves.
@@ -252,52 +261,98 @@ fn main() {
         .file_name(std::path::PathBuf::from(&args.dhat_out))
         .build();
 
-    let run_start = Instant::now();
-    let mut last_tick = run_start;
-    let mut last_done: usize = 0;
-    let mut split = PhaseSplit::default();
-    let mut errors: usize = 0;
     let total = sentences.len();
-    for (idx, sentence) in sentences.iter().enumerate() {
-        match full_json(&ctx, sentence, &mut split) {
-            Ok(value) => {
-                std::hint::black_box(&value);
-            }
-            Err(err) => {
-                errors += 1;
-                if errors <= 10 {
-                    eprintln!("ERROR [row {}] {:?}: {}", idx + 1, sentence, err);
+    let next = AtomicUsize::new(0);
+    let completed = AtomicUsize::new(0);
+    let errors_atomic = AtomicUsize::new(0);
+    let concurrency = args.concurrency.max(1);
+    eprintln!("running {} sentences across {} thread(s)", total, concurrency);
+
+    let run_start = Instant::now();
+    let split = std::thread::scope(|scope| {
+        // Progress monitor: aggregate rate every ~5s until drained.
+        let monitor = scope.spawn(|| {
+            let mut last_tick = run_start;
+            let mut last_done: usize = 0;
+            loop {
+                std::thread::sleep(Duration::from_millis(500));
+                let done = completed.load(Ordering::Relaxed);
+                let now = Instant::now();
+                if now.duration_since(last_tick).as_secs() >= 5 || done >= total {
+                    let elapsed = now.duration_since(run_start).as_secs_f64();
+                    let recent_rate = (done - last_done) as f64
+                        / now.duration_since(last_tick).as_secs_f64().max(1e-6);
+                    let avg_rate = done as f64 / elapsed.max(1e-6);
+                    let eta = if avg_rate > 0.0 {
+                        ((total - done) as f64 / avg_rate) as u64
+                    } else {
+                        0
+                    };
+                    eprintln!(
+                        "[cli_full_profile] {}/{} ({:.1}%), errors={}, recent {:.1}/s avg {:.1}/s, elapsed {}, eta {}",
+                        done,
+                        total,
+                        100.0 * done as f64 / total.max(1) as f64,
+                        errors_atomic.load(Ordering::Relaxed),
+                        recent_rate,
+                        avg_rate,
+                        fmt_dur(elapsed as u64),
+                        fmt_dur(eta),
+                    );
+                    last_tick = now;
+                    last_done = done;
+                }
+                if done >= total {
+                    break;
                 }
             }
+        });
+
+        // Workers: each pulls the next sentence index until the list is
+        // drained, accumulating its own phase split.
+        let workers: Vec<_> = (0..concurrency)
+            .map(|_| {
+                scope.spawn(|| {
+                    let mut split = PhaseSplit::default();
+                    loop {
+                        let idx = next.fetch_add(1, Ordering::Relaxed);
+                        if idx >= total {
+                            break;
+                        }
+                        match full_json(&ctx, &sentences[idx], &mut split) {
+                            Ok(value) => {
+                                std::hint::black_box(&value);
+                            }
+                            Err(err) => {
+                                let seen = errors_atomic.fetch_add(1, Ordering::Relaxed);
+                                if seen < 10 {
+                                    eprintln!(
+                                        "ERROR [row {}] {:?}: {}",
+                                        idx + 1,
+                                        &sentences[idx],
+                                        err
+                                    );
+                                }
+                            }
+                        }
+                        completed.fetch_add(1, Ordering::Relaxed);
+                    }
+                    split
+                })
+            })
+            .collect();
+
+        let mut total_split = PhaseSplit::default();
+        for worker in workers {
+            let worker_split = worker.join().expect("worker panicked");
+            total_split.romanize += worker_split.romanize;
+            total_split.gloss += worker_split.gloss;
         }
-        let done = idx + 1;
-        let now = Instant::now();
-        if now.duration_since(last_tick).as_secs() >= 5 || done == total {
-            let elapsed = now.duration_since(run_start).as_secs_f64();
-            let recent_rate =
-                (done - last_done) as f64 / now.duration_since(last_tick).as_secs_f64().max(1e-6);
-            let avg_rate = done as f64 / elapsed.max(1e-6);
-            let eta = if avg_rate > 0.0 {
-                ((total - done) as f64 / avg_rate) as u64
-            } else {
-                0
-            };
-            eprintln!(
-                "[cli_full_profile] {}/{} ({:.1}%), errors={}, recent {:.1}/s avg {:.1}/s, elapsed {}, eta {}",
-                done,
-                total,
-                100.0 * done as f64 / total.max(1) as f64,
-                errors,
-                recent_rate,
-                avg_rate,
-                fmt_dur(elapsed as u64),
-                fmt_dur(eta),
-            );
-            last_tick = now;
-            last_done = done;
-        }
-    }
+        monitor.join().expect("monitor panicked");
+        total_split
+    });
     let wall = run_start.elapsed();
+    let errors = errors_atomic.load(Ordering::Relaxed);
 
     #[cfg(feature = "dhat-heap")]
     {
@@ -315,18 +370,23 @@ fn main() {
     }
 
     eprintln!(
-        "\ndone: {} sentences in {:.1}s ({:.1}/s single-thread), errors={}",
+        "\ndone: {} sentences in {:.1}s ({:.1}/s aggregate, {} thread(s)), errors={}",
         total,
         wall.as_secs_f64(),
         total as f64 / wall.as_secs_f64().max(1e-6),
+        concurrency,
         errors,
     );
+    // Phase times are summed across worker threads, so report each as a
+    // share of total measured phase CPU (romanize + gloss) rather than of
+    // wall — that ratio is thread-count-independent (~81/18).
+    let phase_cpu = (split.romanize + split.gloss).as_secs_f64().max(1e-6);
     eprintln!(
-        "phase split: romanize_star_ {:.1}s ({:.1}%), gloss+assembly {:.1}s ({:.1}%), other {:.1}s",
+        "phase split (summed CPU over {} thread(s)): romanize_star_ {:.1}s ({:.1}%), gloss+assembly {:.1}s ({:.1}%)",
+        concurrency,
         split.romanize.as_secs_f64(),
-        100.0 * split.romanize.as_secs_f64() / wall.as_secs_f64().max(1e-6),
+        100.0 * split.romanize.as_secs_f64() / phase_cpu,
         split.gloss.as_secs_f64(),
-        100.0 * split.gloss.as_secs_f64() / wall.as_secs_f64().max(1e-6),
-        (wall.saturating_sub(split.romanize).saturating_sub(split.gloss)).as_secs_f64(),
+        100.0 * split.gloss.as_secs_f64() / phase_cpu,
     );
 }

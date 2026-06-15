@@ -347,7 +347,7 @@ mod word_info_from_segment {
             .into_iter()
             .next()
             .expect("find_counter(5, 個) returned no counters");
-        let word = KaniWordDispatchEnum::Counter(counter);
+        let word = KaniWordDispatchEnum::Counter(Box::new(counter));
         let mut seg = segment(word, 40, 0, 2);
         let wi = word_info_from_segment(&ctx, &mut seg).unwrap();
         assert_eq!(wi.kind, WordInfoType::Kanji);

@@ -508,6 +508,27 @@ pub fn run_async_streaming<F>(expected_fqn: &str, audit_one: F) -> !
 where
     F: Fn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
 {
+    run_async_streaming_impl(expected_fqn, audit_one, true)
+}
+
+/// Speed variant of [`run_async_streaming`] used by `cli_full_test
+/// --skip-verification`. Skips the per-row `result` parse, the `idxs`
+/// capture, and (via the caller's closure) the output comparison, so the
+/// run measures pipeline throughput across worker threads without the
+/// parity overhead: the multi-KB expected-JSON parse plus the two
+/// `normalize` deep clones and the diff. `pass` counts processed rows,
+/// `fail` counts pipeline errors.
+pub fn run_async_streaming_unverified<F>(expected_fqn: &str, run_one: F) -> !
+where
+    F: Fn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
+{
+    run_async_streaming_impl(expected_fqn, run_one, false)
+}
+
+fn run_async_streaming_impl<F>(expected_fqn: &str, audit_one: F, verify: bool) -> !
+where
+    F: Fn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
+{
     let path = parse_path_arg();
     let file = std::fs::File::open(&path)
         .unwrap_or_else(|err| panic!("open {:?}: {}", path, err));
@@ -515,6 +536,9 @@ where
         .unwrap_or_else(|err| panic!("parquet builder {:?}: {}", path, err));
     let total_rows = builder.metadata().file_metadata().num_rows() as usize;
     eprintln!("streaming: {} rows from {:?}", total_rows, path);
+    if !verify {
+        eprintln!("--skip-verification: pipeline-only, no output comparison");
+    }
     let reader = builder.build().expect("build reader");
 
     let ctx = setup_ctx();
@@ -549,7 +573,6 @@ where
         for row_idx in 0..batch.num_rows() {
             row_seq += 1;
             let args_json = args_col.value(row_idx);
-            let result_json = result_col.value(row_idx);
             let args: Vec<Value> = match serde_json::from_str(args_json) {
                 Ok(v) => v,
                 Err(err) => {
@@ -558,15 +581,22 @@ where
                     continue;
                 }
             };
-            let result: Vec<Value> = match serde_json::from_str(result_json) {
-                Ok(v) => v,
-                Err(err) => {
-                    eprintln!("skip row {}: result parse: {}", row_seq, err);
-                    skipped += 1;
-                    continue;
+            // --skip-verification: skip the multi-KB expected `result`
+            // parse and the `idxs` capture; the speed closure uses neither.
+            let (result, idxs): (Vec<Value>, Vec<i64>) = if verify {
+                let result_json = result_col.value(row_idx);
+                match serde_json::from_str(result_json) {
+                    Ok(result) => (result, extract_idxs(&batch, row_idx)),
+                    Err(err) => {
+                        eprintln!("skip row {}: result parse: {}", row_seq, err);
+                        skipped += 1;
+                        continue;
+                    }
                 }
+            } else {
+                (Vec::new(), Vec::new())
             };
-            rows.push(CapturedRow { args, result, idxs: extract_idxs(&batch, row_idx) });
+            rows.push(CapturedRow { args, result, idxs });
         }
 
         let outcomes: Vec<(usize, Result<(), String>)> = if rkyv_parallel {
@@ -1110,7 +1140,7 @@ pub fn parse_captured_word(value: &Value) -> Result<KaniWordDispatchEnum, String
         }
         "COMPOUND-TEXT" => Ok(KaniWordDispatchEnum::Compound(parse_captured_compound_text(value)?)),
         c if c.starts_with("COUNTER-") || c == "NUMBER-TEXT" => {
-            Ok(KaniWordDispatchEnum::Counter(parse_captured_counter(value, c)?))
+            Ok(KaniWordDispatchEnum::Counter(Box::new(parse_captured_counter(value, c)?)))
         }
         other => Err(format!("unknown word class: :{}", other)),
     }

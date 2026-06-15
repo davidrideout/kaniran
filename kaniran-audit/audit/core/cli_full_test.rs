@@ -162,6 +162,25 @@ fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     }
 }
 
+/// `--skip-verification` speed path: run the full pipeline and discard the
+/// output (no expected-JSON parse, no `normalize`, no diff) so the run
+/// measures throughput rather than parity. `black_box` keeps the optimizer
+/// from dropping the work.
+fn audit_one_fast(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+    let text = row
+        .args
+        .first()
+        .and_then(|v| v.as_str())
+        .ok_or("missing sentence arg")?;
+    let value = full_json(ctx, text).map_err(|e| e.to_string())?;
+    std::hint::black_box(&value);
+    Ok(())
+}
+
 fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one);
+    if std::env::args().any(|arg| arg == "--skip-verification") {
+        common::run_async_streaming_unverified(EXPECTED_FQN, audit_one_fast);
+    } else {
+        common::run_async_streaming(EXPECTED_FQN, audit_one);
+    }
 }

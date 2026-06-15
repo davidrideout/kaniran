@@ -185,7 +185,11 @@ pub fn find_word_full(
                     // (subseq word (cdar groups) (length word))
                     let counter_text = subseq_slice(None, word, g_end, Some(word_len));
                     let counters = find_counter(ctx, number, counter_text, None);
-                    out.extend(counters.into_iter().map(KaniWordDispatchEnum::Counter));
+                    out.extend(
+                    counters
+                        .into_iter()
+                        .map(|counter| KaniWordDispatchEnum::Counter(Box::new(counter))),
+                );
                 }
             }
             CounterArg::At(idx) => {
@@ -196,7 +200,11 @@ pub fn find_word_full(
                 // dict.lisp:1067 (:unique (not simple-words))
                 let unique = simple_words_empty;
                 let counters = find_counter(ctx, number, counter_text, Some(unique));
-                out.extend(counters.into_iter().map(KaniWordDispatchEnum::Counter));
+                out.extend(
+                    counters
+                        .into_iter()
+                        .map(|counter| KaniWordDispatchEnum::Counter(Box::new(counter))),
+                );
             }
         }
     }
