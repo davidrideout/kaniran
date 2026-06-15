@@ -22,8 +22,18 @@ source, restore ichiran's prebuilt `.pgdump` instead (see the top-level
 
 ## 1. Get the dictionary data
 
-JMdict and kanjidic2 are updated roughly daily. Download the current
-releases straight from EDRDG.
+JMdict and kanjidic2 are updated roughly daily. The quickest path is the
+helper script, which downloads the current releases from EDRDG and
+decompresses them into `data/` at the repository root:
+
+```sh
+init/fetch_data.sh          # -> data/JMdict_e.xml, data/kanjidic2.xml
+```
+
+Pass `--force` to refresh existing files; set `JMDICT_URL` / `KANJIDIC_URL`
+to pin a specific snapshot. If you ran the script, the data is ready — skip
+the rest of this section and go to step 2. To fetch the files by hand
+instead:
 
 **JMdict (English edition, `JMdict_e`):**
 
@@ -56,9 +66,6 @@ Notes:
   publish date, e.g. `JMdict_e_2026-06-05.xml`. The `Last-Modified`
   header tells you the release date:
   `curl -sI http://ftp.edrdg.org/pub/Nihongo/JMdict_e.gz | grep -i last-modified`.
-- This repo keeps dated snapshots under `bookkeeping/e2e/fixtures/`
-  (e.g. `JMdict_e_2026-06-03.xml`, `kanjidic2_2026-06-03.xml`) — you can
-  load one of those directly instead of downloading.
 
 ### License / attribution
 
@@ -70,7 +77,7 @@ acknowledge EDRDG.
 ## 2. Create the database and apply the schema
 
 The loader empties and repopulates the tables, but it does **not** create
-them — apply `db/schema.sql` to a fresh database first.
+them — apply `init/schema.sql` to a fresh database first.
 
 ```sh
 # from the repository root
@@ -78,7 +85,7 @@ DB=kaniran
 
 dropdb --if-exists "$DB"
 createdb -E UTF8 -T template0 "$DB"
-psql -q -d "$DB" -v ON_ERROR_STOP=1 -f db/schema.sql
+psql -q -d "$DB" -v ON_ERROR_STOP=1 -f init/schema.sql
 ```
 
 ## 3. Run the loader
@@ -87,10 +94,10 @@ One command runs the whole chain — JMdict entries, conjugations, errata +
 custom data, best kanji/kana links, then kanjidic2 and the kanji stats:
 
 ```sh
-cargo run --release -p kaniran-cli --bin full_e2e_load -- \
+cargo run --release -p kaniran-loader --bin full_e2e_load -- \
     --db-url postgres:///kaniran \
-    --jmdict-path   /path/to/JMdict_e.xml \
-    --kanjidic-path /path/to/kanjidic2.xml
+    --jmdict-path   data/JMdict_e.xml \
+    --kanjidic-path data/kanjidic2.xml
 ```
 
 `--db-url` is any libpq URL (`postgres://user:pass@host/db`); the
@@ -110,4 +117,22 @@ What the loader does, in order:
 
 Useful flags: `--skip-kanji` (JMdict only), `--skip-extras` (no errata /
 secondary conjugations). Recovery flags for resuming a crashed load are
-documented in `kaniran-cli/src/bin/full_e2e_load.rs`.
+documented in `kaniran-loader/src/bin/full_e2e_load.rs`.
+
+## 4. Dump the database to an rkyv archive
+
+Once the database is loaded, dump the runtime dictionary tables into a
+single memory-mapped rkyv archive. This is the read-only backend the
+segmenter/romanizer uses at runtime in place of Postgres.
+
+```sh
+cargo run --release -p kaniran-loader --bin kaniran-rkyv-dumper -- \
+    --db-url postgres:///kaniran \
+    --out path/to/dump.rkyv
+```
+
+`--db-url` is the database you just loaded (falls back to `DATABASE_URL`
+if omitted); `--out` is where the archive is written. The dump streams
+every table in physical row order, so the archive reproduces Postgres's
+query orderings exactly. Expect peak memory roughly twice the archive
+size; the on-disk table sizes printed at the start show the magnitude.

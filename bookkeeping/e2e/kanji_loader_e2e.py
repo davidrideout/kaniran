@@ -25,7 +25,7 @@ Provenance / SHAs:
     database_version=2015-076, date_of_creation=2015-03-17
   kanjidic2_2019-03-11.xml / kanjidic2_2026-01-10.xml (kept for re-baselining)
 
-The script drops + creates the test database, applies `db/schema.sql`,
+The script drops + creates the test database, applies `init/schema.sql`,
 optionally copies the JMdict-derived tables (entry, kanji_text,
 kana_text) from the reference DB so load_kanji_stats can run, invokes
 the Rust `e2e_load_kanjidic` binary, then stream-compares the four
@@ -175,7 +175,7 @@ def drop_create(test_db: str) -> None:
 
 
 def apply_schema(test_db: str) -> None:
-    schema_path = REPO_ROOT / "db" / "schema.sql"
+    schema_path = REPO_ROOT / "init" / "schema.sql"
     if not schema_path.exists():
         sys.exit(f"missing schema: {schema_path}")
     run(["psql", "-q", "-d", test_db, "-v", "ON_ERROR_STOP=1", "-f", str(schema_path)])
