@@ -68,6 +68,13 @@ pub fn get_synergies(
     segment_list_left: &KaniLiteSegmentList,
     segment_list_right: &KaniLiteSegmentList,
 ) -> Vec<KaniSegSplitEnum> {
+    // Every synergy in SYNERGY_LIST only fires when the two segment-lists
+    // abut: each one bails unless left.end == right.start. When they don't
+    // touch, the whole list is empty — decide that once here instead of
+    // calling all 17 rules to each rediscover it.
+    if segment_list_left.end != segment_list_right.start {
+        return vec![];
+    }
     let mut out = vec![];
     for synergy_fn in SYNERGY_LIST {
         // dict-grammar.lisp:958-959 (`nconc (funcall fn l r)`)
