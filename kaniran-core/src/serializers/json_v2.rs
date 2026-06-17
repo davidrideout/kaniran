@@ -68,11 +68,30 @@ pub enum Detail {
 }
 
 /// Top-level v2 result: the whole input as one flat ordered `words` array.
+///
+/// `words`/`romanization`/`score` describe the single best segmentation. When
+/// the search kept more than one beam path (`limit > 1` and the input is
+/// genuinely ambiguous), `paths` carries every reading — `paths[0]` is the same
+/// data as the top-level best path, and later entries are the alternatives,
+/// each a full flat word list with its own score and romanization. `paths` is
+/// omitted entirely when only one reading exists.
 #[derive(Debug, Clone, Serialize)]
 struct V2Document {
     text: String,
     romanization: String,
     score: i32,
+    words: Vec<V2Word>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    paths: Option<Vec<V2Path>>,
+}
+
+/// One full segmentation reading: a complete flat word list with its own score
+/// and romanization. Same `words` shape as the top-level document; `paths[0]`
+/// equals the top-level best path.
+#[derive(Debug, Clone, Serialize)]
+struct V2Path {
+    score: i32,
+    romanization: String,
     words: Vec<V2Word>,
 }
 
@@ -82,7 +101,10 @@ struct V2Document {
 /// serialize as `null` when absent (always present in both detail levels);
 /// the three gloss-bearing arrays are `Option`-wrapped and skipped entirely
 /// under [`Detail::Minimal`].
-#[derive(Debug, Clone, Serialize)]
+///
+/// `Default` (all fields empty/`None`/`0`) backs [`V2Builder::gap_word`], which
+/// names only the fields a gap sets and leaves the rest at their defaults.
+#[derive(Debug, Clone, Default, Serialize)]
 struct V2Word {
     text: String,
     reading: String,
@@ -161,9 +183,11 @@ const NO_GETTER: Option<NoGetter> = None;
 
 /// Build the v2 document from a `romanize*` result.
 ///
-/// `text` is the original input (the top-level `text` field). `segments` is
-/// the `romanize*` output; only the best-scoring path of each word segment is
-/// kept. `method` romanizes compound members and alternate readings, whose
+/// `text` is the original input (the top-level `text` field). The top-level
+/// `words`/`score`/`romanization` come from the best path (beam rank 0). When
+/// more than one beam path survives — the search kept several and at least one
+/// word segment has alternatives — every reading is rendered into `paths`.
+/// `method` romanizes compound members and alternate readings, whose
 /// romanizations `romanize*` does not precompute.
 fn to_v2<P>(
     ctx: &KaniranContext,
@@ -177,6 +201,53 @@ fn to_v2<P>(
         method,
         detail,
     };
+
+    // Beam ranks available = the most alternatives any one word segment kept.
+    // The search already caps this at `limit`; Misc gaps add no alternatives.
+    let n_paths = segments
+        .iter()
+        .map(|segment| match segment {
+            RomanizeStarSegment::Word(alternatives) => alternatives.len(),
+            RomanizeStarSegment::Misc(_) => 0,
+        })
+        .max()
+        .unwrap_or(0);
+
+    // Build the best reading once; it always supplies the top-level fields.
+    let best = build_path(&builder, segments, 0)?;
+
+    // Emit `paths` only when the search kept more than one reading. The best
+    // path appears both at top level and as paths[0], so it is cloned once.
+    let paths = if n_paths > 1 {
+        let mut paths = Vec::with_capacity(n_paths);
+        paths.push(best.clone());
+        for rank in 1..n_paths {
+            paths.push(build_path(&builder, segments, rank)?);
+        }
+        Some(paths)
+    } else {
+        None
+    };
+
+    Ok(V2Document {
+        text: text.to_owned(),
+        romanization: best.romanization,
+        score: best.score,
+        words: best.words,
+        paths,
+    })
+}
+
+/// Render one beam path (rank `rank`) across all segments into a flat word
+/// list. Each word segment contributes its `rank`-th alternative, clamped to
+/// its last when it kept fewer (shorter beams reuse their best). Misc gaps pass
+/// through on every path. `compound_id` restarts per path, so ids are
+/// path-local.
+fn build_path<P>(
+    builder: &V2Builder<'_>,
+    segments: &[RomanizeStarSegment<P>],
+    rank: usize,
+) -> Result<V2Path, KaniDbError> {
     let mut words = Vec::new();
     let mut romaji_parts: Vec<String> = Vec::new();
     let mut base = 0usize; // running char offset into the normalized stream
@@ -191,10 +262,11 @@ fn to_v2<P>(
                 base += misc.chars().count();
             }
             RomanizeStarSegment::Word(alternatives) => {
-                // Best path only: the first (top-scored) alternative.
-                let Some((word_list, score)) = alternatives.first() else {
+                if alternatives.is_empty() {
                     continue;
-                };
+                }
+                let index = rank.min(alternatives.len() - 1);
+                let (word_list, score) = &alternatives[index];
                 score_total += *score;
                 let mut chunk_len = 0usize;
                 for (romanized, word_info, _) in word_list {
@@ -213,10 +285,9 @@ fn to_v2<P>(
         }
     }
 
-    Ok(V2Document {
-        text: text.to_owned(),
-        romanization: join_parts(&romaji_parts),
+    Ok(V2Path {
         score: score_total,
+        romanization: join_parts(&romaji_parts),
         words,
     })
 }
@@ -400,19 +471,10 @@ impl V2Builder<'_> {
             romanization: text.to_owned(),
             start: base,
             end: base + len,
-            seq: None,
-            score: 0,
-            pos: None,
             senses: full.then(Vec::new),
-            conjugation: None,
-            base_form: None,
-            base_reading: None,
             conjugations: full.then(Vec::new),
-            suffix: None,
-            counter: None,
-            compound_id: None,
             alternatives: full.then(Vec::new),
-            alt_readings: Vec::new(),
+            ..Default::default()
         }
     }
 
@@ -523,14 +585,7 @@ impl V2Builder<'_> {
                     for chain in deeper {
                         let mut steps = chain.steps;
                         steps.extend(surface_steps.iter().cloned());
-                        out.push(FlatConj {
-                            seq: chain.seq,
-                            steps,
-                            base_form: chain.base_form,
-                            base_reading: chain.base_reading,
-                            reading_matched: chain.reading_matched,
-                            senses: chain.senses,
-                        });
+                        out.push(FlatConj { steps, ..chain });
                     }
                     via_used.push(via);
                 }
@@ -696,4 +751,156 @@ fn strip_braces(field: &str) -> String {
 
 fn strip_value_prefix(value: &str) -> String {
     value.strip_prefix("Value: ").unwrap_or(value).to_owned()
+}
+
+#[cfg(test)]
+mod tests {
+    //! Logic-only tests for the v2 reshaping helpers. None touch a context or
+    //! the database, so they are safe under `cargo test`. Every expected value
+    //! is real pipeline output documented in `docs/v2-api-spec.md`.
+    use super::*;
+    use serde_json::json;
+
+    /// A conjugation step with a form name; `pos` is irrelevant to display.
+    fn step(form: &str, negative: bool, formal: bool) -> V2Step {
+        V2Step {
+            form: form.to_owned(),
+            pos: "v1".to_owned(),
+            negative,
+            formal,
+        }
+    }
+
+    #[test]
+    fn build_display_single_step_is_just_the_form() {
+        // 食べ → "Continuative (~i)" (spec, 食べたくなかった example).
+        let steps = [step("Continuative (~i)", false, false)];
+        assert_eq!(build_display(&steps), "Continuative (~i)");
+    }
+
+    #[test]
+    fn build_display_via_chain_appends_deeper_steps_reversed() {
+        // 食べさせられ: steps run root→surface [Causative-Passive, Continuative],
+        // and display is surface-first, deeper trailing after " via " (spec).
+        let steps = [
+            step("Causative-Passive", false, false),
+            step("Continuative (~i)", false, false),
+        ];
+        assert_eq!(
+            build_display(&steps),
+            "Continuative (~i) via Causative-Passive"
+        );
+    }
+
+    #[test]
+    fn build_display_marks_negative_and_formal_on_the_surface_step() {
+        // たくなかった → "Past (~ta), negative"; いました → "Past (~ta), formal".
+        assert_eq!(
+            build_display(&[step("Past (~ta)", true, false)]),
+            "Past (~ta), negative"
+        );
+        assert_eq!(
+            build_display(&[step("Past (~ta)", false, true)]),
+            "Past (~ta), formal"
+        );
+    }
+
+    #[test]
+    fn build_display_empty_steps_is_empty_string() {
+        assert_eq!(build_display(&[]), "");
+    }
+
+    #[test]
+    fn split_reading_splits_composite_into_kanji_and_kana() {
+        // The conjugation base reading arrives as "食べる 【たべる】".
+        let (base_form, base_reading) = split_reading(Some("食べる 【たべる】".to_owned()));
+        assert_eq!(base_form.as_deref(), Some("食べる"));
+        assert_eq!(base_reading.as_deref(), Some("たべる"));
+    }
+
+    #[test]
+    fn split_reading_kana_only_is_its_own_base_form() {
+        // たい has no kanji head, so it is both the form and the reading.
+        let (base_form, base_reading) = split_reading(Some("たい".to_owned()));
+        assert_eq!(base_form.as_deref(), Some("たい"));
+        assert_eq!(base_reading.as_deref(), Some("たい"));
+    }
+
+    #[test]
+    fn split_reading_none_yields_none_pair() {
+        assert_eq!(split_reading(None), (None, None));
+    }
+
+    #[test]
+    fn strip_marks_drops_zero_width_markers() {
+        // The は particle reading carries a leading zero-width non-joiner; the
+        // こんにちは reading carries one mid-string. v2 readings are clean.
+        assert_eq!(strip_marks("\u{200c}は"), "は");
+        assert_eq!(strip_marks("こんにち\u{200c}は"), "こんにちは");
+    }
+
+    #[test]
+    fn reshape_senses_strips_decoration_and_carries_info_and_field() {
+        // Real 世界 senses: plain entry, then one with {Buddh} field + info note.
+        let input = [
+            json!({ "pos": "[n]", "gloss": "the world; society; the universe" }),
+            json!({
+                "pos": "[n]",
+                "gloss": "realm governed by one Buddha; space",
+                "field": "{Buddh}",
+                "info": "original meaning"
+            }),
+        ];
+        let senses = reshape_senses(&input);
+
+        assert_eq!(senses.len(), 2);
+        assert_eq!(senses[0].pos, "n");
+        assert_eq!(senses[0].gloss, "the world; society; the universe");
+        assert_eq!(senses[0].info, None);
+        assert_eq!(senses[0].field, None);
+
+        assert_eq!(senses[1].pos, "n");
+        assert_eq!(senses[1].field.as_deref(), Some("Buddh"));
+        assert_eq!(senses[1].info.as_deref(), Some("original meaning"));
+    }
+
+    #[test]
+    fn reshape_senses_keeps_multi_tag_pos_intact() {
+        // Only the surrounding brackets are stripped; the comma list stays.
+        let input = [json!({ "pos": "[n,adv]", "gloss": "today; this day" })];
+        assert_eq!(reshape_senses(&input)[0].pos, "n,adv");
+    }
+
+    #[test]
+    fn first_sense_pos_takes_the_first_comma_segment_of_the_first_sense() {
+        let senses = [
+            V2Sense {
+                pos: "n,adv".to_owned(),
+                gloss: "today; this day".to_owned(),
+                info: None,
+                field: None,
+            },
+            V2Sense {
+                pos: "pn".to_owned(),
+                gloss: "she; her".to_owned(),
+                info: None,
+                field: None,
+            },
+        ];
+        assert_eq!(first_sense_pos(&senses).as_deref(), Some("n"));
+        assert_eq!(first_sense_pos(&[]), None);
+    }
+
+    #[test]
+    fn strip_value_prefix_removes_the_counter_value_label() {
+        // v1 counters arrive as "Value: 35"; v2 exposes the bare number.
+        assert_eq!(strip_value_prefix("Value: 35"), "35");
+        assert_eq!(strip_value_prefix("35"), "35");
+    }
+
+    #[test]
+    fn single_seq_only_resolves_a_single_sequence() {
+        assert_eq!(single_seq(&Some(WordInfoSeq::Single(1358280))), Some(1358280));
+        assert_eq!(single_seq(&None), None);
+    }
 }
