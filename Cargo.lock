@@ -1454,13 +1454,13 @@ dependencies = [
  "clap",
  "kaniran-core",
  "mimalloc",
- "serde_json",
 ]
 
 [[package]]
 name = "kaniran-core"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "config",
  "fancy-regex",
  "indexmap",

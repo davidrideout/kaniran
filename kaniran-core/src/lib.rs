@@ -11,3 +11,4 @@ pub mod core;
 pub mod dict;
 pub mod kanji;
 pub mod numbers;
+pub mod serializers;
