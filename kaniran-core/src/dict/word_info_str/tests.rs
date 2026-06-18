@@ -327,6 +327,9 @@ mod word_info_str {
             ..Default::default()
         };
 
+        // Cases B/C feed a conjugated-form entry seq (past of 食べる) that
+        // renumbers per build; resolve it from the stable surface 食べた.
+        let tabeta = crate::test_support::conj_entry_seq("食べた");
         let cases: Vec<(&str, WordInfo, &str)> = vec![
             (
                 "A",
@@ -345,7 +348,7 @@ mod word_info_str {
                     kind: Kanji,
                     text: "食べた".to_string(),
                     kana: single("たべた"),
-                    seq: Some(WordInfoSeq::Single(10092229)),
+                    seq: Some(WordInfoSeq::Single(tabeta)),
                     ..Default::default()
                 },
                 "食べた 【たべた】\n\n[ Conjugation: [v1] Past (~ta) Affirmative Plain\n  食べる 【たべる】 : to eat ]",
@@ -356,7 +359,7 @@ mod word_info_str {
                     kind: Kanji,
                     text: "食べた".to_string(),
                     kana: single("たべた"),
-                    seq: Some(WordInfoSeq::Single(10092229)),
+                    seq: Some(WordInfoSeq::Single(tabeta)),
                     conjugations: Some(WordConjugations::Root),
                     ..Default::default()
                 },
@@ -544,7 +547,9 @@ mod word_info_gloss_json {
             let wis = find_word_info(&ctx, text, None, false).unwrap();
             assert!(!wis.is_empty(), "text={text}");
             let result = word_info_gloss_json(&ctx, &wis[0], false).unwrap();
-            assert_eq!(json(&result), *expected, "text={text}");
+            // 書いた / 食べてる carry synthetic conjugated-entry seqs that
+            // renumber per build; compare ignoring those.
+            crate::test_support::assert_json_seq_agnostic(&result, expected, text);
         }
     }
 
@@ -568,7 +573,9 @@ mod word_info_gloss_json {
             let wis = find_word_info(&ctx, text, None, false).unwrap();
             assert!(!wis.is_empty(), "text={text}");
             let result = word_info_gloss_json(&ctx, &wis[0], true).unwrap();
-            assert_eq!(json(&result), *expected, "text={text}");
+            // 書いた carries a synthetic conjugated-entry seq that renumbers
+            // per build; compare ignoring those.
+            crate::test_support::assert_json_seq_agnostic(&result, expected, text);
         }
     }
 

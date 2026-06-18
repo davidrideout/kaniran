@@ -122,7 +122,10 @@ mod find_substring_words {
         ]
     }
 
-    fn ne_rows() -> Vec<(i32, i32, Option<i32>)> {
+    // The stable (base-seq) rows of the 'ね' bucket. The bucket also holds one
+    // synthetic conjugated-entry row (asserted separately) whose seq renumbers
+    // per build.
+    fn ne_stable_rows() -> Vec<(i32, i32, Option<i32>)> {
         vec![
             (1290020, 0, Some(5)),
             (1307780, 0, Some(0)),
@@ -131,8 +134,25 @@ mod find_substring_words {
             (2836242, 0, None),
             (2841117, 3, None),
             (2859162, 0, Some(0)),
-            (10426293, 0, None),
         ]
+    }
+
+    /// Split a sorted `(seq, ord, common)` bucket into its stable base-seq
+    /// rows (pinned by seq) and the `(ord, common)` of its synthetic
+    /// conjugated-entry rows, whose seqs renumber per build. Both stay sorted.
+    fn stable_and_synthetic(
+        rows: &[(i32, i32, Option<i32>)],
+    ) -> (Vec<(i32, i32, Option<i32>)>, Vec<(i32, Option<i32>)>) {
+        let min = crate::test_support::SYNTHETIC_SEQ_MIN;
+        let stable: Vec<(i32, i32, Option<i32>)> =
+            rows.iter().copied().filter(|(seq, _, _)| *seq < min).collect();
+        let mut synthetic: Vec<(i32, Option<i32>)> = rows
+            .iter()
+            .filter(|(seq, _, _)| *seq >= min)
+            .map(|(_, ord, common)| (*ord, *common))
+            .collect();
+        synthetic.sort();
+        (stable, synthetic)
     }
 
     #[test]
@@ -210,18 +230,14 @@ mod find_substring_words {
             keys_sorted(&h),
             vec!["こが".to_string(), "ね".to_string(), "ねこが".to_string()]
         );
-        assert_eq!(
-            rows_sorted(&h, "こが"),
-            vec![
-                (1265180, 0, None),
-                (1265190, 0, None),
-                (10136364, 0, None),
-                (10276500, 0, None),
-                (12294787, 0, None),
-                (12295833, 0, None),
-            ]
-        );
-        assert_eq!(rows_sorted(&h, "ね"), ne_rows());
+        // こが: two stable base-seq rows plus four synthetic conjugated-entry
+        // rows, all (ord 0, common None).
+        let (koga_stable, koga_synth) = stable_and_synthetic(&rows_sorted(&h, "こが"));
+        assert_eq!(koga_stable, vec![(1265180, 0, None), (1265190, 0, None)]);
+        assert_eq!(koga_synth, vec![(0, None), (0, None), (0, None), (0, None)]);
+        let (ne_stable, ne_synth) = stable_and_synthetic(&rows_sorted(&h, "ね"));
+        assert_eq!(ne_stable, ne_stable_rows());
+        assert_eq!(ne_synth, vec![(0, None)]);
         assert!(rows_sorted(&h, "ねこが").is_empty());
     }
 
@@ -256,7 +272,9 @@ mod find_substring_words {
             vec!["こ".to_string(), "ね".to_string(), "ねこ".to_string()]
         );
         assert_eq!(rows_sorted(&h, "こ"), ko_rows());
-        assert_eq!(rows_sorted(&h, "ね"), ne_rows());
+        let (ne_stable, ne_synth) = stable_and_synthetic(&rows_sorted(&h, "ね"));
+        assert_eq!(ne_stable, ne_stable_rows());
+        assert_eq!(ne_synth, vec![(0, None)]);
         assert_eq!(rows_sorted(&h, "ねこ"), vec![(1467640, 0, Some(7))]);
     }
 

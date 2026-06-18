@@ -15,24 +15,26 @@ mod select_conjs {
     fn select_conjs_nil_conj_ids() {
         let ctx = ctx_from_env();
 
+        // Conj-table ids renumber per build, so pin each result by its stable
+        // shape: row count, the base seq(s) it derives from, and via-presence.
+        let seq_froms = |rows: &[Conjugation]| {
+            let mut out: Vec<i32> = rows.iter().map(|conj| conj.seq_from).collect();
+            out.sort_unstable();
+            out
+        };
+
         let r2028980 = select_conjs(&ctx, 2028980, None).unwrap();
-        let mut ids: Vec<i32> = r2028980.iter().map(|c| c.id).collect();
-        ids.sort_unstable();
-        assert_eq!(ids, vec![2343254]);
+        assert_eq!(r2028980.len(), 1);
         assert_eq!(r2028980[0].seq_from, 2089020);
         assert_eq!(r2028980[0].seq_via, None);
 
         let r1156880 = select_conjs(&ctx, 1156880, None).unwrap();
-        let mut ids: Vec<i32> = r1156880.iter().map(|c| c.id).collect();
-        ids.sort_unstable();
-        assert_eq!(ids, vec![366552, 661748]);
+        assert_eq!(seq_froms(&r1156880), vec![1156870, 1156890]);
         assert!(r1156880.iter().all(|c| c.seq_via.is_none()));
 
         // No via-empty rows, so all rows come back (both via-set).
         let r1257260 = select_conjs(&ctx, 1257260, None).unwrap();
-        let mut ids: Vec<i32> = r1257260.iter().map(|c| c.id).collect();
-        ids.sort_unstable();
-        assert_eq!(ids, vec![1239109, 1239126]);
+        assert_eq!(r1257260.len(), 2);
         assert!(r1257260.iter().all(|c| c.seq_via.is_some()));
     }
 
@@ -52,16 +54,20 @@ mod select_conjs {
     fn select_conjs_explicit_ids() {
         let ctx = ctx_from_env();
 
-        let one = select_conjs(&ctx, 1156880, Some(&WordConjugations::Ids(vec![366552])))
-            
+        // Conj ids renumber per build, so resolve them from stable anchors.
+        let v5m_id = crate::test_support::conj_id_by_pos(1156880, "v5m");
+        let one = select_conjs(&ctx, 1156880, Some(&WordConjugations::Ids(vec![v5m_id])))
+
             .unwrap();
         let ids: Vec<i32> = one.iter().map(|c| c.id).collect();
-        assert_eq!(ids, vec![366552]);
+        assert_eq!(ids, vec![v5m_id]);
+        assert_eq!(one[0].seq_via, None);
 
         // A via-set row is selectable by id even though the unfiltered path
         // would exclude it.
-        let via_row = select_conjs(&ctx, 1156880, Some(&WordConjugations::Ids(vec![705712])))
-            
+        let via_id = crate::test_support::via_set_conj_id(1156880);
+        let via_row = select_conjs(&ctx, 1156880, Some(&WordConjugations::Ids(vec![via_id])))
+
             .unwrap();
         assert_eq!(via_row.len(), 1);
         assert_eq!(via_row[0].seq_via, Some(1156890));
@@ -174,21 +180,24 @@ mod select_conjs_and_props {
         crate::test_support::shared_ctx()
     }
 
-    type FpropRow = (i32, i32, i32, String, Option<bool>, Option<bool>);
-    type ConjRow = (i32, i32, i32, Option<i32>, [i32; 2], Vec<FpropRow>);
+    // Conj/prop ids and the synthetic `seq_via` target renumber per build, so
+    // the projection drops them and keeps the stable shape: the base seq, the
+    // source seq, whether a via is present, the sort key, and each prop's
+    // (conj_type, pos, neg, fml).
+    type FpropRow = (i32, String, Option<bool>, Option<bool>);
+    type ConjRow = (i32, i32, bool, [i32; 2], Vec<FpropRow>);
 
     fn project(rows: &[(Conjugation, Vec<ConjProp>, [i32; 2])]) -> Vec<ConjRow> {
         rows.iter()
             .map(|(conj, fprops, key)| {
                 (
-                    conj.id,
                     conj.seq,
                     conj.seq_from,
-                    conj.seq_via,
+                    conj.seq_via.is_some(),
                     *key,
                     fprops
                         .iter()
-                        .map(|p| (p.id, p.conj_id, p.conj_type, p.pos.clone(), p.neg, p.fml))
+                        .map(|p| (p.conj_type, p.pos.clone(), p.neg, p.fml))
                         .collect(),
                 )
             })
@@ -207,27 +216,18 @@ mod select_conjs_and_props {
             .unwrap();
         let expected: Vec<ConjRow> = vec![
             (
-                661748,
                 1156880,
                 1156890,
-                None,
+                false,
                 [0, 10],
-                vec![(676835, 661748, 13, "v1".to_string(), None, None)],
+                vec![(13, "v1".to_string(), None, None)],
             ),
             (
-                366552,
                 1156880,
                 1156870,
-                None,
+                false,
                 [0, 13],
-                vec![(
-                    374822,
-                    366552,
-                    10,
-                    "v5m".to_string(),
-                    Some(false),
-                    Some(false),
-                )],
+                vec![(10, "v5m".to_string(), Some(false), Some(false))],
             ),
         ];
         assert_eq!(project(&rows), expected);
@@ -244,27 +244,18 @@ mod select_conjs_and_props {
             .unwrap();
         let expected: Vec<ConjRow> = vec![
             (
-                1239109,
                 1257260,
                 1609260,
-                Some(10036077),
+                true,
                 [1, 10],
-                vec![(1254564, 1239109, 13, "v1".to_string(), None, None)],
+                vec![(13, "v1".to_string(), None, None)],
             ),
             (
-                1239126,
                 1257260,
                 1609260,
-                Some(10036081),
+                true,
                 [1, 13],
-                vec![(
-                    1254581,
-                    1239126,
-                    10,
-                    "v5s".to_string(),
-                    Some(false),
-                    Some(false),
-                )],
+                vec![(10, "v5s".to_string(), Some(false), Some(false))],
             ),
         ];
         assert_eq!(project(&rows), expected);
@@ -274,19 +265,18 @@ mod select_conjs_and_props {
     /// dropped exactly when the filter would drop it (text present, not a
     /// rareru form). The sort key is computed from the unfiltered props, so it
     /// stays the same across every text variant.
+    ///
+    /// Postgres-only: the conjugation it exercises (seq 1232500, deriving from
+    /// 2864818) is not present in the rkyv archive's JMdict vintage, so
+    /// `select_conjs_and_props` returns nothing there. The prop-filtering logic
+    /// itself is covered backend-agnostically by the `filter_props` tests.
+    #[cfg(feature = "postgres")]
     #[test]
     fn text_threads_to_filter_props() {
         let ctx = ctx_from_env();
-        let prop = (
-            163127,
-            159588,
-            6,
-            "v1".to_string(),
-            Some(false),
-            Some(false),
-        );
-        let kept: Vec<ConjRow> = vec![(159588, 1232500, 2864818, None, [0, 6], vec![prop.clone()])];
-        let dropped: Vec<ConjRow> = vec![(159588, 1232500, 2864818, None, [0, 6], vec![])];
+        let prop = (6, "v1".to_string(), Some(false), Some(false));
+        let kept: Vec<ConjRow> = vec![(1232500, 2864818, false, [0, 6], vec![prop.clone()])];
+        let dropped: Vec<ConjRow> = vec![(1232500, 2864818, false, [0, 6], vec![])];
 
         let rareru = ["食べる", "見られる"];
         let no_rareru = ["食べる", "飲む"];
@@ -352,7 +342,10 @@ mod print_conj_info {
     #[test]
     fn print_conj_info_fixtures() {
         let ctx = ctx_from_env();
-        let cases: &[(i32, &str)] = &[
+        // 10674648 is a synthetic doubly-conjugated entry (renumbers per
+        // build); its surface くねらせた is stable, so resolve the seq from it.
+        let kuneraseta = crate::test_support::conj_entry_seq("くねらせた");
+        let cases: Vec<(i32, &str)> = vec![
             (
                 1156880,
                 "\n[ Conjugation: [v1] Continuative (~i)\n  慰める 【なぐさめる】 : to comfort; to console; to amuse ]\n[ Conjugation: [v5m] Imperative Affirmative Plain\n  慰む 【なぐさむ】 : to feel comforted; to be in good spirits; to feel better; to forget one's worries ]",
@@ -366,12 +359,12 @@ mod print_conj_info {
                 "\n[ Conjugation: [v1] Continuative (~i)\n --(via)--\n[ Conjugation: [v5r] Causative Affirmative Plain\n  嫌がる 【いやがる】 : to appear uncomfortable (with); to seem to hate; to express dislike ] ]\n[ Conjugation: [v5s] Imperative Affirmative Plain\n --(via)--\n[ Conjugation: [v5r] Causative (~su) Affirmative Plain\n  嫌がる 【いやがる】 : to appear uncomfortable (with); to seem to hate; to express dislike ] ]",
             ),
             (
-                10674648,
+                kuneraseta,
                 "\n[ Conjugation: [v1] Past (~ta) Affirmative Plain\n --(via)--\n[ Conjugation: [v5s] Potential Affirmative Plain\n  くねらす : to wriggle; to twist (one's body); to writhe ]\n[ Conjugation: [v5r] Causative Affirmative Plain\n  くねる : to bend loosely back and forth; to wriggle; to be crooked ] ]",
             ),
             (1358280, ""),
         ];
-        for (seq, expected) in cases {
+        for (seq, expected) in &cases {
             assert_eq!(&render(&ctx, *seq, None), expected, "seq={seq}");
         }
     }
@@ -386,10 +379,11 @@ mod print_conj_info {
             "",
             "conjugations=:root"
         );
+        let v5m_id = crate::test_support::conj_id_by_pos(1156880, "v5m");
         assert_eq!(
-            render(&ctx, 1156880, Some(&WordConjugations::Ids(vec![366552]))),
+            render(&ctx, 1156880, Some(&WordConjugations::Ids(vec![v5m_id]))),
             "\n[ Conjugation: [v5m] Imperative Affirmative Plain\n  慰む 【なぐさむ】 : to feel comforted; to be in good spirits; to feel better; to forget one's worries ]",
-            "conjugations=(366552)"
+            "conjugations=v5m"
         );
     }
 }
@@ -413,6 +407,9 @@ mod conj_info_json_star_ {
     #[test]
     fn via_null_paths() {
         let ctx = ctx_from_env();
+        // The conjugated-entry seq renumbers per build; its surface 尽き果てた
+        // is stable, so resolve the input from it.
+        let seq = crate::test_support::conj_entry_seq("尽き果てた");
         let found = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":true}]"#;
         let unresolved = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":[]}]"#;
         let dropped = "[]";
@@ -468,8 +465,8 @@ mod conj_info_json_star_ {
             },
         ];
         for case in &cases {
-            let result = conj_info_json_star_(&ctx, 10175587, None, case.text, case.has_gloss)
-                
+            let result = conj_info_json_star_(&ctx, seq, None, case.text, case.has_gloss)
+
                 .unwrap();
             assert_eq!(json(&result), case.expected, "case={}", case.label);
         }
@@ -480,11 +477,12 @@ mod conj_info_json_star_ {
     #[test]
     fn via_not_null_recursion() {
         let ctx = ctx_from_env();
+        let seq = crate::test_support::conj_entry_seq("あくどくさせた");
         let expected = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"via":[{"prop":[{"pos":"adj-i","type":"Causative"}],"reading":"悪どい 【あくどい】","gloss":[{"pos":"[adj-i]","gloss":"gaudy; showy; garish; loud"},{"pos":"[adj-i]","gloss":"crooked; vicious; wicked; nasty; unscrupulous; dishonest"}],"readok":true}],"readok":true}]"#;
         for has_gloss in [false, true] {
             let result = conj_info_json_star_(
                 &ctx,
-                10670519,
+                seq,
                 None,
                 FilterPropsText::One("あくどくさせた"),
                 has_gloss,
@@ -515,7 +513,9 @@ mod conj_info_json_star_ {
             .unwrap();
         assert_eq!(json(&result), both_unresolved, "nil text");
 
-        let ids = WordConjugations::Ids(vec![661748]);
+        // Restrict to the v1 Continuative conjugation; its conj id renumbers
+        // per build, so resolve it from the stable pos.
+        let ids = WordConjugations::Ids(vec![crate::test_support::conj_id_by_pos(1156880, "v1")]);
         let result = conj_info_json_star_(
             &ctx,
             1156880,
@@ -523,9 +523,9 @@ mod conj_info_json_star_ {
             FilterPropsText::One("慰め"),
             false,
         )
-        
+
         .unwrap();
-        assert_eq!(json(&result), only_one, "conj-ids 661748");
+        assert_eq!(json(&result), only_one, "conj-ids v1");
     }
 }
 
@@ -547,22 +547,25 @@ mod conj_info_json {
     #[test]
     fn readok_filter_and_fallback() {
         let ctx = ctx_from_env();
+        // The conjugated-entry seq renumbers per build; resolve it from the
+        // stable surface 尽き果てた.
+        let seq = crate::test_support::conj_entry_seq("尽き果てた");
         let found = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":true}]"#;
         let unresolved = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":[]}]"#;
 
         let result = conj_info_json(
             &ctx,
-            10175587,
+            seq,
             None,
             FilterPropsText::One("つきはてた"),
             false,
         )
-        
+
         .unwrap();
         assert_eq!(json(&result), found, "resolved surface");
 
-        let result = conj_info_json(&ctx, 10175587, None, FilterPropsText::None, false)
-            
+        let result = conj_info_json(&ctx, seq, None, FilterPropsText::None, false)
+
             .unwrap();
         assert_eq!(json(&result), unresolved, "nil text → fallback to cij");
 
@@ -570,7 +573,7 @@ mod conj_info_json {
         // result is the empty list.
         let result = conj_info_json(
             &ctx,
-            10175587,
+            seq,
             None,
             FilterPropsText::One("存在しない"),
             true,
@@ -585,10 +588,11 @@ mod conj_info_json {
     #[test]
     fn via_recursion_kept() {
         let ctx = ctx_from_env();
+        let seq = crate::test_support::conj_entry_seq("あくどくさせた");
         let expected = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"via":[{"prop":[{"pos":"adj-i","type":"Causative"}],"reading":"悪どい 【あくどい】","gloss":[{"pos":"[adj-i]","gloss":"gaudy; showy; garish; loud"},{"pos":"[adj-i]","gloss":"crooked; vicious; wicked; nasty; unscrupulous; dishonest"}],"readok":true}],"readok":true}]"#;
         let result = conj_info_json(
             &ctx,
-            10670519,
+            seq,
             None,
             FilterPropsText::One("あくどくさせた"),
             false,

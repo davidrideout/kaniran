@@ -265,14 +265,17 @@ mod find_word_info {
     #[test]
     fn compound_results() {
         let ctx = ctx();
-        // (text, kana, score, [(comp_text, comp_kana, comp_seq, primary)])
+        // (text, kana, score, [(comp_text, comp_kana, comp_base_seq, primary)]).
+        // comp_base_seq is the stable JMdict base: 食べて is a conjugated
+        // entry whose own seq renumbers, so its base 食べる (1358280) is pinned
+        // and checked via `check_seq_or_base`.
         let cases: &[(&str, &str, i32, &[(&str, &str, i32, bool)])] = &[
             (
                 "食べてる",
                 "たべてる",
                 434,
                 &[
-                    ("食べて", "たべて", 10092233, true),
+                    ("食べて", "たべて", 1358280, true),
                     ("いる", "いる", 1577980, false),
                 ],
             ),
@@ -296,20 +299,25 @@ mod find_word_info {
             assert!(wi.true_text.is_none(), "text={text}");
             assert_eq!(wi.start, Some(0), "text={text}");
             assert_eq!(wi.end, Some(text.chars().count()), "text={text}");
-            let expected_seq = WordInfoSeq::Multi(
-                comps
-                    .iter()
-                    .map(|(_, _, s, _)| Some(WordInfoSeq::Single(*s)))
-                    .collect(),
-            );
-            assert_eq!(wi.seq, Some(expected_seq), "text={text}");
+            // wi.seq is a Multi mirroring the components' seqs; each part
+            // resolves to its component's stable base seq.
+            let Some(WordInfoSeq::Multi(seq_parts)) = &wi.seq else {
+                panic!("text={text}: expected Multi seq, got {:?}", wi.seq);
+            };
+            assert_eq!(seq_parts.len(), comps.len(), "text={text}");
+            for (part, (_, _, comp_seq, _)) in seq_parts.iter().zip(comps.iter()) {
+                let Some(WordInfoSeq::Single(part_seq)) = part else {
+                    panic!("text={text}: expected Single seq part, got {part:?}");
+                };
+                crate::test_support::check_seq_or_base(*part_seq, *comp_seq);
+            }
             assert_eq!(wi.components.len(), comps.len(), "text={text}");
             for (comp, (comp_text, comp_kana, comp_seq, primary)) in
                 wi.components.iter().zip(comps.iter())
             {
                 assert_eq!(&comp.text, comp_text, "text={text}");
                 assert_eq!(kana_of(comp), *comp_kana, "text={text}");
-                assert_eq!(single_seq(comp), *comp_seq, "text={text}");
+                crate::test_support::check_seq_or_base(single_seq(comp), *comp_seq);
                 assert_eq!(comp.primary, *primary, "text={text}");
             }
         }
@@ -446,16 +454,17 @@ mod find_word_kana_pattern {
     #[test]
     fn single_row_patterns() {
         let ctx = ctx_from_env();
-        let cases: &[(&str, i32, i32, Option<i32>)] = &[
-            // pattern, seq, id, common
-            ("^ねこ$", 1467640, 54168, Some(7)),
-            ("^きそうてんがい$", 1219430, 28651, Some(26)),
+        // The internal row `id` is an auto-increment surrogate that renumbers
+        // per build, so pin the stable `seq` + `common` instead.
+        let cases: &[(&str, i32, Option<i32>)] = &[
+            // pattern, seq, common
+            ("^ねこ$", 1467640, Some(7)),
+            ("^きそうてんがい$", 1219430, Some(26)),
         ];
-        for (pattern, seq, id, common) in cases {
+        for (pattern, seq, common) in cases {
             let rows = find_word_kana_pattern(&ctx, pattern).unwrap();
             assert_eq!(rows.len(), 1, "pattern={pattern:?}");
             assert_eq!(rows[0].seq, *seq, "pattern={pattern:?}");
-            assert_eq!(rows[0].id, *id, "pattern={pattern:?}");
             assert_eq!(rows[0].common, *common, "pattern={pattern:?}");
         }
     }

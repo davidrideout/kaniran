@@ -749,11 +749,13 @@ mod or_as_hiragana {
             assert_eq!(proxy.text, "アナタ");
             assert_eq!(proxy.kana, "アナタ");
         }
-        let mut sources: Vec<(i32, i32, String)> = proxies
+        // Pin the stable (seq, text); the internal row `id` is an auto-
+        // increment surrogate that renumbers per build.
+        let mut sources: Vec<(i32, String)> = proxies
             .iter()
             .map(|p| match p.source.as_ref() {
-                KaniSimpleTextDispatchEnum::Kana(row) => (row.seq, row.id, row.text.to_string()),
-                KaniSimpleTextDispatchEnum::Kanji(row) => (row.seq, row.id, row.text.to_string()),
+                KaniSimpleTextDispatchEnum::Kana(row) => (row.seq, row.text.to_string()),
+                KaniSimpleTextDispatchEnum::Kanji(row) => (row.seq, row.text.to_string()),
                 KaniSimpleTextDispatchEnum::Proxy(_) => {
                     panic!("REPL pinned source to KANA-TEXT; got nested PROXY-TEXT")
                 }
@@ -763,8 +765,8 @@ mod or_as_hiragana {
         assert_eq!(
             sources,
             vec![
-                (1223615, 29081, "あなた".to_string()),
-                (1483180, 55771, "あなた".to_string()),
+                (1223615, "あなた".to_string()),
+                (1483180, "あなた".to_string()),
             ]
         );
     }

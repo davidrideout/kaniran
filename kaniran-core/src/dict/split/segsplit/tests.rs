@@ -334,7 +334,21 @@ mod get_segsplit {
     #[test]
     fn hagguttari_conj_of_fallback_dispatch() {
         let ctx = ctx_from_env();
-        let mut seg = segment_for_seq(&ctx, "はぐったり", 10494835);
+        // はぐったり surfaces from two synthetic conjugated entries (seqs
+        // renumber per build); the split is registered only for the one whose
+        // base form carries it, so pick the entry get_segsplit resolves via
+        // the conj-of fallback.
+        let seq = crate::test_support::conj_entry_seqs("はぐったり")
+            .into_iter()
+            .find(|&seq| {
+                let mut probe = segment_for_seq(&ctx, "はぐったり", seq);
+                probe.start = 9;
+                probe.end = 14;
+                probe.top = None;
+                get_segsplit(&ctx, &probe).ok().flatten().is_some()
+            })
+            .expect("a はぐったり entry has a registered split");
+        let mut seg = segment_for_seq(&ctx, "はぐったり", seq);
         seg.start = 9;
         seg.end = 14;
         seg.top = None;

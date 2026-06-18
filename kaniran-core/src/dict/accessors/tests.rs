@@ -322,9 +322,12 @@ mod adjoin_word {
     fn around_defaults_text_and_kana_to_concat() {
         // With no explicit text/kana, the compound's text and kana
         // default to the two words' text and kana joined together.
-        // Resolving the kana for a kanji word needs a live database.
+        // Resolving the kana for a kanji word looks it up by seq, so the seq
+        // must be the real 食べ entry — synthetic and renumbering per build,
+        // so resolve it from the stable surface.
         let ctx = ctx_from_env();
-        let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
+        let tabe = crate::test_support::conj_entry_seq("食べ");
+        let w1 = KaniWordDispatchEnum::Kanji(kanji(tabe, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let result = adjoin_word(&ctx, w1, w2, None, None, None, None)
             
