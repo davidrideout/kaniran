@@ -4,9 +4,7 @@ use std::sync::Arc;
 
 // --- to_json ---
 fn to_json_ctx() -> Arc<KaniranContext> {
-    KaniranContext::from_env()
-        
-        .expect("DATABASE_URL / kaniran.toml required")
+    crate::test_support::shared_ctx()
 }
 
 #[cfg(feature = "postgres")]
@@ -58,9 +56,7 @@ fn to_json_fixtures() {
 
 // --- reading_info_json ---
 fn reading_info_json_ctx() -> Arc<KaniranContext> {
-    KaniranContext::from_env()
-        
-        .expect("DATABASE_URL / kaniran.toml required")
+    crate::test_support::shared_ctx()
 }
 
 #[cfg(feature = "postgres")]
@@ -133,9 +129,7 @@ fn reading_info_json_fixtures() {
 
 // --- kanji_info_json ---
 fn kanji_info_json_ctx() -> Arc<KaniranContext> {
-    KaniranContext::from_env()
-        
-        .expect("DATABASE_URL / kaniran.toml required")
+    crate::test_support::shared_ctx()
 }
 
 /// Looks up a kanji by character and serializes it to JSON. Covers a present
@@ -173,9 +167,7 @@ fn kanji_info_json_fixtures() {
 
 // --- kanji_reading_json ---
 fn kanji_reading_json_ctx() -> Arc<KaniranContext> {
-    KaniranContext::from_env()
-        
-        .expect("DATABASE_URL / kaniran.toml required")
+    crate::test_support::shared_ctx()
 }
 
 /// Serializes one kanji-reading match to JSON. A null-grade kanji (唖) keeps
@@ -260,9 +252,7 @@ fn kanji_reading_json_fixtures() {
 
 // --- process_match_json ---
 fn process_match_json_ctx() -> Arc<KaniranContext> {
-    KaniranContext::from_env()
-        
-        .expect("DATABASE_URL / kaniran.toml required")
+    crate::test_support::shared_ctx()
 }
 
 /// Serializes a full match (a sequence of segments) to JSON. Covers: a kanji
@@ -327,9 +317,7 @@ fn process_match_json_fixtures() {
 
 // --- match_readings_json ---
 fn match_readings_json_ctx() -> Arc<KaniranContext> {
-    KaniranContext::from_env()
-        
-        .expect("DATABASE_URL / kaniran.toml required")
+    crate::test_support::shared_ctx()
 }
 
 /// Covers the two `None` short-circuits — no kanji in the word (みず/みず) and a
@@ -380,9 +368,7 @@ fn match_readings_json_fixtures() {
 
 // --- query_kanji_json_macro ---
 fn query_kanji_json_macro_ctx() -> Arc<KaniranContext> {
-    KaniranContext::from_env()
-        
-        .expect("DATABASE_URL / kaniran.toml required")
+    crate::test_support::shared_ctx()
 }
 
 /// A single-row query serializes the kanji and appends caller-supplied extra

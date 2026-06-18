@@ -29,9 +29,7 @@ mod get_segsplit {
     use crate::dict::split::segsplit::*;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// Helper: find the reading for `text` at `seq`, gen-score it, return the segment.

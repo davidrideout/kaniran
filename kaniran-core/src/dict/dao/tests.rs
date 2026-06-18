@@ -2,9 +2,7 @@ mod entry_digest {
     use crate::dict::dao::*;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     #[cfg(feature = "postgres")]

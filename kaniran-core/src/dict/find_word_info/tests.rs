@@ -2,9 +2,7 @@ mod exists_reading {
     use crate::dict::find_word_info::*;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     #[test]
@@ -34,9 +32,7 @@ mod find_word_info {
     use crate::dict::find_word_info::*;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn kana_of(wi: &WordInfo) -> &str {
@@ -353,9 +349,7 @@ mod find_word_info_json {
     use crate::dict::find_word_info::*;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn json(values: &[Value]) -> String {
@@ -411,9 +405,7 @@ mod find_word_kana_pattern {
     use crate::dict::find_word_info::*;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// Each pattern's rows come back ordered by `common`: positive ranks
@@ -467,9 +459,7 @@ mod find_kanji_for_pattern {
     use crate::dict::find_word_info::*;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// For each kana pattern, the kanji forms and the deduplicated kana.
@@ -514,9 +504,7 @@ mod get_glosses {
     // Needs a live database.
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// Glosses for several seqs: outer order is ascending seq; within a
@@ -585,9 +573,7 @@ mod get_candidates {
     // Needs a live database.
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     #[test]
@@ -635,9 +621,7 @@ mod match_glosses {
     // Needs a live database.
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// When all requested words appear in a gloss, returns that seq and a

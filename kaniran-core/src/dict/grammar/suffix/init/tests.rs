@@ -2,9 +2,7 @@ mod get_suffix_description {
     use crate::dict::grammar::suffix::init::*;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// Looks up a description by sequence across all four paths: the

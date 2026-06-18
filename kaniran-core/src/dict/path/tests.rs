@@ -3,9 +3,7 @@ mod find_word_full {
     use crate::dict::text_classes::ScoreMod;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// A single simple kanji word resolves to one kanji-text, with no
@@ -194,9 +192,7 @@ mod join_substring_words_star_ {
     // convention.
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// `(start, end, segment-count)` shape of the result.
@@ -354,9 +350,7 @@ mod join_substring_words {
     // convention.
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// Per segment-list: `(start, end, matches, [scores high-to-low])`.
@@ -493,9 +487,7 @@ mod substring_index {
     // Run with `-- --test-threads=1` per the DB-test convention.
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// Per index entry: `(key, sl.start, sl.end, n_segments)`, sorted by
@@ -1044,9 +1036,7 @@ mod find_best_path {
     // covered by the audit binary at `audit/dict/find_best_path_test.rs`.
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     #[test]

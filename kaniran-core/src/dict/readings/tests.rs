@@ -74,9 +74,7 @@ mod find_substring_words {
     // with `cargo test -- --test-threads=1` per the DB-test convention.
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// A key's bucket as a sorted `(seq, ord, common)` list. Both this
@@ -295,9 +293,7 @@ mod find_words_seqs {
     use crate::dict::readings::*;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn describe(word: &KaniWordDispatchEnum) -> (&'static str, i32, &str) {
@@ -411,9 +407,7 @@ mod word_readings {
     use crate::dict::readings::*;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     #[test]

@@ -3,9 +3,7 @@ mod select_conjs {
     use std::sync::Arc;
 
     fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// With no conjugation filter, prefers the rows whose "via" is empty, and
@@ -173,9 +171,7 @@ mod select_conjs_and_props {
     use std::sync::Arc;
 
     fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     type FpropRow = (i32, i32, i32, String, Option<bool>, Option<bool>);
@@ -331,9 +327,7 @@ mod print_conj_info {
     use std::sync::Arc;
 
     fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn render(
@@ -405,9 +399,7 @@ mod conj_info_json_star_ {
     use std::sync::Arc;
 
     fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn json(values: &[Value]) -> String {
@@ -542,9 +534,7 @@ mod conj_info_json {
     use std::sync::Arc;
 
     fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn json(values: &[Value]) -> String {

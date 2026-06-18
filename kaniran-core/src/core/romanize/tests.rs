@@ -423,9 +423,7 @@ fn romanize_word_info_nil_kana() {
 // These tests hit the database; run with `-- --test-threads=1`.
 
 fn romanize_ctx() -> std::sync::Arc<KaniranContext> {
-    KaniranContext::from_env()
-        
-        .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+    crate::test_support::shared_ctx()
 }
 
 fn romanize_traditional() -> KaniRomanizeMethod<'static> {
@@ -534,9 +532,7 @@ fn romanize_with_info_false_yields_empty_definitions() {
 // These tests hit the database; run with `-- --test-threads=1`.
 
 fn romanize_star_ctx() -> std::sync::Arc<KaniranContext> {
-    KaniranContext::from_env()
-        
-        .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+    crate::test_support::shared_ctx()
 }
 
 fn romanize_star_traditional() -> KaniRomanizeMethod<'static> {

@@ -146,7 +146,7 @@ mod kanji_break_penalty {
     #[test]
     fn no_info_above_cutoff_halves_with_ceiling() {
         // 100 >= cutoff → max(5, ceil(100/2)) = 50
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = kanji_break_penalty(&ctx, &[0], 100, None, "", None, None)
             
             .unwrap();
@@ -156,7 +156,7 @@ mod kanji_break_penalty {
     #[test]
     fn no_info_odd_score_rounds_up() {
         // Same arithmetic; the end branch is unused without posi.
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = kanji_break_penalty(&ctx, &[1], 100, None, "", None, None)
             
             .unwrap();
@@ -165,7 +165,7 @@ mod kanji_break_penalty {
 
     #[test]
     fn no_info_both_branch() {
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = kanji_break_penalty(&ctx, &[0, 5], 100, None, "", None, None)
             
             .unwrap();
@@ -175,7 +175,7 @@ mod kanji_break_penalty {
     #[test]
     fn below_cutoff_returns_unchanged() {
         // A score below the cutoff (5) is returned unchanged.
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = kanji_break_penalty(&ctx, &[0], 4, None, "", None, None)
             
             .unwrap();
@@ -194,7 +194,7 @@ mod kanji_break_penalty {
     fn info_fall_through_penalty() {
         use crate::dict::kani_word::KaniWordDispatchEnum;
         use crate::dict::scoring::calc_score::calc_score;
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let rows: Vec<crate::dict::dao::KanjiText> = tokio::runtime::Runtime::new()
             .expect("tokio runtime")
             .block_on(
@@ -221,7 +221,7 @@ mod kanji_break_penalty {
     fn no_penalty_list_short_circuit() {
         use crate::dict::kani_word::KaniWordDispatchEnum;
         use crate::dict::scoring::calc_score::calc_score;
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let rows: Vec<crate::dict::dao::KanjiText> = tokio::runtime::Runtime::new()
             .expect("tokio runtime")
             .block_on(
@@ -248,7 +248,7 @@ mod kanji_break_penalty {
     fn suki_seq_short_circuit() {
         use crate::dict::kani_word::KaniWordDispatchEnum;
         use crate::dict::scoring::calc_score::calc_score;
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let rows: Vec<crate::dict::dao::KanjiText> = tokio::runtime::Runtime::new()
             .expect("tokio runtime")
             .block_on(
@@ -288,7 +288,6 @@ mod kanji_break_penalty {
 }
 
 mod get_non_arch_posi {
-    use crate::conn::kani_context::KaniranContext;
     use crate::dict::scoring::score::*;
 
     // Each test sorts the result before comparing: the query has no ORDER
@@ -300,14 +299,14 @@ mod get_non_arch_posi {
 
     #[test]
     fn taberu_single_seq() {
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = get_non_arch_posi(&ctx, &[1357400]).expect("query");
         assert_eq!(sorted(got), vec!["v5m".to_string(), "vt".to_string()]);
     }
 
     #[test]
     fn no_particle_seq() {
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = get_non_arch_posi(&ctx, &[2089020]).expect("query");
         assert_eq!(
             sorted(got),
@@ -317,14 +316,14 @@ mod get_non_arch_posi {
 
     #[test]
     fn dummy_seq_1000220() {
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = get_non_arch_posi(&ctx, &[1000220]).expect("query");
         assert_eq!(sorted(got), vec!["adj-na".to_string()]);
     }
 
     #[test]
     fn hon_noun_seq() {
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = get_non_arch_posi(&ctx, &[1522150]).expect("query");
         assert_eq!(
             sorted(got),
@@ -334,14 +333,14 @@ mod get_non_arch_posi {
 
     #[test]
     fn counter_seq_1325880() {
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = get_non_arch_posi(&ctx, &[1325880]).expect("query");
         assert_eq!(sorted(got), vec!["n".to_string()]);
     }
 
     #[test]
     fn two_seqs_union() {
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = get_non_arch_posi(&ctx, &[1357400, 2089020])
             
             .expect("query");
@@ -359,28 +358,28 @@ mod get_non_arch_posi {
 
     #[test]
     fn zo_particle_seq() {
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = get_non_arch_posi(&ctx, &[2029110]).expect("query");
         assert_eq!(sorted(got), vec!["int".to_string(), "prt".to_string()]);
     }
 
     #[test]
     fn unknown_seq_returns_empty() {
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = get_non_arch_posi(&ctx, &[99999999]).expect("query");
         assert!(got.is_empty(), "expected NIL, got {got:?}");
     }
 
     #[test]
     fn empty_seq_set_returns_empty() {
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = get_non_arch_posi(&ctx, &[]).expect("query");
         assert!(got.is_empty(), "expected NIL, got {got:?}");
     }
 
     #[test]
     fn many_seqs_union() {
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = get_non_arch_posi(&ctx, &[1357400, 2089020, 1522150, 1000220])
             
             .expect("query");
@@ -402,7 +401,7 @@ mod get_non_arch_posi {
 
     #[test]
     fn taberu_with_conj_root() {
-        let ctx = KaniranContext::from_env().expect("ctx");
+        let ctx = crate::test_support::shared_ctx();
         let got = get_non_arch_posi(&ctx, &[1357400, 2027820])
             
             .expect("query");
@@ -420,9 +419,7 @@ mod gen_score {
     use crate::dict::scoring::score::{KaniSplitInfo, Segment};
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn first_kana_for(ctx: &KaniranContext, s: &str) -> KaniWordDispatchEnum {

@@ -7,9 +7,7 @@ mod calc_score {
     use crate::dict::text_classes::CompoundText;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn first_word_for(ctx: &KaniranContext, s: &str) -> KaniWordDispatchEnum {

@@ -267,9 +267,7 @@ mod word_info_from_segment {
     // Needs a live Postgres DB.
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn first_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
@@ -417,9 +415,7 @@ mod word_info_from_segment_list {
     // Needs a live Postgres DB.
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn one_kana_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
@@ -582,9 +578,7 @@ mod word_info_from_text {
     // word_info_from_segment_list's tests.
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// "図書館" yields a single KANJI reading.
@@ -708,9 +702,7 @@ mod fill_segment_path {
     // - char-indexed slicing (multibyte chars don't shift offsets)
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn first_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
@@ -1007,9 +999,7 @@ mod word_info_reading {
     use crate::dict::word_info::*;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn wi(kind: WordInfoType, true_text: Option<&str>) -> WordInfo {
@@ -1099,9 +1089,7 @@ mod dict_segment {
     // - all-gap input yields one path with the gap-penalty score
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn texts(word_info_list: &[WordInfo]) -> Vec<String> {
@@ -1180,9 +1168,7 @@ mod simple_segment {
     const GAP: &str = ":GAP";
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     // Gap word-infos map to GAP, others to their text.

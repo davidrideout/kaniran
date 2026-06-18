@@ -23,9 +23,7 @@ mod suffix_tai {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TAI1: `(suffix-tai "食べ" "たい" kf-tai)` → 1 COMPOUND
@@ -179,9 +177,7 @@ mod suffix_ren {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL REN1: `(suffix-ren "食べ" "つつ" kf-ren-tsutsu)` → 1
@@ -329,9 +325,7 @@ mod suffix_ren_ {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL REN-1: `(suffix-ren- "食べ" "がい" kf-ren-minus-gai)` → 1
@@ -446,9 +440,7 @@ mod suffix_neg {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL NEG1: `(suffix-neg "知ら" "なく" kf-neg)` → 1 COMPOUND
@@ -565,9 +557,7 @@ mod te_check {
     use crate::dict::grammar::suffix::rules::*;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(te-check "で")` → NIL. Bare "で" is excluded by the
@@ -672,9 +662,7 @@ mod suffix_te {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TE1: `(suffix-te "食べて" "おる" kf-te-mo)` → 1 COMPOUND
@@ -744,9 +732,7 @@ mod teiru_check {
     use crate::dict::grammar::suffix::rules::*;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(teiru-check "いて")` → NIL. The "いて" guard excludes
@@ -834,9 +820,7 @@ mod suffix_teiru {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TEIRU1: `(suffix-teiru "食べて" "る" kf-teiru-iru)` → 1
@@ -918,9 +902,7 @@ mod suffix_teiru_plus_ {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TEIRU+1: `(suffix-teiru+ "食べて" "いる" kf-teiru-plus-iru)`
@@ -993,9 +975,7 @@ mod suffix_te_plus_space {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TESPACE1: `(suffix-te+space "食べて" "くれる" kf-kureru)` →
@@ -1071,9 +1051,7 @@ mod suffix_kudasai {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL KUDASAI1: `(suffix-kudasai "食べて" "ください" kf-kudasai)`
@@ -1158,9 +1136,7 @@ mod suffix_te_ren {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TEREN1: `(suffix-te-ren "食べて" "やがって" kf-yagatte)` →
@@ -1281,9 +1257,7 @@ mod suffix_teii {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TEII1: `(suffix-teii "食べて" "いい" kf-teii-ii)` → 1
@@ -1397,9 +1371,7 @@ mod suffix_chau {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL CHAU1: `(suffix-chau "食べ" "ちゃう" kf-chau)` → 1 COMPOUND
@@ -1540,9 +1512,7 @@ mod suffix_to {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TO1: `(suffix-to "食べ" "とく" kf-toku)` → 1 COMPOUND
@@ -1696,9 +1666,7 @@ mod suffix_suru {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL T1: `(suffix-suru "区別" "し" kf-suru)` → 1 COMPOUND
@@ -1863,9 +1831,7 @@ mod suffix_sou {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-sou "美味し" "そう" kf-sou)` → 1 COMPOUND
@@ -2057,9 +2023,7 @@ mod suffix_sou_plus_ {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-sou+ "美味し" "そうにない" kf)` → 1 COMPOUND
@@ -2179,9 +2143,7 @@ mod suffix_rou {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL ROU1: `(suffix-rou "食べた" "ろう" kf-rou)` → 1 COMPOUND
@@ -2297,9 +2259,7 @@ mod suffix_adv {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL ADV1: `(suffix-adv "正しく" "なる" kf-adv-naru)` → 1
@@ -2403,9 +2363,7 @@ mod suffix_sugiru {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-sugiru "高" "すぎる" kf)` → 1 COMPOUND
@@ -2608,9 +2566,7 @@ mod suffix_sa {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL SA1: `(suffix-sa "美し" "さ" kf-sa)` → 1 COMPOUND
@@ -2801,9 +2757,7 @@ mod suffix_iadj {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL IADJ1: `(suffix-iadj "悲し" "げ" kf-iadj-ge)` → 1
@@ -2916,9 +2870,7 @@ mod suffix_garu {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-garu "寒" "がる" kf)` → 1 COMPOUND text="寒がる"
@@ -3110,9 +3062,7 @@ mod suffix_ra {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL RA1: `(suffix-ra "我々" "ら" kf-ra)` → 1 COMPOUND
@@ -3312,9 +3262,7 @@ mod suffix_rashii {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-rashii "食べた" "らしい" kf)` → 1 COMPOUND
@@ -3486,9 +3434,7 @@ mod suffix_desu {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-desu "食べない" "です" kf)` → 1 COMPOUND
@@ -3652,9 +3598,7 @@ mod suffix_desho {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-desho "食べない" "でしょう" kf)` → 1 COMPOUND
@@ -3782,9 +3726,7 @@ mod suffix_tosuru {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TOSURU1: `(suffix-tosuru "食べよう" "とする" kf-tosuru)` → 1
@@ -3910,9 +3852,7 @@ mod suffix_kurai {
     }
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL KURAI1: `(suffix-kurai "食べた" "くらい" kf-kurai)` → 1

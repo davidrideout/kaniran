@@ -5,9 +5,7 @@ use super::*;
 // sides by key before comparing.
 
 fn ctx() -> std::sync::Arc<KaniranContext> {
-    KaniranContext::from_env()
-        
-        .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+    crate::test_support::shared_ctx()
 }
 
 fn entry(rtext: &str, rtype: &str, count: i32) -> ((String, String), i32) {

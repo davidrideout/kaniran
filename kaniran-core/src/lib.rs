@@ -12,3 +12,6 @@ pub mod dict;
 pub mod kanji;
 pub mod numbers;
 pub mod serializers;
+
+#[cfg(test)]
+mod test_support;

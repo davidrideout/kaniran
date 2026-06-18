@@ -3,9 +3,7 @@ mod get_senses_raw {
     // Run with `--test-threads=1` (database tests).
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     #[test]
@@ -172,9 +170,7 @@ mod get_senses {
     // Run with `--test-threads=1` (database tests).
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     #[test]
@@ -255,9 +251,7 @@ mod get_senses_str {
     // Run with `--test-threads=1` (database tests).
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     #[test]
@@ -466,9 +460,7 @@ mod match_sense_restrictions {
     use std::sync::Arc;
 
     fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn props_of(ctx: &KaniranContext, seq: i32, ord: i32) -> Vec<(String, Vec<String>)> {
@@ -711,9 +703,7 @@ mod get_senses_json {
     type GetterFut = fn() -> Result<Option<KaniWordDispatchEnum>, crate::conn::KaniDbError>;
 
     fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn json(values: &[Value]) -> String {
@@ -928,9 +918,7 @@ mod short_sense_str {
     use crate::dict::senses::*;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// With no pos given, returns the first sense's gloss. With a pos, returns

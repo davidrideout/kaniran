@@ -3,9 +3,7 @@ mod abbr_nee {
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL NEE1: `(abbr-nee "食べ" "ねえ" nil)` → 1 PROXY
@@ -119,9 +117,7 @@ mod abbr_nx {
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL NX1: `(abbr-nx "知ら" "ず" nil)` → 1 PROXY
@@ -219,9 +215,7 @@ mod abbr_n {
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL N1: `(abbr-n "知ら" "ん" nil)` → 1 PROXY text="知らん"
@@ -314,9 +308,7 @@ mod abbr_nakereba {
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL NAKEREBA1: `(abbr-nakereba "行か" "なきゃ" nil)` → 1 PROXY
@@ -392,9 +384,7 @@ mod abbr_shimasho {
     use crate::dict::grammar::suffix::abbr::*;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL SHIMASHO1: `(abbr-shimasho "勉強" "しましょ" nil)` → 1
@@ -442,9 +432,7 @@ mod abbr_dewanai {
     use crate::dict::grammar::suffix::abbr::*;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL DEWANAI1: `(abbr-dewanai "犬" "じゃない" nil)` → NIL.
@@ -464,9 +452,7 @@ mod abbr_teba {
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TEBA1: `(abbr-teba "立" "ちゃ" nil)` → 1 PROXY
@@ -513,9 +499,7 @@ mod abbr_reba {
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL REBA1: `(abbr-reba "見" "りゃ" nil)` → 1 PROXY
@@ -544,9 +528,7 @@ mod abbr_keba {
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL KEBA1: `(abbr-keba "書" "きゃ" nil)` → 1 PROXY
@@ -575,9 +557,7 @@ mod abbr_geba {
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL GEBA1: `(abbr-geba "泳" "ぎゃ" nil)` → 1 PROXY
@@ -606,9 +586,7 @@ mod abbr_neba {
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL NEBA1: `(abbr-neba "死" "にゃ" nil)` → 1 PROXY
@@ -637,9 +615,7 @@ mod abbr_beba {
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL BEBA1: `(abbr-beba "遊" "びゃ" nil)` → 2 PROXY
@@ -694,9 +670,7 @@ mod abbr_meba {
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL MEBA1: `(abbr-meba "飲" "みゃ" nil)` → 1 PROXY
@@ -725,9 +699,7 @@ mod abbr_seba {
     use crate::dict::kani_word::KaniSimpleTextDispatchEnum;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL SEBA1: `(abbr-seba "話" "しゃ" nil)` → 1 PROXY
@@ -755,9 +727,7 @@ mod abbr_ii {
     use crate::dict::grammar::suffix::abbr::*;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL II1: `(abbr-ii "良" "ええ" nil)` → NIL.

@@ -89,9 +89,7 @@ mod get_suffix_map {
     use crate::dict::grammar::suffix::resolve::*;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(get-suffix-map "")` → empty hash-table. Length-0 input:
@@ -320,9 +318,7 @@ mod get_suffixes {
     use crate::dict::grammar::suffix::resolve::*;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(get-suffixes "")` → `NIL`. Length-0 word: loop range
@@ -452,9 +448,7 @@ mod match_unique {
     use crate::dict::dao::SimpleText;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env (set DATABASE_URL)")
+        crate::test_support::shared_ctx()
     }
 
     #[cfg(feature = "postgres")]
@@ -697,9 +691,7 @@ mod find_word_suffix {
     use crate::dict::grammar::suffix::resolve::*;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(find-word-suffix "勉強する")` upstream returns 1

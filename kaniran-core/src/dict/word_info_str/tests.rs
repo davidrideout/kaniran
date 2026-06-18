@@ -25,9 +25,7 @@ mod reading_str_seq {
     use crate::dict::word_info_str::*;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// Covers a kanji+kana entry, a conjugating kanji+kana verb, two
@@ -57,9 +55,7 @@ mod entry_info_short {
     use crate::dict::word_info_str::*;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// Covers a noun (日本) and a verb (食べる) with no part-of-speech filter,
@@ -92,9 +88,7 @@ mod entry_info_long {
     use crate::dict::word_info_str::*;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// Covers a single-sense noun (reading with 【kanji】), a verb, a
@@ -299,9 +293,7 @@ mod word_info_str {
     use std::sync::Arc;
 
     fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn single(reading: &str) -> Option<WordInfoKana> {
@@ -511,9 +503,7 @@ mod word_info_gloss_json {
     // Needs a live Postgres DB.
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn json(value: &Value) -> String {
@@ -626,9 +616,7 @@ mod get_kanji_words {
     // Needs a live Postgres DB; run single-threaded (`-- --test-threads=1`).
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn row(seq: i32, kanji: &str, kana: &str, common: i32) -> (i32, String, String, i32) {

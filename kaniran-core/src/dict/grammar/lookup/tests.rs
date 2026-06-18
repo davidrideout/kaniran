@@ -2,9 +2,7 @@ mod find_word_with_conj_prop {
     use crate::dict::grammar::lookup::*;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(find-word-with-conj-prop "食べて" (lambda (cd) t))` →
@@ -134,9 +132,7 @@ mod find_word_with_conj_type {
     use crate::dict::grammar::lookup::*;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(find-word-with-conj-type "食べて" 3)` → 1 word
@@ -233,9 +229,7 @@ mod pair_words_by_conj {
     use crate::dict::dao::SimpleText;
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn kana(seq: i32, text: &str, conj_ids: Vec<i32>) -> KaniWordDispatchEnum {
@@ -396,7 +390,7 @@ mod find_word_with_pos {
     /// id=13731, seq=1244250, common=10, best_kana=くべつ.
     #[test]
     fn kanji_single_match() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let rows = find_word_with_pos(&ctx, "区別", &["vs"]).unwrap();
         let kanji = match rows {
             WordWithPosRows::Kanji(v) => v,
@@ -421,7 +415,7 @@ mod find_word_with_pos {
     /// Lisp `:NULL` sentinel maps to Rust `None`).
     #[test]
     fn kana_single_match() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let rows = find_word_with_pos(&ctx, "ジョギング", &["vs"])
             
             .unwrap();
@@ -446,7 +440,7 @@ mod find_word_with_pos {
     /// `(find-word-with-pos "青空" "vs")` → 0 rows.
     #[test]
     fn kanji_no_match() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let rows = find_word_with_pos(&ctx, "青空", &["vs"]).unwrap();
         match rows {
             WordWithPosRows::Kanji(v) => assert!(v.is_empty()),
@@ -458,7 +452,7 @@ mod find_word_with_pos {
     /// 1 KANJI-TEXT row id=31416, seq=1383240.
     #[test]
     fn kanji_adj_i_match() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let rows = find_word_with_pos(&ctx, "赤い", &["adj-i"]).unwrap();
         let kanji = match rows {
             WordWithPosRows::Kanji(v) => v,
@@ -475,7 +469,7 @@ mod find_word_with_pos {
     /// 1 KANJI-TEXT row id=17991, seq=1277450.
     #[test]
     fn kanji_adj_na_match() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let rows = find_word_with_pos(&ctx, "好き", &["adj-na"]).unwrap();
         let kanji = match rows {
             WordWithPosRows::Kanji(v) => v,
@@ -494,7 +488,7 @@ mod find_word_with_pos {
     /// by the SQL (no ORDER BY upstream), so sort before comparison.
     #[test]
     fn kanji_pn_thirteen_rows() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let rows = find_word_with_pos(&ctx, "私", &["pn"]).unwrap();
         let kanji = match rows {
             WordWithPosRows::Kanji(v) => v,
@@ -528,7 +522,7 @@ mod find_word_with_pos {
     /// REPL: `(find-word-with-pos "nonsense" "vs")` → 0 rows.
     #[test]
     fn ascii_kanji_no_match() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let rows = find_word_with_pos(&ctx, "nonsense", &["vs"]).unwrap();
         match rows {
             WordWithPosRows::Kanji(v) => assert!(v.is_empty()),
@@ -541,7 +535,7 @@ mod find_word_with_pos {
     /// id=28271, seq=1358280 (matches the `v1` pos).
     #[test]
     fn multi_pos_match() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let rows = find_word_with_pos(&ctx, "食べる", &["v1", "vs"])
             
             .unwrap();
@@ -561,7 +555,7 @@ mod find_word_with_pos {
     /// 1 KANA-TEXT row id=22268, seq=1157170.
     #[test]
     fn kana_multi_pos_match() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let rows = find_word_with_pos(&ctx, "する", &["vs-i", "vs-s"])
             
             .unwrap();
@@ -582,7 +576,7 @@ mod find_word_with_pos {
     /// KANA-TEXT rows. Pinned `(seq, id)` set; sort before comparison.
     #[test]
     fn kana_three_pos_twentysix_rows() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let rows = find_word_with_pos(&ctx, "そう", &["adv", "n", "aux-v"])
             
             .unwrap();
@@ -648,7 +642,7 @@ mod or_as_hiragana {
     /// variant to displace it).
     #[test]
     fn kanji_direct_pn_thirteen_rows() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let posi = ["pn"];
         let finder = make_pos_finder(&ctx, &posi);
         let result = or_as_hiragana(&ctx, "私", finder).unwrap();
@@ -687,7 +681,7 @@ mod or_as_hiragana {
     /// 1 KANA-TEXT row id=9654 seq=1066360.
     #[test]
     fn katakana_direct_vs_match() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let posi = ["vs"];
         let finder = make_pos_finder(&ctx, &posi);
         let result = or_as_hiragana(&ctx, "ジョギング", finder).unwrap();
@@ -718,7 +712,7 @@ mod or_as_hiragana {
     /// "pn")` → 1 KANA-TEXT row id=38072 seq=1311110.
     #[test]
     fn hiragana_direct_pn_match() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let posi = ["pn"];
         let finder = make_pos_finder(&ctx, &posi);
         let result = or_as_hiragana(&ctx, "わたし", finder).unwrap();
@@ -752,7 +746,7 @@ mod or_as_hiragana {
     /// (ids 29081 / 55771, seqs 1223615 / 1483180).
     #[test]
     fn katakana_hiragana_fallback_two_proxies() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let posi = ["pn"];
         let finder = make_pos_finder(&ctx, &posi);
         let result = or_as_hiragana(&ctx, "アナタ", finder).unwrap();
@@ -791,7 +785,7 @@ mod or_as_hiragana {
     /// "コノ" or its hiragana form "この" with the "pn" pos tag).
     #[test]
     fn katakana_both_empty_yields_none() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let posi = ["pn"];
         let finder = make_pos_finder(&ctx, &posi);
         let result = or_as_hiragana(&ctx, "コノ", finder).unwrap();
@@ -805,7 +799,7 @@ mod or_as_hiragana {
     /// `(or-as-hiragana 'find-word-with-pos "青空" "vs")` → NIL.
     #[test]
     fn kanji_no_match_yields_none() {
-        let ctx = KaniranContext::from_env().unwrap();
+        let ctx = crate::test_support::shared_ctx();
         let posi = ["vs"];
         let finder = make_pos_finder(&ctx, &posi);
         let result = or_as_hiragana(&ctx, "青空", finder).unwrap();
@@ -817,9 +811,7 @@ mod find_word_with_suffix {
     use crate::dict::grammar::lookup::*;
 
     fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(find-word-with-suffix "我々ら" :ra)` → 1 compound

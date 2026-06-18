@@ -359,9 +359,7 @@ fn romaji_kana_fixtures() {
 
 // --- romaji_suggest ---
 fn ctx() -> Arc<KaniranContext> {
-    KaniranContext::from_env()
-        
-        .expect("DATABASE_URL / kaniran.toml required")
+    crate::test_support::shared_ctx()
 }
 
 /// Full-JSON suggestions for words whose matched-kanji order is

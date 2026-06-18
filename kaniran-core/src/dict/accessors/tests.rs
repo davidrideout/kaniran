@@ -39,9 +39,7 @@ mod adjoin_word {
     // covered separately below.
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     // ----- (simple-text, simple-text) primary method -----
@@ -905,9 +903,7 @@ mod reading_str {
     use crate::dict::readings::{find_word, FindWordRows};
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn first_simple_text(ctx: &KaniranContext, word: &str) -> KaniSimpleTextDispatchEnum {
@@ -1595,9 +1591,7 @@ mod word_conjugations {
     use crate::dict::text_classes::{CompoundText, ScoreMod};
 
     fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+        crate::test_support::shared_ctx()
     }
 
     fn kana_with_conj(seq: i32, conj: Option<WordConjugations>) -> KanaText {
