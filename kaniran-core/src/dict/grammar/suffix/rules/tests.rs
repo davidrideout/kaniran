@@ -43,7 +43,7 @@ mod suffix_tai {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べ");
-                assert_eq!(k.seq, 10092273);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -96,7 +96,7 @@ mod suffix_tai {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "飲み");
-                assert_eq!(k.seq, 10665871);
+                crate::test_support::check_base_seqs(k.seq, &[1169870]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -148,7 +148,7 @@ mod suffix_tai {
             })
             .collect();
         seqs.sort();
-        assert_eq!(seqs, vec![10433818, 10577483, 10665871]);
+        crate::test_support::check_base_seq_set(&seqs, &[1169870, 2584070, 2841855]);
     }
 }
 
@@ -198,7 +198,7 @@ mod suffix_ren {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べ");
-                assert_eq!(k.seq, 10092273);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -261,10 +261,7 @@ mod suffix_ren {
             })
             .collect();
         seqs.sort();
-        assert_eq!(
-            seqs,
-            vec![2258170, 10033674, 10128912, 10303160, 10362338, 10423311]
-        );
+        crate::test_support::check_base_seq_set(&seqs, &[1322180, 1577980, 1587780, 2729170, 2851105, 2851106]);
     }
 
     /// REPL REN4: `(suffix-ren "あり" "つつ" kf-ren-tsutsu)` → 1
@@ -345,7 +342,7 @@ mod suffix_ren_ {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べ");
-                assert_eq!(k.seq, 10092273);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -408,10 +405,7 @@ mod suffix_ren_ {
             })
             .collect();
         seqs.sort();
-        assert_eq!(
-            seqs,
-            vec![2258170, 10033674, 10128912, 10303160, 10362338, 10423311]
-        );
+        crate::test_support::check_base_seq_set(&seqs, &[1322180, 1577980, 1587780, 2729170, 2851105, 2851106]);
     }
 }
 
@@ -462,7 +456,7 @@ mod suffix_neg {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "知ら");
-                assert_eq!(k.seq, 10106011);
+                crate::test_support::check_base_seqs(k.seq, &[1420470]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -496,7 +490,7 @@ mod suffix_neg {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べ");
-                assert_eq!(k.seq, 10092273);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -538,7 +532,7 @@ mod suffix_neg {
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
                 assert_eq!(k.text, "しら");
-                assert_eq!(k.seq, 10106011);
+                crate::test_support::check_base_seqs(k.seq, &[1420470]);
             }
             other => panic!("expected Kana primary, got {:?}", other),
         }
@@ -610,12 +604,16 @@ mod te_check {
             panic!("expected KANJI-TEXT, got {:?}", r[0]);
         };
         assert_eq!(k.text, "食べて");
-        assert_eq!(k.seq, 10092233);
-        assert_eq!(
-            k.state.conjugations,
-            Some(crate::dict::dao::WordConjugations::Ids(vec![
-                92707
-            ]))
+        crate::test_support::check_base_seqs(k.seq, &[1358280]);
+        // One conjugation row (the -te form of 食べる); its id is a
+        // build-specific serial, so assert the shape, not the number.
+        assert!(
+            matches!(
+                &k.state.conjugations,
+                Some(crate::dict::dao::WordConjugations::Ids(ids)) if ids.len() == 1
+            ),
+            "expected one conjugation id, got {:?}",
+            k.state.conjugations
         );
     }
 
@@ -683,7 +681,7 @@ mod suffix_te {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -771,7 +769,7 @@ mod teiru_check {
         let crate::dict::kani_word::KaniWordDispatchEnum::Kanji(k) = &r[0] else {
             panic!("expected KANJI-TEXT");
         };
-        assert_eq!(k.seq, 10092233);
+        crate::test_support::check_base_seqs(k.seq, &[1358280]);
     }
 
     /// REPL: `(teiru-check "見て")` → 1 word.
@@ -840,7 +838,7 @@ mod suffix_teiru {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -924,7 +922,7 @@ mod suffix_teiru_plus_ {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -998,7 +996,7 @@ mod suffix_te_plus_space {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -1074,7 +1072,7 @@ mod suffix_kudasai {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -1159,7 +1157,7 @@ mod suffix_te_ren {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -1192,7 +1190,7 @@ mod suffix_te_ren {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べ");
-                assert_eq!(k.seq, 10092273);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -1277,7 +1275,7 @@ mod suffix_teii {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -1391,8 +1389,7 @@ mod suffix_chau {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 411243);
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
                 assert_eq!(k.text, "食べて");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -1424,8 +1421,7 @@ mod suffix_chau {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 431719);
-                assert_eq!(k.seq, 10102130);
+                crate::test_support::check_base_seqs(k.seq, &[1456360]);
                 assert_eq!(k.text, "読んで");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -1433,7 +1429,7 @@ mod suffix_chau {
         // adjoin_word puts word1 at words[0] (dict.lisp:644 — `(list word1 word2)`).
         assert_eq!(c.words.len(), 2);
         match &c.words[0] {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.id, 431719),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1456360]),
             other => panic!("expected Kanji words[0] (primary), got {:?}", other),
         }
         match &c.words[1] {
@@ -1532,8 +1528,7 @@ mod suffix_to {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 411243);
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
                 assert_eq!(k.text, "食べて");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -1565,8 +1560,7 @@ mod suffix_to {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 431719);
-                assert_eq!(k.seq, 10102130);
+                crate::test_support::check_base_seqs(k.seq, &[1456360]);
                 assert_eq!(k.text, "読んで");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -1574,7 +1568,7 @@ mod suffix_to {
         // adjoin_word puts word1 at words[0] (dict.lisp:644 — `(list word1 word2)`).
         assert_eq!(c.words.len(), 2);
         match &c.words[0] {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.id, 431719),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1456360]),
             other => panic!("expected Kanji words[0] (primary), got {:?}", other),
         }
         match &c.words[1] {
@@ -1625,18 +1619,14 @@ mod suffix_to {
                 other => panic!("expected Kana word2 (kf), got {:?}", other),
             }
         }
-        let mut got: Vec<(i32, i32)> = result
+        let seqs: Vec<i32> = result
             .iter()
             .map(|c| match &*c.primary {
-                KaniWordDispatchEnum::Kana(k) => (k.id, k.seq),
+                KaniWordDispatchEnum::Kana(k) => k.seq,
                 _ => unreachable!(),
             })
             .collect();
-        got.sort();
-        assert_eq!(
-            got,
-            vec![(773379, 10433774), (945133, 10577439), (1050587, 10665827)]
-        );
+        crate::test_support::check_base_seq_set(&seqs, &[1169870, 2584070, 2841855]);
     }
 }
 
@@ -1851,8 +1841,7 @@ mod suffix_sou {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 1433173);
-                assert_eq!(k.seq, 10597564);
+                crate::test_support::check_base_seqs(k.seq, &[1486650]);
                 assert_eq!(k.text, "美味し");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -1877,7 +1866,7 @@ mod suffix_sou {
         assert!(c.score_base.is_none());
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10230657),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1340450]),
             other => panic!("expected Kanji primary, got {:?}", other),
         }
     }
@@ -1904,8 +1893,7 @@ mod suffix_sou {
                 _ => -1,
             })
             .collect();
-        assert!(seqs.contains(&2858914));
-        assert!(seqs.contains(&10419670));
+        crate::test_support::check_base_seq_set(&seqs, &[1365850, 1609860]);
     }
 
     /// REPL: `(suffix-sou "い" "そう" kf-sou)` → 6 COMPOUNDs
@@ -1959,7 +1947,6 @@ mod suffix_sou {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
-                assert_eq!(k.id, 1082);
                 assert_eq!(k.seq, 1008190);
                 assert_eq!(k.text, "つまらない");
             }
@@ -1985,8 +1972,7 @@ mod suffix_sou {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 411231);
-                assert_eq!(k.seq, 10092227);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
                 assert_eq!(k.text, "食べない");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -2046,8 +2032,7 @@ mod suffix_sou_plus_ {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 1433173);
-                assert_eq!(k.seq, 10597564);
+                crate::test_support::check_base_seqs(k.seq, &[1486650]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -2072,7 +2057,7 @@ mod suffix_sou_plus_ {
         assert!(c.score_base.is_none());
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10230657),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1340450]),
             other => panic!("expected Kanji primary, got {:?}", other),
         }
     }
@@ -2097,7 +2082,6 @@ mod suffix_sou_plus_ {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
-                assert_eq!(k.id, 1082);
                 assert_eq!(k.seq, 1008190);
             }
             other => panic!("expected Kana primary, got {:?}", other),
@@ -2164,7 +2148,7 @@ mod suffix_rou {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べた");
-                assert_eq!(k.seq, 10092229);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -2207,7 +2191,7 @@ mod suffix_rou {
             })
             .collect();
         seqs.sort();
-        assert_eq!(seqs, vec![10076179, 10470716, 10517041, 10648797]);
+        crate::test_support::check_base_seq_set(&seqs, &[1296400, 1518450, 1529520, 2861097]);
     }
 
     /// REPL ROU3: `(suffix-rou "食べる" "ろう" kf-rou)` → NIL. 食べる is
@@ -2310,7 +2294,7 @@ mod suffix_adv {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "大きく");
-                assert_eq!(k.seq, 10563301);
+                crate::test_support::check_base_seqs(k.seq, &[1588880]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -2385,7 +2369,6 @@ mod suffix_sugiru {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 18690);
                 assert_eq!(k.seq, 1283190);
                 assert_eq!(k.text, "高い");
             }
@@ -2413,7 +2396,6 @@ mod suffix_sugiru {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
-                assert_eq!(k.id, 1082);
                 assert_eq!(k.seq, 1008190);
             }
             other => panic!("expected Kana primary, got {:?}", other),
@@ -2465,7 +2447,6 @@ mod suffix_sugiru {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 49726);
                 assert_eq!(k.seq, 1529520);
                 assert_eq!(k.text, "無い");
             }
@@ -2511,7 +2492,6 @@ mod suffix_sugiru {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 44494);
                 assert_eq!(k.seq, 1486650);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -2586,8 +2566,7 @@ mod suffix_sa {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 263320);
-                assert_eq!(k.seq, 10017294);
+                crate::test_support::check_base_seqs(k.seq, &[1486360]);
                 assert_eq!(k.text, "美し");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -2619,7 +2598,6 @@ mod suffix_sa {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 31238);
                 assert_eq!(k.seq, 1381820);
                 assert_eq!(k.text, "静か");
             }
@@ -2628,7 +2606,7 @@ mod suffix_sa {
         // adjoin_word puts word1 at words[0] (dict.lisp:644 — `(list word1 word2)`).
         assert_eq!(c.words.len(), 2);
         match &c.words[0] {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.id, 31238),
+            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 1381820),
             other => panic!("expected Kanji words[0] (primary), got {:?}", other),
         }
         match &c.words[1] {
@@ -2670,14 +2648,6 @@ mod suffix_sa {
             }
         }
         // nconc order: arm-A (conj-type 51) first, arm-B (adj-na) second.
-        let ids: Vec<i32> = result
-            .iter()
-            .map(|c| match &*c.primary {
-                KaniWordDispatchEnum::Kana(k) => k.id,
-                _ => unreachable!(),
-            })
-            .collect();
-        assert_eq!(ids, vec![1018986, 53460]);
         let seqs: Vec<i32> = result
             .iter()
             .map(|c| match &*c.primary {
@@ -2685,7 +2655,7 @@ mod suffix_sa {
                 _ => unreachable!(),
             })
             .collect();
-        assert_eq!(seqs, vec![10639355, 1460730]);
+        crate::test_support::check_base_seq_set(&seqs, &[1605630]);
     }
 
     /// REPL SA4: `(suffix-sa "食べる" "さ" kf-sa)` → NIL. 食べる is a
@@ -2716,8 +2686,7 @@ mod suffix_sa {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 1422119);
-                assert_eq!(k.seq, 10591797);
+                crate::test_support::check_base_seqs(k.seq, &[1283190]);
                 assert_eq!(k.text, "高");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -2778,7 +2747,7 @@ mod suffix_iadj {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "悲し");
-                assert_eq!(k.seq, 10101813);
+                crate::test_support::check_base_seqs(k.seq, &[1483190]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -2807,7 +2776,7 @@ mod suffix_iadj {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "嬉し");
-                assert_eq!(k.seq, 10215030);
+                crate::test_support::check_base_seqs(k.seq, &[1219510]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -2829,7 +2798,7 @@ mod suffix_iadj {
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
                 assert_eq!(k.text, "やわらか");
-                assert_eq!(k.seq, 10639355);
+                crate::test_support::check_base_seqs(k.seq, &[1605630]);
             }
             other => panic!("expected Kana primary, got {:?}", other),
         }
@@ -2890,7 +2859,6 @@ mod suffix_garu {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 148342);
                 assert_eq!(k.seq, 2453760);
                 assert_eq!(k.text, "寒");
             }
@@ -2934,7 +2902,7 @@ mod suffix_garu {
         assert!(c.score_base.is_none());
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10139646),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1547330]),
             other => panic!("expected Kanji primary, got {:?}", other),
         }
     }
@@ -2954,7 +2922,7 @@ mod suffix_garu {
         assert!(c.score_base.is_none());
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10420123),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1278410]),
             other => panic!("expected Kanji primary, got {:?}", other),
         }
     }
@@ -3015,7 +2983,7 @@ mod suffix_garu {
         }
         assert_eq!(c.words.len(), 3);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10349442),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1578850]),
             other => panic!(
                 "expected Kanji primary (inner suffix-sou primary), got {:?}",
                 other
@@ -3284,8 +3252,7 @@ mod suffix_rashii {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 411235);
-                assert_eq!(k.seq, 10092229);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
                 assert_eq!(k.text, "食べた");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -3293,8 +3260,7 @@ mod suffix_rashii {
         let score_base = c.score_base.as_ref().expect("score-base must be set");
         match score_base.as_ref() {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 411321);
-                assert_eq!(k.seq, 10092265);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
                 assert_eq!(k.text, "食べたら");
             }
             other => panic!("expected Kanji score-base (食べたら), got {:?}", other),
@@ -3317,12 +3283,12 @@ mod suffix_rashii {
         assert!(matches!(c.score_mod, ScoreMod::Single(3)));
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10221106),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1547720]),
             other => panic!("expected Kanji primary, got {:?}", other),
         }
         let sb = c.score_base.as_ref().expect("score-base set");
         match sb.as_ref() {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10221142),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1547720]),
             other => panic!("expected Kanji score-base (来たら), got {:?}", other),
         }
     }
@@ -3340,13 +3306,7 @@ mod suffix_rashii {
         let kf = kf_rashii();
         let result = suffix_rashii(&ctx, "行った", "らしい", &kf).unwrap();
         assert_eq!(result.len(), 3);
-        let expected_pairs: std::collections::HashMap<i32, i32> = [
-            (10402883, 10402923),
-            (10349394, 10349434),
-            (10087633, 10087672),
-        ]
-        .into_iter()
-        .collect();
+        let mut primaries: Vec<i32> = Vec::new();
         for c in &result {
             assert_eq!(c.text, "行ったらしい");
             assert!(matches!(c.score_mod, ScoreMod::Single(3)));
@@ -3355,19 +3315,22 @@ mod suffix_rashii {
                 KaniWordDispatchEnum::Kanji(k) => k.seq,
                 other => panic!("expected Kanji primary, got {:?}", other),
             };
-            let expected_score_base_seq = expected_pairs
-                .get(&primary_seq)
-                .unwrap_or_else(|| panic!("unexpected primary seq {}", primary_seq));
             let sb = c.score_base.as_ref().expect("score-base set");
-            match sb.as_ref() {
-                KaniWordDispatchEnum::Kanji(k) => assert_eq!(
-                    k.seq, *expected_score_base_seq,
-                    "primary {} should pair with score-base {}",
-                    primary_seq, expected_score_base_seq
-                ),
+            let sb_seq = match sb.as_ref() {
+                KaniWordDispatchEnum::Kanji(k) => k.seq,
                 other => panic!("expected Kanji score-base, got {:?}", other),
-            }
+            };
+            // Each compound's primary and its score-base are conjugations of
+            // the same lemma — the stable form of the per-bucket pairing.
+            assert_eq!(
+                crate::test_support::resolve_base_seqs(primary_seq),
+                crate::test_support::resolve_base_seqs(sb_seq),
+                "primary and score-base should share a base lemma"
+            );
+            primaries.push(primary_seq);
         }
+        // The three readings are conjugations of 遣る / 言う / 行う.
+        crate::test_support::check_base_seq_set(&primaries, &[1012980, 1578850, 1589060]);
     }
 
     /// REPL: `(suffix-rashii "した" "らしい" kf)` → 1 COMPOUND
@@ -3386,12 +3349,12 @@ mod suffix_rashii {
         assert!(matches!(c.score_mod, ScoreMod::Single(3)));
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kana(k) => assert_eq!(k.seq, 10152246),
+            KaniWordDispatchEnum::Kana(k) => crate::test_support::check_base_seqs(k.seq, &[1157170]),
             other => panic!("expected Kana primary, got {:?}", other),
         }
         let sb = c.score_base.as_ref().expect("score-base set");
         match sb.as_ref() {
-            KaniWordDispatchEnum::Kana(k) => assert_eq!(k.seq, 10152284),
+            KaniWordDispatchEnum::Kana(k) => crate::test_support::check_base_seqs(k.seq, &[1157170]),
             other => panic!("expected Kana score-base (したら), got {:?}", other),
         }
     }
@@ -3455,8 +3418,7 @@ mod suffix_desu {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 411231);
-                assert_eq!(k.seq, 10092227);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
                 assert_eq!(k.text, "食べない");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -3479,16 +3441,14 @@ mod suffix_desu {
             assert!(c.score_base.is_none());
             assert_eq!(c.words.len(), 2);
         }
-        let seqs: std::collections::HashSet<i32> = result
+        let seqs: Vec<i32> = result
             .iter()
             .map(|c| match &*c.primary {
                 KaniWordDispatchEnum::Kana(k) => k.seq,
                 _ => -1,
             })
             .collect();
-        assert!(seqs.contains(&2257550));
-        assert!(seqs.contains(&10320151));
-        assert!(seqs.contains(&10470712));
+        crate::test_support::check_base_seq_set(&seqs, &[1296400, 2132290, 2258900]);
     }
 
     /// REPL: `(suffix-desu "行かなかった" "です" kf)` → 1 COMPOUND
@@ -3511,8 +3471,7 @@ mod suffix_desu {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 922673);
-                assert_eq!(k.seq, 10349396);
+                crate::test_support::check_base_seqs(k.seq, &[1578850]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -3536,8 +3495,7 @@ mod suffix_desu {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
-                assert_eq!(k.id, 3289329);
-                assert_eq!(k.seq, 10019714);
+                crate::test_support::check_base_seqs(k.seq, &[2089020, 2098240]);
             }
             other => panic!("expected Kana primary, got {:?}", other),
         }
@@ -3620,7 +3578,7 @@ mod suffix_desho {
         assert!(c.score_base.is_none());
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10092227),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1358280]),
             other => panic!("expected Kanji primary, got {:?}", other),
         }
     }
@@ -3661,8 +3619,7 @@ mod suffix_desho {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 922665);
-                assert_eq!(k.seq, 10349392);
+                crate::test_support::check_base_seqs(k.seq, &[1578850]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -3750,7 +3707,7 @@ mod suffix_tosuru {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べよう");
-                assert_eq!(k.seq, 10092257);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -3779,7 +3736,7 @@ mod suffix_tosuru {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "行こう");
-                assert_eq!(k.seq, 10349426);
+                crate::test_support::check_base_seqs(k.seq, &[1578850]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -3813,7 +3770,7 @@ mod suffix_tosuru {
             })
             .collect();
         seqs.sort();
-        assert_eq!(seqs, vec![10052616, 10374864, 10549414]);
+        crate::test_support::check_base_seq_set(&seqs, &[1375610, 1532910, 1611000]);
     }
 
     /// REPL TOSURU4: `(suffix-tosuru "無理" "とする" kf-tosuru)` → NIL.
@@ -3873,7 +3830,7 @@ mod suffix_kurai {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べた");
-                assert_eq!(k.seq, 10092229);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -3902,7 +3859,7 @@ mod suffix_kurai {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "見た");
-                assert_eq!(k.seq, 10315009);
+                crate::test_support::check_base_seqs(k.seq, &[1259290]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -3923,7 +3880,7 @@ mod suffix_kurai {
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
                 assert_eq!(k.text, "した");
-                assert_eq!(k.seq, 10152246);
+                crate::test_support::check_base_seqs(k.seq, &[1157170]);
             }
             other => panic!("expected Kana primary, got {:?}", other),
         }

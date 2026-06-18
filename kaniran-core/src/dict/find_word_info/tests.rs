@@ -196,13 +196,19 @@ mod find_word_info {
             .unwrap();
         assert_eq!(taberu.len(), 1);
         assert_eq!(kana_of(&taberu[0]), "たべてる");
-        assert_eq!(
-            taberu[0].seq,
-            Some(WordInfoSeq::Multi(vec![
-                Some(WordInfoSeq::Single(10092233)),
-                Some(WordInfoSeq::Single(1577980)),
-            ]))
-        );
+        // 食べて (a conjugation of 食べる) + いる (1577980, stable).
+        match &taberu[0].seq {
+            Some(WordInfoSeq::Multi(parts)) => {
+                assert_eq!(parts.len(), 2);
+                let teru = match &parts[0] {
+                    Some(WordInfoSeq::Single(seq)) => *seq,
+                    other => panic!("expected Single, got {other:?}"),
+                };
+                crate::test_support::check_base_seqs(teru, &[1358280]);
+                assert_eq!(parts[1], Some(WordInfoSeq::Single(1577980)));
+            }
+            other => panic!("expected Multi, got {other:?}"),
+        }
     }
 
     /// When the reading differs from the kana but the seq still has that

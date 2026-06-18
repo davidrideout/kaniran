@@ -75,13 +75,13 @@ mod find_word_full {
         let KaniWordDispatchEnum::Kanji(primary) = &*c.primary else {
             panic!("expected Kanji primary, got {:?}", c.primary);
         };
-        assert_eq!(primary.seq, 10092233);
+        crate::test_support::check_base_seqs(primary.seq, &[1358280]);
         assert_eq!(primary.text, "食べて");
         assert_eq!(c.words.len(), 2);
         let KaniWordDispatchEnum::Kanji(w0) = &c.words[0] else {
             panic!("expected Kanji words[0]");
         };
-        assert_eq!(w0.seq, 10092233);
+        crate::test_support::check_base_seqs(w0.seq, &[1358280]);
         let KaniWordDispatchEnum::Kana(w1) = &c.words[1] else {
             panic!("expected Kana words[1]");
         };

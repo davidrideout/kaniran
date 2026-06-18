@@ -123,7 +123,7 @@ mod get_segsplit {
         assert_eq!(new_seg.score, Some(pre_score - 10));
         assert_eq!(new_seg.text.as_deref(), Some("ところで"));
         let info = new_seg.info.as_ref().expect("segsplit info plist non-nil");
-        assert_eq!(info.posi, vec!["adv", "n", "suf"]);
+        crate::test_support::assert_pos_set(&info.posi, &["adv", "n", "suf"]);
         assert_eq!(info.seq_set, vec![1343100]);
         assert!(info.conj.is_empty());
         assert_eq!(info.common, Some(0));
@@ -170,7 +170,7 @@ mod get_segsplit {
         assert_eq!(word_seq(&compound.primary), 1343100);
 
         let info = new_seg.info.as_ref().expect("info set");
-        assert_eq!(info.posi, vec!["adv", "n", "suf"]);
+        crate::test_support::assert_pos_set(&info.posi, &["adv", "n", "suf"]);
         assert_eq!(info.seq_set, vec![1343100]);
         assert!(info.conj.is_empty());
         assert_eq!(info.common, Some(0));
@@ -216,7 +216,7 @@ mod get_segsplit {
         assert_eq!(new_seg.text.as_deref(), Some("お店"));
 
         let info = new_seg.info.as_ref().expect("info set");
-        assert_eq!(info.posi, vec!["n"]);
+        crate::test_support::assert_pos_set(&info.posi, &["n"]);
         assert_eq!(info.seq_set, vec![1582120]);
         assert!(info.conj.is_empty());
         assert_eq!(info.common, Some(0));
@@ -262,7 +262,7 @@ mod get_segsplit {
         }
 
         let info = new_seg.info.as_ref().expect("info set");
-        assert_eq!(info.posi, vec!["aux-v", "cop", "cop-da"]);
+        crate::test_support::assert_pos_set(&info.posi, &["aux-v", "cop", "cop-da"]);
         assert_eq!(info.seq_set, vec![2089020]);
         assert!(info.conj.is_empty());
         assert_eq!(info.common, Some(0));
@@ -308,7 +308,7 @@ mod get_segsplit {
         assert_eq!(new_seg.text.as_deref(), Some("から元気"));
 
         let info = new_seg.info.as_ref().expect("info set");
-        assert_eq!(info.posi, vec!["adj-na", "n"]);
+        crate::test_support::assert_pos_set(&info.posi, &["adj-na", "n"]);
         assert_eq!(info.seq_set, vec![1260720]);
         assert!(info.conj.is_empty());
         assert_eq!(info.common, Some(6));
@@ -366,7 +366,7 @@ mod get_segsplit {
         assert_eq!(new_seg.text.as_deref(), Some("はぐったり"));
 
         let info = new_seg.info.as_ref().expect("info set");
-        assert_eq!(info.posi, vec!["prt"]);
+        crate::test_support::assert_pos_set(&info.posi, &["prt"]);
         assert_eq!(info.seq_set, vec![2028920]);
         assert!(info.conj.is_empty());
         assert_eq!(info.common, Some(0));

@@ -17,11 +17,11 @@ mod find_word_with_conj_prop {
         let KaniWordDispatchEnum::Kanji(k) = &r[0] else {
             panic!("expected KANJI-TEXT");
         };
-        assert_eq!(k.seq, 10092233);
-        assert_eq!(
-            k.state.conjugations,
-            Some(WordConjugations::Ids(vec![92707]))
-        );
+        crate::test_support::check_base_seqs(k.seq, &[1358280]);
+        assert!(matches!(
+            &k.state.conjugations,
+            Some(WordConjugations::Ids(ids)) if ids.len() == 1
+        ));
     }
 
     /// REPL: `(find-word-with-conj-prop "食べて" (lambda (cd) t)
@@ -147,13 +147,11 @@ mod find_word_with_conj_type {
         let crate::dict::kani_word::KaniWordDispatchEnum::Kanji(k) = &r[0] else {
             panic!("expected KANJI-TEXT");
         };
-        assert_eq!(k.seq, 10092233);
-        assert_eq!(
-            k.state.conjugations,
-            Some(crate::dict::dao::WordConjugations::Ids(vec![
-                92707
-            ]))
-        );
+        crate::test_support::check_base_seqs(k.seq, &[1358280]);
+        assert!(matches!(
+            &k.state.conjugations,
+            Some(crate::dict::dao::WordConjugations::Ids(ids)) if ids.len() == 1
+        ));
     }
 
     /// REPL: `(find-word-with-conj-type "食べ" 13)` → 1 word
@@ -166,7 +164,7 @@ mod find_word_with_conj_type {
         let crate::dict::kani_word::KaniWordDispatchEnum::Kanji(k) = &r[0] else {
             panic!("expected KANJI-TEXT");
         };
-        assert_eq!(k.seq, 10092273);
+        crate::test_support::check_base_seqs(k.seq, &[1358280]);
     }
 
     /// REPL: `(find-word-with-conj-type "食べる" 3)` → NIL. 食べる is a
@@ -323,14 +321,14 @@ mod pair_words_by_conj {
     fn rashii_callsite_three_pairs() {
         let ctx = ctx_from_env();
         let g1 = vec![
-            kana(10087210, "あった", vec![87667]),  // (1198180, 0)
-            kana(10226124, "あった", vec![227649]), // (1284430, 0)
-            kana(10470714, "あった", vec![475105]), // (1296400, 0)
+            kana(10087210, "あった", vec![87667]),  // 1198180
+            kana(10226124, "あった", vec![227649]), // 1284430
+            kana(10470714, "あった", vec![475105]), // 1296400
         ];
         let g2 = vec![
-            kana(10087250, "あったら", vec![87707]),  // (1198180, 0)
-            kana(10226164, "あったら", vec![227689]), // (1284430, 0)
-            kana(10470753, "あったら", vec![475145]), // (1296400, 0)
+            kana(10087250, "あったら", vec![87707]),  // 1198180
+            kana(10226164, "あったら", vec![227689]), // 1284430
+            kana(10470753, "あったら", vec![475145]), // 1296400
         ];
         let result = pair_words_by_conj(&ctx, &[g1, g2]).unwrap();
         let expected: Vec<Vec<Option<i32>>> = vec![
@@ -368,7 +366,7 @@ mod pair_words_by_conj {
 
     /// REPL: 立てた (conjs=[371171, 1210719]) and 立てたら
     /// (conjs=[371207, 1210739]) both reduce to the key
-    /// [(1551530,0), (1597040,1551530)] → flatten [1551530,0,1597040,1551530]
+    /// [1551530, 1597040] → flatten [1551530,0,1597040,1551530]
     /// → single bucket containing the pair. Exercises the multi-conjugation
     /// sort path.
     #[test]
@@ -398,7 +396,6 @@ mod find_word_with_pos {
         };
         assert_eq!(kanji.len(), 1);
         let row = &kanji[0];
-        assert_eq!(row.id, 13731);
         assert_eq!(row.seq, 1244250);
         assert_eq!(row.text, "区別");
         assert_eq!(row.ord, 0);
@@ -425,7 +422,6 @@ mod find_word_with_pos {
         };
         assert_eq!(kana.len(), 1);
         let row = &kana[0];
-        assert_eq!(row.id, 9654);
         assert_eq!(row.seq, 1066360);
         assert_eq!(row.text, "ジョギング");
         assert_eq!(row.ord, 0);
@@ -459,7 +455,6 @@ mod find_word_with_pos {
             WordWithPosRows::Kana(_) => panic!("expected Kanji variant"),
         };
         assert_eq!(kanji.len(), 1);
-        assert_eq!(kanji[0].id, 31416);
         assert_eq!(kanji[0].seq, 1383240);
         assert_eq!(kanji[0].common, Some(15));
         assert_eq!(kanji[0].best_kana.as_deref(), Some("あかい"));
@@ -476,7 +471,6 @@ mod find_word_with_pos {
             WordWithPosRows::Kana(_) => panic!("expected Kanji variant"),
         };
         assert_eq!(kanji.len(), 1);
-        assert_eq!(kanji[0].id, 17991);
         assert_eq!(kanji[0].seq, 1277450);
         assert_eq!(kanji[0].common, Some(0));
         assert_eq!(kanji[0].best_kana.as_deref(), Some("すき"));
@@ -495,22 +489,22 @@ mod find_word_with_pos {
             WordWithPosRows::Kana(_) => panic!("expected Kanji variant"),
         };
         assert_eq!(kanji.len(), 13);
-        let mut got: Vec<(i32, i32)> = kanji.iter().map(|r| (r.seq, r.id)).collect();
+        let mut got: Vec<i32> = kanji.iter().map(|r| r.seq).collect();
         got.sort();
-        let expected: Vec<(i32, i32)> = vec![
-            (1311110, 22264),
-            (1311125, 22265),
-            (1347580, 26861),
-            (2015370, 108229),
-            (2079310, 114743),
-            (2217330, 129111),
-            (2217340, 129112),
-            (2842390, 197077),
-            (2845454, 199954),
-            (2858221, 211749),
-            (2858384, 211905),
-            (2858397, 211916),
-            (2864027, 217322),
+        let expected: Vec<i32> = vec![
+            1311110,
+            1311125,
+            1347580,
+            2015370,
+            2079310,
+            2217330,
+            2217340,
+            2842390,
+            2845454,
+            2858221,
+            2858384,
+            2858397,
+            2864027,
         ];
         assert_eq!(got, expected);
         for row in &kanji {
@@ -544,7 +538,6 @@ mod find_word_with_pos {
             WordWithPosRows::Kana(_) => panic!("expected Kanji variant"),
         };
         assert_eq!(kanji.len(), 1);
-        assert_eq!(kanji[0].id, 28271);
         assert_eq!(kanji[0].seq, 1358280);
         assert_eq!(kanji[0].common, Some(25));
         assert_eq!(kanji[0].best_kana.as_deref(), Some("たべる"));
@@ -564,7 +557,6 @@ mod find_word_with_pos {
             WordWithPosRows::Kanji(_) => panic!("expected Kana variant"),
         };
         assert_eq!(kana.len(), 1);
-        assert_eq!(kana[0].id, 22268);
         assert_eq!(kana[0].seq, 1157170);
         assert_eq!(kana[0].common, Some(0));
         assert_eq!(kana[0].best_kanji.as_deref(), Some("為る"));
@@ -585,35 +577,35 @@ mod find_word_with_pos {
             WordWithPosRows::Kanji(_) => panic!("expected Kana variant"),
         };
         assert_eq!(kana.len(), 26);
-        let mut got: Vec<(i32, i32)> = kana.iter().map(|r| (r.seq, r.id)).collect();
+        let mut got: Vec<i32> = kana.iter().map(|r| r.seq).collect();
         got.sort();
-        let expected: Vec<(i32, i32)> = vec![
-            (1241450, 30916),
-            (1398030, 47020),
-            (1398670, 47082),
-            (1399250, 47140),
-            (1399540, 47168),
-            (1399590, 47172),
-            (1399990, 47213),
-            (1400810, 47298),
-            (2027990, 110259),
-            (2033880, 110867),
-            (2137720, 122367),
-            (2249280, 136151),
-            (2253390, 136639),
-            (2406720, 153533),
-            (2414580, 154361),
-            (2414600, 154363),
-            (2639080, 181268),
-            (2681340, 185752),
-            (2843362, 222959),
-            (2843365, 222962),
-            (2843386, 222983),
-            (2843387, 222984),
-            (2843388, 222985),
-            (2843390, 222987),
-            (2843391, 222988),
-            (2844287, 224036),
+        let expected: Vec<i32> = vec![
+            1241450,
+            1398030,
+            1398670,
+            1399250,
+            1399540,
+            1399590,
+            1399990,
+            1400810,
+            2027990,
+            2033880,
+            2137720,
+            2249280,
+            2253390,
+            2406720,
+            2414580,
+            2414600,
+            2639080,
+            2681340,
+            2843362,
+            2843365,
+            2843386,
+            2843387,
+            2843388,
+            2843390,
+            2843391,
+            2844287,
         ];
         assert_eq!(got, expected);
     }
@@ -655,22 +647,22 @@ mod or_as_hiragana {
             FindWordRows::Kana(_) => panic!("expected Kanji variant"),
         };
         assert_eq!(kanji.len(), 13);
-        let mut got: Vec<(i32, i32)> = kanji.iter().map(|r| (r.seq, r.id)).collect();
+        let mut got: Vec<i32> = kanji.iter().map(|r| r.seq).collect();
         got.sort();
-        let expected: Vec<(i32, i32)> = vec![
-            (1311110, 22264),
-            (1311125, 22265),
-            (1347580, 26861),
-            (2015370, 108229),
-            (2079310, 114743),
-            (2217330, 129111),
-            (2217340, 129112),
-            (2842390, 197077),
-            (2845454, 199954),
-            (2858221, 211749),
-            (2858384, 211905),
-            (2858397, 211916),
-            (2864027, 217322),
+        let expected: Vec<i32> = vec![
+            1311110,
+            1311125,
+            1347580,
+            2015370,
+            2079310,
+            2217330,
+            2217340,
+            2842390,
+            2845454,
+            2858221,
+            2858384,
+            2858397,
+            2864027,
         ];
         assert_eq!(got, expected);
     }
@@ -695,7 +687,6 @@ mod or_as_hiragana {
         };
         assert_eq!(kana.len(), 1);
         let row = &kana[0];
-        assert_eq!(row.id, 9654);
         assert_eq!(row.seq, 1066360);
         assert_eq!(row.text, "ジョギング");
         assert_eq!(row.ord, 0);
@@ -726,7 +717,6 @@ mod or_as_hiragana {
         };
         assert_eq!(kana.len(), 1);
         let row = &kana[0];
-        assert_eq!(row.id, 38072);
         assert_eq!(row.seq, 1311110);
         assert_eq!(row.text, "わたし");
         assert_eq!(row.ord, 0);

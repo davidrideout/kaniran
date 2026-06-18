@@ -146,7 +146,7 @@ mod get_suffix_map {
         assert_eq!(substr, "て");
         assert_eq!(key, "teiru");
         let kf = kf.expect("kf row present");
-        assert_eq!(kf.seq, 10551841);
+        crate::test_support::check_base_seqs(kf.seq, &[1577980]);
         assert_eq!(kf.text, "いて");
         assert_eq!(kf.ord, 0);
         assert_eq!(kf.common, None);
@@ -181,7 +181,7 @@ mod get_suffix_map {
         assert_eq!(substr, "た");
         assert_eq!(key, "teiru");
         let kf = kf.expect("kf row present");
-        assert_eq!(kf.seq, 10551837);
+        crate::test_support::check_base_seqs(kf.seq, &[1577980]);
         assert_eq!(kf.text, "いた");
         assert_eq!(kf.ord, 0);
         assert_eq!(kf.common, None);
@@ -227,7 +227,7 @@ mod get_suffix_map {
         assert_eq!(substr, "た");
         assert_eq!(key, "teiru");
         let kf = kf.expect("kf row present");
-        assert_eq!(kf.seq, 10551837);
+        crate::test_support::check_base_seqs(kf.seq, &[1577980]);
         assert_eq!(kf.text, "いた");
 
         let end3 = &result[&3];
@@ -243,7 +243,7 @@ mod get_suffix_map {
         assert_eq!(substr1, "たく");
         assert_eq!(key1, "tai");
         let kf1 = kf1.expect("kf1 row present");
-        assert_eq!(kf1.seq, 10477471);
+        crate::test_support::check_base_seqs(kf1.seq, &[2017560]);
         assert_eq!(kf1.text, "たく");
         assert_eq!(kf1.common, None);
 
@@ -257,13 +257,13 @@ mod get_suffix_map {
         assert_eq!(substr1, "ない");
         assert_eq!(key1, "teiru");
         let kf1 = kf1.expect("kf1 row present");
-        assert_eq!(kf1.seq, 10551835);
+        crate::test_support::check_base_seqs(kf1.seq, &[1577980]);
         assert_eq!(kf1.text, "いない");
         let (substr2, key2, kf2) = end5[2];
         assert_eq!(substr2, "たくない");
         assert_eq!(key2, "tai");
         let kf2 = kf2.expect("kf2 row present");
-        assert_eq!(kf2.seq, 10477455);
+        crate::test_support::check_base_seqs(kf2.seq, &[2017560]);
         assert_eq!(kf2.text, "たくない");
     }
 
@@ -420,21 +420,21 @@ mod get_suffixes {
         assert_eq!(s0, "た");
         assert_eq!(k0, "teiru");
         let kf0 = kf0.expect("kf0 row present");
-        assert_eq!(kf0.seq, 10551837);
+        crate::test_support::check_base_seqs(kf0.seq, &[1577980]);
         assert_eq!(kf0.text, "いた");
         assert_eq!(kf0.ord, 0);
         assert_eq!(kf0.common, None);
         assert_eq!(s1, "した");
         assert_eq!(k1, "suru");
         let kf1 = kf1.expect("kf1 row present");
-        assert_eq!(kf1.seq, 10152246);
+        crate::test_support::check_base_seqs(kf1.seq, &[1157170]);
         assert_eq!(kf1.text, "した");
         assert_eq!(kf1.ord, 0);
         assert_eq!(kf1.common, None);
         assert_eq!(s2, "ました");
         assert_eq!(k2, "teiru");
         let kf2 = kf2.expect("kf2 row present");
-        assert_eq!(kf2.seq, 10551838);
+        crate::test_support::check_base_seqs(kf2.seq, &[1577980]);
         assert_eq!(kf2.text, "いました");
         assert_eq!(kf2.ord, 0);
         assert_eq!(kf2.common, None);

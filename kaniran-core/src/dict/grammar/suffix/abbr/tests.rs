@@ -27,7 +27,7 @@ mod abbr_nee {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10092227);
+        crate::test_support::check_base_seqs(k.seq, &[1358280]);
         assert_eq!(k.text, "食べない");
     }
 
@@ -62,7 +62,7 @@ mod abbr_nee {
             })
             .collect();
         seqs.sort();
-        assert_eq!(seqs, vec![1420420, 10105960]);
+        crate::test_support::check_base_seq_set(&seqs, &[1420470]);
     }
 
     /// REPL NEE3: `(abbr-nee "い" "ねえ" nil)` → 6 PROXY. 居ない
@@ -85,10 +85,7 @@ mod abbr_nee {
             })
             .collect();
         seqs.sort();
-        assert_eq!(
-            seqs,
-            vec![1155180, 10033628, 10128866, 10303114, 10362292, 10423265]
-        );
+        crate::test_support::check_base_seq_set(&seqs, &[1322180, 1587780, 2729170, 2851105, 2851106]);
         // 居ない (seq 1577980) must NOT appear.
         assert!(!seqs.contains(&1577980));
     }
@@ -137,7 +134,7 @@ mod abbr_nx {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10105960);
+        crate::test_support::check_base_seqs(k.seq, &[1420470]);
     }
 
     /// REPL NX2: `(abbr-nx "食べ" "ず" nil)` → 1 PROXY
@@ -155,7 +152,7 @@ mod abbr_nx {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10092227);
+        crate::test_support::check_base_seqs(k.seq, &[1358280]);
     }
 
     /// REPL NX3: `(abbr-nx "せ" "ず" nil)` → 1 PROXY text="せず"
@@ -177,7 +174,7 @@ mod abbr_nx {
         let KaniSimpleTextDispatchEnum::Kana(k) = &*p.source else {
             panic!("expected Kana source");
         };
-        assert_eq!(k.seq, 10152244);
+        crate::test_support::check_base_seqs(k.seq, &[1157170]);
         assert_eq!(k.text, "しない");
     }
 
@@ -235,7 +232,7 @@ mod abbr_n {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10105960);
+        crate::test_support::check_base_seqs(k.seq, &[1420470]);
     }
 
     /// REPL N2: `(abbr-n "食べ" "ん" nil)` → 1 PROXY text="食べん"
@@ -253,7 +250,7 @@ mod abbr_n {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10092227);
+        crate::test_support::check_base_seqs(k.seq, &[1358280]);
     }
 
     /// REPL N3: `(abbr-n "い" "ん" nil)` → 5 PROXY (kana-source
@@ -296,7 +293,7 @@ mod abbr_n {
             })
             .collect();
         seqs.sort();
-        assert_eq!(seqs, vec![10033628, 10128866, 10303114, 10362292, 10423265]);
+        crate::test_support::check_base_seq_set(&seqs, &[1322180, 1587780, 2729170, 2851105, 2851106]);
         // Root entry 1155180 (collectable only via allow_root) MUST NOT
         // appear in abbr-n's output.
         assert!(!seqs.contains(&1155180));
@@ -328,7 +325,7 @@ mod abbr_nakereba {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10349404);
+        crate::test_support::check_base_seqs(k.seq, &[1578850]);
     }
 
     /// REPL NAKEREBA2: `(abbr-nakereba "食べ" "なくちゃ" nil)` → 1 PROXY
@@ -347,7 +344,7 @@ mod abbr_nakereba {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10092239);
+        crate::test_support::check_base_seqs(k.seq, &[1358280]);
     }
 
     /// REPL NAKEREBA3: `(abbr-nakereba "やら" "ねば" nil)` → 4 PROXY
@@ -376,7 +373,7 @@ mod abbr_nakereba {
             })
             .collect();
         seqs.sort();
-        assert_eq!(seqs, vec![10038002, 10366027, 10402893, 10463965]);
+        crate::test_support::check_base_seq_set(&seqs, &[1012980, 2011110, 2446940, 2678900]);
     }
 }
 
@@ -423,7 +420,7 @@ mod abbr_shimasho {
         let W::Kana(w1) = &c.words[1] else {
             panic!("expected words[1] Kana");
         };
-        assert_eq!(w1.seq, 10152277);
+        crate::test_support::check_base_seqs(w1.seq, &[1157170]);
         assert_eq!(w1.text, "しましょう");
     }
 }
@@ -472,7 +469,7 @@ mod abbr_teba {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10435976);
+        crate::test_support::check_base_seqs(k.seq, &[1597040]);
     }
 
     /// REPL TEBA2: `(abbr-teba "勝" "ちゃ" nil)` → 1 PROXY
@@ -490,7 +487,7 @@ mod abbr_teba {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10316061);
+        crate::test_support::check_base_seqs(k.seq, &[1346150]);
     }
 }
 
@@ -519,7 +516,7 @@ mod abbr_reba {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10315017);
+        crate::test_support::check_base_seqs(k.seq, &[1259290]);
     }
 }
 
@@ -548,7 +545,7 @@ mod abbr_keba {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10526936);
+        crate::test_support::check_base_seqs(k.seq, &[1343950]);
     }
 }
 
@@ -577,7 +574,7 @@ mod abbr_geba {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10485536);
+        crate::test_support::check_base_seqs(k.seq, &[1174340]);
     }
 }
 
@@ -606,7 +603,7 @@ mod abbr_neba {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10236417);
+        crate::test_support::check_base_seqs(k.seq, &[1310730]);
     }
 }
 
@@ -661,7 +658,7 @@ mod abbr_beba {
             })
             .collect();
         seqs.sort();
-        assert_eq!(seqs, vec![10202469, 10225128]);
+        crate::test_support::check_base_seq_set(&seqs, &[1542160, 2476100]);
     }
 }
 
@@ -690,7 +687,7 @@ mod abbr_meba {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10665831);
+        crate::test_support::check_base_seqs(k.seq, &[1169870]);
     }
 }
 
@@ -719,7 +716,7 @@ mod abbr_seba {
         let KaniSimpleTextDispatchEnum::Kanji(k) = &*p.source else {
             panic!("expected Kanji source");
         };
-        assert_eq!(k.seq, 10143263);
+        crate::test_support::check_base_seqs(k.seq, &[1562350]);
     }
 }
 

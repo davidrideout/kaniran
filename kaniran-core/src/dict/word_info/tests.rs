@@ -630,18 +630,28 @@ mod word_info_from_text {
         assert_eq!(wi.kind, WordInfoType::Kanji);
         assert_eq!(wi.text, "食べてる");
         assert_eq!(wi.kana, Some(WordInfoKana::Single("たべてる".into())));
-        assert_eq!(
-            wi.seq,
-            Some(WordInfoSeq::Multi(vec![
-                Some(WordInfoSeq::Single(10092233)),
-                Some(WordInfoSeq::Single(1577980)),
-            ]))
-        );
+        // 食べて (a conjugation of 食べる) + いる (1577980, stable).
+        match &wi.seq {
+            Some(WordInfoSeq::Multi(parts)) => {
+                assert_eq!(parts.len(), 2);
+                let teru = match &parts[0] {
+                    Some(WordInfoSeq::Single(seq)) => *seq,
+                    other => panic!("expected Single, got {other:?}"),
+                };
+                crate::test_support::check_base_seqs(teru, &[1358280]);
+                assert_eq!(parts[1], Some(WordInfoSeq::Single(1577980)));
+            }
+            other => panic!("expected Multi, got {other:?}"),
+        }
         assert_eq!(wi.score, Some(434));
         assert_eq!(wi.end, Some(4));
         assert_eq!(wi.components.len(), 2);
         assert_eq!(wi.components[0].text, "食べて");
-        assert_eq!(wi.components[0].seq, Some(WordInfoSeq::Single(10092233)));
+        let comp0_seq = match &wi.components[0].seq {
+            Some(WordInfoSeq::Single(seq)) => *seq,
+            other => panic!("expected Single, got {other:?}"),
+        };
+        crate::test_support::check_base_seqs(comp0_seq, &[1358280]);
         assert_eq!(wi.components[1].text, "いる");
         assert_eq!(wi.components[1].seq, Some(WordInfoSeq::Single(1577980)));
         // A compound carries no true-text or conjugations.
