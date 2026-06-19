@@ -343,7 +343,11 @@ mod find_words_seqs {
     #[test]
     fn kana_multi_seq() {
         let ctx = ctx();
-        let seqs = [1213770, 1259290, 1365450, 1772790, 2255060, 10553286];
+        // The sixth seq is a synthetic conjugated-entry seq (>= 10,000,000)
+        // whose kana spelling is みる. Synthetic seqs renumber per build, so
+        // resolve it from its stable surface rather than pinning the number.
+        let synthetic = crate::test_support::conj_entry_seq("みる");
+        let mut seqs = [1213770, 1259290, 1365450, 1772790, 2255060, synthetic];
         let result = find_words_seqs(&ctx, &["みる"], &seqs).unwrap();
         assert_eq!(result.len(), 6);
         let mut got: Vec<i32> = result
@@ -355,6 +359,7 @@ mod find_words_seqs {
             })
             .collect();
         got.sort_unstable();
+        seqs.sort_unstable();
         assert_eq!(got, seqs);
     }
 

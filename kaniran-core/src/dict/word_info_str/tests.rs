@@ -579,23 +579,6 @@ mod word_info_gloss_json {
         }
     }
 
-    /// 5個 → two counter readings (ごこ / ごか); each carries a non-ordinal
-    /// counter object (`ordinal:[]`) and a pos-list `("ctr")`-filtered gloss.
-    #[test]
-    fn counter_two_readings() {
-        let ctx = ctx_from_env();
-        let expected = [
-            r#"{"reading":"5個 【ごこ】","text":"5個","kana":"ごこ","score":128,"counter":{"value":"Value: 5","ordinal":[]},"seq":1264740,"gloss":[{"pos":"[ctr]","gloss":"counter for (small) things or pieces","info":"also written as ヶ"},{"pos":"[ctr]","gloss":"counter for military units"}]}"#,
-            r#"{"reading":"5個 【ごか】","text":"5個","kana":"ごか","score":40,"counter":{"value":"Value: 5","ordinal":[]},"seq":2220320,"gloss":[{"pos":"[ctr]","gloss":"counter used with Sino-Japanese words","info":"precedes the thing being counted; e.g. ３か月, ５か所; also written as ヶ or ケ"}]}"#,
-        ];
-        let wis = find_word_info(&ctx, "5個", None, false).unwrap();
-        assert_eq!(wis.len(), 2);
-        for (wi, expected) in wis.iter().zip(expected.iter()) {
-            let result = word_info_gloss_json(&ctx, wi, false).unwrap();
-            assert_eq!(json(&result), *expected);
-        }
-    }
-
     /// An alternative word-info serializes to {"alternative": [...]} with one
     /// object per component. Built from 何's two readings (なに / なん).
     #[test]

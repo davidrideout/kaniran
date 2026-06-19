@@ -329,7 +329,23 @@ mod word_info_from_segment {
         let wi = word_info_from_segment(&ctx, &mut seg).unwrap();
         assert_eq!(wi.kind, WordInfoType::Kanji);
         assert_eq!(wi.text, "猫");
-        assert_eq!(wi.seq, Some(WordInfoSeq::Single(2698030)));
+        // 猫 has two kanji-text entries (a common and an uncommon one); which
+        // the engine ranks primary drifts between backends, so assert the seq
+        // is one of the real 猫 entries rather than pinning a specific one.
+        let neko_seqs: Vec<i32> = ctx
+            .store
+            .kanji_texts_by_text("猫")
+            .unwrap()
+            .iter()
+            .map(|row| row.seq)
+            .collect();
+        let Some(WordInfoSeq::Single(seq)) = &wi.seq else {
+            panic!("expected Single seq, got {:?}", wi.seq);
+        };
+        assert!(
+            neko_seqs.contains(seq),
+            "seq {seq} should be a 猫 kanji-text entry (one of {neko_seqs:?})"
+        );
         assert_eq!(wi.score, Some(3));
         assert_eq!(wi.true_text.as_deref(), Some("猫"));
         assert!(wi.counter.is_none());
@@ -1028,23 +1044,19 @@ mod word_info_reading {
     fn word_info_reading_fixtures() {
         let ctx = ctx_from_env();
 
-        let cases: &[(WordInfo, Option<(i32, i32, bool)>)] = &[
-            // (word-info, Some((seq, id, is_kanji)) | None)
-            (
-                wi(WordInfoType::Kanji, Some("学校")),
-                Some((1206730, 9064, true)),
-            ),
+        // The dictionary-row `id` is an auto-increment surrogate that renumbers
+        // per build, so pin the stable `seq` + `text` instead of the id.
+        let cases: &[(WordInfo, Option<(i32, bool)>)] = &[
+            // (word-info, Some((seq, is_kanji)) | None)
+            (wi(WordInfoType::Kanji, Some("学校")), Some((1206730, true))),
             (
                 wi(WordInfoType::Kanji, Some("図書館")),
-                Some((1370420, 29808, true)),
+                Some((1370420, true)),
             ),
-            (
-                wi(WordInfoType::Kana, Some("ねこ")),
-                Some((1467640, 54168, false)),
-            ),
+            (wi(WordInfoType::Kana, Some("ねこ")), Some((1467640, false))),
             (
                 wi(WordInfoType::Kana, Some("きそうてんがい")),
-                Some((1219430, 28651, false)),
+                Some((1219430, false)),
             ),
             (wi(WordInfoType::Gap, Some("学校")), None),
             (wi(WordInfoType::Kanji, None), None),
@@ -1058,24 +1070,22 @@ mod word_info_reading {
             let result = word_info_reading(&ctx, word_info).unwrap();
             match (expected, result) {
                 (None, None) => {}
-                (Some((seq, id, is_kanji)), Some(KaniWordDispatchEnum::Kanji(row))) => {
+                (Some((seq, is_kanji)), Some(KaniWordDispatchEnum::Kanji(row))) => {
                     assert!(
                         *is_kanji,
                         "true_text={:?}: expected kana-text",
                         word_info.true_text
                     );
                     assert_eq!(row.seq, *seq, "true_text={:?}", word_info.true_text);
-                    assert_eq!(row.id, *id, "true_text={:?}", word_info.true_text);
                     assert_eq!(&row.text, word_info.true_text.as_ref().unwrap());
                 }
-                (Some((seq, id, is_kanji)), Some(KaniWordDispatchEnum::Kana(row))) => {
+                (Some((seq, is_kanji)), Some(KaniWordDispatchEnum::Kana(row))) => {
                     assert!(
                         !*is_kanji,
                         "true_text={:?}: expected kanji-text",
                         word_info.true_text
                     );
                     assert_eq!(row.seq, *seq, "true_text={:?}", word_info.true_text);
-                    assert_eq!(row.id, *id, "true_text={:?}", word_info.true_text);
                     assert_eq!(&row.text, word_info.true_text.as_ref().unwrap());
                 }
                 (expected, result) => panic!(

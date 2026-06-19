@@ -95,6 +95,100 @@ pub(crate) fn assert_pos_set(got: &[String], want: &[&str]) {
     assert_eq!(got, want);
 }
 
+/// Assert `actual` is within `max_diff` of `expected`, i.e.
+/// `|actual - expected| <= max_diff`.
+///
+/// Some integer values the tests pin — segmentation scores in particular —
+/// drift by a small, bounded amount between the two backends because the
+/// Postgres `ichiran_latest` database and the rkyv archive carry slightly
+/// different dictionary content (a sense or two more, a count off by one), and
+/// a score sums bonuses read from that content. The particle の, for example,
+/// scores 11 against Postgres but 6 against the archive — a fixed gap, not a
+/// random one.
+///
+/// Plain [`assert_eq!`] is wrong here: it pins the exact Postgres number and so
+/// fails under rkyv even though nothing is broken. A bare inequality
+/// (`actual <= expected`) is too loose — it would accept a score that
+/// collapsed to zero, which *would* be a regression. This middle ground keeps
+/// the Postgres value as the anchor and accepts only the observed cross-backend
+/// spread: pass the smallest `max_diff` that covers the real gap so a genuine
+/// scoring regression still trips the test. `#[track_caller]` reports the call
+/// site, not this function.
+#[track_caller]
+pub(crate) fn assert_approx_equal(actual: i32, expected: i32, max_diff: i32) {
+    let diff = (actual - expected).abs();
+    assert!(
+        diff <= max_diff,
+        "expected {actual} to be within {max_diff} of {expected} (actual diff {diff})",
+    );
+}
+
+/// Assert `got` matches the `expected` kanji-reading-serializer JSON literal,
+/// tolerating the dictionary content drift between the two backends for the
+/// values buried inside the JSON, while pinning the serializer's structure and
+/// logic flags exactly:
+///
+/// - the `"sample"` and `"total"` word counts (how many words use a reading)
+///   may each differ by up to `max_count_diff`, and
+/// - the derived `"perc"` string (sample ÷ total) and the `"grade"` (a kanjidic
+///   attribute that changes with the dictionary vintage — 香 is grade 4 in the
+///   current jōyō list, 8 in older data) are ignored, since neither is
+///   serializer logic.
+///
+/// Everything else — `kanji`, `reading`, `type`, `link`, `stats`, `rendaku`,
+/// `geminated`, … — and the overall shape (object key set, array length) must
+/// match exactly, so a structural change still fails. The walk is in lockstep
+/// over both trees; `#[track_caller]` reports the call site.
+#[track_caller]
+pub(crate) fn assert_kanji_json_approx(got: &Value, expected: &str, max_count_diff: i32) {
+    let expected: Value = serde_json::from_str(expected).expect("parse expected json");
+    compare_kanji_json(got, &expected, max_count_diff);
+}
+
+/// Recursive worker for [`assert_kanji_json_approx`]: walks `got` and `expected`
+/// together, applying the count tolerance / data-field skips at every object
+/// level.
+#[track_caller]
+fn compare_kanji_json(got: &Value, expected: &Value, max_count_diff: i32) {
+    match (got, expected) {
+        (Value::Object(got_obj), Value::Object(expected_obj)) => {
+            assert_eq!(
+                got_obj.len(),
+                expected_obj.len(),
+                "object key count differs: got {got_obj:?} expected {expected_obj:?}",
+            );
+            for (key, expected_val) in expected_obj {
+                let got_val = got_obj
+                    .get(key)
+                    .unwrap_or_else(|| panic!("missing key {key:?} in {got_obj:?}"));
+                match key.as_str() {
+                    // Derived string / kanjidic-vintage attribute — not logic.
+                    "perc" | "grade" => {}
+                    // Word counts that drift by a word or two between backends.
+                    "sample" | "total" => {
+                        let got_count = got_val.as_i64().expect("count is a number") as i32;
+                        let expected_count =
+                            expected_val.as_i64().expect("count is a number") as i32;
+                        assert_approx_equal(got_count, expected_count, max_count_diff);
+                    }
+                    _ => compare_kanji_json(got_val, expected_val, max_count_diff),
+                }
+            }
+        }
+        (Value::Array(got_arr), Value::Array(expected_arr)) => {
+            assert_eq!(
+                got_arr.len(),
+                expected_arr.len(),
+                "array length differs: got {got_arr:?} expected {expected_arr:?}",
+            );
+            for (got_item, expected_item) in got_arr.iter().zip(expected_arr) {
+                compare_kanji_json(got_item, expected_item, max_count_diff);
+            }
+        }
+        _ => assert_eq!(got, expected, "leaf value differs"),
+    }
+}
+
 /// The synthetic conjugated-entry seq whose surface form is `surface` (e.g.
 /// "つきはてた" → the past-tense entry of 尽き果てる). The seq renumbers per
 /// build, so tests that feed a conjugated entry resolve it from its stable

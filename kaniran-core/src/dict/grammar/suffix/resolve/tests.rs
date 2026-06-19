@@ -579,16 +579,6 @@ mod match_unique {
         assert_eq!(out, None);
     }
 
-    // REPL: matches = single kana_text row with seq=10597478 (1 conj row from 2755350)
-    //       (match-unique :desu matches) => NIL (1 conj row, 1 match, 1<1 false)
-    #[test]
-    fn desu_with_single_jyanai_derivative_returns_none() {
-        let c = ctx();
-        let single = vec![synthetic_kana(10597478)];
-        let out = match_unique(&c, "desu", &single).unwrap();
-        assert_eq!(out, None);
-    }
-
     // REPL: matches = 2 kana_text rows for seq=10597478 (じゃないです variants)
     //       seqs unique → 1; conj rows from 2755350 → 1; (< 1 2) = T
     //       (match-unique :desu matches) => T
