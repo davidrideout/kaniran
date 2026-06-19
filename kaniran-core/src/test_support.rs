@@ -262,6 +262,46 @@ pub(crate) fn via_set_conj_id(seq: i32) -> i32 {
     ids[0]
 }
 
+/// The per-build identity of a conjugated-form word, resolved from a stable
+/// anchor: the synthetic entry spelled `surface` whose conjugation chain
+/// derives from base JMdict seq `base_seq`, returned as
+/// `(synthetic_seq, conj_ids)`.
+///
+/// Tests that hand-build conjugated-word fixtures need both the entry's seq
+/// (an identity label the test compares against itself) and its full
+/// conjugation-row id set (what `pair-words-by-conj` resolves into a
+/// `(seq-from, via)` grouping key). Both renumber on every archive/database
+/// build, so they are looked up rather than pinned.
+///
+/// `base_seq` disambiguates entries that share a surface — three distinct
+/// あった entries conjugate from 会う (1198180), 合う (1284430), and 有る
+/// (1296400). It need match only one of the entry's conjugation rows; the
+/// complete id set is still returned, so compound forms like 立てた (a direct
+/// row from 立てる 1551530 plus a `via`-1551530 row from 立つ 1597040)
+/// reproduce their full key. Panics unless exactly one synthetic entry matches.
+pub(crate) fn conj_word_parts(surface: &str, base_seq: i32) -> (i32, Vec<i32>) {
+    let ctx = shared_ctx();
+    let mut matches: Vec<(i32, Vec<i32>)> = conj_entry_seqs(surface)
+        .into_iter()
+        .filter_map(|synthetic_seq| {
+            let rows = ctx.store.conjs_by_seq(synthetic_seq).expect("conjs_by_seq");
+            rows.iter().any(|conj| conj.seq_from == base_seq).then(|| {
+                // Conj-row ids are unique per seq; sorting alone makes the
+                // returned set deterministic regardless of archive row order.
+                let mut ids: Vec<i32> = rows.iter().map(|conj| conj.id).collect();
+                ids.sort_unstable();
+                (synthetic_seq, ids)
+            })
+        })
+        .collect();
+    assert_eq!(
+        matches.len(),
+        1,
+        "surface {surface:?} base {base_seq} → {matches:?}",
+    );
+    matches.pop().expect("one matching synthetic entry")
+}
+
 /// Recursively rewrite every `"seq"` holding a synthetic conjugated-entry seq
 /// to `0`, leaving stable base seqs intact.
 fn zero_synthetic_seqs(value: &mut Value) {

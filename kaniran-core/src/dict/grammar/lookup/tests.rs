@@ -293,22 +293,21 @@ mod pair_words_by_conj {
     #[test]
     fn single_group_three_distinct_keys() {
         let ctx = ctx_from_env();
-        // Conjugations: 87667 → from=1198180/via=NULL,
-        //               227649 → from=1284430/via=NULL,
-        //               475105 → from=1296400/via=NULL.
-        let g1 = vec![
-            kana(10087210, "あった", vec![87667]),
-            kana(10226124, "あった", vec![227649]),
-            kana(10470714, "あった", vec![475105]),
-        ];
-        let result = pair_words_by_conj(&ctx, std::slice::from_ref(&g1))
-            
-            .unwrap();
-        let expected: Vec<Vec<Option<i32>>> = vec![
-            vec![Some(10087210)],
-            vec![Some(10226124)],
-            vec![Some(10470714)],
-        ];
+        // The three あった entries conjugate from distinct bases (会う
+        // 1198180/via-NULL, 合う 1284430/via-NULL, 有る 1296400/via-NULL), so
+        // each gets its own (seq-from, via) key and its own bucket.
+        let atta: Vec<(i32, Vec<i32>)> = [1198180, 1284430, 1296400]
+            .iter()
+            .map(|&base| crate::test_support::conj_word_parts("あった", base))
+            .collect();
+        let mut expected: Vec<Vec<Option<i32>>> =
+            atta.iter().map(|(seq, _)| vec![Some(*seq)]).collect();
+        expected.sort();
+        let g1: Vec<KaniWordDispatchEnum> = atta
+            .into_iter()
+            .map(|(seq, ids)| kana(seq, "あった", ids))
+            .collect();
+        let result = pair_words_by_conj(&ctx, std::slice::from_ref(&g1)).unwrap();
         assert_eq!(canonical(result), expected);
     }
 
@@ -320,22 +319,34 @@ mod pair_words_by_conj {
     #[test]
     fn rashii_callsite_three_pairs() {
         let ctx = ctx_from_env();
-        let g1 = vec![
-            kana(10087210, "あった", vec![87667]),  // 1198180
-            kana(10226124, "あった", vec![227649]), // 1284430
-            kana(10470714, "あった", vec![475105]), // 1296400
-        ];
-        let g2 = vec![
-            kana(10087250, "あったら", vec![87707]),  // 1198180
-            kana(10226164, "あったら", vec![227689]), // 1284430
-            kana(10470753, "あったら", vec![475145]), // 1296400
-        ];
+        // あった and あったら each conjugate from the same three bases
+        // (会う 1198180, 合う 1284430, 有る 1296400); the per-build synthetic
+        // seqs and conj-row ids are resolved from those stable anchors.
+        let bases = [1198180, 1284430, 1296400];
+        let atta: Vec<(i32, Vec<i32>)> = bases
+            .iter()
+            .map(|&base| crate::test_support::conj_word_parts("あった", base))
+            .collect();
+        let attara: Vec<(i32, Vec<i32>)> = bases
+            .iter()
+            .map(|&base| crate::test_support::conj_word_parts("あったら", base))
+            .collect();
+        // Each base merges its あった with its あったら into one bucket.
+        let mut expected: Vec<Vec<Option<i32>>> = atta
+            .iter()
+            .zip(&attara)
+            .map(|((atta_seq, _), (attara_seq, _))| vec![Some(*atta_seq), Some(*attara_seq)])
+            .collect();
+        expected.sort();
+        let g1: Vec<KaniWordDispatchEnum> = atta
+            .into_iter()
+            .map(|(seq, ids)| kana(seq, "あった", ids))
+            .collect();
+        let g2: Vec<KaniWordDispatchEnum> = attara
+            .into_iter()
+            .map(|(seq, ids)| kana(seq, "あったら", ids))
+            .collect();
         let result = pair_words_by_conj(&ctx, &[g1, g2]).unwrap();
-        let expected: Vec<Vec<Option<i32>>> = vec![
-            vec![Some(10087210), Some(10087250)],
-            vec![Some(10226124), Some(10226164)],
-            vec![Some(10470714), Some(10470753)],
-        ];
         assert_eq!(canonical(result), expected);
     }
 
@@ -344,10 +355,11 @@ mod pair_words_by_conj {
     #[test]
     fn second_group_empty_yields_none_slot() {
         let ctx = ctx_from_env();
-        let g1 = vec![kana(10087210, "あった", vec![87667])];
+        let (atta_seq, atta_ids) = crate::test_support::conj_word_parts("あった", 1198180);
+        let g1 = vec![kana(atta_seq, "あった", atta_ids)];
         let g2: Vec<KaniWordDispatchEnum> = vec![];
         let result = pair_words_by_conj(&ctx, &[g1, g2]).unwrap();
-        let expected: Vec<Vec<Option<i32>>> = vec![vec![Some(10087210), None]];
+        let expected: Vec<Vec<Option<i32>>> = vec![vec![Some(atta_seq), None]];
         assert_eq!(canonical(result), expected);
     }
 
@@ -356,11 +368,10 @@ mod pair_words_by_conj {
     #[test]
     fn middle_group_only_word_padding_on_both_sides() {
         let ctx = ctx_from_env();
-        let g2 = vec![kana(10087210, "あった", vec![87667])];
-        let result = pair_words_by_conj(&ctx, &[vec![], g2, vec![]])
-            
-            .unwrap();
-        let expected: Vec<Vec<Option<i32>>> = vec![vec![None, Some(10087210), None]];
+        let (atta_seq, atta_ids) = crate::test_support::conj_word_parts("あった", 1198180);
+        let g2 = vec![kana(atta_seq, "あった", atta_ids)];
+        let result = pair_words_by_conj(&ctx, &[vec![], g2, vec![]]).unwrap();
+        let expected: Vec<Vec<Option<i32>>> = vec![vec![None, Some(atta_seq), None]];
         assert_eq!(canonical(result), expected);
     }
 
@@ -372,10 +383,17 @@ mod pair_words_by_conj {
     #[test]
     fn multi_conjugation_words_share_a_bucket() {
         let ctx = ctx_from_env();
-        let g1 = vec![kana(10368067, "立てた", vec![371171, 1210719])];
-        let g2 = vec![kana(10368102, "立てたら", vec![371207, 1210739])];
+        // 立てた and 立てたら both carry two conjugation rows — direct from
+        // 立てる (1551530) and via-1551530 from 立つ (1597040) — so their full
+        // id sets reduce to the same key and share one bucket. Resolve the
+        // per-build seqs/ids from the stable 立てる base.
+        let (tateta_seq, tateta_ids) = crate::test_support::conj_word_parts("立てた", 1551530);
+        let (tatetara_seq, tatetara_ids) =
+            crate::test_support::conj_word_parts("立てたら", 1551530);
+        let g1 = vec![kana(tateta_seq, "立てた", tateta_ids)];
+        let g2 = vec![kana(tatetara_seq, "立てたら", tatetara_ids)];
         let result = pair_words_by_conj(&ctx, &[g1, g2]).unwrap();
-        let expected: Vec<Vec<Option<i32>>> = vec![vec![Some(10368067), Some(10368102)]];
+        let expected: Vec<Vec<Option<i32>>> = vec![vec![Some(tateta_seq), Some(tatetara_seq)]];
         assert_eq!(canonical(result), expected);
     }
 }
