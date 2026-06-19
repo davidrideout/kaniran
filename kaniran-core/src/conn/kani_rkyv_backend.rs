@@ -313,12 +313,6 @@ impl KaniRkyvBackend {
 
 // --- archived-row → DAO conversions ---
 
-// Runtime never reads the `common_tags` columns on kanji_text /
-// kana_text — those are only consumed by build-time errata writers
-// that load via the Postgres backend. Leaving them as an empty
-// `Cow::Borrowed("")` skips per-call heap allocations at zero runtime
-// risk. The other string fields become `Cow::Borrowed` views straight
-// into the leaked `'static` mmap — no copy out per lookup.
 fn dao_entry(row: &<Entry as rkyv::Archive>::Archived) -> Entry {
     Entry {
         seq: row.seq.to_native(),
@@ -336,7 +330,7 @@ fn dao_kanji_text(row: &'static ArchivedKaniKanjiTextRow) -> KanjiText {
         text: Cow::Borrowed(row.text.as_str()),
         ord: row.ord.to_native(),
         common: row.common.as_ref().map(|value| value.to_native()),
-        common_tags: Cow::Borrowed(""),
+        common_tags: Cow::Borrowed(row.common_tags.as_str()),
         conjugate_p: row.conjugate_p,
         nokanji: row.nokanji,
         best_kana: row.best_kana.as_ref().map(|value| Cow::Borrowed(value.as_str())),
@@ -351,7 +345,7 @@ fn dao_kana_text(row: &'static ArchivedKaniKanaTextRow) -> KanaText {
         text: Cow::Borrowed(row.text.as_str()),
         ord: row.ord.to_native(),
         common: row.common.as_ref().map(|value| value.to_native()),
-        common_tags: Cow::Borrowed(""),
+        common_tags: Cow::Borrowed(row.common_tags.as_str()),
         conjugate_p: row.conjugate_p,
         nokanji: row.nokanji,
         best_kanji: row.best_kanji.as_ref().map(|value| Cow::Borrowed(value.as_str())),

@@ -310,28 +310,36 @@ pub fn match_readings_json(
     }
 }
 
-/// Port of `ichiran/kanji:query-kanji-json` (`kanji.lisp:458`).
+/// Looks up each kanji literal in `texts`, maps every matching row
+/// through [`to_json`], and extends each resulting object with the
+/// caller's extra fields.
 ///
-/// Runs `query` as a `kanji`-DAO query, maps each row through
-/// [`to_json`], and extends each resulting object with the caller's
-/// extra fields.
+/// Divergence from `ichiran/kanji:query-kanji-json` (`kanji.lisp:458`):
+/// upstream is a macro taking a caller-supplied SQL string passed to
+/// `(query-dao 'kanji query)`. That raw-SQL form is Postgres-only — no
+/// other backend can serve it — yet every real query is a lookup by
+/// kanji text (upstream's own `kanji-info-json` uses the structured
+/// `(select-dao 'kanji (:= 'text str))`). Keying on text instead lets
+/// both the Postgres and rkyv backends serve it via the shared
+/// [`kanji_by_text`](crate::conn::kani_backend::KaniBackend::kanji_by_text)
+/// method.
 pub fn query_kanji_json(
     ctx: &KaniranContext,
-    query: &str,
+    texts: &[&str],
     extra_fields: impl Fn(&Kanji) -> Vec<(String, Value)>,
 ) -> Result<Vec<Value>, crate::conn::KaniDbError> {
     let mut result = Vec::new();
-    // (query-dao 'kanji query)
-    let rows: Vec<Kanji> = ctx.store.kanji_by_raw_query(query)?;
-    // (mapcar (lambda (var) (let ((js (to-json var))) (jsown:extend-js js …))) …)
-    for var in &rows {
-        let mut js = to_json(ctx, var)?;
-        if let Value::Object(map) = &mut js {
-            for (key, value) in extra_fields(var) {
-                map.insert(key, value);
+    for text in texts {
+        // (mapcar (lambda (var) (let ((js (to-json var))) (jsown:extend-js js …))) …)
+        for var in &ctx.store.kanji_by_text(text)? {
+            let mut js = to_json(ctx, var)?;
+            if let Value::Object(map) = &mut js {
+                for (key, value) in extra_fields(var) {
+                    map.insert(key, value);
+                }
             }
+            result.push(js);
         }
-        result.push(js);
     }
     Ok(result)
 }

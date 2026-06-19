@@ -41,16 +41,6 @@ impl KaniPostgresBackend {
     pub fn block_on<F: std::future::Future>(&self, fut: F) -> F::Output {
         self.rt.block_on(fut)
     }
-
-    /// `(query-dao 'kanji query)` — `query-kanji-json` (`kanji.lisp:458`);
-    /// the caller supplies the full SQL statement. Inherent rather than
-    /// part of [`KaniBackend`]: raw SQL cannot be served by other
-    /// backends.
-    pub fn kanji_by_raw_query(&self, query: &str) -> Result<Vec<Kanji>, crate::conn::KaniDbError> {
-        self.rt
-            .block_on(async { sqlx::query_as(query).fetch_all(&self.pool).await })
-            .map_err(crate::conn::KaniDbError::from)
-    }
 }
 
 impl KaniBackend for KaniPostgresBackend {

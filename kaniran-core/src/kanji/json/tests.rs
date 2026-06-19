@@ -371,14 +371,14 @@ fn query_kanji_json_macro_ctx() -> Arc<KaniranContext> {
     crate::test_support::shared_ctx()
 }
 
-/// A single-row query serializes the kanji and appends caller-supplied extra
-/// fields (here the row's text and id) after the base object, in order.
+/// A single-kanji lookup serializes the kanji and appends caller-supplied
+/// extra fields (here the row's text and id) after the base object, in order.
 #[test]
 fn query_kanji_json_single_row_extra_fields() {
     let query_kanji_json_macro_ctx = query_kanji_json_macro_ctx();
     let result = query_kanji_json(
         &query_kanji_json_macro_ctx,
-        "select * from kanji where text = '檸'",
+        &["檸"],
         |var| {
             vec![
                 ("custom".to_owned(), Value::String(var.text.clone())),
@@ -392,17 +392,17 @@ fn query_kanji_json_single_row_extra_fields() {
     assert_eq!(serde_json::to_string(&result).unwrap().as_str(), expected);
 }
 
-/// A multi-row query maps each row and applies the extra field to every
+/// A multi-kanji lookup maps each row and applies the extra field to every
 /// object; an empty result set yields an empty list.
 #[test]
 fn query_kanji_json_multi_and_empty() {
     let query_kanji_json_macro_ctx = query_kanji_json_macro_ctx();
     let multi = query_kanji_json(
         &query_kanji_json_macro_ctx,
-        "select * from kanji where text in ('檸','薔') order by text",
+        &["檸", "薔"],
         |_var| vec![("mark".to_owned(), Value::Bool(true))],
     )
-    
+
     .unwrap();
     assert_eq!(multi.len(), 2);
     for obj in &multi {
@@ -412,10 +412,10 @@ fn query_kanji_json_multi_and_empty() {
 
     let empty = query_kanji_json(
         &query_kanji_json_macro_ctx,
-        "select * from kanji where text = 'ZZZ'",
+        &["ZZZ"],
         |_var| vec![],
     )
-    
+
     .unwrap();
     assert!(empty.is_empty());
 }

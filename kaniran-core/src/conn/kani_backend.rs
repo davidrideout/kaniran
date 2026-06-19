@@ -9,10 +9,8 @@
 //! dispatches through a match — no boxed futures.
 //!
 //! The doc comment on each trait method names the upstream function the
-//! lookup came from; the SQL itself lives in the Postgres impl. Two
-//! Postgres-only operations deliberately sit OUTSIDE the trait:
-//! `kanji_by_raw_query` (caller-supplied SQL, exposed as an inherent
-//! method on [`KaniStore`] that fails on non-Postgres backends) and the
+//! lookup came from; the SQL itself lives in the Postgres impl. One
+//! Postgres-only operation deliberately sits OUTSIDE the trait: the
 //! compound-seq `exists-reading` probe (its always-failing query is
 //! synthesized at the callsite in [`crate::dict::find_word_info`]).
 
@@ -450,27 +448,6 @@ pub enum KaniStore {
     Postgres(KaniPostgresBackend),
     #[cfg(feature = "rkyv")]
     Rkyv(KaniRkyvBackend),
-}
-
-impl KaniStore {
-    /// `(query-dao 'kanji query)` — `query-kanji-json` (`kanji.lisp:458`);
-    /// the caller supplies the full SQL statement. Only the Postgres
-    /// backend can run it; the rkyv snapshot has no SQL engine, so it
-    /// fails loud there.
-    pub fn kanji_by_raw_query(&self, query: &str) -> Result<Vec<Kanji>, crate::conn::KaniDbError> {
-        match self {
-            #[cfg(feature = "postgres")]
-            KaniStore::Postgres(backend) => backend.kanji_by_raw_query(query),
-            #[cfg(feature = "rkyv")]
-            KaniStore::Rkyv(_) => {
-                let _ = query;
-                Err(crate::conn::KaniDbError::Protocol(
-                    "kanji_by_raw_query takes caller-supplied SQL and requires the Postgres backend"
-                        .into(),
-                ))
-            }
-        }
-    }
 }
 
 /// Delegation only — every method matches the variant and forwards.

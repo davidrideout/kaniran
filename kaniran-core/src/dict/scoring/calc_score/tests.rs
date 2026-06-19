@@ -1,6 +1,5 @@
 mod calc_score {
     use crate::dict::dao::KanaText;
-    use crate::dict::dao::SimpleText;
     use crate::dict::readings::{find_word, FindWordRows};
     use crate::dict::scoring::calc_score::*;
     use crate::dict::scoring::score::KaniSplitInfo;
@@ -15,6 +14,59 @@ mod calc_score {
             FindWordRows::Kana(mut v) => KaniWordDispatchEnum::Kana(v.remove(0)),
             FindWordRows::Kanji(mut v) => KaniWordDispatchEnum::Kanji(v.remove(0)),
         }
+    }
+
+    /// Build a synthetic conjugated-form kana word from its stable surface text
+    /// and the stable base seq it derives from. A surface can belong to several
+    /// synthetic entries (the same spelling reached from different base verbs),
+    /// so the base seq selects the intended one. The conjugated-entry seq and
+    /// the conjugation ids both renumber on every loader build, so resolve them
+    /// at runtime; the surface and base seq are stable. Fetches the real row
+    /// (real id/ord/common) and tags it the way the engine tags a derived row:
+    /// `state.conjugations = Ids(...)`. Returns the word plus the resolved seq
+    /// and conj ids so callers can assert against them.
+    fn synthetic_conj_word(
+        ctx: &KaniranContext,
+        surface: &str,
+        base_seq: i32,
+    ) -> (KaniWordDispatchEnum, i32, Vec<i32>) {
+        let seq = crate::test_support::conj_entry_seqs(surface)
+            .into_iter()
+            .find(|&seq| crate::test_support::resolve_base_seqs(seq).contains(&base_seq))
+            .unwrap_or_else(|| {
+                panic!("no synthetic {surface:?} entry deriving from base {base_seq}")
+            });
+        let conj_ids: Vec<i32> = ctx
+            .store
+            .conjs_by_seq_and_from(seq, base_seq)
+            .unwrap()
+            .iter()
+            .map(|conj| conj.id)
+            .collect();
+        let mut row: KanaText = ctx
+            .store
+            .kana_texts_by_seq_and_text(seq, surface)
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| panic!("no kana_text row for synthetic {surface:?} (seq {seq})"));
+        row.state.conjugations = Some(WordConjugations::Ids(conj_ids.clone()));
+        (KaniWordDispatchEnum::Kana(row), seq, conj_ids)
+    }
+
+    /// Build a root (dictionary-form) kana word from its stable base `seq` and
+    /// surface. Base seqs are JMdict ent_seqs and stable across builds; only the
+    /// runtime `state.conjugations = Root` tag is added.
+    fn root_kana_word(ctx: &KaniranContext, seq: i32, surface: &str) -> KaniWordDispatchEnum {
+        let mut row: KanaText = ctx
+            .store
+            .kana_texts_by_seq_and_text(seq, surface)
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| panic!("no kana_text row for {surface:?} (seq {seq})"));
+        row.state.conjugations = Some(WordConjugations::Root);
+        KaniWordDispatchEnum::Kana(row)
     }
 
     /// Fetch a specific kana_text row by (seq, text) — deterministic
@@ -285,44 +337,16 @@ mod calc_score {
     fn compound_skipword_partial_info_conj_null() {
         let ctx = ctx_from_env();
 
-        let primary = KanaText {
-            id: 532088,
-            seq: 10230770,
-            text: "れて".into(),
-            ord: 0,
-            common: None,
-            common_tags: String::new().into(),
-            conjugate_p: false,
-            nokanji: false,
-            best_kanji: None,
-            state: SimpleText {
-                conjugations: Some(WordConjugations::Ids(vec![232360])),
-                hintedp: false,
-            },
-        };
-        let tail = KanaText {
-            id: 108760,
-            seq: 2013800,
-            text: "ちゃう".into(),
-            ord: 0,
-            common: Some(0),
-            common_tags: "[spec1]".into(),
-            conjugate_p: true,
-            nokanji: false,
-            best_kanji: None,
-            state: SimpleText {
-                conjugations: Some(WordConjugations::Root),
-                hintedp: false,
-            },
-        };
+        // れて is a synthetic te-form entry of the auxiliary れる (base 2568000;
+        // seq/conj ids renumber per build); ちゃう (seq 2013800) is a stable
+        // JMdict auxiliary entry.
+        let (primary, _re_te_seq, _re_te_conj_ids) = synthetic_conj_word(&ctx, "れて", 2568000);
+        let tail = root_kana_word(&ctx, 2013800, "ちゃう");
         let compound = CompoundText {
             text: "れちゃう".into(),
             kana: "れちゃう".into(),
-            primary: Box::new(KaniWordDispatchEnum::Kana(primary.clone())),
-            words: vec![
-                KaniWordDispatchEnum::Kana(primary),
-                KaniWordDispatchEnum::Kana(tail),
-            ],
+            primary: Box::new(primary.clone()),
+            words: vec![primary, tail],
             score_base: None,
             score_mod: ScoreMod::Single(5),
         };
@@ -360,60 +384,21 @@ mod calc_score {
     fn compound_skipword_partial_info_conj_non_null() {
         let ctx = ctx_from_env();
 
-        let rare = KanaText {
-            id: 0,
-            seq: 10230810,
-            text: "られ".into(),
-            ord: 1,
-            common: None,
-            common_tags: String::new().into(),
-            conjugate_p: false,
-            nokanji: false,
-            best_kanji: None,
-            state: SimpleText {
-                conjugations: Some(WordConjugations::Ids(vec![232400])),
-                hintedp: false,
-            },
-        };
-        let naku = KanaText {
-            id: 1030305,
-            seq: 10648808,
-            text: "なく".into(),
-            ord: 0,
-            common: None,
-            common_tags: String::new().into(),
-            conjugate_p: false,
-            nokanji: false,
-            best_kanji: None,
-            state: SimpleText {
-                conjugations: Some(WordConjugations::Ids(vec![656991])),
-                hintedp: false,
-            },
-        };
-        let narimashita = KanaText {
-            id: 704041,
-            seq: 10374833,
-            text: "なりました".into(),
-            ord: 0,
-            common: None,
-            common_tags: String::new().into(),
-            conjugate_p: false,
-            nokanji: false,
-            best_kanji: None,
-            state: SimpleText {
-                conjugations: Some(WordConjugations::Ids(vec![378046])),
-                hintedp: false,
-            },
-        };
+        // られ / なく / なりました are all synthetic conjugated entries; resolve
+        // each from its stable surface and base seq (なく and なりました each have
+        // several synthetic entries from different bases, so the base seq picks
+        // the intended one: られ←れる 2568000, なく←無い 1529520,
+        // なりました←なる 1375610). Only なりました's resolved seq/conj ids are
+        // asserted on below (it is the last word, the one that synthesizes
+        // info.conj), so capture them.
+        let (rare, _rare_seq, _rare_conj_ids) = synthetic_conj_word(&ctx, "られ", 2568000);
+        let (naku, _naku_seq, _naku_conj_ids) = synthetic_conj_word(&ctx, "なく", 1529520);
+        let (narimashita, nari_seq, nari_conj_ids) = synthetic_conj_word(&ctx, "なりました", 1375610);
         let compound = CompoundText {
             text: "られなくなりました".into(),
             kana: "られなくなりました".into(),
-            primary: Box::new(KaniWordDispatchEnum::Kana(rare.clone())),
-            words: vec![
-                KaniWordDispatchEnum::Kana(rare),
-                KaniWordDispatchEnum::Kana(naku),
-                KaniWordDispatchEnum::Kana(narimashita),
-            ],
+            primary: Box::new(rare.clone()),
+            words: vec![rare, naku, narimashita],
             score_base: None,
             score_mod: ScoreMod::Stack(vec![ScoreMod::Single(1), ScoreMod::Single(5)]),
         };
@@ -434,12 +419,18 @@ mod calc_score {
             info.conj,
         );
         let cd = &info.conj[0];
-        assert_eq!(cd.seq, Some(10374833));
+        // cd.seq is なりました's synthetic entry seq; cd.from / conj_id /
+        // conj_type / pos / neg / fml are stable. prop.id is a per-build
+        // conj_prop row id with no stable surface meaning, so it isn't pinned.
+        assert_eq!(cd.seq, Some(nari_seq));
         assert_eq!(cd.from, Some(1375610));
         assert_eq!(cd.via, None);
         let prop = cd.prop.as_ref().expect("conj-prop present");
-        assert_eq!(prop.id, 386572);
-        assert_eq!(prop.conj_id, 378046);
+        assert!(
+            nari_conj_ids.contains(&prop.conj_id),
+            "prop.conj_id {} not among なりました's conj ids {nari_conj_ids:?}",
+            prop.conj_id,
+        );
         assert_eq!(prop.conj_type, 2);
         assert_eq!(prop.pos, "v5r");
         // Postgres false (`f`) decodes to Some(false), not None.
