@@ -23,7 +23,7 @@ pub fn node_text<'a, 'input>(
     test: Option<&dyn Fn(Node<'a, 'input>) -> bool>,
 ) -> String {
     let mut values: Vec<String> = Vec::new();
-    if test.map_or(true, |t| t(node)) {
+    if test.is_none_or(|t| t(node)) {
         for child in node.children() {
             match child.node_type() {
                 NodeType::Element => values.push(node_text(child, test)),

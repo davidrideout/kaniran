@@ -478,7 +478,7 @@ pub fn conj_info_json(
     }
     Ok(cij
         .into_iter()
-        .filter(|entry| readok_truthy(entry))
+        .filter(readok_truthy)
         .collect())
 }
 

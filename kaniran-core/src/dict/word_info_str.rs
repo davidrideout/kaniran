@@ -93,7 +93,7 @@ where
         Some(WordInfoKana::Single(_)) => fn_(wkana),
         // (listp wkana) is t for a list -> (mapcar fn wkana).
         Some(WordInfoKana::Multi(elements)) => {
-            let mapped: Vec<String> = elements.iter().map(|element| fn_(element)).collect();
+            let mapped: Vec<String> = elements.iter().map(fn_).collect();
             join(separator, &simplify_reading_list(&mapped))
         }
         // (listp nil) is t -> (mapcar fn nil) = nil -> join over empty = "".

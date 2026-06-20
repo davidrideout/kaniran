@@ -27,7 +27,7 @@ pub fn long_vowel_modifier_p(modifier: KanaClass, prev_char: char) -> bool {
     let Some(class) = get_char_class(prev_char) else {
         return false;
     };
-    class.lisp_name().chars().last() == Some(vowel)
+    class.lisp_name().ends_with(vowel)
 }
 
 /// Port of `ichiran/characters:to-normal-char` (`characters.lisp:219-222`).

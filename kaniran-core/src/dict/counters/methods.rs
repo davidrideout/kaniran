@@ -291,7 +291,7 @@ pub fn get_digit(n: u128) -> Option<u128> {
         (1_000, 10_000),
         (10_000, 100_000_000),
     ] {
-        if n % pn != 0 {
+        if !n.is_multiple_of(pn) {
             return Some(p);
         }
     }

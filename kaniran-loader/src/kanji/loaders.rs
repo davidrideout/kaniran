@@ -234,14 +234,10 @@ pub async fn load_kanji(ctx: &KaniranContext, content: &str) -> Result<(), sqlx:
             .parse::<i32>()
             .expect("load_kanji: malformed <rad_value>");
         // kanji.lisp:172-174 ((equal type "classical") … ((equal type "nelson_c") …))
-        if r#type == "classical" {
-            if radical_c.is_none() {
-                radical_c = Some(radical);
-            }
-        } else if r#type == "nelson_c" {
-            if radical_n.is_none() {
-                radical_n = Some(radical);
-            }
+        if r#type == "classical" && radical_c.is_none() {
+            radical_c = Some(radical);
+        } else if r#type == "nelson_c" && radical_n.is_none() {
+            radical_n = Some(radical);
         }
     }
     // kanji.lisp:175 (unless radical-n (setf radical-n radical-c))

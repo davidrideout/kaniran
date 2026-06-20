@@ -43,7 +43,7 @@ pub fn match_diff(s1: &str, s2: &str) -> Option<(Vec<MatchSegment>, usize)> {
                     let Some((rest_match, rest_value)) = match_diff(&s1_rest, &s2_rest) else {
                         continue;
                     };
-                    let is_better = best.as_ref().map_or(true, |(_, v)| rest_value > *v);
+                    let is_better = best.as_ref().is_none_or(|(_, v)| rest_value > *v);
                     if is_better {
                         let head = MatchSegment::Diff(
                             safe_subseq(s1, 0, Some(i)).expect("i <= l1"),

@@ -293,7 +293,7 @@ pub fn kanji_break_penalty(
             .seq_set
             .iter()
             .any(|s| NO_KANJI_BREAK_PENALTY.contains(s));
-        let starts_with_su = end == KanjiBreakEnd::Beg && text.chars().next() == Some('す');
+        let starts_with_su = end == KanjiBreakEnd::Beg && text.starts_with('す');
         if seq_set_intersects || starts_with_su {
             return Ok(score);
         }

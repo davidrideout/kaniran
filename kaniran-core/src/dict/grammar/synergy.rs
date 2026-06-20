@@ -107,8 +107,8 @@ pub fn def_generic_synergy_body(
     // dict-grammar.lisp:740 (when (and left right)) — tested before
     // materializing either filtered list, so the abut-but-no-match case
     // (one side empties) allocates nothing.
-    if !segment_list_left.segments.iter().any(|s| filter_left(s))
-        || !segment_list_right.segments.iter().any(|s| filter_right(s))
+    if !segment_list_left.segments.iter().any(&filter_left)
+        || !segment_list_right.segments.iter().any(&filter_right)
     {
         return vec![];
     }
@@ -249,7 +249,7 @@ pub fn filter_is_compound_end_text<'a>(
 ) -> impl Fn(&Arc<KaniLiteSegment>) -> bool + 'a {
     move |segment| -> bool {
         match segment.compound_end_text.as_deref() {
-            Some(end) => texts.iter().any(|text| *text == end),
+            Some(end) => texts.contains(&end),
             None => false,
         }
     }

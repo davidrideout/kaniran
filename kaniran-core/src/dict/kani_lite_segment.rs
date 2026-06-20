@@ -187,10 +187,10 @@ impl KaniLiteSegment {
                     .iter()
                     .any(|cd| cd.prop.as_ref().is_some_and(|p| p.neg != Some(false)));
                 let (k, p, c, l) = info.kpcl;
-                let kpcl_bits = (k as u8) * KPCL_K
-                    | (p as u8) * KPCL_P
-                    | (c as u8) * KPCL_C
-                    | (l as u8) * KPCL_L;
+                let kpcl_bits = ((k as u8) * KPCL_K)
+                    | ((p as u8) * KPCL_P)
+                    | ((c as u8) * KPCL_C)
+                    | ((l as u8) * KPCL_L);
                 let mut pos_bits = 0u16;
                 for tag in &info.posi {
                     pos_bits |= match tag.as_str() {

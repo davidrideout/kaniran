@@ -532,14 +532,14 @@ pub fn hint_simplify_map() -> &'static [(String, &'static str)] {
     static CACHE: OnceLock<Vec<(String, &'static str)>> = OnceLock::new();
     CACHE
         .get_or_init(|| {
-            let mut map: Vec<(String, &'static str)> = Vec::with_capacity(6);
-            map.push((KANA_HINT_SPACE.to_string(), " "));
-            map.push(([KANA_HINT_MOD, 'は'].iter().collect(), "わ"));
-            map.push(([KANA_HINT_MOD, 'ハ'].iter().collect(), "ワ"));
-            map.push(([KANA_HINT_MOD, 'へ'].iter().collect(), "え"));
-            map.push(([KANA_HINT_MOD, 'ヘ'].iter().collect(), "エ"));
-            map.push((KANA_HINT_MOD.to_string(), ""));
-            map
+            vec![
+                (KANA_HINT_SPACE.to_string(), " "),
+                ([KANA_HINT_MOD, 'は'].iter().collect(), "わ"),
+                ([KANA_HINT_MOD, 'ハ'].iter().collect(), "ワ"),
+                ([KANA_HINT_MOD, 'へ'].iter().collect(), "え"),
+                ([KANA_HINT_MOD, 'ヘ'].iter().collect(), "エ"),
+                (KANA_HINT_MOD.to_string(), ""),
+            ]
         })
         .as_slice()
 }

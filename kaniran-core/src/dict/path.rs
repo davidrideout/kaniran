@@ -375,7 +375,7 @@ pub fn join_substring_words(
     let (result, kanji_break) = join_substring_words_star_(ctx, str)?;
     let length = str.chars().count();
     // dict.lisp:1116 — (alexandria:ends-with #\ー str)
-    let ends_with_lw = str.chars().last() == Some('ー');
+    let ends_with_lw = str.ends_with('ー');
 
     let mut sls: Vec<SegmentList> = Vec::new();
     // for (start end segments) in result

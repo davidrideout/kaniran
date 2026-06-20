@@ -574,7 +574,7 @@ fn compare_kana(actual: &KanaText, expected: &KanaText) -> Result<(), String> {
 }
 
 fn compare_score_mod(actual: &ScoreMod, expected: &ScoreMod) -> Result<(), String> {
-    if discriminant_score_mod(actual) != discriminant_score_mod(expected) || actual_eq(actual, expected) == false {
+    if discriminant_score_mod(actual) != discriminant_score_mod(expected) || !actual_eq(actual, expected) {
         return Err(format!(
             "score_mod: rust={:?} lisp={:?}",
             actual, expected

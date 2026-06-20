@@ -39,7 +39,7 @@ fn audit_one(
         
         .map_err(|err| format!("query_parents_kanji: {}", err))?;
 
-    if row.result.len() < 1 {
+    if row.result.is_empty() {
         return Err(format!("expected ≥1 result value, got {}", row.result.len()));
     }
     let expected_rows = match &row.result[0] {

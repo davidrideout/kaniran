@@ -304,8 +304,8 @@ mod word_info_from_segment {
         // all ねこ, primary set, and no counter.
         let ctx = ctx_from_env();
         let word = first_reading(&ctx, "ねこ");
-        let mut seg = segment(word, 16, 0, 2);
-        let wi = word_info_from_segment(&ctx, &mut seg).unwrap();
+        let seg = segment(word, 16, 0, 2);
+        let wi = word_info_from_segment(&ctx, &seg).unwrap();
         assert_eq!(wi.kind, WordInfoType::Kana);
         assert_eq!(wi.text, "ねこ");
         assert_eq!(wi.kana, Some(WordInfoKana::Single("ねこ".into())));
@@ -325,8 +325,8 @@ mod word_info_from_segment {
     fn kanji_text_segment_returns_text_and_seq() {
         let ctx = ctx_from_env();
         let word = first_reading(&ctx, "猫");
-        let mut seg = segment(word, 3, 0, 1);
-        let wi = word_info_from_segment(&ctx, &mut seg).unwrap();
+        let seg = segment(word, 3, 0, 1);
+        let wi = word_info_from_segment(&ctx, &seg).unwrap();
         assert_eq!(wi.kind, WordInfoType::Kanji);
         assert_eq!(wi.text, "猫");
         // 猫 has two kanji-text entries (a common and an uncommon one); which
@@ -362,8 +362,8 @@ mod word_info_from_segment {
             .next()
             .expect("find_counter(5, 個) returned no counters");
         let word = KaniWordDispatchEnum::Counter(Box::new(counter));
-        let mut seg = segment(word, 40, 0, 2);
-        let wi = word_info_from_segment(&ctx, &mut seg).unwrap();
+        let seg = segment(word, 40, 0, 2);
+        let wi = word_info_from_segment(&ctx, &seg).unwrap();
         assert_eq!(wi.kind, WordInfoType::Kanji);
         assert_eq!(wi.text, "5個");
         assert_eq!(wi.counter, Some(("Value: 5".into(), false)));
@@ -377,7 +377,7 @@ mod word_info_from_segment {
         // A segment with no score yields a word-info with no score (not 0).
         let ctx = ctx_from_env();
         let word = first_reading(&ctx, "ねこ");
-        let mut seg = Segment {
+        let seg = Segment {
             start: 0,
             end: 2,
             word,
@@ -386,7 +386,7 @@ mod word_info_from_segment {
             top: None,
             text: None,
         };
-        let wi = word_info_from_segment(&ctx, &mut seg).unwrap();
+        let wi = word_info_from_segment(&ctx, &seg).unwrap();
         assert_eq!(wi.score, None);
     }
 
@@ -406,8 +406,8 @@ mod word_info_from_segment {
             score_base: None,
             score_mod: ScoreMod::Single(0),
         };
-        let mut seg = segment(KaniWordDispatchEnum::Compound(compound), 5, 0, 4);
-        let wi = word_info_from_segment(&ctx, &mut seg).unwrap();
+        let seg = segment(KaniWordDispatchEnum::Compound(compound), 5, 0, 4);
+        let wi = word_info_from_segment(&ctx, &seg).unwrap();
         assert_eq!(wi.text, "ねこいぬ");
         assert_eq!(
             wi.seq,
@@ -477,8 +477,8 @@ mod word_info_from_segment_list {
         // One segment, matches=1 → single branch, skipped = matches - 1 = 0.
         let ctx = ctx_from_env();
         let word = one_kana_reading(&ctx, "ねこ");
-        let mut sl = seg_list(vec![seg(word, 16, 0, 2)], 0, 2, 1);
-        let wi = word_info_from_segment_list(&ctx, &mut sl).unwrap();
+        let sl = seg_list(vec![seg(word, 16, 0, 2)], 0, 2, 1);
+        let wi = word_info_from_segment_list(&ctx, &sl).unwrap();
         assert_eq!(wi.kind, WordInfoType::Kana);
         assert_eq!(wi.text, "ねこ");
         assert_eq!(wi.seq, Some(WordInfoSeq::Single(1467640)));
@@ -495,8 +495,8 @@ mod word_info_from_segment_list {
         // One survivor but matches=7 → skipped = matches - 1 = 6.
         let ctx = ctx_from_env();
         let word = one_kana_reading(&ctx, "ねこ");
-        let mut sl = seg_list(vec![seg(word, 16, 0, 2)], 0, 2, 7);
-        let wi = word_info_from_segment_list(&ctx, &mut sl).unwrap();
+        let sl = seg_list(vec![seg(word, 16, 0, 2)], 0, 2, 7);
+        let wi = word_info_from_segment_list(&ctx, &sl).unwrap();
         assert_eq!(wi.skipped, 6);
     }
 
@@ -507,8 +507,8 @@ mod word_info_from_segment_list {
         let ctx = ctx_from_env();
         let neko = one_kana_reading(&ctx, "ねこ");
         let inu = one_kana_reading(&ctx, "いぬ");
-        let mut sl = seg_list(vec![seg(neko, 5, 0, 2), seg(inu, 5, 0, 2)], 0, 2, 2);
-        let wi = word_info_from_segment_list(&ctx, &mut sl).unwrap();
+        let sl = seg_list(vec![seg(neko, 5, 0, 2), seg(inu, 5, 0, 2)], 0, 2, 2);
+        let wi = word_info_from_segment_list(&ctx, &sl).unwrap();
         assert!(wi.alternative);
         assert_eq!(wi.text, "ねこ"); // first segment's text
         assert_eq!(wi.score, Some(5));
@@ -533,13 +533,13 @@ mod word_info_from_segment_list {
         let a = one_kana_reading(&ctx, "ねこ");
         let b = one_kana_reading(&ctx, "いぬ");
         let c = one_kana_reading(&ctx, "とり");
-        let mut sl = seg_list(
+        let sl = seg_list(
             vec![seg(a, 9, 0, 1), seg(b, 5, 0, 1), seg(c, 3, 0, 1)],
             0,
             1,
             3,
         );
-        let wi = word_info_from_segment_list(&ctx, &mut sl).unwrap();
+        let wi = word_info_from_segment_list(&ctx, &sl).unwrap();
         assert!(!wi.alternative);
         assert_eq!(wi.text, "ねこ");
         assert_eq!(wi.skipped, 2);
@@ -554,8 +554,8 @@ mod word_info_from_segment_list {
         let ctx = ctx_from_env();
         let a = one_kana_reading(&ctx, "ねこ");
         let b = one_kana_reading(&ctx, "いぬ");
-        let mut sl = seg_list(vec![seg(a, 9, 0, 1), seg(b, 7, 0, 1)], 0, 1, 2);
-        let wi = word_info_from_segment_list(&ctx, &mut sl).unwrap();
+        let sl = seg_list(vec![seg(a, 9, 0, 1), seg(b, 7, 0, 1)], 0, 1, 2);
+        let wi = word_info_from_segment_list(&ctx, &sl).unwrap();
         assert!(wi.alternative);
         assert_eq!(wi.text, "ねこ"); // wi1.text
         assert_eq!(wi.score, Some(9)); // wi1.score
@@ -777,11 +777,11 @@ mod fill_segment_path {
         let ctx = ctx_from_env();
         let sl_neko = one_seg_list(&ctx, "ねこ", 16, 0, 2);
         let sl_inu = one_seg_list(&ctx, "いぬ", 16, 4, 6);
-        let mut path = vec![
+        let path = vec![
             PathElement::SegmentList(sl_neko),
             PathElement::SegmentList(sl_inu),
         ];
-        let result = fill_segment_path(&ctx, "ねこと いぬ", &mut path)
+        let result = fill_segment_path(&ctx, "ねこと いぬ", &path)
 
             .unwrap();
         assert_eq!(result.len(), 3);
@@ -804,8 +804,8 @@ mod fill_segment_path {
     fn fills_leading_and_trailing_gap() {
         let ctx = ctx_from_env();
         let sl = one_seg_list(&ctx, "ねこ", 16, 2, 4);
-        let mut path = vec![PathElement::SegmentList(sl)];
-        let result = fill_segment_path(&ctx, "あいねこ犬", &mut path)
+        let path = vec![PathElement::SegmentList(sl)];
+        let result = fill_segment_path(&ctx, "あいねこ犬", &path)
 
             .unwrap();
         assert_eq!(result.len(), 3);
@@ -823,7 +823,7 @@ mod fill_segment_path {
     #[test]
     fn empty_path_with_text_emits_single_gap() {
         let ctx = ctx_from_env();
-        let result = fill_segment_path(&ctx, "abcde", &mut []).unwrap();
+        let result = fill_segment_path(&ctx, "abcde", &[]).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].kind, WordInfoType::Gap);
         assert_eq!(result[0].text, "abcde");
@@ -838,7 +838,7 @@ mod fill_segment_path {
     #[test]
     fn empty_path_empty_string_emits_nothing() {
         let ctx = ctx_from_env();
-        let result = fill_segment_path(&ctx, "", &mut []).unwrap();
+        let result = fill_segment_path(&ctx, "", &[]).unwrap();
         assert!(result.is_empty());
     }
 
@@ -846,8 +846,8 @@ mod fill_segment_path {
     fn segment_list_covers_entire_string_no_gap() {
         let ctx = ctx_from_env();
         let sl = one_seg_list(&ctx, "ねこ", 16, 0, 2);
-        let mut path = vec![PathElement::SegmentList(sl)];
-        let result = fill_segment_path(&ctx, "ねこ", &mut path).unwrap();
+        let path = vec![PathElement::SegmentList(sl)];
+        let result = fill_segment_path(&ctx, "ねこ", &path).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].text, "ねこ");
     }
@@ -857,7 +857,7 @@ mod fill_segment_path {
         let ctx = ctx_from_env();
         let sl_neko = one_seg_list(&ctx, "ねこ", 16, 0, 2);
         let sl_inu = one_seg_list(&ctx, "いぬ", 16, 4, 6);
-        let mut path = vec![
+        let path = vec![
             PathElement::SegmentList(sl_neko),
             PathElement::Synergy(Synergy {
                 description: Some("stub".into()),
@@ -868,7 +868,7 @@ mod fill_segment_path {
             }),
             PathElement::SegmentList(sl_inu),
         ];
-        let result = fill_segment_path(&ctx, "ねこと いぬ", &mut path)
+        let result = fill_segment_path(&ctx, "ねこと いぬ", &path)
 
             .unwrap();
         assert_eq!(result.len(), 3);

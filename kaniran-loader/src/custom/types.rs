@@ -423,7 +423,7 @@ impl WardCsv {
             let text = cols[1];
             let reading = cols[2];
             // dict-custom.lisp:276 (if (alexandria:ends-with #\区 text) ...)
-            if text.chars().last() == Some('区') {
+            if text.ends_with('区') {
                 let ct = city_text
                     .as_deref()
                     .expect("ward-csv: ward row before city row");

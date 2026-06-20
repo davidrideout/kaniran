@@ -89,7 +89,7 @@ pub fn parse_number_star_(na: &[(NumClass, u8)]) -> Option<u128> {
         None => na.iter().try_fold(0u128, |acc, &(_class, v)| {
             acc.checked_mul(10)?.checked_add(v as u128)
         }),
-        Some(idx) if idx == 0 => {
+        Some(0) => {
             let head = 10u128.pow(mp as u32);
             let tail = if na.len() > 1 {
                 parse_number_star_(&na[1..])?

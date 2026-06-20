@@ -94,7 +94,7 @@ fn compare_triple(
         (None, Some(a)) => Err(format!("[{}] kf r=Some(seq={}) l=null", idx, a.seq)),
         (Some(c), None) => Err(format!("[{}] kf r=None l=Some(seq={})", idx, c.seq)),
         (Some(c), Some(a)) => {
-            if c.matches(&a) {
+            if c.matches(a) {
                 Ok(())
             } else {
                 let diffs = diff_fields(&c, a);

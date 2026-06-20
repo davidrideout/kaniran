@@ -74,7 +74,7 @@ fn group_digits(value: usize) -> String {
     let digits = value.to_string();
     let mut grouped = String::with_capacity(digits.len() + digits.len() / 3);
     for (index, digit) in digits.chars().enumerate() {
-        if index > 0 && (digits.len() - index) % 3 == 0 {
+        if index > 0 && (digits.len() - index).is_multiple_of(3) {
             grouped.push(',');
         }
         grouped.push(digit);
@@ -106,7 +106,7 @@ where
     let mut stream = sqlx::query_as::<_, Row>(&sql).fetch(pool);
     while let Some(row) = stream.try_next().await? {
         rows.push(row);
-        if rows.len() % 500_000 == 0 {
+        if rows.len().is_multiple_of(500_000) {
             let elapsed = started.elapsed().as_secs_f64();
             println!(
                 "  …{table_name}: {} rows so far, {elapsed:.1}s elapsed, {} rows/s",

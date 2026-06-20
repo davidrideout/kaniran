@@ -219,7 +219,7 @@ fn compare(actual: Option<OrAsHiraganaRows>, expected: &Value) -> Result<(), Str
                 return Err(format!("kana row count: rust={} lisp={}", a.len(), c.len()));
             }
             a.sort_by(|x, y| (x.seq, x.id, x.text.clone()).cmp(&(y.seq, y.id, y.text.clone())));
-            c.sort_by(|x, y| (x.seq, x.id, x.text.clone()).cmp(&(y.seq, y.id, y.text.clone())));
+            c.sort_by_key(|x| (x.seq, x.id, x.text.clone()));
             for (idx, (actual_row, captured_row)) in a.iter().zip(&c).enumerate() {
                 if !captured_row.matches(actual_row) {
                     return Err(format!(
@@ -238,7 +238,7 @@ fn compare(actual: Option<OrAsHiraganaRows>, expected: &Value) -> Result<(), Str
                 return Err(format!("kanji row count: rust={} lisp={}", a.len(), c.len()));
             }
             a.sort_by(|x, y| (x.seq, x.id, x.text.clone()).cmp(&(y.seq, y.id, y.text.clone())));
-            c.sort_by(|x, y| (x.seq, x.id, x.text.clone()).cmp(&(y.seq, y.id, y.text.clone())));
+            c.sort_by_key(|x| (x.seq, x.id, x.text.clone()));
             for (idx, (actual_row, captured_row)) in a.iter().zip(&c).enumerate() {
                 if !captured_row.matches(actual_row) {
                     return Err(format!(

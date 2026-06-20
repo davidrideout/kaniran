@@ -42,12 +42,12 @@ fn audit_one(
         Value::Null => return run_with_empty_path(ctx, str, &row.result),
         other => return Err(format!("arg 1: expected array / null, got {}", other)),
     };
-    let mut path: Vec<PathElement> = path_arr
+    let path: Vec<PathElement> = path_arr
         .iter()
         .map(parse_captured_path_element)
         .collect::<Result<_, _>>()?;
 
-    let actual = fill_segment_path(ctx, str, &mut path)
+    let actual = fill_segment_path(ctx, str, &path)
         
         .map_err(|err| format!("fill_segment_path: {}", err))?;
 
@@ -59,7 +59,7 @@ fn run_with_empty_path(
     str: &str,
     result: &[Value],
 ) -> Result<(), String> {
-    let actual = fill_segment_path(ctx, str, &mut [])
+    let actual = fill_segment_path(ctx, str, &[])
         
         .map_err(|err| format!("fill_segment_path: {}", err))?;
     compare_word_info_list(&actual, result)

@@ -122,7 +122,7 @@ fn normalize(v: &Value) -> Value {
                 let mut nv = normalize(&map[k]);
                 if k == "alternative" {
                     if let Value::Array(a) = &mut nv {
-                        a.sort_by(|x, y| x.to_string().cmp(&y.to_string()));
+                        a.sort_by_key(|x| x.to_string());
                     }
                 }
                 out.insert(k.clone(), nv);

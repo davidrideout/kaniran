@@ -1007,7 +1007,7 @@ pub async fn add_gloss(
     };
     // dict-errata.lisp:163-166 (loop for new-text in texts unless (find …) do (make-dao 'gloss …) (incf max-ord))
     for new_text in texts {
-        if glosses_text.iter().any(|g| *g == *new_text) {
+        if glosses_text.contains(new_text) {
             continue;
         }
         sqlx::query("INSERT INTO gloss (sense_id, text, ord) VALUES ($1, $2, $3)")

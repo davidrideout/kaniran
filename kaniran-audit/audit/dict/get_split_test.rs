@@ -144,9 +144,7 @@ fn compare_split_part(actual: &SplitPart, expected: &Value) -> Result<(), String
             "class/variant mismatch: rust={:?} lisp=:{}",
             other_variant, other_class
         )),
-        (SplitPart::Score, _) | (SplitPart::PScore, _) => Err(format!(
-            "rust returned :SCORE/:PSCORE marker, lisp returned word object"
-        )),
+        (SplitPart::Score, _) | (SplitPart::PScore, _) => Err("rust returned :SCORE/:PSCORE marker, lisp returned word object".to_string()),
     }
 }
 

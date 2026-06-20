@@ -8,7 +8,7 @@ use std::sync::LazyLock;
 /// Port of `ichiran/custom:municipality-short` (`dict-custom.lisp:120`).
 pub fn municipality_short(text: &str, reading: &str) -> (String, Option<String>) {
     // dict-custom.lisp:121 (if (alexandria:ends-with #\道 text) (cons text reading) ...)
-    if text.chars().last() == Some('道') {
+    if text.ends_with('道') {
         return (text.to_string(), Some(reading.to_string()));
     }
     // dict-custom.lisp:123 (type (char text (1- (length text))))
@@ -22,13 +22,9 @@ pub fn municipality_short(text: &str, reading: &str) -> (String, Option<String>)
         .find_map(|(t, r)| if *t == r#type { Some(*r) } else { None })
         .unwrap_or(&[]);
     // dict-custom.lisp:126-129 (loop for tpr in type-readings thereis (and (alexandria:ends-with-subseq tpr reading) (subseq reading 0 (- (length reading) (length tpr)))))
-    let short_reading: Option<String> = type_readings.iter().find_map(|tpr| {
-        if reading.ends_with(tpr) {
-            Some(reading[..reading.len() - tpr.len()].to_string())
-        } else {
-            None
-        }
-    });
+    let short_reading: Option<String> = type_readings
+        .iter()
+        .find_map(|tpr| reading.strip_suffix(tpr).map(str::to_string));
     (short_text, short_reading)
 }
 

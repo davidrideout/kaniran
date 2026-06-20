@@ -47,7 +47,7 @@ pub fn penalty_semi_final(l: &KaniLiteSegmentList, r: &KaniLiteSegmentList) -> O
         l,
         r,
         // dict-grammar.lisp:1004-1006 (test-left lambda over (apply 'filter-in-seq-set *semi-final-prt*))
-        |sl| sl.segments.iter().any(|s| f(s)),
+        |sl| sl.segments.iter().any(&f),
         // dict-grammar.lisp:1007 (test-right = (constantly t))
         |_| true,
         &DefGenericPenaltyOpts {
@@ -166,7 +166,7 @@ where
     // Tested BEFORE partitioning: this is the overwhelmingly common
     // outcome, and classify clones every segment it walks.
     if (allow_first && seg_left.is_none())
-        || !seg_right.segments.iter().any(|segment| filter_right(segment))
+        || !seg_right.segments.iter().any(&filter_right)
     {
         return None;
     }
@@ -202,7 +202,7 @@ where
     // classify l and emit the satisfies × satisfies pair (prepended)
     // alongside the unchanged-l × contradicts-r pair. The all-satisfy
     // case returns before partitioning, same as the right side above.
-    if l.segments.iter().all(|segment| filter_left(segment)) {
+    if l.segments.iter().all(&filter_left) {
         return None;
     }
     let sat_l: Vec<Arc<KaniLiteSegment>> = l

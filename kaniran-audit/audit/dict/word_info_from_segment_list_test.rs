@@ -28,9 +28,9 @@ fn audit_one(
             row.args.len()
         ));
     }
-    let mut segment_list = parse_captured_segment_list(&row.args[0])?;
+    let segment_list = parse_captured_segment_list(&row.args[0])?;
 
-    let actual = word_info_from_segment_list(ctx, &mut segment_list)
+    let actual = word_info_from_segment_list(ctx, &segment_list)
         
         .map_err(|err| format!("word_info_from_segment_list: {}", err))?;
 

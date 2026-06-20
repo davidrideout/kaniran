@@ -27,10 +27,10 @@ pub fn num_sandhi(
     let mut s1_buf = s1.to_string();
     let mut s2_buf = s2.to_string();
     match (c1, v1, c2, v2) {
-        (Some(Jd), Some(1), P, v) if matches!(v, 3 | 12 | 16) => {
+        (Some(Jd), Some(1), P, 3 | 12 | 16) => {
             geminate(&mut s1_buf);
         }
-        (Some(Jd), Some(3), P, v) if matches!(v, 2 | 3) => {
+        (Some(Jd), Some(3), P, 2 | 3) => {
             rendaku(&mut s2_buf, Voicing::Dakuten);
         }
         (Some(Jd), Some(6), P, 2) => {
@@ -44,10 +44,10 @@ pub fn num_sandhi(
             geminate(&mut s1_buf);
             rendaku(&mut s2_buf, Voicing::Handakuten);
         }
-        (Some(Jd), Some(8), P, v) if matches!(v, 3 | 12 | 16) => {
+        (Some(Jd), Some(8), P, 3 | 12 | 16) => {
             geminate(&mut s1_buf);
         }
-        (Some(P), Some(1), P, v) if matches!(v, 12 | 16) => {
+        (Some(P), Some(1), P, 12 | 16) => {
             geminate(&mut s1_buf);
         }
         (Some(P), Some(2), P, 16) => {

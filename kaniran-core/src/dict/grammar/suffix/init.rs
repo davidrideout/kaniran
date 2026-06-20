@@ -181,7 +181,7 @@ pub fn build_suffix_caches(
     let iku_kfs = get_kana_forms(ctx, 1578850)?;
     for kf in iku_kfs {
         let tkf: String = kf.text.to_string();
-        if tkf.chars().next() != Some('\u{3044}') {
+        if !tkf.starts_with('\u{3044}') {
             continue;
         }
         let val = vec![("te".to_string(), Some(kf.clone()))];

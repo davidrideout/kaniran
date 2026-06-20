@@ -69,7 +69,7 @@ fn normalize(v: &Value) -> Value {
     match v {
         Value::Array(xs) => {
             let mut items: Vec<Value> = xs.iter().map(normalize).collect();
-            items.sort_by(|a, b| a.to_string().cmp(&b.to_string()));
+            items.sort_by_key(|a| a.to_string());
             Value::Array(items)
         }
         Value::Object(map) => {

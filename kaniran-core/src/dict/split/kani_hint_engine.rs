@@ -11,10 +11,6 @@ use crate::kanji::matching::{match_readings, MatchedSegment};
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-/// Rust-only sidecar: runtime engine for the `def-easy-hint`
-/// (`dict-split.lisp:916`) and `def-simple-hint`
-/// (`dict-split.lisp:860`) callsites, plus the shared
-/// string-search / hint-emit helpers they share.
 /// Search for a hiragana substring inside a kana string, returning
 /// the start char-position. `from_end = true` mirrors CL's
 /// `(search needle haystack :from-end t)` — last occurrence.
@@ -36,18 +32,14 @@ pub fn search_chars(needle: &str, haystack: &str, from_end: bool) -> Option<usiz
 }
 
 /// `(alexandria:ends-with #\<c> k)` — true when `k`'s last char
-/// equals `c`. Goes through `chars().last()` so the comparison
-/// honors character (not byte) semantics.
+/// equals `c`.
 pub fn ends_with_char(s: &str, c: char) -> bool {
-    s.chars().last() == Some(c)
+    s.ends_with(c)
 }
 
 /// `def-simple-hint` body shared helper: build `(KaniHintKind,
 /// usize)` from a signed position, dropping the entry if the
-/// position is negative. Mirrors upstream `insert-hints`'s
-/// `(<= 0 position len)` guard absorbing negative positions
-/// silently — `(- l 1)` with `l = 0` evaluates to -1 in CL,
-/// reaches `insert-hints`, and gets dropped.
+/// position is negative.
 pub fn safe_hint(kind: KaniHintKind, pos: i64) -> Option<(KaniHintKind, usize)> {
     if pos >= 0 {
         Some((kind, pos as usize))
@@ -57,23 +49,14 @@ pub fn safe_hint(kind: KaniHintKind, pos: i64) -> Option<(KaniHintKind, usize)> 
 }
 
 /// Common tail for every `def-simple-hint` body: `(insert-hints
-/// (get-kana ,reading-var) (list ,@hints-emits))`. The recursive
-/// `get_kana` call observes the `:around` rebind via `ctx.disable_hints`
-/// — the outer `simple-text :around` rebinds the ctx via
-/// [`crate::conn::kani_context::KaniranContext::with_disable_hints`]`(true)`
-/// before this body runs, and the rebound ctx threads down to here, so
-/// the inner `:around` skips its hint branch. `Box::pin` breaks the
-/// static-recursion cycle through get_kana ↔ get_hint ↔
-/// hint_map_dispatch.
+/// (get-kana ,reading-var) (list ,@hints-emits))`.
 pub fn finish_simple_hint(
     ctx: &KaniranContext,
     reading: &KaniWordDispatchEnum,
     hints: Vec<(KaniHintKind, usize)>,
 ) -> Result<Option<String>, crate::conn::KaniDbError> {
     // get_kana returning None means upstream `(text nil)` —
-    // no kana representation exists for this reading. The
-    // hint body's `(insert-hints (get-kana reading) ...)`
-    // would crash upstream; mirror as no-hint here.
+    // no kana representation exists for this reading.
     let Some(kana) = get_kana(ctx, reading)? else {
         return Ok(None);
     };
@@ -82,9 +65,7 @@ pub fn finish_simple_hint(
 
 /// Compute the `kana-var` once at the top of each simple-hint body,
 /// matching the macro's `(let* ((,kana-var (true-kana ...))
-/// (,length-var (length ,kana-var)) ...))` prologue. Returns
-/// `Ok(None)` when `true_kana` would surface upstream's `(text nil)`
-/// crash — caller treats as a no-hint result.
+/// (,length-var (length ,kana-var)) ...))` prologue.
 pub fn true_kana_and_len(
     ctx: &KaniranContext,
     reading: &KaniWordDispatchEnum,
@@ -107,18 +88,13 @@ pub struct EasyHint {
 
 /// Pre-computed `(text, hints)` for one [`EasyHint`] — the upstream
 /// macroexpansion of `def-easy-hint` produces these as static
-/// literals at compile time. The Rust port computes them on first
-/// dispatch for the entry's seq and caches keyed by `seq` via
-/// [`parsed_easy_hint`].
+/// literals at compile time.
 struct ParsedEasyHint {
     text: String,
     hints: Vec<(KaniHintKind, usize)>,
 }
 
-/// Lookup-or-compute the parsed `(text, hints)` for `hint`. Caches
-/// keyed by `seq` so each `def-easy-hint` callsite incurs the
-/// `parse_kanji_split` scan once per process lifetime — mirroring the
-/// upstream's macroexpand-time pre-compute.
+/// Lookup-or-compute the parsed `(text, hints)` for `hint`.
 fn parsed_easy_hint(hint: &EasyHint) -> &'static ParsedEasyHint {
     static CACHE: OnceLock<HashMap<i32, ParsedEasyHint>> = OnceLock::new();
     let map = CACHE.get_or_init(|| {
@@ -134,14 +110,7 @@ fn parsed_easy_hint(hint: &EasyHint) -> &'static ParsedEasyHint {
         .expect("EasyHint seq not in EASY_HINTS table")
 }
 
-/// Run the body that `def-easy-hint` expands into. Returns
-/// `Ok(None)` when the reading isn't a `simple-text`, when the
-/// alignment fails (`match_diff` or `match_readings` return
-/// `None`), or when `get_kana` runs but every translated hint is
-/// out-of-range (the result of `insert_hints` with an empty hints
-/// list is the unhinted kana; we still wrap in `Some` to mirror
-/// the upstream `(insert-hints (get-kana reading) ...)` returning
-/// the kana string).
+/// Run the body that `def-easy-hint` expands into.
 pub fn run_easy_hint(
     ctx: &KaniranContext,
     hint: &EasyHint,
@@ -156,9 +125,7 @@ pub fn run_easy_hint(
     }
 
     // The macro pre-computes ,text (kanji-split with spaces removed)
-    // and ,hints (the list of (kw pos) emits) at compile time. Rust
-    // mirrors that via a OnceLock cache populated on first dispatch
-    // (see `parsed_easy_hint` / module-level CACHE).
+    // and ,hints (the list of (kw pos) emits) at compile time.
     let parsed = parsed_easy_hint(hint);
 
     // dict-split.lisp:932 — (rtext = (true-kanji reading))
@@ -200,8 +167,6 @@ pub fn run_easy_hint(
     let translated2 = translate_hints(&kr_parts, &translated1);
 
     // dict-split.lisp:936 — (insert-hints (get-kana reading) ...).
-    // Box::pin breaks the static-recursion cycle through
-    // get_kana → get_hint → hint_map_dispatch → run_easy_hint → get_kana.
     // The recursion is bounded at runtime by `ctx.disable_hints =
     // true` (the outer get_kana :around rebinds the ctx via
     // [`KaniranContext::with_disable_hints`] before calling get_hint;
@@ -238,10 +203,7 @@ fn parse_kanji_split(kanji_split: &str) -> (String, Vec<(KaniHintKind, usize)>) 
     let mut pos: usize = 0;
     for (i, part) in kanji_split.split(' ').enumerate() {
         // dict-split.lisp:921 — `unless (zerop pos)` gates BOTH the
-        // :space emit and the `and if`-joined :mod emit. A :mod
-        // would otherwise fire even when the part appears at index 0
-        // (kanji_split starting with one of the trigger strings),
-        // which the upstream `unless` deliberately suppresses.
+        // :space emit and the `and if`-joined :mod emit.
         if i > 0 {
             // dict-split.lisp:922 — (collect (list :space pos))
             hints.push((KaniHintKind::Space, pos));
