@@ -358,19 +358,17 @@ fn romaji_kana_fixtures() {
 }
 
 // --- romaji_suggest ---
-async fn ctx() -> Arc<KaniranContext> {
-    KaniranContext::from_env()
-        .await
-        .expect("DATABASE_URL / kaniran.toml required")
+fn ctx() -> Arc<KaniranContext> {
+    crate::test_support::shared_ctx()
 }
 
 /// Full-JSON suggestions for words whose matched-kanji order is
 /// deterministic: `neko`/`tegami`/`toukyou` (single kanji) and `hon` (two
 /// kanji). Checks the object shape, the canonical hiragana entry, and the
 /// katakana mapping.
-#[tokio::test]
-async fn romaji_suggest_fixtures() {
-    let ctx = ctx().await;
+#[test]
+fn romaji_suggest_fixtures() {
+    let ctx = ctx();
     let cases: &[(&str, &str)] = &[
         (
             "neko",
@@ -390,7 +388,7 @@ async fn romaji_suggest_fixtures() {
         ),
     ];
     for (s, expected) in cases {
-        let js = romaji_suggest(&ctx, s).await.unwrap().expect("deromanizes");
+        let js = romaji_suggest(&ctx, s).unwrap().expect("deromanizes");
         assert_eq!(
             serde_json::to_string(&js).unwrap().as_str(),
             *expected,
@@ -403,11 +401,11 @@ async fn romaji_suggest_fixtures() {
 /// alternative reading いんう, so hiragana carries both (canonical first)
 /// and katakana maps each. Only the hiragana/katakana fields are checked;
 /// the matched-kanji order is not deterministic here.
-#[tokio::test]
-async fn romaji_suggest_multi_hiragana() {
-    let ctx = ctx().await;
+#[test]
+fn romaji_suggest_multi_hiragana() {
+    let ctx = ctx();
     let js = romaji_suggest(&ctx, "inu")
-        .await
+        
         .unwrap()
         .expect("deromanizes");
     assert_eq!(js["hiragana"], serde_json::json!(["いぬ", "いんう"]));
@@ -415,8 +413,8 @@ async fn romaji_suggest_multi_hiragana() {
 }
 
 /// `xyz` does not deromanize, so there is no suggestion.
-#[tokio::test]
-async fn romaji_suggest_no_parse() {
-    let ctx = ctx().await;
-    assert!(romaji_suggest(&ctx, "xyz").await.unwrap().is_none());
+#[test]
+fn romaji_suggest_no_parse() {
+    let ctx = ctx();
+    assert!(romaji_suggest(&ctx, "xyz").unwrap().is_none());
 }

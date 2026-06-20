@@ -22,20 +22,18 @@ mod suffix_tai {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TAI1: `(suffix-tai "食べ" "たい" kf-tai)` → 1 COMPOUND
     /// text="食べたい" kana="たべたい" score-mod=5 primary=KANJI-TEXT
     /// (食べ seq 10092273), words=(primary kf), score-base=NIL.
-    #[tokio::test]
-    async fn tai1_ichidan_ren_youkei_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn tai1_ichidan_ren_youkei_kanji() {
+        let ctx = ctx();
         let kf = kf_tai();
-        let result = suffix_tai(&ctx, "食べ", "たい", &kf).await.unwrap();
+        let result = suffix_tai(&ctx, "食べ", "たい", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べたい");
@@ -45,7 +43,7 @@ mod suffix_tai {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べ");
-                assert_eq!(k.seq, 10092273);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -62,21 +60,21 @@ mod suffix_tai {
 
     /// REPL TAI2: `(suffix-tai "い" "たい" kf-tai)` → NIL. The
     /// `(member root '("い") :test 'equal)` guard excludes bare い.
-    #[tokio::test]
-    async fn tai2_i_excluded() {
-        let ctx = ctx().await;
+    #[test]
+    fn tai2_i_excluded() {
+        let ctx = ctx();
         let kf = kf_tai();
-        let result = suffix_tai(&ctx, "い", "たい", &kf).await.unwrap();
+        let result = suffix_tai(&ctx, "い", "たい", &kf).unwrap();
         assert!(result.is_empty());
     }
 
     /// REPL TAI3: `(suffix-tai "無理" "たい" kf-tai)` → NIL. 無理 is
     /// not a verb stem; find-word-with-conj-type returns 0 rows.
-    #[tokio::test]
-    async fn tai3_non_verb_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn tai3_non_verb_root() {
+        let ctx = ctx();
         let kf = kf_tai();
-        let result = suffix_tai(&ctx, "無理", "たい", &kf).await.unwrap();
+        let result = suffix_tai(&ctx, "無理", "たい", &kf).unwrap();
         assert!(result.is_empty());
     }
 
@@ -84,11 +82,11 @@ mod suffix_tai {
     /// text="飲みたい" kana="のみたい" score-mod=5 score-base=NIL
     /// primary=KANJI-TEXT (飲み seq 10665871), words=(primary kf).
     /// Exercises a godan ren'youkei stem.
-    #[tokio::test]
-    async fn tai4_godan_ren_youkei_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn tai4_godan_ren_youkei_kanji() {
+        let ctx = ctx();
         let kf = kf_tai();
-        let result = suffix_tai(&ctx, "飲み", "たい", &kf).await.unwrap();
+        let result = suffix_tai(&ctx, "飲み", "たい", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "飲みたい");
@@ -98,7 +96,7 @@ mod suffix_tai {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "飲み");
-                assert_eq!(k.seq, 10665871);
+                crate::test_support::check_base_seqs(k.seq, &[1169870]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -118,11 +116,11 @@ mod suffix_tai {
     /// text="のみたい" kana="のみたい", a KANA-TEXT primary with
     /// text="のみ" / get-kana="のみ", and words=(primary kf). The
     /// three seqs are 10433818, 10577483, 10665871.
-    #[tokio::test]
-    async fn tai5_kana_ren_youkei_polysemy_three() {
-        let ctx = ctx().await;
+    #[test]
+    fn tai5_kana_ren_youkei_polysemy_three() {
+        let ctx = ctx();
         let kf = kf_tai();
-        let result = suffix_tai(&ctx, "のみ", "たい", &kf).await.unwrap();
+        let result = suffix_tai(&ctx, "のみ", "たい", &kf).unwrap();
         assert_eq!(result.len(), 3);
         for c in &result {
             assert_eq!(c.text, "のみたい");
@@ -150,7 +148,7 @@ mod suffix_tai {
             })
             .collect();
         seqs.sort();
-        assert_eq!(seqs, vec![10433818, 10577483, 10665871]);
+        crate::test_support::check_base_seq_set(&seqs, &[1169870, 2584070, 2841855]);
     }
 }
 
@@ -178,21 +176,19 @@ mod suffix_ren {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL REN1: `(suffix-ren "食べ" "つつ" kf-ren-tsutsu)` → 1
     /// COMPOUND text="食べつつ" kana="たべつつ" score-mod=5
     /// primary=KANJI-TEXT (食べ seq 10092273), words=(primary kf),
     /// score-base=NIL.
-    #[tokio::test]
-    async fn ren1_ichidan_ren_youkei_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn ren1_ichidan_ren_youkei_kanji() {
+        let ctx = ctx();
         let kf = kf_ren_tsutsu();
-        let result = suffix_ren(&ctx, "食べ", "つつ", &kf).await.unwrap();
+        let result = suffix_ren(&ctx, "食べ", "つつ", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べつつ");
@@ -202,7 +198,7 @@ mod suffix_ren {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べ");
-                assert_eq!(k.seq, 10092273);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -219,11 +215,11 @@ mod suffix_ren {
 
     /// REPL REN2: `(suffix-ren "無理" "つつ" kf-ren-tsutsu)` → NIL.
     /// 無理 has no conj-type-13 entry.
-    #[tokio::test]
-    async fn ren2_non_verb_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn ren2_non_verb_root() {
+        let ctx = ctx();
         let kf = kf_ren_tsutsu();
-        let result = suffix_ren(&ctx, "無理", "つつ", &kf).await.unwrap();
+        let result = suffix_ren(&ctx, "無理", "つつ", &kf).unwrap();
         assert!(result.is_empty());
     }
 
@@ -233,11 +229,11 @@ mod suffix_ren {
     /// text="いつつ" kana="いつつ" with a KANA-TEXT primary at
     /// text="い"; pinned seqs are 2258170, 10033674, 10128912,
     /// 10303160, 10362338, 10423311.
-    #[tokio::test]
-    async fn ren3_i_root_not_gated_six_rows() {
-        let ctx = ctx().await;
+    #[test]
+    fn ren3_i_root_not_gated_six_rows() {
+        let ctx = ctx();
         let kf = kf_ren_tsutsu();
-        let result = suffix_ren(&ctx, "い", "つつ", &kf).await.unwrap();
+        let result = suffix_ren(&ctx, "い", "つつ", &kf).unwrap();
         assert_eq!(result.len(), 6);
         for c in &result {
             assert_eq!(c.text, "いつつ");
@@ -265,21 +261,18 @@ mod suffix_ren {
             })
             .collect();
         seqs.sort();
-        assert_eq!(
-            seqs,
-            vec![2258170, 10033674, 10128912, 10303160, 10362338, 10423311]
-        );
+        crate::test_support::check_base_seq_set(&seqs, &[1322180, 1577980, 1587780, 2729170, 2851105, 2851106]);
     }
 
     /// REPL REN4: `(suffix-ren "あり" "つつ" kf-ren-tsutsu)` → 1
     /// COMPOUND text="ありつつ" kana="ありつつ" score-mod=5
     /// score-base=NIL primary=KANA-TEXT (あり seq 2150170),
     /// words=(primary kf). Exercises the kana-text arm.
-    #[tokio::test]
-    async fn ren4_kana_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn ren4_kana_root() {
+        let ctx = ctx();
         let kf = kf_ren_tsutsu();
-        let result = suffix_ren(&ctx, "あり", "つつ", &kf).await.unwrap();
+        let result = suffix_ren(&ctx, "あり", "つつ", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "ありつつ");
@@ -320,7 +313,7 @@ mod suffix_ren_ {
             text: "がい".into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kanji: Some("甲斐".into()),
@@ -328,20 +321,18 @@ mod suffix_ren_ {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL REN-1: `(suffix-ren- "食べ" "がい" kf-ren-minus-gai)` → 1
     /// COMPOUND text="食べがい" kana="たべがい" score-mod=0
     /// primary=KANJI-TEXT (食べ seq 10092273), words=(primary kf).
-    #[tokio::test]
-    async fn ren_minus_1_ichidan_ren_youkei_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn ren_minus_1_ichidan_ren_youkei_kanji() {
+        let ctx = ctx();
         let kf = kf_ren_minus_gai();
-        let result = suffix_ren_(&ctx, "食べ", "がい", &kf).await.unwrap();
+        let result = suffix_ren_(&ctx, "食べ", "がい", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べがい");
@@ -351,7 +342,7 @@ mod suffix_ren_ {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べ");
-                assert_eq!(k.seq, 10092273);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -368,11 +359,11 @@ mod suffix_ren_ {
 
     /// REPL REN-2: `(suffix-ren- "無理" "がい" kf-ren-minus-gai)` → NIL.
     /// 無理 has no conj-type-13 entry.
-    #[tokio::test]
-    async fn ren_minus_2_non_verb_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn ren_minus_2_non_verb_root() {
+        let ctx = ctx();
         let kf = kf_ren_minus_gai();
-        let result = suffix_ren_(&ctx, "無理", "がい", &kf).await.unwrap();
+        let result = suffix_ren_(&ctx, "無理", "がい", &kf).unwrap();
         assert!(result.is_empty());
     }
 
@@ -382,11 +373,11 @@ mod suffix_ren_ {
     /// kana="いがい" with a KANA-TEXT primary at text="い"; pinned
     /// seqs are 2258170, 10033674, 10128912, 10303160, 10362338,
     /// 10423311.
-    #[tokio::test]
-    async fn ren_minus_3_i_root_not_gated_six_rows() {
-        let ctx = ctx().await;
+    #[test]
+    fn ren_minus_3_i_root_not_gated_six_rows() {
+        let ctx = ctx();
         let kf = kf_ren_minus_gai();
-        let result = suffix_ren_(&ctx, "い", "がい", &kf).await.unwrap();
+        let result = suffix_ren_(&ctx, "い", "がい", &kf).unwrap();
         assert_eq!(result.len(), 6);
         for c in &result {
             assert_eq!(c.text, "いがい");
@@ -414,10 +405,7 @@ mod suffix_ren_ {
             })
             .collect();
         seqs.sort();
-        assert_eq!(
-            seqs,
-            vec![2258170, 10033674, 10128912, 10303160, 10362338, 10423311]
-        );
+        crate::test_support::check_base_seq_set(&seqs, &[1322180, 1577980, 1587780, 2729170, 2851105, 2851106]);
     }
 }
 
@@ -437,7 +425,7 @@ mod suffix_neg {
             text: "なく".into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -445,10 +433,8 @@ mod suffix_neg {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL NEG1: `(suffix-neg "知ら" "なく" kf-neg)` → 1 COMPOUND
@@ -456,11 +442,11 @@ mod suffix_neg {
     /// (知ら seq 10106011), words=(primary kf). Hits conj-type 52.
     /// REPL-confirmed: (find-word-with-conj-type "知ら" 13) → 0,
     /// (… "知ら" 52) → 1.
-    #[tokio::test]
-    async fn neg1_godan_negative_stem_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn neg1_godan_negative_stem_kanji() {
+        let ctx = ctx();
         let kf = kf_neg();
-        let result = suffix_neg(&ctx, "知ら", "なく", &kf).await.unwrap();
+        let result = suffix_neg(&ctx, "知ら", "なく", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "知らなく");
@@ -470,7 +456,7 @@ mod suffix_neg {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "知ら");
-                assert_eq!(k.seq, 10106011);
+                crate::test_support::check_base_seqs(k.seq, &[1420470]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -490,11 +476,11 @@ mod suffix_neg {
     /// primary=KANJI-TEXT (食べ seq 10092273), words=(primary kf).
     /// Hits conj-type 13 (ichidan ren'youkei stem) — the other end
     /// of the &[13, 52] set.
-    #[tokio::test]
-    async fn neg2_ichidan_via_type_13() {
-        let ctx = ctx().await;
+    #[test]
+    fn neg2_ichidan_via_type_13() {
+        let ctx = ctx();
         let kf = kf_neg();
-        let result = suffix_neg(&ctx, "食べ", "なく", &kf).await.unwrap();
+        let result = suffix_neg(&ctx, "食べ", "なく", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べなく");
@@ -504,7 +490,7 @@ mod suffix_neg {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べ");
-                assert_eq!(k.seq, 10092273);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -520,11 +506,11 @@ mod suffix_neg {
 
     /// REPL NEG3: `(suffix-neg "無理" "なく" kf-neg)` → NIL. 無理 has
     /// neither a conj-type-13 nor a conj-type-52 row.
-    #[tokio::test]
-    async fn neg3_non_verb_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn neg3_non_verb_root() {
+        let ctx = ctx();
         let kf = kf_neg();
-        let result = suffix_neg(&ctx, "無理", "なく", &kf).await.unwrap();
+        let result = suffix_neg(&ctx, "無理", "なく", &kf).unwrap();
         assert!(result.is_empty());
     }
 
@@ -532,11 +518,11 @@ mod suffix_neg {
     /// text="しらなく" kana="しらなく" score-mod=5 score-base=NIL
     /// primary=KANA-TEXT (しら seq 10106011), words=(primary kf).
     /// Exercises the kana-text arm of the type-52 match.
-    #[tokio::test]
-    async fn neg4_kana_root_negative_stem() {
-        let ctx = ctx().await;
+    #[test]
+    fn neg4_kana_root_negative_stem() {
+        let ctx = ctx();
         let kf = kf_neg();
-        let result = suffix_neg(&ctx, "しら", "なく", &kf).await.unwrap();
+        let result = suffix_neg(&ctx, "しら", "なく", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "しらなく");
@@ -546,7 +532,7 @@ mod suffix_neg {
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
                 assert_eq!(k.text, "しら");
-                assert_eq!(k.seq, 10106011);
+                crate::test_support::check_base_seqs(k.seq, &[1420470]);
             }
             other => panic!("expected Kana primary, got {:?}", other),
         }
@@ -564,85 +550,87 @@ mod suffix_neg {
 mod te_check {
     use crate::dict::grammar::suffix::rules::*;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(te-check "で")` → NIL. Bare "で" is excluded by the
     /// first `(not (equal root "で"))` guard.
-    #[tokio::test]
-    async fn t1_bare_de_excluded() {
-        let ctx = ctx().await;
-        let r = te_check(&ctx, "で").await.unwrap();
+    #[test]
+    fn t1_bare_de_excluded() {
+        let ctx = ctx();
+        let r = te_check(&ctx, "で").unwrap();
         assert!(r.is_empty());
     }
 
     /// REPL: `(te-check "食べる")` → NIL. Last char る not in "てで",
     /// so the second guard fails before find-word-with-conj-type runs.
-    #[tokio::test]
-    async fn t2_last_char_not_te_or_de() {
-        let ctx = ctx().await;
-        let r = te_check(&ctx, "食べる").await.unwrap();
+    #[test]
+    fn t2_last_char_not_te_or_de() {
+        let ctx = ctx();
+        let r = te_check(&ctx, "食べる").unwrap();
         assert!(r.is_empty());
     }
 
     /// REPL: `(te-check "")` signals `SIMPLE-TYPE-ERROR: Invalid index -1
     /// for (SIMPLE-ARRAY CHARACTER (0))` — `(char "" -1)` raises rather
     /// than returning. Mirror via panic.
-    #[tokio::test]
+    #[test]
     #[should_panic(
         expected = "te-check: (char root (1- (length root))) on empty root signals upstream"
     )]
-    async fn t3_empty_root_panics_like_upstream() {
-        let ctx = ctx().await;
-        let _ = te_check(&ctx, "").await;
+    fn t3_empty_root_panics_like_upstream() {
+        let ctx = ctx();
+        let _ = te_check(&ctx, "");
     }
 
     /// REPL: `(te-check "空")` → NIL. Last char 空 not in "てで".
-    #[tokio::test]
-    async fn t4_kanji_last_char() {
-        let ctx = ctx().await;
-        let r = te_check(&ctx, "空").await.unwrap();
+    #[test]
+    fn t4_kanji_last_char() {
+        let ctx = ctx();
+        let r = te_check(&ctx, "空").unwrap();
         assert!(r.is_empty());
     }
 
     /// REPL: `(te-check "食べて")` → 1 word: text=食べて seq=10092233
     /// type=KANJI-TEXT wc=(92707) — conj-id 92707 is the -te form
     /// (conj-type 3) of 食べる (seq 1358280).
-    #[tokio::test]
-    async fn t5_tabete_succeeds() {
-        let ctx = ctx().await;
-        let r = te_check(&ctx, "食べて").await.unwrap();
+    #[test]
+    fn t5_tabete_succeeds() {
+        let ctx = ctx();
+        let r = te_check(&ctx, "食べて").unwrap();
         assert_eq!(r.len(), 1);
         let KaniWordDispatchEnum::Kanji(k) = &r[0] else {
             panic!("expected KANJI-TEXT, got {:?}", r[0]);
         };
         assert_eq!(k.text, "食べて");
-        assert_eq!(k.seq, 10092233);
-        assert_eq!(
-            k.state.conjugations,
-            Some(crate::dict::dao::WordConjugations::Ids(vec![
-                92707
-            ]))
+        crate::test_support::check_base_seqs(k.seq, &[1358280]);
+        // One conjugation row (the -te form of 食べる); its id is a
+        // build-specific serial, so assert the shape, not the number.
+        assert!(
+            matches!(
+                &k.state.conjugations,
+                Some(crate::dict::dao::WordConjugations::Ids(ids)) if ids.len() == 1
+            ),
+            "expected one conjugation id, got {:?}",
+            k.state.conjugations
         );
     }
 
     /// REPL: `(te-check "遊んで")` → 2 words (last char で). Verifies
     /// the で path (not just て).
-    #[tokio::test]
-    async fn t6_asonde_de_last_char() {
-        let ctx = ctx().await;
-        let r = te_check(&ctx, "遊んで").await.unwrap();
+    #[test]
+    fn t6_asonde_de_last_char() {
+        let ctx = ctx();
+        let r = te_check(&ctx, "遊んで").unwrap();
         assert_eq!(r.len(), 2);
     }
 
     /// REPL: `(te-check "見て")` → 1 word.
-    #[tokio::test]
-    async fn t7_mite_te_last_char() {
-        let ctx = ctx().await;
-        let r = te_check(&ctx, "見て").await.unwrap();
+    #[test]
+    fn t7_mite_te_last_char() {
+        let ctx = ctx();
+        let r = te_check(&ctx, "見て").unwrap();
         assert_eq!(r.len(), 1);
     }
 }
@@ -671,21 +659,19 @@ mod suffix_te {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TE1: `(suffix-te "食べて" "おる" kf-te-mo)` → 1 COMPOUND
     /// text="食べておる" kana="たべておる" score-mod=0 score-base=NIL
     /// primary=KANJI-TEXT (食べて seq 10092233). Hits the te-check
     /// te-ending arm (root last char て).
-    #[tokio::test]
-    async fn te1_tabete_oru() {
-        let ctx = ctx().await;
+    #[test]
+    fn te1_tabete_oru() {
+        let ctx = ctx();
         let kf = kf_te_mo();
-        let result = suffix_te(&ctx, "食べて", "おる", &kf).await.unwrap();
+        let result = suffix_te(&ctx, "食べて", "おる", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べておる");
@@ -695,7 +681,7 @@ mod suffix_te {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -711,31 +697,31 @@ mod suffix_te {
 
     /// REPL TE2: `(suffix-te "で" "おって" kf-te-mo)` → NIL. te-check's
     /// `(not (equal root "で"))` guard excludes bare で.
-    #[tokio::test]
-    async fn te2_bare_de_excluded() {
-        let ctx = ctx().await;
+    #[test]
+    fn te2_bare_de_excluded() {
+        let ctx = ctx();
         let kf = kf_te_mo();
-        let result = suffix_te(&ctx, "で", "おって", &kf).await.unwrap();
+        let result = suffix_te(&ctx, "で", "おって", &kf).unwrap();
         assert!(result.is_empty());
     }
 
     /// REPL TE3: `(suffix-te "食べる" "おって" kf-te-mo)` → NIL. Last
     /// char る not in "てで", te-check's second guard fails.
-    #[tokio::test]
-    async fn te3_last_char_not_te_or_de() {
-        let ctx = ctx().await;
+    #[test]
+    fn te3_last_char_not_te_or_de() {
+        let ctx = ctx();
         let kf = kf_te_mo();
-        let result = suffix_te(&ctx, "食べる", "おって", &kf).await.unwrap();
+        let result = suffix_te(&ctx, "食べる", "おって", &kf).unwrap();
         assert!(result.is_empty());
     }
 
     /// REPL TE4: `(suffix-te "食べ" "おって" kf-te-mo)` → NIL. Root
     /// 食べ ends in べ; te-check's second guard fails.
-    #[tokio::test]
-    async fn te4_stem_last_char_not_te_or_de() {
-        let ctx = ctx().await;
+    #[test]
+    fn te4_stem_last_char_not_te_or_de() {
+        let ctx = ctx();
         let kf = kf_te_mo();
-        let result = suffix_te(&ctx, "食べ", "おって", &kf).await.unwrap();
+        let result = suffix_te(&ctx, "食べ", "おって", &kf).unwrap();
         assert!(result.is_empty());
     }
 }
@@ -743,68 +729,66 @@ mod suffix_te {
 mod teiru_check {
     use crate::dict::grammar::suffix::rules::*;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(teiru-check "いて")` → NIL. The "いて" guard excludes
     /// the literal canonical form of the iru suffix.
-    #[tokio::test]
-    async fn t1_ite_excluded() {
-        let ctx = ctx().await;
-        let r = teiru_check(&ctx, "いて").await.unwrap();
+    #[test]
+    fn t1_ite_excluded() {
+        let ctx = ctx();
+        let r = teiru_check(&ctx, "いて").unwrap();
         assert!(r.is_empty());
     }
 
     /// REPL: `(teiru-check "で")` → NIL via te-check's bare-で guard.
-    #[tokio::test]
-    async fn t2_te_check_failure_propagates() {
-        let ctx = ctx().await;
-        let r = teiru_check(&ctx, "で").await.unwrap();
+    #[test]
+    fn t2_te_check_failure_propagates() {
+        let ctx = ctx();
+        let r = teiru_check(&ctx, "で").unwrap();
         assert!(r.is_empty());
     }
 
     /// REPL: `(teiru-check "食べる")` → NIL via te-check's "last char
     /// in てで" guard.
-    #[tokio::test]
-    async fn t3_no_te_or_de_ending() {
-        let ctx = ctx().await;
-        let r = teiru_check(&ctx, "食べる").await.unwrap();
+    #[test]
+    fn t3_no_te_or_de_ending() {
+        let ctx = ctx();
+        let r = teiru_check(&ctx, "食べる").unwrap();
         assert!(r.is_empty());
     }
 
     /// REPL: `(teiru-check "食べて")` → 1 word (delegates to
     /// te-check). Same fixture as `te_check::tests::t5`.
-    #[tokio::test]
-    async fn t4_tabete_delegates_to_te_check() {
-        let ctx = ctx().await;
-        let r = teiru_check(&ctx, "食べて").await.unwrap();
+    #[test]
+    fn t4_tabete_delegates_to_te_check() {
+        let ctx = ctx();
+        let r = teiru_check(&ctx, "食べて").unwrap();
         assert_eq!(r.len(), 1);
         let crate::dict::kani_word::KaniWordDispatchEnum::Kanji(k) = &r[0] else {
             panic!("expected KANJI-TEXT");
         };
-        assert_eq!(k.seq, 10092233);
+        crate::test_support::check_base_seqs(k.seq, &[1358280]);
     }
 
     /// REPL: `(teiru-check "見て")` → 1 word.
-    #[tokio::test]
-    async fn t5_mite() {
-        let ctx = ctx().await;
-        let r = teiru_check(&ctx, "見て").await.unwrap();
+    #[test]
+    fn t5_mite() {
+        let ctx = ctx();
+        let r = teiru_check(&ctx, "見て").unwrap();
         assert_eq!(r.len(), 1);
     }
 
     /// REPL: `(teiru-check "")` signals `SIMPLE-TYPE-ERROR` via the
     /// `te-check` delegation (`(char "" -1)` raises). Mirror via panic.
-    #[tokio::test]
+    #[test]
     #[should_panic(
         expected = "te-check: (char root (1- (length root))) on empty root signals upstream"
     )]
-    async fn t6_empty_root_panics_via_te_check() {
-        let ctx = ctx().await;
-        let _ = teiru_check(&ctx, "").await;
+    fn t6_empty_root_panics_via_te_check() {
+        let ctx = ctx();
+        let _ = teiru_check(&ctx, "");
     }
 }
 
@@ -833,20 +817,18 @@ mod suffix_teiru {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TEIRU1: `(suffix-teiru "食べて" "る" kf-teiru-iru)` → 1
     /// COMPOUND text="食べてる" kana="たべてる" score-mod=3
     /// score-base=NIL primary=KANJI-TEXT (食べて seq 10092233).
-    #[tokio::test]
-    async fn teiru1_tabete_ru() {
-        let ctx = ctx().await;
+    #[test]
+    fn teiru1_tabete_ru() {
+        let ctx = ctx();
         let kf = kf_teiru_iru();
-        let result = suffix_teiru(&ctx, "食べて", "る", &kf).await.unwrap();
+        let result = suffix_teiru(&ctx, "食べて", "る", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べてる");
@@ -856,7 +838,7 @@ mod suffix_teiru {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -873,22 +855,22 @@ mod suffix_teiru {
     /// REPL TEIRU2: `(suffix-teiru "いて" "る" kf-teiru-iru)` → NIL.
     /// teiru-check's `(not (equal root "いて"))` guard excludes bare
     /// いて.
-    #[tokio::test]
-    async fn teiru2_ite_excluded() {
-        let ctx = ctx().await;
+    #[test]
+    fn teiru2_ite_excluded() {
+        let ctx = ctx();
         let kf = kf_teiru_iru();
-        let result = suffix_teiru(&ctx, "いて", "る", &kf).await.unwrap();
+        let result = suffix_teiru(&ctx, "いて", "る", &kf).unwrap();
         assert!(result.is_empty());
     }
 
     /// REPL TEIRU3: `(suffix-teiru "で" "る" kf-teiru-iru)` → NIL.
     /// teiru-check delegates to te-check whose `(not (equal root "で"))`
     /// guard fires.
-    #[tokio::test]
-    async fn teiru3_de_excluded_via_te_check() {
-        let ctx = ctx().await;
+    #[test]
+    fn teiru3_de_excluded_via_te_check() {
+        let ctx = ctx();
         let kf = kf_teiru_iru();
-        let result = suffix_teiru(&ctx, "で", "る", &kf).await.unwrap();
+        let result = suffix_teiru(&ctx, "で", "る", &kf).unwrap();
         assert!(result.is_empty());
     }
 }
@@ -917,21 +899,19 @@ mod suffix_teiru_plus_ {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TEIRU+1: `(suffix-teiru+ "食べて" "いる" kf-teiru-plus-iru)`
     /// → 1 COMPOUND text="食べている" kana="たべている" score-mod=6
     /// score-base=NIL primary=KANJI-TEXT (食べて seq 10092233).
-    #[tokio::test]
-    async fn teiru_plus_1_tabete_iru() {
-        let ctx = ctx().await;
+    #[test]
+    fn teiru_plus_1_tabete_iru() {
+        let ctx = ctx();
         let kf = kf_teiru_plus_iru();
         let result = suffix_teiru_plus_(&ctx, "食べて", "いる", &kf)
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
@@ -942,7 +922,7 @@ mod suffix_teiru_plus_ {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -959,11 +939,11 @@ mod suffix_teiru_plus_ {
     /// REPL TEIRU+2: `(suffix-teiru+ "いて" "いる" kf-teiru-plus-iru)` →
     /// NIL. teiru-check's `(not (equal root "いて"))` guard excludes
     /// bare いて.
-    #[tokio::test]
-    async fn teiru_plus_2_ite_excluded() {
-        let ctx = ctx().await;
+    #[test]
+    fn teiru_plus_2_ite_excluded() {
+        let ctx = ctx();
         let kf = kf_teiru_plus_iru();
-        let result = suffix_teiru_plus_(&ctx, "いて", "いる", &kf).await.unwrap();
+        let result = suffix_teiru_plus_(&ctx, "いて", "いる", &kf).unwrap();
         assert!(result.is_empty());
     }
 }
@@ -992,22 +972,20 @@ mod suffix_te_plus_space {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TESPACE1: `(suffix-te+space "食べて" "くれる" kf-kureru)` →
     /// 1 COMPOUND text="食べてくれる" kana="たべて くれる" score-mod=3
     /// score-base=NIL primary=KANJI-TEXT (食べて seq 10092233). Note
     /// the space between primary kana and suffix.
-    #[tokio::test]
-    async fn tespace1_tabete_kureru() {
-        let ctx = ctx().await;
+    #[test]
+    fn tespace1_tabete_kureru() {
+        let ctx = ctx();
         let kf = kf_te_plus_space_kureru();
         let result = suffix_te_plus_space(&ctx, "食べて", "くれる", &kf)
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
@@ -1018,7 +996,7 @@ mod suffix_te_plus_space {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -1034,12 +1012,12 @@ mod suffix_te_plus_space {
 
     /// REPL TESPACE2: `(suffix-te+space "で" "くれる" kf-kureru)` →
     /// NIL. te-check's `(not (equal root "で"))` guard fires.
-    #[tokio::test]
-    async fn tespace2_bare_de_excluded() {
-        let ctx = ctx().await;
+    #[test]
+    fn tespace2_bare_de_excluded() {
+        let ctx = ctx();
         let kf = kf_te_plus_space_kureru();
         let result = suffix_te_plus_space(&ctx, "で", "くれる", &kf)
-            .await
+            
             .unwrap();
         assert!(result.is_empty());
     }
@@ -1070,22 +1048,20 @@ mod suffix_kudasai {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL KUDASAI1: `(suffix-kudasai "食べて" "ください" kf-kudasai)`
     /// → 1 COMPOUND text="食べてください" kana="たべて ください"
     /// score-mod=#<FUNCTION (constantly 360)> score-base=NIL
     /// primary=KANJI-TEXT (食べて seq 10092233).
-    #[tokio::test]
-    async fn kudasai1_tabete_kudasai() {
-        let ctx = ctx().await;
+    #[test]
+    fn kudasai1_tabete_kudasai() {
+        let ctx = ctx();
         let kf = kf_kudasai();
         let result = suffix_kudasai(&ctx, "食べて", "ください", &kf)
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
@@ -1096,7 +1072,7 @@ mod suffix_kudasai {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -1112,22 +1088,22 @@ mod suffix_kudasai {
 
     /// REPL KUDASAI2: `(suffix-kudasai "で" "ください" kf-kudasai)` →
     /// NIL. te-check excludes bare で.
-    #[tokio::test]
-    async fn kudasai2_bare_de_excluded() {
-        let ctx = ctx().await;
+    #[test]
+    fn kudasai2_bare_de_excluded() {
+        let ctx = ctx();
         let kf = kf_kudasai();
-        let result = suffix_kudasai(&ctx, "で", "ください", &kf).await.unwrap();
+        let result = suffix_kudasai(&ctx, "で", "ください", &kf).unwrap();
         assert!(result.is_empty());
     }
 
     /// REPL KUDASAI3: `(suffix-kudasai "食べる" "ください" kf-kudasai)`
     /// → NIL. te-check's last-char-in-"てで" guard fails.
-    #[tokio::test]
-    async fn kudasai3_last_char_not_te_or_de() {
-        let ctx = ctx().await;
+    #[test]
+    fn kudasai3_last_char_not_te_or_de() {
+        let ctx = ctx();
         let kf = kf_kudasai();
         let result = suffix_kudasai(&ctx, "食べる", "ください", &kf)
-            .await
+            
             .unwrap();
         assert!(result.is_empty());
     }
@@ -1149,7 +1125,7 @@ mod suffix_te_ren {
             text: "やがって".into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -1157,22 +1133,20 @@ mod suffix_te_ren {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TEREN1: `(suffix-te-ren "食べて" "やがって" kf-yagatte)` →
     /// 1 COMPOUND text="食べてやがって" kana="たべてやがって"
     /// score-mod=4 score-base=NIL primary=KANJI-TEXT (食べて seq
     /// 10092233). Last char て → conj-type 3 arm.
-    #[tokio::test]
-    async fn teren1_tabete_te_arm_conj_3() {
-        let ctx = ctx().await;
+    #[test]
+    fn teren1_tabete_te_arm_conj_3() {
+        let ctx = ctx();
         let kf = kf_te_ren_yagatte();
         let result = suffix_te_ren(&ctx, "食べて", "やがって", &kf)
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
@@ -1183,7 +1157,7 @@ mod suffix_te_ren {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -1202,11 +1176,11 @@ mod suffix_te_ren {
     /// score-base=NIL primary=KANJI-TEXT (食べ seq 10092273). Last
     /// char べ ≠ て/で, root ≠ "い" → conj-type 13 arm (ren'youkei
     /// stem).
-    #[tokio::test]
-    async fn teren2_tabe_stem_arm_conj_13() {
-        let ctx = ctx().await;
+    #[test]
+    fn teren2_tabe_stem_arm_conj_13() {
+        let ctx = ctx();
         let kf = kf_te_ren_yagatte();
-        let result = suffix_te_ren(&ctx, "食べ", "やがって", &kf).await.unwrap();
+        let result = suffix_te_ren(&ctx, "食べ", "やがって", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べやがって");
@@ -1216,7 +1190,7 @@ mod suffix_te_ren {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べ");
-                assert_eq!(k.seq, 10092273);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -1226,32 +1200,32 @@ mod suffix_te_ren {
     /// Root "い" is excluded from the conj-type 13 arm by the
     /// `(not (member root '("い") :test 'equal))` guard, and last char
     /// い ≠ て/で so the conj-type 3 arm doesn't fire either.
-    #[tokio::test]
-    async fn teren3_i_excluded() {
-        let ctx = ctx().await;
+    #[test]
+    fn teren3_i_excluded() {
+        let ctx = ctx();
         let kf = kf_te_ren_yagatte();
-        let result = suffix_te_ren(&ctx, "い", "やがって", &kf).await.unwrap();
+        let result = suffix_te_ren(&ctx, "い", "やがって", &kf).unwrap();
         assert!(result.is_empty());
     }
 
     /// REPL TEREN4: `(suffix-te-ren "で" "やがって" kf-yagatte)` → NIL.
     /// Outer `(not (equal root "で"))` guard excludes bare で.
-    #[tokio::test]
-    async fn teren4_bare_de_excluded() {
-        let ctx = ctx().await;
+    #[test]
+    fn teren4_bare_de_excluded() {
+        let ctx = ctx();
         let kf = kf_te_ren_yagatte();
-        let result = suffix_te_ren(&ctx, "で", "やがって", &kf).await.unwrap();
+        let result = suffix_te_ren(&ctx, "で", "やがって", &kf).unwrap();
         assert!(result.is_empty());
     }
 
     /// REPL TEREN5: `(suffix-te-ren "無理" "やがって" kf-yagatte)` →
     /// NIL. 無理 is not a verb stem; find-word-with-conj-type returns
     /// 0 rows for conj-type 13.
-    #[tokio::test]
-    async fn teren5_non_verb_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn teren5_non_verb_root() {
+        let ctx = ctx();
         let kf = kf_te_ren_yagatte();
-        let result = suffix_te_ren(&ctx, "無理", "やがって", &kf).await.unwrap();
+        let result = suffix_te_ren(&ctx, "無理", "やがって", &kf).unwrap();
         assert!(result.is_empty());
     }
 }
@@ -1280,20 +1254,18 @@ mod suffix_teii {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TEII1: `(suffix-teii "食べて" "いい" kf-teii-ii)` → 1
     /// COMPOUND text="食べていい" kana="たべて いい" score-mod=1
     /// score-base=NIL primary=KANJI-TEXT (食べて seq 10092233).
-    #[tokio::test]
-    async fn teii1_tabete_ii() {
-        let ctx = ctx().await;
+    #[test]
+    fn teii1_tabete_ii() {
+        let ctx = ctx();
         let kf = kf_teii_ii();
-        let result = suffix_teii(&ctx, "食べて", "いい", &kf).await.unwrap();
+        let result = suffix_teii(&ctx, "食べて", "いい", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べていい");
@@ -1303,7 +1275,7 @@ mod suffix_teii {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べて");
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -1323,11 +1295,11 @@ mod suffix_teii {
     /// suffixes, suffix-teii does NOT exclude bare "で" — last char で
     /// is in "てで" and `(find-word-with-conj-type "で" 3)` returns one
     /// row.
-    #[tokio::test]
-    async fn teii2_bare_de_not_excluded() {
-        let ctx = ctx().await;
+    #[test]
+    fn teii2_bare_de_not_excluded() {
+        let ctx = ctx();
         let kf = kf_teii_ii();
-        let result = suffix_teii(&ctx, "で", "いい", &kf).await.unwrap();
+        let result = suffix_teii(&ctx, "で", "いい", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "でいい");
@@ -1344,11 +1316,11 @@ mod suffix_teii {
 
     /// REPL TEII3: `(suffix-teii "食べる" "いい" kf-teii-ii)` → NIL.
     /// Last char る not in "てで", so the `(find …)` guard fails.
-    #[tokio::test]
-    async fn teii3_last_char_not_te_or_de() {
-        let ctx = ctx().await;
+    #[test]
+    fn teii3_last_char_not_te_or_de() {
+        let ctx = ctx();
         let kf = kf_teii_ii();
-        let result = suffix_teii(&ctx, "食べる", "いい", &kf).await.unwrap();
+        let result = suffix_teii(&ctx, "食べる", "いい", &kf).unwrap();
         assert!(result.is_empty());
     }
 }
@@ -1396,21 +1368,19 @@ mod suffix_chau {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL CHAU1: `(suffix-chau "食べ" "ちゃう" kf-chau)` → 1 COMPOUND
     /// text="食べちゃう" kana="たべちゃう" score-mod=5 score-base=NIL
     /// primary=KANJI-TEXT (食べて id=411243 seq=10092233),
     /// words=(primary, kf-chau). Exercises the ち→て arm.
-    #[tokio::test]
-    async fn chau1_ti_arm_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn chau1_ti_arm_kanji() {
+        let ctx = ctx();
         let kf = kf_chau();
-        let result = suffix_chau(&ctx, "食べ", "ちゃう", &kf).await.unwrap();
+        let result = suffix_chau(&ctx, "食べ", "ちゃう", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べちゃう");
@@ -1419,8 +1389,7 @@ mod suffix_chau {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 411243);
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
                 assert_eq!(k.text, "食べて");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -1439,11 +1408,11 @@ mod suffix_chau {
     /// text="読んじゃう" kana="よんじゃう" score-mod=5 score-base=NIL
     /// primary=KANJI-TEXT (読んで id=431719 seq=10102130),
     /// words=(primary, kf-jau). Exercises the じ→で arm.
-    #[tokio::test]
-    async fn chau2_zi_arm_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn chau2_zi_arm_kanji() {
+        let ctx = ctx();
         let kf = kf_jau();
-        let result = suffix_chau(&ctx, "読ん", "じゃう", &kf).await.unwrap();
+        let result = suffix_chau(&ctx, "読ん", "じゃう", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "読んじゃう");
@@ -1452,8 +1421,7 @@ mod suffix_chau {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 431719);
-                assert_eq!(k.seq, 10102130);
+                crate::test_support::check_base_seqs(k.seq, &[1456360]);
                 assert_eq!(k.text, "読んで");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -1461,7 +1429,7 @@ mod suffix_chau {
         // adjoin_word puts word1 at words[0] (dict.lisp:644 — `(list word1 word2)`).
         assert_eq!(c.words.len(), 2);
         match &c.words[0] {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.id, 431719),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1456360]),
             other => panic!("expected Kanji words[0] (primary), got {:?}", other),
         }
         match &c.words[1] {
@@ -1476,22 +1444,22 @@ mod suffix_chau {
     /// REPL CHAU3: `(suffix-chau "食べ" "あう" kf-chau)` → NIL. First
     /// char あ is neither じ nor ち, so the `case` returns NIL and the
     /// outer `when te` guard suppresses the lookup.
-    #[tokio::test]
-    async fn chau3_other_first_char() {
-        let ctx = ctx().await;
+    #[test]
+    fn chau3_other_first_char() {
+        let ctx = ctx();
         let kf = kf_chau();
-        let result = suffix_chau(&ctx, "食べ", "あう", &kf).await.unwrap();
+        let result = suffix_chau(&ctx, "食べ", "あう", &kf).unwrap();
         assert!(result.is_empty());
     }
 
     /// REPL CHAU4: `(suffix-chau "食べ" "じゃう" kf-jau)` → NIL.
     /// じ→で arm picks "で", but "食べで" is not a conj-type-3 form
     /// (only "食べて" is), so `find-word-with-conj-type` returns NIL.
-    #[tokio::test]
-    async fn chau4_de_arm_no_match() {
-        let ctx = ctx().await;
+    #[test]
+    fn chau4_de_arm_no_match() {
+        let ctx = ctx();
         let kf = kf_jau();
-        let result = suffix_chau(&ctx, "食べ", "じゃう", &kf).await.unwrap();
+        let result = suffix_chau(&ctx, "食べ", "じゃう", &kf).unwrap();
         assert!(result.is_empty());
     }
 }
@@ -1531,7 +1499,7 @@ mod suffix_to {
             text: "どく".into(),
             ord: 1,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kanji: None,
@@ -1539,21 +1507,19 @@ mod suffix_to {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TO1: `(suffix-to "食べ" "とく" kf-toku)` → 1 COMPOUND
     /// text="食べとく" kana="たべとく" score-mod=0 score-base=NIL
     /// primary=KANJI-TEXT (食べて id=411243 seq=10092233),
     /// words=(primary, kf-toku). Exercises the と→て arm.
-    #[tokio::test]
-    async fn to1_to_arm_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn to1_to_arm_kanji() {
+        let ctx = ctx();
         let kf = kf_toku();
-        let result = suffix_to(&ctx, "食べ", "とく", &kf).await.unwrap();
+        let result = suffix_to(&ctx, "食べ", "とく", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べとく");
@@ -1562,8 +1528,7 @@ mod suffix_to {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 411243);
-                assert_eq!(k.seq, 10092233);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
                 assert_eq!(k.text, "食べて");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -1582,11 +1547,11 @@ mod suffix_to {
     /// text="読んどく" kana="よんどく" score-mod=0 score-base=NIL
     /// primary=KANJI-TEXT (読んで id=431719 seq=10102130),
     /// words=(primary, kf-doku). Exercises the ど→で arm.
-    #[tokio::test]
-    async fn to2_do_arm_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn to2_do_arm_kanji() {
+        let ctx = ctx();
         let kf = kf_doku();
-        let result = suffix_to(&ctx, "読ん", "どく", &kf).await.unwrap();
+        let result = suffix_to(&ctx, "読ん", "どく", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "読んどく");
@@ -1595,8 +1560,7 @@ mod suffix_to {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 431719);
-                assert_eq!(k.seq, 10102130);
+                crate::test_support::check_base_seqs(k.seq, &[1456360]);
                 assert_eq!(k.text, "読んで");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -1604,7 +1568,7 @@ mod suffix_to {
         // adjoin_word puts word1 at words[0] (dict.lisp:644 — `(list word1 word2)`).
         assert_eq!(c.words.len(), 2);
         match &c.words[0] {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.id, 431719),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1456360]),
             other => panic!("expected Kanji words[0] (primary), got {:?}", other),
         }
         match &c.words[1] {
@@ -1618,11 +1582,11 @@ mod suffix_to {
 
     /// REPL TO3: `(suffix-to "食べ" "あく" kf-toku)` → NIL. First char
     /// あ is neither と nor ど, so the `case` returns NIL.
-    #[tokio::test]
-    async fn to3_other_first_char() {
-        let ctx = ctx().await;
+    #[test]
+    fn to3_other_first_char() {
+        let ctx = ctx();
         let kf = kf_toku();
-        let result = suffix_to(&ctx, "食べ", "あく", &kf).await.unwrap();
+        let result = suffix_to(&ctx, "食べ", "あく", &kf).unwrap();
         assert!(result.is_empty());
     }
 
@@ -1631,11 +1595,11 @@ mod suffix_to {
     /// kana_text のんで rows). Each compound has text="のんどく"
     /// kana="のんどく", KANA-TEXT primary with text "のんで". Seqs:
     /// 10433774, 10577439, 10665827; ids: 773379, 945133, 1050587.
-    #[tokio::test]
-    async fn to4_polysemy_kana_three() {
-        let ctx = ctx().await;
+    #[test]
+    fn to4_polysemy_kana_three() {
+        let ctx = ctx();
         let kf = kf_doku();
-        let result = suffix_to(&ctx, "のん", "どく", &kf).await.unwrap();
+        let result = suffix_to(&ctx, "のん", "どく", &kf).unwrap();
         assert_eq!(result.len(), 3);
         for c in &result {
             assert_eq!(c.text, "のんどく");
@@ -1655,18 +1619,14 @@ mod suffix_to {
                 other => panic!("expected Kana word2 (kf), got {:?}", other),
             }
         }
-        let mut got: Vec<(i32, i32)> = result
+        let seqs: Vec<i32> = result
             .iter()
             .map(|c| match &*c.primary {
-                KaniWordDispatchEnum::Kana(k) => (k.id, k.seq),
+                KaniWordDispatchEnum::Kana(k) => k.seq,
                 _ => unreachable!(),
             })
             .collect();
-        got.sort();
-        assert_eq!(
-            got,
-            vec![(773379, 10433774), (945133, 10577439), (1050587, 10665827)]
-        );
+        crate::test_support::check_base_seq_set(&seqs, &[1169870, 2584070, 2841855]);
     }
 }
 
@@ -1687,7 +1647,7 @@ mod suffix_suru {
             text: "し".into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -1695,20 +1655,18 @@ mod suffix_suru {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL T1: `(suffix-suru "区別" "し" kf-suru)` → 1 COMPOUND
     /// text="区別し" kana="くべつ し" score-mod=5 primary=KANJI-TEXT
     /// (区別 seq 1244250).
-    #[tokio::test]
-    async fn t1_kanji_root_with_vs_pos() {
-        let ctx = ctx().await;
+    #[test]
+    fn t1_kanji_root_with_vs_pos() {
+        let ctx = ctx();
         let kf = kf_suru();
-        let result = suffix_suru(&ctx, "区別", "し", &kf).await.unwrap();
+        let result = suffix_suru(&ctx, "区別", "し", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "区別し");
@@ -1727,11 +1685,11 @@ mod suffix_suru {
 
     /// REPL T2: `(suffix-suru "青空" "し" kf-suru)` → 0 (青空 has no
     /// `vs` pos in `sense_prop`).
-    #[tokio::test]
-    async fn t2_kanji_root_no_vs_match() {
-        let ctx = ctx().await;
+    #[test]
+    fn t2_kanji_root_no_vs_match() {
+        let ctx = ctx();
         let kf = kf_suru();
-        let result = suffix_suru(&ctx, "青空", "し", &kf).await.unwrap();
+        let result = suffix_suru(&ctx, "青空", "し", &kf).unwrap();
         assert!(result.is_empty());
     }
 
@@ -1740,11 +1698,11 @@ mod suffix_suru {
     /// score-base=NIL primary=KANA-TEXT (ジョギング seq 1066360),
     /// words=(primary kf). Exercises the kana-text dispatch arm of
     /// `find-word-with-pos` (pure-katakana input).
-    #[tokio::test]
-    async fn t3_katakana_root_kana_text_arm() {
-        let ctx = ctx().await;
+    #[test]
+    fn t3_katakana_root_kana_text_arm() {
+        let ctx = ctx();
         let kf = kf_suru();
-        let result = suffix_suru(&ctx, "ジョギング", "し", &kf).await.unwrap();
+        let result = suffix_suru(&ctx, "ジョギング", "し", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "ジョギングし");
@@ -1770,11 +1728,11 @@ mod suffix_suru {
 
     /// REPL T4: `(suffix-suru "" "し" kf-suru)` → 0 (empty root never
     /// matches any kanji_text/kana_text row).
-    #[tokio::test]
-    async fn t4_empty_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn t4_empty_root() {
+        let ctx = ctx();
         let kf = kf_suru();
-        let result = suffix_suru(&ctx, "", "し", &kf).await.unwrap();
+        let result = suffix_suru(&ctx, "", "し", &kf).unwrap();
         assert!(result.is_empty());
     }
 }
@@ -1862,21 +1820,19 @@ mod suffix_sou {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-sou "美味し" "そう" kf-sou)` → 1 COMPOUND
     /// text="美味しそう" kana="おいしそう" score-mod=(constantly 70)
     /// primary=KANJI-TEXT (美味し id=1433173 seq=10597564), patch=nil,
     /// words=(primary, kf). Exercises the catch-all `(t 70)` arm.
-    #[tokio::test]
-    async fn sou1_adj_stem_kanji_score70() {
-        let ctx = ctx().await;
+    #[test]
+    fn sou1_adj_stem_kanji_score70() {
+        let ctx = ctx();
         let kf = kf_sou();
-        let result = suffix_sou(&ctx, "美味し", "そう", &kf).await.unwrap();
+        let result = suffix_sou(&ctx, "美味し", "そう", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "美味しそう");
@@ -1885,8 +1841,7 @@ mod suffix_sou {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 1433173);
-                assert_eq!(k.seq, 10597564);
+                crate::test_support::check_base_seqs(k.seq, &[1486650]);
                 assert_eq!(k.text, "美味し");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -1898,11 +1853,11 @@ mod suffix_sou {
     /// text="出来そう" kana="できそう" score-mod=(constantly 100)
     /// primary=KANJI-TEXT (出来 id=689432 seq=10230657). Pins the
     /// `((equal root "出来") 100)` arm.
-    #[tokio::test]
-    async fn sou2_dekiru_arm_score100() {
-        let ctx = ctx().await;
+    #[test]
+    fn sou2_dekiru_arm_score100() {
+        let ctx = ctx();
         let kf = kf_sou();
-        let result = suffix_sou(&ctx, "出来", "そう", &kf).await.unwrap();
+        let result = suffix_sou(&ctx, "出来", "そう", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "出来そう");
@@ -1911,7 +1866,7 @@ mod suffix_sou {
         assert!(c.score_base.is_none());
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10230657),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1340450]),
             other => panic!("expected Kanji primary, got {:?}", other),
         }
     }
@@ -1919,11 +1874,11 @@ mod suffix_sou {
     /// REPL: `(suffix-sou "から" "そう" kf-sou)` → 2 COMPOUNDs
     /// (text="からそう" each), both with score-mod=(constantly 40)
     /// (the `((equal root "から") 40)` arm). Primary seqs 2858914 / 10419670.
-    #[tokio::test]
-    async fn sou3_kara_arm_score40() {
-        let ctx = ctx().await;
+    #[test]
+    fn sou3_kara_arm_score40() {
+        let ctx = ctx();
         let kf = kf_sou();
-        let result = suffix_sou(&ctx, "から", "そう", &kf).await.unwrap();
+        let result = suffix_sou(&ctx, "から", "そう", &kf).unwrap();
         assert_eq!(result.len(), 2);
         for c in &result {
             assert_eq!(c.text, "からそう");
@@ -1938,18 +1893,17 @@ mod suffix_sou {
                 _ => -1,
             })
             .collect();
-        assert!(seqs.contains(&2858914));
-        assert!(seqs.contains(&10419670));
+        crate::test_support::check_base_seq_set(&seqs, &[1365850, 1609860]);
     }
 
     /// REPL: `(suffix-sou "い" "そう" kf-sou)` → 6 COMPOUNDs
     /// text="いそう" each, score-mod=(constantly 0). Hits the
     /// `((equal root "い") 0)` arm and finds 6 い-rooted conj-stem rows.
-    #[tokio::test]
-    async fn sou4_i_arm_score0() {
-        let ctx = ctx().await;
+    #[test]
+    fn sou4_i_arm_score0() {
+        let ctx = ctx();
         let kf = kf_sou();
-        let result = suffix_sou(&ctx, "い", "そう", &kf).await.unwrap();
+        let result = suffix_sou(&ctx, "い", "そう", &kf).unwrap();
         assert_eq!(result.len(), 6);
         for c in &result {
             assert_eq!(c.text, "いそう");
@@ -1963,12 +1917,12 @@ mod suffix_sou {
     /// REPL: `(suffix-sou "な" "そう" kf-sou)` → NIL — `root` is in the
     /// `'("な" "よ" "よさ" "に" "き")` exclusion list AND doesn't end
     /// with "なさ", so suffix-sou-base's cond falls through to nil.
-    #[tokio::test]
-    async fn sou5_excluded_root_returns_empty() {
-        let ctx = ctx().await;
+    #[test]
+    fn sou5_excluded_root_returns_empty() {
+        let ctx = ctx();
         let kf = kf_sou();
         for r in ["な", "よ", "よさ", "に", "き"] {
-            let result = suffix_sou(&ctx, r, "そう", &kf).await.unwrap();
+            let result = suffix_sou(&ctx, r, "そう", &kf).unwrap();
             assert!(result.is_empty(), "expected NIL for root={:?}", r);
         }
     }
@@ -1979,11 +1933,11 @@ mod suffix_sou {
     /// "なさ"-tail branch: patch=("い","さ") rewrites root to "つまらない",
     /// find-word-with-conj-prop with conj-neg filter returns 1 row, and
     /// the kana branch uses `destem(k, length("い")=1) + "さ" + suf`.
-    #[tokio::test]
-    async fn sou6_nasa_branch_kana() {
-        let ctx = ctx().await;
+    #[test]
+    fn sou6_nasa_branch_kana() {
+        let ctx = ctx();
         let kf = kf_sou();
-        let result = suffix_sou(&ctx, "つまらなさ", "そう", &kf).await.unwrap();
+        let result = suffix_sou(&ctx, "つまらなさ", "そう", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "つまらなさそう");
@@ -1993,7 +1947,6 @@ mod suffix_sou {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
-                assert_eq!(k.id, 1082);
                 assert_eq!(k.seq, 1008190);
                 assert_eq!(k.text, "つまらない");
             }
@@ -2005,11 +1958,11 @@ mod suffix_sou {
     /// text="食べなさそう" kana="たべなさそう" primary=KANJI-TEXT
     /// (食べない id=411231 seq=10092227). Pins the "なさ" branch on a
     /// kanji-text result.
-    #[tokio::test]
-    async fn sou7_nasa_branch_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn sou7_nasa_branch_kanji() {
+        let ctx = ctx();
         let kf = kf_sou();
-        let result = suffix_sou(&ctx, "食べなさ", "そう", &kf).await.unwrap();
+        let result = suffix_sou(&ctx, "食べなさ", "そう", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べなさそう");
@@ -2019,8 +1972,7 @@ mod suffix_sou {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 411231);
-                assert_eq!(k.seq, 10092227);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
                 assert_eq!(k.text, "食べない");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -2056,22 +2008,20 @@ mod suffix_sou_plus_ {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-sou+ "美味し" "そうにない" kf)` → 1 COMPOUND
     /// text="美味しそうにない" kana="おいしそうにない" score-mod=1
     /// primary=KANJI-TEXT (美味し id=1433173 seq=10597564). Same body
     /// as suffix-sou's catch-all arm, but with the literal `:score 1`.
-    #[tokio::test]
-    async fn sou_plus_1_adj_stem_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn sou_plus_1_adj_stem_kanji() {
+        let ctx = ctx();
         let kf = kf_sou_plus_();
         let result = suffix_sou_plus_(&ctx, "美味し", "そうにない", &kf)
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
@@ -2082,8 +2032,7 @@ mod suffix_sou_plus_ {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 1433173);
-                assert_eq!(k.seq, 10597564);
+                crate::test_support::check_base_seqs(k.seq, &[1486650]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -2093,12 +2042,12 @@ mod suffix_sou_plus_ {
     /// text="出来そうにない" kana="できそうにない" score-mod=1
     /// primary=KANJI-TEXT (出来 seq 10230657). Exercises the
     /// conj-adj-stem arm with a different root.
-    #[tokio::test]
-    async fn sou_plus_2_dekiru() {
-        let ctx = ctx().await;
+    #[test]
+    fn sou_plus_2_dekiru() {
+        let ctx = ctx();
         let kf = kf_sou_plus_();
         let result = suffix_sou_plus_(&ctx, "出来", "そうにない", &kf)
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
@@ -2108,7 +2057,7 @@ mod suffix_sou_plus_ {
         assert!(c.score_base.is_none());
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10230657),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1340450]),
             other => panic!("expected Kanji primary, got {:?}", other),
         }
     }
@@ -2117,12 +2066,12 @@ mod suffix_sou_plus_ {
     /// text="つまらなさそう" kana="つまらなさそう" score-mod=1
     /// primary=KANA-TEXT (つまらない id=1082 seq=1008190). Pins the
     /// "なさ"-tail branch path through suffix-sou-base with `:score 1`.
-    #[tokio::test]
-    async fn sou_plus_3_nasa_branch() {
-        let ctx = ctx().await;
+    #[test]
+    fn sou_plus_3_nasa_branch() {
+        let ctx = ctx();
         let kf = kf_sou_plus_();
         let result = suffix_sou_plus_(&ctx, "つまらなさ", "そう", &kf)
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
@@ -2133,7 +2082,6 @@ mod suffix_sou_plus_ {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
-                assert_eq!(k.id, 1082);
                 assert_eq!(k.seq, 1008190);
             }
             other => panic!("expected Kana primary, got {:?}", other),
@@ -2142,12 +2090,12 @@ mod suffix_sou_plus_ {
 
     /// REPL: `(suffix-sou+ "な" "そうにない" kf)` → NIL — `root` "な" is
     /// in the exclusion list `'("な" "よ" "よさ" "に" "き")`.
-    #[tokio::test]
-    async fn sou_plus_4_excluded_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn sou_plus_4_excluded_root() {
+        let ctx = ctx();
         let kf = kf_sou_plus_();
         let result = suffix_sou_plus_(&ctx, "な", "そうにない", &kf)
-            .await
+            
             .unwrap();
         assert!(result.is_empty());
     }
@@ -2178,21 +2126,19 @@ mod suffix_rou {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL ROU1: `(suffix-rou "食べた" "ろう" kf-rou)` → 1 COMPOUND
     /// text="食べたろう" kana="たべたろう" score-mod=1 score-base=NIL
     /// primary=KANJI-TEXT (食べた seq 10092229), words=(primary kf).
     /// Exercises the past-plain (conj-type 2) kanji arm.
-    #[tokio::test]
-    async fn rou1_ichidan_past_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn rou1_ichidan_past_kanji() {
+        let ctx = ctx();
         let kf = kf_rou();
-        let result = suffix_rou(&ctx, "食べた", "ろう", &kf).await.unwrap();
+        let result = suffix_rou(&ctx, "食べた", "ろう", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べたろう");
@@ -2202,7 +2148,7 @@ mod suffix_rou {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べた");
-                assert_eq!(k.seq, 10092229);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -2220,11 +2166,11 @@ mod suffix_rou {
     /// — four conj-type-2 kana-text rows for なかった. Each has
     /// text="なかったろう" kana="なかったろう" score-mod=1 primary=KANA.
     /// Pinned seqs: 10076179, 10470716, 10517041, 10648797.
-    #[tokio::test]
-    async fn rou2_nakatta_polysemy_four() {
-        let ctx = ctx().await;
+    #[test]
+    fn rou2_nakatta_polysemy_four() {
+        let ctx = ctx();
         let kf = kf_rou();
-        let result = suffix_rou(&ctx, "なかった", "ろう", &kf).await.unwrap();
+        let result = suffix_rou(&ctx, "なかった", "ろう", &kf).unwrap();
         assert_eq!(result.len(), 4);
         for c in &result {
             assert_eq!(c.text, "なかったろう");
@@ -2245,27 +2191,27 @@ mod suffix_rou {
             })
             .collect();
         seqs.sort();
-        assert_eq!(seqs, vec![10076179, 10470716, 10517041, 10648797]);
+        crate::test_support::check_base_seq_set(&seqs, &[1296400, 1518450, 1529520, 2861097]);
     }
 
     /// REPL ROU3: `(suffix-rou "食べる" "ろう" kf-rou)` → NIL. 食べる is
     /// a root form (conj-type :root), not past-plain (conj-type 2);
     /// find-word-with-conj-type returns 0 rows.
-    #[tokio::test]
-    async fn rou3_root_form_no_match() {
-        let ctx = ctx().await;
+    #[test]
+    fn rou3_root_form_no_match() {
+        let ctx = ctx();
         let kf = kf_rou();
-        let result = suffix_rou(&ctx, "食べる", "ろう", &kf).await.unwrap();
+        let result = suffix_rou(&ctx, "食べる", "ろう", &kf).unwrap();
         assert!(result.is_empty());
     }
 
     /// REPL ROU4: `(suffix-rou "無理" "ろう" kf-rou)` → NIL. Non-verb
     /// root.
-    #[tokio::test]
-    async fn rou4_non_verb_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn rou4_non_verb_root() {
+        let ctx = ctx();
         let kf = kf_rou();
-        let result = suffix_rou(&ctx, "無理", "ろう", &kf).await.unwrap();
+        let result = suffix_rou(&ctx, "無理", "ろう", &kf).unwrap();
         assert!(result.is_empty());
     }
 }
@@ -2296,21 +2242,19 @@ mod suffix_adv {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL ADV1: `(suffix-adv "正しく" "なる" kf-adv-naru)` → 1
     /// COMPOUND text="正しくなる" kana="ただしくなる" score-mod=1
     /// score-base=NIL primary=KANJI-TEXT (正しく seq 2827272),
     /// words=(primary kf).
-    #[tokio::test]
-    async fn adv1_tadashiku_naru() {
-        let ctx = ctx().await;
+    #[test]
+    fn adv1_tadashiku_naru() {
+        let ctx = ctx();
         let kf = kf_adv_naru();
-        let result = suffix_adv(&ctx, "正しく", "なる", &kf).await.unwrap();
+        let result = suffix_adv(&ctx, "正しく", "なる", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "正しくなる");
@@ -2337,11 +2281,11 @@ mod suffix_adv {
     /// REPL ADV2: `(suffix-adv "大きく" "なる" kf-adv-naru)` → 1
     /// COMPOUND text="大きくなる" kana="おおきくなる" score-mod=1
     /// primary=KANJI-TEXT (大きく seq 10563301).
-    #[tokio::test]
-    async fn adv2_ookiku_naru() {
-        let ctx = ctx().await;
+    #[test]
+    fn adv2_ookiku_naru() {
+        let ctx = ctx();
         let kf = kf_adv_naru();
-        let result = suffix_adv(&ctx, "大きく", "なる", &kf).await.unwrap();
+        let result = suffix_adv(&ctx, "大きく", "なる", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "大きくなる");
@@ -2350,7 +2294,7 @@ mod suffix_adv {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "大きく");
-                assert_eq!(k.seq, 10563301);
+                crate::test_support::check_base_seqs(k.seq, &[1588880]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -2358,22 +2302,22 @@ mod suffix_adv {
 
     /// REPL ADV3: `(suffix-adv "無理" "なる" kf-adv-naru)` → NIL.
     /// 無理 has no conj-type-50 row.
-    #[tokio::test]
-    async fn adv3_non_adverbial_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn adv3_non_adverbial_root() {
+        let ctx = ctx();
         let kf = kf_adv_naru();
-        let result = suffix_adv(&ctx, "無理", "なる", &kf).await.unwrap();
+        let result = suffix_adv(&ctx, "無理", "なる", &kf).unwrap();
         assert!(result.is_empty());
     }
 
     /// REPL ADV4: `(suffix-adv "ジャバスクリプト" "なる" kf-adv-naru)` →
     /// NIL. Word with no conjugations.
-    #[tokio::test]
-    async fn adv4_no_conjugation_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn adv4_no_conjugation_root() {
+        let ctx = ctx();
         let kf = kf_adv_naru();
         let result = suffix_adv(&ctx, "ジャバスクリプト", "なる", &kf)
-            .await
+            
             .unwrap();
         assert!(result.is_empty());
     }
@@ -2402,10 +2346,8 @@ mod suffix_sugiru {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-sugiru "高" "すぎる" kf)` → 1 COMPOUND
@@ -2413,11 +2355,11 @@ mod suffix_sugiru {
     /// (高い id=18690 seq=1283190). Exercises the `(t (concatenate root "い"))`
     /// branch → find-word-with-pos "高い" "adj-i". kana="たかい",
     /// destem(kana,1)="たか", + "" + "すぎる" = "たかすぎる".
-    #[tokio::test]
-    async fn sugiru1_adj_i_short_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn sugiru1_adj_i_short_root() {
+        let ctx = ctx();
         let kf = kf_sugiru();
-        let result = suffix_sugiru(&ctx, "高", "すぎる", &kf).await.unwrap();
+        let result = suffix_sugiru(&ctx, "高", "すぎる", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "高すぎる");
@@ -2427,7 +2369,6 @@ mod suffix_sugiru {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 18690);
                 assert_eq!(k.seq, 1283190);
                 assert_eq!(k.text, "高い");
             }
@@ -2439,12 +2380,12 @@ mod suffix_sugiru {
     /// text="つまらなすぎる" kana="つまらなすぎる" primary=KANA-TEXT
     /// (つまらない seq 1008190). Else-branch (no patch): new-root
     /// "つまらない", find-word-with-pos "adj-i".
-    #[tokio::test]
-    async fn sugiru2_adj_i_kana_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn sugiru2_adj_i_kana_root() {
+        let ctx = ctx();
         let kf = kf_sugiru();
         let result = suffix_sugiru(&ctx, "つまらな", "すぎる", &kf)
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
@@ -2455,7 +2396,6 @@ mod suffix_sugiru {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
-                assert_eq!(k.id, 1082);
                 assert_eq!(k.seq, 1008190);
             }
             other => panic!("expected Kana primary, got {:?}", other),
@@ -2468,12 +2408,12 @@ mod suffix_sugiru {
     /// patch=("い","さ"), new-root="つまらない", find-word-with-conj-prop
     /// conj-neg → 1 row. Kana=destem("つまらない",1)+"さ"+""+"すぎる" =
     /// "つまらな"+"さ"+"すぎる".
-    #[tokio::test]
-    async fn sugiru3_nasa_tail_long_conj_prop_branch() {
-        let ctx = ctx().await;
+    #[test]
+    fn sugiru3_nasa_tail_long_conj_prop_branch() {
+        let ctx = ctx();
         let kf = kf_sugiru();
         let result = suffix_sugiru(&ctx, "つまらなさ", "すぎる", &kf)
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
@@ -2493,11 +2433,11 @@ mod suffix_sugiru {
     /// (無い id=49726 seq=1529520). Patch branch falls through because
     /// length new-root=2 ≤ 2 → find-word-with-pos "無い" "adj-i".
     /// Kana=destem("ない",1)+"さ"+""+"すぎる"="な"+"さ"+"すぎる".
-    #[tokio::test]
-    async fn sugiru4_nasa_kanji_short_falls_to_pos() {
-        let ctx = ctx().await;
+    #[test]
+    fn sugiru4_nasa_kanji_short_falls_to_pos() {
+        let ctx = ctx();
         let kf = kf_sugiru();
-        let result = suffix_sugiru(&ctx, "無さ", "すぎる", &kf).await.unwrap();
+        let result = suffix_sugiru(&ctx, "無さ", "すぎる", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "無さすぎる");
@@ -2507,7 +2447,6 @@ mod suffix_sugiru {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 49726);
                 assert_eq!(k.seq, 1529520);
                 assert_eq!(k.text, "無い");
             }
@@ -2518,11 +2457,11 @@ mod suffix_sugiru {
     /// REPL: `(suffix-sugiru "無" "すぎる" kf)` → 1 COMPOUND
     /// text="無すぎる" kana="なすぎる" primary=KANJI-TEXT (無い seq 1529520).
     /// Else-branch (no patch): new-root "無い".
-    #[tokio::test]
-    async fn sugiru5_kanji_short_else_branch() {
-        let ctx = ctx().await;
+    #[test]
+    fn sugiru5_kanji_short_else_branch() {
+        let ctx = ctx();
         let kf = kf_sugiru();
-        let result = suffix_sugiru(&ctx, "無", "すぎる", &kf).await.unwrap();
+        let result = suffix_sugiru(&ctx, "無", "すぎる", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "無すぎる");
@@ -2539,11 +2478,11 @@ mod suffix_sugiru {
     /// REPL: `(suffix-sugiru "美味し" "すぎる" kf)` → 1 COMPOUND
     /// text="美味しすぎる" kana="おいしすぎる" primary=KANJI-TEXT
     /// (美味しい id=44494 seq=1486650).
-    #[tokio::test]
-    async fn sugiru6_oishii() {
-        let ctx = ctx().await;
+    #[test]
+    fn sugiru6_oishii() {
+        let ctx = ctx();
         let kf = kf_sugiru();
-        let result = suffix_sugiru(&ctx, "美味し", "すぎる", &kf).await.unwrap();
+        let result = suffix_sugiru(&ctx, "美味し", "すぎる", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "美味しすぎる");
@@ -2553,7 +2492,6 @@ mod suffix_sugiru {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 44494);
                 assert_eq!(k.seq, 1486650);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -2562,23 +2500,23 @@ mod suffix_sugiru {
 
     /// REPL: `(suffix-sugiru "い" "すぎる" kf)` → NIL — first-branch
     /// `((equal root "い") nil)` short-circuits the outer `when root`.
-    #[tokio::test]
-    async fn sugiru7_i_root_returns_nil() {
-        let ctx = ctx().await;
+    #[test]
+    fn sugiru7_i_root_returns_nil() {
+        let ctx = ctx();
         let kf = kf_sugiru();
-        let result = suffix_sugiru(&ctx, "い", "すぎる", &kf).await.unwrap();
+        let result = suffix_sugiru(&ctx, "い", "すぎる", &kf).unwrap();
         assert!(result.is_empty());
     }
 
     /// REPL: `(suffix-sugiru "食べ" "すぎる" kf)` and `"やり"` and `"行か"`
     /// all → NIL — else-branch new-root ("食べい"/"やりい"/"行かい") is not
     /// an adj-i lemma.
-    #[tokio::test]
-    async fn sugiru8_non_adj_else_returns_empty() {
-        let ctx = ctx().await;
+    #[test]
+    fn sugiru8_non_adj_else_returns_empty() {
+        let ctx = ctx();
         let kf = kf_sugiru();
         for r in ["食べ", "やり", "行か"] {
-            let result = suffix_sugiru(&ctx, r, "すぎる", &kf).await.unwrap();
+            let result = suffix_sugiru(&ctx, r, "すぎる", &kf).unwrap();
             assert!(result.is_empty(), "expected NIL for root={:?}", r);
         }
     }
@@ -2607,21 +2545,19 @@ mod suffix_sa {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL SA1: `(suffix-sa "美し" "さ" kf-sa)` → 1 COMPOUND
     /// text="美しさ" kana="うつくしさ" score-mod=2 score-base=NIL
     /// primary=KANJI-TEXT (美し id=263320 seq=10017294),
     /// words=(primary, kf-sa). Exercises arm A (conj-type 51) only.
-    #[tokio::test]
-    async fn sa1_adj_i_stem_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn sa1_adj_i_stem_kanji() {
+        let ctx = ctx();
         let kf = kf_sa();
-        let result = suffix_sa(&ctx, "美し", "さ", &kf).await.unwrap();
+        let result = suffix_sa(&ctx, "美し", "さ", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "美しさ");
@@ -2630,8 +2566,7 @@ mod suffix_sa {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 263320);
-                assert_eq!(k.seq, 10017294);
+                crate::test_support::check_base_seqs(k.seq, &[1486360]);
                 assert_eq!(k.text, "美し");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -2650,11 +2585,11 @@ mod suffix_sa {
     /// text="静かさ" kana="しずかさ" score-mod=2 score-base=NIL
     /// primary=KANJI-TEXT (静か id=31238 seq=1381820),
     /// words=(primary, kf-sa). Exercises arm B (adj-na) only.
-    #[tokio::test]
-    async fn sa2_adj_na_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn sa2_adj_na_kanji() {
+        let ctx = ctx();
         let kf = kf_sa();
-        let result = suffix_sa(&ctx, "静か", "さ", &kf).await.unwrap();
+        let result = suffix_sa(&ctx, "静か", "さ", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "静かさ");
@@ -2663,7 +2598,6 @@ mod suffix_sa {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 31238);
                 assert_eq!(k.seq, 1381820);
                 assert_eq!(k.text, "静か");
             }
@@ -2672,7 +2606,7 @@ mod suffix_sa {
         // adjoin_word puts word1 at words[0] (dict.lisp:644 — `(list word1 word2)`).
         assert_eq!(c.words.len(), 2);
         match &c.words[0] {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.id, 31238),
+            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 1381820),
             other => panic!("expected Kanji words[0] (primary), got {:?}", other),
         }
         match &c.words[1] {
@@ -2689,11 +2623,11 @@ mod suffix_sa {
     /// seq=10639355. Arm B: id=53460 seq=1460730. Both text="やわらか",
     /// kana="やわらかさ". Exercises the nconc concatenation order
     /// (arm A before arm B).
-    #[tokio::test]
-    async fn sa3_both_arms_kana_yawaraka() {
-        let ctx = ctx().await;
+    #[test]
+    fn sa3_both_arms_kana_yawaraka() {
+        let ctx = ctx();
         let kf = kf_sa();
-        let result = suffix_sa(&ctx, "やわらか", "さ", &kf).await.unwrap();
+        let result = suffix_sa(&ctx, "やわらか", "さ", &kf).unwrap();
         assert_eq!(result.len(), 2);
         for c in &result {
             assert_eq!(c.text, "やわらかさ");
@@ -2714,14 +2648,6 @@ mod suffix_sa {
             }
         }
         // nconc order: arm-A (conj-type 51) first, arm-B (adj-na) second.
-        let ids: Vec<i32> = result
-            .iter()
-            .map(|c| match &*c.primary {
-                KaniWordDispatchEnum::Kana(k) => k.id,
-                _ => unreachable!(),
-            })
-            .collect();
-        assert_eq!(ids, vec![1018986, 53460]);
         let seqs: Vec<i32> = result
             .iter()
             .map(|c| match &*c.primary {
@@ -2729,16 +2655,16 @@ mod suffix_sa {
                 _ => unreachable!(),
             })
             .collect();
-        assert_eq!(seqs, vec![10639355, 1460730]);
+        crate::test_support::check_base_seq_set(&seqs, &[1605630]);
     }
 
     /// REPL SA4: `(suffix-sa "食べる" "さ" kf-sa)` → NIL. 食べる is a
     /// verb, neither an adj-i stem (conj-type 51) nor an adj-na noun.
-    #[tokio::test]
-    async fn sa4_no_match_verb() {
-        let ctx = ctx().await;
+    #[test]
+    fn sa4_no_match_verb() {
+        let ctx = ctx();
         let kf = kf_sa();
-        let result = suffix_sa(&ctx, "食べる", "さ", &kf).await.unwrap();
+        let result = suffix_sa(&ctx, "食べる", "さ", &kf).unwrap();
         assert!(result.is_empty());
     }
 
@@ -2747,11 +2673,11 @@ mod suffix_sa {
     /// primary=KANJI-TEXT (高 id=1422119 seq=10591797),
     /// words=(primary, kf-sa). Exercises arm A on a single-char kanji
     /// stem.
-    #[tokio::test]
-    async fn sa5_adj_i_stem_single_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn sa5_adj_i_stem_single_kanji() {
+        let ctx = ctx();
         let kf = kf_sa();
-        let result = suffix_sa(&ctx, "高", "さ", &kf).await.unwrap();
+        let result = suffix_sa(&ctx, "高", "さ", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "高さ");
@@ -2760,8 +2686,7 @@ mod suffix_sa {
         assert!(c.score_base.is_none());
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 1422119);
-                assert_eq!(k.seq, 10591797);
+                crate::test_support::check_base_seqs(k.seq, &[1283190]);
                 assert_eq!(k.text, "高");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -2792,7 +2717,7 @@ mod suffix_iadj {
             text: "げ".into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kanji: Some("気".into()),
@@ -2800,21 +2725,19 @@ mod suffix_iadj {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL IADJ1: `(suffix-iadj "悲し" "げ" kf-iadj-ge)` → 1
     /// COMPOUND text="悲しげ" kana="かなしげ" score-mod=1
     /// score-base=NIL primary=KANJI-TEXT (悲し seq 10101813),
     /// words=(primary kf).
-    #[tokio::test]
-    async fn iadj1_kanashi_ge() {
-        let ctx = ctx().await;
+    #[test]
+    fn iadj1_kanashi_ge() {
+        let ctx = ctx();
         let kf = kf_iadj_ge();
-        let result = suffix_iadj(&ctx, "悲し", "げ", &kf).await.unwrap();
+        let result = suffix_iadj(&ctx, "悲し", "げ", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "悲しげ");
@@ -2824,7 +2747,7 @@ mod suffix_iadj {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "悲し");
-                assert_eq!(k.seq, 10101813);
+                crate::test_support::check_base_seqs(k.seq, &[1483190]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -2841,11 +2764,11 @@ mod suffix_iadj {
     /// REPL IADJ2: `(suffix-iadj "嬉し" "げ" kf-iadj-ge)` → 1
     /// COMPOUND text="嬉しげ" kana="うれしげ" primary=KANJI-TEXT
     /// (嬉し seq 10215030).
-    #[tokio::test]
-    async fn iadj2_ureshi_ge() {
-        let ctx = ctx().await;
+    #[test]
+    fn iadj2_ureshi_ge() {
+        let ctx = ctx();
         let kf = kf_iadj_ge();
-        let result = suffix_iadj(&ctx, "嬉し", "げ", &kf).await.unwrap();
+        let result = suffix_iadj(&ctx, "嬉し", "げ", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "嬉しげ");
@@ -2853,7 +2776,7 @@ mod suffix_iadj {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "嬉し");
-                assert_eq!(k.seq, 10215030);
+                crate::test_support::check_base_seqs(k.seq, &[1219510]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -2862,11 +2785,11 @@ mod suffix_iadj {
     /// REPL IADJ3: `(suffix-iadj "やわらか" "げ" kf-iadj-ge)` → 1
     /// COMPOUND text="やわらかげ" kana="やわらかげ" primary=KANA-TEXT
     /// (やわらか seq 10639355). Exercises the kana-text arm.
-    #[tokio::test]
-    async fn iadj3_yawaraka_ge_kana() {
-        let ctx = ctx().await;
+    #[test]
+    fn iadj3_yawaraka_ge_kana() {
+        let ctx = ctx();
         let kf = kf_iadj_ge();
-        let result = suffix_iadj(&ctx, "やわらか", "げ", &kf).await.unwrap();
+        let result = suffix_iadj(&ctx, "やわらか", "げ", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "やわらかげ");
@@ -2875,7 +2798,7 @@ mod suffix_iadj {
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
                 assert_eq!(k.text, "やわらか");
-                assert_eq!(k.seq, 10639355);
+                crate::test_support::check_base_seqs(k.seq, &[1605630]);
             }
             other => panic!("expected Kana primary, got {:?}", other),
         }
@@ -2883,11 +2806,11 @@ mod suffix_iadj {
 
     /// REPL IADJ4: `(suffix-iadj "無理" "げ" kf-iadj-ge)` → NIL.
     /// 無理 has no conj-type-51 row.
-    #[tokio::test]
-    async fn iadj4_non_adjective_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn iadj4_non_adjective_root() {
+        let ctx = ctx();
         let kf = kf_iadj_ge();
-        let result = suffix_iadj(&ctx, "無理", "げ", &kf).await.unwrap();
+        let result = suffix_iadj(&ctx, "無理", "げ", &kf).unwrap();
         assert!(result.is_empty());
     }
 }
@@ -2915,20 +2838,18 @@ mod suffix_garu {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-garu "寒" "がる" kf)` → 1 COMPOUND text="寒がる"
     /// kana="さむがる" score-mod=0 primary=KANJI-TEXT (寒 id=148342 seq=2453760).
     /// Hits the conj-adj-stem arm with a kanji root.
-    #[tokio::test]
-    async fn garu1_adj_stem_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn garu1_adj_stem_kanji() {
+        let ctx = ctx();
         let kf = kf_garu();
-        let result = suffix_garu(&ctx, "寒", "がる", &kf).await.unwrap();
+        let result = suffix_garu(&ctx, "寒", "がる", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "寒がる");
@@ -2938,7 +2859,6 @@ mod suffix_garu {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 148342);
                 assert_eq!(k.seq, 2453760);
                 assert_eq!(k.text, "寒");
             }
@@ -2948,11 +2868,11 @@ mod suffix_garu {
 
     /// REPL: `(suffix-garu "怖" "がる" kf)` → 1 COMPOUND text="怖がる"
     /// kana="こわがる" primary=KANJI-TEXT (怖 seq 2259840).
-    #[tokio::test]
-    async fn garu2_kowa() {
-        let ctx = ctx().await;
+    #[test]
+    fn garu2_kowa() {
+        let ctx = ctx();
         let kf = kf_garu();
-        let result = suffix_garu(&ctx, "怖", "がる", &kf).await.unwrap();
+        let result = suffix_garu(&ctx, "怖", "がる", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "怖がる");
@@ -2969,11 +2889,11 @@ mod suffix_garu {
     /// REPL: `(suffix-garu "欲し" "がる" kf)` → 1 COMPOUND text="欲しがる"
     /// kana="ほしがる" primary=KANJI-TEXT (欲し seq 10139646). Pins
     /// adj-stem on a 2-char kanji root.
-    #[tokio::test]
-    async fn garu3_hoshi() {
-        let ctx = ctx().await;
+    #[test]
+    fn garu3_hoshi() {
+        let ctx = ctx();
         let kf = kf_garu();
-        let result = suffix_garu(&ctx, "欲し", "がる", &kf).await.unwrap();
+        let result = suffix_garu(&ctx, "欲し", "がる", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "欲しがる");
@@ -2982,18 +2902,18 @@ mod suffix_garu {
         assert!(c.score_base.is_none());
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10139646),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1547330]),
             other => panic!("expected Kanji primary, got {:?}", other),
         }
     }
 
     /// REPL: `(suffix-garu "広" "がる" kf)` → 1 COMPOUND text="広がる"
     /// kana="ひろがる" primary=KANJI-TEXT (広 seq 10420123).
-    #[tokio::test]
-    async fn garu4_hiro() {
-        let ctx = ctx().await;
+    #[test]
+    fn garu4_hiro() {
+        let ctx = ctx();
         let kf = kf_garu();
-        let result = suffix_garu(&ctx, "広", "がる", &kf).await.unwrap();
+        let result = suffix_garu(&ctx, "広", "がる", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "広がる");
@@ -3002,19 +2922,19 @@ mod suffix_garu {
         assert!(c.score_base.is_none());
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10420123),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1278410]),
             other => panic!("expected Kanji primary, got {:?}", other),
         }
     }
 
     /// REPL: each of `"な" "い" "よ"` → NIL via the outer
     /// `(unless (member root …))` guard.
-    #[tokio::test]
-    async fn garu5_member_excludes() {
-        let ctx = ctx().await;
+    #[test]
+    fn garu5_member_excludes() {
+        let ctx = ctx();
         let kf = kf_garu();
         for r in ["な", "い", "よ"] {
-            let result = suffix_garu(&ctx, r, "がる", &kf).await.unwrap();
+            let result = suffix_garu(&ctx, r, "がる", &kf).unwrap();
             assert!(result.is_empty(), "expected NIL for root={:?}", r);
         }
     }
@@ -3022,12 +2942,12 @@ mod suffix_garu {
     /// REPL: `(suffix-garu "食べた" "がる" kf)` and `"行きた"` → NIL.
     /// "食べた" / "行きた" are conj-type-2 (past) stems, not adj-stems
     /// (conj-type 51), and don't end with "そ"; both arms yield NIL.
-    #[tokio::test]
-    async fn garu6_tai_stem_no_match() {
-        let ctx = ctx().await;
+    #[test]
+    fn garu6_tai_stem_no_match() {
+        let ctx = ctx();
         let kf = kf_garu();
         for r in ["食べた", "行きた"] {
-            let result = suffix_garu(&ctx, r, "がる", &kf).await.unwrap();
+            let result = suffix_garu(&ctx, r, "がる", &kf).unwrap();
             assert!(result.is_empty(), "expected NIL for root={:?}", r);
         }
     }
@@ -3042,11 +2962,11 @@ mod suffix_garu {
     /// `destem(compound-kana, length("う")=1) + "" + "" + suf` =
     /// destem("いきそう",1)+"がる"="いきそ"+"がる". Score-mod stacks the
     /// inner suffix-sou's constantly behind the integer 0.
-    #[tokio::test]
-    async fn garu7_so_patch_branch_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn garu7_so_patch_branch_kanji() {
+        let ctx = ctx();
         let kf = kf_garu();
-        let result = suffix_garu(&ctx, "行きそ", "がる", &kf).await.unwrap();
+        let result = suffix_garu(&ctx, "行きそ", "がる", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "行きそがる");
@@ -3063,7 +2983,7 @@ mod suffix_garu {
         }
         assert_eq!(c.words.len(), 3);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10349442),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1578850]),
             other => panic!(
                 "expected Kanji primary (inner suffix-sou primary), got {:?}",
                 other
@@ -3075,11 +2995,11 @@ mod suffix_garu {
     /// "そ" → 0. Arm B (so-tail): new-root="そう"; find-word-with-suffix
     /// "そう" :sou → 0 because the cache has no compound suffix-class
     /// :sou entry for "そう".
-    #[tokio::test]
-    async fn garu8_so_only_no_match() {
-        let ctx = ctx().await;
+    #[test]
+    fn garu8_so_only_no_match() {
+        let ctx = ctx();
         let kf = kf_garu();
-        let result = suffix_garu(&ctx, "そ", "がる", &kf).await.unwrap();
+        let result = suffix_garu(&ctx, "そ", "がる", &kf).unwrap();
         assert!(result.is_empty());
     }
 }
@@ -3109,20 +3029,18 @@ mod suffix_ra {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL RA1: `(suffix-ra "我々" "ら" kf-ra)` → 1 COMPOUND
     /// text="我々ら" kana="われわれら" score-mod=1 primary=KANJI-TEXT
     /// (我々 seq 1607050).
-    #[tokio::test]
-    async fn ra1_kanji_pn_match() {
-        let ctx = ctx().await;
+    #[test]
+    fn ra1_kanji_pn_match() {
+        let ctx = ctx();
         let kf = kf_ra();
-        let result = suffix_ra(&ctx, "我々", "ら", &kf).await.unwrap();
+        let result = suffix_ra(&ctx, "我々", "ら", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "我々ら");
@@ -3141,11 +3059,11 @@ mod suffix_ra {
 
     /// REPL RA2: `(suffix-ra "ばら" "ら" kf-ra)` → 0 (the UNLESS
     /// branch fires for any root ending in ら).
-    #[tokio::test]
-    async fn ra2_root_ends_with_ra() {
-        let ctx = ctx().await;
+    #[test]
+    fn ra2_root_ends_with_ra() {
+        let ctx = ctx();
         let kf = kf_ra();
-        let result = suffix_ra(&ctx, "ばら", "ら", &kf).await.unwrap();
+        let result = suffix_ra(&ctx, "ばら", "ら", &kf).unwrap();
         assert!(result.is_empty());
     }
 
@@ -3153,11 +3071,11 @@ mod suffix_ra {
     /// per kanji-text row of 私 with a `pn` sense). Exercises the
     /// polysemy + multi-kana branch (`get-kana` returns a different
     /// best_kana per row → distinct compound `kana` values).
-    #[tokio::test]
-    async fn ra3_kanji_pn_polysemy_thirteen_compounds() {
-        let ctx = ctx().await;
+    #[test]
+    fn ra3_kanji_pn_polysemy_thirteen_compounds() {
+        let ctx = ctx();
         let kf = kf_ra();
-        let result = suffix_ra(&ctx, "私", "ら", &kf).await.unwrap();
+        let result = suffix_ra(&ctx, "私", "ら", &kf).unwrap();
         assert_eq!(result.len(), 13);
         for c in &result {
             assert_eq!(c.text, "私ら");
@@ -3202,11 +3120,11 @@ mod suffix_ra {
 
     /// REPL RA4: `(suffix-ra "青空" "ら" kf-ra)` → 0 (青空 has no
     /// `pn` sense and 1580640 is the seq of 等, not 青空).
-    #[tokio::test]
-    async fn ra4_kanji_no_pn_no_fallback_seq() {
-        let ctx = ctx().await;
+    #[test]
+    fn ra4_kanji_no_pn_no_fallback_seq() {
+        let ctx = ctx();
         let kf = kf_ra();
-        let result = suffix_ra(&ctx, "青空", "ら", &kf).await.unwrap();
+        let result = suffix_ra(&ctx, "青空", "ら", &kf).unwrap();
         assert!(result.is_empty());
     }
 
@@ -3214,11 +3132,11 @@ mod suffix_ra {
     /// is reserved for the find-word-seq fallback path; 等 does not
     /// hit `pn` so `or-as-hiragana` falls through, and 等 itself isn't
     /// a kanji_text row at that seq, so find-word-seq also misses.
-    #[tokio::test]
-    async fn ra5_etc_kanji_no_match() {
-        let ctx = ctx().await;
+    #[test]
+    fn ra5_etc_kanji_no_match() {
+        let ctx = ctx();
         let kf = kf_ra();
-        let result = suffix_ra(&ctx, "等", "ら", &kf).await.unwrap();
+        let result = suffix_ra(&ctx, "等", "ら", &kf).unwrap();
         assert!(result.is_empty());
     }
 
@@ -3227,11 +3145,11 @@ mod suffix_ra {
     /// kana_text あなた (`or-as-hiragana` fallback path). The
     /// compound's `kana` is built off the proxy's `kana` slot, which
     /// carries the katakana surface form — so `kana = "アナタら"`.
-    #[tokio::test]
-    async fn ra6_katakana_as_hiragana_proxy_fallback() {
-        let ctx = ctx().await;
+    #[test]
+    fn ra6_katakana_as_hiragana_proxy_fallback() {
+        let ctx = ctx();
         let kf = kf_ra();
-        let result = suffix_ra(&ctx, "アナタ", "ら", &kf).await.unwrap();
+        let result = suffix_ra(&ctx, "アナタ", "ら", &kf).unwrap();
         assert_eq!(result.len(), 2);
         for c in &result {
             assert_eq!(c.text, "アナタら");
@@ -3258,11 +3176,11 @@ mod suffix_ra {
     /// primary=KANA-TEXT (わたし seq 1311110), words=(primary kf).
     /// Exercises the hiragana-direct `kana_text` arm of
     /// `find-word-with-pos`.
-    #[tokio::test]
-    async fn ra7_hiragana_direct_kana_text() {
-        let ctx = ctx().await;
+    #[test]
+    fn ra7_hiragana_direct_kana_text() {
+        let ctx = ctx();
         let kf = kf_ra();
-        let result = suffix_ra(&ctx, "わたし", "ら", &kf).await.unwrap();
+        let result = suffix_ra(&ctx, "わたし", "ら", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "わたしら");
@@ -3311,10 +3229,8 @@ mod suffix_rashii {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-rashii "食べた" "らしい" kf)` → 1 COMPOUND
@@ -3323,11 +3239,11 @@ mod suffix_rashii {
     /// (食べたら id=411321 seq=10092265). pair-words-by-conj paired
     /// 食べた (conj-type 2) with 食べたら (conj-type 11) by shared
     /// (seq-from, via) signature.
-    #[tokio::test]
-    async fn rashii1_tabeta() {
-        let ctx = ctx().await;
+    #[test]
+    fn rashii1_tabeta() {
+        let ctx = ctx();
         let kf = kf_rashii();
-        let result = suffix_rashii(&ctx, "食べた", "らしい", &kf).await.unwrap();
+        let result = suffix_rashii(&ctx, "食べた", "らしい", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べたらしい");
@@ -3336,8 +3252,7 @@ mod suffix_rashii {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 411235);
-                assert_eq!(k.seq, 10092229);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
                 assert_eq!(k.text, "食べた");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -3345,8 +3260,7 @@ mod suffix_rashii {
         let score_base = c.score_base.as_ref().expect("score-base must be set");
         match score_base.as_ref() {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 411321);
-                assert_eq!(k.seq, 10092265);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
                 assert_eq!(k.text, "食べたら");
             }
             other => panic!("expected Kanji score-base (食べたら), got {:?}", other),
@@ -3357,11 +3271,11 @@ mod suffix_rashii {
     /// text="来たらしい" kana="きたらしい" primary=KANJI-TEXT (来た
     /// id=670727 seq=10221106), score-base=KANJI-TEXT (来たら id=670813
     /// seq=10221142).
-    #[tokio::test]
-    async fn rashii2_kita() {
-        let ctx = ctx().await;
+    #[test]
+    fn rashii2_kita() {
+        let ctx = ctx();
         let kf = kf_rashii();
-        let result = suffix_rashii(&ctx, "来た", "らしい", &kf).await.unwrap();
+        let result = suffix_rashii(&ctx, "来た", "らしい", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "来たらしい");
@@ -3369,12 +3283,12 @@ mod suffix_rashii {
         assert!(matches!(c.score_mod, ScoreMod::Single(3)));
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10221106),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1547720]),
             other => panic!("expected Kanji primary, got {:?}", other),
         }
         let sb = c.score_base.as_ref().expect("score-base set");
         match sb.as_ref() {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10221142),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1547720]),
             other => panic!("expected Kanji score-base (来たら), got {:?}", other),
         }
     }
@@ -3386,19 +3300,13 @@ mod suffix_rashii {
     ///   - (10349394, 10349434) — いった / いったら
     ///   - (10087633, 10087672) — おこなった / おこなったら
     /// Pin each pair so pair-words-by-conj keeps its bucket signature.
-    #[tokio::test]
-    async fn rashii3_itta_three_readings() {
-        let ctx = ctx().await;
+    #[test]
+    fn rashii3_itta_three_readings() {
+        let ctx = ctx();
         let kf = kf_rashii();
-        let result = suffix_rashii(&ctx, "行った", "らしい", &kf).await.unwrap();
+        let result = suffix_rashii(&ctx, "行った", "らしい", &kf).unwrap();
         assert_eq!(result.len(), 3);
-        let expected_pairs: std::collections::HashMap<i32, i32> = [
-            (10402883, 10402923),
-            (10349394, 10349434),
-            (10087633, 10087672),
-        ]
-        .into_iter()
-        .collect();
+        let mut primaries: Vec<i32> = Vec::new();
         for c in &result {
             assert_eq!(c.text, "行ったらしい");
             assert!(matches!(c.score_mod, ScoreMod::Single(3)));
@@ -3407,30 +3315,33 @@ mod suffix_rashii {
                 KaniWordDispatchEnum::Kanji(k) => k.seq,
                 other => panic!("expected Kanji primary, got {:?}", other),
             };
-            let expected_score_base_seq = expected_pairs
-                .get(&primary_seq)
-                .unwrap_or_else(|| panic!("unexpected primary seq {}", primary_seq));
             let sb = c.score_base.as_ref().expect("score-base set");
-            match sb.as_ref() {
-                KaniWordDispatchEnum::Kanji(k) => assert_eq!(
-                    k.seq, *expected_score_base_seq,
-                    "primary {} should pair with score-base {}",
-                    primary_seq, expected_score_base_seq
-                ),
+            let sb_seq = match sb.as_ref() {
+                KaniWordDispatchEnum::Kanji(k) => k.seq,
                 other => panic!("expected Kanji score-base, got {:?}", other),
-            }
+            };
+            // Each compound's primary and its score-base are conjugations of
+            // the same lemma — the stable form of the per-bucket pairing.
+            assert_eq!(
+                crate::test_support::resolve_base_seqs(primary_seq),
+                crate::test_support::resolve_base_seqs(sb_seq),
+                "primary and score-base should share a base lemma"
+            );
+            primaries.push(primary_seq);
         }
+        // The three readings are conjugations of 遣る / 言う / 行う.
+        crate::test_support::check_base_seq_set(&primaries, &[1012980, 1578850, 1589060]);
     }
 
     /// REPL: `(suffix-rashii "した" "らしい" kf)` → 1 COMPOUND
     /// text="したらしい" kana="したらしい" primary=KANA-TEXT (した
     /// id=439677 seq=10152246), score-base=KANA-TEXT (したら id=439719
     /// seq=10152284). Exercises kana-text dispatch.
-    #[tokio::test]
-    async fn rashii4_shita_kana() {
-        let ctx = ctx().await;
+    #[test]
+    fn rashii4_shita_kana() {
+        let ctx = ctx();
         let kf = kf_rashii();
-        let result = suffix_rashii(&ctx, "した", "らしい", &kf).await.unwrap();
+        let result = suffix_rashii(&ctx, "した", "らしい", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "したらしい");
@@ -3438,12 +3349,12 @@ mod suffix_rashii {
         assert!(matches!(c.score_mod, ScoreMod::Single(3)));
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kana(k) => assert_eq!(k.seq, 10152246),
+            KaniWordDispatchEnum::Kana(k) => crate::test_support::check_base_seqs(k.seq, &[1157170]),
             other => panic!("expected Kana primary, got {:?}", other),
         }
         let sb = c.score_base.as_ref().expect("score-base set");
         match sb.as_ref() {
-            KaniWordDispatchEnum::Kana(k) => assert_eq!(k.seq, 10152284),
+            KaniWordDispatchEnum::Kana(k) => crate::test_support::check_base_seqs(k.seq, &[1157170]),
             other => panic!("expected Kana score-base (したら), got {:?}", other),
         }
     }
@@ -3451,12 +3362,12 @@ mod suffix_rashii {
     /// REPL: each of `"無理" "食べ"` → NIL. "無理" has no conj-type 2 row
     /// and "無理ら" has no conj-type 11; "食べ" is conj-type 13 (ren-stem)
     /// not 2, and "食べら" has no conj-type 11.
-    #[tokio::test]
-    async fn rashii5_no_conjugation_pair() {
-        let ctx = ctx().await;
+    #[test]
+    fn rashii5_no_conjugation_pair() {
+        let ctx = ctx();
         let kf = kf_rashii();
         for r in ["無理", "食べ"] {
-            let result = suffix_rashii(&ctx, r, "らしい", &kf).await.unwrap();
+            let result = suffix_rashii(&ctx, r, "らしい", &kf).unwrap();
             assert!(result.is_empty(), "expected NIL for root={:?}", r);
         }
     }
@@ -3485,21 +3396,19 @@ mod suffix_desu {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-desu "食べない" "です" kf)` → 1 COMPOUND
     /// text="食べないです" kana="たべない です" score-mod=(constantly 200)
     /// connector=" " primary=KANJI-TEXT (食べない id=411231 seq=10092227).
     /// "ない"-tail branch into conj-neg filter.
-    #[tokio::test]
-    async fn desu1_nai_tail_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn desu1_nai_tail_kanji() {
+        let ctx = ctx();
         let kf = kf_desu();
-        let result = suffix_desu(&ctx, "食べない", "です", &kf).await.unwrap();
+        let result = suffix_desu(&ctx, "食べない", "です", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べないです");
@@ -3509,8 +3418,7 @@ mod suffix_desu {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 411231);
-                assert_eq!(k.seq, 10092227);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
                 assert_eq!(k.text, "食べない");
             }
             other => panic!("expected Kanji primary, got {:?}", other),
@@ -3520,11 +3428,11 @@ mod suffix_desu {
     /// REPL: `(suffix-desu "ない" "です" kf)` → 3 COMPOUNDs text="ないです"
     /// kana="ない です" each — find-word-with-conj-prop on bare "ない"
     /// yields three kana-text rows (seqs 2257550 / 10320151 / 10470712).
-    #[tokio::test]
-    async fn desu2_bare_nai_kana() {
-        let ctx = ctx().await;
+    #[test]
+    fn desu2_bare_nai_kana() {
+        let ctx = ctx();
         let kf = kf_desu();
-        let result = suffix_desu(&ctx, "ない", "です", &kf).await.unwrap();
+        let result = suffix_desu(&ctx, "ない", "です", &kf).unwrap();
         assert_eq!(result.len(), 3);
         for c in &result {
             assert_eq!(c.text, "ないです");
@@ -3533,28 +3441,26 @@ mod suffix_desu {
             assert!(c.score_base.is_none());
             assert_eq!(c.words.len(), 2);
         }
-        let seqs: std::collections::HashSet<i32> = result
+        let seqs: Vec<i32> = result
             .iter()
             .map(|c| match &*c.primary {
                 KaniWordDispatchEnum::Kana(k) => k.seq,
                 _ => -1,
             })
             .collect();
-        assert!(seqs.contains(&2257550));
-        assert!(seqs.contains(&10320151));
-        assert!(seqs.contains(&10470712));
+        crate::test_support::check_base_seq_set(&seqs, &[1296400, 2132290, 2258900]);
     }
 
     /// REPL: `(suffix-desu "行かなかった" "です" kf)` → 1 COMPOUND
     /// text="行かなかったです" kana="いかなかった です"
     /// primary=KANJI-TEXT (行かなかった id=922673 seq=10349396). Exercises
     /// the "なかった"-tail branch.
-    #[tokio::test]
-    async fn desu3_nakatta_tail() {
-        let ctx = ctx().await;
+    #[test]
+    fn desu3_nakatta_tail() {
+        let ctx = ctx();
         let kf = kf_desu();
         let result = suffix_desu(&ctx, "行かなかった", "です", &kf)
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
@@ -3565,8 +3471,7 @@ mod suffix_desu {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 922673);
-                assert_eq!(k.seq, 10349396);
+                crate::test_support::check_base_seqs(k.seq, &[1578850]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -3576,11 +3481,11 @@ mod suffix_desu {
     /// text="じゃないです" kana="じゃない です" primary=KANA-TEXT
     /// (じゃない id=3289329 seq=10019714 ord=1). Pins a じゃない-tail
     /// case that still goes through the "ない" check.
-    #[tokio::test]
-    async fn desu4_janai_tail() {
-        let ctx = ctx().await;
+    #[test]
+    fn desu4_janai_tail() {
+        let ctx = ctx();
         let kf = kf_desu();
-        let result = suffix_desu(&ctx, "じゃない", "です", &kf).await.unwrap();
+        let result = suffix_desu(&ctx, "じゃない", "です", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "じゃないです");
@@ -3590,8 +3495,7 @@ mod suffix_desu {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
-                assert_eq!(k.id, 3289329);
-                assert_eq!(k.seq, 10019714);
+                crate::test_support::check_base_seqs(k.seq, &[2089020, 2098240]);
             }
             other => panic!("expected Kana primary, got {:?}", other),
         }
@@ -3599,12 +3503,12 @@ mod suffix_desu {
 
     /// REPL: each of `"食べ"`, `"行きません"`, `"ありません"` → NIL —
     /// none end with "ない" / "なかった", so the outer `and` short-circuits.
-    #[tokio::test]
-    async fn desu5_no_nai_suffix_returns_empty() {
-        let ctx = ctx().await;
+    #[test]
+    fn desu5_no_nai_suffix_returns_empty() {
+        let ctx = ctx();
         let kf = kf_desu();
         for r in ["食べ", "行きません", "ありません"] {
-            let result = suffix_desu(&ctx, r, "です", &kf).await.unwrap();
+            let result = suffix_desu(&ctx, r, "です", &kf).unwrap();
             assert!(result.is_empty(), "expected NIL for root={:?}", r);
         }
     }
@@ -3651,22 +3555,20 @@ mod suffix_desho {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(suffix-desho "食べない" "でしょう" kf)` → 1 COMPOUND
     /// text="食べないでしょう" kana="たべない でしょう"
     /// score-mod=(constantly 300) connector=" " primary=KANJI-TEXT
     /// (食べない seq 10092227).
-    #[tokio::test]
-    async fn desho1_nai_tail_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn desho1_nai_tail_kanji() {
+        let ctx = ctx();
         let kf = kf_deshou();
         let result = suffix_desho(&ctx, "食べない", "でしょう", &kf)
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
@@ -3676,18 +3578,18 @@ mod suffix_desho {
         assert!(c.score_base.is_none());
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
-            KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10092227),
+            KaniWordDispatchEnum::Kanji(k) => crate::test_support::check_base_seqs(k.seq, &[1358280]),
             other => panic!("expected Kanji primary, got {:?}", other),
         }
     }
 
     /// REPL: `(suffix-desho "ない" "でしょう" kf)` → 3 COMPOUNDs
     /// text="ないでしょう" each. Same 3 ない seqs as the desu test.
-    #[tokio::test]
-    async fn desho2_bare_nai() {
-        let ctx = ctx().await;
+    #[test]
+    fn desho2_bare_nai() {
+        let ctx = ctx();
         let kf = kf_deshou();
-        let result = suffix_desho(&ctx, "ない", "でしょう", &kf).await.unwrap();
+        let result = suffix_desho(&ctx, "ない", "でしょう", &kf).unwrap();
         assert_eq!(result.len(), 3);
         for c in &result {
             assert_eq!(c.text, "ないでしょう");
@@ -3701,12 +3603,12 @@ mod suffix_desho {
     /// REPL: `(suffix-desho "行かない" "でしょう" kf)` → 1 COMPOUND
     /// text="行かないでしょう" kana="いかない でしょう" primary=KANJI-TEXT
     /// (行かない id=922665 seq=10349392).
-    #[tokio::test]
-    async fn desho3_ikanai() {
-        let ctx = ctx().await;
+    #[test]
+    fn desho3_ikanai() {
+        let ctx = ctx();
         let kf = kf_deshou();
         let result = suffix_desho(&ctx, "行かない", "でしょう", &kf)
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
@@ -3717,8 +3619,7 @@ mod suffix_desho {
         assert_eq!(c.words.len(), 2);
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
-                assert_eq!(k.id, 922665);
-                assert_eq!(k.seq, 10349392);
+                crate::test_support::check_base_seqs(k.seq, &[1578850]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -3727,11 +3628,11 @@ mod suffix_desho {
     /// REPL: `(suffix-desho "ない" "でしょ" kf-short)` → 3 COMPOUNDs
     /// text="ないでしょ" each, kana="ない でしょ". Exercises the short
     /// "でしょ" `kf` (cache id=1123).
-    #[tokio::test]
-    async fn desho4_short_desho_kf() {
-        let ctx = ctx().await;
+    #[test]
+    fn desho4_short_desho_kf() {
+        let ctx = ctx();
         let kf = kf_desho_short();
-        let result = suffix_desho(&ctx, "ない", "でしょ", &kf).await.unwrap();
+        let result = suffix_desho(&ctx, "ない", "でしょ", &kf).unwrap();
         assert_eq!(result.len(), 3);
         for c in &result {
             assert_eq!(c.text, "ないでしょ");
@@ -3745,12 +3646,12 @@ mod suffix_desho {
     /// REPL: each of `"食べ"`, `"ありません"`, `"行かなかった"` → NIL.
     /// Unlike suffix-desu, suffix-desho only takes "ない" tails, so
     /// "なかった" tails fall through.
-    #[tokio::test]
-    async fn desho5_no_nai_tail_returns_empty() {
-        let ctx = ctx().await;
+    #[test]
+    fn desho5_no_nai_tail_returns_empty() {
+        let ctx = ctx();
         let kf = kf_deshou();
         for r in ["食べ", "ありません", "行かなかった"] {
-            let result = suffix_desho(&ctx, r, "でしょう", &kf).await.unwrap();
+            let result = suffix_desho(&ctx, r, "でしょう", &kf).unwrap();
             assert!(result.is_empty(), "expected NIL for root={:?}", r);
         }
     }
@@ -3781,10 +3682,8 @@ mod suffix_tosuru {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL TOSURU1: `(suffix-tosuru "食べよう" "とする" kf-tosuru)` → 1
@@ -3792,12 +3691,12 @@ mod suffix_tosuru {
     /// score-mod=3 score-base=NIL primary=KANJI-TEXT (食べよう seq
     /// 10092257), words=(primary kf). Note the space in kana from
     /// connector=" ".
-    #[tokio::test]
-    async fn tosuru1_taberu_volitional_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn tosuru1_taberu_volitional_kanji() {
+        let ctx = ctx();
         let kf = kf_tosuru();
         let result = suffix_tosuru(&ctx, "食べよう", "とする", &kf)
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
@@ -3808,7 +3707,7 @@ mod suffix_tosuru {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べよう");
-                assert_eq!(k.seq, 10092257);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -3825,11 +3724,11 @@ mod suffix_tosuru {
     /// REPL TOSURU2: `(suffix-tosuru "行こう" "とする" kf-tosuru)` → 1
     /// COMPOUND text="行こうとする" kana="いこう とする" score-mod=3
     /// primary=KANJI-TEXT (行こう seq 10349426).
-    #[tokio::test]
-    async fn tosuru2_ikou() {
-        let ctx = ctx().await;
+    #[test]
+    fn tosuru2_ikou() {
+        let ctx = ctx();
         let kf = kf_tosuru();
-        let result = suffix_tosuru(&ctx, "行こう", "とする", &kf).await.unwrap();
+        let result = suffix_tosuru(&ctx, "行こう", "とする", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "行こうとする");
@@ -3837,7 +3736,7 @@ mod suffix_tosuru {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "行こう");
-                assert_eq!(k.seq, 10349426);
+                crate::test_support::check_base_seqs(k.seq, &[1578850]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -3848,11 +3747,11 @@ mod suffix_tosuru {
     /// Each compound has text="なろうとする" kana="なろう とする"
     /// score-mod=3 primary=KANA-TEXT (なろう). Pinned seqs:
     /// 10052616, 10374864, 10549414.
-    #[tokio::test]
-    async fn tosuru3_narou_polysemy_three() {
-        let ctx = ctx().await;
+    #[test]
+    fn tosuru3_narou_polysemy_three() {
+        let ctx = ctx();
         let kf = kf_tosuru();
-        let result = suffix_tosuru(&ctx, "なろう", "とする", &kf).await.unwrap();
+        let result = suffix_tosuru(&ctx, "なろう", "とする", &kf).unwrap();
         assert_eq!(result.len(), 3);
         for c in &result {
             assert_eq!(c.text, "なろうとする");
@@ -3871,16 +3770,16 @@ mod suffix_tosuru {
             })
             .collect();
         seqs.sort();
-        assert_eq!(seqs, vec![10052616, 10374864, 10549414]);
+        crate::test_support::check_base_seq_set(&seqs, &[1375610, 1532910, 1611000]);
     }
 
     /// REPL TOSURU4: `(suffix-tosuru "無理" "とする" kf-tosuru)` → NIL.
     /// 無理 has no conj-type-9 (volitional) row.
-    #[tokio::test]
-    async fn tosuru4_non_verb_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn tosuru4_non_verb_root() {
+        let ctx = ctx();
         let kf = kf_tosuru();
-        let result = suffix_tosuru(&ctx, "無理", "とする", &kf).await.unwrap();
+        let result = suffix_tosuru(&ctx, "無理", "とする", &kf).unwrap();
         assert!(result.is_empty());
     }
 }
@@ -3909,21 +3808,19 @@ mod suffix_kurai {
         }
     }
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL KURAI1: `(suffix-kurai "食べた" "くらい" kf-kurai)` → 1
     /// COMPOUND text="食べたくらい" kana="たべた くらい" score-mod=3
     /// score-base=NIL primary=KANJI-TEXT (食べた seq 10092229),
     /// words=(primary kf). Note the space in kana from connector=" ".
-    #[tokio::test]
-    async fn kurai1_tabeta_kurai_kanji() {
-        let ctx = ctx().await;
+    #[test]
+    fn kurai1_tabeta_kurai_kanji() {
+        let ctx = ctx();
         let kf = kf_kurai();
-        let result = suffix_kurai(&ctx, "食べた", "くらい", &kf).await.unwrap();
+        let result = suffix_kurai(&ctx, "食べた", "くらい", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "食べたくらい");
@@ -3933,7 +3830,7 @@ mod suffix_kurai {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "食べた");
-                assert_eq!(k.seq, 10092229);
+                crate::test_support::check_base_seqs(k.seq, &[1358280]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -3950,11 +3847,11 @@ mod suffix_kurai {
     /// REPL KURAI2: `(suffix-kurai "見た" "くらい" kf-kurai)` → 1
     /// COMPOUND text="見たくらい" kana="みた くらい" score-mod=3
     /// primary=KANJI-TEXT (見た seq 10315009).
-    #[tokio::test]
-    async fn kurai2_mita_kurai() {
-        let ctx = ctx().await;
+    #[test]
+    fn kurai2_mita_kurai() {
+        let ctx = ctx();
         let kf = kf_kurai();
-        let result = suffix_kurai(&ctx, "見た", "くらい", &kf).await.unwrap();
+        let result = suffix_kurai(&ctx, "見た", "くらい", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "見たくらい");
@@ -3962,7 +3859,7 @@ mod suffix_kurai {
         match &*c.primary {
             KaniWordDispatchEnum::Kanji(k) => {
                 assert_eq!(k.text, "見た");
-                assert_eq!(k.seq, 10315009);
+                crate::test_support::check_base_seqs(k.seq, &[1259290]);
             }
             other => panic!("expected Kanji primary, got {:?}", other),
         }
@@ -3971,11 +3868,11 @@ mod suffix_kurai {
     /// REPL KURAI3: `(suffix-kurai "した" "くらい" kf-kurai)` → 1
     /// COMPOUND text="したくらい" kana="した くらい" primary=KANA-TEXT
     /// (した seq 10152246). Exercises the kana-text arm.
-    #[tokio::test]
-    async fn kurai3_shita_kana() {
-        let ctx = ctx().await;
+    #[test]
+    fn kurai3_shita_kana() {
+        let ctx = ctx();
         let kf = kf_kurai();
-        let result = suffix_kurai(&ctx, "した", "くらい", &kf).await.unwrap();
+        let result = suffix_kurai(&ctx, "した", "くらい", &kf).unwrap();
         assert_eq!(result.len(), 1);
         let c = &result[0];
         assert_eq!(c.text, "したくらい");
@@ -3983,7 +3880,7 @@ mod suffix_kurai {
         match &*c.primary {
             KaniWordDispatchEnum::Kana(k) => {
                 assert_eq!(k.text, "した");
-                assert_eq!(k.seq, 10152246);
+                crate::test_support::check_base_seqs(k.seq, &[1157170]);
             }
             other => panic!("expected Kana primary, got {:?}", other),
         }
@@ -3991,11 +3888,11 @@ mod suffix_kurai {
 
     /// REPL KURAI4: `(suffix-kurai "無理" "くらい" kf-kurai)` → NIL.
     /// 無理 has no conj-type-2 row.
-    #[tokio::test]
-    async fn kurai4_non_verb_root() {
-        let ctx = ctx().await;
+    #[test]
+    fn kurai4_non_verb_root() {
+        let ctx = ctx();
         let kf = kf_kurai();
-        let result = suffix_kurai(&ctx, "無理", "くらい", &kf).await.unwrap();
+        let result = suffix_kurai(&ctx, "無理", "くらい", &kf).unwrap();
         assert!(result.is_empty());
     }
 }

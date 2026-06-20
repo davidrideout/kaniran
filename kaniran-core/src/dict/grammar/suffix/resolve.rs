@@ -1,3 +1,4 @@
+use crate::conn::kani_backend::KaniBackend;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::counters::methods::seq;
 use crate::dict::grammar::suffix::constants::{
@@ -106,11 +107,11 @@ pub enum MatchUniqueResult {
     Desu,
 }
 
-pub async fn match_unique(
+pub fn match_unique(
     ctx: &KaniranContext,
     suffix_class: &str,
     matches: &[KaniWordDispatchEnum],
-) -> Result<Option<MatchUniqueResult>, sqlx::Error> {
+) -> Result<Option<MatchUniqueResult>, crate::conn::KaniDbError> {
     let Some((_, kind)) = SUFFIX_UNIQUE_ONLY.iter().find(|(k, _)| *k == suffix_class) else {
         return Ok(None);
     };
@@ -128,13 +129,7 @@ pub async fn match_unique(
             let row_count = if seqs.is_empty() {
                 0
             } else {
-                let rows: Vec<i32> = sqlx::query_scalar(
-                    "SELECT seq FROM conjugation \
-                     WHERE seq = ANY($1) AND \"from\" = 2755350",
-                )
-                .bind(&seqs)
-                .fetch_all(&ctx.pool)
-                .await?;
+                let rows: Vec<i32> = ctx.store.conj_seqs_of_desu(&seqs)?;
                 rows.len()
             };
             Ok(if row_count < matches.len() {
@@ -150,11 +145,7 @@ pub async fn match_unique(
                 // (and nil …) → nil → None.
                 return Ok(None);
             }
-            let rows: Vec<i32> =
-                sqlx::query_scalar("SELECT seq FROM entry WHERE seq = ANY($1) AND root_p")
-                    .bind(&seqs)
-                    .fetch_all(&ctx.pool)
-                    .await?;
+            let rows: Vec<i32> = ctx.store.root_seqs(&seqs)?;
             // (and seqs (query …)) — non-empty seqs evaluate the
             // query; empty result is nil (falsy), non-empty is the
             // list of root seqs (truthy).
@@ -202,11 +193,11 @@ fn collect_seqs(matches: &[KaniWordDispatchEnum]) -> Vec<i32> {
 /// [`SUFFIX_LIST`]: crate::dict::grammar::suffix::constants::SUFFIX_LIST
 /// [`get_suffixes`]: crate::dict::grammar::suffix::resolve::get_suffixes
 /// [`SUFFIX_CLASS`]: crate::dict::grammar::suffix::constants::suffix_class
-pub async fn find_word_suffix(
+pub fn find_word_suffix(
     ctx: &KaniranContext,
     word: &str,
     matches: &[KaniWordDispatchEnum],
-) -> Result<Vec<KaniWordDispatchEnum>, sqlx::Error> {
+) -> Result<Vec<KaniWordDispatchEnum>, crate::conn::KaniDbError> {
     let word_len = word.chars().count();
 
     // dict-grammar.lisp:696-698 (with suffixes = (if *suffix-map-temp* …))
@@ -268,7 +259,7 @@ pub async fn find_word_suffix(
         // dict-grammar.lisp:705 (not (and matches (match-unique suffix-class matches)))
         if !matches.is_empty()
             && match_unique(ctx, suffix_class_str, matches)
-                .await?
+                ?
                 .is_some()
         {
             continue;
@@ -283,7 +274,7 @@ pub async fn find_word_suffix(
         // subseq_slice's first arg is the legacy `make-slice` seed and
         // is ignored in Rust; pass None per the port note.
         let root = subseq_slice(None, word, 0, Some(offset));
-        let compounds = suffix_fn(&ctx2, root, suffix, kf.as_ref()).await?;
+        let compounds = suffix_fn(&ctx2, root, suffix, kf.as_ref())?;
         out.extend(compounds);
     }
     Ok(out)

@@ -230,16 +230,15 @@ pub fn parse_path_arg() -> PathBuf {
 
 // --- KaniranContext setup ---------------------------------------------
 
-pub async fn setup_ctx() -> Arc<KaniranContext> {
+pub fn setup_ctx() -> Arc<KaniranContext> {
     KaniranContext::from_env()
-        .await
         .expect("KaniranContext::from_env failed (DATABASE_URL or kaniran.toml not configured?)")
 }
 
 
 // --- runner harness --------------------------------------------------------
 
-const MAX_FIRST_FAILURES: usize = 10;
+const MAX_FIRST_FAILURES: usize = 1000;
 
 /// Sync fixture-replay driver: parses `--path`, loads the parquet, then
 /// invokes `audit_one(row)`. Rows are grouped by their `args` JSON so
@@ -357,7 +356,7 @@ where
 
 /// Async flavor: same as [`run_sync`] but builds a [`KaniranContext`] via
 /// [`setup_ctx`] and passes it as the first argument to `audit_one`.
-/// Bounded concurrency. Pool is sized at `max_connections=100` in
+/// Bounded concurrency. Pool is sized at `max_connections=25` in
 /// `KaniranContext::from_url`; keep headroom for non-query work.
 ///
 /// Overridable via `KANI_AUDIT_CONCURRENCY` so a run can be throttled
@@ -372,51 +371,127 @@ fn async_concurrency() -> usize {
         .unwrap_or(50)
 }
 
-pub async fn run_async<F>(expected_fqn: &str, audit_one: F) -> !
+pub fn run_async<F>(expected_fqn: &str, audit_one: F) -> !
 where
-    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String>,
+    F: Fn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
 {
-    use futures::stream::StreamExt;
-
     let path = parse_path_arg();
     let file = load_parquet(&path);
     let skipped = file.skipped;
     let groups = group_by_args(file.rows);
     let total = groups.len();
 
-    let ctx = setup_ctx().await;
+    let ctx = setup_ctx();
     let ctx_ref: &KaniranContext = &ctx;
     let audit_one = &audit_one;
-
-    let stream = futures::stream::iter(groups.into_iter().enumerate().map(
-        |(idx, group)| async move {
-            let size = group.len();
-            let mut last_err: Option<String> = None;
-            let mut group_ok = false;
-            for row in &group {
-                match audit_one(ctx_ref, row).await {
-                    Ok(()) => { group_ok = true; break; }
-                    Err(err) => { last_err = Some(err); }
-                }
-            }
-            let outcome = if group_ok { Ok(()) } else { Err(last_err.unwrap_or_default()) };
-            (idx, size, outcome)
-        },
-    ))
-    .buffer_unordered(async_concurrency());
 
     let mut pass: usize = 0;
     let mut fail: usize = 0;
     let mut first_failures: Vec<String> = Vec::new();
     let mut progress = Progress::new(expected_fqn, total);
     let mut done: usize = 0;
-    let mut stream = Box::pin(stream);
-    while let Some((idx, size, outcome)) = stream.next().await {
+
+    // The rkyv path is pure CPU. Fan the groups across worker THREADS so
+    // the audit uses every core; scoped threads keep the borrows. The
+    // Postgres path runs the same groups sequentially on this thread.
+    let rkyv_parallel = ctx_ref.is_rkyv();
+    if rkyv_parallel {
+        let work: std::sync::Mutex<std::vec::IntoIter<(usize, Vec<CapturedRow>)>> =
+            std::sync::Mutex::new(groups.into_iter().enumerate().collect::<Vec<_>>().into_iter());
+        let (sender, receiver) =
+            std::sync::mpsc::channel::<(usize, usize, Result<(), String>)>();
+        std::thread::scope(|scope| {
+            for _ in 0..async_concurrency() {
+                let sender = sender.clone();
+                let work = &work;
+                scope.spawn(move || {
+                    loop {
+                        let next = work.lock().expect("work queue poisoned").next();
+                        let Some((idx, group)) = next else { break };
+                        let size = group.len();
+                        let mut last_err: Option<String> = None;
+                        let mut group_ok = false;
+                        for row in &group {
+                            match audit_one(ctx_ref, row) {
+                                Ok(()) => { group_ok = true; break; }
+                                Err(err) => { last_err = Some(err); }
+                            }
+                        }
+                        let outcome = if group_ok {
+                            Ok(())
+                        } else {
+                            Err(last_err.unwrap_or_default())
+                        };
+                        if sender.send((idx, size, outcome)).is_err() {
+                            break;
+                        }
+                    }
+                });
+            }
+            drop(sender);
+            for (idx, size, outcome) in receiver {
+                record_outcome(outcome, idx, size, &mut pass, &mut fail, &mut first_failures);
+                done += 1;
+                progress.tick(done, pass, fail);
+            }
+        });
+        report_and_exit(expected_fqn, pass, fail, skipped, &first_failures)
+    }
+
+    for (idx, group) in groups.into_iter().enumerate() {
+        let size = group.len();
+        let mut last_err: Option<String> = None;
+        let mut group_ok = false;
+        for row in &group {
+            match audit_one(ctx_ref, row) {
+                Ok(()) => { group_ok = true; break; }
+                Err(err) => { last_err = Some(err); }
+            }
+        }
+        let outcome = if group_ok { Ok(()) } else { Err(last_err.unwrap_or_default()) };
         record_outcome(outcome, idx, size, &mut pass, &mut fail, &mut first_failures);
         done += 1;
         progress.tick(done, pass, fail);
     }
     report_and_exit(expected_fqn, pass, fail, skipped, &first_failures)
+}
+
+/// Replay one batch's rows across scoped worker threads — the same
+/// rkyv-path fan-out as [`run_async`]'s. The audit work is pure CPU, so
+/// spreading rows over worker threads uses every core. Outcomes are
+/// returned sorted by row index so failure reporting is deterministic.
+fn replay_rows_across_threads<'rows, F>(
+    ctx_ref: &KaniranContext,
+    audit_one: &F,
+    rows: &'rows [CapturedRow],
+) -> Vec<(usize, Result<(), String>)>
+where
+    F: Fn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
+{
+    let work: std::sync::Mutex<std::iter::Enumerate<std::slice::Iter<'rows, CapturedRow>>> =
+        std::sync::Mutex::new(rows.iter().enumerate());
+    let collected: std::sync::Mutex<Vec<(usize, Result<(), String>)>> =
+        std::sync::Mutex::new(Vec::with_capacity(rows.len()));
+    std::thread::scope(|scope| {
+        for _ in 0..async_concurrency() {
+            let work = &work;
+            let collected = &collected;
+            scope.spawn(move || {
+                loop {
+                    let next = work.lock().expect("work queue poisoned").next();
+                    let Some((local_idx, row)) = next else { break };
+                    let outcome = audit_one(ctx_ref, row);
+                    collected
+                        .lock()
+                        .expect("outcome sink poisoned")
+                        .push((local_idx, outcome));
+                }
+            });
+        }
+    });
+    let mut outcomes = collected.into_inner().expect("outcome sink poisoned");
+    outcomes.sort_unstable_by_key(|(local_idx, _)| *local_idx);
+    outcomes
 }
 
 /// Streaming async runner: reads parquet batches lazily, parses each
@@ -429,12 +504,31 @@ where
 /// Each captured row is checked exactly once against the produced
 /// output (no equivalence classes). For nondeterministic captures
 /// (e.g. `GET-SPLIT`), use [`run_async`] instead.
-pub async fn run_async_streaming<F>(expected_fqn: &str, audit_one: F) -> !
+pub fn run_async_streaming<F>(expected_fqn: &str, audit_one: F) -> !
 where
-    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String>,
+    F: Fn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
 {
-    use futures::stream::StreamExt;
+    run_async_streaming_impl(expected_fqn, audit_one, true)
+}
 
+/// Speed variant of [`run_async_streaming`] used by `cli_full_test
+/// --skip-verification`. Skips the per-row `result` parse, the `idxs`
+/// capture, and (via the caller's closure) the output comparison, so the
+/// run measures pipeline throughput across worker threads without the
+/// parity overhead: the multi-KB expected-JSON parse plus the two
+/// `normalize` deep clones and the diff. `pass` counts processed rows,
+/// `fail` counts pipeline errors.
+pub fn run_async_streaming_unverified<F>(expected_fqn: &str, run_one: F) -> !
+where
+    F: Fn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
+{
+    run_async_streaming_impl(expected_fqn, run_one, false)
+}
+
+fn run_async_streaming_impl<F>(expected_fqn: &str, audit_one: F, verify: bool) -> !
+where
+    F: Fn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
+{
     let path = parse_path_arg();
     let file = std::fs::File::open(&path)
         .unwrap_or_else(|err| panic!("open {:?}: {}", path, err));
@@ -442,9 +536,12 @@ where
         .unwrap_or_else(|err| panic!("parquet builder {:?}: {}", path, err));
     let total_rows = builder.metadata().file_metadata().num_rows() as usize;
     eprintln!("streaming: {} rows from {:?}", total_rows, path);
+    if !verify {
+        eprintln!("--skip-verification: pipeline-only, no output comparison");
+    }
     let reader = builder.build().expect("build reader");
 
-    let ctx = setup_ctx().await;
+    let ctx = setup_ctx();
     let ctx_ref: &KaniranContext = &ctx;
     let audit_one = &audit_one;
 
@@ -455,6 +552,7 @@ where
     let mut progress = Progress::new(expected_fqn, total_rows);
     let mut done: usize = 0;
     let mut row_seq: usize = 0;
+    let rkyv_parallel = ctx_ref.is_rkyv();
 
     for batch in reader {
         let batch = batch.expect("batch");
@@ -475,7 +573,6 @@ where
         for row_idx in 0..batch.num_rows() {
             row_seq += 1;
             let args_json = args_col.value(row_idx);
-            let result_json = result_col.value(row_idx);
             let args: Vec<Value> = match serde_json::from_str(args_json) {
                 Ok(v) => v,
                 Err(err) => {
@@ -484,26 +581,32 @@ where
                     continue;
                 }
             };
-            let result: Vec<Value> = match serde_json::from_str(result_json) {
-                Ok(v) => v,
-                Err(err) => {
-                    eprintln!("skip row {}: result parse: {}", row_seq, err);
-                    skipped += 1;
-                    continue;
+            // --skip-verification: skip the multi-KB expected `result`
+            // parse and the `idxs` capture; the speed closure uses neither.
+            let (result, idxs): (Vec<Value>, Vec<i64>) = if verify {
+                let result_json = result_col.value(row_idx);
+                match serde_json::from_str(result_json) {
+                    Ok(result) => (result, extract_idxs(&batch, row_idx)),
+                    Err(err) => {
+                        eprintln!("skip row {}: result parse: {}", row_seq, err);
+                        skipped += 1;
+                        continue;
+                    }
                 }
+            } else {
+                (Vec::new(), Vec::new())
             };
-            rows.push(CapturedRow { args, result, idxs: extract_idxs(&batch, row_idx) });
+            rows.push(CapturedRow { args, result, idxs });
         }
 
-        let outcomes: Vec<(usize, Result<(), String>)> = futures::stream::iter(
-            rows.iter().enumerate().map(|(local_idx, row)| async move {
-                let outcome = audit_one(ctx_ref, row).await;
-                (local_idx, outcome)
-            }),
-        )
-        .buffer_unordered(async_concurrency())
-        .collect()
-        .await;
+        let outcomes: Vec<(usize, Result<(), String>)> = if rkyv_parallel {
+            replay_rows_across_threads(ctx_ref, audit_one, &rows)
+        } else {
+            rows.iter()
+                .enumerate()
+                .map(|(local_idx, row)| (local_idx, audit_one(ctx_ref, row)))
+                .collect()
+        };
 
         let batch_done_start = done;
         for (local_idx, outcome) in outcomes {
@@ -539,17 +642,15 @@ where
 /// streaming loop completes but before the process exits. Used by
 /// [`find_best_path_test`] to assert lite-field coverage of the
 /// corpus once every row has been replayed.
-pub async fn run_async_streaming_with_post_hook<F, H>(
+pub fn run_async_streaming_with_post_hook<F, H>(
     expected_fqn: &str,
     audit_one: F,
     post_hook: H,
 ) -> !
 where
-    F: AsyncFn(&KaniranContext, &CapturedRow) -> Result<(), String>,
+    F: Fn(&KaniranContext, &CapturedRow) -> Result<(), String> + Sync,
     H: FnOnce(),
 {
-    use futures::stream::StreamExt;
-
     let path = parse_path_arg();
     let file = std::fs::File::open(&path)
         .unwrap_or_else(|err| panic!("open {:?}: {}", path, err));
@@ -559,7 +660,7 @@ where
     eprintln!("streaming: {} rows from {:?}", total_rows, path);
     let reader = builder.build().expect("build reader");
 
-    let ctx = setup_ctx().await;
+    let ctx = setup_ctx();
     let ctx_ref: &KaniranContext = &ctx;
     let audit_one = &audit_one;
 
@@ -570,6 +671,7 @@ where
     let mut progress = Progress::new(expected_fqn, total_rows);
     let mut done: usize = 0;
     let mut row_seq: usize = 0;
+    let rkyv_parallel = ctx_ref.is_rkyv();
 
     for batch in reader {
         let batch = batch.expect("batch");
@@ -610,15 +712,14 @@ where
             rows.push(CapturedRow { args, result, idxs: extract_idxs(&batch, row_idx) });
         }
 
-        let outcomes: Vec<(usize, Result<(), String>)> = futures::stream::iter(
-            rows.iter().enumerate().map(|(local_idx, row)| async move {
-                let outcome = audit_one(ctx_ref, row).await;
-                (local_idx, outcome)
-            }),
-        )
-        .buffer_unordered(async_concurrency())
-        .collect()
-        .await;
+        let outcomes: Vec<(usize, Result<(), String>)> = if rkyv_parallel {
+            replay_rows_across_threads(ctx_ref, audit_one, &rows)
+        } else {
+            rows.iter()
+                .enumerate()
+                .map(|(local_idx, row)| (local_idx, audit_one(ctx_ref, row)))
+                .collect()
+        };
 
         let batch_done_start = done;
         for (local_idx, outcome) in outcomes {
@@ -908,7 +1009,7 @@ impl CapturedKanaText {
             && self.common_tags == actual.common_tags
             && self.conjugate_p == actual.conjugate_p
             && self.nokanji == actual.nokanji
-            && self.best_kanji == actual.best_kanji
+            && self.best_kanji.as_deref() == actual.best_kanji.as_deref()
             && self.conjugations == actual.state.conjugations
             && self.hintedp == actual.state.hintedp
     }
@@ -921,13 +1022,13 @@ impl CapturedKanaText {
             // reads it.
             id: self.id.unwrap_or(0),
             seq: self.seq,
-            text: self.text,
+            text: self.text.into(),
             ord: self.ord,
             common: self.common,
-            common_tags: self.common_tags,
+            common_tags: self.common_tags.into(),
             conjugate_p: self.conjugate_p,
             nokanji: self.nokanji,
-            best_kanji: self.best_kanji,
+            best_kanji: self.best_kanji.map(Into::into),
             state: SimpleText {
                 conjugations: self.conjugations,
                 hintedp: self.hintedp,
@@ -951,7 +1052,7 @@ impl CapturedKanjiText {
             && self.common_tags == actual.common_tags
             && self.conjugate_p == actual.conjugate_p
             && self.nokanji == actual.nokanji
-            && self.best_kana == actual.best_kana
+            && self.best_kana.as_deref() == actual.best_kana.as_deref()
             && self.conjugations == actual.state.conjugations
             && self.hintedp == actual.state.hintedp
     }
@@ -961,13 +1062,13 @@ impl CapturedKanjiText {
             // Synthesized rows have no id; see [`CapturedKanaText::into_dao`].
             id: self.id.unwrap_or(0),
             seq: self.seq,
-            text: self.text,
+            text: self.text.into(),
             ord: self.ord,
             common: self.common,
-            common_tags: self.common_tags,
+            common_tags: self.common_tags.into(),
             conjugate_p: self.conjugate_p,
             nokanji: self.nokanji,
-            best_kana: self.best_kana,
+            best_kana: self.best_kana.map(Into::into),
             state: SimpleText {
                 conjugations: self.conjugations,
                 hintedp: self.hintedp,
@@ -1039,7 +1140,7 @@ pub fn parse_captured_word(value: &Value) -> Result<KaniWordDispatchEnum, String
         }
         "COMPOUND-TEXT" => Ok(KaniWordDispatchEnum::Compound(parse_captured_compound_text(value)?)),
         c if c.starts_with("COUNTER-") || c == "NUMBER-TEXT" => {
-            Ok(KaniWordDispatchEnum::Counter(parse_captured_counter(value, c)?))
+            Ok(KaniWordDispatchEnum::Counter(Box::new(parse_captured_counter(value, c)?)))
         }
         other => Err(format!("unknown word class: :{}", other)),
     }
@@ -1054,11 +1155,6 @@ pub fn parse_captured_word(value: &Value) -> Result<KaniWordDispatchEnum, String
 fn parse_captured_entry(value: &Value) -> Result<Entry, String> {
     Ok(Entry {
         seq: require_i32(value, "seq")?,
-        // `content` is intentionally omitted by the projector;
-        // empty-string is the audit-side substitute and no consumer
-        // reads it. The omission is the single documented exception
-        // to the capture-everything rule.
-        content: String::new(),
         root_p: require_bool(value, "root_p")?,
         n_kanji: require_i32(value, "n_kanji")?,
         n_kana: require_i32(value, "n_kana")?,
@@ -1197,7 +1293,7 @@ fn parse_captured_counter(value: &Value, class: &str) -> Result<Counter, String>
         text: require_string(value, "text")?,
         kana: require_string(value, "kana")?,
         number_text: require_string(value, "number_text")?,
-        number: require_u64(value, "number")?,
+        number: u128::from(require_u64(value, "number")?),
         source,
         ordinalp: require_bool(value, "ordinalp")?,
         suffix: require_optional_string(value, "suffix")?,
@@ -1695,7 +1791,7 @@ pub fn parse_captured_segment_list(value: &Value) -> Result<SegmentList, String>
         .ok_or_else(|| format!("segments: expected array, got {}", segments_value))?;
     let mut segments = Vec::with_capacity(segments_arr.len());
     for s in segments_arr {
-        segments.push(parse_captured_segment(s)?);
+        segments.push(std::sync::Arc::new(parse_captured_segment(s)?));
     }
     let start = require_i32(value, "start")? as usize;
     let end = require_i32(value, "end")? as usize;

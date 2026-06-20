@@ -255,9 +255,11 @@ pub fn verify(counter: &Counter, unique: bool) -> bool {
 /// Port of `ichiran/dict:ordinal-str` (`dict-counters.lisp:38`).
 ///
 /// Renders `n` as an English ordinal — "1st", "22nd", "113th", etc.
-pub fn ordinal_str(n: i64) -> String {
-    let digit = n.rem_euclid(10);
-    let teen = (11..=19).contains(&n.rem_euclid(100));
+/// The Lisp accepts any integer; every kaniran caller feeds
+/// `parse-number` output, so the domain here is unsigned.
+pub fn ordinal_str(n: u128) -> String {
+    let digit = n % 10;
+    let teen = (11..=19).contains(&(n % 100));
     let suffix = if teen {
         "th"
     } else {
@@ -278,18 +280,18 @@ pub fn ordinal_str(n: i64) -> String {
 /// while its successor in the sequence (10, 100, 1_000, 10_000,
 /// 100_000_000) does not. Returns `None` when `n` is divisible by
 /// 100_000_000.
-pub fn get_digit(n: i64) -> Option<i64> {
+pub fn get_digit(n: u128) -> Option<u128> {
     let digit = n % 10;
     if digit != 0 {
         return Some(digit);
     }
     for &(p, pn) in &[
-        (10_i64, 100_i64),
+        (10_u128, 100_u128),
         (100, 1_000),
         (1_000, 10_000),
         (10_000, 100_000_000),
     ] {
-        if n % pn != 0 {
+        if !n.is_multiple_of(pn) {
             return Some(p);
         }
     }

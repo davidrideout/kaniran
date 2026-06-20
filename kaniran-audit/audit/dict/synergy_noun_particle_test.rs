@@ -27,7 +27,7 @@ use common::{
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:SYNERGY-NOUN-PARTICLE";
 
-async fn audit_one(_ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(_ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.len() != 2 {
         return Err(format!(
             "expected 2 args (left+right segment-list), got {}",
@@ -417,10 +417,10 @@ fn parse_segment_list_full(value: &Value) -> Result<SegmentList, String> {
     if class != "SEGMENT-LIST" {
         return Err(format!("expected SEGMENT-LIST class, got :{}", class));
     }
-    let segments: Vec<Segment> = match value.get("segments") {
+    let segments: Vec<std::sync::Arc<Segment>> = match value.get("segments") {
         Some(Value::Array(arr)) => arr
             .iter()
-            .map(parse_segment_full)
+            .map(|item| parse_segment_full(item).map(std::sync::Arc::new))
             .collect::<Result<_, _>>()
             .map_err(|err| format!("segments: {}", err))?,
         Some(Value::Null) | None => Vec::new(),
@@ -499,7 +499,6 @@ fn require_field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
         .ok_or_else(|| format!("missing field {} on: {}", key, value))
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

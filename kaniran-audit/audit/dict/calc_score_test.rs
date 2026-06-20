@@ -26,7 +26,7 @@ use common::{
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:CALC-SCORE";
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.is_empty() {
         return Err("calc-score args empty".into());
     }
@@ -42,7 +42,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
         score_mod.as_ref(),
         &kanji_break,
     )
-    .await
+    
     .map_err(|e| format!("calc_score: {}", e))?;
 
     let (expected_score, expected_info) = parse_result(&row.result)?;
@@ -565,7 +565,6 @@ fn compare_conj_prop(
     Ok(())
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

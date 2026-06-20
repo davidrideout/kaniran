@@ -35,7 +35,7 @@ struct CapturedProxy {
 }
 
 
-async fn audit_one(
+fn audit_one(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -81,7 +81,7 @@ async fn audit_one(
     }
 
     let actual = find_word_as_hiragana(ctx, str_, &exclude, None)
-        .await
+        
         .map_err(|err| format!("find_word_as_hiragana query: {}", err))?;
 
     if row.result.is_empty() {
@@ -157,8 +157,8 @@ fn captured_proxy_sort_key(a: &CapturedProxy, b: &CapturedProxy) -> std::cmp::Or
 
 fn source_sort_id(s: &KaniSimpleTextDispatchEnum) -> (i32, String) {
     match s {
-        KaniSimpleTextDispatchEnum::Kana(k) => (k.seq, k.text.clone()),
-        KaniSimpleTextDispatchEnum::Kanji(k) => (k.seq, k.text.clone()),
+        KaniSimpleTextDispatchEnum::Kana(k) => (k.seq, k.text.to_string()),
+        KaniSimpleTextDispatchEnum::Kanji(k) => (k.seq, k.text.to_string()),
         KaniSimpleTextDispatchEnum::Proxy(_) => (0, String::new()),
     }
 }
@@ -208,7 +208,6 @@ fn project_expected(v: &Value) -> Result<Vec<CapturedProxy>, String> {
 }
 
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

@@ -5,7 +5,7 @@ use crate::dict::grammar::synergy::{
 };
 use crate::dict::kani_lite_segment::{KPCL_K, POS_CTR};
 use crate::dict::kani_lite_segment_list::KaniLiteSegmentList;
-use crate::dict::kani_lite_top_array_item::KaniLitePathElement;
+use crate::dict::kani_seg_split_enum::KaniSegSplitEnum;
 use std::sync::Arc;
 
 /// Port of `ichiran/dict:*penalty-list*` (`dict-grammar.lisp:964`).
@@ -27,8 +27,8 @@ pub fn synergy_no_toori(
     def_generic_synergy_body(
         l,
         r,
-        filter_in_seq_set(vec![1469800]),
-        filter_in_seq_set(vec![1432920]),
+        filter_in_seq_set(&[1469800]),
+        filter_in_seq_set(&[1432920]),
         &DefGenericSynergyOpts {
             description: Some("no toori"),
             connector: " ",
@@ -50,7 +50,7 @@ pub fn synergy_oki(
         r,
         // dict-grammar.lisp:952 (filter-is-pos ("ctr") t)
         filter_is_pos(POS_CTR, |_k, _p, _c, _l| true),
-        filter_in_seq_set(vec![2854117, 2084550]),
+        filter_in_seq_set(&[2854117, 2084550]),
         &DefGenericSynergyOpts {
             description: None,
             connector: "",
@@ -67,16 +67,23 @@ pub fn synergy_oki(
 pub fn get_synergies(
     segment_list_left: &KaniLiteSegmentList,
     segment_list_right: &KaniLiteSegmentList,
-) -> Vec<Vec<KaniLitePathElement>> {
+) -> Vec<KaniSegSplitEnum> {
+    // Every synergy in SYNERGY_LIST only fires when the two segment-lists
+    // abut: each one bails unless left.end == right.start. When they don't
+    // touch, the whole list is empty — decide that once here instead of
+    // calling all 17 rules to each rediscover it.
+    if segment_list_left.end != segment_list_right.start {
+        return vec![];
+    }
     let mut out = vec![];
     for synergy_fn in SYNERGY_LIST {
         // dict-grammar.lisp:958-959 (`nconc (funcall fn l r)`)
         for (right_sl, syn, left_sl) in synergy_fn(segment_list_left, segment_list_right) {
-            out.push(vec![
-                KaniLitePathElement::SegmentList(right_sl),
-                KaniLitePathElement::Synergy(syn),
-                KaniLitePathElement::SegmentList(left_sl),
-            ]);
+            out.push(KaniSegSplitEnum::WithSynergy {
+                right: right_sl,
+                synergy: syn,
+                left: left_sl,
+            });
         }
     }
     out
@@ -126,7 +133,10 @@ pub fn def_generic_penalty_body(
 ///
 /// Returns a predicate matching a segment-list at most `len` long whose
 /// first segment is non-kanji and not in the `except` list.
-pub fn filter_short_kana(len: usize, except: Vec<String>) -> impl Fn(&KaniLiteSegmentList) -> bool {
+pub fn filter_short_kana(
+    len: usize,
+    except: &'static [&'static str],
+) -> impl Fn(&KaniLiteSegmentList) -> bool {
     move |segment_list| -> bool {
         let seg = match segment_list.segments.first() {
             Some(s) => s,
@@ -138,7 +148,7 @@ pub fn filter_short_kana(len: usize, except: Vec<String>) -> impl Fn(&KaniLiteSe
         if seg.kpcl & KPCL_K != 0 {
             return false;
         }
-        if !except.is_empty() && except.iter().any(|e| e.as_str() == seg.text.as_ref()) {
+        if !except.is_empty() && except.iter().any(|e| *e == seg.text.as_ref()) {
             return false;
         }
         true

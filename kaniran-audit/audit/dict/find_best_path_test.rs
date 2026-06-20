@@ -32,7 +32,7 @@ use common::{
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:FIND-BEST-PATH";
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     // Args: [segment-lists-or-nil, str-length, ":LIMIT", limit].
     if row.args.len() != 4 {
         return Err(format!(
@@ -74,7 +74,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     // Reconstruct pre-call state by filtering out segsplit-added compounds.
     let mut pre_state: Vec<SegmentList> = Vec::with_capacity(captured_post_state.len());
     for sl in &captured_post_state {
-        let added_mask = mark_segsplit_added(ctx, &sl.segments).await?;
+        let added_mask = mark_segsplit_added(ctx, &sl.segments)?;
         let dropped = added_mask.iter().filter(|x| **x).count();
         let pre_matches = sl.matches.checked_sub(dropped).ok_or_else(|| {
             format!(
@@ -82,7 +82,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
                 sl.matches, dropped
             )
         })?;
-        let pre_segments: Vec<Segment> = sl
+        let pre_segments: Vec<std::sync::Arc<Segment>> = sl
             .segments
             .iter()
             .zip(added_mask.iter())
@@ -98,7 +98,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     }
 
     let actual = find_best_path(ctx, &mut pre_state, str_length, Some(limit))
-        .await
+        
         .map_err(|err| format!("find_best_path: {}", err))?;
 
     // Result: [[<list-of (cons reversed-path score)>]].
@@ -124,13 +124,13 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
 
 // ----- pre-call reconstruction (mirror expand_segment_list_test) -----------
 
-async fn mark_segsplit_added(
+fn mark_segsplit_added(
     ctx: &KaniranContext,
-    segments: &[Segment],
+    segments: &[std::sync::Arc<Segment>],
 ) -> Result<Vec<bool>, String> {
     let mut added = vec![false; segments.len()];
     for (i, seg) in segments.iter().enumerate() {
-        let candidate = match get_segsplit(ctx, seg).await {
+        let candidate = match get_segsplit(ctx, seg) {
             Ok(c) => c,
             Err(err) => return Err(format!("get_segsplit @ segments[{}]: {}", i, err)),
         };
@@ -215,10 +215,10 @@ fn parse_segment_list_full(value: &Value) -> Result<SegmentList, String> {
     if class != "SEGMENT-LIST" {
         return Err(format!("expected SEGMENT-LIST class, got :{}", class));
     }
-    let segments: Vec<Segment> = match value.get("segments") {
+    let segments: Vec<std::sync::Arc<Segment>> = match value.get("segments") {
         Some(Value::Array(arr)) => arr
             .iter()
-            .map(parse_segment_full)
+            .map(|item| parse_segment_full(item).map(std::sync::Arc::new))
             .collect::<Result<_, _>>()
             .map_err(|err| format!("segments: {}", err))?,
         Some(Value::Null) | None => Vec::new(),
@@ -668,8 +668,7 @@ fn require_field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
         .ok_or_else(|| format!("missing field {} on: {}", key, value))
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     // Temporary profiling modes:
     //   KANI_PROFILE=<svg-path>     → profile row 0 only
     //   KANI_PROFILE_ALL=<svg-path> → profile every row, sequentially
@@ -679,7 +678,7 @@ async fn main() {
     if prof_one.is_some() || prof_all.is_some() {
         let parquet = common::parse_path_arg();
         let captured = common::load_parquet(&parquet);
-        let ctx = common::setup_ctx().await;
+        let ctx = common::setup_ctx();
         let guard = pprof::ProfilerGuardBuilder::default()
             .frequency(1000)
             .blocklist(&["libc", "libgcc", "pthread", "vdso"])
@@ -695,7 +694,7 @@ async fn main() {
             &captured.rows[..1]
         };
         for (idx, row) in rows.iter().enumerate() {
-            match audit_one(&ctx, row).await {
+            match audit_one(&ctx, row) {
                 Ok(()) => pass += 1,
                 Err(err) => {
                     fail += 1;
@@ -728,5 +727,5 @@ async fn main() {
         audit_one,
         kaniran_core::dict::kani_lite_segment::assert_field_coverage,
     )
-    .await;
+    ;
 }

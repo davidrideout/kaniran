@@ -532,14 +532,14 @@ pub fn hint_simplify_map() -> &'static [(String, &'static str)] {
     static CACHE: OnceLock<Vec<(String, &'static str)>> = OnceLock::new();
     CACHE
         .get_or_init(|| {
-            let mut map: Vec<(String, &'static str)> = Vec::with_capacity(6);
-            map.push((KANA_HINT_SPACE.to_string(), " "));
-            map.push(([KANA_HINT_MOD, 'は'].iter().collect(), "わ"));
-            map.push(([KANA_HINT_MOD, 'ハ'].iter().collect(), "ワ"));
-            map.push(([KANA_HINT_MOD, 'へ'].iter().collect(), "え"));
-            map.push(([KANA_HINT_MOD, 'ヘ'].iter().collect(), "エ"));
-            map.push((KANA_HINT_MOD.to_string(), ""));
-            map
+            vec![
+                (KANA_HINT_SPACE.to_string(), " "),
+                ([KANA_HINT_MOD, 'は'].iter().collect(), "わ"),
+                ([KANA_HINT_MOD, 'ハ'].iter().collect(), "ワ"),
+                ([KANA_HINT_MOD, 'へ'].iter().collect(), "え"),
+                ([KANA_HINT_MOD, 'ヘ'].iter().collect(), "エ"),
+                (KANA_HINT_MOD.to_string(), ""),
+            ]
         })
         .as_slice()
 }
@@ -552,10 +552,10 @@ pub fn hint_simplify_map() -> &'static [(String, &'static str)] {
 /// word/text/score/info on the copy. Returns `None` for
 /// non-`simple-text` words and for readings with no matching segsplit
 /// entry.
-pub async fn get_segsplit(
+pub fn get_segsplit(
     ctx: &KaniranContext,
     segment: &Segment,
-) -> Result<Option<Segment>, sqlx::Error> {
+) -> Result<Option<Segment>, crate::conn::KaniDbError> {
     // dict-split.lisp:785 (when (typep word 'simple-text))
     let simple_word = match &segment.word {
         KaniWordDispatchEnum::Kanji(k) => KaniSimpleTextDispatchEnum::Kanji(k.clone()),
@@ -578,7 +578,7 @@ pub async fn get_segsplit(
 
     // dict-split.lisp:787-788
     // (multiple-value-bind (split attrs) (get-split word conj-of) …)
-    let Some((parts, score)) = get_split(&ctx2, &simple_word, &conj_of).await? else {
+    let Some((parts, score)) = get_split(&ctx2, &simple_word, &conj_of)? else {
         return Ok(None);
     };
 
@@ -623,7 +623,7 @@ pub async fn get_segsplit(
         // dict.lisp:638 precedent — `(concatenate 'string nil ...)` treats
         // nil as empty; `Option<String>` from get_kana mirrors with
         // `.unwrap_or_default()`.
-        kanas.push(get_kana(ctx, w).await?.unwrap_or_default());
+        kanas.push(get_kana(ctx, w)?.unwrap_or_default());
     }
 
     // dict-split.lisp:795 (:primary (elt split primary))
@@ -651,10 +651,10 @@ pub async fn get_segsplit(
         KaniWordDispatchEnum::Compound(c) => &c.primary,
         _ => unreachable!(),
     };
-    let (_disc_score, info_opt) = calc_score(ctx, primary_ref, false, None, None, &[]).await?;
+    let (_disc_score, info_opt) = calc_score(ctx, primary_ref, false, None, None, &[])?;
 
     // dict-split.lisp:806 (getf (segment-info new-seg) :conj) (word-conj-data word)
-    let conj_data = word_conj_data(ctx, &wrapped).await?;
+    let conj_data = word_conj_data(ctx, &wrapped)?;
     // CL setf-getf-on-nil idiom: when `info` is nil, `(setf (getf nil :conj) X)`
     // rewrites the binding to a fresh plist `(:conj X)`. Mirror by
     // synthesizing the same zero/empty KaniSegmentInfo calc_score uses

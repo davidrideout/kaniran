@@ -61,7 +61,7 @@ fn parse_segment(value: &Value) -> Result<Segment, String> {
     };
     let info = match require_field(value, "info")? {
         Value::Null => None,
-        Value::Array(plist) => Some(parse_info_plist(&plist)?),
+        Value::Array(plist) => Some(parse_info_plist(plist)?),
         other => return Err(format!("info: expected plist array / null, got {}", other)),
     };
     Ok(Segment {
@@ -82,7 +82,7 @@ fn parse_segment(value: &Value) -> Result<Segment, String> {
 /// [`KaniSegmentInfo`] — cull-segments never reads them. Unknown keys
 /// are skipped for forward-compat.
 fn parse_info_plist(plist: &[Value]) -> Result<KaniSegmentInfo, String> {
-    if plist.len() % 2 != 0 {
+    if !plist.len().is_multiple_of(2) {
         return Err(format!("info plist: odd length {}", plist.len()));
     }
     let mut common: Option<i32> = None;

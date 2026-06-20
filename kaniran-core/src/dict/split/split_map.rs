@@ -3569,19 +3569,19 @@ pub static SPLIT_TABLE: &[SplitDef] = &[
     },
 ];
 
-pub async fn split_map_dispatch(
+pub fn split_map_dispatch(
     seq: i32,
     ctx: &KaniranContext,
     reading: &KaniSimpleTextDispatchEnum,
-) -> Option<Result<(Vec<Option<SplitPart>>, i32), sqlx::Error>> {
+) -> Option<Result<(Vec<Option<SplitPart>>, i32), crate::conn::KaniDbError>> {
     match ctx.split_map {
         SplitMapKind::Default => {
             let def = SPLIT_TABLE.iter().find(|d| d.seq == seq)?;
-            Some(run_split(def, ctx, reading).await)
+            Some(run_split(def, ctx, reading))
         }
         SplitMapKind::SegSplit => {
             let def = SEGSPLIT_TABLE.iter().find(|d| d.split.seq == seq)?;
-            Some(run_split(&def.split, ctx, reading).await)
+            Some(run_split(&def.split, ctx, reading))
         }
     }
 }

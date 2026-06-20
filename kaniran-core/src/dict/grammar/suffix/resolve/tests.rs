@@ -6,10 +6,10 @@ mod parse_suffix_val {
         KanaText {
             id: 0,
             seq,
-            text: text.to_string(),
+            text: text.to_string().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -88,26 +88,24 @@ mod get_suffix_map {
     use crate::conn::kani_context::KaniranContext;
     use crate::dict::grammar::suffix::resolve::*;
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(get-suffix-map "")` → empty hash-table. Length-0 input:
     /// the outer loop `from 0 below 0` is empty.
-    #[tokio::test]
-    async fn empty_string_yields_empty() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn empty_string_yields_empty() {
+        let ctx = ctx_from_env();
         let result = get_suffix_map(&ctx, "");
         assert!(result.is_empty());
     }
 
     /// REPL: `(get-suffix-map "あ")` → empty hash-table. The single
     /// substring "あ" misses the cache.
-    #[tokio::test]
-    async fn single_char_no_match_yields_empty() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn single_char_no_match_yields_empty() {
+        let ctx = ctx_from_env();
         let result = get_suffix_map(&ctx, "あ");
         assert!(result.is_empty());
     }
@@ -115,9 +113,9 @@ mod get_suffix_map {
     /// REPL: `(get-suffix-map "る")` →
     /// `end=1: (("る" :TEIRU #<KANA-TEXT 1577980 いる ord=0 common=0>))`.
     /// Length-1 input with a cache hit on the whole string.
-    #[tokio::test]
-    async fn single_char_match_at_end_one() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn single_char_match_at_end_one() {
+        let ctx = ctx_from_env();
         let result = get_suffix_map(&ctx, "る");
         assert_eq!(result.len(), 1);
         let items = &result[&1];
@@ -136,9 +134,9 @@ mod get_suffix_map {
     /// `end=3: (("て" :TEIRU #<KANA-TEXT 10551841 いて ord=0 common=NULL>))`
     /// `end=4: (("る" :TEIRU #<KANA-TEXT 1577980 いる ord=0 common=0>))`.
     /// Two distinct ends, one match each, across multi-byte input.
-    #[tokio::test]
-    async fn taberu_two_distinct_ends() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn taberu_two_distinct_ends() {
+        let ctx = ctx_from_env();
         let result = get_suffix_map(&ctx, "食べてる");
         assert_eq!(result.len(), 2);
 
@@ -148,7 +146,7 @@ mod get_suffix_map {
         assert_eq!(substr, "て");
         assert_eq!(key, "teiru");
         let kf = kf.expect("kf row present");
-        assert_eq!(kf.seq, 10551841);
+        crate::test_support::check_base_seqs(kf.seq, &[1577980]);
         assert_eq!(kf.text, "いて");
         assert_eq!(kf.ord, 0);
         assert_eq!(kf.common, None);
@@ -171,9 +169,9 @@ mod get_suffix_map {
     ///          ("たい" :TAI #<KANA-TEXT 2017560 たい ord=0 common=0>))`.
     /// end=4 holds two matches (substrings "い" at start=3 and "たい" at
     /// start=2); the prepend order places start=3's match first.
-    #[tokio::test]
-    async fn nomitai_multiple_at_same_end() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn nomitai_multiple_at_same_end() {
+        let ctx = ctx_from_env();
         let result = get_suffix_map(&ctx, "飲みたい");
         assert_eq!(result.len(), 2);
 
@@ -183,7 +181,7 @@ mod get_suffix_map {
         assert_eq!(substr, "た");
         assert_eq!(key, "teiru");
         let kf = kf.expect("kf row present");
-        assert_eq!(kf.seq, 10551837);
+        crate::test_support::check_base_seqs(kf.seq, &[1577980]);
         assert_eq!(kf.text, "いた");
         assert_eq!(kf.ord, 0);
         assert_eq!(kf.common, None);
@@ -217,9 +215,9 @@ mod get_suffix_map {
     ///          ("たくない" :TAI #<KANA-TEXT 10477455 たくない ord=0 common=NULL>))`.
     /// end=5 holds three matches at starts 4/3/1; the prepend order is
     /// shortest-substring-first (start=4 → start=1).
-    #[tokio::test]
-    async fn mitakunai_prepend_order_across_starts() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn mitakunai_prepend_order_across_starts() {
+        let ctx = ctx_from_env();
         let result = get_suffix_map(&ctx, "見たくない");
         assert_eq!(result.len(), 3);
 
@@ -229,7 +227,7 @@ mod get_suffix_map {
         assert_eq!(substr, "た");
         assert_eq!(key, "teiru");
         let kf = kf.expect("kf row present");
-        assert_eq!(kf.seq, 10551837);
+        crate::test_support::check_base_seqs(kf.seq, &[1577980]);
         assert_eq!(kf.text, "いた");
 
         let end3 = &result[&3];
@@ -245,7 +243,7 @@ mod get_suffix_map {
         assert_eq!(substr1, "たく");
         assert_eq!(key1, "tai");
         let kf1 = kf1.expect("kf1 row present");
-        assert_eq!(kf1.seq, 10477471);
+        crate::test_support::check_base_seqs(kf1.seq, &[2017560]);
         assert_eq!(kf1.text, "たく");
         assert_eq!(kf1.common, None);
 
@@ -259,13 +257,13 @@ mod get_suffix_map {
         assert_eq!(substr1, "ない");
         assert_eq!(key1, "teiru");
         let kf1 = kf1.expect("kf1 row present");
-        assert_eq!(kf1.seq, 10551835);
+        crate::test_support::check_base_seqs(kf1.seq, &[1577980]);
         assert_eq!(kf1.text, "いない");
         let (substr2, key2, kf2) = end5[2];
         assert_eq!(substr2, "たくない");
         assert_eq!(key2, "tai");
         let kf2 = kf2.expect("kf2 row present");
-        assert_eq!(kf2.seq, 10477455);
+        crate::test_support::check_base_seqs(kf2.seq, &[2017560]);
         assert_eq!(kf2.text, "たくない");
     }
 
@@ -276,9 +274,9 @@ mod get_suffix_map {
     ///          ("いる" :TEIRU+ #<KANA-TEXT 1577980 いる ord=0 common=0>))`.
     /// Exercises the `kf = None` case (`:NAI-N`) and the `:TEIRU+`
     /// class, plus two matches sharing end=7.
-    #[tokio::test]
-    async fn yondeiru_none_kf_and_teiru_plus() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn yondeiru_none_kf_and_teiru_plus() {
+        let ctx = ctx_from_env();
         let result = get_suffix_map(&ctx, "本を読んでいる");
         assert_eq!(result.len(), 3);
 
@@ -319,35 +317,33 @@ mod get_suffixes {
     use crate::conn::kani_context::KaniranContext;
     use crate::dict::grammar::suffix::resolve::*;
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(get-suffixes "")` → `NIL`. Length-0 word: loop range
     /// `from -1 downto 1` is empty.
-    #[tokio::test]
-    async fn empty_word_yields_empty() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn empty_word_yields_empty() {
+        let ctx = ctx_from_env();
         let out = get_suffixes(&ctx, "");
         assert!(out.is_empty());
     }
 
     /// REPL: `(get-suffixes "あ")` → `NIL`. Length-1 word: loop range
     /// `from 0 downto 1` is empty.
-    #[tokio::test]
-    async fn single_char_word_yields_empty() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn single_char_word_yields_empty() {
+        let ctx = ctx_from_env();
         let out = get_suffixes(&ctx, "あ");
         assert!(out.is_empty());
     }
 
     /// REPL: `(get-suffixes "る")` → `NIL`. Even when the trailing char
     /// has a cache entry, length-1 input never enters the loop body.
-    #[tokio::test]
-    async fn cached_substr_at_length_one_yields_empty() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn cached_substr_at_length_one_yields_empty() {
+        let ctx = ctx_from_env();
         let out = get_suffixes(&ctx, "る");
         assert!(out.is_empty());
     }
@@ -355,9 +351,9 @@ mod get_suffixes {
     /// REPL: `(get-suffixes "abcde")` → `NIL`. ASCII word with no
     /// cached substrings — exercises the loop walking 4 starts with
     /// only `gethash` misses.
-    #[tokio::test]
-    async fn no_match_yields_empty() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn no_match_yields_empty() {
+        let ctx = ctx_from_env();
         let out = get_suffixes(&ctx, "abcde");
         assert!(out.is_empty());
     }
@@ -365,9 +361,9 @@ mod get_suffixes {
     /// REPL: `(get-suffixes "食べてる")` →
     /// `(("る" :TEIRU #<KANA-TEXT 1577980 いる ord=0 common=0>))`.
     /// Single suffix match at the deepest start (start=3 → "る").
-    #[tokio::test]
-    async fn single_match_at_deepest_start() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn single_match_at_deepest_start() {
+        let ctx = ctx_from_env();
         let out = get_suffixes(&ctx, "食べてる");
         assert_eq!(out.len(), 1);
         let (substr, key, kf) = out[0];
@@ -384,9 +380,9 @@ mod get_suffixes {
     /// `(("い" :TEIRU #<KANA-TEXT 2258170 い ord=0 common=NULL>)
     ///   ("たい" :TAI #<KANA-TEXT 2017560 たい ord=0 common=0>))`.
     /// Two matches at different starts; order is start=3 then start=2.
-    #[tokio::test]
-    async fn multiple_matches_in_decreasing_start_order() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn multiple_matches_in_decreasing_start_order() {
+        let ctx = ctx_from_env();
         let out = get_suffixes(&ctx, "飲みたい");
         assert_eq!(out.len(), 2);
         let (s0, k0, kf0) = out[0];
@@ -413,9 +409,9 @@ mod get_suffixes {
     ///   ("ました" :TEIRU #<KANA-TEXT 10551838 いました ord=0 common=NULL>))`.
     /// Three matches — pins the shortest-suffix-first ordering across
     /// a 6-char input where the loop visits start=5,4,3,2,1.
-    #[tokio::test]
-    async fn three_matches_shortest_suffix_first() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn three_matches_shortest_suffix_first() {
+        let ctx = ctx_from_env();
         let out = get_suffixes(&ctx, "食べてました");
         assert_eq!(out.len(), 3);
         let (s0, k0, kf0) = out[0];
@@ -424,21 +420,21 @@ mod get_suffixes {
         assert_eq!(s0, "た");
         assert_eq!(k0, "teiru");
         let kf0 = kf0.expect("kf0 row present");
-        assert_eq!(kf0.seq, 10551837);
+        crate::test_support::check_base_seqs(kf0.seq, &[1577980]);
         assert_eq!(kf0.text, "いた");
         assert_eq!(kf0.ord, 0);
         assert_eq!(kf0.common, None);
         assert_eq!(s1, "した");
         assert_eq!(k1, "suru");
         let kf1 = kf1.expect("kf1 row present");
-        assert_eq!(kf1.seq, 10152246);
+        crate::test_support::check_base_seqs(kf1.seq, &[1157170]);
         assert_eq!(kf1.text, "した");
         assert_eq!(kf1.ord, 0);
         assert_eq!(kf1.common, None);
         assert_eq!(s2, "ました");
         assert_eq!(k2, "teiru");
         let kf2 = kf2.expect("kf2 row present");
-        assert_eq!(kf2.seq, 10551838);
+        crate::test_support::check_base_seqs(kf2.seq, &[1577980]);
         assert_eq!(kf2.text, "いました");
         assert_eq!(kf2.ord, 0);
         assert_eq!(kf2.common, None);
@@ -451,17 +447,19 @@ mod match_unique {
     use crate::dict::dao::KanaText;
     use crate::dict::dao::SimpleText;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env (set DATABASE_URL)")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
-    async fn fetch_kana_rows_for_seq(ctx: &KaniranContext, seq_val: i32) -> Vec<KanaText> {
-        sqlx::query_as::<_, KanaText>("SELECT * FROM kana_text WHERE seq = $1")
-            .bind(seq_val)
-            .fetch_all(&ctx.pool)
-            .await
+    #[cfg(feature = "postgres")]
+    fn fetch_kana_rows_for_seq(ctx: &KaniranContext, seq_val: i32) -> Vec<KanaText> {
+        tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_as::<_, KanaText>("SELECT * FROM kana_text WHERE seq = $1")
+                    .bind(seq_val)
+                    .fetch_all(ctx.pool.as_ref().expect("postgres pool")),
+            )
             .expect("query kana_text")
     }
 
@@ -473,10 +471,10 @@ mod match_unique {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: seq_val,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -485,84 +483,87 @@ mod match_unique {
     }
 
     // REPL: (match-unique :ii nil) => :II
-    #[tokio::test]
-    async fn bare_ii_with_empty_matches_returns_bare() {
-        let c = ctx().await;
-        let out = match_unique(&c, "ii", &[]).await.unwrap();
+    #[test]
+    fn bare_ii_with_empty_matches_returns_bare() {
+        let c = ctx();
+        let out = match_unique(&c, "ii", &[]).unwrap();
         assert_eq!(out, Some(MatchUniqueResult::Bare));
     }
 
     // REPL: (match-unique :ra nil) => :RA
-    #[tokio::test]
-    async fn bare_ra_returns_bare() {
-        let c = ctx().await;
-        let out = match_unique(&c, "ra", &[]).await.unwrap();
+    #[test]
+    fn bare_ra_returns_bare() {
+        let c = ctx();
+        let out = match_unique(&c, "ra", &[]).unwrap();
         assert_eq!(out, Some(MatchUniqueResult::Bare));
     }
 
     // REPL: (match-unique :mo nil) => :MO
-    #[tokio::test]
-    async fn bare_mo_returns_bare() {
-        let c = ctx().await;
-        let out = match_unique(&c, "mo", &[]).await.unwrap();
+    #[test]
+    fn bare_mo_returns_bare() {
+        let c = ctx();
+        let out = match_unique(&c, "mo", &[]).unwrap();
         assert_eq!(out, Some(MatchUniqueResult::Bare));
     }
 
     // REPL: (match-unique :unknown nil) => NIL
     // REPL: (match-unique :foo nil) => NIL
-    #[tokio::test]
-    async fn unknown_class_returns_none() {
-        let c = ctx().await;
-        assert_eq!(match_unique(&c, "unknown", &[]).await.unwrap(), None);
-        assert_eq!(match_unique(&c, "foo", &[]).await.unwrap(), None);
+    #[test]
+    fn unknown_class_returns_none() {
+        let c = ctx();
+        assert_eq!(match_unique(&c, "unknown", &[]).unwrap(), None);
+        assert_eq!(match_unique(&c, "foo", &[]).unwrap(), None);
     }
 
     // REPL: (match-unique :sa nil) => NIL
-    #[tokio::test]
-    async fn sa_with_empty_matches_returns_none() {
-        let c = ctx().await;
-        let out = match_unique(&c, "sa", &[]).await.unwrap();
+    #[test]
+    fn sa_with_empty_matches_returns_none() {
+        let c = ctx();
+        let out = match_unique(&c, "sa", &[]).unwrap();
         assert_eq!(out, None);
     }
 
     // REPL: matches = kana-text rows for seq=10243330 only (non-root).
     //       (match-unique :sa matches) => NIL
-    #[tokio::test]
-    async fn sa_with_only_non_root_seqs_returns_none() {
-        let c = ctx().await;
-        let mats = wrap(fetch_kana_rows_for_seq(&c, 10243330).await);
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn sa_with_only_non_root_seqs_returns_none() {
+        let c = ctx();
+        let mats = wrap(fetch_kana_rows_for_seq(&c, 10243330));
         assert!(
             !mats.is_empty(),
             "REPL precondition: kana_text rows exist for seq=10243330"
         );
-        let out = match_unique(&c, "sa", &mats).await.unwrap();
+        let out = match_unique(&c, "sa", &mats).unwrap();
         assert_eq!(out, None);
     }
 
     // REPL: matches = kana-text rows for seq=10243330 + seq=1586010
     //       (the latter is root-p). (match-unique :sa matches) => (1586010)
-    #[tokio::test]
-    async fn sa_with_mixed_root_returns_root_seqs() {
-        let c = ctx().await;
-        let mut mats = fetch_kana_rows_for_seq(&c, 10243330).await;
-        mats.extend(fetch_kana_rows_for_seq(&c, 1586010).await);
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn sa_with_mixed_root_returns_root_seqs() {
+        let c = ctx();
+        let mut mats = fetch_kana_rows_for_seq(&c, 10243330);
+        mats.extend(fetch_kana_rows_for_seq(&c, 1586010));
         let wrapped = wrap(mats);
-        let out = match_unique(&c, "sa", &wrapped).await.unwrap();
+        let out = match_unique(&c, "sa", &wrapped).unwrap();
         assert_eq!(out, Some(MatchUniqueResult::Sa(vec![1586010])));
     }
 
     // REPL: (match-unique :sa (find-word "はや"))
     //   matches seqs: 1586010 1956580 2638250 10243330
     //     => (1586010 1956580 2638250)
-    #[tokio::test]
-    async fn sa_with_haya_matches_returns_three_root_seqs() {
-        let c = ctx().await;
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn sa_with_haya_matches_returns_three_root_seqs() {
+        let c = ctx();
         let mut mats = Vec::new();
         for s in [1586010, 1956580, 2638250, 10243330] {
-            mats.extend(fetch_kana_rows_for_seq(&c, s).await);
+            mats.extend(fetch_kana_rows_for_seq(&c, s));
         }
         let wrapped = wrap(mats);
-        let out = match_unique(&c, "sa", &wrapped).await.unwrap();
+        let out = match_unique(&c, "sa", &wrapped).unwrap();
         let Some(MatchUniqueResult::Sa(mut rows)) = out else {
             panic!("expected Some(Sa(..)), got {:?}", out);
         };
@@ -571,48 +572,40 @@ mod match_unique {
     }
 
     // REPL: (match-unique :desu nil) => NIL
-    #[tokio::test]
-    async fn desu_with_empty_matches_returns_none() {
-        let c = ctx().await;
-        let out = match_unique(&c, "desu", &[]).await.unwrap();
-        assert_eq!(out, None);
-    }
-
-    // REPL: matches = single kana_text row with seq=10597478 (1 conj row from 2755350)
-    //       (match-unique :desu matches) => NIL (1 conj row, 1 match, 1<1 false)
-    #[tokio::test]
-    async fn desu_with_single_jyanai_derivative_returns_none() {
-        let c = ctx().await;
-        let single = vec![synthetic_kana(10597478)];
-        let out = match_unique(&c, "desu", &single).await.unwrap();
+    #[test]
+    fn desu_with_empty_matches_returns_none() {
+        let c = ctx();
+        let out = match_unique(&c, "desu", &[]).unwrap();
         assert_eq!(out, None);
     }
 
     // REPL: matches = 2 kana_text rows for seq=10597478 (じゃないです variants)
     //       seqs unique → 1; conj rows from 2755350 → 1; (< 1 2) = T
     //       (match-unique :desu matches) => T
-    #[tokio::test]
-    async fn desu_with_duplicate_jyanai_seqs_returns_desu() {
-        let c = ctx().await;
-        let mats = wrap(fetch_kana_rows_for_seq(&c, 10597478).await);
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn desu_with_duplicate_jyanai_seqs_returns_desu() {
+        let c = ctx();
+        let mats = wrap(fetch_kana_rows_for_seq(&c, 10597478));
         assert_eq!(
             mats.len(),
             2,
             "REPL precondition: kana_text rows for seq=10597478 = 2"
         );
-        let out = match_unique(&c, "desu", &mats).await.unwrap();
+        let out = match_unique(&c, "desu", &mats).unwrap();
         assert_eq!(out, Some(MatchUniqueResult::Desu));
     }
 
     // REPL: matches = all kana_text rows for seqs 10597478, 10597479, 10597480
     //       len=8; conj rows from 2755350 (3 unique seqs) = 3; (< 3 8) = T
     //       (match-unique :desu matches) => T
-    #[tokio::test]
-    async fn desu_with_all_jyanai_derived_returns_desu() {
-        let c = ctx().await;
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn desu_with_all_jyanai_derived_returns_desu() {
+        let c = ctx();
         let mut mats = Vec::new();
         for s in [10597478, 10597479, 10597480] {
-            mats.extend(fetch_kana_rows_for_seq(&c, s).await);
+            mats.extend(fetch_kana_rows_for_seq(&c, s));
         }
         let wrapped = wrap(mats);
         assert_eq!(
@@ -620,21 +613,22 @@ mod match_unique {
             8,
             "REPL precondition: 8 kana_text rows across the three seqs"
         );
-        let out = match_unique(&c, "desu", &wrapped).await.unwrap();
+        let out = match_unique(&c, "desu", &wrapped).unwrap();
         assert_eq!(out, Some(MatchUniqueResult::Desu));
     }
 
     // REPL: matches = 2 rows for seq=10597478 + 3 rows for seq=1586010 (not じゃない-derived)
     //       conj rows for {10597478, 1586010} from 2755350 = 1; (< 1 5) = T
     //       (match-unique :desu mixed) => T
-    #[tokio::test]
-    async fn desu_with_mixed_jyanai_and_other_returns_desu() {
-        let c = ctx().await;
-        let mut mats = fetch_kana_rows_for_seq(&c, 10597478).await;
-        mats.extend(fetch_kana_rows_for_seq(&c, 1586010).await);
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn desu_with_mixed_jyanai_and_other_returns_desu() {
+        let c = ctx();
+        let mut mats = fetch_kana_rows_for_seq(&c, 10597478);
+        mats.extend(fetch_kana_rows_for_seq(&c, 1586010));
         let wrapped = wrap(mats);
         assert_eq!(wrapped.len(), 5);
-        let out = match_unique(&c, "desu", &wrapped).await.unwrap();
+        let out = match_unique(&c, "desu", &wrapped).unwrap();
         assert_eq!(out, Some(MatchUniqueResult::Desu));
     }
 
@@ -644,11 +638,11 @@ mod match_unique {
     //       The Rust port mirrors this failure mode by panicking — pinning the
     //       behavior so a future caller change doesn't silently substitute
     //       a different shape.
-    #[tokio::test]
+    #[test]
     #[should_panic(expected = "compound-text seq returned WordInfoSeq::Multi")]
-    async fn sa_with_compound_text_match_panics() {
+    fn sa_with_compound_text_match_panics() {
         use crate::dict::text_classes::{CompoundText, ScoreMod};
-        let c = ctx().await;
+        let c = ctx();
         let child1 = synthetic_kana(1586010);
         let child2 = synthetic_kana(10597478);
         let compound = KaniWordDispatchEnum::Compound(CompoundText {
@@ -659,16 +653,16 @@ mod match_unique {
             score_base: None,
             score_mod: ScoreMod::Single(0),
         });
-        let _ = match_unique(&c, "sa", &[compound]).await;
+        let _ = match_unique(&c, "sa", &[compound]);
     }
 
     // Same panic must fire for the :desu DB branch — both querying paths
     // share `collect_seqs` and must abort identically.
-    #[tokio::test]
+    #[test]
     #[should_panic(expected = "compound-text seq returned WordInfoSeq::Multi")]
-    async fn desu_with_compound_text_match_panics() {
+    fn desu_with_compound_text_match_panics() {
         use crate::dict::text_classes::{CompoundText, ScoreMod};
-        let c = ctx().await;
+        let c = ctx();
         let child1 = synthetic_kana(1586010);
         let child2 = synthetic_kana(10597478);
         let compound = KaniWordDispatchEnum::Compound(CompoundText {
@@ -679,26 +673,24 @@ mod match_unique {
             score_base: None,
             score_mod: ScoreMod::Single(0),
         });
-        let _ = match_unique(&c, "desu", &[compound]).await;
+        let _ = match_unique(&c, "desu", &[compound]);
     }
 }
 
 mod find_word_suffix {
     use crate::dict::grammar::suffix::resolve::*;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// REPL: `(find-word-suffix "勉強する")` upstream returns 1
     /// compound via the SURU branch (TEIRU also reaches "る" but
     /// suffix-teiru on root="勉強す" fails its te-check).
-    #[tokio::test]
-    async fn t1_benkyou_suru() {
-        let ctx = ctx().await;
-        let r = find_word_suffix(&ctx, "勉強する", &[]).await.unwrap();
+    #[test]
+    fn t1_benkyou_suru() {
+        let ctx = ctx();
+        let r = find_word_suffix(&ctx, "勉強する", &[]).unwrap();
         assert_eq!(r.len(), 1);
         let KaniWordDispatchEnum::Compound(c) = &r[0] else {
             panic!("expected Compound, got {:?}", r[0]);
@@ -710,19 +702,19 @@ mod find_word_suffix {
     /// REPL: `(find-word-suffix "区別し")` → 1 compound (SURU branch
     /// only — the partial cache holds an entry for "し" under :SURU
     /// keyword).
-    #[tokio::test]
-    async fn t2_kubetsu_shi() {
-        let ctx = ctx().await;
-        let r = find_word_suffix(&ctx, "区別し", &[]).await.unwrap();
+    #[test]
+    fn t2_kubetsu_shi() {
+        let ctx = ctx();
+        let r = find_word_suffix(&ctx, "区別し", &[]).unwrap();
         assert_eq!(r.len(), 1);
     }
 
     /// REPL: `(find-word-suffix "私ら")` → 13 compounds via the RA
     /// branch.
-    #[tokio::test]
-    async fn t3_watashi_ra_polysemy() {
-        let ctx = ctx().await;
-        let r = find_word_suffix(&ctx, "私ら", &[]).await.unwrap();
+    #[test]
+    fn t3_watashi_ra_polysemy() {
+        let ctx = ctx();
+        let r = find_word_suffix(&ctx, "私ら", &[]).unwrap();
         assert_eq!(r.len(), 13);
         for w in &r {
             let KaniWordDispatchEnum::Compound(c) = w else {
@@ -736,10 +728,10 @@ mod find_word_suffix {
     /// the TEIRU branch (suffix-teiru's te-check passes on root
     /// "食べて"). The dispatch table now wires `teiru`, so we mirror
     /// upstream and pin the 1-compound outcome.
-    #[tokio::test]
-    async fn t4_teiru_fires() {
-        let ctx = ctx().await;
-        let r = find_word_suffix(&ctx, "食べてる", &[]).await.unwrap();
+    #[test]
+    fn t4_teiru_fires() {
+        let ctx = ctx();
+        let r = find_word_suffix(&ctx, "食べてる", &[]).unwrap();
         assert_eq!(r.len(), 1);
         let KaniWordDispatchEnum::Compound(c) = &r[0] else {
             panic!("expected Compound, got {:?}", r[0]);
@@ -750,32 +742,33 @@ mod find_word_suffix {
     /// REPL: `(find-word-suffix "ら")` → NIL. Word length equals
     /// suffix length → offset = 0 → `(> offset 0)` fails → no
     /// expansion.
-    #[tokio::test]
-    async fn t5_offset_zero_skipped() {
-        let ctx = ctx().await;
-        let r = find_word_suffix(&ctx, "ら", &[]).await.unwrap();
+    #[test]
+    fn t5_offset_zero_skipped() {
+        let ctx = ctx();
+        let r = find_word_suffix(&ctx, "ら", &[]).unwrap();
         assert!(r.is_empty());
     }
 
     /// REPL: `(find-word-suffix "")` → NIL. get-suffixes("") = NIL
     /// (loop range empty), so the iteration body doesn't run.
-    #[tokio::test]
-    async fn t6_empty_word() {
-        let ctx = ctx().await;
-        let r = find_word_suffix(&ctx, "", &[]).await.unwrap();
+    #[test]
+    fn t6_empty_word() {
+        let ctx = ctx();
+        let r = find_word_suffix(&ctx, "", &[]).unwrap();
         assert!(r.is_empty());
     }
 
     /// REPL: `(find-word-suffix "私ら" :matches (find-word "私"))` →
     /// NIL. `match-unique` :ra returns :RA (truthy) for the find-word
     /// 私 matches → the row is filtered out and no compounds emit.
-    #[tokio::test]
-    async fn t7_match_unique_gate_fires() {
-        let ctx = ctx().await;
+    #[test]
+    fn t7_match_unique_gate_fires() {
+        let ctx = ctx();
         // Build matches = find-word 私 (kana + kanji rows).
         let watashi_rows = crate::dict::readings::find_word(&ctx, "私", false)
-            .await
-            .unwrap();
+            
+            .unwrap()
+            .into_owned();
         let matches: Vec<KaniWordDispatchEnum> = match watashi_rows {
             crate::dict::readings::FindWordRows::Kana(v) => {
                 v.into_iter().map(KaniWordDispatchEnum::Kana).collect()
@@ -785,7 +778,7 @@ mod find_word_suffix {
             }
         };
         assert!(!matches.is_empty(), "REPL precondition: 私 rows exist");
-        let r = find_word_suffix(&ctx, "私ら", &matches).await.unwrap();
+        let r = find_word_suffix(&ctx, "私ら", &matches).unwrap();
         assert!(r.is_empty());
     }
 
@@ -803,13 +796,13 @@ mod find_word_suffix {
     /// decremented the end): the map is indexed one position short,
     /// yields the wrong suffix row, and returns 0 where the bare
     /// `get_suffixes` path would have returned 3.
-    #[tokio::test]
-    async fn t8_map_path_position_sensitive() {
+    #[test]
+    fn t8_map_path_position_sensitive() {
         use crate::dict::word_info::SuffixMapTemp;
         use crate::dict::grammar::suffix::resolve::get_suffix_map;
         use std::sync::Arc;
 
-        let ctx = ctx().await;
+        let ctx = ctx();
         let sentence = "しきれなくなったらしく";
         // Mirror join_substring_words_star_:72-83 — *suffix-map-temp*
         // owns its triples, so materialize owned copies of the borrowed
@@ -831,7 +824,7 @@ mod find_word_suffix {
         let ctx9 = ctx
             .with_suffix_map_temp(Some(Arc::clone(&suffix_map)))
             .with_suffix_next_end(Some(9));
-        let r9 = find_word_suffix(&ctx9, "なくなったら", &[]).await.unwrap();
+        let r9 = find_word_suffix(&ctx9, "なくなったら", &[]).unwrap();
         assert_eq!(r9.len(), 3, "map@9 (ら/たら/ったら/なったら) → 3 compounds");
 
         // map@8 = (た った なった) — the decremented-end nested-call
@@ -839,7 +832,7 @@ mod find_word_suffix {
         let ctx8 = ctx
             .with_suffix_map_temp(Some(Arc::clone(&suffix_map)))
             .with_suffix_next_end(Some(8));
-        let r8 = find_word_suffix(&ctx8, "なくなったら", &[]).await.unwrap();
+        let r8 = find_word_suffix(&ctx8, "なくなったら", &[]).unwrap();
         assert!(r8.is_empty(), "map@8 (た/った/なった) → no compounds");
     }
 }

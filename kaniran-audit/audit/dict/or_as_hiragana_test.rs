@@ -13,7 +13,6 @@
 #[path = "../common/mod.rs"]
 mod common;
 
-use std::pin::Pin;
 use std::sync::Arc;
 
 use serde_json::Value;
@@ -83,7 +82,7 @@ enum CapturedRows {
     Proxy(Vec<CapturedProxy>),
 }
 
-async fn audit_one(
+fn audit_one(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -112,18 +111,15 @@ async fn audit_one(
     let posi_for_closure = Arc::clone(&posi_arc);
     let finder: OrAsHiraganaFinder<'_> = Arc::new(move |w: String| {
         let posi_inner = Arc::clone(&posi_for_closure);
-        Box::pin(async move {
-            let refs: Vec<&str> = posi_inner.iter().map(|s| s.as_str()).collect();
-            let rows = find_word_with_pos(ctx, &w, &refs).await?;
-            Ok(match rows {
-                WordWithPosRows::Kana(v) => FindWordRows::Kana(v),
-                WordWithPosRows::Kanji(v) => FindWordRows::Kanji(v),
-            })
-        }) as Pin<Box<dyn std::future::Future<Output = _> + Send>>
+        let refs: Vec<&str> = posi_inner.iter().map(|s| s.as_str()).collect();
+        let rows = find_word_with_pos(ctx, &w, &refs)?;
+        Ok(match rows {
+            WordWithPosRows::Kana(v) => FindWordRows::Kana(v),
+            WordWithPosRows::Kanji(v) => FindWordRows::Kanji(v),
+        })
     });
 
     let actual = or_as_hiragana(ctx, &word, finder)
-        .await
         .map_err(|err| format!("or_as_hiragana query: {}", err))?;
 
     if row.result.is_empty() {
@@ -223,7 +219,7 @@ fn compare(actual: Option<OrAsHiraganaRows>, expected: &Value) -> Result<(), Str
                 return Err(format!("kana row count: rust={} lisp={}", a.len(), c.len()));
             }
             a.sort_by(|x, y| (x.seq, x.id, x.text.clone()).cmp(&(y.seq, y.id, y.text.clone())));
-            c.sort_by(|x, y| (x.seq, x.id, x.text.clone()).cmp(&(y.seq, y.id, y.text.clone())));
+            c.sort_by_key(|x| (x.seq, x.id, x.text.clone()));
             for (idx, (actual_row, captured_row)) in a.iter().zip(&c).enumerate() {
                 if !captured_row.matches(actual_row) {
                     return Err(format!(
@@ -242,7 +238,7 @@ fn compare(actual: Option<OrAsHiraganaRows>, expected: &Value) -> Result<(), Str
                 return Err(format!("kanji row count: rust={} lisp={}", a.len(), c.len()));
             }
             a.sort_by(|x, y| (x.seq, x.id, x.text.clone()).cmp(&(y.seq, y.id, y.text.clone())));
-            c.sort_by(|x, y| (x.seq, x.id, x.text.clone()).cmp(&(y.seq, y.id, y.text.clone())));
+            c.sort_by_key(|x| (x.seq, x.id, x.text.clone()));
             for (idx, (actual_row, captured_row)) in a.iter().zip(&c).enumerate() {
                 if !captured_row.matches(actual_row) {
                     return Err(format!(
@@ -339,8 +335,8 @@ fn captured_proxy_sort_key(a: &CapturedProxy, b: &CapturedProxy) -> std::cmp::Or
 
 fn source_sort_id(s: &KaniSimpleTextDispatchEnum) -> (i32, String) {
     match s {
-        KaniSimpleTextDispatchEnum::Kana(k) => (k.seq, k.text.clone()),
-        KaniSimpleTextDispatchEnum::Kanji(k) => (k.seq, k.text.clone()),
+        KaniSimpleTextDispatchEnum::Kana(k) => (k.seq, k.text.to_string()),
+        KaniSimpleTextDispatchEnum::Kanji(k) => (k.seq, k.text.to_string()),
         KaniSimpleTextDispatchEnum::Proxy(_) => (0, String::new()),
     }
 }
@@ -352,7 +348,6 @@ fn captured_source_sort_id(s: &CapturedSource) -> (i32, String) {
     }
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

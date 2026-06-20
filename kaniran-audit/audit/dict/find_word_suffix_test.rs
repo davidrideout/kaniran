@@ -32,7 +32,7 @@ use common::{parse_captured_word, CapturedRow};
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:FIND-WORD-SUFFIX";
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.len() != 3 {
         return Err(format!("expected 3 args, got {}", row.args.len()));
     }
@@ -53,7 +53,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     let matches = parse_matches(&row.args[2])?;
 
     let actual = find_word_suffix(ctx, word, &matches)
-        .await
+        
         .map_err(|e| format!("find_word_suffix: {}", e))?;
 
     let expected = parse_expected(unwrap_result(&row.result)?)?;
@@ -225,7 +225,6 @@ fn fp_score_mod(s: &ScoreMod) -> String {
     }
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

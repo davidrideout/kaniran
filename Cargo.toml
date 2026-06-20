@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["kaniran-core", "kaniran-cli", "kaniran-audit"]
+members = ["kaniran-core", "kaniran-cli", "kaniran-audit", "kaniran-loader"]
 # Future siblings (kaniran-demo, ...) get added to `members`.
 
 [workspace.package]
@@ -18,9 +18,14 @@ sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres"]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 config = "0.14"
 thiserror = "2"
+rkyv = "0.8"
+memmap2 = "0.9"
+futures-util = "0.3"
+mimalloc = "0.1"
 unicode-properties = "0.1"
 roxmltree = "0.21"
 indexmap = "2"
+smallvec = "1"
 
 [profile.release]
 opt-level = 3
@@ -35,3 +40,17 @@ strip = true
 inherits = "release"
 debug = true
 strip = "none"
+
+# Fast-compile near-release profile for test/audit iteration. Keeps
+# opt-level 3 (DB replay crawls under `dev`) but drops the expensive
+# whole-program steps — fat LTO, single codegen unit, strip — and turns
+# incremental back on, so edit-rebuild cycles take seconds instead of
+# minutes. Use `cargo build --profile testing --bin <name>` or
+# `cargo test --profile testing`; artifacts land in target/testing/.
+[profile.testing]
+inherits = "release"
+lto = false
+codegen-units = 16
+panic = "unwind"
+strip = "none"
+incremental = true

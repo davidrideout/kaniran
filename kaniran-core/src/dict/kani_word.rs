@@ -98,10 +98,10 @@ impl KaniSimpleTextDispatchEnum {
     /// CONVENTIONS §4.7, each family handles its own `:around`
     /// internally; the top-level [`super::accessors::get_kana`]
     /// dispatcher just delegates here for the simple-text arms.
-    pub async fn get_kana(
+    pub fn get_kana(
         &self,
         ctx: &crate::conn::kani_context::KaniranContext,
-    ) -> Result<Option<String>, sqlx::Error> {
+    ) -> Result<Option<String>, crate::conn::KaniDbError> {
         // dict.lisp:80-84 (defmethod get-kana :around ((obj simple-text)))
         // (unless (or *disable-hints* (hintedp obj))
         //    (let ((*disable-hints* t)) (get-hint obj)))
@@ -110,22 +110,22 @@ impl KaniSimpleTextDispatchEnum {
             // dict.lisp:82 (let ((*disable-hints* t)) (get-hint obj))
             let ctx2 = ctx.with_disable_hints(true);
             if let Some(hint_result) =
-                super::split::hint::get_hint(&ctx2, &wrapped).await?
+                super::split::hint::get_hint(&ctx2, &wrapped)?
             {
                 return Ok(Some(hint_result));
             }
         }
         // dict.lisp:84 (call-next-method) — primary methods
-        self.primary_get_kana(ctx).await
+        self.primary_get_kana(ctx)
     }
 
     /// The "call-next-method" body of [`Self::get_kana`] — the
     /// per-subclass primary method bodies for kanji-text /
     /// kana-text / proxy-text.
-    async fn primary_get_kana(
+    fn primary_get_kana(
         &self,
         ctx: &crate::conn::kani_context::KaniranContext,
-    ) -> Result<Option<String>, sqlx::Error> {
+    ) -> Result<Option<String>, crate::conn::KaniDbError> {
         match self {
             // dict.lisp:111-115 (defmethod get-kana ((obj kanji-text)))
             // (let ((bk (best-kana-conj obj))) (if (eql bk :null) (get-kanji-kana-old obj) bk))
@@ -135,13 +135,13 @@ impl KaniSimpleTextDispatchEnum {
             // would raise no-applicable-method; Rust surfaces
             // it as Ok(None).
             Self::Kanji(k) => {
-                match super::readings::best_kana_conj(ctx, k).await? {
+                match super::readings::best_kana_conj(ctx, k)? {
                     Some(s) => Ok(Some(s)),
-                    None => super::readings::get_kanji_kana_old(ctx, k).await,
+                    None => super::readings::get_kanji_kana_old(ctx, k),
                 }
             }
             // dict.lisp:150-151 (defmethod get-kana ((obj kana-text))) — (text obj)
-            Self::Kana(k) => Ok(Some(k.text.clone())),
+            Self::Kana(k) => Ok(Some(k.text.to_string())),
             // dict.lisp:552 (kana :reader get-kana :initarg :kana) on proxy-text
             Self::Proxy(p) => Ok(Some(p.kana.clone())),
         }
@@ -154,5 +154,10 @@ pub enum KaniWordDispatchEnum {
     Kana(KanaText),
     Proxy(ProxyText),
     Compound(CompoundText),
-    Counter(Counter),
+    // Boxed: `Counter` is a ~400-byte enum of counter classes and the
+    // lone size outlier (next variant is 128). Counter words are the
+    // rare path, so the indirection lands off the hot route while every
+    // common-case move of this enum — and lattice-path `Vec`s of it —
+    // stays small.
+    Counter(Box<Counter>),
 }

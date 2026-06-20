@@ -13,8 +13,6 @@ use crate::dict::grammar::suffix::rules::{
 use crate::dict::dao::KanaText;
 use crate::dict::kani_word::KaniWordDispatchEnum;
 use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
 use std::sync::OnceLock;
 
 /// Port of `ichiran/dict:*suffix-cache*` (`dict-grammar.lisp:5`).
@@ -213,9 +211,7 @@ pub type SuffixFn = for<'a> fn(
     &'a str,
     &'a str,
     Option<&'a KanaText>,
-) -> Pin<
-    Box<dyn Future<Output = Result<Vec<KaniWordDispatchEnum>, sqlx::Error>> + Send + 'a>,
->;
+) -> Result<Vec<KaniWordDispatchEnum>, crate::conn::KaniDbError>;
 
 // Macro: wrap a `def-simple-suffix` body (returning `Vec<CompoundText>`
 // with non-Option kf) into the unified SuffixFn shape. `.expect` is
@@ -227,19 +223,17 @@ macro_rules! simple_suffix_dispatch {
             root: &'a str,
             suf: &'a str,
             kf: Option<&'a KanaText>,
-        ) -> Pin<Box<dyn Future<Output = Result<Vec<KaniWordDispatchEnum>, sqlx::Error>> + Send + 'a>>
+        ) -> Result<Vec<KaniWordDispatchEnum>, crate::conn::KaniDbError>
         {
-            Box::pin(async move {
-                let kf = kf.expect(concat!(
-                    "suffix-list :",
-                    $key,
-                    " dispatch: kf is nil; cache invariant (",
-                    $cache_loader,
-                    ") broken",
-                ));
-                let compounds = $fn(ctx, root, suf, kf).await?;
-                Ok(compounds.into_iter().map(KaniWordDispatchEnum::Compound).collect())
-            })
+            let kf = kf.expect(concat!(
+                "suffix-list :",
+                $key,
+                " dispatch: kf is nil; cache invariant (",
+                $cache_loader,
+                ") broken",
+            ));
+            let compounds = $fn(ctx, root, suf, kf)?;
+            Ok(compounds.into_iter().map(KaniWordDispatchEnum::Compound).collect())
         }
     };
 }
@@ -256,9 +250,9 @@ macro_rules! abbr_suffix_dispatch {
             root: &'a str,
             suf: &'a str,
             kf: Option<&'a KanaText>,
-        ) -> Pin<Box<dyn Future<Output = Result<Vec<KaniWordDispatchEnum>, sqlx::Error>> + Send + 'a>>
+        ) -> Result<Vec<KaniWordDispatchEnum>, crate::conn::KaniDbError>
         {
-            Box::pin(async move { $fn(ctx, root, suf, kf).await })
+            $fn(ctx, root, suf, kf)
         }
     };
 }

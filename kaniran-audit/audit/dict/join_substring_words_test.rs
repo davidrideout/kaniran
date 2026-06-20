@@ -30,7 +30,7 @@ use common::{
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:JOIN-SUBSTRING-WORDS";
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.is_empty() {
         return Err("join-substring-words args empty".into());
     }
@@ -39,11 +39,11 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
         .ok_or_else(|| format!("arg 0 (str) not string: {}", row.args[0]))?;
 
     let mut actual = join_substring_words(ctx, str)
-        .await
+        
         .map_err(|err| format!("join_substring_words query: {}", err))?;
     for sl in actual.iter_mut() {
         for segment in sl.segments.iter_mut() {
-            strip_ids_word(&mut segment.word);
+            strip_ids_word(&mut std::sync::Arc::make_mut(segment).word);
         }
     }
 
@@ -51,7 +51,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     let mut expected = parse_expected_segment_lists(expected_value)?;
     for sl in expected.iter_mut() {
         for segment in sl.segments.iter_mut() {
-            strip_ids_word(&mut segment.word);
+            strip_ids_word(&mut std::sync::Arc::make_mut(segment).word);
         }
     }
 
@@ -98,8 +98,8 @@ fn compare_segment_list(
     Ok(())
 }
 
-fn sorted_fingerprints(segments: &[Segment]) -> Vec<String> {
-    let mut fps: Vec<String> = segments.iter().map(segment_fingerprint).collect();
+fn sorted_fingerprints(segments: &[std::sync::Arc<Segment>]) -> Vec<String> {
+    let mut fps: Vec<String> = segments.iter().map(|segment| segment_fingerprint(segment)).collect();
     fps.sort();
     fps
 }
@@ -184,9 +184,9 @@ fn parse_expected_segment_list(value: &Value) -> Result<SegmentList, String> {
         .ok_or_else(|| format!("segments: expected array, got {}", segments_value))?;
     let mut segments = Vec::with_capacity(segments_arr.len());
     for (seg_index, seg) in segments_arr.iter().enumerate() {
-        segments.push(
+        segments.push(std::sync::Arc::new(
             parse_expected_segment(seg).map_err(|err| format!("segment {}: {}", seg_index, err))?,
-        );
+        ));
     }
     Ok(SegmentList {
         segments,
@@ -357,7 +357,6 @@ fn strip_ids_counter(counter: &mut Counter) {
     }
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

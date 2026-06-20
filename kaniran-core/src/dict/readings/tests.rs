@@ -73,10 +73,8 @@ mod find_substring_words {
     // and sorting both sides keeps the comparison order-independent. Run
     // with `cargo test -- --test-threads=1` per the DB-test convention.
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// A key's bucket as a sorted `(seq, ord, common)` list. Both this
@@ -124,7 +122,10 @@ mod find_substring_words {
         ]
     }
 
-    fn ne_rows() -> Vec<(i32, i32, Option<i32>)> {
+    // The stable (base-seq) rows of the 'ね' bucket. The bucket also holds one
+    // synthetic conjugated-entry row (asserted separately) whose seq renumbers
+    // per build.
+    fn ne_stable_rows() -> Vec<(i32, i32, Option<i32>)> {
         vec![
             (1290020, 0, Some(5)),
             (1307780, 0, Some(0)),
@@ -133,15 +134,32 @@ mod find_substring_words {
             (2836242, 0, None),
             (2841117, 3, None),
             (2859162, 0, Some(0)),
-            (10426293, 0, None),
         ]
     }
 
-    #[tokio::test]
-    async fn single_kanji_char_one_key() {
+    /// Split a sorted `(seq, ord, common)` bucket into its stable base-seq
+    /// rows (pinned by seq) and the `(ord, common)` of its synthetic
+    /// conjugated-entry rows, whose seqs renumber per build. Both stay sorted.
+    fn stable_and_synthetic(
+        rows: &[(i32, i32, Option<i32>)],
+    ) -> (Vec<(i32, i32, Option<i32>)>, Vec<(i32, Option<i32>)>) {
+        let min = crate::test_support::SYNTHETIC_SEQ_MIN;
+        let stable: Vec<(i32, i32, Option<i32>)> =
+            rows.iter().copied().filter(|(seq, _, _)| *seq < min).collect();
+        let mut synthetic: Vec<(i32, Option<i32>)> = rows
+            .iter()
+            .filter(|(seq, _, _)| *seq >= min)
+            .map(|(_, ord, common)| (*ord, *common))
+            .collect();
+        synthetic.sort();
+        (stable, synthetic)
+    }
+
+    #[test]
+    fn single_kanji_char_one_key() {
         // '猫' (no sticky): one kanji-classified key, two rows.
-        let ctx = ctx_from_env().await;
-        let h = find_substring_words(&ctx, "猫", &[]).await.unwrap();
+        let ctx = ctx_from_env();
+        let h = find_substring_words(&ctx, "猫", &[]).unwrap();
         assert_eq!(keys_sorted(&h), vec!["猫".to_string()]);
         assert!(!is_kana(&h, "猫"), "'猫' should be kanji variant");
         assert_eq!(
@@ -150,12 +168,12 @@ mod find_substring_words {
         );
     }
 
-    #[tokio::test]
-    async fn mixed_kana_kanji_three_keys() {
+    #[test]
+    fn mixed_kana_kanji_three_keys() {
         // '猫が': が (7 kana), 猫 (2 kanji), 猫が (empty, kanji-classified
         // — the mixed string contains a kanji).
-        let ctx = ctx_from_env().await;
-        let h = find_substring_words(&ctx, "猫が", &[]).await.unwrap();
+        let ctx = ctx_from_env();
+        let h = find_substring_words(&ctx, "猫が", &[]).unwrap();
         assert_eq!(
             keys_sorted(&h),
             vec!["が".to_string(), "猫".to_string(), "猫が".to_string()]
@@ -182,64 +200,60 @@ mod find_substring_words {
         assert!(rows_sorted(&h, "猫が").is_empty());
     }
 
-    #[tokio::test]
-    async fn sticky_end_blocks_substrings() {
+    #[test]
+    fn sticky_end_blocks_substrings() {
         // '猫が' sticky=(1): every 1-char substring starts or ends at
         // pos 1, so only the length-2 key survives (empty bucket).
-        let ctx = ctx_from_env().await;
-        let h = find_substring_words(&ctx, "猫が", &[1]).await.unwrap();
+        let ctx = ctx_from_env();
+        let h = find_substring_words(&ctx, "猫が", &[1]).unwrap();
         assert_eq!(keys_sorted(&h), vec!["猫が".to_string()]);
         assert!(rows_sorted(&h, "猫が").is_empty());
     }
 
-    #[tokio::test]
-    async fn sticky_start_and_end_block() {
+    #[test]
+    fn sticky_start_and_end_block() {
         // 'ねこが' sticky=(0 3): start=0 and end=3 blocked, so only 'こ'
         // (start=1, end=2) survives.
-        let ctx = ctx_from_env().await;
-        let h = find_substring_words(&ctx, "ねこが", &[0, 3]).await.unwrap();
+        let ctx = ctx_from_env();
+        let h = find_substring_words(&ctx, "ねこが", &[0, 3]).unwrap();
         assert_eq!(keys_sorted(&h), vec!["こ".to_string()]);
         assert_eq!(rows_sorted(&h, "こ"), ko_rows());
     }
 
-    #[tokio::test]
-    async fn sticky_interior_blocks_boundary_only() {
+    #[test]
+    fn sticky_interior_blocks_boundary_only() {
         // 'ねこが' sticky=(2): ね (8), こが (6), ねこが (empty). start=2
         // and end=2 are both blocked.
-        let ctx = ctx_from_env().await;
-        let h = find_substring_words(&ctx, "ねこが", &[2]).await.unwrap();
+        let ctx = ctx_from_env();
+        let h = find_substring_words(&ctx, "ねこが", &[2]).unwrap();
         assert_eq!(
             keys_sorted(&h),
             vec!["こが".to_string(), "ね".to_string(), "ねこが".to_string()]
         );
-        assert_eq!(
-            rows_sorted(&h, "こが"),
-            vec![
-                (1265180, 0, None),
-                (1265190, 0, None),
-                (10136364, 0, None),
-                (10276500, 0, None),
-                (12294787, 0, None),
-                (12295833, 0, None),
-            ]
-        );
-        assert_eq!(rows_sorted(&h, "ね"), ne_rows());
+        // こが: two stable base-seq rows plus four synthetic conjugated-entry
+        // rows, all (ord 0, common None).
+        let (koga_stable, koga_synth) = stable_and_synthetic(&rows_sorted(&h, "こが"));
+        assert_eq!(koga_stable, vec![(1265180, 0, None), (1265190, 0, None)]);
+        assert_eq!(koga_synth, vec![(0, None), (0, None), (0, None), (0, None)]);
+        let (ne_stable, ne_synth) = stable_and_synthetic(&rows_sorted(&h, "ね"));
+        assert_eq!(ne_stable, ne_stable_rows());
+        assert_eq!(ne_synth, vec![(0, None)]);
         assert!(rows_sorted(&h, "ねこが").is_empty());
     }
 
-    #[tokio::test]
-    async fn empty_string_empty_hash() {
-        let ctx = ctx_from_env().await;
-        let h = find_substring_words(&ctx, "", &[]).await.unwrap();
+    #[test]
+    fn empty_string_empty_hash() {
+        let ctx = ctx_from_env();
+        let h = find_substring_words(&ctx, "", &[]).unwrap();
         assert!(h.is_empty());
     }
 
-    #[tokio::test]
-    async fn ascii_unknown_pre_seeds_empty_entry() {
+    #[test]
+    fn ascii_unknown_pre_seeds_empty_entry() {
         // 'x': one kanji-classified key, empty bucket — the pre-seeded
         // empty entry survives the no-row query.
-        let ctx = ctx_from_env().await;
-        let h = find_substring_words(&ctx, "x", &[]).await.unwrap();
+        let ctx = ctx_from_env();
+        let h = find_substring_words(&ctx, "x", &[]).unwrap();
         assert_eq!(keys_sorted(&h), vec!["x".to_string()]);
         assert!(
             !is_kana(&h, "x"),
@@ -248,17 +262,19 @@ mod find_substring_words {
         assert!(rows_sorted(&h, "x").is_empty());
     }
 
-    #[tokio::test]
-    async fn full_kana_three_keys() {
+    #[test]
+    fn full_kana_three_keys() {
         // 'ねこ': こ (16), ね (8), ねこ (1).
-        let ctx = ctx_from_env().await;
-        let h = find_substring_words(&ctx, "ねこ", &[]).await.unwrap();
+        let ctx = ctx_from_env();
+        let h = find_substring_words(&ctx, "ねこ", &[]).unwrap();
         assert_eq!(
             keys_sorted(&h),
             vec!["こ".to_string(), "ね".to_string(), "ねこ".to_string()]
         );
         assert_eq!(rows_sorted(&h, "こ"), ko_rows());
-        assert_eq!(rows_sorted(&h, "ね"), ne_rows());
+        let (ne_stable, ne_synth) = stable_and_synthetic(&rows_sorted(&h, "ね"));
+        assert_eq!(ne_stable, ne_stable_rows());
+        assert_eq!(ne_synth, vec![(0, None)]);
         assert_eq!(rows_sorted(&h, "ねこ"), vec![(1467640, 0, Some(7))]);
     }
 
@@ -266,17 +282,21 @@ mod find_substring_words {
     /// order. Compared unsorted, unlike the other tests here — that's the
     /// point. The expected order is derived from the same query the
     /// populator runs, so it pins the reversal rather than hard-coded seqs.
-    #[tokio::test]
-    async fn bucket_is_reverse_of_fetch_order() {
-        let ctx = ctx_from_env().await;
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn bucket_is_reverse_of_fetch_order() {
+        let ctx = ctx_from_env();
         let keys = vec!["行って".to_string()];
-        let fetch: Vec<i32> = sqlx::query_scalar("SELECT seq FROM kanji_text WHERE text = ANY($1)")
-            .bind(&keys)
-            .fetch_all(&ctx.pool)
-            .await
+        let fetch: Vec<i32> = tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_scalar("SELECT seq FROM kanji_text WHERE text = ANY($1)")
+                    .bind(&keys)
+                    .fetch_all(ctx.pool.as_ref().expect("postgres pool")),
+            )
             .unwrap();
         assert!(fetch.len() > 1, "test needs a multi-row bucket");
-        let h = find_substring_words(&ctx, "行って", &[]).await.unwrap();
+        let h = find_substring_words(&ctx, "行って", &[]).unwrap();
         let bucket: Vec<i32> = match h.get("行って").unwrap() {
             FindWordRows::Kanji(v) => v.iter().map(|r| r.seq).collect(),
             FindWordRows::Kana(v) => v.iter().map(|r| r.seq).collect(),
@@ -290,43 +310,45 @@ mod find_substring_words {
 mod find_words_seqs {
     use crate::dict::readings::*;
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     fn describe(word: &KaniWordDispatchEnum) -> (&'static str, i32, &str) {
         match word {
-            KaniWordDispatchEnum::Kanji(k) => ("kanji", k.seq, k.text.as_str()),
-            KaniWordDispatchEnum::Kana(k) => ("kana", k.seq, k.text.as_str()),
+            KaniWordDispatchEnum::Kanji(k) => ("kanji", k.seq, k.text.as_ref()),
+            KaniWordDispatchEnum::Kana(k) => ("kana", k.seq, k.text.as_ref()),
             _ => panic!("find_words_seqs must only return kanji-text / kana-text"),
         }
     }
 
     /// Each case returns one row: a kanji word lands in the kanji
     /// partition, a kana word in the kana partition.
-    #[tokio::test]
-    async fn single_row_fixtures() {
-        let ctx = ctx().await;
+    #[test]
+    fn single_row_fixtures() {
+        let ctx = ctx();
         let cases: &[(&[&str], &[i32], (&str, i32, &str))] = &[
             (&["食べる"], &[1358280], ("kanji", 1358280, "食べる")),
             (&["たべる"], &[1358280], ("kana", 1358280, "たべる")),
             (&["見る"], &[1259290], ("kanji", 1259290, "見る")),
         ];
         for (words, seqs, expected) in cases {
-            let result = find_words_seqs(&ctx, words, seqs).await.unwrap();
+            let result = find_words_seqs(&ctx, words, seqs).unwrap();
             assert_eq!(result.len(), 1, "words={words:?}");
             assert_eq!(describe(&result[0]), *expected, "words={words:?}");
         }
     }
 
     /// A kana word against six seqs returns one kana-text row per matching seq.
-    #[tokio::test]
-    async fn kana_multi_seq() {
-        let ctx = ctx().await;
-        let seqs = [1213770, 1259290, 1365450, 1772790, 2255060, 10553286];
-        let result = find_words_seqs(&ctx, &["みる"], &seqs).await.unwrap();
+    #[test]
+    fn kana_multi_seq() {
+        let ctx = ctx();
+        // The sixth seq is a synthetic conjugated-entry seq (>= 10,000,000)
+        // whose kana spelling is みる. Synthetic seqs renumber per build, so
+        // resolve it from its stable surface rather than pinning the number.
+        let synthetic = crate::test_support::conj_entry_seq("みる");
+        let mut seqs = [1213770, 1259290, 1365450, 1772790, 2255060, synthetic];
+        let result = find_words_seqs(&ctx, &["みる"], &seqs).unwrap();
         assert_eq!(result.len(), 6);
         let mut got: Vec<i32> = result
             .iter()
@@ -337,16 +359,17 @@ mod find_words_seqs {
             })
             .collect();
         got.sort_unstable();
+        seqs.sort_unstable();
         assert_eq!(got, seqs);
     }
 
     /// A kanji and a kana word return the kanji row first, then the kana
     /// row — both partitions non-empty.
-    #[tokio::test]
-    async fn mixed_two_words() {
-        let ctx = ctx().await;
+    #[test]
+    fn mixed_two_words() {
+        let ctx = ctx();
         let result = find_words_seqs(&ctx, &["食べる", "たべる"], &[1358280])
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(describe(&result[0]), ("kanji", 1358280, "食べる"));
@@ -355,11 +378,11 @@ mod find_words_seqs {
 
     /// All kanji rows precede all kana rows; order within each partition
     /// is the database's.
-    #[tokio::test]
-    async fn mixed_partition() {
-        let ctx = ctx().await;
+    #[test]
+    fn mixed_partition() {
+        let ctx = ctx();
         let result = find_words_seqs(&ctx, &["見る", "みる", "食べる"], &[1259290, 1358280])
-            .await
+            
             .unwrap();
         assert_eq!(result.len(), 3);
         let kana_start = result
@@ -385,20 +408,20 @@ mod find_words_seqs {
 
     /// The word matches a row but no row carries the requested seq, so the
     /// seq filter empties the result.
-    #[tokio::test]
-    async fn no_match_seq() {
-        let ctx = ctx().await;
+    #[test]
+    fn no_match_seq() {
+        let ctx = ctx();
         let result = find_words_seqs(&ctx, &["食べる"], &[9999999])
-            .await
+            
             .unwrap();
         assert!(result.is_empty());
     }
 
     /// Empty `words` skips every query and returns nothing.
-    #[tokio::test]
-    async fn empty_words() {
-        let ctx = ctx().await;
-        let result = find_words_seqs(&ctx, &[], &[1358280]).await.unwrap();
+    #[test]
+    fn empty_words() {
+        let ctx = ctx();
+        let result = find_words_seqs(&ctx, &[], &[1358280]).unwrap();
         assert!(result.is_empty());
     }
 }
@@ -406,15 +429,13 @@ mod find_words_seqs {
 mod word_readings {
     use crate::dict::readings::*;
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
-    #[tokio::test]
-    async fn word_readings_fixtures() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn word_readings_fixtures() {
+        let ctx = ctx_from_env();
         // (word, readings, romanizations). Cases cover:
         // - kana branch (word is itself in kana-text): word returned verbatim;
         // - kanji branch (ORDER BY id over the kana spellings): single & multi;
@@ -442,7 +463,7 @@ mod word_readings {
             ("ヌルポポポ", &[], &[]),
         ];
         for (word, exp_readings, exp_rom) in cases {
-            let (readings, romanizations) = word_readings(&ctx, word).await.unwrap();
+            let (readings, romanizations) = word_readings(&ctx, word).unwrap();
             assert_eq!(&readings, exp_readings, "readings for {word}");
             assert_eq!(&romanizations, exp_rom, "romanizations for {word}");
         }

@@ -6,15 +6,34 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[features]
+default = ["rkyv"]
+# The rkyv-backed dictionary store — the default runtime backend. Reads
+# every lookup from a memory-mapped archive
+# (DATABASE_URL=memory://<archive path>), so the default build is
+# synchronous and never links sqlx or tokio.
+rkyv = ["dep:rkyv", "dep:memmap2"]
+# Optional Postgres backend, runtime-swappable with rkyv
+# (DATABASE_URL=postgres://...). Pulls in sqlx + tokio; the Postgres
+# queries run synchronously by blocking on a private tokio runtime.
+postgres = ["dep:sqlx", "dep:tokio"]
+# Derive `clap::ValueEnum` on `serializers::Format` so binaries can accept it
+# as a `--format` flag. Off by default — the library itself parses no args.
+clap = ["dep:clap"]
+
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
 fancy-regex = { workspace = true }
 similar = { workspace = true }
-sqlx = { workspace = true }
-tokio = { workspace = true }
+sqlx = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
 config = { workspace = true }
 thiserror = { workspace = true }
 unicode-properties = { workspace = true }
 roxmltree = { workspace = true }
 indexmap = { workspace = true }
+smallvec = { workspace = true }
+rkyv = { workspace = true, optional = true }
+memmap2 = { workspace = true, optional = true }
+clap = { version = "4", features = ["derive"], optional = true }

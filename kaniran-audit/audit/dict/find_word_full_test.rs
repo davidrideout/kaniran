@@ -24,7 +24,7 @@ use common::{parse_captured_word, CapturedRow};
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:FIND-WORD-FULL";
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.is_empty() {
         return Err("find-word-full args empty".into());
     }
@@ -34,7 +34,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     let (as_hiragana, counter) = parse_keywords(&row.args[1..])?;
 
     let mut actual = find_word_full(ctx, word, as_hiragana, counter)
-        .await
+        
         .map_err(|err| format!("find_word_full query: {}", err))?;
 
     // dict.lisp:491-493 — *substring-hash* `make-instance` branch leaves
@@ -205,7 +205,6 @@ fn strip_ids_counter(counter: &mut Counter) {
     }
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

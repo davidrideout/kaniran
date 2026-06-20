@@ -11,8 +11,6 @@ name = "kaniran-cli"
 path = "src/main.rs"
 
 [dependencies]
-kaniran-core = { path = "../kaniran-core" }
-serde_json = { workspace = true }
-sqlx = { workspace = true }
-tokio = { workspace = true }
+kaniran-core = { path = "../kaniran-core", features = ["clap"] }
+mimalloc = { workspace = true }
 clap = { version = "4", features = ["derive"] }

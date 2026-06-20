@@ -23,7 +23,7 @@ use common::{parse_captured_word, CapturedRow};
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:MATCH-UNIQUE";
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.len() != 2 {
         return Err(format!("expected 2 args, got {}", row.args.len()));
     }
@@ -45,7 +45,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
         .collect::<Result<_, _>>()?;
 
     let actual = match_unique(ctx, &lookup_class, &matches)
-        .await
+        
         .map_err(|err| format!("match_unique query: {}", err))?;
 
     if row.result.is_empty() {
@@ -144,7 +144,6 @@ fn compare(
     }
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

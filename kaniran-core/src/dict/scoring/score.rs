@@ -1,8 +1,10 @@
+use crate::conn::kani_backend::KaniBackend;
 use crate::characters::char_class::get_char_class;
 use crate::characters::constants::{ITERATION_CHARACTERS, KANA_CHARACTERS, MODIFIER_CHARACTERS};
 use crate::characters::kana::{long_vowel_modifier_p, mora_length};
 use crate::characters::kani_kana_class::KanaClass;
 use crate::conn::kani_context::KaniranContext;
+use crate::conn::kani_backend::KaniStore;
 use crate::dict::conj::ConjData;
 use crate::dict::errata::NO_KANJI_BREAK_PENALTY;
 use crate::dict::grammar::suffix::resolve::get_suffixes;
@@ -10,7 +12,6 @@ use crate::dict::kani_word::KaniWordDispatchEnum;
 use crate::dict::path::TopArray;
 use crate::dict::scoring::calc_score::calc_score;
 use crate::dict::text_classes::ScoreMod;
-use sqlx::PgPool;
 use std::collections::HashSet;
 
 /// Port of `ichiran/dict:*is-arch-cache*` (`dict.lisp:745`).
@@ -21,23 +22,9 @@ pub fn is_arch_cache(ctx: &KaniranContext) -> &HashSet<i32> {
     &ctx.is_arch
 }
 
-pub async fn build_is_arch(pool: &PgPool) -> Result<HashSet<i32>, sqlx::Error> {
-    let a1: Vec<i32> = sqlx::query_scalar(
-        "SELECT sense.seq FROM sense \
-         LEFT JOIN sense_prop sp \
-                ON sp.sense_id = sense.id \
-               AND sp.tag = 'misc' \
-               AND sp.text IN ('arch', 'obsc', 'rare') \
-         GROUP BY sense.seq \
-         HAVING bool_and(sp.id IS NOT NULL)",
-    )
-    .fetch_all(pool)
-    .await?;
-    let a2: Vec<i32> =
-        sqlx::query_scalar("SELECT DISTINCT seq FROM conjugation WHERE \"from\" = ANY($1)")
-            .bind(&a1)
-            .fetch_all(pool)
-            .await?;
+pub fn build_is_arch(store: &KaniStore) -> Result<HashSet<i32>, crate::conn::KaniDbError> {
+    let a1: Vec<i32> = store.arch_only_seqs()?;
+    let a2: Vec<i32> = store.conj_seqs_from_any(&a1)?;
     let mut set: HashSet<i32> = a1.into_iter().collect();
     set.extend(a2);
     Ok(set)
@@ -282,7 +269,7 @@ fn classify_end(kanji_break: &[usize]) -> KanjiBreakEnd {
     }
 }
 
-pub async fn kanji_break_penalty(
+pub fn kanji_break_penalty(
     ctx: &KaniranContext,
     kanji_break: &[usize],
     score: i32,
@@ -290,7 +277,7 @@ pub async fn kanji_break_penalty(
     text: &str,
     use_length: Option<i32>,
     score_mod: Option<&ScoreMod>,
-) -> Result<i32, sqlx::Error> {
+) -> Result<i32, crate::conn::KaniDbError> {
     // dict.lisp:703-707 (let ((end ...) (bonus 0) (ratio 2) (posi (and info (getf info :posi)))))
     let end = classify_end(kanji_break);
     let mut bonus: i32 = 0;
@@ -306,7 +293,7 @@ pub async fn kanji_break_penalty(
             .seq_set
             .iter()
             .any(|s| NO_KANJI_BREAK_PENALTY.contains(s));
-        let starts_with_su = end == KanjiBreakEnd::Beg && text.chars().next() == Some('す');
+        let starts_with_su = end == KanjiBreakEnd::Beg && text.starts_with('す');
         if seq_set_intersects || starts_with_su {
             return Ok(score);
         }
@@ -349,15 +336,15 @@ pub async fn kanji_break_penalty(
                 //                     :score-mod score-mod)
                 let use_length_recur = use_length.map(|ul| ul - offset);
                 let kf_word: KaniWordDispatchEnum = KaniWordDispatchEnum::Kana((*kf).clone());
-                let (suffix_score, _info) = Box::pin(calc_score(
+                let (suffix_score, _info) = calc_score(
                     ctx,
                     &kf_word,
                     false,
                     use_length_recur,
                     score_mod,
                     &[],
-                ))
-                .await?;
+                )
+                ?;
                 // dict.lisp:721 (return-from kanji-break-penalty (min score (+ suffix-score 50)))
                 return Ok(score.min(suffix_score + 50));
             }
@@ -402,24 +389,16 @@ pub fn is_arch(ctx: &KaniranContext, seq: i32) -> bool {
 /// Returns the distinct list of `pos`-tagged property values for senses
 /// inside `seq_set` whose containing sense does NOT carry an `arch` /
 /// `obsc` / `rare` misc tag (an anti-join via `sp2.id IS NULL`).
-pub async fn get_non_arch_posi(
+pub fn get_non_arch_posi(
     ctx: &KaniranContext,
     seq_set: &[i32],
-) -> Result<Vec<String>, sqlx::Error> {
-    sqlx::query_scalar(
-        "SELECT DISTINCT sp1.text \
-         FROM sense_prop sp1 \
-         LEFT JOIN sense_prop sp2 \
-                ON sp1.sense_id = sp2.sense_id \
-               AND sp2.tag = 'misc' \
-               AND sp2.text IN ('arch', 'obsc', 'rare') \
-         WHERE sp1.seq = ANY($1) \
-           AND sp1.tag = 'pos' \
-           AND sp2.id IS NULL",
-    )
-    .bind(seq_set)
-    .fetch_all(&ctx.pool)
-    .await
+) -> Result<Vec<String>, crate::conn::KaniDbError> {
+    Ok(ctx
+        .store
+        .non_arch_posi(seq_set)?
+        .into_iter()
+        .map(|posi| posi.into_owned())
+        .collect())
 }
 
 /// Port of `ichiran/dict:gen-score` (`dict.lisp:985`).
@@ -427,12 +406,12 @@ pub async fn get_non_arch_posi(
 /// Mutates `segment.score` and `segment.info` in place with the
 /// `(score, info)` pair returned by [`calc_score`], then returns the
 /// same segment so call sites can chain.
-pub async fn gen_score<'a>(
+pub fn gen_score<'a>(
     ctx: &KaniranContext,
     segment: &'a mut Segment,
     final_: bool,
     kanji_break: &[usize],
-) -> Result<&'a mut Segment, sqlx::Error> {
+) -> Result<&'a mut Segment, crate::conn::KaniDbError> {
     // dict.lisp:986-987 — (setf (values (segment-score segment) (segment-info segment))
     //                       (calc-score (segment-word segment) :final final :kanji-break kanji-break))
     let (score, info) = calc_score(
@@ -443,7 +422,7 @@ pub async fn gen_score<'a>(
         /* score_mod */ None,
         kanji_break,
     )
-    .await?;
+    ?;
     segment.score = Some(score);
     segment.info = info;
     // dict.lisp:988 — segment (the function returns the same segment).

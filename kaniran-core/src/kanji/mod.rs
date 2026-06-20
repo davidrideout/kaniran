@@ -7,7 +7,6 @@
 
 pub mod kani_kanji_reading;
 pub mod dao;
-pub mod loaders;
 pub mod readings;
 pub mod matching;
 pub mod stats;

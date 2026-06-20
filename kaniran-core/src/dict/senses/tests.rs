@@ -2,23 +2,21 @@ mod get_senses_raw {
     use crate::dict::senses::*;
     // Run with `--test-threads=1` (database tests).
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
-    #[tokio::test]
-    async fn unknown_seq_returns_empty() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses_raw(&ctx, 999999).await.unwrap();
+    #[test]
+    fn unknown_seq_returns_empty() {
+        let ctx = ctx_from_env();
+        let result = get_senses_raw(&ctx, 999999).unwrap();
         assert_eq!(result, Vec::<RawSense>::new());
     }
 
-    #[tokio::test]
-    async fn simple_single_sense() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses_raw(&ctx, 1582710).await.unwrap();
+    #[test]
+    fn simple_single_sense() {
+        let ctx = ctx_from_env();
+        let result = get_senses_raw(&ctx, 1582710).unwrap();
         assert_eq!(
             result,
             vec![RawSense {
@@ -29,10 +27,10 @@ mod get_senses_raw {
         );
     }
 
-    #[tokio::test]
-    async fn multi_value_pos_single_sense() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses_raw(&ctx, 1577900).await.unwrap();
+    #[test]
+    fn multi_value_pos_single_sense() {
+        let ctx = ctx_from_env();
+        let result = get_senses_raw(&ctx, 1577900).unwrap();
         assert_eq!(
             result,
             vec![RawSense {
@@ -46,11 +44,11 @@ mod get_senses_raw {
         );
     }
 
-    #[tokio::test]
-    async fn field_tag_present() {
+    #[test]
+    fn field_tag_present() {
         // A "field" prop ("food") sits alongside "pos" in the props list.
-        let ctx = ctx_from_env().await;
-        let result = get_senses_raw(&ctx, 1001390).await.unwrap();
+        let ctx = ctx_from_env();
+        let result = get_senses_raw(&ctx, 1001390).unwrap();
         assert_eq!(
             result,
             vec![RawSense {
@@ -64,11 +62,11 @@ mod get_senses_raw {
         );
     }
 
-    #[tokio::test]
-    async fn stagk_tag_and_multiple_pos() {
+    #[test]
+    fn stagk_tag_and_multiple_pos() {
         // A "stagk" prop and a multi-value "pos" prop both come through.
-        let ctx = ctx_from_env().await;
-        let result = get_senses_raw(&ctx, 1000300).await.unwrap();
+        let ctx = ctx_from_env();
+        let result = get_senses_raw(&ctx, 1000300).unwrap();
         assert_eq!(
             result,
             vec![
@@ -95,12 +93,12 @@ mod get_senses_raw {
         );
     }
 
-    #[tokio::test]
-    async fn final_group_bag_not_reversed_asymmetry() {
+    #[test]
+    fn final_group_bag_not_reversed_asymmetry() {
         // Two senses hold the same two stagr values but in opposite order: the
         // last sense's values come out unreversed relative to the others.
-        let ctx = ctx_from_env().await;
-        let result = get_senses_raw(&ctx, 1011960).await.unwrap();
+        let ctx = ctx_from_env();
+        let result = get_senses_raw(&ctx, 1011960).unwrap();
         assert_eq!(
             result,
             vec![
@@ -144,11 +142,11 @@ mod get_senses_raw {
         );
     }
 
-    #[tokio::test]
-    async fn sense_with_no_props_yields_empty_props() {
+    #[test]
+    fn sense_with_no_props_yields_empty_props() {
         // A sense with no props comes back with an empty props list.
-        let ctx = ctx_from_env().await;
-        let result = get_senses_raw(&ctx, 1447690).await.unwrap();
+        let ctx = ctx_from_env();
+        let result = get_senses_raw(&ctx, 1447690).unwrap();
         assert_eq!(
             result,
             vec![
@@ -171,23 +169,21 @@ mod get_senses {
     use crate::dict::senses::*;
     // Run with `--test-threads=1` (database tests).
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
-    #[tokio::test]
-    async fn unknown_seq_returns_empty() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses(&ctx, 999999).await.unwrap();
+    #[test]
+    fn unknown_seq_returns_empty() {
+        let ctx = ctx_from_env();
+        let result = get_senses(&ctx, 999999).unwrap();
         assert!(result.is_empty());
     }
 
-    #[tokio::test]
-    async fn simple_single_sense() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses(&ctx, 1582710).await.unwrap();
+    #[test]
+    fn simple_single_sense() {
+        let ctx = ctx_from_env();
+        let result = get_senses(&ctx, 1582710).unwrap();
         assert_eq!(
             result,
             vec![(
@@ -198,10 +194,10 @@ mod get_senses {
         );
     }
 
-    #[tokio::test]
-    async fn multi_value_pos() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses(&ctx, 1577900).await.unwrap();
+    #[test]
+    fn multi_value_pos() {
+        let ctx = ctx_from_env();
+        let result = get_senses(&ctx, 1577900).unwrap();
         assert_eq!(
             result,
             vec![(
@@ -215,10 +211,10 @@ mod get_senses {
         );
     }
 
-    #[tokio::test]
-    async fn field_tag_preserved_in_props() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses(&ctx, 1001390).await.unwrap();
+    #[test]
+    fn field_tag_preserved_in_props() {
+        let ctx = ctx_from_env();
+        let result = get_senses(&ctx, 1001390).unwrap();
         assert_eq!(
             result,
             vec![(
@@ -232,10 +228,10 @@ mod get_senses {
         );
     }
 
-    #[tokio::test]
-    async fn second_sense_no_pos_yields_empty_brackets() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses(&ctx, 1447690).await.unwrap();
+    #[test]
+    fn second_sense_no_pos_yields_empty_brackets() {
+        let ctx = ctx_from_env();
+        let result = get_senses(&ctx, 1447690).unwrap();
         assert_eq!(
             result,
             vec![
@@ -254,92 +250,90 @@ mod get_senses_str {
     use crate::dict::senses::*;
     // Run with `--test-threads=1` (database tests).
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
-    #[tokio::test]
-    async fn unknown_seq_yields_empty_string() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses_str(&ctx, 999999).await.unwrap();
+    #[test]
+    fn unknown_seq_yields_empty_string() {
+        let ctx = ctx_from_env();
+        let result = get_senses_str(&ctx, 999999).unwrap();
         assert_eq!(result, "");
     }
 
-    #[tokio::test]
-    async fn simple_single_sense() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses_str(&ctx, 1582710).await.unwrap();
+    #[test]
+    fn simple_single_sense() {
+        let ctx = ctx_from_env();
+        let result = get_senses_str(&ctx, 1582710).unwrap();
         assert_eq!(result, "1. [n] Japan");
     }
 
-    #[tokio::test]
-    async fn multi_value_pos() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses_str(&ctx, 1577900).await.unwrap();
+    #[test]
+    fn multi_value_pos() {
+        let ctx = ctx_from_env();
+        let result = get_senses_str(&ctx, 1577900).unwrap();
         assert_eq!(result, "1. [adj-no,n] eternity");
     }
 
-    #[tokio::test]
-    async fn field_braced_before_gloss() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses_str(&ctx, 1001390).await.unwrap();
+    #[test]
+    fn field_braced_before_gloss() {
+        let ctx = ctx_from_env();
+        let result = get_senses_str(&ctx, 1001390).unwrap();
         assert_eq!(
             result,
             "1. [n] {food} oden; dish of various ingredients, e.g. egg, daikon, potato, chikuwa, konnyaku stewed in soy-flavored dashi"
         );
     }
 
-    #[tokio::test]
-    async fn multi_field_joined_by_comma() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses_str(&ctx, 1014100).await.unwrap();
+    #[test]
+    fn multi_field_joined_by_comma() {
+        let ctx = ctx_from_env();
+        let result = get_senses_str(&ctx, 1014100).unwrap();
         assert_eq!(result, "1. [n] {physics,chem} isotope");
     }
 
-    #[tokio::test]
-    async fn s_inf_in_double_angle_brackets() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses_str(&ctx, 900000).await.unwrap();
+    #[test]
+    fn s_inf_in_double_angle_brackets() {
+        let ctx = ctx_from_env();
+        let result = get_senses_str(&ctx, 900000).unwrap();
         assert_eq!(
             result,
             "1. [suf] 《after the -masu stem of a verb》 to seem to want to (do something)"
         );
     }
 
-    #[tokio::test]
-    async fn field_and_s_inf_both_present() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses_str(&ctx, 1005660).await.unwrap();
+    #[test]
+    fn field_and_s_inf_both_present() {
+        let ctx = ctx_from_env();
+        let result = get_senses_str(&ctx, 1005660).unwrap();
         assert_eq!(
             result,
             "1. [n] {food} 《from the sound of the dish being prepared》 shabu-shabu; hot pot dish where thinly sliced meat is boiled quickly and then dipped in sauce"
         );
     }
 
-    #[tokio::test]
-    async fn multi_sense_separated_by_newline_no_trailing() {
+    #[test]
+    fn multi_sense_separated_by_newline_no_trailing() {
         // Sense 2 has an empty pos, so it inherits sense 1's "[n]".
-        let ctx = ctx_from_env().await;
-        let result = get_senses_str(&ctx, 1447690).await.unwrap();
+        let ctx = ctx_from_env();
+        let result = get_senses_str(&ctx, 1447690).unwrap();
         assert_eq!(result, "1. [n] Tokyo\n2. [n] Tokyo Metropolis");
     }
 
-    #[tokio::test]
-    async fn three_senses_mixed_props() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses_str(&ctx, 1011960).await.unwrap();
+    #[test]
+    fn three_senses_mixed_props() {
+        let ctx = ctx_from_env();
+        let result = get_senses_str(&ctx, 1011960).unwrap();
         assert_eq!(
             result,
             "1. [adv,adv-to,vs] dripping; trickling; drop by drop; in drops\n2. [adv,adv-to,vs] wet and heavy (snow, clay, etc.)\n3. [adv,adv-to] (moving) slowly"
         );
     }
 
-    #[tokio::test]
-    async fn five_senses_with_s_inf_subset() {
-        let ctx = ctx_from_env().await;
-        let result = get_senses_str(&ctx, 1000090).await.unwrap();
+    #[test]
+    fn five_senses_with_s_inf_subset() {
+        let ctx = ctx_from_env();
+        let result = get_senses_str(&ctx, 1000090).unwrap();
         assert_eq!(
             result,
             "1. [n] 《sometimes used for zero》 circle\n2. [n] 《when marking a test, homework, etc.》 \"correct\"; \"good\"\n3. [unc] 《placeholder used to censor individual characters or indicate a space to be filled in》 *; _\n4. [n] period; full stop\n5. [n] handakuten (diacritic)"
@@ -357,10 +351,10 @@ mod match_kana_kanji {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: text.into(),
+            text: text.to_string().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji,
             best_kanji: None,
@@ -372,10 +366,10 @@ mod match_kana_kanji {
         KaniWordDispatchEnum::Kanji(KanjiText {
             id: 0,
             seq: 0,
-            text: text.into(),
+            text: text.to_string().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kana: None,
@@ -465,15 +459,13 @@ mod match_sense_restrictions {
     use crate::dict::senses::*;
     use std::sync::Arc;
 
-    async fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
-    async fn props_of(ctx: &KaniranContext, seq: i32, ord: i32) -> Vec<(String, Vec<String>)> {
+    fn props_of(ctx: &KaniranContext, seq: i32, ord: i32) -> Vec<(String, Vec<String>)> {
         get_senses_raw(ctx, seq)
-            .await
+            
             .unwrap()
             .into_iter()
             .find(|s| s.ord == ord)
@@ -481,29 +473,34 @@ mod match_sense_restrictions {
             .props
     }
 
-    async fn reading_of(
+    #[cfg(feature = "postgres")]
+    fn reading_of(
         ctx: &KaniranContext,
         seq: i32,
         text: &str,
         kanji: bool,
     ) -> KaniWordDispatchEnum {
         if kanji {
-            let row: KanjiText =
-                sqlx::query_as("SELECT * FROM kanji_text WHERE seq = $1 AND text = $2")
-                    .bind(seq)
-                    .bind(text)
-                    .fetch_one(&ctx.pool)
-                    .await
-                    .unwrap();
+            let row: KanjiText = tokio::runtime::Runtime::new()
+                .expect("tokio runtime")
+                .block_on(
+                    sqlx::query_as("SELECT * FROM kanji_text WHERE seq = $1 AND text = $2")
+                        .bind(seq)
+                        .bind(text)
+                        .fetch_one(ctx.pool.as_ref().expect("postgres pool")),
+                )
+                .unwrap();
             KaniWordDispatchEnum::Kanji(row)
         } else {
-            let row: KanaText =
-                sqlx::query_as("SELECT * FROM kana_text WHERE seq = $1 AND text = $2")
-                    .bind(seq)
-                    .bind(text)
-                    .fetch_one(&ctx.pool)
-                    .await
-                    .unwrap();
+            let row: KanaText = tokio::runtime::Runtime::new()
+                .expect("tokio runtime")
+                .block_on(
+                    sqlx::query_as("SELECT * FROM kana_text WHERE seq = $1 AND text = $2")
+                        .bind(seq)
+                        .bind(text)
+                        .fetch_one(ctx.pool.as_ref().expect("postgres pool")),
+                )
+                .unwrap();
             KaniWordDispatchEnum::Kana(row)
         }
     }
@@ -514,9 +511,10 @@ mod match_sense_restrictions {
     /// restriction list resolved against the database to accept or reject a
     /// kanji; and the case where a kana reading resolves to a specific
     /// matched kanji string.
-    #[tokio::test]
-    async fn match_sense_restrictions_fixtures() {
-        let ctx = ctx_from_env().await;
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn match_sense_restrictions_fixtures() {
+        let ctx = ctx_from_env();
 
         struct Case {
             seq: i32,
@@ -663,10 +661,10 @@ mod match_sense_restrictions {
         ];
 
         for case in &cases {
-            let props = props_of(&ctx, case.seq, case.ord).await;
-            let reading = reading_of(&ctx, case.seq, case.text, case.kanji).await;
+            let props = props_of(&ctx, case.seq, case.ord);
+            let reading = reading_of(&ctx, case.seq, case.text, case.kanji);
             let actual = match_sense_restrictions(&ctx, case.seq, &props, &reading)
-                .await
+                
                 .unwrap();
             assert_eq!(
                 actual, case.expected,
@@ -697,41 +695,45 @@ mod split_pos {
 }
 
 mod get_senses_json {
-    use crate::dict::dao::KanaText;
-    use crate::dict::dao::KanjiText;
+    
+    
     use crate::dict::senses::*;
-    use std::future::Ready;
     use std::sync::Arc;
 
-    type GetterFut = Ready<Result<Option<KaniWordDispatchEnum>, sqlx::Error>>;
+    type GetterFut = fn() -> Result<Option<KaniWordDispatchEnum>, crate::conn::KaniDbError>;
 
-    async fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     fn json(values: &[Value]) -> String {
         serde_json::to_string(values).unwrap()
     }
 
-    async fn kanji_reading(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
-        let row: KanjiText =
-            sqlx::query_as("SELECT * FROM kanji_text WHERE seq = $1 AND text = $2")
-                .bind(seq)
-                .bind(text)
-                .fetch_one(&ctx.pool)
-                .await
-                .unwrap();
+    #[cfg(feature = "postgres")]
+    fn kanji_reading(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
+        let row: KanjiText = tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_as("SELECT * FROM kanji_text WHERE seq = $1 AND text = $2")
+                    .bind(seq)
+                    .bind(text)
+                    .fetch_one(ctx.pool.as_ref().expect("postgres pool")),
+            )
+            .unwrap();
         KaniWordDispatchEnum::Kanji(row)
     }
 
-    async fn kana_reading(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
-        let row: KanaText = sqlx::query_as("SELECT * FROM kana_text WHERE seq = $1 AND text = $2")
-            .bind(seq)
-            .bind(text)
-            .fetch_one(&ctx.pool)
-            .await
+    #[cfg(feature = "postgres")]
+    fn kana_reading(ctx: &KaniranContext, seq: i32, text: &str) -> KaniWordDispatchEnum {
+        let row: KanaText = tokio::runtime::Runtime::new()
+            .expect("tokio runtime")
+            .block_on(
+                sqlx::query_as("SELECT * FROM kana_text WHERE seq = $1 AND text = $2")
+                    .bind(seq)
+                    .bind(text)
+                    .fetch_one(ctx.pool.as_ref().expect("postgres pool")),
+            )
             .unwrap();
         KaniWordDispatchEnum::Kana(row)
     }
@@ -740,9 +742,9 @@ mod get_senses_json {
     /// field ({food}), a multi-pos bracket ([adj-no,n]), a second sense with
     /// empty pos inheriting the first sense's pos, and the s_inf note rendered
     /// into an `info` field with non-ASCII text.
-    #[tokio::test]
-    async fn plain_collect_all() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn plain_collect_all() {
+        let ctx = ctx_from_env();
         let cases: &[(i32, &str)] = &[
             (
                 1001390,
@@ -764,7 +766,7 @@ mod get_senses_json {
         ];
         for (seq, expected) in cases {
             let result = get_senses_json(&ctx, *seq, &[], None, None::<GetterFut>)
-                .await
+                
                 .unwrap();
             assert_eq!(json(&result), *expected, "seq={seq}");
         }
@@ -774,9 +776,9 @@ mod get_senses_json {
     /// A matching pos keeps the sense, a non-matching one drops it, a sense
     /// with empty pos inherits and matches the prior sense's pos, and a
     /// `ctr` filter keeps only the counter sense.
-    #[tokio::test]
-    async fn pos_list_filter() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn pos_list_filter() {
+        let ctx = ctx_from_env();
         struct Case {
             seq: i32,
             pos: Vec<String>,
@@ -811,7 +813,7 @@ mod get_senses_json {
         ];
         for case in &cases {
             let result = get_senses_json(&ctx, case.seq, &case.pos, None, None::<GetterFut>)
-                .await
+                
                 .unwrap();
             assert_eq!(
                 json(&result),
@@ -826,42 +828,43 @@ mod get_senses_json {
     /// When a reading is supplied, senses are filtered by their reading
     /// restrictions: a listed kanji or kana passes, a non-listed kanji is
     /// dropped, and a kana that resolves to a listed kanji passes.
-    #[tokio::test]
-    async fn reading_restriction() {
-        let ctx = ctx_from_env().await;
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn reading_restriction() {
+        let ctx = ctx_from_env();
         let both_dashi = r#"[{"pos":"[n]","gloss":"dashi; Japanese soup stock made from fish and kelp","field":"{food}"},{"pos":"[n]","gloss":"pretext; excuse; pretense (pretence); dupe; front man"}]"#;
         let one_dashi = r#"[{"pos":"[n]","gloss":"dashi; Japanese soup stock made from fish and kelp","field":"{food}"}]"#;
         let one_taro = r#"[{"pos":"[n]","gloss":"unemployed person; vagabond; floater; vagrant"}]"#;
         let both_taro = r#"[{"pos":"[n]","gloss":"unemployed person; vagabond; floater; vagrant"},{"pos":"[n]","gloss":"day labourer (esp. on the docks)"}]"#;
 
         // 出汁 (kanji): not in the restriction, so sense 1 is filtered out.
-        let reading = kanji_reading(&ctx, 1339160, "出汁").await;
+        let reading = kanji_reading(&ctx, 1339160, "出汁");
         let result = get_senses_json(&ctx, 1339160, &[], Some(reading), None::<GetterFut>)
-            .await
+            
             .unwrap();
         assert_eq!(json(&result), one_dashi, "1339160 出汁");
         // 出し (kanji): listed in the restriction, so both senses pass.
-        let reading = kanji_reading(&ctx, 1339160, "出し").await;
+        let reading = kanji_reading(&ctx, 1339160, "出し");
         let result = get_senses_json(&ctx, 1339160, &[], Some(reading), None::<GetterFut>)
-            .await
+            
             .unwrap();
         assert_eq!(json(&result), both_dashi, "1339160 出し");
         // ダシ (kana): listed in the restriction, so both senses pass.
-        let reading = kana_reading(&ctx, 1339160, "ダシ").await;
+        let reading = kana_reading(&ctx, 1339160, "ダシ");
         let result = get_senses_json(&ctx, 1339160, &[], Some(reading), None::<GetterFut>)
-            .await
+            
             .unwrap();
         assert_eq!(json(&result), both_dashi, "1339160 ダシ");
         // プー太郎 (kanji): not in the restriction, so sense 1 is filtered out.
-        let reading = kanji_reading(&ctx, 1115120, "プー太郎").await;
+        let reading = kanji_reading(&ctx, 1115120, "プー太郎");
         let result = get_senses_json(&ctx, 1115120, &[], Some(reading), None::<GetterFut>)
-            .await
+            
             .unwrap();
         assert_eq!(json(&result), one_taro, "1115120 プー太郎");
         // ぷうたろう (kana): resolves to the listed kanji 風太郎, so sense 1 passes.
-        let reading = kana_reading(&ctx, 1115120, "ぷうたろう").await;
+        let reading = kana_reading(&ctx, 1115120, "ぷうたろう");
         let result = get_senses_json(&ctx, 1115120, &[], Some(reading), None::<GetterFut>)
-            .await
+            
             .unwrap();
         assert_eq!(json(&result), both_taro, "1115120 ぷうたろう");
     }
@@ -870,41 +873,42 @@ mod get_senses_json {
     /// reading: a getter yielding 出汁 filters the restricted sense out, and a
     /// getter yielding nothing leaves it in. The getter fires only once even
     /// across multiple restricted senses; the resolved reading is reused.
-    #[tokio::test]
-    async fn reading_getter_path() {
-        let ctx = ctx_from_env().await;
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn reading_getter_path() {
+        let ctx = ctx_from_env();
         let one_dashi = r#"[{"pos":"[n]","gloss":"dashi; Japanese soup stock made from fish and kelp","field":"{food}"}]"#;
         let both_dashi = r#"[{"pos":"[n]","gloss":"dashi; Japanese soup stock made from fish and kelp","field":"{food}"},{"pos":"[n]","gloss":"pretext; excuse; pretense (pretence); dupe; front man"}]"#;
         let all_bota = r#"[{"pos":"[adv,adv-to,vs]","gloss":"dripping; trickling; drop by drop; in drops"},{"pos":"[adv,adv-to,vs]","gloss":"wet and heavy (snow, clay, etc.)"},{"pos":"[adv,adv-to]","gloss":"(moving) slowly"}]"#;
 
         // Getter yields 出汁: sense 1 is filtered out.
-        let reading = kanji_reading(&ctx, 1339160, "出汁").await;
-        let getter = std::future::ready(Ok(Some(reading)));
+        let reading = kanji_reading(&ctx, 1339160, "出汁");
+        let getter = move || Ok(Some(reading));
         let result = get_senses_json(&ctx, 1339160, &[], None, Some(getter))
-            .await
+            
             .unwrap();
         assert_eq!(json(&result), one_dashi, "getter 出汁");
 
         // Getter yields nothing: the restricted sense passes.
-        let getter = std::future::ready(Ok(None));
+        let getter = || Ok(None);
         let result = get_senses_json(&ctx, 1339160, &[], None, Some(getter))
-            .await
+            
             .unwrap();
         assert_eq!(json(&result), both_dashi, "getter nil");
 
         // Two restricted senses, getter yields nothing: both senses kept.
-        let getter = std::future::ready(Ok(None));
+        let getter = || Ok(None);
         let result = get_senses_json(&ctx, 1011960, &[], None, Some(getter))
-            .await
+            
             .unwrap();
         assert_eq!(json(&result), all_bota, "getter nil, two stag senses");
 
         // Two restricted senses, getter yields ぼたぼた (listed in both):
         // the resolved reading is reused, all three senses kept.
-        let reading = kana_reading(&ctx, 1011960, "ぼたぼた").await;
-        let getter = std::future::ready(Ok(Some(reading)));
+        let reading = kana_reading(&ctx, 1011960, "ぼたぼた");
+        let getter = move || Ok(Some(reading));
         let result = get_senses_json(&ctx, 1011960, &[], None, Some(getter))
-            .await
+            
             .unwrap();
         assert_eq!(json(&result), all_bota, "getter ぼたぼた, two stag senses");
     }
@@ -913,18 +917,16 @@ mod get_senses_json {
 mod short_sense_str {
     use crate::dict::senses::*;
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// With no pos given, returns the first sense's gloss. With a pos, returns
     /// the matching sense's gloss, or nothing when no sense matches. An unknown
     /// sequence returns nothing.
-    #[tokio::test]
-    async fn short_sense_str_fixtures() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn short_sense_str_fixtures() {
+        let ctx = ctx_from_env();
         let cases: &[(i32, Option<&str>, Option<&str>)] = &[
             (1582710, None, Some("Japan")),
             (1358280, None, Some("to eat")),
@@ -938,7 +940,7 @@ mod short_sense_str {
         for (seq, with_pos, expected) in cases {
             assert_eq!(
                 short_sense_str(&ctx, *seq, *with_pos)
-                    .await
+                    
                     .unwrap()
                     .as_deref(),
                 *expected,

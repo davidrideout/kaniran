@@ -8,10 +8,10 @@ mod make_segment_list_from {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -35,8 +35,8 @@ mod make_segment_list_from {
     fn swaps_segments_preserves_other_slots() {
         // Builds a new segment list with replacement segments while keeping
         // start/end/matches, and leaves the source untouched.
-        let seg1 = seg_with_score(10);
-        let seg2 = seg_with_score(20);
+        let seg1 = std::sync::Arc::new(seg_with_score(10));
+        let seg2 = std::sync::Arc::new(seg_with_score(20));
         let sl = SegmentList {
             segments: vec![seg1.clone(), seg2.clone()],
             start: 0,
@@ -67,10 +67,10 @@ mod filter_is_pos_macro {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -320,10 +320,10 @@ mod filter_in_seq_set {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -371,28 +371,28 @@ mod filter_in_seq_set {
     #[test]
     fn match_when_intersection_nonempty() {
         let seg = lite_with_seq_set(vec![100, 200]);
-        let f = filter_in_seq_set(vec![200, 400]);
+        let f = filter_in_seq_set(&[200, 400]);
         assert!(f(&seg));
     }
 
     #[test]
     fn no_match_when_disjoint() {
         let seg = lite_with_seq_set(vec![300]);
-        let f = filter_in_seq_set(vec![200, 400]);
+        let f = filter_in_seq_set(&[200, 400]);
         assert!(!f(&seg));
     }
 
     #[test]
     fn no_match_when_info_absent() {
         let seg = lite_no_info();
-        let f = filter_in_seq_set(vec![200, 400]);
+        let f = filter_in_seq_set(&[200, 400]);
         assert!(!f(&seg));
     }
 
     #[test]
     fn empty_seqs_never_matches() {
         let seg = lite_with_seq_set(vec![100, 200]);
-        let f = filter_in_seq_set(vec![]);
+        let f = filter_in_seq_set(&[]);
         assert!(!f(&seg));
     }
 }
@@ -410,10 +410,10 @@ mod synergy_noun_particle {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -447,7 +447,7 @@ mod synergy_noun_particle {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -566,10 +566,10 @@ mod synergy_noun_da {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -603,7 +603,7 @@ mod synergy_noun_da {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -699,10 +699,10 @@ mod synergy_no_da {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -736,7 +736,7 @@ mod synergy_no_da {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -818,10 +818,10 @@ mod synergy_sou_nanda {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -855,7 +855,7 @@ mod synergy_sou_nanda {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -919,10 +919,10 @@ mod synergy_no_adjectives {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -956,7 +956,7 @@ mod synergy_no_adjectives {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1090,10 +1090,10 @@ mod synergy_na_adjectives {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -1127,7 +1127,7 @@ mod synergy_na_adjectives {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1215,10 +1215,10 @@ mod synergy_to_adverbs {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -1252,7 +1252,7 @@ mod synergy_to_adverbs {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1470,10 +1470,10 @@ mod synergy_suffix_chu {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -1513,7 +1513,7 @@ mod synergy_suffix_chu {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1651,10 +1651,10 @@ mod synergy_suffix_tachi {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -1694,7 +1694,7 @@ mod synergy_suffix_tachi {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1836,10 +1836,10 @@ mod synergy_suffix_buri {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -1879,7 +1879,7 @@ mod synergy_suffix_buri {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -1994,10 +1994,10 @@ mod synergy_suffix_sei {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -2037,7 +2037,7 @@ mod synergy_suffix_sei {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2152,10 +2152,10 @@ mod synergy_o_prefix {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -2189,7 +2189,7 @@ mod synergy_o_prefix {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2306,10 +2306,10 @@ mod synergy_kanji_prefix {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -2343,7 +2343,7 @@ mod synergy_kanji_prefix {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2477,10 +2477,10 @@ mod synergy_shicha_ikenai {
         KanaText {
             id: 0,
             seq,
-            text: text.into(),
+            text: text.to_string().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -2535,7 +2535,7 @@ mod synergy_shicha_ikenai {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -2614,10 +2614,10 @@ mod synergy_shika_negative {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -2672,7 +2672,7 @@ mod synergy_shika_negative {
 
     fn lite_sl_owned(start: usize, end: usize, segments: Vec<Segment>) -> KaniLiteSegmentList {
         KaniLiteSegmentList::from_segment_list(&SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,

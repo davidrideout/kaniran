@@ -1781,28 +1781,28 @@ pub enum HintDispatch {
 /// seq groups. Returns [`HintDispatch::Unregistered`] when no entry
 /// matches; otherwise [`HintDispatch::Registered`] with the body's
 /// result.
-pub async fn hint_map_dispatch(
+pub fn hint_map_dispatch(
     ctx: &KaniranContext,
     seq: i32,
     reading: &KaniWordDispatchEnum,
-) -> Result<HintDispatch, sqlx::Error> {
+) -> Result<HintDispatch, crate::conn::KaniDbError> {
     // Easy-hints are checked first because they come after all
     // def-simple-hint forms in dict-split.lisp source, so their
     // `(setf (gethash ...))` overrides earlier registrations for
     // the same seq. (See module doc § "Order semantics".)
     if let Some(entry) = easy_hints_by_seq().get(&seq).copied() {
-        let result = run_easy_hint(ctx, entry, reading).await?;
+        let result = run_easy_hint(ctx, entry, reading)?;
         return Ok(HintDispatch::Registered(result));
     }
 
-    simple_hint_dispatch(ctx, seq, reading).await
+    simple_hint_dispatch(ctx, seq, reading)
 }
 
-async fn simple_hint_dispatch(
+fn simple_hint_dispatch(
     ctx: &KaniranContext,
     seq: i32,
     reading: &KaniWordDispatchEnum,
-) -> Result<HintDispatch, sqlx::Error> {
+) -> Result<HintDispatch, crate::conn::KaniDbError> {
     // Each match arm returns the `Option<String>` produced by its
     // hint body (Some = test-pass with hinted kana; None =
     // `:test` clause failed or `:from-end` search missed). Both
@@ -1813,20 +1813,20 @@ async fn simple_hint_dispatch(
     let result: Option<String> = match seq {
         // dict-split.lisp:1014 (def-simple-hint (2028920 2029000) (l) (:mod (- l 1)))
         2028920 | 2029000 => {
-            let Some((_kana, l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((_kana, l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let hints: Vec<_> = [safe_hint(KaniHintKind::Mod, l - 1)]
                 .into_iter()
                 .flatten()
                 .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1021 (def-simple-hint ;; no space — (l k)
         //   (:test (alexandria:ends-with #\は k)) (:mod (- l 1)))
         1289480 | 1289400 | 1008450 | 2215430 | 2028950 => {
-            let Some((kana, l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((kana, l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             if !ends_with_char(&kana, 'は') {
@@ -1836,7 +1836,7 @@ async fn simple_hint_dispatch(
                 .into_iter()
                 .flatten()
                 .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1032 (def-simple-hint ;; with space — (l k)
@@ -1849,7 +1849,7 @@ async fn simple_hint_dispatch(
         | 1331520 | 1907290 | 1914670 | 1950430 | 2136680 | 2181810 | 2181730 | 2576840
         | 1331510 | 1010470 | 2008290 | 2136690 | 2829815 | 2830216 | 2840063 | 2841096
         | 2841959 | 2844687 | 2844836 | 2850535 | 2861249 => {
-            let Some((kana, l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((kana, l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             if !ends_with_char(&kana, 'は') {
@@ -1862,13 +1862,13 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1098 (def-simple-hint (2844416) (l k)
         //   (:space (- l 1)) (:mod 0))
         2844416 => {
-            let Some((_kana, l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((_kana, l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let hints: Vec<_> = [
@@ -1878,13 +1878,13 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1104 (def-simple-hint (2097010 1009150) (l)
         //   (:space (- l 1)) (:mod (- l 1)))
         2097010 | 1009150 => {
-            let Some((_kana, l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((_kana, l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let hints: Vec<_> = [
@@ -1894,13 +1894,13 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1112 (def-simple-hint (2261800) (l)
         //   (:space 2) (:mod 2) (:space 3) (:space (- l 1)) (:mod (- l 1)))
         2261800 => {
-            let Some((_kana, l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((_kana, l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let hints: Vec<_> = [
@@ -1913,7 +1913,7 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1122 (def-simple-hint ;; では/には ending — (l k)
@@ -1921,7 +1921,7 @@ async fn simple_hint_dispatch(
         //   (:space (- l 2)) (:mod (- l 1)))
         1009480 | 1315860 | 1406050 | 2026610 | 2061740 | 2097310 | 2101020 | 2119920 | 2134700
         | 2200100 | 2407650 | 2553140 | 2762790 | 1288910 | 1423320 | 2099850 | 1006890 => {
-            let Some((kana, l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((kana, l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             if !ends_with_char(&kana, 'は') {
@@ -1934,14 +1934,14 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1148 (def-simple-hint — (l k)
         //   (deha (search "では" k :from-end t))
         //   (:mod (1+ deha)))
         2089020 | 2823770 | 2098240 | 2027020 | 2135480 | 2397760 | 2724540 | 2757720 => {
-            let Some((kana, _l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((kana, _l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let Some(deha) = search_chars("では", &kana, true) else {
@@ -1951,7 +1951,7 @@ async fn simple_hint_dispatch(
                 .into_iter()
                 .flatten()
                 .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1162 (def-simple-hint ;; ends with ではない — (l k)
@@ -1961,7 +1961,7 @@ async fn simple_hint_dispatch(
         | 2664520 | 2682500 | 2775790 | 1343120 | 2112270 | 2404260 | 2758400 | 2827556
         | 2057560 | 2841318 | 2088970 | 2833095 | 2835662 | 2841608 | 2841609 | 2845739
         | 2849457 | 2850045 | 2854412 => {
-            let Some((kana, _l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((kana, _l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let Some(deha) = search_chars("では", &kana, true) else {
@@ -1974,14 +1974,14 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1199 (def-simple-hint ;; では in the middle — (l k)
         //   (deha (search "では" k :from-end t))
         //   (:space deha) (:mod (1+ deha)) (:space (+ 2 deha)))
         2037860 | 2694350 | 2111220 | 2694360 | 2182700 | 2142010 => {
-            let Some((kana, _l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((kana, _l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let Some(deha) = search_chars("では", &kana, true) else {
@@ -1995,7 +1995,7 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1214 (def-simple-hint ;; には in the middle — (l k)
@@ -2004,7 +2004,7 @@ async fn simple_hint_dispatch(
         2057580 | 2067990 | 2103020 | 2105980 | 2152700 | 2416920 | 2418030 | 2792210 | 2792420
         | 2417920 | 2598720 | 2420170 | 2597190 | 2597800 | 2057570 | 2419360 | 2121480
         | 2646440 | 2740880 | 2416860 | 2156910 | 2182690 | 2848157 => {
-            let Some((kana, _l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((kana, _l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let Some(niha) = search_chars("には", &kana, true) else {
@@ -2018,13 +2018,13 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1247 (def-simple-hint ;; starts with には/とは — (l k)
         //   (:mod 1) (:space 2))
         2181860 | 2037320 | 2125460 | 2128060 | 2070730 => {
-            let Some((_kana, _l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((_kana, _l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let hints: Vec<_> = [
@@ -2034,7 +2034,7 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1258 (def-simple-hint (2832044) — (l k)
@@ -2042,7 +2042,7 @@ async fn simple_hint_dispatch(
         //   (:space niha) (:mod (1+ niha)) (:space (+ 2 niha))
         //   (:space (- l 1)))
         2832044 => {
-            let Some((kana, l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((kana, l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let Some(niha) = search_chars("には", &kana, true) else {
@@ -2057,7 +2057,7 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1269 (def-simple-hint ;; は in the middle — (l k)
@@ -2072,7 +2072,7 @@ async fn simple_hint_dispatch(
         | 2419600 | 2419610 | 2419620 | 2420180 | 2583560 | 2585230 | 2593830 | 2600530
         | 2618920 | 2618990 | 2708230 | 2716900 | 2737650 | 2741810 | 2744840 | 2827754
         | 2831359 | 2833597 | 2839953 | 2844002 | 2858918 | 2862330 => {
-            let Some((kana, _l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((kana, _l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let Some(ha) = search_chars("は", &kana, true) else {
@@ -2086,14 +2086,14 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1348 (def-simple-hint — (l k)
         //   (ha (search "は" k))   ;; NB: no :from-end
         //   (:space ha) (:mod ha) (:space (1+ ha)))
         2867144 | 2867149 => {
-            let Some((kana, _l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((kana, _l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let Some(ha) = search_chars("は", &kana, false) else {
@@ -2107,7 +2107,7 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1361 (def-simple-hint (2716860)
@@ -2116,7 +2116,7 @@ async fn simple_hint_dispatch(
         //   (:space ha) (:mod ha) (:space (1+ ha))
         //   (:space no) (:space (1+ no)))
         2716860 => {
-            let Some((kana, _l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((kana, _l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let Some(ha) = search_chars("は", &kana, false) else {
@@ -2135,7 +2135,7 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // dict-split.lisp:1371 (def-simple-hint (2845260)
@@ -2146,7 +2146,7 @@ async fn simple_hint_dispatch(
         //   (:space ha1) (:mod ha1) (:space (1+ ha1))
         //   (:space uu) (:space ha2) (:mod ha2) (:space (1+ ha2)))
         2845260 => {
-            let Some((kana, _l)) = true_kana_and_len(ctx, reading).await? else {
+            let Some((kana, _l)) = true_kana_and_len(ctx, reading)? else {
                 return Ok(HintDispatch::Registered(None));
             };
             let Some(ha1) = search_chars("は", &kana, false) else {
@@ -2170,7 +2170,7 @@ async fn simple_hint_dispatch(
             .into_iter()
             .flatten()
             .collect();
-            finish_simple_hint(ctx, reading, hints).await?
+            finish_simple_hint(ctx, reading, hints)?
         }
 
         // Not in the upstream *hint-map* — seq is unregistered.

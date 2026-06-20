@@ -32,7 +32,7 @@ use common::{
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:GET-SEGSPLIT";
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.len() != 1 {
         return Err(format!("expected 1 arg, got {}", row.args.len()));
     }
@@ -45,7 +45,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
         .map_err(|e| format!("input segment.info: {}", e))?;
 
     let actual = get_segsplit(ctx, &input)
-        .await
+        
         .map_err(|e| format!("get_segsplit: {}", e))?;
 
     if row.result.len() != 1 {
@@ -574,7 +574,7 @@ fn compare_kana(actual: &KanaText, expected: &KanaText) -> Result<(), String> {
 }
 
 fn compare_score_mod(actual: &ScoreMod, expected: &ScoreMod) -> Result<(), String> {
-    if discriminant_score_mod(actual) != discriminant_score_mod(expected) || actual_eq(actual, expected) == false {
+    if discriminant_score_mod(actual) != discriminant_score_mod(expected) || !actual_eq(actual, expected) {
         return Err(format!(
             "score_mod: rust={:?} lisp={:?}",
             actual, expected
@@ -957,7 +957,6 @@ fn compare_conj_prop(actual: &ConjProp, val: &Value) -> Result<(), String> {
 #[allow(dead_code)]
 fn _unused(_a: CapturedKanaText, _b: CapturedKanjiText) {}
 
-#[tokio::main]
-async fn main() {
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

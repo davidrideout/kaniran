@@ -231,12 +231,12 @@ fn strip_hints_input(wk: &Option<WordInfoKana>) -> &str {
 ///
 /// Romanizes `input` and joins the parts into one string; with `with_info`
 /// also returns each romanization paired with its word-info string.
-pub async fn romanize(
+pub fn romanize(
     ctx: &KaniranContext,
     input: &str,
     method: KaniRomanizeMethod<'_>,
     with_info: bool,
-) -> Result<(String, Vec<(String, String)>), sqlx::Error> {
+) -> Result<(String, Vec<(String, String)>), crate::conn::KaniDbError> {
     // (normalize input :context method) — characters.lisp:230 tests (eql context :kana)
     let context = match method {
         KaniRomanizeMethod::Kana => NormalizationContext::Kana,
@@ -247,10 +247,10 @@ pub async fn romanize(
     let mut parts: Vec<String> = Vec::new();
     for (split_type, split_text) in basic_split(&input) {
         if split_type == SegmentKind::Word {
-            for word in simple_segment(ctx, &split_text, None).await? {
+            for word in simple_segment(ctx, &split_text, None)? {
                 let rom = romanize_word_info(&word, method);
                 if with_info {
-                    definitions.push((rom.clone(), word_info_str(ctx, &word).await?));
+                    definitions.push((rom.clone(), word_info_str(ctx, &word)?));
                 }
                 parts.push(rom);
             }
@@ -273,13 +273,13 @@ pub enum RomanizeStarSegment<P> {
     Word(Vec<(Vec<(String, WordInfo, P)>, i32)>),
 }
 
-pub async fn romanize_star_<P>(
+pub fn romanize_star_<P>(
     ctx: &KaniranContext,
     input: &str,
     method: KaniRomanizeMethod<'_>,
     limit: Option<usize>,
     wordprop_fn: impl Fn(&str, &WordInfo) -> P,
-) -> Result<Vec<RomanizeStarSegment<P>>, sqlx::Error> {
+) -> Result<Vec<RomanizeStarSegment<P>>, crate::conn::KaniDbError> {
     // (normalize input :context method) — characters.lisp:230 tests (eql context :kana)
     let context = match method {
         KaniRomanizeMethod::Kana => NormalizationContext::Kana,
@@ -290,7 +290,7 @@ pub async fn romanize_star_<P>(
     for (split_type, split_text) in basic_split(&input) {
         if split_type == SegmentKind::Word {
             let mut alternatives = Vec::new();
-            for (word_list, score) in dict_segment(ctx, &split_text, limit).await? {
+            for (word_list, score) in dict_segment(ctx, &split_text, limit)? {
                 let mut word_props = Vec::new();
                 for word in word_list {
                     let romanized = romanize_word_info(&word, method);

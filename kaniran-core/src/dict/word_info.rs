@@ -1,3 +1,4 @@
+use crate::conn::kani_backend::KaniBackend;
 use crate::characters::char_class::get_char_class;
 use crate::characters::kani_kana_class::KanaClass;
 use crate::conn::kani_context::KaniranContext;
@@ -14,6 +15,7 @@ use crate::dict::scoring::score::{gen_score, Segment, SEGMENT_SCORE_CUTOFF};
 use crate::dict::text_classes::CompoundText;
 use serde_json::{Map, Number, Value};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Port of `ichiran/dict:*suffix-map-temp*` (`dict.lisp:1049`).
 ///
@@ -285,13 +287,18 @@ pub fn def_reader_for_json<'a>(obj: &'a Value, slot: &str) -> &'a Value {
 /// Lifts a scored [`Segment`] into a [`WordInfo`], branching on the
 /// segment's word: simple-text fills `true_text` / `conjugations`,
 /// compound-text fills `components`, counter-text fills `counter`.
-pub async fn word_info_from_segment(
+pub fn word_info_from_segment(
     ctx: &KaniranContext,
-    segment: &mut Segment,
-) -> Result<WordInfo, sqlx::Error> {
-    // dict.lisp:1330 (:text (get-text segment)) — lazy memoization via segment.text
-    let text = segment.get_text().to_string();
-    // dict.lisp:1347-1348 (:score / :start / :end) — read before re-borrowing word
+    segment: &Segment,
+) -> Result<WordInfo, crate::conn::KaniDbError> {
+    // dict.lisp:1330 (:text (get-text segment)) — upstream memoizes the
+    // computed text onto the (shared) segment; segments are Arc-shared
+    // here, so recompute instead. Same value either way: the memo write
+    // is invisible to output.
+    let text = match &segment.text {
+        Some(t) => t.clone(),
+        None => crate::dict::counters::methods::text(&segment.word).into_owned(),
+    };
     let score = segment.score;
     let start = segment.start;
     let end = segment.end;
@@ -301,7 +308,7 @@ pub async fn word_info_from_segment(
     let kind = word_info_type_from(word_type(word));
 
     // dict.lisp:1331 (:kana (get-kana word))
-    let kana = get_kana(ctx, word).await?.map(WordInfoKana::Single);
+    let kana = get_kana(ctx, word)?.map(WordInfoKana::Single);
 
     // dict.lisp:1332 (:seq (seq word))
     let seq_value = seq(word);
@@ -318,7 +325,7 @@ pub async fn word_info_from_segment(
 
     // dict.lisp:1335-1345 (:components — gated on compound-text)
     let components = if let KaniWordDispatchEnum::Compound(c) = word {
-        compound_components(ctx, c).await?
+        compound_components(ctx, c)?
     } else {
         Vec::new()
     };
@@ -346,10 +353,10 @@ pub async fn word_info_from_segment(
     })
 }
 
-async fn compound_components(
+fn compound_components(
     ctx: &KaniranContext,
     c: &CompoundText,
-) -> Result<Vec<WordInfo>, sqlx::Error> {
+) -> Result<Vec<WordInfo>, crate::conn::KaniDbError> {
     // dict.lisp:1336 (with primary-seq = (seq (primary word))) — bound once.
     // Lisp's `(= int int)` is the only branch that returns a bool; any
     // non-int operand raises TYPE-ERROR. The Rust port panics on the
@@ -371,7 +378,7 @@ async fn compound_components(
                 other, primary_seq
             ),
         };
-        let child_kana = get_kana(ctx, wrd).await?.map(WordInfoKana::Single);
+        let child_kana = get_kana(ctx, wrd)?.map(WordInfoKana::Single);
         out.push(WordInfo {
             // dict.lisp:1339 (:type (word-type wrd))
             kind: word_info_type_from(word_type(wrd)),
@@ -407,14 +414,14 @@ fn word_info_type_from(word_type: WordType) -> WordInfoType {
 /// scores below `2/3` of the first wi's score, returning either the
 /// lone survivor or a synthetic alternative-marked word-info collecting
 /// every survivor's kana / seq.
-pub async fn word_info_from_segment_list(
+pub fn word_info_from_segment_list(
     ctx: &KaniranContext,
-    segment_list: &mut SegmentList,
-) -> Result<WordInfo, sqlx::Error> {
+    segment_list: &SegmentList,
+) -> Result<WordInfo, crate::conn::KaniDbError> {
     // dict.lisp:1354-1355 ((segments ...) (wi-list* ...)) — map over segments
     let mut wi_list_star: Vec<WordInfo> = Vec::with_capacity(segment_list.segments.len());
-    for seg in segment_list.segments.iter_mut() {
-        wi_list_star.push(word_info_from_segment(ctx, seg).await?);
+    for seg in segment_list.segments.iter() {
+        wi_list_star.push(word_info_from_segment(ctx, seg)?);
     }
 
     // dict.lisp:1356 (wi1 (car wi-list*)) — bound BEFORE the score filter;
@@ -498,15 +505,15 @@ fn dedup_keep_first(items: &[Option<WordInfoKana>]) -> Vec<Option<WordInfoKana>>
 /// Builds a one-span segment-list over `text` (looking up its full
 /// readings and scoring each) and collapses it into a single
 /// [`WordInfo`] via [`word_info_from_segment_list`].
-pub async fn word_info_from_text(
+pub fn word_info_from_text(
     ctx: &KaniranContext,
     text: &str,
-) -> Result<WordInfo, sqlx::Error> {
+) -> Result<WordInfo, crate::conn::KaniDbError> {
     // dict.lisp:1384 (readings (find-word-full text :counter :auto))
-    let readings = find_word_full(ctx, text, false, Some(CounterArg::Auto)).await?;
+    let readings = find_word_full(ctx, text, false, Some(CounterArg::Auto))?;
     // dict.lisp:1385 (segments (loop for r in readings collect (gen-score (make-segment …))))
     let text_len = text.chars().count();
-    let mut segments: Vec<Segment> = Vec::with_capacity(readings.len());
+    let mut segments: Vec<Arc<Segment>> = Vec::with_capacity(readings.len());
     for r in readings {
         let mut segment = Segment {
             start: 0,
@@ -517,12 +524,12 @@ pub async fn word_info_from_text(
             top: None,
             text: Some(text.to_string()),
         };
-        gen_score(ctx, &mut segment, false, &[]).await?;
-        segments.push(segment);
+        gen_score(ctx, &mut segment, false, &[])?;
+        segments.push(Arc::new(segment));
     }
     // dict.lisp:1386-1387 (segment-list (make-segment-list :segments segments :start 0 :end (length text) :matches (length segments)))
     let matches = segments.len();
-    let mut segment_list = SegmentList {
+    let segment_list = SegmentList {
         segments,
         start: 0,
         end: text_len,
@@ -530,7 +537,7 @@ pub async fn word_info_from_text(
         matches,
     };
     // dict.lisp:1388 (word-info-from-segment-list segment-list)
-    word_info_from_segment_list(ctx, &mut segment_list).await
+    word_info_from_segment_list(ctx, &segment_list)
 }
 
 /// Port of `ichiran/dict:fill-segment-path` (`dict.lisp:1390`).
@@ -540,18 +547,18 @@ pub async fn word_info_from_text(
 /// slices, each segment-list lifts via [`word_info_from_segment_list`],
 /// and synergy elements are filtered out. Character offsets are
 /// char-indexed, not byte-indexed.
-pub async fn fill_segment_path(
+pub fn fill_segment_path(
     ctx: &KaniranContext,
     str: &str,
-    path: &mut [PathElement],
-) -> Result<Vec<WordInfo>, sqlx::Error> {
+    path: &[PathElement],
+) -> Result<Vec<WordInfo>, crate::conn::KaniDbError> {
     let str_char_len = str.chars().count();
     let mut idx: usize = 0;
     let mut result: Vec<WordInfo> = Vec::new();
 
     // dict.lisp:1396-1403 (loop ... for segment-list in path
     //   when (typep segment-list 'segment-list) ...)
-    for element in path.iter_mut() {
+    for element in path.iter() {
         let PathElement::SegmentList(sl) = element else {
             continue;
         };
@@ -560,7 +567,7 @@ pub async fn fill_segment_path(
             result.push(make_substr_gap(str, idx, sl.start));
         }
         // dict.lisp:1402 (push (word-info-from-segment-list segment-list) result)
-        let wi = word_info_from_segment_list(ctx, sl).await?;
+        let wi = word_info_from_segment_list(ctx, sl)?;
         // dict.lisp:1403 (setf idx (segment-list-end segment-list))
         idx = sl.end;
         result.push(wi);
@@ -737,10 +744,10 @@ fn is_nan_class(c: KanaClass) -> bool {
 /// row for a `:kana` one, matched on `text = true-text`. Returns
 /// `None` when the type is `:gap`, `true-text` is nil, or no row
 /// matches.
-pub async fn word_info_reading(
+pub fn word_info_reading(
     ctx: &KaniranContext,
     word_info: &WordInfo,
-) -> Result<Option<KaniWordDispatchEnum>, sqlx::Error> {
+) -> Result<Option<KaniWordDispatchEnum>, crate::conn::KaniDbError> {
     // (true-text (word-info-true-text word-info)) — the `(and table true-text)`
     // guard fails outright when true-text is nil.
     let true_text = match &word_info.true_text {
@@ -751,17 +758,21 @@ pub async fn word_info_reading(
     // then (car (select-dao table (:= 'text true-text)))
     match word_info.kind {
         WordInfoType::Kanji => {
-            let row: Option<KanjiText> = sqlx::query_as("SELECT * FROM kanji_text WHERE text = $1")
-                .bind(true_text)
-                .fetch_optional(&ctx.pool)
-                .await?;
+            let row: Option<KanjiText> = ctx
+                .store
+                .kanji_texts_by_text(true_text)
+                ?
+                .into_iter()
+                .next();
             Ok(row.map(KaniWordDispatchEnum::Kanji))
         }
         WordInfoType::Kana => {
-            let row: Option<KanaText> = sqlx::query_as("SELECT * FROM kana_text WHERE text = $1")
-                .bind(true_text)
-                .fetch_optional(&ctx.pool)
-                .await?;
+            let row: Option<KanaText> = ctx
+                .store
+                .kana_texts_by_text(true_text)
+                ?
+                .into_iter()
+                .next();
             Ok(row.map(KaniWordDispatchEnum::Kana))
         }
         // (case …) has no :gap clause → table nil → guard fails → nil.
@@ -773,22 +784,22 @@ pub async fn word_info_reading(
 ///
 /// Segments `str` into the top-scoring paths and pairs each resulting
 /// word-info list with its score.
-pub async fn dict_segment(
+pub fn dict_segment(
     ctx: &KaniranContext,
     str: &str,
     limit: Option<usize>,
-) -> Result<Vec<(Vec<WordInfo>, i32)>, sqlx::Error> {
+) -> Result<Vec<(Vec<WordInfo>, i32)>, crate::conn::KaniDbError> {
     let limit = limit.unwrap_or(5);
 
     // (find-best-path (join-substring-words str) (length str) :limit limit)
-    let mut segment_lists = join_substring_words(ctx, str).await?;
+    let mut segment_lists = join_substring_words(ctx, str)?;
     let best_paths =
-        find_best_path(ctx, &mut segment_lists, str.chars().count(), Some(limit)).await?;
+        find_best_path(ctx, &mut segment_lists, str.chars().count(), Some(limit))?;
 
     // (loop for (path . score) in ... collect (cons (fill-segment-path str path) score))
     let mut result = Vec::with_capacity(best_paths.len());
-    for (mut path, score) in best_paths {
-        let word_info_list = fill_segment_path(ctx, str, &mut path).await?;
+    for (path, score) in best_paths {
+        let word_info_list = fill_segment_path(ctx, str, &path)?;
         result.push((word_info_list, score));
     }
     Ok(result)
@@ -798,14 +809,14 @@ pub async fn dict_segment(
 ///
 /// Returns the word-info list of the best (first) path from
 /// [`dict_segment`] (empty when there is no path).
-pub async fn simple_segment(
+pub fn simple_segment(
     ctx: &KaniranContext,
     str: &str,
     limit: Option<usize>,
-) -> Result<Vec<WordInfo>, sqlx::Error> {
+) -> Result<Vec<WordInfo>, crate::conn::KaniDbError> {
     let limit = limit.unwrap_or(5);
     // (caar (dict-segment str :limit limit))
-    let segments = dict_segment(ctx, str, Some(limit)).await?;
+    let segments = dict_segment(ctx, str, Some(limit))?;
     Ok(segments
         .into_iter()
         .next()

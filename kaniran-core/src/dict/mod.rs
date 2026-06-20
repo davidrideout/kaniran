@@ -8,6 +8,7 @@ pub mod kani_lite_top_array;
 pub mod kani_lite_top_array_item;
 pub mod kani_match_part;
 pub mod kani_reading_table;
+pub mod kani_seg_split_enum;
 pub mod kani_word;
 pub mod errata;
 pub mod counters;

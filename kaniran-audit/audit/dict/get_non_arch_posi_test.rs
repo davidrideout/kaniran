@@ -59,7 +59,7 @@ fn sorted(mut v: Vec<String>) -> Vec<String> {
     v
 }
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.len() != 1 {
         return Err(format!("expected 1 arg, got {}", row.args.len()));
     }
@@ -90,7 +90,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     // Field 1: list comparison. Sort both sides — upstream DISTINCT
     // imposes no ORDER BY.
     let rust_list = get_non_arch_posi(ctx, &seq_set)
-        .await
+        
         .map_err(|e| format!("rust query error: {}", e))?;
 
     let rust_sorted = sorted(rust_list);
@@ -105,7 +105,6 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     Ok(())
 }
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one)
 }

@@ -1,3 +1,4 @@
+use crate::conn::kani_backend::KaniBackend;
 use super::dao::{Kanji, Meaning, Reading};
 use super::matching::{match_readings, MatchedSegment};
 use super::readings::{get_original_reading, ReadingTag};
@@ -18,7 +19,7 @@ use std::sync::OnceLock;
 /// and stroke fields, common/irregular stat counts and percentage, the
 /// non-nanori readings (each via [`reading_info_json`]), the meanings,
 /// and `freq`/`grade` when present.
-pub async fn to_json(ctx: &KaniranContext, kanji: &Kanji) -> Result<Value, sqlx::Error> {
+pub fn to_json(ctx: &KaniranContext, kanji: &Kanji) -> Result<Value, crate::conn::KaniDbError> {
     let total = kanji.stat_common;
     let mut js = Map::new();
     js.insert("text".to_owned(), Value::String(kanji.text.clone()));
@@ -32,24 +33,14 @@ pub async fn to_json(ctx: &KaniranContext, kanji: &Kanji) -> Result<Value, sqlx:
         Value::String(calculate_perc(kanji.stat_irregular, total)),
     );
     // kanji.lisp:379-383 ((select-dao 'reading (:and (:= 'kanji-id (id kanji)) (:not (:= 'type "ja_na"))) (:desc 'type) (:desc 'stat-common)))
-    let readings: Vec<Reading> = sqlx::query_as(
-        "SELECT * FROM reading WHERE kanji_id = $1 AND NOT (type = 'ja_na') \
-         ORDER BY type DESC, stat_common DESC",
-    )
-    .bind(kanji.id)
-    .fetch_all(&ctx.pool)
-    .await?;
+    let readings: Vec<Reading> = ctx.store.readings_non_nanori_by_kanji_id(kanji.id)?;
     let mut readings_json = Vec::with_capacity(readings.len());
     for reading in &readings {
-        readings_json.push(reading_info_json(ctx, reading, total).await?);
+        readings_json.push(reading_info_json(ctx, reading, total)?);
     }
     js.insert("readings".to_owned(), Value::Array(readings_json));
     // kanji.lisp:384 ((mapcar 'text (select-dao 'meaning (:= 'kanji-id (id kanji)) 'id)))
-    let meanings: Vec<Meaning> =
-        sqlx::query_as("SELECT * FROM meaning WHERE kanji_id = $1 ORDER BY id")
-            .bind(kanji.id)
-            .fetch_all(&ctx.pool)
-            .await?;
+    let meanings: Vec<Meaning> = ctx.store.meanings_by_kanji_id(kanji.id)?;
     js.insert(
         "meanings".to_owned(),
         Value::Array(
@@ -84,11 +75,11 @@ pub async fn to_json(ctx: &KaniranContext, kanji: &Kanji) -> Result<Value, sqlx:
 /// Builds a JSON object describing one `reading` row: its text,
 /// romanized form, type, distinct okurigana list, corpus sample count
 /// and percentage, plus `prefixp`/`suffixp` flags when set.
-pub async fn reading_info_json(
+pub fn reading_info_json(
     ctx: &KaniranContext,
     reading: &Reading,
     total: i32,
-) -> Result<Value, sqlx::Error> {
+) -> Result<Value, crate::conn::KaniDbError> {
     let mut js = Map::new();
     js.insert("text".to_owned(), Value::String(reading.text.clone()));
     // kanji.lisp:358 ((romanize-word (text reading) :method *hepburn-basic* :original-spelling ""))
@@ -106,11 +97,12 @@ pub async fn reading_info_json(
         Value::String(reading.reading_type.clone()),
     );
     // kanji.lisp:360 ((query (:select 'text :distinct :from 'okurigana :where (:= 'reading-id (id reading))) :column))
-    let okuri: Vec<String> =
-        sqlx::query_scalar("SELECT DISTINCT text FROM okurigana WHERE reading_id = $1")
-            .bind(reading.id)
-            .fetch_all(&ctx.pool)
-            .await?;
+    let okuri: Vec<String> = ctx
+        .store
+        .okurigana_texts_by_reading_id(reading.id)?
+        .into_iter()
+        .map(|text| text.into_owned())
+        .collect();
     js.insert(
         "okuri".to_owned(),
         Value::Array(okuri.into_iter().map(Value::String).collect()),
@@ -136,20 +128,15 @@ pub async fn reading_info_json(
 ///
 /// Looks up the `kanji` row whose `text` equals `char` and returns its
 /// [`Kanji::to_json`] object, or [`None`] when no row matches.
-pub async fn kanji_info_json(
+pub fn kanji_info_json(
     ctx: &KaniranContext,
     char: &str,
-) -> Result<Option<Value>, sqlx::Error> {
+) -> Result<Option<Value>, crate::conn::KaniDbError> {
     let str = char;
     // kanji.lisp:395 ((car (select-dao 'kanji (:= 'text str))))
-    let kanji: Option<Kanji> = sqlx::query_as("SELECT * FROM kanji WHERE text = $1")
-        .bind(str)
-        .fetch_all(&ctx.pool)
-        .await?
-        .into_iter()
-        .next();
+    let kanji: Option<Kanji> = ctx.store.kanji_by_text(str)?.into_iter().next();
     match kanji {
-        Some(kanji) => Ok(Some(to_json(ctx, &kanji).await?)),
+        Some(kanji) => Ok(Some(to_json(ctx, &kanji)?)),
         None => Ok(None),
     }
 }
@@ -165,14 +152,14 @@ fn kanji_reading_json_kanji_char_scanner() -> &'static Regex {
         .get_or_init(|| Regex::new(KANJI_CHAR_REGEX).expect("*kanji-char-regex* must compile"))
 }
 
-pub async fn kanji_reading_json(
+pub fn kanji_reading_json(
     ctx: &KaniranContext,
     kanji: &str,
     reading: &str,
     r#type: &str,
     rendaku: bool,
     geminated: Option<&str>,
-) -> Result<Value, sqlx::Error> {
+) -> Result<Value, crate::conn::KaniDbError> {
     let mut js = Map::new();
     js.insert("kanji".to_owned(), Value::String(kanji.to_owned()));
     js.insert("reading".to_owned(), Value::String(reading.to_owned()));
@@ -198,7 +185,7 @@ pub async fn kanji_reading_json(
         &get_original_reading(reading, rendaku, geminated),
         r#type,
     )
-    .await?;
+    ?;
     if let Some((sample, total, perc, grade)) = stats {
         js.insert("stats".to_owned(), Value::Bool(true));
         js.insert("sample".to_owned(), Value::Number(sample.into()));
@@ -246,10 +233,10 @@ fn empty_bag(irrbag: &mut Vec<(&str, &str)>, result: &mut Vec<Value>) {
     irrbag.clear();
 }
 
-pub async fn process_match_json(
+pub fn process_match_json(
     ctx: &KaniranContext,
     match_: &[MatchedSegment],
-) -> Result<Vec<Value>, sqlx::Error> {
+) -> Result<Vec<Value>, crate::conn::KaniDbError> {
     let mut irrbag: Vec<(&str, &str)> = Vec::new();
     let mut result: Vec<Value> = Vec::new();
     for item in match_ {
@@ -272,7 +259,7 @@ pub async fn process_match_json(
                             matches!(reading.tag, Some(ReadingTag::Rendaku)),
                             reading.gem.as_deref(),
                         )
-                        .await?,
+                        ?,
                     );
                 }
             }
@@ -304,11 +291,11 @@ fn kanji_scanner() -> &'static Regex {
     KANJI_SCANNER.get_or_init(|| Regex::new(KANJI_REGEX).expect("*kanji-regex* must compile"))
 }
 
-pub async fn match_readings_json(
+pub fn match_readings_json(
     ctx: &KaniranContext,
     str: &str,
     reading: &str,
-) -> Result<Option<Vec<Value>>, sqlx::Error> {
+) -> Result<Option<Vec<Value>>, crate::conn::KaniDbError> {
     // kanji.lisp:453 ((ppcre:scan *kanji-regex* str))
     if !kanji_scanner()
         .is_match(str)
@@ -317,34 +304,42 @@ pub async fn match_readings_json(
         return Ok(None);
     }
     // kanji.lisp:454-456 ((let ((match (match-readings str reading))) (when match (process-match-json match))))
-    match match_readings(ctx, str, reading).await? {
-        Some(match_) => Ok(Some(process_match_json(ctx, &match_).await?)),
+    match match_readings(ctx, str, reading)? {
+        Some(match_) => Ok(Some(process_match_json(ctx, &match_)?)),
         None => Ok(None),
     }
 }
 
-/// Port of `ichiran/kanji:query-kanji-json` (`kanji.lisp:458`).
+/// Looks up each kanji literal in `texts`, maps every matching row
+/// through [`to_json`], and extends each resulting object with the
+/// caller's extra fields.
 ///
-/// Runs `query` as a `kanji`-DAO query, maps each row through
-/// [`to_json`], and extends each resulting object with the caller's
-/// extra fields.
-pub async fn query_kanji_json(
+/// Divergence from `ichiran/kanji:query-kanji-json` (`kanji.lisp:458`):
+/// upstream is a macro taking a caller-supplied SQL string passed to
+/// `(query-dao 'kanji query)`. That raw-SQL form is Postgres-only — no
+/// other backend can serve it — yet every real query is a lookup by
+/// kanji text (upstream's own `kanji-info-json` uses the structured
+/// `(select-dao 'kanji (:= 'text str))`). Keying on text instead lets
+/// both the Postgres and rkyv backends serve it via the shared
+/// [`kanji_by_text`](crate::conn::kani_backend::KaniBackend::kanji_by_text)
+/// method.
+pub fn query_kanji_json(
     ctx: &KaniranContext,
-    query: &str,
+    texts: &[&str],
     extra_fields: impl Fn(&Kanji) -> Vec<(String, Value)>,
-) -> Result<Vec<Value>, sqlx::Error> {
+) -> Result<Vec<Value>, crate::conn::KaniDbError> {
     let mut result = Vec::new();
-    // (query-dao 'kanji query)
-    let rows: Vec<Kanji> = sqlx::query_as(query).fetch_all(&ctx.pool).await?;
-    // (mapcar (lambda (var) (let ((js (to-json var))) (jsown:extend-js js …))) …)
-    for var in &rows {
-        let mut js = to_json(ctx, var).await?;
-        if let Value::Object(map) = &mut js {
-            for (key, value) in extra_fields(var) {
-                map.insert(key, value);
+    for text in texts {
+        // (mapcar (lambda (var) (let ((js (to-json var))) (jsown:extend-js js …))) …)
+        for var in &ctx.store.kanji_by_text(text)? {
+            let mut js = to_json(ctx, var)?;
+            if let Value::Object(map) = &mut js {
+                for (key, value) in extra_fields(var) {
+                    map.insert(key, value);
+                }
             }
+            result.push(js);
         }
-        result.push(js);
     }
     Ok(result)
 }

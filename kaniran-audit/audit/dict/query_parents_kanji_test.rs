@@ -21,7 +21,7 @@ use common::CapturedRow;
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:QUERY-PARENTS-KANJI";
 
 
-async fn audit_one(
+fn audit_one(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -36,10 +36,10 @@ async fn audit_one(
         .ok_or_else(|| format!("arg 1 not string: {}", row.args[1]))?;
 
     let mut actual = query_parents_kanji(ctx, seq, text)
-        .await
+        
         .map_err(|err| format!("query_parents_kanji: {}", err))?;
 
-    if row.result.len() < 1 {
+    if row.result.is_empty() {
         return Err(format!("expected ≥1 result value, got {}", row.result.len()));
     }
     let expected_rows = match &row.result[0] {
@@ -79,7 +79,6 @@ fn parse_pairs(arr: &[Value]) -> Result<Vec<(i32, i32)>, String> {
 }
 
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

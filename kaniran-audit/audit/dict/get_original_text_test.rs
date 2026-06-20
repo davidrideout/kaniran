@@ -30,7 +30,7 @@ use common::{
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:GET-ORIGINAL-TEXT";
 
 
-async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
+fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String> {
     if row.args.len() != 3 {
         return Err(format!("expected 3 args, got {}", row.args.len()));
     }
@@ -63,7 +63,7 @@ async fn audit_one(ctx: &KaniranContext, row: &CapturedRow) -> Result<(), String
     };
 
     let actual = get_original_text(ctx, &reading, conj_data_owned.as_deref())
-        .await
+        
         .map_err(|err| format!("get_original_text query: {}", err))?;
 
     let expected = expected_list(&row.result)?;
@@ -241,7 +241,6 @@ where
 }
 
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

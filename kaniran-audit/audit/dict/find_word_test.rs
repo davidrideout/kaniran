@@ -24,7 +24,7 @@ use common::{captured_class, CapturedKanaText, CapturedKanjiText, CapturedRow};
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:FIND-WORD";
 
 
-async fn audit_one(
+fn audit_one(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -37,8 +37,9 @@ async fn audit_one(
     let root_only = walk_keywords_for_root_only(&row.args[1..])?;
 
     let actual = find_word(ctx, word, root_only)
-        .await
-        .map_err(|err| format!("find_word query: {}", err))?;
+        
+        .map_err(|err| format!("find_word query: {}", err))?
+        .into_owned();
 
     let expected_list = unwrap_result_list(&row.result)?;
     compare(actual, expected_list)
@@ -172,7 +173,6 @@ fn captured_kanji_sort_key(a: &CapturedKanjiText, b: &CapturedKanjiText) -> std:
 }
 
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

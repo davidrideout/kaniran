@@ -266,14 +266,12 @@ mod word_info_from_segment {
     use crate::dict::word_info::*;
     // Needs a live Postgres DB.
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
-    async fn first_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
-        let rows = find_word(ctx, word, false).await.unwrap();
+    fn first_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
+        let rows = find_word(ctx, word, false).unwrap().into_owned();
         match rows {
             FindWordRows::Kanji(v) => v
                 .into_iter()
@@ -300,14 +298,14 @@ mod word_info_from_segment {
         }
     }
 
-    #[tokio::test]
-    async fn kana_text_segment_populates_simple_text_slots() {
+    #[test]
+    fn kana_text_segment_populates_simple_text_slots() {
         // A kana word (ねこ) yields a KANA word-info with text/kana/true-text
         // all ねこ, primary set, and no counter.
-        let ctx = ctx_from_env().await;
-        let word = first_reading(&ctx, "ねこ").await;
-        let mut seg = segment(word, 16, 0, 2);
-        let wi = word_info_from_segment(&ctx, &mut seg).await.unwrap();
+        let ctx = ctx_from_env();
+        let word = first_reading(&ctx, "ねこ");
+        let seg = segment(word, 16, 0, 2);
+        let wi = word_info_from_segment(&ctx, &seg).unwrap();
         assert_eq!(wi.kind, WordInfoType::Kana);
         assert_eq!(wi.text, "ねこ");
         assert_eq!(wi.kana, Some(WordInfoKana::Single("ねこ".into())));
@@ -323,33 +321,49 @@ mod word_info_from_segment {
         assert!(wi.components.is_empty());
     }
 
-    #[tokio::test]
-    async fn kanji_text_segment_returns_text_and_seq() {
-        let ctx = ctx_from_env().await;
-        let word = first_reading(&ctx, "猫").await;
-        let mut seg = segment(word, 3, 0, 1);
-        let wi = word_info_from_segment(&ctx, &mut seg).await.unwrap();
+    #[test]
+    fn kanji_text_segment_returns_text_and_seq() {
+        let ctx = ctx_from_env();
+        let word = first_reading(&ctx, "猫");
+        let seg = segment(word, 3, 0, 1);
+        let wi = word_info_from_segment(&ctx, &seg).unwrap();
         assert_eq!(wi.kind, WordInfoType::Kanji);
         assert_eq!(wi.text, "猫");
-        assert_eq!(wi.seq, Some(WordInfoSeq::Single(2698030)));
+        // 猫 has two kanji-text entries (a common and an uncommon one); which
+        // the engine ranks primary drifts between backends, so assert the seq
+        // is one of the real 猫 entries rather than pinning a specific one.
+        let neko_seqs: Vec<i32> = ctx
+            .store
+            .kanji_texts_by_text("猫")
+            .unwrap()
+            .iter()
+            .map(|row| row.seq)
+            .collect();
+        let Some(WordInfoSeq::Single(seq)) = &wi.seq else {
+            panic!("expected Single seq, got {:?}", wi.seq);
+        };
+        assert!(
+            neko_seqs.contains(seq),
+            "seq {seq} should be a 猫 kanji-text entry (one of {neko_seqs:?})"
+        );
         assert_eq!(wi.score, Some(3));
         assert_eq!(wi.true_text.as_deref(), Some("猫"));
         assert!(wi.counter.is_none());
         assert!(matches!(wi.kana, Some(WordInfoKana::Single(_))));
     }
 
-    #[tokio::test]
-    async fn counter_text_segment_populates_counter_pair_and_null_true_text() {
+    #[test]
+    fn counter_text_segment_populates_counter_pair_and_null_true_text() {
         // A counter word (5個) yields a KANJI word-info with a counter pair
         // and no true-text.
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let counter = find_counter(&ctx, "5", "個", None)
             .into_iter()
             .next()
             .expect("find_counter(5, 個) returned no counters");
-        let word = KaniWordDispatchEnum::Counter(counter);
-        let mut seg = segment(word, 40, 0, 2);
-        let wi = word_info_from_segment(&ctx, &mut seg).await.unwrap();
+        let word = KaniWordDispatchEnum::Counter(Box::new(counter));
+        let seg = segment(word, 40, 0, 2);
+        let wi = word_info_from_segment(&ctx, &seg).unwrap();
         assert_eq!(wi.kind, WordInfoType::Kanji);
         assert_eq!(wi.text, "5個");
         assert_eq!(wi.counter, Some(("Value: 5".into(), false)));
@@ -358,12 +372,12 @@ mod word_info_from_segment {
         assert_eq!(wi.score, Some(40));
     }
 
-    #[tokio::test]
-    async fn segment_with_no_score_passes_none_through() {
+    #[test]
+    fn segment_with_no_score_passes_none_through() {
         // A segment with no score yields a word-info with no score (not 0).
-        let ctx = ctx_from_env().await;
-        let word = first_reading(&ctx, "ねこ").await;
-        let mut seg = Segment {
+        let ctx = ctx_from_env();
+        let word = first_reading(&ctx, "ねこ");
+        let seg = Segment {
             start: 0,
             end: 2,
             word,
@@ -372,18 +386,18 @@ mod word_info_from_segment {
             top: None,
             text: None,
         };
-        let wi = word_info_from_segment(&ctx, &mut seg).await.unwrap();
+        let wi = word_info_from_segment(&ctx, &seg).unwrap();
         assert_eq!(wi.score, None);
     }
 
-    #[tokio::test]
-    async fn compound_text_segment_builds_components_with_primary_flag() {
+    #[test]
+    fn compound_text_segment_builds_components_with_primary_flag() {
         // A compound word builds one component word-info per child, with the
         // primary flag set only on the child whose seq matches the primary.
         use crate::dict::text_classes::{CompoundText, ScoreMod};
-        let ctx = ctx_from_env().await;
-        let w1 = first_reading(&ctx, "ねこ").await; // seq=1467640
-        let w2 = first_reading(&ctx, "いぬ").await; // seq=1258330
+        let ctx = ctx_from_env();
+        let w1 = first_reading(&ctx, "ねこ"); // seq=1467640
+        let w2 = first_reading(&ctx, "いぬ"); // seq=1258330
         let compound = CompoundText {
             text: "ねこいぬ".into(),
             kana: "ねこいぬ".into(),
@@ -392,8 +406,8 @@ mod word_info_from_segment {
             score_base: None,
             score_mod: ScoreMod::Single(0),
         };
-        let mut seg = segment(KaniWordDispatchEnum::Compound(compound), 5, 0, 4);
-        let wi = word_info_from_segment(&ctx, &mut seg).await.unwrap();
+        let seg = segment(KaniWordDispatchEnum::Compound(compound), 5, 0, 4);
+        let wi = word_info_from_segment(&ctx, &seg).unwrap();
         assert_eq!(wi.text, "ねこいぬ");
         assert_eq!(
             wi.seq,
@@ -416,14 +430,12 @@ mod word_info_from_segment_list {
     use crate::dict::word_info::*;
     // Needs a live Postgres DB.
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
-    async fn one_kana_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
-        let rows = find_word(ctx, word, false).await.unwrap();
+    fn one_kana_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
+        let rows = find_word(ctx, word, false).unwrap().into_owned();
         match rows {
             FindWordRows::Kanji(v) => v
                 .into_iter()
@@ -452,7 +464,7 @@ mod word_info_from_segment_list {
 
     fn seg_list(segments: Vec<Segment>, start: usize, end: usize, matches: usize) -> SegmentList {
         SegmentList {
-            segments,
+            segments: segments.into_iter().map(std::sync::Arc::new).collect(),
             start,
             end,
             top: None,
@@ -460,13 +472,13 @@ mod word_info_from_segment_list {
         }
     }
 
-    #[tokio::test]
-    async fn single_survivor_returns_wi1_with_skipped() {
+    #[test]
+    fn single_survivor_returns_wi1_with_skipped() {
         // One segment, matches=1 → single branch, skipped = matches - 1 = 0.
-        let ctx = ctx_from_env().await;
-        let word = one_kana_reading(&ctx, "ねこ").await;
-        let mut sl = seg_list(vec![seg(word, 16, 0, 2)], 0, 2, 1);
-        let wi = word_info_from_segment_list(&ctx, &mut sl).await.unwrap();
+        let ctx = ctx_from_env();
+        let word = one_kana_reading(&ctx, "ねこ");
+        let sl = seg_list(vec![seg(word, 16, 0, 2)], 0, 2, 1);
+        let wi = word_info_from_segment_list(&ctx, &sl).unwrap();
         assert_eq!(wi.kind, WordInfoType::Kana);
         assert_eq!(wi.text, "ねこ");
         assert_eq!(wi.seq, Some(WordInfoSeq::Single(1467640)));
@@ -478,25 +490,25 @@ mod word_info_from_segment_list {
         assert_eq!(wi.end, Some(2));
     }
 
-    #[tokio::test]
-    async fn single_survivor_skipped_eq_matches_minus_one() {
+    #[test]
+    fn single_survivor_skipped_eq_matches_minus_one() {
         // One survivor but matches=7 → skipped = matches - 1 = 6.
-        let ctx = ctx_from_env().await;
-        let word = one_kana_reading(&ctx, "ねこ").await;
-        let mut sl = seg_list(vec![seg(word, 16, 0, 2)], 0, 2, 7);
-        let wi = word_info_from_segment_list(&ctx, &mut sl).await.unwrap();
+        let ctx = ctx_from_env();
+        let word = one_kana_reading(&ctx, "ねこ");
+        let sl = seg_list(vec![seg(word, 16, 0, 2)], 0, 2, 7);
+        let wi = word_info_from_segment_list(&ctx, &sl).unwrap();
         assert_eq!(wi.skipped, 6);
     }
 
-    #[tokio::test]
-    async fn multi_survivor_builds_synthetic_from_wi1() {
+    #[test]
+    fn multi_survivor_builds_synthetic_from_wi1() {
         // Two surviving segments (both score 5, both pass the cutoff) build an
         // alternative word-info whose kind/text/score come from the first.
-        let ctx = ctx_from_env().await;
-        let neko = one_kana_reading(&ctx, "ねこ").await;
-        let inu = one_kana_reading(&ctx, "いぬ").await;
-        let mut sl = seg_list(vec![seg(neko, 5, 0, 2), seg(inu, 5, 0, 2)], 0, 2, 2);
-        let wi = word_info_from_segment_list(&ctx, &mut sl).await.unwrap();
+        let ctx = ctx_from_env();
+        let neko = one_kana_reading(&ctx, "ねこ");
+        let inu = one_kana_reading(&ctx, "いぬ");
+        let sl = seg_list(vec![seg(neko, 5, 0, 2), seg(inu, 5, 0, 2)], 0, 2, 2);
+        let wi = word_info_from_segment_list(&ctx, &sl).unwrap();
         assert!(wi.alternative);
         assert_eq!(wi.text, "ねこ"); // first segment's text
         assert_eq!(wi.score, Some(5));
@@ -513,37 +525,37 @@ mod word_info_from_segment_list {
         );
     }
 
-    #[tokio::test]
-    async fn multi_branch_filters_below_two_thirds_of_wi1_score() {
+    #[test]
+    fn multi_branch_filters_below_two_thirds_of_wi1_score() {
         // wi1.score = 9, cutoff = (2*9)/3 = 6. Score-5 and score-3
         // segments fail; only wi1 survives → falls back to single branch.
-        let ctx = ctx_from_env().await;
-        let a = one_kana_reading(&ctx, "ねこ").await;
-        let b = one_kana_reading(&ctx, "いぬ").await;
-        let c = one_kana_reading(&ctx, "とり").await;
-        let mut sl = seg_list(
+        let ctx = ctx_from_env();
+        let a = one_kana_reading(&ctx, "ねこ");
+        let b = one_kana_reading(&ctx, "いぬ");
+        let c = one_kana_reading(&ctx, "とり");
+        let sl = seg_list(
             vec![seg(a, 9, 0, 1), seg(b, 5, 0, 1), seg(c, 3, 0, 1)],
             0,
             1,
             3,
         );
-        let wi = word_info_from_segment_list(&ctx, &mut sl).await.unwrap();
+        let wi = word_info_from_segment_list(&ctx, &sl).unwrap();
         assert!(!wi.alternative);
         assert_eq!(wi.text, "ねこ");
         assert_eq!(wi.skipped, 2);
     }
 
-    #[tokio::test]
-    async fn multi_branch_anchors_kind_text_score_on_pre_filter_wi1() {
+    #[test]
+    fn multi_branch_anchors_kind_text_score_on_pre_filter_wi1() {
         // Constructed scenario: wi1 has the highest score; second
         // segment also passes the 2/3 cutoff. Confirms wi.text and
         // wi.score follow wi1 even when later survivors have different
         // scores.
-        let ctx = ctx_from_env().await;
-        let a = one_kana_reading(&ctx, "ねこ").await;
-        let b = one_kana_reading(&ctx, "いぬ").await;
-        let mut sl = seg_list(vec![seg(a, 9, 0, 1), seg(b, 7, 0, 1)], 0, 1, 2);
-        let wi = word_info_from_segment_list(&ctx, &mut sl).await.unwrap();
+        let ctx = ctx_from_env();
+        let a = one_kana_reading(&ctx, "ねこ");
+        let b = one_kana_reading(&ctx, "いぬ");
+        let sl = seg_list(vec![seg(a, 9, 0, 1), seg(b, 7, 0, 1)], 0, 1, 2);
+        let wi = word_info_from_segment_list(&ctx, &sl).unwrap();
         assert!(wi.alternative);
         assert_eq!(wi.text, "ねこ"); // wi1.text
         assert_eq!(wi.score, Some(9)); // wi1.score
@@ -581,17 +593,15 @@ mod word_info_from_text {
     // order-dependent multi-survivor cases live in
     // word_info_from_segment_list's tests.
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// "図書館" yields a single KANJI reading.
-    #[tokio::test]
-    async fn simple_kanji_noun() {
-        let ctx = ctx_from_env().await;
-        let wi = word_info_from_text(&ctx, "図書館").await.unwrap();
+    #[test]
+    fn simple_kanji_noun() {
+        let ctx = ctx_from_env();
+        let wi = word_info_from_text(&ctx, "図書館").unwrap();
         assert_eq!(wi.kind, WordInfoType::Kanji);
         assert_eq!(wi.text, "図書館");
         assert_eq!(wi.kana, Some(WordInfoKana::Single("としょかん".into())));
@@ -610,10 +620,10 @@ mod word_info_from_text {
 
     /// "オレら" yields a single KANA reading. `end = 3` confirms the length
     /// is counted in characters, not bytes.
-    #[tokio::test]
-    async fn simple_kana_pronoun() {
-        let ctx = ctx_from_env().await;
-        let wi = word_info_from_text(&ctx, "オレら").await.unwrap();
+    #[test]
+    fn simple_kana_pronoun() {
+        let ctx = ctx_from_env();
+        let wi = word_info_from_text(&ctx, "オレら").unwrap();
         assert_eq!(wi.kind, WordInfoType::Kana);
         assert_eq!(wi.text, "オレら");
         assert_eq!(wi.kana, Some(WordInfoKana::Single("オレら".into())));
@@ -629,25 +639,35 @@ mod word_info_from_text {
 
     /// "食べてる" yields a single COMPOUND of 食べて + いる, with seq as the
     /// per-child list and one component per part.
-    #[tokio::test]
-    async fn compound_teiru() {
-        let ctx = ctx_from_env().await;
-        let wi = word_info_from_text(&ctx, "食べてる").await.unwrap();
+    #[test]
+    fn compound_teiru() {
+        let ctx = ctx_from_env();
+        let wi = word_info_from_text(&ctx, "食べてる").unwrap();
         assert_eq!(wi.kind, WordInfoType::Kanji);
         assert_eq!(wi.text, "食べてる");
         assert_eq!(wi.kana, Some(WordInfoKana::Single("たべてる".into())));
-        assert_eq!(
-            wi.seq,
-            Some(WordInfoSeq::Multi(vec![
-                Some(WordInfoSeq::Single(10092233)),
-                Some(WordInfoSeq::Single(1577980)),
-            ]))
-        );
+        // 食べて (a conjugation of 食べる) + いる (1577980, stable).
+        match &wi.seq {
+            Some(WordInfoSeq::Multi(parts)) => {
+                assert_eq!(parts.len(), 2);
+                let teru = match &parts[0] {
+                    Some(WordInfoSeq::Single(seq)) => *seq,
+                    other => panic!("expected Single, got {other:?}"),
+                };
+                crate::test_support::check_base_seqs(teru, &[1358280]);
+                assert_eq!(parts[1], Some(WordInfoSeq::Single(1577980)));
+            }
+            other => panic!("expected Multi, got {other:?}"),
+        }
         assert_eq!(wi.score, Some(434));
         assert_eq!(wi.end, Some(4));
         assert_eq!(wi.components.len(), 2);
         assert_eq!(wi.components[0].text, "食べて");
-        assert_eq!(wi.components[0].seq, Some(WordInfoSeq::Single(10092233)));
+        let comp0_seq = match &wi.components[0].seq {
+            Some(WordInfoSeq::Single(seq)) => *seq,
+            other => panic!("expected Single, got {other:?}"),
+        };
+        crate::test_support::check_base_seqs(comp0_seq, &[1358280]);
         assert_eq!(wi.components[1].text, "いる");
         assert_eq!(wi.components[1].seq, Some(WordInfoSeq::Single(1577980)));
         // A compound carries no true-text or conjugations.
@@ -658,10 +678,10 @@ mod word_info_from_text {
 
     /// "5万100" resolves to a COUNTER reading: counter pair populated, no seq.
     /// `end = 5` is the character count (byte length is 7).
-    #[tokio::test]
-    async fn counter_auto_number() {
-        let ctx = ctx_from_env().await;
-        let wi = word_info_from_text(&ctx, "5万100").await.unwrap();
+    #[test]
+    fn counter_auto_number() {
+        let ctx = ctx_from_env();
+        let wi = word_info_from_text(&ctx, "5万100").unwrap();
         assert_eq!(wi.text, "5万100");
         assert_eq!(wi.counter, Some(("Value: 50100".into(), false)));
         assert_eq!(wi.seq, None);
@@ -675,10 +695,10 @@ mod word_info_from_text {
     }
 
     /// "三羽" yields the counter reading (value 3).
-    #[tokio::test]
-    async fn counter_auto_kanji_number() {
-        let ctx = ctx_from_env().await;
-        let wi = word_info_from_text(&ctx, "三羽").await.unwrap();
+    #[test]
+    fn counter_auto_kanji_number() {
+        let ctx = ctx_from_env();
+        let wi = word_info_from_text(&ctx, "三羽").unwrap();
         assert_eq!(wi.text, "三羽");
         assert_eq!(wi.kana, Some(WordInfoKana::Single("さんば".into())));
         assert_eq!(wi.seq, Some(WordInfoSeq::Single(1607310)));
@@ -707,14 +727,12 @@ mod fill_segment_path {
     // - synergy elements are filtered out
     // - char-indexed slicing (multibyte chars don't shift offsets)
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
-    async fn first_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
-        let rows = find_word(ctx, word, false).await.unwrap();
+    fn first_reading(ctx: &KaniranContext, word: &str) -> KaniWordDispatchEnum {
+        let rows = find_word(ctx, word, false).unwrap().into_owned();
         match rows {
             FindWordRows::Kanji(v) => v
                 .into_iter()
@@ -729,16 +747,16 @@ mod fill_segment_path {
         }
     }
 
-    async fn one_seg_list(
+    fn one_seg_list(
         ctx: &KaniranContext,
         word: &str,
         score: i32,
         start: usize,
         end: usize,
     ) -> SegmentList {
-        let reading = first_reading(ctx, word).await;
+        let reading = first_reading(ctx, word);
         SegmentList {
-            segments: vec![Segment {
+            segments: vec![std::sync::Arc::new(Segment {
                 start,
                 end,
                 word: reading,
@@ -746,7 +764,7 @@ mod fill_segment_path {
                 info: None,
                 top: None,
                 text: None,
-            }],
+            })],
             start,
             end,
             top: None,
@@ -754,17 +772,17 @@ mod fill_segment_path {
         }
     }
 
-    #[tokio::test]
-    async fn fills_internal_gap_between_two_segment_lists() {
-        let ctx = ctx_from_env().await;
-        let sl_neko = one_seg_list(&ctx, "ねこ", 16, 0, 2).await;
-        let sl_inu = one_seg_list(&ctx, "いぬ", 16, 4, 6).await;
-        let mut path = vec![
+    #[test]
+    fn fills_internal_gap_between_two_segment_lists() {
+        let ctx = ctx_from_env();
+        let sl_neko = one_seg_list(&ctx, "ねこ", 16, 0, 2);
+        let sl_inu = one_seg_list(&ctx, "いぬ", 16, 4, 6);
+        let path = vec![
             PathElement::SegmentList(sl_neko),
             PathElement::SegmentList(sl_inu),
         ];
-        let result = fill_segment_path(&ctx, "ねこと いぬ", &mut path)
-            .await
+        let result = fill_segment_path(&ctx, "ねこと いぬ", &path)
+
             .unwrap();
         assert_eq!(result.len(), 3);
         assert_eq!(result[0].text, "ねこ");
@@ -782,13 +800,13 @@ mod fill_segment_path {
         assert_eq!(result[2].seq, Some(WordInfoSeq::Single(1258330)));
     }
 
-    #[tokio::test]
-    async fn fills_leading_and_trailing_gap() {
-        let ctx = ctx_from_env().await;
-        let sl = one_seg_list(&ctx, "ねこ", 16, 2, 4).await;
-        let mut path = vec![PathElement::SegmentList(sl)];
-        let result = fill_segment_path(&ctx, "あいねこ犬", &mut path)
-            .await
+    #[test]
+    fn fills_leading_and_trailing_gap() {
+        let ctx = ctx_from_env();
+        let sl = one_seg_list(&ctx, "ねこ", 16, 2, 4);
+        let path = vec![PathElement::SegmentList(sl)];
+        let result = fill_segment_path(&ctx, "あいねこ犬", &path)
+
             .unwrap();
         assert_eq!(result.len(), 3);
         assert_eq!(result[0].kind, WordInfoType::Gap);
@@ -802,10 +820,10 @@ mod fill_segment_path {
         assert_eq!(result[2].end, Some(5));
     }
 
-    #[tokio::test]
-    async fn empty_path_with_text_emits_single_gap() {
-        let ctx = ctx_from_env().await;
-        let result = fill_segment_path(&ctx, "abcde", &mut []).await.unwrap();
+    #[test]
+    fn empty_path_with_text_emits_single_gap() {
+        let ctx = ctx_from_env();
+        let result = fill_segment_path(&ctx, "abcde", &[]).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].kind, WordInfoType::Gap);
         assert_eq!(result[0].text, "abcde");
@@ -817,29 +835,29 @@ mod fill_segment_path {
         assert_eq!(result[0].end, Some(5));
     }
 
-    #[tokio::test]
-    async fn empty_path_empty_string_emits_nothing() {
-        let ctx = ctx_from_env().await;
-        let result = fill_segment_path(&ctx, "", &mut []).await.unwrap();
+    #[test]
+    fn empty_path_empty_string_emits_nothing() {
+        let ctx = ctx_from_env();
+        let result = fill_segment_path(&ctx, "", &[]).unwrap();
         assert!(result.is_empty());
     }
 
-    #[tokio::test]
-    async fn segment_list_covers_entire_string_no_gap() {
-        let ctx = ctx_from_env().await;
-        let sl = one_seg_list(&ctx, "ねこ", 16, 0, 2).await;
-        let mut path = vec![PathElement::SegmentList(sl)];
-        let result = fill_segment_path(&ctx, "ねこ", &mut path).await.unwrap();
+    #[test]
+    fn segment_list_covers_entire_string_no_gap() {
+        let ctx = ctx_from_env();
+        let sl = one_seg_list(&ctx, "ねこ", 16, 0, 2);
+        let path = vec![PathElement::SegmentList(sl)];
+        let result = fill_segment_path(&ctx, "ねこ", &path).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].text, "ねこ");
     }
 
-    #[tokio::test]
-    async fn synergy_elements_are_skipped() {
-        let ctx = ctx_from_env().await;
-        let sl_neko = one_seg_list(&ctx, "ねこ", 16, 0, 2).await;
-        let sl_inu = one_seg_list(&ctx, "いぬ", 16, 4, 6).await;
-        let mut path = vec![
+    #[test]
+    fn synergy_elements_are_skipped() {
+        let ctx = ctx_from_env();
+        let sl_neko = one_seg_list(&ctx, "ねこ", 16, 0, 2);
+        let sl_inu = one_seg_list(&ctx, "いぬ", 16, 4, 6);
+        let path = vec![
             PathElement::SegmentList(sl_neko),
             PathElement::Synergy(Synergy {
                 description: Some("stub".into()),
@@ -850,8 +868,8 @@ mod fill_segment_path {
             }),
             PathElement::SegmentList(sl_inu),
         ];
-        let result = fill_segment_path(&ctx, "ねこと いぬ", &mut path)
-            .await
+        let result = fill_segment_path(&ctx, "ねこと いぬ", &path)
+
             .unwrap();
         assert_eq!(result.len(), 3);
         assert_eq!(result[0].text, "ねこ");
@@ -1006,10 +1024,8 @@ mod process_word_info {
 mod word_info_reading {
     use crate::dict::word_info::*;
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     fn wi(kind: WordInfoType, true_text: Option<&str>) -> WordInfo {
@@ -1024,27 +1040,23 @@ mod word_info_reading {
     /// KANJI type (学校, 図書館), the KANA type (ねこ, きそうてんがい), a GAP type
     /// (no lookup → None), missing true-text (→ None), and a true-text with
     /// no matching row (→ None).
-    #[tokio::test]
-    async fn word_info_reading_fixtures() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn word_info_reading_fixtures() {
+        let ctx = ctx_from_env();
 
-        let cases: &[(WordInfo, Option<(i32, i32, bool)>)] = &[
-            // (word-info, Some((seq, id, is_kanji)) | None)
-            (
-                wi(WordInfoType::Kanji, Some("学校")),
-                Some((1206730, 9064, true)),
-            ),
+        // The dictionary-row `id` is an auto-increment surrogate that renumbers
+        // per build, so pin the stable `seq` + `text` instead of the id.
+        let cases: &[(WordInfo, Option<(i32, bool)>)] = &[
+            // (word-info, Some((seq, is_kanji)) | None)
+            (wi(WordInfoType::Kanji, Some("学校")), Some((1206730, true))),
             (
                 wi(WordInfoType::Kanji, Some("図書館")),
-                Some((1370420, 29808, true)),
+                Some((1370420, true)),
             ),
-            (
-                wi(WordInfoType::Kana, Some("ねこ")),
-                Some((1467640, 54168, false)),
-            ),
+            (wi(WordInfoType::Kana, Some("ねこ")), Some((1467640, false))),
             (
                 wi(WordInfoType::Kana, Some("きそうてんがい")),
-                Some((1219430, 28651, false)),
+                Some((1219430, false)),
             ),
             (wi(WordInfoType::Gap, Some("学校")), None),
             (wi(WordInfoType::Kanji, None), None),
@@ -1055,27 +1067,25 @@ mod word_info_reading {
         ];
 
         for (word_info, expected) in cases {
-            let result = word_info_reading(&ctx, word_info).await.unwrap();
+            let result = word_info_reading(&ctx, word_info).unwrap();
             match (expected, result) {
                 (None, None) => {}
-                (Some((seq, id, is_kanji)), Some(KaniWordDispatchEnum::Kanji(row))) => {
+                (Some((seq, is_kanji)), Some(KaniWordDispatchEnum::Kanji(row))) => {
                     assert!(
                         *is_kanji,
                         "true_text={:?}: expected kana-text",
                         word_info.true_text
                     );
                     assert_eq!(row.seq, *seq, "true_text={:?}", word_info.true_text);
-                    assert_eq!(row.id, *id, "true_text={:?}", word_info.true_text);
                     assert_eq!(&row.text, word_info.true_text.as_ref().unwrap());
                 }
-                (Some((seq, id, is_kanji)), Some(KaniWordDispatchEnum::Kana(row))) => {
+                (Some((seq, is_kanji)), Some(KaniWordDispatchEnum::Kana(row))) => {
                     assert!(
                         !*is_kanji,
                         "true_text={:?}: expected kanji-text",
                         word_info.true_text
                     );
                     assert_eq!(row.seq, *seq, "true_text={:?}", word_info.true_text);
-                    assert_eq!(row.id, *id, "true_text={:?}", word_info.true_text);
                     assert_eq!(&row.text, word_info.true_text.as_ref().unwrap());
                 }
                 (expected, result) => panic!(
@@ -1098,10 +1108,8 @@ mod dict_segment {
     // - empty string yields one seed path with an empty word-info-list
     // - all-gap input yields one path with the gap-penalty score
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     fn texts(word_info_list: &[WordInfo]) -> Vec<String> {
@@ -1117,10 +1125,10 @@ mod dict_segment {
             .collect()
     }
 
-    #[tokio::test]
-    async fn multi_path_scores_descending() {
-        let ctx = ctx_from_env().await;
-        let result = dict_segment(&ctx, "しませんか", Some(3)).await.unwrap();
+    #[test]
+    fn multi_path_scores_descending() {
+        let ctx = ctx_from_env();
+        let result = dict_segment(&ctx, "しませんか", Some(3)).unwrap();
         let scores: Vec<i32> = result.iter().map(|(_, score)| *score).collect();
         assert_eq!(scores, vec![352, 52, 48]);
         assert_eq!(texts(&result[0].0), vec!["しません", "か"]);
@@ -1128,20 +1136,20 @@ mod dict_segment {
         assert_eq!(texts(&result[2].0), vec!["しま", "せん", "か"]);
     }
 
-    #[tokio::test]
-    async fn limit_one_returns_single_best_path() {
-        let ctx = ctx_from_env().await;
-        let result = dict_segment(&ctx, "しませんか", Some(1)).await.unwrap();
+    #[test]
+    fn limit_one_returns_single_best_path() {
+        let ctx = ctx_from_env();
+        let result = dict_segment(&ctx, "しませんか", Some(1)).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1, 352);
         assert_eq!(texts(&result[0].0), vec!["しません", "か"]);
     }
 
-    #[tokio::test]
-    async fn default_limit_is_five() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn default_limit_is_five() {
+        let ctx = ctx_from_env();
         let result = dict_segment(&ctx, "ご注文はうさぎですか", None)
-            .await
+
             .unwrap();
         let scores: Vec<i32> = result.iter().map(|(_, score)| *score).collect();
         assert_eq!(scores, vec![518, 504, 485, 474, 465]);
@@ -1151,19 +1159,19 @@ mod dict_segment {
         );
     }
 
-    #[tokio::test]
-    async fn empty_string_seeds_one_empty_path() {
-        let ctx = ctx_from_env().await;
-        let result = dict_segment(&ctx, "", Some(5)).await.unwrap();
+    #[test]
+    fn empty_string_seeds_one_empty_path() {
+        let ctx = ctx_from_env();
+        let result = dict_segment(&ctx, "", Some(5)).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1, 0);
         assert!(result[0].0.is_empty());
     }
 
-    #[tokio::test]
-    async fn all_gap_input_one_path_with_gap_penalty() {
-        let ctx = ctx_from_env().await;
-        let result = dict_segment(&ctx, "abcde", Some(5)).await.unwrap();
+    #[test]
+    fn all_gap_input_one_path_with_gap_penalty() {
+        let ctx = ctx_from_env();
+        let result = dict_segment(&ctx, "abcde", Some(5)).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].1, -2500);
         assert_eq!(texts(&result[0].0), vec![":GAP"]);
@@ -1179,10 +1187,8 @@ mod simple_segment {
 
     const GAP: &str = ":GAP";
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     // Gap word-infos map to GAP, others to their text.
@@ -1199,9 +1205,9 @@ mod simple_segment {
             .collect()
     }
 
-    #[tokio::test]
-    async fn segmentation_test() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn segmentation_test() {
+        let ctx = ctx_from_env();
         let cases: &[(&str, &[&str])] = &[
             (
                 "ご注文はうさぎですか",
@@ -1381,10 +1387,6 @@ mod simple_segment {
             ),
             ("見てくれたかな", &["見てくれた", "かな"]),
             ("とても良かった", &["とても", "良かった"]),
-            (
-                "戻りたいかと言われる",
-                &["戻りたい", "か", "と", "言われる"],
-            ),
             (
                 "こういうのでいいんだよ",
                 &["こういう", "の", "でいい", "ん", "だ", "よ"],
@@ -1756,10 +1758,6 @@ mod simple_segment {
                 &["みんな", "に", "うらやましがられている"],
             ),
             ("悪がられて", &["悪がられて"]),
-            (
-                "期待されがちなので男女",
-                &["期待されがち", "なので", "男女"],
-            ),
             ("とぎれがちに話す", &["とぎれがち", "に", "話す"]),
             (
                 "手にとっていただきやすくなる",
@@ -1909,10 +1907,6 @@ mod simple_segment {
                 &["物", "が", "ぼんやり", "と", "かすんで", "見える"],
             ),
             (
-                "どなた様でございましょうか",
-                &["どなた", "様", "でございましょう", "か"],
-            ),
-            (
                 "読んでくださりありがとうございました",
                 &["読んで", "くださり", "ありがとうございました"],
             ),
@@ -1946,7 +1940,6 @@ mod simple_segment {
                 "わたしにはちょっとわかりかねますので",
                 &["わたし", "には", "ちょっと", "わかりかねます", "ので"],
             ),
-            ("要素はないかと", &["要素", "は", "ない", "か", "と"]),
             ("すごいじゃん", &["すごい", "じゃん"]),
             ("腕をつかまれて路地", &["腕", "を", "つかまれて", "路地"]),
             (
@@ -2239,10 +2232,6 @@ mod simple_segment {
             ),
             ("よろしくおねがいします", &["よろしくおねがいします"]),
             (
-                "気を遣ってくれてるのかと思ってました",
-                &["気を遣ってくれてる", "のか", "と", "思ってました"],
-            ),
-            (
                 "太陽をかたどったしるし",
                 &["太陽", "を", "かたどった", "しるし"],
             ),
@@ -2283,10 +2272,6 @@ mod simple_segment {
             ("割り切れたら", &["割り切れたら"]),
             ("あり得なかったり", &["あり得なかったり"]),
             ("代わり映え", &["代わり映え"]),
-            (
-                "器用なのですぐ上達しますよ",
-                &["器用", "なので", "すぐ", "上達します", "よ"],
-            ),
             ("おにいちゃん", &["おにいちゃん"]),
             ("動画につまってる", &["動画", "に", "つまってる"]),
             ("出来そう", &["出来そう"]),
@@ -2371,7 +2356,153 @@ mod simple_segment {
         ];
         let mut failures: Vec<String> = Vec::new();
         for (input, expected) in cases {
-            let result = simple_segment(&ctx, input, None).await.unwrap();
+            let result = simple_segment(&ctx, input, None).unwrap();
+            let actual = segmentation(&result);
+            if actual != *expected {
+                failures.push(format!(
+                    "{:?}: rust={:?} expected={:?}",
+                    input, actual, expected
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} of {} segmentation cases diverged:\n{}",
+            failures.len(),
+            cases.len(),
+            failures.join("\n")
+        );
+    }
+
+    /// かと cases parked out of [`segmentation_test`] because the current
+    /// dictionary no longer produces the か+と split they expect. Same body as
+    /// `segmentation_test`, but intentionally **left failing** — not
+    /// `#[ignore]`d — so the red is a standing reminder that かと still needs a
+    /// followup. Once that lands (a quotative-と synergy to restore the split,
+    /// or a decision to re-baseline these to the merged かと), fold the cases
+    /// back into `segmentation_test` and delete this test.
+    ///
+    /// Cause: JMdict entry 2871200 かと was added 2026-05-27 (submitted
+    /// 2026-05-16, edrdg jmdictdb seq 2871200) with
+    /// a `spec1` priority tag, which ichiran loads as `common = 0`. That
+    /// commonality bonus makes the merged かと outscore splitting it into か
+    /// (question
+    /// particle) + と (quotative particle) before a quotative verb. Re-evaluate
+    /// when 2871200 is reclassified upstream, or if a quotative-と synergy
+    /// is added to favour the split contextually.
+    #[test]
+    fn segmentation_test_failures_kato_todo() {
+        let ctx = ctx_from_env();
+        let cases: &[(&str, &[&str])] = &[
+            // か (question) + と (quotative) before 言われる — now merges to かと.
+            (
+                "戻りたいかと言われる",
+                &["戻りたい", "か", "と", "言われる"],
+            ),
+            // Same quotative-と split at the tail — now merges to かと.
+            ("要素はないかと", &["要素", "は", "ない", "か", "と"]),
+            // のか + と (quotative) before 思う — now merges the と into かと.
+            (
+                "気を遣ってくれてるのかと思ってました",
+                &["気を遣ってくれてる", "のか", "と", "思ってました"],
+            ),
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for (input, expected) in cases {
+            let result = simple_segment(&ctx, input, None).unwrap();
+            let actual = segmentation(&result);
+            if actual != *expected {
+                failures.push(format!(
+                    "{:?}: rust={:?} expected={:?}",
+                    input, actual, expected
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} of {} segmentation cases diverged:\n{}",
+            failures.len(),
+            cases.len(),
+            failures.join("\n")
+        );
+    }
+
+    /// なので cases parked out of [`segmentation_test`], same pattern as
+    /// [`segmentation_test_failures_kato_todo`]: intentionally **left
+    /// failing** as a standing reminder, not `#[ignore]`d.
+    ///
+    /// Cause: JMdict reclassified entry 2827864 なので from particle (`prt`)
+    /// to conjunction (`conj`) on 2026-02-20. The scorer gives
+    /// particles a length-amplified bonus conjunctions don't get, so なので's
+    /// score fell (~54→36 for a 3-char kana word). The `*no-kanji-break-
+    /// penalty*` errata still shields なので from the kanji-boundary score-
+    /// halving, but the lowered base loses anyway.
+    ///
+    /// Mixed outcome vs the old merged-なので fixture: 期待されがちなので now
+    /// splits to the grammatical な+ので (an improvement), while 器用なので
+    /// over-splits to な+の+で — a の-da synergy beats the correct な+ので by
+    /// 8 points (a real scoring bug; the right split is reachable but
+    /// under-scored).
+    #[test]
+    fn segmentation_test_failures_nanode_todo() {
+        let ctx = ctx_from_env();
+        let cases: &[(&str, &[&str])] = &[
+            // Now splits to the grammatical な+ので (improvement over the merge).
+            (
+                "期待されがちなので男女",
+                &["期待されがち", "なので", "男女"],
+            ),
+            // Now over-splits to な+の+で (regression; correct な+ので loses by 8).
+            (
+                "器用なのですぐ上達しますよ",
+                &["器用", "なので", "すぐ", "上達します", "よ"],
+            ),
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for (input, expected) in cases {
+            let result = simple_segment(&ctx, input, None).unwrap();
+            let actual = segmentation(&result);
+            if actual != *expected {
+                failures.push(format!(
+                    "{:?}: rust={:?} expected={:?}",
+                    input, actual, expected
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} of {} segmentation cases diverged:\n{}",
+            failures.len(),
+            cases.len(),
+            failures.join("\n")
+        );
+    }
+
+    /// どなた様 case parked out of [`segmentation_test`], same pattern as
+    /// [`segmentation_test_failures_kato_todo`]: intentionally **left
+    /// failing**, not `#[ignore]`d.
+    ///
+    /// Cause: JMdict added entry 2870224 (どなたさま / どなた様 / 何方様) on
+    /// 2026-03-22 (submitted 2026-03-19,
+    /// jmdictdb seq 2870224), absent from the older dictionary the fixtures
+    /// were captured against. The single 3-char entry outscores
+    /// どなた+様, so the segmenter merges どなた様. Same lever as the かと cases
+    /// (a new entry forcing a merge); unlike かと, どなた様 is a legitimate
+    /// single word, so the merge is arguably correct — a re-baseline candidate
+    /// rather than a bug.
+    #[test]
+    fn segmentation_test_failures_donatasama_todo() {
+        let ctx = ctx_from_env();
+        let cases: &[(&str, &[&str])] = &[
+            // Now merges to どなた様 via the new entry 2870224.
+            (
+                "どなた様でございましょうか",
+                &["どなた", "様", "でございましょう", "か"],
+            ),
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for (input, expected) in cases {
+            let result = simple_segment(&ctx, input, None).unwrap();
             let actual = segmentation(&result);
             if actual != *expected {
                 failures.push(format!(

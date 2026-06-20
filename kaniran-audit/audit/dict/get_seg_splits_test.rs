@@ -19,7 +19,7 @@ use serde_json::Value;
 use kaniran_core::dict::conj::ConjData;
 use kaniran_core::dict::path::get_seg_splits;
 use kaniran_core::dict::kani_lite_segment_list::KaniLiteSegmentList;
-use kaniran_core::dict::kani_lite_top_array_item::KaniLitePathElement;
+use kaniran_core::dict::kani_seg_split_enum::KaniSegSplitEnum;
 use kaniran_core::dict::kani_word::KaniWordDispatchEnum;
 use kaniran_core::dict::path::SegmentList;
 use kaniran_core::dict::scoring::score::{
@@ -35,7 +35,7 @@ use common::{
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:GET-SEG-SPLITS";
 
-async fn audit_one(
+fn audit_one(
     _ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -58,15 +58,20 @@ async fn audit_one(
     // the lite refactor).
     let actual: Vec<Vec<PathElement>> = lite_result
         .into_iter()
-        .map(|path| {
-            path.into_iter()
-                .map(|elem| match elem {
-                    KaniLitePathElement::SegmentList(lite) => {
-                        PathElement::SegmentList(lite.to_segment_list())
-                    }
-                    KaniLitePathElement::Synergy(s) => PathElement::Synergy(s),
-                })
-                .collect()
+        .map(|split| match split {
+            KaniSegSplitEnum::Plain { right, left } => vec![
+                PathElement::SegmentList(right.to_segment_list()),
+                PathElement::SegmentList(left.to_segment_list()),
+            ],
+            KaniSegSplitEnum::WithSynergy {
+                right,
+                synergy,
+                left,
+            } => vec![
+                PathElement::SegmentList(right.to_segment_list()),
+                PathElement::Synergy(synergy),
+                PathElement::SegmentList(left.to_segment_list()),
+            ],
         })
         .collect();
 
@@ -121,10 +126,10 @@ fn parse_segment_list_full(value: &Value) -> Result<SegmentList, String> {
     if class != "SEGMENT-LIST" {
         return Err(format!("expected SEGMENT-LIST class, got :{}", class));
     }
-    let segments: Vec<Segment> = match value.get("segments") {
+    let segments: Vec<std::sync::Arc<Segment>> = match value.get("segments") {
         Some(Value::Array(arr)) => arr
             .iter()
-            .map(parse_segment_full)
+            .map(|item| parse_segment_full(item).map(std::sync::Arc::new))
             .collect::<Result<_, _>>()
             .map_err(|err| format!("segments: {}", err))?,
         Some(Value::Null) | None => Vec::new(),
@@ -556,10 +561,9 @@ fn require_field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
         .ok_or_else(|| format!("missing field {} on: {}", key, value))
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     // Stream rows batch-by-batch — chunk_b's get_seg_splits parquet is
     // ~15GB (the dedup parquet on .103 at 2026-05-19). Buffering the
     // whole file would OOM (`feedback_audit_must_stream`).
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

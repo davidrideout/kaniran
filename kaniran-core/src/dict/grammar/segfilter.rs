@@ -8,8 +8,15 @@ use crate::dict::grammar::synergy::{
 };
 use crate::dict::kani_lite_segment::KaniLiteSegment;
 use crate::dict::kani_lite_segment_list::{make_kani_lite_segment_list_from, KaniLiteSegmentList};
-use crate::dict::kani_lite_top_array_item::KaniLitePathElement;
+use crate::dict::kani_seg_split_enum::KaniSegSplitEnum;
+use smallvec::SmallVec;
 use std::sync::Arc;
+
+/// A `(seg-left, seg-right)` candidate pair threaded through the
+/// segfilters. Inlined at capacity 1 because the overwhelmingly common
+/// outcome is a single pass-through pair that never spills to the heap.
+pub type SegfilterSplits =
+    SmallVec<[(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>); 1]>;
 
 /// Port of `ichiran/dict:penalty-short` (`dict-grammar.lisp:996-1001`).
 ///
@@ -19,8 +26,8 @@ pub fn penalty_short(l: &KaniLiteSegmentList, r: &KaniLiteSegmentList) -> Option
     def_generic_penalty_body(
         l,
         r,
-        filter_short_kana(1, vec![]),
-        filter_short_kana(1, vec!["と".to_string()]),
+        filter_short_kana(1, &[]),
+        filter_short_kana(1, &["と"]),
         &DefGenericPenaltyOpts {
             serial: false,
             description: "short",
@@ -35,12 +42,12 @@ pub fn penalty_short(l: &KaniLiteSegmentList, r: &KaniLiteSegmentList) -> Option
 /// Scoring penalty (-15) applied when the left segment is a semi-final
 /// particle that isn't actually in final position.
 pub fn penalty_semi_final(l: &KaniLiteSegmentList, r: &KaniLiteSegmentList) -> Option<Synergy> {
-    let f = filter_in_seq_set(semi_final_prt().to_vec());
+    let f = filter_in_seq_set(semi_final_prt());
     def_generic_penalty_body(
         l,
         r,
         // dict-grammar.lisp:1004-1006 (test-left lambda over (apply 'filter-in-seq-set *semi-final-prt*))
-        |sl| sl.segments.iter().any(|s| f(s)),
+        |sl| sl.segments.iter().any(&f),
         // dict-grammar.lisp:1007 (test-right = (constantly t))
         |_| true,
         &DefGenericPenaltyOpts {
@@ -55,10 +62,13 @@ pub fn penalty_semi_final(l: &KaniLiteSegmentList, r: &KaniLiteSegmentList) -> O
 /// Port of `ichiran/dict:*segfilter-list*` (`dict-grammar.lisp:1024`).
 ///
 /// Registry of segfilter functions applied to adjacent segment pairs.
+/// `None` means pass-through — the input pair flows on unchanged
+/// (upstream's `(list (list seg-left seg-right))` identity result,
+/// returned without allocating it); `Some` carries the rewritten pairs.
 pub type SegFilter = fn(
     Option<&Arc<KaniLiteSegmentList>>,
     &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>;
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>>;
 
 pub static SEGFILTER_LIST: &[SegFilter] = &[
     segfilter_mononi,
@@ -83,29 +93,31 @@ pub static SEGFILTER_LIST: &[SegFilter] = &[
 ///
 /// Walks [`PENALTY_LIST`] in order, returning the first penalty that
 /// fires between `seg_left` and `seg_right`. Result is the
-/// three-element `(seg_right, penalty, seg_left)` shape when a penalty
-/// matched, else the two-element `(seg_right, seg_left)` shape.
+/// `(seg_right, penalty, seg_left)` shape when a penalty matched, else
+/// the plain `(seg_right, seg_left)` shape — both inline in
+/// [`KaniSegSplitEnum`], so the dominant no-penalty case stays off the
+/// heap.
 ///
 /// [`PENALTY_LIST`]: crate::dict::grammar::penalty::PENALTY_LIST
 pub fn get_penalties(
     seg_left: &Arc<KaniLiteSegmentList>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<KaniLitePathElement> {
+) -> KaniSegSplitEnum {
     for penalty_fn in PENALTY_LIST {
         if let Some(penalty) = penalty_fn(seg_left, seg_right) {
             // dict-grammar.lisp:1015 (`(return (list seg-right penalty seg-left))`)
-            return vec![
-                KaniLitePathElement::SegmentList(Arc::clone(seg_right)),
-                KaniLitePathElement::Synergy(penalty),
-                KaniLitePathElement::SegmentList(Arc::clone(seg_left)),
-            ];
+            return KaniSegSplitEnum::WithSynergy {
+                right: Arc::clone(seg_right),
+                synergy: penalty,
+                left: Arc::clone(seg_left),
+            };
         }
     }
     // dict-grammar.lisp:1016 (`(finally (return (list seg-right seg-left)))`)
-    vec![
-        KaniLitePathElement::SegmentList(Arc::clone(seg_right)),
-        KaniLitePathElement::SegmentList(Arc::clone(seg_left)),
-    ]
+    KaniSegSplitEnum::Plain {
+        right: Arc::clone(seg_right),
+        left: Arc::clone(seg_left),
+    }
 }
 
 /// Port of `ichiran/dict:classify` (`dict-grammar.lisp:1032`).
@@ -135,60 +147,70 @@ where
 /// Shared body for the "must-follow" segment filters: partitions the
 /// right segment-list by `filter_right` and recombines it with the
 /// left list so that segments matching `filter_right` are kept only
-/// when preceded by a left segment matching `filter_left`.
+/// when preceded by a left segment matching `filter_left`. Returns
+/// `None` for the pass-through outcomes (the [`SegFilter`] contract) so
+/// the dominant nothing-matched case allocates nothing.
 pub fn def_segfilter_must_follow_body<FL, FR>(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
     filter_left: FL,
     filter_right: FR,
     allow_first: bool,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>>
 where
     FL: Fn(&Arc<KaniLiteSegment>) -> bool,
     FR: Fn(&Arc<KaniLiteSegment>) -> bool,
 {
-    let (sat_r, con_r) = classify(filter_right, &seg_right.segments);
-
     // dict-grammar.lisp:1048-1049 (cond clause 1) — pass through when
     // nothing on the right matches, or when allow-first and l=nil.
-    if sat_r.is_empty() || (allow_first && seg_left.is_none()) {
-        return vec![(seg_left.cloned(), Arc::clone(seg_right))];
+    // Tested BEFORE partitioning: this is the overwhelmingly common
+    // outcome, and classify clones every segment it walks.
+    if (allow_first && seg_left.is_none())
+        || !seg_right.segments.iter().any(&filter_right)
+    {
+        return None;
     }
+    let (sat_r, con_r) = classify(filter_right, &seg_right.segments);
 
     // dict-grammar.lisp:1050-1054 (cond clause 2) — l absent or
     // non-adjacent: keep only the non-matching right segments.
     let l = match seg_left {
         None => {
-            return if con_r.is_empty() {
+            return Some(if con_r.is_empty() {
                 Vec::new()
             } else {
                 vec![(
                     None,
                     Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)),
                 )]
-            };
+            });
         }
         Some(l) if l.end != seg_right.start => {
-            return if con_r.is_empty() {
+            return Some(if con_r.is_empty() {
                 Vec::new()
             } else {
                 vec![(
                     Some(Arc::clone(l)),
                     Arc::new(make_kani_lite_segment_list_from(seg_right, con_r)),
                 )]
-            };
+            });
         }
         Some(l) => l,
     };
 
     // dict-grammar.lisp:1055-1069 (t branch) — l adjacent to r:
     // classify l and emit the satisfies × satisfies pair (prepended)
-    // alongside the unchanged-l × contradicts-r pair.
-    let (sat_l, con_l) = classify(filter_left, &l.segments);
-
-    if con_l.is_empty() {
-        return vec![(Some(Arc::clone(l)), Arc::clone(seg_right))];
+    // alongside the unchanged-l × contradicts-r pair. The all-satisfy
+    // case returns before partitioning, same as the right side above.
+    if l.segments.iter().all(&filter_left) {
+        return None;
     }
+    let sat_l: Vec<Arc<KaniLiteSegment>> = l
+        .segments
+        .iter()
+        .filter(|segment| filter_left(segment))
+        .cloned()
+        .collect();
 
     let mut result: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> = Vec::new();
     if !con_r.is_empty() {
@@ -207,7 +229,7 @@ where
             ),
         );
     }
-    result
+    Some(result)
 }
 
 /// Port of `ichiran/dict:*aux-verbs*` (`dict-grammar.lisp:1072`).
@@ -222,12 +244,12 @@ pub static AUX_VERBS: &[i32] = &[
 pub fn segfilter_aux_verb(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
         filter_is_conjugation(13),
-        filter_in_seq_set(AUX_VERBS.to_vec()),
+        filter_in_seq_set(AUX_VERBS),
         false,
     )
 }
@@ -242,13 +264,13 @@ const IRU_SEQS: &[i32] = &[1577980];
 pub fn segfilter_tsu_iru(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(vec![TSU_SEQ]);
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
+    let inner = filter_in_seq_set(&[TSU_SEQ]);
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
         |s| !inner(s),
-        filter_in_seq_set(IRU_SEQS.to_vec()),
+        filter_in_seq_set(IRU_SEQS),
         true,
     )
 }
@@ -262,13 +284,13 @@ const N_SEQS: &[i32] = &[2139720, 2849370, 2849387];
 pub fn segfilter_n(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set_simple(NOUN_PARTICLES.to_vec());
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
+    let inner = filter_in_seq_set_simple(NOUN_PARTICLES);
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
         |s| !inner(s),
-        filter_in_seq_set(N_SEQS.to_vec()),
+        filter_in_seq_set(N_SEQS),
         true,
     )
 }
@@ -284,14 +306,14 @@ const KARASU_SEQS: &[i32] = &[2087020];
 pub fn segfilter_wokarasu(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
     // Left filter is (filter-in-seq-set 2029010) — no complement here
     // unlike most segfilters; sat-l = matches を, con-l = does not.
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
-        filter_in_seq_set(vec![WO_SEQ]),
-        filter_in_seq_set(KARASU_SEQS.to_vec()),
+        filter_in_seq_set(&[WO_SEQ]),
+        filter_in_seq_set(KARASU_SEQS),
         false,
     )
 }
@@ -300,20 +322,12 @@ pub fn segfilter_wokarasu(
 ///
 /// Drops right segments whose compound ends in one of the spurious
 /// tails ちゃい/いか/とか/とき/い (the left filter is always false).
-fn badend_texts() -> Vec<String> {
-    vec![
-        "ちゃい".to_string(),
-        "いか".to_string(),
-        "とか".to_string(),
-        "とき".to_string(),
-        "い".to_string(),
-    ]
-}
+static BADEND_TEXTS: &[&str] = &["ちゃい", "いか", "とか", "とき", "い"];
 
 pub fn segfilter_badend(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
     // Left filter (constantly nil) — sat-l is always empty for this
     // segfilter so the prepended sat-pair branch in the macro
     // expansion is unreachable in practice.
@@ -321,7 +335,7 @@ pub fn segfilter_badend(
         seg_left,
         seg_right,
         |_: &Arc<KaniLiteSegment>| false,
-        filter_is_compound_end_text(badend_texts()),
+        filter_is_compound_end_text(BADEND_TEXTS),
         false,
     )
 }
@@ -339,7 +353,7 @@ const SUKI_SUFFIX: &str = "好き";
 pub fn segfilter_sukiyoki(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
     let conj_filter = filter_is_conjugation(54); // +conj-adjective-literary+
     def_segfilter_must_follow_body(
         seg_left,
@@ -361,8 +375,8 @@ const KU_CHAR: char = 'く';
 pub fn segfilter_roku(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_is_compound_end_text(IRO_TEXTS.iter().map(|s| s.to_string()).collect());
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
+    let inner = filter_is_compound_end_text(IRO_TEXTS);
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
@@ -383,8 +397,8 @@ const E_CHAR: char = 'え';
 pub fn segfilter_sae(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_is_compound_end(vec![SAE_SEQ]);
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
+    let inner = filter_is_compound_end(&[SAE_SEQ]);
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
@@ -405,13 +419,13 @@ const JANAI_SEQS: &[i32] = &[1529520, 1296400, 2139720];
 pub fn segfilter_janai(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_is_compound_end(vec![HA_SEQ]);
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
+    let inner = filter_is_compound_end(&[HA_SEQ]);
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
         |s| !inner(s),
-        filter_in_seq_set(JANAI_SEQS.to_vec()),
+        filter_in_seq_set(JANAI_SEQS),
         true,
     )
 }
@@ -426,13 +440,13 @@ const HAYAMETE_SEQS: &[i32] = &[1601080];
 pub fn segfilter_nohayamete(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(vec![NO_SEQ]);
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
+    let inner = filter_in_seq_set(&[NO_SEQ]);
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
         |s| !inner(s),
-        filter_in_seq_set(HAYAMETE_SEQS.to_vec()),
+        filter_in_seq_set(HAYAMETE_SEQS),
         true,
     )
 }
@@ -452,13 +466,13 @@ const OMOU_IU_SEQS: &[i32] = &[1589350, 1587040];
 pub fn segfilter_toomou(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(vec![NANDATO_SEQ]);
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
+    let inner = filter_in_seq_set(&[NANDATO_SEQ]);
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
         |s| !inner(s),
-        filter_in_seq_set(OMOU_IU_SEQS.to_vec()),
+        filter_in_seq_set(OMOU_IU_SEQS),
         true,
     )
 }
@@ -473,13 +487,13 @@ const TOTTE_SEQS: &[i32] = &[2086960];
 pub fn segfilter_totte(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(vec![TO_SEQ]);
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
+    let inner = filter_in_seq_set(&[TO_SEQ]);
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
         |s| !inner(s),
-        filter_in_seq_set(TOTTE_SEQS.to_vec()),
+        filter_in_seq_set(TOTTE_SEQS),
         true,
     )
 }
@@ -500,12 +514,12 @@ fn filter_left(segment: &Arc<KaniLiteSegment>) -> bool {
 pub fn segfilter_dashi(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
         filter_left,
-        filter_in_seq_set(SURU_SETE_SEQS.to_vec()),
+        filter_in_seq_set(SURU_SETE_SEQS),
         true,
     )
 }
@@ -520,15 +534,79 @@ const KURU_SEQS: &[i32] = &[2830009, 1547720];
 pub fn segfilter_dekiru(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(DE_SEQS.to_vec());
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
+    let inner = filter_in_seq_set(DE_SEQS);
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
         |s| !inner(s),
-        filter_in_seq_set(KURU_SEQS.to_vec()),
+        filter_in_seq_set(KURU_SEQS),
         true,
     )
+}
+
+/// Conjugation type the sukiyoki filter keys on (`+conj-adjective-literary+`,
+/// `dict-errata.lisp:1240`); also used as a gate trigger by
+/// [`seg_right_may_fire`].
+const SUKIYOKI_CONJ_TYPE: i32 = 54;
+
+/// Sorted union of every segfilter's right-side trigger seq, built once
+/// from the per-filter constants themselves — not a re-typed literal
+/// list — so the gate can't drift from the seqs the filters actually
+/// test. Each constant is the `filter_right` seq set of the segfilter
+/// named alongside it; the four non-seq filters (sukiyoki conj-type,
+/// roku/sae text prefix, badend compound-end) are handled directly in
+/// [`seg_right_may_fire`]. Add a filter's constant here when adding a
+/// seq-based segfilter to [`SEGFILTER_LIST`].
+fn segfilter_trigger_seqs() -> &'static [i32] {
+    use std::sync::OnceLock;
+    static SEQS: OnceLock<Vec<i32>> = OnceLock::new();
+    SEQS.get_or_init(|| {
+        let mut seqs: Vec<i32> = Vec::new();
+        for set in [
+            MONONI_SEQS,
+            HONORIFICS,
+            KURU_SEQS,
+            SURU_SETE_SEQS,
+            TOTTE_SEQS,
+            OMOU_IU_SEQS,
+            HAYAMETE_SEQS,
+            JANAI_SEQS,
+            KARASU_SEQS,
+            N_SEQS,
+            IRU_SEQS,
+            AUX_VERBS,
+        ] {
+            seqs.extend_from_slice(set);
+        }
+        seqs.sort_unstable();
+        seqs.dedup();
+        seqs
+    })
+}
+
+/// True when some segment of `seg_right` could satisfy at least one
+/// segfilter's right-side test. When false, every filter short-circuits
+/// to `None` (the `!any(filter_right)` arm of
+/// [`def_segfilter_must_follow_body`]), so [`apply_segfilters`] can
+/// return the identity split without running the loop. Conservative: the
+/// conj-type arm over-approximates sukiyoki (which also wants a 好き
+/// suffix), and the text arm covers roku (く) and sae (え) by first char.
+fn seg_right_may_fire(seg_right: &KaniLiteSegmentList) -> bool {
+    let triggers = segfilter_trigger_seqs();
+    seg_right.segments.iter().any(|segment| {
+        segment
+            .seq_set
+            .iter()
+            .any(|seq| triggers.binary_search(seq).is_ok())
+            || segment.conj_types.contains(&SUKIYOKI_CONJ_TYPE)
+            || segment.text.starts_with(E_CHAR)
+            || segment.text.starts_with(KU_CHAR)
+            || segment
+                .compound_end_text
+                .as_deref()
+                .is_some_and(|end| BADEND_TEXTS.contains(&end))
+    })
 }
 
 /// Port of `ichiran/dict:apply-segfilters` (`dict-grammar.lisp:1170`).
@@ -542,19 +620,42 @@ pub fn segfilter_dekiru(
 pub fn apply_segfilters(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
+) -> SegfilterSplits {
+    // Fast path: if no segment of seg_right can satisfy any segfilter's
+    // right-side test, every filter returns None and the pair passes
+    // through unchanged. Decide that in one scan instead of running all
+    // 16 filters. Byte-identical to the loop below (see seg_right_may_fire).
+    if !seg_right_may_fire(seg_right) {
+        return SmallVec::from_buf([(seg_left.cloned(), Arc::clone(seg_right))]);
+    }
     // dict-grammar.lisp:1171 (`with splits = (list (list seg-left seg-right))`)
-    let mut splits: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> =
-        vec![(seg_left.cloned(), Arc::clone(seg_right))];
+    let mut splits: SegfilterSplits =
+        SmallVec::from_buf([(seg_left.cloned(), Arc::clone(seg_right))]);
     for segfilter in SEGFILTER_LIST {
         // dict-grammar.lisp:1173-1175 (inner loop nconc-ing each
-        // filter's output across the current splits)
-        let mut next: Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> =
-            Vec::new();
-        for (left, right) in &splits {
-            next.extend(segfilter(left.as_ref(), right));
+        // filter's output across the current splits). The next
+        // generation is materialized only once some pair is actually
+        // rewritten; until then pass-through (None) results leave
+        // `splits` untouched.
+        let mut next: Option<SegfilterSplits> = None;
+        for (index, (left, right)) in splits.iter().enumerate() {
+            match segfilter(left.as_ref(), right) {
+                None => {
+                    if let Some(next_splits) = next.as_mut() {
+                        next_splits.push((left.clone(), Arc::clone(right)));
+                    }
+                }
+                Some(rewritten) => {
+                    // First rewrite: start the new generation with the
+                    // pass-through pairs already walked.
+                    next.get_or_insert_with(|| splits[..index].iter().cloned().collect())
+                        .extend(rewritten);
+                }
+            }
         }
-        splits = next;
+        if let Some(next_splits) = next {
+            splits = next_splits;
+        }
     }
     splits
 }
@@ -566,13 +667,13 @@ pub fn apply_segfilters(
 pub fn segfilter_honorific(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(NOUN_PARTICLES.to_vec());
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
+    let inner = filter_in_seq_set(NOUN_PARTICLES);
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
         |s| !inner(s),
-        filter_in_seq_set(HONORIFICS.to_vec()),
+        filter_in_seq_set(HONORIFICS),
         false,
     )
 }
@@ -587,13 +688,13 @@ const MONONI_SEQS: &[i32] = &[1009980];
 pub fn segfilter_mononi(
     seg_left: Option<&Arc<KaniLiteSegmentList>>,
     seg_right: &Arc<KaniLiteSegmentList>,
-) -> Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)> {
-    let inner = filter_in_seq_set(vec![MO_SEQ]);
+) -> Option<Vec<(Option<Arc<KaniLiteSegmentList>>, Arc<KaniLiteSegmentList>)>> {
+    let inner = filter_in_seq_set(&[MO_SEQ]);
     def_segfilter_must_follow_body(
         seg_left,
         seg_right,
         |s| !inner(s),
-        filter_in_seq_set(MONONI_SEQS.to_vec()),
+        filter_in_seq_set(MONONI_SEQS),
         true,
     )
 }

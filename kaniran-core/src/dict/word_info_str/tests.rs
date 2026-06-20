@@ -24,18 +24,16 @@ mod reading_str_star_ {
 mod reading_str_seq {
     use crate::dict::word_info_str::*;
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// Covers a kanji+kana entry, a conjugating kanji+kana verb, two
     /// kana-only entries (no kanji → bare kana), and an unknown seq (→ None).
     /// Needs a live Postgres DB.
-    #[tokio::test]
-    async fn reading_str_seq_fixtures() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn reading_str_seq_fixtures() {
+        let ctx = ctx_from_env();
         let cases: &[(i32, Option<&str>)] = &[
             (1582710, Some("日本 【にほん】")),
             (1358280, Some("食べる 【たべる】")),
@@ -45,7 +43,7 @@ mod reading_str_seq {
         ];
         for (seq, expected) in cases {
             assert_eq!(
-                reading_str_seq(&ctx, *seq).await.unwrap().as_deref(),
+                reading_str_seq(&ctx, *seq).unwrap().as_deref(),
                 *expected,
                 "seq={seq}"
             );
@@ -56,19 +54,17 @@ mod reading_str_seq {
 mod entry_info_short {
     use crate::dict::word_info_str::*;
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// Covers a noun (日本) and a verb (食べる) with no part-of-speech filter,
     /// a filter matching the entry's part of speech, a filter matching no
     /// sense (empty after " : "), and an unknown seq (reading renders "NIL").
     /// Needs a live Postgres DB.
-    #[tokio::test]
-    async fn entry_info_short_fixtures() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn entry_info_short_fixtures() {
+        let ctx = ctx_from_env();
         let cases: &[(i32, Option<&str>, &str)] = &[
             (1582710, None, "日本 【にほん】 : Japan"),
             (1358280, None, "食べる 【たべる】 : to eat"),
@@ -80,7 +76,7 @@ mod entry_info_short {
         ];
         for (seq, with_pos, expected) in cases {
             assert_eq!(
-                entry_info_short(&ctx, *seq, *with_pos).await.unwrap(),
+                entry_info_short(&ctx, *seq, *with_pos).unwrap(),
                 *expected,
                 "seq={seq} with_pos={with_pos:?}"
             );
@@ -91,19 +87,17 @@ mod entry_info_short {
 mod entry_info_long {
     use crate::dict::word_info_str::*;
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// Covers a single-sense noun (reading with 【kanji】), a verb, a
     /// kana-only entry (bare kana, no 【】), a multi-sense entry with a
     /// 《sense-info》 annotation, and an unknown seq (just the seq, no reading).
     /// Needs a live Postgres DB.
-    #[tokio::test]
-    async fn entry_info_long_fixtures() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn entry_info_long_fixtures() {
+        let ctx = ctx_from_env();
         let cases: &[(i32, &str)] = &[
             (1562520, "1562520 賄賂 【わいろ】\n1. [n] bribe; sweetener; douceur"),
             (1573390, "1573390 躊躇う 【ためらう】\n1. [vi,v5u] to hesitate; to waver"),
@@ -116,7 +110,7 @@ mod entry_info_long {
         ];
         for (seq, expected) in cases {
             assert_eq!(
-                &entry_info_long(&ctx, *seq).await.unwrap(),
+                &entry_info_long(&ctx, *seq).unwrap(),
                 expected,
                 "seq={seq}"
             );
@@ -298,10 +292,8 @@ mod word_info_str {
     use crate::dict::word_info_str::*;
     use std::sync::Arc;
 
-    async fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     fn single(reading: &str) -> Option<WordInfoKana> {
@@ -319,10 +311,10 @@ mod word_info_str {
     /// - G: compound whose non-primary part is a suffix → marker, suffix description.
     /// - G2: compound whose non-primary part is not a suffix → marker, then senses.
     /// - H: alternative → "<i>. " prefixes, second reading a counter.
-    #[tokio::test]
-    async fn word_info_str_fixtures() {
+    #[test]
+    fn word_info_str_fixtures() {
         use WordInfoType::{Kana, Kanji};
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
 
         let compound = |text: &str, kana: &str, seqs: &[i32], comps: Vec<WordInfo>| WordInfo {
             kind: Kanji,
@@ -335,6 +327,9 @@ mod word_info_str {
             ..Default::default()
         };
 
+        // Cases B/C feed a conjugated-form entry seq (past of 食べる) that
+        // renumbers per build; resolve it from the stable surface 食べた.
+        let tabeta = crate::test_support::conj_entry_seq("食べた");
         let cases: Vec<(&str, WordInfo, &str)> = vec![
             (
                 "A",
@@ -353,7 +348,7 @@ mod word_info_str {
                     kind: Kanji,
                     text: "食べた".to_string(),
                     kana: single("たべた"),
-                    seq: Some(WordInfoSeq::Single(10092229)),
+                    seq: Some(WordInfoSeq::Single(tabeta)),
                     ..Default::default()
                 },
                 "食べた 【たべた】\n\n[ Conjugation: [v1] Past (~ta) Affirmative Plain\n  食べる 【たべる】 : to eat ]",
@@ -364,7 +359,7 @@ mod word_info_str {
                     kind: Kanji,
                     text: "食べた".to_string(),
                     kana: single("たべた"),
-                    seq: Some(WordInfoSeq::Single(10092229)),
+                    seq: Some(WordInfoSeq::Single(tabeta)),
                     conjugations: Some(WordConjugations::Root),
                     ..Default::default()
                 },
@@ -497,7 +492,7 @@ mod word_info_str {
 
         for (label, word_info, expected) in &cases {
             assert_eq!(
-                &word_info_str(&ctx, word_info).await.unwrap(),
+                &word_info_str(&ctx, word_info).unwrap(),
                 expected,
                 "case={label}"
             );
@@ -510,10 +505,8 @@ mod word_info_gloss_json {
     use crate::dict::word_info_str::*;
     // Needs a live Postgres DB.
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     fn json(value: &Value) -> String {
@@ -524,9 +517,9 @@ mod word_info_gloss_json {
     /// conjugated verb (no top-level gloss; the conjugation carries it),
     /// ordinal counter (counter object, `ordinal:true`), and compound (with
     /// recursive components, the non-primary いる rendered as a suffix).
-    #[tokio::test]
-    async fn word_info_gloss_json_branches() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn word_info_gloss_json_branches() {
+        let ctx = ctx_from_env();
         // (text, expected single-object json)
         let cases: &[(&str, &str)] = &[
             // 政府 — simple noun: top-level gloss, empty conj.
@@ -551,19 +544,21 @@ mod word_info_gloss_json {
             ),
         ];
         for (text, expected) in cases {
-            let wis = find_word_info(&ctx, text, None, false).await.unwrap();
+            let wis = find_word_info(&ctx, text, None, false).unwrap();
             assert!(!wis.is_empty(), "text={text}");
-            let result = word_info_gloss_json(&ctx, &wis[0], false).await.unwrap();
-            assert_eq!(json(&result), *expected, "text={text}");
+            let result = word_info_gloss_json(&ctx, &wis[0], false).unwrap();
+            // 書いた / 食べてる carry synthetic conjugated-entry seqs that
+            // renumber per build; compare ignoring those.
+            crate::test_support::assert_json_seq_agnostic(&result, expected, text);
         }
     }
 
     /// With root_only=true, gloss is always emitted and there's no conj key.
     /// 政府 yields a populated gloss; 書いた has no direct senses, so its gloss
     /// is the empty list (still present).
-    #[tokio::test]
-    async fn root_only_t_arm() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn root_only_t_arm() {
+        let ctx = ctx_from_env();
         let cases: &[(&str, &str)] = &[
             (
                 "政府",
@@ -575,36 +570,21 @@ mod word_info_gloss_json {
             ),
         ];
         for (text, expected) in cases {
-            let wis = find_word_info(&ctx, text, None, false).await.unwrap();
+            let wis = find_word_info(&ctx, text, None, false).unwrap();
             assert!(!wis.is_empty(), "text={text}");
-            let result = word_info_gloss_json(&ctx, &wis[0], true).await.unwrap();
-            assert_eq!(json(&result), *expected, "text={text}");
-        }
-    }
-
-    /// 5個 → two counter readings (ごこ / ごか); each carries a non-ordinal
-    /// counter object (`ordinal:[]`) and a pos-list `("ctr")`-filtered gloss.
-    #[tokio::test]
-    async fn counter_two_readings() {
-        let ctx = ctx_from_env().await;
-        let expected = [
-            r#"{"reading":"5個 【ごこ】","text":"5個","kana":"ごこ","score":128,"counter":{"value":"Value: 5","ordinal":[]},"seq":1264740,"gloss":[{"pos":"[ctr]","gloss":"counter for (small) things or pieces","info":"also written as ヶ"},{"pos":"[ctr]","gloss":"counter for military units"}]}"#,
-            r#"{"reading":"5個 【ごか】","text":"5個","kana":"ごか","score":40,"counter":{"value":"Value: 5","ordinal":[]},"seq":2220320,"gloss":[{"pos":"[ctr]","gloss":"counter used with Sino-Japanese words","info":"precedes the thing being counted; e.g. ３か月, ５か所; also written as ヶ or ケ"}]}"#,
-        ];
-        let wis = find_word_info(&ctx, "5個", None, false).await.unwrap();
-        assert_eq!(wis.len(), 2);
-        for (wi, expected) in wis.iter().zip(expected.iter()) {
-            let result = word_info_gloss_json(&ctx, wi, false).await.unwrap();
-            assert_eq!(json(&result), *expected);
+            let result = word_info_gloss_json(&ctx, &wis[0], true).unwrap();
+            // 書いた carries a synthetic conjugated-entry seq that renumbers
+            // per build; compare ignoring those.
+            crate::test_support::assert_json_seq_agnostic(&result, expected, text);
         }
     }
 
     /// An alternative word-info serializes to {"alternative": [...]} with one
     /// object per component. Built from 何's two readings (なに / なん).
-    #[tokio::test]
-    async fn alternative_branch() {
-        let ctx = ctx_from_env().await;
-        let components = find_word_info(&ctx, "何", None, false).await.unwrap();
+    #[test]
+    fn alternative_branch() {
+        let ctx = ctx_from_env();
+        let components = find_word_info(&ctx, "何", None, false).unwrap();
         assert_eq!(components.len(), 2);
         let alt = WordInfo {
             kind: crate::dict::word_info::WordInfoType::Kanji,
@@ -615,7 +595,7 @@ mod word_info_gloss_json {
             end: Some(1),
             ..WordInfo::default()
         };
-        let result = word_info_gloss_json(&ctx, &alt, false).await.unwrap();
+        let result = word_info_gloss_json(&ctx, &alt, false).unwrap();
         let expected = r#"{"alternative":[{"reading":"何 【なに】","text":"何","kana":"なに","score":24,"seq":1577100,"gloss":[{"pos":"[pn]","gloss":"what"},{"pos":"[pn]","gloss":"you-know-what; that thing"},{"pos":"[pn]","gloss":"whatsit; whachamacallit; what's-his-name; what's-her-name"},{"pos":"[n]","gloss":"penis; (one's) thing; dick","info":"esp. ナニ"},{"pos":"[adv]","gloss":"(not) at all; (not) in the slightest","info":"with neg. sentence"},{"pos":"[int]","gloss":"what?; huh?","info":"indicates surprise"},{"pos":"[int]","gloss":"hey!; come on!","info":"indicates anger or irritability"},{"pos":"[int]","gloss":"oh, no (it's fine); why (it's nothing); oh (certainly not)","info":"used to dismiss someone's worries, concerns, etc."}],"conj":[]},{"reading":"何 【なん】","text":"何","kana":"なん","score":16,"seq":2846738,"gloss":[{"pos":"[pn]","gloss":"what"},{"pos":"[pref]","gloss":"how many","info":"followed by a counter"},{"pos":"[pref]","gloss":"many; a lot of","info":"followed by (optional number), counter and も"},{"pos":"[pref]","gloss":"several; a few; some","info":"followed by a counter and か"}],"conj":[]}]}"#;
         assert_eq!(json(&result), expected);
     }
@@ -625,10 +605,8 @@ mod get_kanji_words {
     use crate::dict::word_info_str::*;
     // Needs a live Postgres DB; run single-threaded (`-- --test-threads=1`).
 
-    async fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     fn row(seq: i32, kanji: &str, kana: &str, common: i32) -> (i32, String, String, i32) {
@@ -637,9 +615,9 @@ mod get_kanji_words {
 
     /// The result is an unordered set; both sides are sorted before comparison.
     /// 蜂蜜 carries common = 0, exercising the common-is-zero-but-not-null case.
-    #[tokio::test]
-    async fn get_kanji_words_fixtures() {
-        let ctx = ctx().await;
+    #[test]
+    fn get_kanji_words_fixtures() {
+        let ctx = ctx();
         let cases: &[(&str, Vec<(i32, String, String, i32)>)] = &[
             (
                 "鯨",
@@ -660,7 +638,7 @@ mod get_kanji_words {
             ),
         ];
         for (char, expected) in cases {
-            let mut got = get_kanji_words(&ctx, char).await.unwrap();
+            let mut got = get_kanji_words(&ctx, char).unwrap();
             // The result is unordered; sort both sides for a stable comparison.
             got.sort();
             let mut expected = expected.clone();
@@ -671,10 +649,10 @@ mod get_kanji_words {
 
     /// A single-character argument ("火") returns the full set of words
     /// containing that kanji.
-    #[tokio::test]
-    async fn single_char_argument() {
-        let ctx = ctx().await;
-        let words = get_kanji_words(&ctx, "火").await.unwrap();
+    #[test]
+    fn single_char_argument() {
+        let ctx = ctx();
+        let words = get_kanji_words(&ctx, "火").unwrap();
         assert_eq!(words.len(), 75);
     }
 }

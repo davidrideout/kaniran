@@ -1,9 +1,9 @@
 use super::helpers::{hepburn_kana_table, kunrei_siki_kana_table};
-use crate::characters::char_class::simplify_ngrams;
 use crate::characters::kani_kana_class::KanaClass;
+use crate::characters::kani_ngram_scanner::KaniNgramScanner;
 use fancy_regex::Regex;
 use std::collections::HashMap;
-use std::sync::OnceLock;
+use std::sync::{LazyLock, OnceLock};
 
 /// Port of `ichiran:generic-romanization` (`romanize.lisp:62`).
 ///
@@ -86,30 +86,33 @@ fn generic_hepburn_class_n_apos_consonant() -> &'static Regex {
 pub struct SimplifiedHepburn {
     pub base: GenericHepburn,
     pub simplifications: Vec<&'static str>,
+    /// Scanner over the paired `simplifications`, compiled once here —
+    /// the list never changes after `new`.
+    kani_simplify_scanner: KaniNgramScanner,
 }
 
 impl SimplifiedHepburn {
     pub fn new(simplifications: Vec<&'static str>) -> Self {
+        // The flat alternating list pairs up by `cddr`
+        // (`characters.lisp:211`).
+        let pairs: Vec<(&str, &str)> = simplifications
+            .chunks(2)
+            .filter(|pair| pair.len() == 2)
+            .map(|pair| (pair[0], pair[1]))
+            .collect();
         SimplifiedHepburn {
             base: GenericHepburn::new(),
+            kani_simplify_scanner: KaniNgramScanner::new(&pairs),
             simplifications,
         }
     }
 
     /// `r-simplify` method (`romanize.lisp:141-142`): run the generic-hepburn
     /// simplification (`call-next-method`), then fold the `simplifications`
-    /// slot's from/to pairs through `simplify-ngrams`. The slot is the flat
-    /// alternating list `simplify-ngrams` itself pairs up by `cddr`
-    /// (`characters.lisp:211`).
+    /// slot's from/to pairs through `simplify-ngrams`.
     pub fn r_simplify(&self, str: &str) -> String {
         let str = self.base.r_simplify(str);
-        let pairs: Vec<(&str, &str)> = self
-            .simplifications
-            .chunks(2)
-            .filter(|pair| pair.len() == 2)
-            .map(|pair| (pair[0], pair[1]))
-            .collect();
-        simplify_ngrams(&str, &pairs)
+        self.kani_simplify_scanner.simplify(&str)
     }
 }
 
@@ -225,7 +228,9 @@ impl KunreiSiki {
     /// vowels through `simplify-ngrams`.
     pub fn r_simplify(&self, str: &str) -> String {
         let str = kunrei_siki_class_n_apos_consonant().replace_all(str, "n${1}");
-        simplify_ngrams(&str, &[("oo", "ô"), ("ou", "ô"), ("uu", "û")])
+        static SCANNER: LazyLock<KaniNgramScanner> =
+            LazyLock::new(|| KaniNgramScanner::new(&[("oo", "ô"), ("ou", "ô"), ("uu", "û")]));
+        SCANNER.simplify(&str)
     }
 }
 

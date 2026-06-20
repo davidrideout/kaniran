@@ -4,7 +4,7 @@
 //! [`super::accessors::get_array`] used inside the `find-best-path`
 //! inner loop, over the lite [`KaniLiteTopArrayItem`] type.
 
-use super::kani_lite_top_array_item::{KaniLitePathElement, KaniLiteTopArrayItem};
+use super::kani_lite_top_array_item::{KaniLitePath, KaniLiteTopArrayItem};
 
 #[derive(Debug, Clone)]
 pub struct KaniLiteTopArray {
@@ -26,7 +26,7 @@ impl KaniLiteTopArray {
 pub fn kani_lite_register_item(
     obj: &mut KaniLiteTopArray,
     score: i32,
-    payload: std::sync::Arc<[KaniLitePathElement]>,
+    payload: KaniLitePath,
 ) {
     let mut item: Option<KaniLiteTopArrayItem> = Some(KaniLiteTopArrayItem { score, payload });
     let len = obj.array.len();

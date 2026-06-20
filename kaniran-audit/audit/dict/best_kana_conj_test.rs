@@ -20,7 +20,7 @@ use common::{captured_class, single_result, CapturedKanjiText, CapturedRow};
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:BEST-KANA-CONJ";
 
 
-async fn audit_one(
+fn audit_one(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -36,7 +36,7 @@ async fn audit_one(
     let kanji = captured.into_dao();
 
     let actual = best_kana_conj(ctx, &kanji)
-        .await
+        
         .map_err(|err| format!("best_kana_conj: {}", err))?;
 
     let result = single_result(&row.result)?;
@@ -55,7 +55,6 @@ async fn audit_one(
 }
 
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

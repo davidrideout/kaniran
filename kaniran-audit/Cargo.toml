@@ -6,6 +6,15 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[features]
+# Forwarded to kaniran-core so audit runners can replay against the
+# rkyv snapshot backend (select with DATABASE_URL=memory://<archive>).
+rkyv = ["kaniran-core/rkyv"]
+# Allocation profiling for cli_full_profile: swaps the global allocator
+# from mimalloc to dhat::Alloc and records every allocation with its
+# backtrace (bytes + block counts per site, exact not sampled).
+dhat-heap = ["dep:dhat"]
+
 [dependencies]
 kaniran-core = { path = "../kaniran-core" }
 serde = { workspace = true }
@@ -17,6 +26,8 @@ arrow = "55"
 futures = "0.3"
 pprof = { version = "0.13", features = ["flamegraph"] }
 clap = { version = "4", features = ["derive"] }
+mimalloc = { workspace = true }
+dhat = { version = "0.3", optional = true }
 
 # Per-FQN fixture-replay runners. Each lives at audit/<pkg>/<fqn>_test.rs
 # mirroring kaniran-core/src/<pkg>/<fqn>.rs. Run manually from the repo root with:
@@ -406,6 +417,10 @@ name = "cli_full_test"
 path = "audit/core/cli_full_test.rs"
 
 [[bin]]
+name = "cli_full_profile"
+path = "audit/core/cli_full_profile.rs"
+
+[[bin]]
 name = "conj_prop_json_test"
 path = "audit/dict/conj_prop_json_test.rs"
 
@@ -421,9 +436,10 @@ path = "audit/dict/conj_info_json_star_test.rs"
 name = "select_conjs_and_props_test"
 path = "audit/dict/select_conjs_and_props_test.rs"
 
-[[bin]]
-name = "e2e_load_kanjidic"
-path = "audit/kanji/e2e_load_kanjidic.rs"
+# e2e_load_kanjidic is parked: it drives kaniran_core::kanji::loaders /
+# stats / pool_only_from_url, which live behind the (intentionally
+# unbuilt) `loaders` feature. Re-add this bin when the loaders move to
+# the standalone loader crate.
 
 [[bin]]
 name = "multiset_compare"

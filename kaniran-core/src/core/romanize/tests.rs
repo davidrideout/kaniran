@@ -422,22 +422,20 @@ fn romanize_word_info_nil_kana() {
 // --- romanize ---
 // These tests hit the database; run with `-- --test-threads=1`.
 
-async fn romanize_ctx() -> std::sync::Arc<KaniranContext> {
-    KaniranContext::from_env()
-        .await
-        .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+fn romanize_ctx() -> std::sync::Arc<KaniranContext> {
+    crate::test_support::shared_ctx()
 }
 
 fn romanize_traditional() -> KaniRomanizeMethod<'static> {
     KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(hepburn_traditional()))
 }
 
-#[tokio::test]
-async fn romanize_joined_string() {
+#[test]
+fn romanize_joined_string() {
     // Each row: (input, default-method joined string, :kana joined string).
     // The default method converts 。/！ to ". "/"! "; the :kana output
     // keeps the full-width punctuation.
-    let romanize_ctx = romanize_ctx().await;
+    let romanize_ctx = romanize_ctx();
     let cases: &[(&str, &str, &str)] = &[
         (
             "富士山は日本で最も高い山である。",
@@ -463,31 +461,31 @@ async fn romanize_joined_string() {
     ];
     for (input, expected_default, expected_kana) in cases {
         let (default_str, _) = romanize(&romanize_ctx, input, romanize_traditional(), false)
-            .await
+            
             .unwrap();
         assert_eq!(
             &default_str, expected_default,
             "default method, input={input:?}"
         );
         let (kana_str, _) = romanize(&romanize_ctx, input, KaniRomanizeMethod::Kana, false)
-            .await
+            
             .unwrap();
         assert_eq!(&kana_str, expected_kana, ":kana method, input={input:?}");
     }
 }
 
-#[tokio::test]
-async fn romanize_with_info_collects_definitions_in_order() {
+#[test]
+fn romanize_with_info_collects_definitions_in_order() {
     // With info on, each romanized part gets one definition paired with its
     // headword; the trailing ". " punctuation contributes none.
-    let romanize_ctx = romanize_ctx().await;
+    let romanize_ctx = romanize_ctx();
     let (joined, definitions) = romanize(
         &romanize_ctx,
         "富士山は日本で最も高い山である。",
         romanize_traditional(),
         true,
     )
-    .await
+    
     .unwrap();
     assert_eq!(joined, "fujisan wa nihon de mottomo takai yama de aru. ");
     let roms: Vec<&str> = definitions.iter().map(|(rom, _)| rom.as_str()).collect();
@@ -513,18 +511,18 @@ async fn romanize_with_info_collects_definitions_in_order() {
     );
 }
 
-#[tokio::test]
-async fn romanize_with_info_false_yields_empty_definitions() {
+#[test]
+fn romanize_with_info_false_yields_empty_definitions() {
     // with-info nil: the joined string is unchanged and no definitions
     // are collected.
-    let romanize_ctx = romanize_ctx().await;
+    let romanize_ctx = romanize_ctx();
     let (joined, definitions) = romanize(
         &romanize_ctx,
         "彼女は新しい仮説を提唱した。",
         romanize_traditional(),
         false,
     )
-    .await
+    
     .unwrap();
     assert_eq!(joined, "kanojo wa atarashii kasetsu wo teishō shita. ");
     assert!(definitions.is_empty());
@@ -533,10 +531,8 @@ async fn romanize_with_info_false_yields_empty_definitions() {
 // --- romanize_star_ ---
 // These tests hit the database; run with `-- --test-threads=1`.
 
-async fn romanize_star_ctx() -> std::sync::Arc<KaniranContext> {
-    KaniranContext::from_env()
-        .await
-        .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+fn romanize_star_ctx() -> std::sync::Arc<KaniranContext> {
+    crate::test_support::shared_ctx()
 }
 
 fn romanize_star_traditional() -> KaniRomanizeMethod<'static> {
@@ -575,12 +571,12 @@ fn shape(result: &[RomanizeStarSegment<()>]) -> Vec<SegShape> {
         .collect()
 }
 
-#[tokio::test]
-async fn romanize_star_full_structure() {
+#[test]
+fn romanize_star_full_structure() {
     // "Hello 世界！" splits into a latin misc, a word with 5 distinct-score
     // alternatives, and a "! " misc. Alternatives carry unromanizable kanji
     // verbatim (e.g. "世" / "世界") when no reading wins.
-    let romanize_star_ctx = romanize_star_ctx().await;
+    let romanize_star_ctx = romanize_star_ctx();
     let result = romanize_star_(
         &romanize_star_ctx,
         "Hello 世界！",
@@ -588,7 +584,7 @@ async fn romanize_star_full_structure() {
         None,
         |_, _| (),
     )
-    .await
+    
     .unwrap();
     let word = |rom: &str, text: &str| (rom.to_string(), text.to_string());
     assert_eq!(
@@ -607,12 +603,12 @@ async fn romanize_star_full_structure() {
     );
 }
 
-#[tokio::test]
-async fn romanize_star_misc_in_middle() {
+#[test]
+fn romanize_star_misc_in_middle() {
     // "ABCは試験的な略語です。" splits into a leading latin misc, a word,
     // and a trailing ". " misc. Checks the segment kinds and the top
     // alternative's word sequence (top score 1091 is unique).
-    let romanize_star_ctx = romanize_star_ctx().await;
+    let romanize_star_ctx = romanize_star_ctx();
     let result = romanize_star_(
         &romanize_star_ctx,
         "ABCは試験的な略語です。",
@@ -620,7 +616,7 @@ async fn romanize_star_misc_in_middle() {
         None,
         |_, _| (),
     )
-    .await
+    
     .unwrap();
     let shaped = shape(&result);
     assert!(matches!(shaped[0], SegShape::Misc(ref t) if t == "ABC"));
@@ -635,13 +631,13 @@ async fn romanize_star_misc_in_middle() {
     assert_eq!(roms, vec!["wa", "shikenteki", "na", "ryakugo", "desu"]);
 }
 
-#[tokio::test]
-async fn romanize_star_wordprop_fn_receives_romanized_and_word() {
+#[test]
+fn romanize_star_wordprop_fn_receives_romanized_and_word() {
     // The prop callback is given both the romanization and the word; its
     // result becomes the prop in each triple. Here it returns
     // (romanized-byte-len, word text) so both arguments are observed:
     // "sekai" (5 bytes) over word "世界".
-    let romanize_star_ctx = romanize_star_ctx().await;
+    let romanize_star_ctx = romanize_star_ctx();
     let result = romanize_star_(
         &romanize_star_ctx,
         "世界",
@@ -649,7 +645,7 @@ async fn romanize_star_wordprop_fn_receives_romanized_and_word() {
         Some(1),
         |rom, word| (rom.len(), word.text.clone()),
     )
-    .await
+    
     .unwrap();
     let RomanizeStarSegment::Word(ref alternatives) = result[0] else {
         panic!("expected a word split, got {:?}", result[0]);

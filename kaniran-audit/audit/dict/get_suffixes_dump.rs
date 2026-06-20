@@ -53,7 +53,7 @@ fn diff_fields(c: &CapturedKanaText, a: &KanaText) -> Vec<String> {
     if c.nokanji != a.nokanji {
         diffs.push(format!("nokanji r={} l={}", a.nokanji, c.nokanji));
     }
-    if c.best_kanji != a.best_kanji {
+    if c.best_kanji.as_deref() != a.best_kanji.as_deref() {
         diffs.push(format!("best_kanji r={:?} l={:?}", a.best_kanji, c.best_kanji));
     }
     if c.conjugations != a.state.conjugations {
@@ -94,7 +94,7 @@ fn compare_triple(
         (None, Some(a)) => Err(format!("[{}] kf r=Some(seq={}) l=null", idx, a.seq)),
         (Some(c), None) => Err(format!("[{}] kf r=None l=Some(seq={})", idx, c.seq)),
         (Some(c), Some(a)) => {
-            if c.matches(&a) {
+            if c.matches(a) {
                 Ok(())
             } else {
                 let diffs = diff_fields(&c, a);
@@ -154,11 +154,10 @@ fn rust_to_json(actual: Vec<(&str, &str, Option<&KanaText>)>) -> Vec<Value> {
         .collect()
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let path = parse_path_arg();
     let file = load_parquet(&path);
-    let ctx = setup_ctx().await;
+    let ctx = setup_ctx();
 
     let mut fail_count: usize = 0;
     for (idx, row) in file.rows.iter().enumerate() {

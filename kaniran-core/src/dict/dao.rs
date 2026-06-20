@@ -1,35 +1,34 @@
+use crate::conn::kani_backend::KaniBackend;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::load::conj_rules::get_conj_description;
 use serde_json::{Map, Value};
+use std::borrow::Cow;
+#[cfg(feature = "postgres")]
 use sqlx::postgres::PgRow;
+#[cfg(feature = "postgres")]
 use sqlx::{FromRow, Row};
 
 /// Port of `ichiran/dict:entry` (`dict.lisp:26`).
 ///
 /// Row representation of one JMdict entry, mapped 1:1 to the
 /// `public.entry` Postgres table.
+///
+/// The DB `content` column (raw JMdict XML, ~80 MB across the corpus)
+/// is intentionally not materialized here: nothing at runtime reads
+/// it, and the errata UPDATEs that used to round-trip it have been
+/// rewritten to skip the column. JMdict loaders write the column on
+/// initial DB population for audit/debugging — Postgres keeps it,
+/// Rust never lifts it back.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct Entry {
     pub seq: i32,
-    pub content: String,
     pub root_p: bool,
     pub n_kanji: i32,
     pub n_kana: i32,
     pub primary_nokanji: bool,
 }
 
-impl<'r> FromRow<'r, PgRow> for Entry {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Entry {
-            seq: row.try_get("seq")?,
-            content: row.try_get("content")?,
-            root_p: row.try_get("root_p")?,
-            n_kanji: row.try_get("n_kanji")?,
-            n_kana: row.try_get("n_kana")?,
-            primary_nokanji: row.try_get("primary_nokanji")?,
-        })
-    }
-}
 
 impl Entry {
     /// `get-text` override — `dict.lisp:47-49`:
@@ -57,18 +56,12 @@ impl Entry {
     ///   upstream errors on `(text nil)` if the headword row is
     ///   absent (data-integrity violation), which the Rust port
     ///   surfaces as [`None`].
-    pub async fn get_text(&self, ctx: &KaniranContext) -> Result<Option<String>, sqlx::Error> {
-        let table = if self.n_kanji > 0 {
-            "kanji_text"
+    pub fn get_text(&self, ctx: &KaniranContext) -> Result<Option<String>, crate::conn::KaniDbError> {
+        if self.n_kanji > 0 {
+            Ok(ctx.store.headword_kanji_text(self.seq)?.map(|text| text.into_owned()))
         } else {
-            "kana_text"
-        };
-        let sql = format!("SELECT text FROM {} WHERE seq = $1 AND ord = 0", table);
-        let row: Option<(String,)> = sqlx::query_as(&sql)
-            .bind(self.seq)
-            .fetch_optional(&ctx.pool)
-            .await?;
-        Ok(row.map(|(t,)| t))
+            Ok(ctx.store.headword_kana_text(self.seq)?.map(|text| text.into_owned()))
+        }
     }
 
     /// `get-kana` override — `dict.lisp:44-45`:
@@ -93,60 +86,24 @@ impl Entry {
     ///   upstream errors on `(text nil)` if the headword row is
     ///   absent (data-integrity violation), which the Rust port
     ///   surfaces as [`None`].
-    pub async fn get_kana(&self, ctx: &KaniranContext) -> Result<Option<String>, sqlx::Error> {
-        let row: Option<(String,)> =
-            sqlx::query_as("SELECT text FROM kana_text WHERE seq = $1 AND ord = 0")
-                .bind(self.seq)
-                .fetch_optional(&ctx.pool)
-                .await?;
-        Ok(row.map(|(t,)| t))
+    pub fn get_kana(&self, ctx: &KaniranContext) -> Result<Option<String>, crate::conn::KaniDbError> {
+        Ok(ctx.store.headword_kana_text(self.seq)?.map(|text| text.into_owned()))
     }
 }
 
-/// Port of `ichiran/dict:recalc-entry-stats` (`dict.lisp:55`).
-///
-/// Recomputes the `n_kanji` / `n_kana` row-count caches on the `entry`
-/// rows whose `seq` is in `entries`, from their current `kanji_text` /
-/// `kana_text` children.
-pub async fn recalc_entry_stats(ctx: &KaniranContext, entries: &[i32]) -> Result<u64, sqlx::Error> {
-    let result = sqlx::query(
-        "UPDATE entry SET \
-         n_kanji = (SELECT COUNT(id) FROM kanji_text WHERE kanji_text.seq = entry.seq), \
-         n_kana = (SELECT COUNT(id) FROM kana_text WHERE kana_text.seq = entry.seq) \
-         WHERE entry.seq = ANY($1)",
-    )
-    .bind(entries)
-    .execute(&ctx.pool)
-    .await?;
-    Ok(result.rows_affected())
-}
 
-/// Port of `ichiran/dict:recalc-entry-stats-all` (`dict.lisp:61`).
-///
-/// Recomputes the `n_kanji` / `n_kana` row-count caches on every
-/// `entry` from its current `kanji_text` / `kana_text` children.
-pub async fn recalc_entry_stats_all(ctx: &KaniranContext) -> Result<u64, sqlx::Error> {
-    let result = sqlx::query(
-        "UPDATE entry SET \
-         n_kanji = (SELECT COUNT(id) FROM kanji_text WHERE kanji_text.seq = entry.seq), \
-         n_kana = (SELECT COUNT(id) FROM kana_text WHERE kana_text.seq = entry.seq)",
-    )
-    .execute(&ctx.pool)
-    .await?;
-    Ok(result.rows_affected())
-}
 
 /// Port of `ichiran/dict:entry-digest` (`dict.lisp:64`).
 ///
 /// Returns `(seq, text, kana)` for an entry.
-pub async fn entry_digest(
+pub fn entry_digest(
     ctx: &KaniranContext,
     entry: &Entry,
-) -> Result<(i32, Option<String>, Option<String>), sqlx::Error> {
+) -> Result<(i32, Option<String>, Option<String>), crate::conn::KaniDbError> {
     Ok((
         entry.seq,
-        entry.get_text(ctx).await?,
-        entry.get_kana(ctx).await?,
+        entry.get_text(ctx)?,
+        entry.get_kana(ctx)?,
     ))
 }
 
@@ -179,32 +136,16 @@ pub enum WordConjugations {
 pub struct KanjiText {
     pub id: i32,
     pub seq: i32,
-    pub text: String,
+    pub text: Cow<'static, str>,
     pub ord: i32,
     pub common: Option<i32>,
-    pub common_tags: String,
+    pub common_tags: Cow<'static, str>,
     pub conjugate_p: bool,
     pub nokanji: bool,
-    pub best_kana: Option<String>,
+    pub best_kana: Option<Cow<'static, str>>,
     pub state: SimpleText,
 }
 
-impl<'r> FromRow<'r, PgRow> for KanjiText {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(KanjiText {
-            id: row.try_get("id")?,
-            seq: row.try_get("seq")?,
-            text: row.try_get("text")?,
-            ord: row.try_get("ord")?,
-            common: row.try_get("common")?,
-            common_tags: row.try_get("common_tags")?,
-            conjugate_p: row.try_get("conjugate_p")?,
-            nokanji: row.try_get("nokanji")?,
-            best_kana: row.try_get("best_kana")?,
-            state: SimpleText::default(),
-        })
-    }
-}
 
 /// Port of `ichiran/dict:kana-text` (`dict.lisp:128`).
 ///
@@ -213,58 +154,35 @@ impl<'r> FromRow<'r, PgRow> for KanjiText {
 pub struct KanaText {
     pub id: i32,
     pub seq: i32,
-    pub text: String,
+    pub text: Cow<'static, str>,
     pub ord: i32,
     pub common: Option<i32>,
-    pub common_tags: String,
+    pub common_tags: Cow<'static, str>,
     pub conjugate_p: bool,
     pub nokanji: bool,
-    pub best_kanji: Option<String>,
+    pub best_kanji: Option<Cow<'static, str>>,
     pub state: SimpleText,
 }
 
-impl<'r> FromRow<'r, PgRow> for KanaText {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(KanaText {
-            id: row.try_get("id")?,
-            seq: row.try_get("seq")?,
-            text: row.try_get("text")?,
-            ord: row.try_get("ord")?,
-            common: row.try_get("common")?,
-            common_tags: row.try_get("common_tags")?,
-            conjugate_p: row.try_get("conjugate_p")?,
-            nokanji: row.try_get("nokanji")?,
-            best_kanji: row.try_get("best_kanji")?,
-            state: SimpleText::default(),
-        })
-    }
-}
 
 /// Port of `ichiran/dict:sense` (`dict.lisp:166`).
 ///
 /// Row of the `public.sense` table — one numbered meaning attached to
 /// an entry, ordered within the entry by the `ord` column.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct Sense {
     pub id: i32,
     pub seq: i32,
     pub ord: i32,
 }
 
-impl<'r> FromRow<'r, PgRow> for Sense {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Sense {
-            id: row.try_get("id")?,
-            seq: row.try_get("seq")?,
-            ord: row.try_get("ord")?,
-        })
-    }
-}
 
 /// Port of `ichiran/dict:gloss` (`dict.lisp:178`).
 ///
 /// Row representation of one English gloss attached to a JMdict sense.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct Gloss {
     pub id: i32,
     pub sense_id: i32,
@@ -272,16 +190,6 @@ pub struct Gloss {
     pub ord: i32,
 }
 
-impl<'r> FromRow<'r, PgRow> for Gloss {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Gloss {
-            id: row.try_get("id")?,
-            sense_id: row.try_get("sense_id")?,
-            text: row.try_get("text")?,
-            ord: row.try_get("ord")?,
-        })
-    }
-}
 
 /// Port of `ichiran/dict:sense-prop` (`dict.lisp:197`).
 ///
@@ -289,6 +197,7 @@ impl<'r> FromRow<'r, PgRow> for Gloss {
 /// sense, where `tag` is the property kind (`pos`, `stagk`, `misc`, …)
 /// and `text` holds its value.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct SenseProp {
     pub id: i32,
     pub tag: String,
@@ -298,18 +207,6 @@ pub struct SenseProp {
     pub seq: i32,
 }
 
-impl<'r> FromRow<'r, PgRow> for SenseProp {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(SenseProp {
-            id: row.try_get("id")?,
-            tag: row.try_get("tag")?,
-            sense_id: row.try_get("sense_id")?,
-            text: row.try_get("text")?,
-            ord: row.try_get("ord")?,
-            seq: row.try_get("seq")?,
-        })
-    }
-}
 
 /// Port of `ichiran/dict:restricted-readings` (`dict.lisp:221`).
 ///
@@ -320,6 +217,7 @@ impl<'r> FromRow<'r, PgRow> for SenseProp {
 /// pair with — used to filter readings to the subset valid for a
 /// given kanji surface.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct RestrictedReadings {
     pub id: i32,
     pub seq: i32,
@@ -327,16 +225,6 @@ pub struct RestrictedReadings {
     pub text: String,
 }
 
-impl<'r> FromRow<'r, PgRow> for RestrictedReadings {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(RestrictedReadings {
-            id: row.try_get("id")?,
-            seq: row.try_get("seq")?,
-            reading: row.try_get("reading")?,
-            text: row.try_get("text")?,
-        })
-    }
-}
 
 /// Port of `ichiran/dict:conjugation` (`dict.lisp:238`).
 ///
@@ -344,6 +232,7 @@ impl<'r> FromRow<'r, PgRow> for RestrictedReadings {
 /// recording that entry `seq` was derived from entry `seq_from`,
 /// optionally via an intermediate entry `seq_via`.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct Conjugation {
     pub id: i32,
     pub seq: i32,
@@ -351,16 +240,6 @@ pub struct Conjugation {
     pub seq_via: Option<i32>,
 }
 
-impl<'r> FromRow<'r, PgRow> for Conjugation {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(Conjugation {
-            id: row.try_get("id")?,
-            seq: row.try_get("seq")?,
-            seq_from: row.try_get("from")?,
-            seq_via: row.try_get("via")?,
-        })
-    }
-}
 
 /// Port of `ichiran/dict:conj-prop` (`dict.lisp:262`).
 ///
@@ -368,6 +247,7 @@ impl<'r> FromRow<'r, PgRow> for Conjugation {
 /// to a conjugation, the `(pos, conj-type, neg, fml)` quadruple naming
 /// which conjugation form of which part-of-speech the row describes.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct ConjProp {
     pub id: i32,
     pub conj_id: i32,
@@ -377,18 +257,6 @@ pub struct ConjProp {
     pub fml: Option<bool>,
 }
 
-impl<'r> FromRow<'r, PgRow> for ConjProp {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(ConjProp {
-            id: row.try_get("id")?,
-            conj_id: row.try_get("conj_id")?,
-            conj_type: row.try_get("conj_type")?,
-            pos: row.try_get("pos")?,
-            neg: row.try_get("neg")?,
-            fml: row.try_get("fml")?,
-        })
-    }
-}
 
 /// Port of `ichiran/dict:conj-info-short` (`dict.lisp:277`).
 ///
@@ -450,6 +318,7 @@ pub fn conj_prop_json(obj: &ConjProp) -> Value {
 /// source-text) pair giving a rendered conjugated form and the
 /// dictionary surface form it derives from.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize))]
 pub struct ConjSourceReading {
     pub id: i32,
     pub conj_id: i32,
@@ -457,6 +326,132 @@ pub struct ConjSourceReading {
     pub source_text: String,
 }
 
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for Entry {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Entry {
+            seq: row.try_get("seq")?,
+            root_p: row.try_get("root_p")?,
+            n_kanji: row.try_get("n_kanji")?,
+            n_kana: row.try_get("n_kana")?,
+            primary_nokanji: row.try_get("primary_nokanji")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for KanjiText {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(KanjiText {
+            id: row.try_get("id")?,
+            seq: row.try_get("seq")?,
+            text: Cow::Owned(row.try_get("text")?),
+            ord: row.try_get("ord")?,
+            common: row.try_get("common")?,
+            common_tags: Cow::Owned(row.try_get("common_tags")?),
+            conjugate_p: row.try_get("conjugate_p")?,
+            nokanji: row.try_get("nokanji")?,
+            best_kana: row.try_get::<Option<String>, _>("best_kana")?.map(Cow::Owned),
+            state: SimpleText::default(),
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for KanaText {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(KanaText {
+            id: row.try_get("id")?,
+            seq: row.try_get("seq")?,
+            text: Cow::Owned(row.try_get("text")?),
+            ord: row.try_get("ord")?,
+            common: row.try_get("common")?,
+            common_tags: Cow::Owned(row.try_get("common_tags")?),
+            conjugate_p: row.try_get("conjugate_p")?,
+            nokanji: row.try_get("nokanji")?,
+            best_kanji: row.try_get::<Option<String>, _>("best_kanji")?.map(Cow::Owned),
+            state: SimpleText::default(),
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for Sense {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Sense {
+            id: row.try_get("id")?,
+            seq: row.try_get("seq")?,
+            ord: row.try_get("ord")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for Gloss {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Gloss {
+            id: row.try_get("id")?,
+            sense_id: row.try_get("sense_id")?,
+            text: row.try_get("text")?,
+            ord: row.try_get("ord")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for SenseProp {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(SenseProp {
+            id: row.try_get("id")?,
+            tag: row.try_get("tag")?,
+            sense_id: row.try_get("sense_id")?,
+            text: row.try_get("text")?,
+            ord: row.try_get("ord")?,
+            seq: row.try_get("seq")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for RestrictedReadings {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(RestrictedReadings {
+            id: row.try_get("id")?,
+            seq: row.try_get("seq")?,
+            reading: row.try_get("reading")?,
+            text: row.try_get("text")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for Conjugation {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Conjugation {
+            id: row.try_get("id")?,
+            seq: row.try_get("seq")?,
+            seq_from: row.try_get("from")?,
+            seq_via: row.try_get("via")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'r> FromRow<'r, PgRow> for ConjProp {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(ConjProp {
+            id: row.try_get("id")?,
+            conj_id: row.try_get("conj_id")?,
+            conj_type: row.try_get("conj_type")?,
+            pos: row.try_get("pos")?,
+            neg: row.try_get("neg")?,
+            fml: row.try_get("fml")?,
+        })
+    }
+}
+
+#[cfg(feature = "postgres")]
 impl<'r> FromRow<'r, PgRow> for ConjSourceReading {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         Ok(ConjSourceReading {
@@ -467,6 +462,7 @@ impl<'r> FromRow<'r, PgRow> for ConjSourceReading {
         })
     }
 }
+
 
 #[cfg(test)]
 mod tests;

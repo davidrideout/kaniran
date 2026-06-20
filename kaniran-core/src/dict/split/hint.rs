@@ -1,4 +1,5 @@
-use crate::characters::char_class::simplify_ngrams;
+use crate::conn::kani_backend::KaniBackend;
+use crate::characters::kani_ngram_scanner::KaniNgramScanner;
 use crate::conn::kani_context::KaniranContext;
 use crate::dict::conj::conj_data_from;
 use crate::dict::counters::methods::seq as word_seq;
@@ -13,7 +14,7 @@ use crate::dict::accessors::true_kanji;
 use crate::dict::accessors::word_conj_data;
 use crate::dict::word_info::WordInfoSeq;
 use crate::kanji::matching::match_readings;
-use std::sync::OnceLock;
+use std::sync::{LazyLock, OnceLock};
 
 /// Port of `ichiran/dict:process-hints` (`dict-split.lisp:826-827`).
 ///
@@ -22,7 +23,9 @@ use std::sync::OnceLock;
 /// its rewritten reading and converts standalone sentinels back to
 /// user-visible characters (or drops them).
 pub fn process_hints(word: &str) -> String {
-    simplify_ngrams(word, hint_simplify_map())
+    static SCANNER: LazyLock<KaniNgramScanner> =
+        LazyLock::new(|| KaniNgramScanner::new(hint_simplify_map()));
+    SCANNER.simplify(word)
 }
 
 /// Port of `ichiran/dict:strip-hints` (`dict-split.lisp:829-830`).
@@ -182,17 +185,14 @@ pub struct CheckEasyHintsFailure {
     pub kana: Option<String>,
 }
 
-pub async fn check_easy_hints(
+pub fn check_easy_hints(
     ctx: &KaniranContext,
-) -> Result<Vec<CheckEasyHintsFailure>, sqlx::Error> {
+) -> Result<Vec<CheckEasyHintsFailure>, crate::conn::KaniDbError> {
     // dict-split.lisp:908 — (select-dao 'kana-text (:in 'seq (:set *easy-hints-seqs*)))
     // Upstream uses a single `:in (:set ...)` clause. Postgres parameterized arrays
     // are equivalent — bind a single `&[i32]` and let sqlx generate the
     // `seq = ANY($1)` form. (sqlx::postgres doesn't expose IN-list directly.)
-    let readings: Vec<KanaText> = sqlx::query_as("SELECT * FROM kana_text WHERE seq = ANY($1)")
-        .bind(easy_hints_seqs())
-        .fetch_all(&ctx.pool)
-        .await?;
+    let readings: Vec<KanaText> = ctx.store.kana_texts_by_seq_any(easy_hints_seqs())?;
 
     // dict-split.lisp:909 — (let ((*disable-hints* t))) wraps the
     // entire loop body, covering true-kanji, true-kana, and
@@ -206,9 +206,9 @@ pub async fn check_easy_hints(
     for reading in readings {
         let lifted = KaniWordDispatchEnum::Kana(reading.clone());
         // dict-split.lisp:911 — (kanji = (true-kanji reading))
-        let kanji = true_kanji(&ctx2, &lifted).await?;
+        let kanji = true_kanji(&ctx2, &lifted)?;
         // dict-split.lisp:912 — (kana = (true-kana reading))
-        let kana = true_kana(&ctx2, &lifted).await?;
+        let kana = true_kana(&ctx2, &lifted)?;
         // dict-split.lisp:913-914 — (match = (match-readings kanji kana))
         // (unless match collect (list reading kanji kana))
         // Both `kanji` and `kana` can be None. Upstream behavior:
@@ -221,7 +221,7 @@ pub async fn check_easy_hints(
         //   `kana` mirrors that by skipping the call and recording
         //   the misalignment.
         let match_result = match (&kanji, &kana) {
-            (Some(k), Some(ka)) => match_readings(&ctx2, k, ka).await?,
+            (Some(k), Some(ka)) => match_readings(&ctx2, k, ka)?,
             _ => None,
         };
         if match_result.is_none() {
@@ -242,10 +242,10 @@ pub async fn check_easy_hints(
 /// seq, else walk every `from`-seq in the reading's conjugation data
 /// and return the first hint that fires. `None` when neither path
 /// produces a hint.
-pub async fn get_hint(
+pub fn get_hint(
     ctx: &KaniranContext,
     reading: &KaniWordDispatchEnum,
-) -> Result<Option<String>, sqlx::Error> {
+) -> Result<Option<String>, crate::conn::KaniDbError> {
     // dict-split.lisp:939 — (gethash (seq reading) *hint-map*)
     let primary_seq = match word_seq(reading) {
         Some(WordInfoSeq::Single(s)) => Some(s),
@@ -262,7 +262,7 @@ pub async fn get_hint(
     // failed). The conj-of walk only fires for an UNREGISTERED
     // primary, not for a registered-but-nil-returning one.
     if let Some(s) = primary_seq {
-        match hint_map_dispatch(ctx, s, reading).await? {
+        match hint_map_dispatch(ctx, s, reading)? {
             HintDispatch::Registered(result) => return Ok(result),
             HintDispatch::Unregistered => { /* fall through to conj-of walk */ }
         }
@@ -273,10 +273,10 @@ pub async fn get_hint(
     // the funcall result on the FIRST registered seq, whatever the
     // body returned (Some or None). Subsequent conj-of seqs are
     // never tried after the first hit, even if its body returned nil.
-    let conj_data = word_conj_data(ctx, reading).await?;
+    let conj_data = word_conj_data(ctx, reading)?;
     for cd in &conj_data {
         if let Some(from_seq) = conj_data_from(cd) {
-            match hint_map_dispatch(ctx, from_seq, reading).await? {
+            match hint_map_dispatch(ctx, from_seq, reading)? {
                 HintDispatch::Registered(result) => return Ok(result),
                 HintDispatch::Unregistered => continue,
             }

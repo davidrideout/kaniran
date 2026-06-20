@@ -1,5 +1,8 @@
 # Copy this to `kaniran.toml` (gitignored) and edit the URL.
 # kaniran reads `database_url` from this file, or from the
 # DATABASE_URL environment variable (env wins if both are set).
+#
+# kaniran runs against a memory-mapped rkyv dictionary archive. Point the
+# URL at the .rkyv file you built (see README) with a `memory://` scheme.
 
-database_url = "postgres://postgres:password@localhost/jmdict"
+database_url = "memory:///path/to/jmdict.rkyv"

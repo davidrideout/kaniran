@@ -8,10 +8,10 @@ mod adjoin_word {
         KanjiText {
             id: 0,
             seq,
-            text: text.into(),
+            text: text.to_string().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kana: None,
@@ -23,10 +23,10 @@ mod adjoin_word {
         KanaText {
             id: 0,
             seq,
-            text: text.into(),
+            text: text.to_string().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kanji: None,
@@ -38,19 +38,17 @@ mod adjoin_word {
     // fall through without a database call; the defaulting paths are
     // covered separately below.
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     // ----- (simple-text, simple-text) primary method -----
 
-    #[tokio::test]
-    async fn simple_simple_explicit_text_and_kana() {
+    #[test]
+    fn simple_simple_explicit_text_and_kana() {
         // Explicit text/kana/score-mod pass straight through to the
         // compound; score-base stays unset and both words are kept.
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let result = adjoin_word(
@@ -62,7 +60,7 @@ mod adjoin_word {
             Some(ScoreMod::Single(7)),
             None,
         )
-        .await
+        
         .unwrap();
         assert_eq!(result.text, "abc");
         assert_eq!(result.kana, "xyz");
@@ -71,10 +69,10 @@ mod adjoin_word {
         assert_eq!(result.words.len(), 2);
     }
 
-    #[tokio::test]
-    async fn simple_simple_primary_is_word1() {
+    #[test]
+    fn simple_simple_primary_is_word1() {
         // The compound's primary is the first input word.
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let result = adjoin_word(
@@ -86,7 +84,7 @@ mod adjoin_word {
             None,
             None,
         )
-        .await
+        
         .unwrap();
         match &*result.primary {
             KaniWordDispatchEnum::Kanji(k) => assert_eq!(k.seq, 10092273),
@@ -96,10 +94,10 @@ mod adjoin_word {
         assert_eq!(result.words.len(), 2);
     }
 
-    #[tokio::test]
-    async fn simple_simple_score_mod_none_defaults_to_zero() {
+    #[test]
+    fn simple_simple_score_mod_none_defaults_to_zero() {
         // An omitted score-mod defaults to 0.
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let result = adjoin_word(
@@ -111,15 +109,15 @@ mod adjoin_word {
             None,
             None,
         )
-        .await
+        
         .unwrap();
         assert!(matches!(result.score_mod, ScoreMod::Single(0)));
     }
 
-    #[tokio::test]
-    async fn simple_simple_score_base_passthrough() {
+    #[test]
+    fn simple_simple_score_base_passthrough() {
         // The score-base word is carried through to the compound's slot.
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let sb = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
@@ -132,7 +130,7 @@ mod adjoin_word {
             Some(ScoreMod::Single(0)),
             Some(sb),
         )
-        .await
+        
         .unwrap();
         match result.score_base.as_deref() {
             Some(KaniWordDispatchEnum::Kanji(k)) => assert_eq!(k.text, "食べ"),
@@ -142,11 +140,11 @@ mod adjoin_word {
 
     // ----- (compound-text, simple-text) primary method -----
 
-    #[tokio::test]
-    async fn compound_simple_appends_words_and_updates_text_kana() {
+    #[test]
+    fn compound_simple_appends_words_and_updates_text_kana() {
         // Adjoining a word to an existing compound appends it, extends
         // text/kana, and stacks the new score-mod on top of the old one.
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let c3 = adjoin_word(
@@ -158,7 +156,7 @@ mod adjoin_word {
             Some(ScoreMod::Single(3)),
             None,
         )
-        .await
+        
         .unwrap();
         let w3 = KaniSimpleTextDispatchEnum::Kana(kana(2257550, "ない"));
         let c3b = adjoin_word(
@@ -170,7 +168,7 @@ mod adjoin_word {
             Some(ScoreMod::Single(4)),
             None,
         )
-        .await
+        
         .unwrap();
         assert_eq!(c3b.text, "食べたいない");
         assert_eq!(c3b.kana, "たべたいない");
@@ -186,11 +184,11 @@ mod adjoin_word {
         }
     }
 
-    #[tokio::test]
-    async fn compound_simple_third_adjoin_grows_stack() {
+    #[test]
+    fn compound_simple_third_adjoin_grows_stack() {
         // Each further adjoin pushes its score-mod onto the front of the
         // stack, newest first.
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let c4 = adjoin_word(
@@ -202,7 +200,7 @@ mod adjoin_word {
             Some(ScoreMod::Single(1)),
             None,
         )
-        .await
+        
         .unwrap();
         let w3 = KaniSimpleTextDispatchEnum::Kana(kana(2257550, "ない"));
         let c4b = adjoin_word(
@@ -214,7 +212,7 @@ mod adjoin_word {
             Some(ScoreMod::Single(2)),
             None,
         )
-        .await
+        
         .unwrap();
         let w4 = KaniSimpleTextDispatchEnum::Kana(kana(2089020, "だ"));
         let c4c = adjoin_word(
@@ -226,7 +224,7 @@ mod adjoin_word {
             Some(ScoreMod::Single(5)),
             None,
         )
-        .await
+        
         .unwrap();
         assert_eq!(c4c.words.len(), 4);
         match &c4c.score_mod {
@@ -240,11 +238,11 @@ mod adjoin_word {
         }
     }
 
-    #[tokio::test]
-    async fn compound_simple_ignores_score_base() {
+    #[test]
+    fn compound_simple_ignores_score_base() {
         // Adjoining onto an existing compound keeps its original
         // score-base; a new score-base argument is ignored.
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let sb_w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
@@ -257,7 +255,7 @@ mod adjoin_word {
             Some(ScoreMod::Single(1)),
             Some(sb_w1),
         )
-        .await
+        
         .unwrap();
         let w3 = KaniSimpleTextDispatchEnum::Kana(kana(2257550, "ない"));
         // Try to overwrite with :score-base w2 — should be ignored.
@@ -271,7 +269,7 @@ mod adjoin_word {
             Some(ScoreMod::Single(2)),
             Some(sb_w2),
         )
-        .await
+        
         .unwrap();
         match c6b.score_base.as_deref() {
             Some(KaniWordDispatchEnum::Kanji(k)) => assert_eq!(k.text, "食べ"),
@@ -279,11 +277,11 @@ mod adjoin_word {
         }
     }
 
-    #[tokio::test]
-    async fn compound_simple_primary_unchanged() {
+    #[test]
+    fn compound_simple_primary_unchanged() {
         // Adjoining onto a compound leaves its primary as the original
         // first word, not the newly-added one.
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let c9 = adjoin_word(
@@ -295,7 +293,7 @@ mod adjoin_word {
             Some(ScoreMod::Single(1)),
             None,
         )
-        .await
+        
         .unwrap();
         let w3 = KaniSimpleTextDispatchEnum::Kana(kana(2257550, "ない"));
         let c9b = adjoin_word(
@@ -307,7 +305,7 @@ mod adjoin_word {
             Some(ScoreMod::Single(2)),
             None,
         )
-        .await
+        
         .unwrap();
         match &*c9b.primary {
             KaniWordDispatchEnum::Kanji(k) => {
@@ -320,16 +318,19 @@ mod adjoin_word {
 
     // ----- :around default computation (hits DB via get-kana) -----
 
-    #[tokio::test]
-    async fn around_defaults_text_and_kana_to_concat() {
+    #[test]
+    fn around_defaults_text_and_kana_to_concat() {
         // With no explicit text/kana, the compound's text and kana
         // default to the two words' text and kana joined together.
-        // Resolving the kana for a kanji word needs a live database.
-        let ctx = ctx_from_env().await;
-        let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
+        // Resolving the kana for a kanji word looks it up by seq, so the seq
+        // must be the real 食べ entry — synthetic and renumbering per build,
+        // so resolve it from the stable surface.
+        let ctx = ctx_from_env();
+        let tabe = crate::test_support::conj_entry_seq("食べ");
+        let w1 = KaniWordDispatchEnum::Kanji(kanji(tabe, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let result = adjoin_word(&ctx, w1, w2, None, None, None, None)
-            .await
+            
             .unwrap();
         assert_eq!(result.text, "食べたい");
         assert_eq!(result.kana, "たべたい");
@@ -338,10 +339,10 @@ mod adjoin_word {
 
     // ----- ScoreMod::Constant — (constantly N) callsites -----
 
-    #[tokio::test]
-    async fn simple_simple_constant_score_mod() {
+    #[test]
+    fn simple_simple_constant_score_mod() {
         // A constant score-mod is carried through to the compound unchanged.
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let result = adjoin_word(
@@ -353,16 +354,16 @@ mod adjoin_word {
             Some(ScoreMod::Constant(360)),
             None,
         )
-        .await
+        
         .unwrap();
         assert!(matches!(result.score_mod, ScoreMod::Constant(360)));
     }
 
-    #[tokio::test]
-    async fn compound_simple_grows_constant_into_list() {
+    #[test]
+    fn compound_simple_grows_constant_into_list() {
         // Adjoining an integer score-mod onto a compound whose mod is a
         // constant stacks the integer on top of the constant.
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let c1 = adjoin_word(
@@ -374,7 +375,7 @@ mod adjoin_word {
             Some(ScoreMod::Constant(360)),
             None,
         )
-        .await
+        
         .unwrap();
         let w3 = KaniSimpleTextDispatchEnum::Kana(kana(2257550, "ない"));
         let c2 = adjoin_word(
@@ -386,7 +387,7 @@ mod adjoin_word {
             Some(ScoreMod::Single(5)),
             None,
         )
-        .await
+        
         .unwrap();
         match &c2.score_mod {
             ScoreMod::Stack(v) => {
@@ -398,10 +399,10 @@ mod adjoin_word {
         }
     }
 
-    #[tokio::test]
-    async fn compound_simple_constant_onto_constant() {
+    #[test]
+    fn compound_simple_constant_onto_constant() {
         // Two constant score-mods stack newest-on-top.
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let c1 = adjoin_word(
@@ -413,7 +414,7 @@ mod adjoin_word {
             Some(ScoreMod::Constant(200)),
             None,
         )
-        .await
+        
         .unwrap();
         let w3 = KaniSimpleTextDispatchEnum::Kana(kana(2257550, "ない"));
         let c2 = adjoin_word(
@@ -425,7 +426,7 @@ mod adjoin_word {
             Some(ScoreMod::Constant(300)),
             None,
         )
-        .await
+        
         .unwrap();
         match &c2.score_mod {
             ScoreMod::Stack(v) => {
@@ -437,10 +438,10 @@ mod adjoin_word {
         }
     }
 
-    #[tokio::test]
-    async fn compound_simple_third_adjoin_mixes_constants_and_integers() {
+    #[test]
+    fn compound_simple_third_adjoin_mixes_constants_and_integers() {
         // Constant and integer score-mods stack together, newest first.
-        let ctx = ctx_from_env().await;
+        let ctx = ctx_from_env();
         let w1 = KaniWordDispatchEnum::Kanji(kanji(10092273, "食べ"));
         let w2 = KaniSimpleTextDispatchEnum::Kana(kana(1406940, "たい"));
         let c1 = adjoin_word(
@@ -452,7 +453,7 @@ mod adjoin_word {
             Some(ScoreMod::Constant(360)),
             None,
         )
-        .await
+        
         .unwrap();
         let w3 = KaniSimpleTextDispatchEnum::Kana(kana(2257550, "ない"));
         let c2 = adjoin_word(
@@ -464,7 +465,7 @@ mod adjoin_word {
             Some(ScoreMod::Single(5)),
             None,
         )
-        .await
+        
         .unwrap();
         let w4 = KaniSimpleTextDispatchEnum::Kana(kana(2089020, "だ"));
         let c3 = adjoin_word(
@@ -476,7 +477,7 @@ mod adjoin_word {
             Some(ScoreMod::Constant(200)),
             None,
         )
-        .await
+        
         .unwrap();
         match &c3.score_mod {
             ScoreMod::Stack(v) => {
@@ -786,10 +787,10 @@ mod get_segment_score {
         KaniWordDispatchEnum::Kana(KanaText {
             id: 0,
             seq: 0,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: false,
             nokanji: false,
             best_kanji: None,
@@ -857,7 +858,7 @@ mod get_segment_score {
     #[test]
     fn segment_list_returns_first_segment_score() {
         let sl = SegmentList {
-            segments: vec![seg(Some(99)), seg(Some(50))],
+            segments: vec![std::sync::Arc::new(seg(Some(99))), std::sync::Arc::new(seg(Some(50)))],
             start: 0,
             end: 1,
             top: None,
@@ -872,7 +873,7 @@ mod get_segment_score {
     #[test]
     fn segment_list_returns_none_when_first_segment_score_unset() {
         let sl = SegmentList {
-            segments: vec![seg(None)],
+            segments: vec![std::sync::Arc::new(seg(None))],
             start: 0,
             end: 1,
             top: None,
@@ -887,7 +888,7 @@ mod get_segment_score {
     #[test]
     fn single_segment_list_returns_that_score() {
         let sl = SegmentList {
-            segments: vec![seg(Some(42))],
+            segments: vec![std::sync::Arc::new(seg(Some(42)))],
             start: 0,
             end: 1,
             top: None,
@@ -904,14 +905,12 @@ mod reading_str {
     use crate::dict::accessors::*;
     use crate::dict::readings::{find_word, FindWordRows};
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
-    async fn first_simple_text(ctx: &KaniranContext, word: &str) -> KaniSimpleTextDispatchEnum {
-        match find_word(ctx, word, false).await.unwrap() {
+    fn first_simple_text(ctx: &KaniranContext, word: &str) -> KaniSimpleTextDispatchEnum {
+        match find_word(ctx, word, false).unwrap().into_owned() {
             FindWordRows::Kanji(rows) => KaniSimpleTextDispatchEnum::Kanji(
                 rows.into_iter()
                     .next()
@@ -926,9 +925,9 @@ mod reading_str {
     /// Reading string for a single word: a kanji word shows kanji plus
     /// its kana in brackets; a kana word with a kanji form shows that
     /// form (猫); a kana word without one shows the bare kana.
-    #[tokio::test]
-    async fn reading_str_simple_text_fixtures() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn reading_str_simple_text_fixtures() {
+        let ctx = ctx_from_env();
         let cases: &[(&str, &str)] = &[
             ("日本", "日本 【にほん】"),
             ("ねこ", "猫 【ねこ】"),
@@ -937,9 +936,9 @@ mod reading_str {
             ("東京", "東京 【とうきょう】"),
         ];
         for (word, expected) in cases {
-            let obj = first_simple_text(&ctx, word).await;
+            let obj = first_simple_text(&ctx, word);
             assert_eq!(
-                obj.reading_str(&ctx).await.unwrap().as_deref(),
+                obj.reading_str(&ctx).unwrap().as_deref(),
                 Some(*expected),
                 "word={word}"
             );
@@ -947,16 +946,16 @@ mod reading_str {
     }
 
     /// Reading string for segmented kanji words.
-    #[tokio::test]
-    async fn reading_str_word_info_fixtures() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn reading_str_word_info_fixtures() {
+        let ctx = ctx_from_env();
         let cases: &[(&str, &str)] = &[
             ("東京", "東京 【とうきょう】"),
             ("日本語", "日本語 【にほんご】"),
         ];
         for (sentence, expected) in cases {
             let word_infos = crate::dict::word_info::simple_segment(&ctx, sentence, None)
-                .await
+                
                 .unwrap();
             assert_eq!(
                 word_infos[0].reading_str().as_deref(),
@@ -1128,10 +1127,10 @@ mod word_type {
         KanjiText {
             id: 0,
             seq,
-            text: text.into(),
+            text: text.to_string().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kana: None,
@@ -1143,10 +1142,10 @@ mod word_type {
         KanaText {
             id: 0,
             seq,
-            text: text.into(),
+            text: text.to_string().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kanji: None,
@@ -1193,7 +1192,7 @@ mod word_type {
         // "1" + "人" → "1人" contains kanji, so the word counts as kanji.
         let c = counter("1", "人", None);
         assert_eq!(
-            word_type(&KaniWordDispatchEnum::Counter(c)),
+            word_type(&KaniWordDispatchEnum::Counter(Box::new(c))),
             WordType::Kanji,
         );
     }
@@ -1202,7 +1201,7 @@ mod word_type {
     fn counter_with_only_kana_text() {
         // "1" + "つ" → "1つ"; no kanji.
         let c = counter("1", "つ", None);
-        assert_eq!(word_type(&KaniWordDispatchEnum::Counter(c)), WordType::Kana,);
+        assert_eq!(word_type(&KaniWordDispatchEnum::Counter(Box::new(c))), WordType::Kana,);
     }
 
     #[test]
@@ -1260,10 +1259,10 @@ mod set_word_conjugations {
         KanaText {
             id: 0,
             seq,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kanji: None,
@@ -1275,10 +1274,10 @@ mod set_word_conjugations {
         KanjiText {
             id: 0,
             seq,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kana: None,
@@ -1580,7 +1579,7 @@ mod set_word_conjugations {
             allowed: Vec::new(),
             foreign: false,
         });
-        let mut w = KaniWordDispatchEnum::Counter(counter);
+        let mut w = KaniWordDispatchEnum::Counter(Box::new(counter));
         set_word_conjugations(&mut w, Some(WordConjugations::Root));
     }
 }
@@ -1594,20 +1593,18 @@ mod word_conjugations {
     use crate::dict::readings::{find_word, FindWordRows};
     use crate::dict::text_classes::{CompoundText, ScoreMod};
 
-    async fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> std::sync::Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     fn kana_with_conj(seq: i32, conj: Option<WordConjugations>) -> KanaText {
         KanaText {
             id: 0,
             seq,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kanji: None,
@@ -1622,10 +1619,10 @@ mod word_conjugations {
         KanjiText {
             id: 0,
             seq,
-            text: String::new(),
+            text: String::new().into(),
             ord: 0,
             common: None,
-            common_tags: String::new(),
+            common_tags: String::new().into(),
             conjugate_p: true,
             nokanji: false,
             best_kana: None,
@@ -1672,7 +1669,7 @@ mod word_conjugations {
             allowed: Vec::new(),
             foreign: false,
         });
-        assert!(word_conjugations(&KaniWordDispatchEnum::Counter(counter)).is_none());
+        assert!(word_conjugations(&KaniWordDispatchEnum::Counter(Box::new(counter))).is_none());
     }
 
     #[test]
@@ -1718,12 +1715,12 @@ mod word_conjugations {
         );
     }
 
-    #[tokio::test]
-    async fn real_kana_text_row_returns_none_by_default() {
+    #[test]
+    fn real_kana_text_row_returns_none_by_default() {
         // A freshly-loaded word row has no conjugation annotation yet.
         // Needs a live database.
-        let ctx = ctx_from_env().await;
-        let rows = find_word(&ctx, "ねこ", false).await.unwrap();
+        let ctx = ctx_from_env();
+        let rows = find_word(&ctx, "ねこ", false).unwrap().into_owned();
         let row = match rows {
             FindWordRows::Kana(v) => v.into_iter().next().expect("kana row for ねこ"),
             FindWordRows::Kanji(_) => panic!("expected kana rows for ねこ"),

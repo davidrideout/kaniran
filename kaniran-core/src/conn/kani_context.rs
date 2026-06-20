@@ -1,11 +1,16 @@
-//! Rust-only sidecar: the port-wide context, holding the Postgres
-//! connection pool and every populated cache. Replaces upstream's
+//! Rust-only sidecar: the port-wide context, holding the dictionary
+//! lookup backend and every populated cache. Replaces upstream's
 //! `*connection*`, the `cache`-class registry, and the per-connection
 //! variable cache; multi-DB use means constructing another
 //! `KaniranContext`.
+//!
+//! Since the async-removal proof-of-concept the only backend is the
+//! memory-mapped rkyv snapshot (`DATABASE_URL=memory://<archive>`); the
+//! Postgres connection pool is gone and construction is synchronous.
 
 use crate::conn::_star_connection_env_var_star_::DATABASE_URL;
 use crate::conn::get_ichiran_connection_env::get_ichiran_connection_env;
+use crate::conn::kani_backend::KaniStore;
 use crate::dict::counters::dispatchers::{build_counter_cache, CounterCache};
 use crate::dict::scoring::score::build_is_arch;
 use crate::dict::conj::build_no_conj_data;
@@ -16,24 +21,36 @@ use crate::dict::grammar::suffix::constants::SuffixClass;
 use crate::dict::word_info::SuffixMapTemp;
 use crate::dict::grammar::suffix::init::build_suffix_caches;
 use crate::kanji::helpers::{new_reading_cache, ReadingCache};
-use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::collections::HashSet;
 use std::sync::Arc;
-use std::time::Duration;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("config: {0}")]
     Config(#[from] config::ConfigError),
     #[error("database: {0}")]
-    Database(#[from] sqlx::Error),
+    Database(#[from] crate::conn::KaniDbError),
     #[error("database URL is not set: env var `{0}` is empty or missing")]
     MissingConnection(&'static str),
+    #[error("rkyv snapshot: {0}")]
+    Snapshot(String),
 }
 
-#[derive(Clone)]
-pub struct KaniranContext {
-    pub pool: PgPool,
+/// The process-lifetime, immutable half of [`KaniranContext`]: the
+/// lookup backend and every populated cache. Held behind a single `Arc`
+/// on the context so a per-call binding rebind
+/// ([`KaniranContext::with_disable_hints`] and siblings) bumps one
+/// refcount instead of one per cache — cloning every cache Arc on each
+/// rebind was the segmenter's dominant multi-thread serialization point
+/// (contended refcount atomics on the shared caches).
+pub struct KaniranShared {
+    #[cfg(feature = "postgres")]
+    /// Postgres connection pool when the store is the Postgres backend
+    /// (`None` for the rkyv snapshot). Used by the build-time loaders.
+    pub pool: Option<sqlx::PgPool>,
+    /// Dictionary lookup backend (the memory-mapped rkyv snapshot). All
+    /// runtime lookup-serving queries go through here.
+    pub store: KaniStore,
     /// Upstream `*no-conj-data*` (`dict.lisp:329`). See
     /// [`crate::dict::_star_no_conj_data_star_`].
     pub no_conj_data: Arc<HashSet<i32>>,
@@ -52,6 +69,15 @@ pub struct KaniranContext {
     /// Upstream `*reading-cache*` (`kanji.lisp:199`). See
     /// [`crate::kanji::_star_reading_cache_star_`].
     pub reading_cache: Arc<ReadingCache>,
+}
+
+#[derive(Clone)]
+pub struct KaniranContext {
+    /// Process-lifetime shared state — store and every cache. One
+    /// `Arc`, so a per-call binding rebind clones a single refcount.
+    /// Its fields are reachable directly as `ctx.<name>` through the
+    /// [`Deref`](std::ops::Deref) to [`KaniranShared`].
+    pub shared: Arc<KaniranShared>,
 
     /// Upstream `*disable-hints*` (`dict.lisp:78`) — recursion guard
     /// for the `simple-text :around` method on
@@ -60,12 +86,6 @@ pub struct KaniranContext {
     /// `get-hint`) and `dict-split.lisp:909` (`check-easy-hints`,
     /// around the per-row `true-kana` call). Default `false` matches
     /// the upstream `(defvar … nil)` initform.
-    ///
-    /// Lives on ctx (not as a `tokio::task_local!` or `thread_local!`)
-    /// so the binding survives crossing rayon / `tokio::spawn`
-    /// boundaries: spawned closures capture `&ctx2` by reference and
-    /// the borrow-checker enforces propagation, with no scope
-    /// snapshot/restore obligation at each parallel boundary.
     pub disable_hints: bool,
 
     /// Upstream `*substring-hash*` (`dict.lisp:487`) — per-call-tree
@@ -107,7 +127,27 @@ pub struct KaniranContext {
     pub split_map: SplitMapKind,
 }
 
+impl std::ops::Deref for KaniranContext {
+    type Target = KaniranShared;
+    fn deref(&self) -> &Self::Target {
+        &self.shared
+    }
+}
+
 impl KaniranContext {
+    /// Wrap process-lifetime [`KaniranShared`] state into a fresh
+    /// context with every per-call binding at its default.
+    fn from_shared(shared: KaniranShared) -> Self {
+        Self {
+            shared: Arc::new(shared),
+            disable_hints: false,
+            substring_hash: None,
+            suffix_map_temp: None,
+            suffix_next_end: None,
+            split_map: SplitMapKind::Default,
+        }
+    }
+
     /// `(let ((*disable-hints* v)) …)` — return a sibling context with
     /// the hint-recursion guard rebound. Cheap because the cache
     /// fields are `Arc`-shared.
@@ -141,113 +181,85 @@ impl KaniranContext {
     pub fn with_segsplit_map(&self) -> Self {
         Self { split_map: SplitMapKind::SegSplit, ..self.clone() }
     }
+
+    /// True when the runtime store is the rkyv snapshot backend
+    /// (`DATABASE_URL=memory://...`). Always true now that Postgres is
+    /// gone; kept so callers that branch on it compile unchanged.
+    pub fn is_rkyv(&self) -> bool {
+        #[cfg(feature = "rkyv")]
+        {
+            matches!(self.store, KaniStore::Rkyv(_))
+        }
+        #[cfg(not(feature = "rkyv"))]
+        {
+            false
+        }
+    }
 }
 
 impl KaniranContext {
-    /// Connect the pool and run every cache populator before returning.
-    pub async fn from_url(url: &str) -> Result<Arc<Self>, Error> {
-        let pool = PgPoolOptions::new()
-            .max_connections(60)
-            .acquire_timeout(Duration::from_secs(10))
-            .connect(url)
-            .await
-            .map_err(|e| {
-                eprintln!("kaniran: failed to connect to database at `{url}`: {e}");
-                Error::from(e)
-            })?;
-        // The DB-derived caches are identical across every context built
-        // in a single test process and dominate build time (~5s of table
-        // scans each). During the crate's own tests, build them once and
-        // share the Arcs; each context still gets its own runtime-bound
-        // pool (a shared pool's connections die when a per-test runtime is
-        // torn down) and a fresh reading-cache. Production builds fresh.
-        #[cfg(test)]
-        {
-            let (no_conj_data, is_arch, counter_cache, suffix_cache, suffix_class) =
-                test_support::shared_caches(&pool).await?;
-            return Ok(Arc::new(Self {
-                pool,
-                no_conj_data,
-                is_arch,
-                counter_cache,
-                suffix_cache,
-                suffix_class,
-                reading_cache: Arc::new(new_reading_cache()),
-                disable_hints: false,
-                substring_hash: None,
-                suffix_map_temp: None,
-                suffix_next_end: None,
-                split_map: SplitMapKind::Default,
-            }));
-        }
-        #[cfg(not(test))]
-        {
-            let no_conj_data = Arc::new(build_no_conj_data(&pool).await?);
-            let is_arch = Arc::new(build_is_arch(&pool).await?);
-            // counter_cache + suffix_cache populators call DB-touching fns
-            // that take &KaniranContext — build a partial ctx first, then
-            // swap the populated maps in.
-            let mut ctx = Self {
-                pool,
-                no_conj_data,
-                is_arch,
+    /// Load the rkyv snapshot named by `url` and run every cache
+    /// populator before returning. Only `memory://<path>` URLs are
+    /// supported (feature `rkyv` required).
+    pub fn from_url(url: &str) -> Result<Arc<Self>, Error> {
+        let BuiltBackend {
+            store,
+            #[cfg(feature = "postgres")]
+            pool,
+        } = build_backend(url)?;
+        let no_conj_data = Arc::new(build_no_conj_data(&store)?);
+        let is_arch = Arc::new(build_is_arch(&store)?);
+        let reading_cache = Arc::new(new_reading_cache());
+        // The counter / suffix populators take a &KaniranContext (they
+        // query the store through it). The cache fields live behind an
+        // immutable Arc<KaniranShared>, so instead of swapping maps into
+        // a mutable ctx, run each populator against a partial context,
+        // then assemble the final shared state. Startup only.
+        let counter_cache = {
+            let partial = Self::from_shared(KaniranShared {
+                #[cfg(feature = "postgres")]
+                pool: pool.clone(),
+                store: store.clone(),
+                no_conj_data: no_conj_data.clone(),
+                is_arch: is_arch.clone(),
                 counter_cache: Arc::new(CounterCache::new()),
                 suffix_cache: Arc::new(SuffixCache::new()),
                 suffix_class: Arc::new(SuffixClass::new()),
-                reading_cache: Arc::new(new_reading_cache()),
-                disable_hints: false,
-                substring_hash: None,
-                suffix_map_temp: None,
-                suffix_next_end: None,
-                split_map: SplitMapKind::Default,
-            };
-            ctx.counter_cache = Arc::new(build_counter_cache(&ctx).await?);
-            let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;
-            ctx.suffix_cache = Arc::new(suffix_cache);
-            ctx.suffix_class = Arc::new(suffix_class);
-            Ok(Arc::new(ctx))
-        }
+                reading_cache: reading_cache.clone(),
+            });
+            Arc::new(build_counter_cache(&partial)?)
+        };
+        // build_suffix_caches reads the now-populated counter cache.
+        let (suffix_cache, suffix_class) = {
+            let partial = Self::from_shared(KaniranShared {
+                #[cfg(feature = "postgres")]
+                pool: pool.clone(),
+                store: store.clone(),
+                no_conj_data: no_conj_data.clone(),
+                is_arch: is_arch.clone(),
+                counter_cache: counter_cache.clone(),
+                suffix_cache: Arc::new(SuffixCache::new()),
+                suffix_class: Arc::new(SuffixClass::new()),
+                reading_cache: reading_cache.clone(),
+            });
+            build_suffix_caches(&partial)?
+        };
+        Ok(Arc::new(Self::from_shared(KaniranShared {
+            #[cfg(feature = "postgres")]
+            pool: pool.clone(),
+            store,
+            no_conj_data,
+            is_arch,
+            counter_cache,
+            suffix_cache: Arc::new(suffix_cache),
+            suffix_class: Arc::new(suffix_class),
+            reading_cache,
+        })))
     }
 
-    /// Connect the pool and return a context with every cache empty.
-    /// Rust-only sidecar — no Lisp counterpart. The cache populators
-    /// touch JMdict tables that may be absent or empty (e.g. on a fresh
-    /// schema that the kanjidic loaders are about to populate); this
-    /// constructor skips them so the e2e tooling can run against such
-    /// shells. Callers must not invoke functions that read these caches
-    /// (`find-word` / `get-counter-ids` / suffix dispatch / …) — they
-    /// would silently see empty maps.
-    pub async fn pool_only_from_url(url: &str) -> Result<Arc<Self>, Error> {
-        use std::collections::HashMap;
-
-        let pool = PgPoolOptions::new()
-            .max_connections(60)
-            .acquire_timeout(Duration::from_secs(10))
-            .connect(url)
-            .await
-            .map_err(|e| {
-                eprintln!("kaniran: failed to connect to database at `{url}`: {e}");
-                Error::from(e)
-            })?;
-        Ok(Arc::new(Self {
-            pool,
-            no_conj_data: Arc::new(HashSet::new()),
-            is_arch: Arc::new(HashSet::new()),
-            counter_cache: Arc::new(HashMap::new()),
-            suffix_cache: Arc::new(HashMap::new()),
-            suffix_class: Arc::new(HashMap::new()),
-            reading_cache: Arc::new(new_reading_cache()),
-            disable_hints: false,
-            substring_hash: None,
-            suffix_map_temp: None,
-            suffix_next_end: None,
-            split_map: SplitMapKind::Default,
-        }))
-    }
-
-    /// Read a Postgres URL via [`config::Config`] (file + env layered)
+    /// Read the snapshot URL via [`config::Config`] (file + env layered)
     /// and build the context.
-    pub async fn from_env() -> Result<Arc<Self>, Error> {
+    pub fn from_env() -> Result<Arc<Self>, Error> {
         let url = match get_ichiran_connection_env() {
             Ok(Some(u)) => u,
             Ok(None) => {
@@ -261,119 +273,116 @@ impl KaniranContext {
                 return Err(e);
             }
         };
-        Self::from_url(&url).await
+        Self::from_url(&url)
     }
-}
 
-#[cfg(test)]
-impl KaniranContext {
-    /// Test-only constructor for DDL / schema-touching tests. Connects
-    /// a pool but leaves every cache empty — no `build_no_conj_data` /
-    /// `build_counter_cache` / etc. run, so it survives an empty
-    /// schema where the production populators would fail.
+    /// Build a pool-only context for the build-time data loaders
+    /// (`kaniran-loader`): connect the Postgres pool — and the runtime it
+    /// lives on — via [`build_backend`], but leave every cache empty.
+    /// [`from_url`](Self::from_url)'s cache populators read dictionary
+    /// tables that are empty on a fresh schema, so they can't run here; a
+    /// load starts from nothing and fills those tables itself.
     ///
-    /// Refuses to run unless `KANIRAN_TEST_DATABASE_URL` is set and
-    /// differs from `DATABASE_URL`. This guards `init_tables` (and any
-    /// other DDL test) from ever wiping the production corpus.
-    pub(crate) async fn pool_only_test_ctx() -> Self {
-        use crate::dict::split::split_map::SplitMapKind;
-        use std::collections::HashMap;
-
-        let test_url = std::env::var("KANIRAN_TEST_DATABASE_URL").expect(
-            "KANIRAN_TEST_DATABASE_URL must be set for #[ignore]d DDL tests \
-             (e.g. postgres://localhost/kaniran_test)",
-        );
-        // Cross-check against the resolved production URL the same way
-        // `from_env` resolves it (config file layered under env vars),
-        // not just `std::env::var(DATABASE_URL)` — a kaniran.toml setting
-        // would otherwise sneak past the guard.
-        if let Ok(Some(prod_url)) = get_ichiran_connection_env() {
-            assert_ne!(
-                test_url, prod_url,
-                "KANIRAN_TEST_DATABASE_URL must differ from the resolved \
-                 production database URL — refusing to run DDL against production",
-            );
-        }
-        let pool = PgPoolOptions::new()
-            .max_connections(4)
-            .acquire_timeout(Duration::from_secs(5))
-            .connect(&test_url)
-            .await
-            .expect("connect to kaniran_test");
-        KaniranContext {
-            pool,
+    /// The loaders only touch [`Self::pool`], and they are async, so drive
+    /// their futures with [`Self::block_on`] — it runs them on the same
+    /// runtime the pool was created on.
+    #[cfg(feature = "postgres")]
+    pub fn pool_only_from_url(url: &str) -> Result<Arc<Self>, Error> {
+        let BuiltBackend { store, pool } = build_backend(url)?;
+        let pool = pool.ok_or_else(|| {
+            Error::Snapshot(format!(
+                "pool_only_from_url is for the build-time loaders and needs a \
+                 postgres:// URL; got `{url}`"
+            ))
+        })?;
+        Ok(Arc::new(Self::from_shared(KaniranShared {
+            pool: Some(pool),
+            store,
             no_conj_data: Arc::new(HashSet::new()),
             is_arch: Arc::new(HashSet::new()),
-            counter_cache: Arc::new(HashMap::new()),
-            suffix_cache: Arc::new(HashMap::new()),
-            suffix_class: Arc::new(HashMap::new()),
-            reading_cache: Arc::new(new_reading_cache()),
-            disable_hints: false,
-            substring_hash: None,
-            suffix_map_temp: None,
-            suffix_next_end: None,
-            split_map: SplitMapKind::Default,
-        }
-    }
-}
-
-/// Shared cache builder for the crate's own test runs. The five
-/// DB-derived caches are deterministic from database content, so they
-/// are built once per test process and reused across every
-/// `#[tokio::test]` context. The cache maps are plain runtime-independent
-/// data — sharing them across the per-test tokio runtimes is sound,
-/// unlike the `PgPool` whose connections are bound to the runtime that
-/// opened them. Not compiled into production builds.
-#[cfg(test)]
-mod test_support {
-    use super::*;
-    use tokio::sync::OnceCell;
-
-    type Caches = (
-        Arc<HashSet<i32>>,
-        Arc<HashSet<i32>>,
-        Arc<CounterCache>,
-        Arc<SuffixCache>,
-        Arc<SuffixClass>,
-    );
-
-    static SHARED: OnceCell<Caches> = OnceCell::const_new();
-
-    pub(super) async fn shared_caches(pool: &PgPool) -> Result<Caches, Error> {
-        let caches = SHARED.get_or_try_init(|| build_once(pool)).await?;
-        Ok(caches.clone())
-    }
-
-    /// Mirrors the cache-build sequence in
-    /// [`KaniranContext::from_url`]'s production path, run against a
-    /// throwaway context whose pool belongs to the first test that
-    /// triggers the build. Only the resulting cache Arcs are retained.
-    async fn build_once(pool: &PgPool) -> Result<Caches, Error> {
-        let no_conj_data = Arc::new(build_no_conj_data(pool).await?);
-        let is_arch = Arc::new(build_is_arch(pool).await?);
-        let mut ctx = KaniranContext {
-            pool: pool.clone(),
-            no_conj_data: no_conj_data.clone(),
-            is_arch: is_arch.clone(),
             counter_cache: Arc::new(CounterCache::new()),
             suffix_cache: Arc::new(SuffixCache::new()),
             suffix_class: Arc::new(SuffixClass::new()),
             reading_cache: Arc::new(new_reading_cache()),
-            disable_hints: false,
-            substring_hash: None,
-            suffix_map_temp: None,
-            suffix_next_end: None,
-            split_map: SplitMapKind::Default,
-        };
-        let counter_cache = Arc::new(build_counter_cache(&ctx).await?);
-        ctx.counter_cache = counter_cache.clone();
-        let (suffix_cache, suffix_class) = build_suffix_caches(&ctx).await?;
-        Ok((
-            no_conj_data,
-            is_arch,
-            counter_cache,
-            Arc::new(suffix_cache),
-            Arc::new(suffix_class),
-        ))
+        })))
     }
+
+    /// Drive a future on the Postgres pool's runtime. The build-time
+    /// loaders are async and must execute against [`Self::pool`] on the
+    /// runtime it was created on; this forwards to that runtime, mirroring
+    /// how the synchronous lookup facade already blocks on it.
+    ///
+    /// # Panics
+    /// Panics on a non-Postgres backend — the loaders only ever build a
+    /// context with [`pool_only_from_url`](Self::pool_only_from_url).
+    #[cfg(feature = "postgres")]
+    pub fn block_on<F: std::future::Future>(&self, fut: F) -> F::Output {
+        match &self.store {
+            KaniStore::Postgres(backend) => backend.block_on(fut),
+            #[cfg(feature = "rkyv")]
+            KaniStore::Rkyv(_) => {
+                panic!("KaniranContext::block_on requires the Postgres backend (build-time loaders)")
+            }
+        }
+    }
+}
+
+/// Backend plus the optional Postgres pool produced alongside it.
+struct BuiltBackend {
+    store: KaniStore,
+    #[cfg(feature = "postgres")]
+    pool: Option<sqlx::PgPool>,
+}
+
+/// Load the backend for [`KaniranContext::from_url`]. Supports
+/// `memory://<path>` (rkyv snapshot) and, under the `postgres` feature,
+/// `postgres://` / `postgresql://` connection URLs.
+fn build_backend(url: &str) -> Result<BuiltBackend, Error> {
+    if let Some(path) = url.strip_prefix("memory://") {
+        #[cfg(not(feature = "rkyv"))]
+        {
+            let _ = path;
+            return Err(Error::Snapshot(
+                "memory:// URL requires the `rkyv` feature to be enabled".into(),
+            ));
+        }
+        #[cfg(feature = "rkyv")]
+        {
+            let backend = crate::conn::kani_rkyv_backend::KaniRkyvBackend::from_file(
+                std::path::Path::new(path),
+            )
+            .map_err(Error::Snapshot)?;
+            return Ok(BuiltBackend {
+                store: KaniStore::Rkyv(backend),
+                #[cfg(feature = "postgres")]
+                pool: None,
+            });
+        }
+    }
+    #[cfg(feature = "postgres")]
+    if url.starts_with("postgres://") || url.starts_with("postgresql://") {
+        let rt = std::sync::Arc::new(
+            tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .map_err(|e| Error::Snapshot(format!("tokio runtime: {e}")))?,
+        );
+        let pool = rt
+            .block_on(
+                sqlx::postgres::PgPoolOptions::new()
+                    .max_connections(25)
+                    .acquire_timeout(std::time::Duration::from_secs(10))
+                    .connect(url),
+            )
+            .map_err(|e| Error::Snapshot(format!("postgres connect: {e}")))?;
+        let backend =
+            crate::conn::kani_postgres_backend::KaniPostgresBackend::new(pool.clone(), rt);
+        return Ok(BuiltBackend {
+            store: KaniStore::Postgres(backend),
+            pool: Some(pool),
+        });
+    }
+    Err(Error::Snapshot(format!(
+        "only memory://<archive> URLs are supported after the Postgres backend removal; got `{url}`"
+    )))
 }

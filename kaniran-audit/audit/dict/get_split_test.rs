@@ -22,7 +22,7 @@ use common::{parse_captured_simple_text, CapturedKanaText, CapturedKanjiText, Ca
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:GET-SPLIT";
 
 
-async fn audit_one(
+fn audit_one(
     ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -46,7 +46,7 @@ async fn audit_one(
     };
 
     let actual = get_split(ctx, &reading, &conj_of)
-        .await
+        
         .map_err(|err| format!("get_split query: {}", err))?;
 
     // Result envelope: [null] for Lisp NIL, [[parts...], score] for a hit.
@@ -144,14 +144,11 @@ fn compare_split_part(actual: &SplitPart, expected: &Value) -> Result<(), String
             "class/variant mismatch: rust={:?} lisp=:{}",
             other_variant, other_class
         )),
-        (SplitPart::Score, _) | (SplitPart::PScore, _) => Err(format!(
-            "rust returned :SCORE/:PSCORE marker, lisp returned word object"
-        )),
+        (SplitPart::Score, _) | (SplitPart::PScore, _) => Err("rust returned :SCORE/:PSCORE marker, lisp returned word object".to_string()),
     }
 }
 
 
-#[tokio::main]
-async fn main() {
-    common::run_async(EXPECTED_FQN, audit_one).await;
+fn main() {
+    common::run_async(EXPECTED_FQN, audit_one);
 }

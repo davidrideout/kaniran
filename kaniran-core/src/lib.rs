@@ -8,8 +8,10 @@
 pub mod characters;
 pub mod conn;
 pub mod core;
-pub mod custom;
 pub mod dict;
 pub mod kanji;
-pub mod maintenance;
 pub mod numbers;
+pub mod serializers;
+
+#[cfg(test)]
+mod test_support;

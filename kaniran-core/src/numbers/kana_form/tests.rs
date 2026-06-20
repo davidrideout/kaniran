@@ -85,18 +85,18 @@ fn caller_can_swap_digit_table() {
 }
 
 // --- number_to_kana ---
-fn k(n: u64) -> String {
+fn k(n: u128) -> String {
     number_to_kanji(n, DIGIT_KANJI_DEFAULT, POWER_KANJI, false)
 }
 
-fn joined(n: u64, sep: char) -> String {
+fn joined(n: u128, sep: char) -> String {
     match number_to_kana(n, Some(sep), k) {
         NumberToKanaOutput::Joined(s) => s,
         NumberToKanaOutput::Groups(_) => panic!("expected Joined"),
     }
 }
 
-fn groups(n: u64) -> Vec<String> {
+fn groups(n: u128) -> Vec<String> {
     match number_to_kana(n, None, k) {
         NumberToKanaOutput::Groups(v) => v,
         NumberToKanaOutput::Joined(_) => panic!("expected Groups"),
@@ -152,5 +152,37 @@ fn separator_none_returns_unjoined_groups() {
             "さんじゅう".to_string(),
             "よん".to_string(),
         ]
+    );
+}
+
+// --- values above u64 ---
+// Corpus row idxs=[664844]: 「…その半減期は…(≒ 1700京〜2100京年)である。」
+#[test]
+fn kana_above_u64() {
+    // (ichiran/numbers:number-to-kana 21000000000000000000)
+    //   => にせん ひゃっけい  — the 2100京 of the corpus sentence,
+    // romanized "nisen hyakkeinen" with the 年 counter appended.
+    assert_eq!(joined(21_000_000_000_000_000_000, ' '), "にせん ひゃっけい");
+}
+
+#[test]
+fn kana_stacked_kei_above_ten_to_the_32() {
+    // (ichiran/numbers:number-to-kana 1234567890123456780000000000000000)
+    // Values ≥ 10^32 read 京 twice; reachable through the counter gate
+    // at 17-19 digits + 京.
+    assert_eq!(
+        joined(1_234_567_890_123_456_780_000_000_000_000_000, ' '),
+        "じゅう にけい さんぜん よんひゃく ごじゅう ろくちょう ななせん はっぴゃく きゅうじゅうおく いっせん にひゃく さんじゅう よんまん ごせん ろっぴゃく ななじゅう はっけい"
+    );
+}
+
+#[test]
+fn kana_largest_gated_value() {
+    // (ichiran/numbers:number-to-kana 99999999999999999990000000000000000)
+    // = 9999999999999999999京, the largest value the segmenter's
+    // 20-char counter gate admits.
+    assert_eq!(
+        joined(99_999_999_999_999_999_990_000_000_000_000_000, ' '),
+        "きゅうひゃく きゅうじゅう きゅうけい きゅうせん きゅうひゃく きゅうじゅう きゅうちょう きゅうせん きゅうひゃく きゅうじゅう きゅうおく きゅうせん きゅうひゃく きゅうじゅう きゅうまん きゅうせん きゅうひゃく きゅうじゅう きゅうけい"
     );
 }

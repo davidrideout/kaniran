@@ -32,7 +32,7 @@ use common::{
 
 const EXPECTED_FQN: &str = "ICHIRAN/DICT:GET-SEG-INITIAL";
 
-async fn audit_one(
+fn audit_one(
     _ctx: &kaniran_core::conn::kani_context::KaniranContext,
     row: &CapturedRow,
 ) -> Result<(), String> {
@@ -59,10 +59,10 @@ async fn audit_one(
             class
         ));
     }
-    let segments: Vec<Segment> = match captured_input.get("segments") {
+    let segments: Vec<std::sync::Arc<Segment>> = match captured_input.get("segments") {
         Some(Value::Array(arr)) => arr
             .iter()
-            .map(parse_segment_full)
+            .map(|item| parse_segment_full(item).map(std::sync::Arc::new))
             .collect::<Result<_, _>>()
             .map_err(|err| format!("arg 0.segments: {}", err))?,
         Some(Value::Null) | None => Vec::new(),
@@ -482,11 +482,10 @@ fn require_field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
         .ok_or_else(|| format!("missing field {} on: {}", key, value))
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     // Stream rows batch-by-batch — chunk_b's get_seg_initial parquet
     // is ~1.3M rows / 193MB. Each captured row is deterministic
     // (apply-segfilters threads a fixed segfilter list); no dedup pass
     // needed.
-    common::run_async_streaming(EXPECTED_FQN, audit_one).await;
+    common::run_async_streaming(EXPECTED_FQN, audit_one);
 }

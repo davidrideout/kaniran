@@ -1,0 +1,30 @@
+[package]
+name = "kaniran-loader"
+description = "Build-the-archive data loaders for kaniran: JMdict / kanjidic / custom dict / maintenance. Sources from a Postgres database."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+kaniran-core = { path = "../kaniran-core", features = ["postgres", "rkyv"] }
+serde_json = { workspace = true }
+fancy-regex = { workspace = true }
+similar = { workspace = true }
+thiserror = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
+roxmltree = { workspace = true }
+indexmap = { workspace = true }
+rkyv = { workspace = true }
+memmap2 = { workspace = true }
+futures-util = { workspace = true }
+clap = { version = "4", features = ["derive"] }
+
+[[bin]]
+name = "kaniran-rkyv-dumper"
+path = "src/bin/kaniran_rkyv_dumper.rs"
+
+[[bin]]
+name = "full_e2e_load"
+path = "src/bin/full_e2e_load.rs"

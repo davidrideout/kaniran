@@ -2,10 +2,8 @@ mod select_conjs {
     use crate::dict::conj::*;
     use std::sync::Arc;
 
-    async fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     /// With no conjugation filter, prefers the rows whose "via" is empty, and
@@ -13,36 +11,38 @@ mod select_conjs {
     /// - 2028980: one via-empty row.
     /// - 1156880: two via-empty rows (a via-set row exists but is excluded).
     /// - 1257260: no via-empty rows, so all rows come back (both via-set).
-    #[tokio::test]
-    async fn select_conjs_nil_conj_ids() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn select_conjs_nil_conj_ids() {
+        let ctx = ctx_from_env();
 
-        let r2028980 = select_conjs(&ctx, 2028980, None).await.unwrap();
-        let mut ids: Vec<i32> = r2028980.iter().map(|c| c.id).collect();
-        ids.sort_unstable();
-        assert_eq!(ids, vec![2343254]);
+        // Conj-table ids renumber per build, so pin each result by its stable
+        // shape: row count, the base seq(s) it derives from, and via-presence.
+        let seq_froms = |rows: &[Conjugation]| {
+            let mut out: Vec<i32> = rows.iter().map(|conj| conj.seq_from).collect();
+            out.sort_unstable();
+            out
+        };
+
+        let r2028980 = select_conjs(&ctx, 2028980, None).unwrap();
+        assert_eq!(r2028980.len(), 1);
         assert_eq!(r2028980[0].seq_from, 2089020);
         assert_eq!(r2028980[0].seq_via, None);
 
-        let r1156880 = select_conjs(&ctx, 1156880, None).await.unwrap();
-        let mut ids: Vec<i32> = r1156880.iter().map(|c| c.id).collect();
-        ids.sort_unstable();
-        assert_eq!(ids, vec![366552, 661748]);
+        let r1156880 = select_conjs(&ctx, 1156880, None).unwrap();
+        assert_eq!(seq_froms(&r1156880), vec![1156870, 1156890]);
         assert!(r1156880.iter().all(|c| c.seq_via.is_none()));
 
         // No via-empty rows, so all rows come back (both via-set).
-        let r1257260 = select_conjs(&ctx, 1257260, None).await.unwrap();
-        let mut ids: Vec<i32> = r1257260.iter().map(|c| c.id).collect();
-        ids.sort_unstable();
-        assert_eq!(ids, vec![1239109, 1239126]);
+        let r1257260 = select_conjs(&ctx, 1257260, None).unwrap();
+        assert_eq!(r1257260.len(), 2);
         assert!(r1257260.iter().all(|c| c.seq_via.is_some()));
     }
 
-    #[tokio::test]
-    async fn select_conjs_root_is_empty() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn select_conjs_root_is_empty() {
+        let ctx = ctx_from_env();
         let result = select_conjs(&ctx, 2028980, Some(&WordConjugations::Root))
-            .await
+            
             .unwrap();
         assert!(result.is_empty());
     }
@@ -50,27 +50,31 @@ mod select_conjs {
     /// An explicit id list returns exactly those ids, with no via-empty
     /// preference and no fallback — including a via-set row that the
     /// unfiltered path would otherwise exclude.
-    #[tokio::test]
-    async fn select_conjs_explicit_ids() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn select_conjs_explicit_ids() {
+        let ctx = ctx_from_env();
 
-        let one = select_conjs(&ctx, 1156880, Some(&WordConjugations::Ids(vec![366552])))
-            .await
+        // Conj ids renumber per build, so resolve them from stable anchors.
+        let v5m_id = crate::test_support::conj_id_by_pos(1156880, "v5m");
+        let one = select_conjs(&ctx, 1156880, Some(&WordConjugations::Ids(vec![v5m_id])))
+
             .unwrap();
         let ids: Vec<i32> = one.iter().map(|c| c.id).collect();
-        assert_eq!(ids, vec![366552]);
+        assert_eq!(ids, vec![v5m_id]);
+        assert_eq!(one[0].seq_via, None);
 
         // A via-set row is selectable by id even though the unfiltered path
         // would exclude it.
-        let via_row = select_conjs(&ctx, 1156880, Some(&WordConjugations::Ids(vec![705712])))
-            .await
+        let via_id = crate::test_support::via_set_conj_id(1156880);
+        let via_row = select_conjs(&ctx, 1156880, Some(&WordConjugations::Ids(vec![via_id])))
+
             .unwrap();
         assert_eq!(via_row.len(), 1);
         assert_eq!(via_row[0].seq_via, Some(1156890));
 
         // Ids that don't belong to the seq are filtered out.
         let none = select_conjs(&ctx, 1156880, Some(&WordConjugations::Ids(vec![1])))
-            .await
+            
             .unwrap();
         assert!(none.is_empty());
     }
@@ -172,27 +176,28 @@ mod select_conjs_and_props {
     use crate::dict::conj::*;
     use std::sync::Arc;
 
-    async fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
-    type FpropRow = (i32, i32, i32, String, Option<bool>, Option<bool>);
-    type ConjRow = (i32, i32, i32, Option<i32>, [i32; 2], Vec<FpropRow>);
+    // Conj/prop ids and the synthetic `seq_via` target renumber per build, so
+    // the projection drops them and keeps the stable shape: the base seq, the
+    // source seq, whether a via is present, the sort key, and each prop's
+    // (conj_type, pos, neg, fml).
+    type FpropRow = (i32, String, Option<bool>, Option<bool>);
+    type ConjRow = (i32, i32, bool, [i32; 2], Vec<FpropRow>);
 
     fn project(rows: &[(Conjugation, Vec<ConjProp>, [i32; 2])]) -> Vec<ConjRow> {
         rows.iter()
             .map(|(conj, fprops, key)| {
                 (
-                    conj.id,
                     conj.seq,
                     conj.seq_from,
-                    conj.seq_via,
+                    conj.seq_via.is_some(),
                     *key,
                     fprops
                         .iter()
-                        .map(|p| (p.id, p.conj_id, p.conj_type, p.pos.clone(), p.neg, p.fml))
+                        .map(|p| (p.conj_type, p.pos.clone(), p.neg, p.fml))
                         .collect(),
                 )
             })
@@ -203,35 +208,26 @@ mod select_conjs_and_props {
     /// order, which reorders the input: conj 661748 (type 13, ordered as 10)
     /// sorts ahead of conj 366552 (type 10, ordered as 13). No text, so all
     /// props are kept.
-    #[tokio::test]
-    async fn via_null_sorted_by_val() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn via_null_sorted_by_val() {
+        let ctx = ctx_from_env();
         let rows = select_conjs_and_props(&ctx, 1156880, None, FilterPropsText::None)
-            .await
+            
             .unwrap();
         let expected: Vec<ConjRow> = vec![
             (
-                661748,
                 1156880,
                 1156890,
-                None,
+                false,
                 [0, 10],
-                vec![(676835, 661748, 13, "v1".to_string(), None, None)],
+                vec![(13, "v1".to_string(), None, None)],
             ),
             (
-                366552,
                 1156880,
                 1156870,
-                None,
+                false,
                 [0, 13],
-                vec![(
-                    374822,
-                    366552,
-                    10,
-                    "v5m".to_string(),
-                    Some(false),
-                    Some(false),
-                )],
+                vec![(10, "v5m".to_string(), Some(false), Some(false))],
             ),
         ];
         assert_eq!(project(&rows), expected);
@@ -240,35 +236,26 @@ mod select_conjs_and_props {
     /// When there are no via-empty rows the fallback returns all rows; both
     /// have a via set, so each sort key leads with 1, and they sort by
     /// conjugation-type order within that.
-    #[tokio::test]
-    async fn via_not_null_flag_one() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn via_not_null_flag_one() {
+        let ctx = ctx_from_env();
         let rows = select_conjs_and_props(&ctx, 1257260, None, FilterPropsText::None)
-            .await
+            
             .unwrap();
         let expected: Vec<ConjRow> = vec![
             (
-                1239109,
                 1257260,
                 1609260,
-                Some(10036077),
+                true,
                 [1, 10],
-                vec![(1254564, 1239109, 13, "v1".to_string(), None, None)],
+                vec![(13, "v1".to_string(), None, None)],
             ),
             (
-                1239126,
                 1257260,
                 1609260,
-                Some(10036081),
+                true,
                 [1, 13],
-                vec![(
-                    1254581,
-                    1239126,
-                    10,
-                    "v5s".to_string(),
-                    Some(false),
-                    Some(false),
-                )],
+                vec![(10, "v5s".to_string(), Some(false), Some(false))],
             ),
         ];
         assert_eq!(project(&rows), expected);
@@ -278,19 +265,18 @@ mod select_conjs_and_props {
     /// dropped exactly when the filter would drop it (text present, not a
     /// rareru form). The sort key is computed from the unfiltered props, so it
     /// stays the same across every text variant.
-    #[tokio::test]
-    async fn text_threads_to_filter_props() {
-        let ctx = ctx_from_env().await;
-        let prop = (
-            163127,
-            159588,
-            6,
-            "v1".to_string(),
-            Some(false),
-            Some(false),
-        );
-        let kept: Vec<ConjRow> = vec![(159588, 1232500, 2864818, None, [0, 6], vec![prop.clone()])];
-        let dropped: Vec<ConjRow> = vec![(159588, 1232500, 2864818, None, [0, 6], vec![])];
+    ///
+    /// Postgres-only: the conjugation it exercises (seq 1232500, deriving from
+    /// 2864818) is not present in the rkyv archive's JMdict vintage, so
+    /// `select_conjs_and_props` returns nothing there. The prop-filtering logic
+    /// itself is covered backend-agnostically by the `filter_props` tests.
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn text_threads_to_filter_props() {
+        let ctx = ctx_from_env();
+        let prop = (6, "v1".to_string(), Some(false), Some(false));
+        let kept: Vec<ConjRow> = vec![(1232500, 2864818, false, [0, 6], vec![prop.clone()])];
+        let dropped: Vec<ConjRow> = vec![(1232500, 2864818, false, [0, 6], vec![])];
 
         let rareru = ["食べる", "見られる"];
         let no_rareru = ["食べる", "飲む"];
@@ -303,7 +289,7 @@ mod select_conjs_and_props {
         ];
         for (text, expected) in cases {
             let rows = select_conjs_and_props(&ctx, 1232500, None, *text)
-                .await
+                
                 .unwrap();
             assert_eq!(&project(&rows), *expected, "text variant mismatch");
         }
@@ -311,16 +297,16 @@ mod select_conjs_and_props {
 
     /// The root conjugation filter yields no conjugations, so the result is
     /// empty.
-    #[tokio::test]
-    async fn root_conj_ids_empty() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn root_conj_ids_empty() {
+        let ctx = ctx_from_env();
         let rows = select_conjs_and_props(
             &ctx,
             2028980,
             Some(&WordConjugations::Root),
             FilterPropsText::None,
         )
-        .await
+        
         .unwrap();
         assert!(rows.is_empty());
     }
@@ -330,20 +316,18 @@ mod print_conj_info {
     use crate::dict::conj::*;
     use std::sync::Arc;
 
-    async fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
-    async fn render(
+    fn render(
         ctx: &KaniranContext,
         seq: i32,
         conjugations: Option<&WordConjugations>,
     ) -> String {
         let mut out = String::new();
         print_conj_info(ctx, seq, conjugations, &mut out)
-            .await
+            
             .unwrap();
         out
     }
@@ -355,10 +339,13 @@ mod print_conj_info {
     /// - 10674648: two conjugations sharing the same via; the second via is
     ///   suppressed, so its block prints only once.
     /// - 1358280: no conjugations, so output is empty.
-    #[tokio::test]
-    async fn print_conj_info_fixtures() {
-        let ctx = ctx_from_env().await;
-        let cases: &[(i32, &str)] = &[
+    #[test]
+    fn print_conj_info_fixtures() {
+        let ctx = ctx_from_env();
+        // 10674648 is a synthetic doubly-conjugated entry (renumbers per
+        // build); its surface くねらせた is stable, so resolve the seq from it.
+        let kuneraseta = crate::test_support::conj_entry_seq("くねらせた");
+        let cases: Vec<(i32, &str)> = vec![
             (
                 1156880,
                 "\n[ Conjugation: [v1] Continuative (~i)\n  慰める 【なぐさめる】 : to comfort; to console; to amuse ]\n[ Conjugation: [v5m] Imperative Affirmative Plain\n  慰む 【なぐさむ】 : to feel comforted; to be in good spirits; to feel better; to forget one's worries ]",
@@ -372,30 +359,31 @@ mod print_conj_info {
                 "\n[ Conjugation: [v1] Continuative (~i)\n --(via)--\n[ Conjugation: [v5r] Causative Affirmative Plain\n  嫌がる 【いやがる】 : to appear uncomfortable (with); to seem to hate; to express dislike ] ]\n[ Conjugation: [v5s] Imperative Affirmative Plain\n --(via)--\n[ Conjugation: [v5r] Causative (~su) Affirmative Plain\n  嫌がる 【いやがる】 : to appear uncomfortable (with); to seem to hate; to express dislike ] ]",
             ),
             (
-                10674648,
+                kuneraseta,
                 "\n[ Conjugation: [v1] Past (~ta) Affirmative Plain\n --(via)--\n[ Conjugation: [v5s] Potential Affirmative Plain\n  くねらす : to wriggle; to twist (one's body); to writhe ]\n[ Conjugation: [v5r] Causative Affirmative Plain\n  くねる : to bend loosely back and forth; to wriggle; to be crooked ] ]",
             ),
             (1358280, ""),
         ];
-        for (seq, expected) in cases {
-            assert_eq!(&render(&ctx, *seq, None).await, expected, "seq={seq}");
+        for (seq, expected) in &cases {
+            assert_eq!(&render(&ctx, *seq, None), expected, "seq={seq}");
         }
     }
 
     /// The conjugation filter narrows the output: root selects nothing (empty
     /// output), an explicit id list prints just that one conjugation.
-    #[tokio::test]
-    async fn print_conj_info_conjugations_arg() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn print_conj_info_conjugations_arg() {
+        let ctx = ctx_from_env();
         assert_eq!(
-            render(&ctx, 1156880, Some(&WordConjugations::Root)).await,
+            render(&ctx, 1156880, Some(&WordConjugations::Root)),
             "",
             "conjugations=:root"
         );
+        let v5m_id = crate::test_support::conj_id_by_pos(1156880, "v5m");
         assert_eq!(
-            render(&ctx, 1156880, Some(&WordConjugations::Ids(vec![366552]))).await,
+            render(&ctx, 1156880, Some(&WordConjugations::Ids(vec![v5m_id]))),
             "\n[ Conjugation: [v5m] Imperative Affirmative Plain\n  慰む 【なぐさむ】 : to feel comforted; to be in good spirits; to feel better; to forget one's worries ]",
-            "conjugations=(366552)"
+            "conjugations=v5m"
         );
     }
 }
@@ -404,10 +392,8 @@ mod conj_info_json_star_ {
     use crate::dict::conj::*;
     use std::sync::Arc;
 
-    async fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     fn json(values: &[Value]) -> String {
@@ -418,9 +404,12 @@ mod conj_info_json_star_ {
     /// original reading sets readok true. A non-matching surface or no text
     /// leaves readok empty. When the reading can't be resolved and a gloss is
     /// required, the entry is dropped entirely.
-    #[tokio::test]
-    async fn via_null_paths() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn via_null_paths() {
+        let ctx = ctx_from_env();
+        // The conjugated-entry seq renumbers per build; its surface 尽き果てた
+        // is stable, so resolve the input from it.
+        let seq = crate::test_support::conj_entry_seq("尽き果てた");
         let found = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":true}]"#;
         let unresolved = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":[]}]"#;
         let dropped = "[]";
@@ -476,8 +465,8 @@ mod conj_info_json_star_ {
             },
         ];
         for case in &cases {
-            let result = conj_info_json_star_(&ctx, 10175587, None, case.text, case.has_gloss)
-                .await
+            let result = conj_info_json_star_(&ctx, seq, None, case.text, case.has_gloss)
+
                 .unwrap();
             assert_eq!(json(&result), case.expected, "case={}", case.label);
         }
@@ -485,19 +474,20 @@ mod conj_info_json_star_ {
 
     /// A via-set conjugation nests the via's own conjugation info under
     /// `"via"` and copies its readok up to the outer entry.
-    #[tokio::test]
-    async fn via_not_null_recursion() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn via_not_null_recursion() {
+        let ctx = ctx_from_env();
+        let seq = crate::test_support::conj_entry_seq("あくどくさせた");
         let expected = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"via":[{"prop":[{"pos":"adj-i","type":"Causative"}],"reading":"悪どい 【あくどい】","gloss":[{"pos":"[adj-i]","gloss":"gaudy; showy; garish; loud"},{"pos":"[adj-i]","gloss":"crooked; vicious; wicked; nasty; unscrupulous; dishonest"}],"readok":true}],"readok":true}]"#;
         for has_gloss in [false, true] {
             let result = conj_info_json_star_(
                 &ctx,
-                10670519,
+                seq,
                 None,
                 FilterPropsText::One("あくどくさせた"),
                 has_gloss,
             )
-            .await
+            
             .unwrap();
             assert_eq!(json(&result), expected, "has_gloss={has_gloss}");
         }
@@ -506,24 +496,26 @@ mod conj_info_json_star_ {
     /// A sequence with two via-empty conjugations emits two entries. No text
     /// leaves both readings unresolved (`readok` empty); restricting to one
     /// conjugation id emits a single entry.
-    #[tokio::test]
-    async fn multi_entry_and_conj_ids() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn multi_entry_and_conj_ids() {
+        let ctx = ctx_from_env();
         let both = r#"[{"prop":[{"pos":"v1","type":"Continuative (~i)"}],"reading":"慰める 【なぐさめる】","gloss":[{"pos":"[vt,v1]","gloss":"to comfort; to console; to amuse"}],"readok":true},{"prop":[{"pos":"v5m","type":"Imperative"}],"reading":"慰む 【なぐさむ】","gloss":[{"pos":"[v5m,vi]","gloss":"to feel comforted; to be in good spirits; to feel better; to forget one's worries"},{"pos":"[vt,v5m]","gloss":"to trifle with; to fool around with"}],"readok":true}]"#;
         let both_unresolved = r#"[{"prop":[{"pos":"v1","type":"Continuative (~i)"}],"reading":"慰める 【なぐさめる】","gloss":[{"pos":"[vt,v1]","gloss":"to comfort; to console; to amuse"}],"readok":[]},{"prop":[{"pos":"v5m","type":"Imperative"}],"reading":"慰む 【なぐさむ】","gloss":[{"pos":"[v5m,vi]","gloss":"to feel comforted; to be in good spirits; to feel better; to forget one's worries"},{"pos":"[vt,v5m]","gloss":"to trifle with; to fool around with"}],"readok":[]}]"#;
         let only_one = r#"[{"prop":[{"pos":"v1","type":"Continuative (~i)"}],"reading":"慰める 【なぐさめる】","gloss":[{"pos":"[vt,v1]","gloss":"to comfort; to console; to amuse"}],"readok":true}]"#;
 
         let result = conj_info_json_star_(&ctx, 1156880, None, FilterPropsText::One("慰め"), false)
-            .await
+            
             .unwrap();
         assert_eq!(json(&result), both, "慰め");
 
         let result = conj_info_json_star_(&ctx, 1156880, None, FilterPropsText::None, false)
-            .await
+            
             .unwrap();
         assert_eq!(json(&result), both_unresolved, "nil text");
 
-        let ids = WordConjugations::Ids(vec![661748]);
+        // Restrict to the v1 Continuative conjugation; its conj id renumbers
+        // per build, so resolve it from the stable pos.
+        let ids = WordConjugations::Ids(vec![crate::test_support::conj_id_by_pos(1156880, "v1")]);
         let result = conj_info_json_star_(
             &ctx,
             1156880,
@@ -531,9 +523,9 @@ mod conj_info_json_star_ {
             FilterPropsText::One("慰め"),
             false,
         )
-        .await
+
         .unwrap();
-        assert_eq!(json(&result), only_one, "conj-ids 661748");
+        assert_eq!(json(&result), only_one, "conj-ids v1");
     }
 }
 
@@ -541,10 +533,8 @@ mod conj_info_json {
     use crate::dict::conj::*;
     use std::sync::Arc;
 
-    async fn ctx_from_env() -> Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .await
-            .expect("KaniranContext::from_env() — DATABASE_URL / kaniran.toml required")
+    fn ctx_from_env() -> Arc<KaniranContext> {
+        crate::test_support::shared_ctx()
     }
 
     fn json(values: &[Value]) -> String {
@@ -554,25 +544,28 @@ mod conj_info_json {
     /// A matching surface resolves the original reading (readok true, entry
     /// kept). With no text every entry's readok is empty, so the filtered list
     /// comes back empty and the result falls back to the unfiltered list.
-    #[tokio::test]
-    async fn readok_filter_and_fallback() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn readok_filter_and_fallback() {
+        let ctx = ctx_from_env();
+        // The conjugated-entry seq renumbers per build; resolve it from the
+        // stable surface 尽き果てた.
+        let seq = crate::test_support::conj_entry_seq("尽き果てた");
         let found = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":true}]"#;
         let unresolved = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"reading":"尽き果てる 【つきはてる】","gloss":[{"pos":"[vi,v1]","gloss":"to be exhausted"}],"readok":[]}]"#;
 
         let result = conj_info_json(
             &ctx,
-            10175587,
+            seq,
             None,
             FilterPropsText::One("つきはてた"),
             false,
         )
-        .await
+
         .unwrap();
         assert_eq!(json(&result), found, "resolved surface");
 
-        let result = conj_info_json(&ctx, 10175587, None, FilterPropsText::None, false)
-            .await
+        let result = conj_info_json(&ctx, seq, None, FilterPropsText::None, false)
+
             .unwrap();
         assert_eq!(json(&result), unresolved, "nil text → fallback to cij");
 
@@ -580,42 +573,43 @@ mod conj_info_json {
         // result is the empty list.
         let result = conj_info_json(
             &ctx,
-            10175587,
+            seq,
             None,
             FilterPropsText::One("存在しない"),
             true,
         )
-        .await
+        
         .unwrap();
         assert_eq!(json(&result), "[]", "has-gloss drop → empty");
     }
 
     /// A via-set entry keeps its nested `via` payload, with readok copied up
     /// from the via's first element.
-    #[tokio::test]
-    async fn via_recursion_kept() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn via_recursion_kept() {
+        let ctx = ctx_from_env();
+        let seq = crate::test_support::conj_entry_seq("あくどくさせた");
         let expected = r#"[{"prop":[{"pos":"v1","type":"Past (~ta)"}],"via":[{"prop":[{"pos":"adj-i","type":"Causative"}],"reading":"悪どい 【あくどい】","gloss":[{"pos":"[adj-i]","gloss":"gaudy; showy; garish; loud"},{"pos":"[adj-i]","gloss":"crooked; vicious; wicked; nasty; unscrupulous; dishonest"}],"readok":true}],"readok":true}]"#;
         let result = conj_info_json(
             &ctx,
-            10670519,
+            seq,
             None,
             FilterPropsText::One("あくどくさせた"),
             false,
         )
-        .await
+        
         .unwrap();
         assert_eq!(json(&result), expected);
     }
 
     /// When both via-empty entries resolve, the filtered list equals the full
     /// two-entry list.
-    #[tokio::test]
-    async fn multi_entry_all_kept() {
-        let ctx = ctx_from_env().await;
+    #[test]
+    fn multi_entry_all_kept() {
+        let ctx = ctx_from_env();
         let both = r#"[{"prop":[{"pos":"v1","type":"Continuative (~i)"}],"reading":"慰める 【なぐさめる】","gloss":[{"pos":"[vt,v1]","gloss":"to comfort; to console; to amuse"}],"readok":true},{"prop":[{"pos":"v5m","type":"Imperative"}],"reading":"慰む 【なぐさむ】","gloss":[{"pos":"[v5m,vi]","gloss":"to feel comforted; to be in good spirits; to feel better; to forget one's worries"},{"pos":"[vt,v5m]","gloss":"to trifle with; to fool around with"}],"readok":true}]"#;
         let result = conj_info_json(&ctx, 1156880, None, FilterPropsText::One("慰め"), false)
-            .await
+            
             .unwrap();
         assert_eq!(json(&result), both);
     }
