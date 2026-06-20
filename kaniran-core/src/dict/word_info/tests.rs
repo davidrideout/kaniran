@@ -782,7 +782,7 @@ mod fill_segment_path {
             PathElement::SegmentList(sl_inu),
         ];
         let result = fill_segment_path(&ctx, "ねこと いぬ", &mut path)
-            
+
             .unwrap();
         assert_eq!(result.len(), 3);
         assert_eq!(result[0].text, "ねこ");
@@ -806,7 +806,7 @@ mod fill_segment_path {
         let sl = one_seg_list(&ctx, "ねこ", 16, 2, 4);
         let mut path = vec![PathElement::SegmentList(sl)];
         let result = fill_segment_path(&ctx, "あいねこ犬", &mut path)
-            
+
             .unwrap();
         assert_eq!(result.len(), 3);
         assert_eq!(result[0].kind, WordInfoType::Gap);
@@ -869,7 +869,7 @@ mod fill_segment_path {
             PathElement::SegmentList(sl_inu),
         ];
         let result = fill_segment_path(&ctx, "ねこと いぬ", &mut path)
-            
+
             .unwrap();
         assert_eq!(result.len(), 3);
         assert_eq!(result[0].text, "ねこ");
@@ -1149,7 +1149,7 @@ mod dict_segment {
     fn default_limit_is_five() {
         let ctx = ctx_from_env();
         let result = dict_segment(&ctx, "ご注文はうさぎですか", None)
-            
+
             .unwrap();
         let scores: Vec<i32> = result.iter().map(|(_, score)| *score).collect();
         assert_eq!(scores, vec![518, 504, 485, 474, 465]);
@@ -1387,10 +1387,6 @@ mod simple_segment {
             ),
             ("見てくれたかな", &["見てくれた", "かな"]),
             ("とても良かった", &["とても", "良かった"]),
-            (
-                "戻りたいかと言われる",
-                &["戻りたい", "か", "と", "言われる"],
-            ),
             (
                 "こういうのでいいんだよ",
                 &["こういう", "の", "でいい", "ん", "だ", "よ"],
@@ -1762,10 +1758,6 @@ mod simple_segment {
                 &["みんな", "に", "うらやましがられている"],
             ),
             ("悪がられて", &["悪がられて"]),
-            (
-                "期待されがちなので男女",
-                &["期待されがち", "なので", "男女"],
-            ),
             ("とぎれがちに話す", &["とぎれがち", "に", "話す"]),
             (
                 "手にとっていただきやすくなる",
@@ -1915,10 +1907,6 @@ mod simple_segment {
                 &["物", "が", "ぼんやり", "と", "かすんで", "見える"],
             ),
             (
-                "どなた様でございましょうか",
-                &["どなた", "様", "でございましょう", "か"],
-            ),
-            (
                 "読んでくださりありがとうございました",
                 &["読んで", "くださり", "ありがとうございました"],
             ),
@@ -1952,7 +1940,6 @@ mod simple_segment {
                 "わたしにはちょっとわかりかねますので",
                 &["わたし", "には", "ちょっと", "わかりかねます", "ので"],
             ),
-            ("要素はないかと", &["要素", "は", "ない", "か", "と"]),
             ("すごいじゃん", &["すごい", "じゃん"]),
             ("腕をつかまれて路地", &["腕", "を", "つかまれて", "路地"]),
             (
@@ -2245,10 +2232,6 @@ mod simple_segment {
             ),
             ("よろしくおねがいします", &["よろしくおねがいします"]),
             (
-                "気を遣ってくれてるのかと思ってました",
-                &["気を遣ってくれてる", "のか", "と", "思ってました"],
-            ),
-            (
                 "太陽をかたどったしるし",
                 &["太陽", "を", "かたどった", "しるし"],
             ),
@@ -2289,10 +2272,6 @@ mod simple_segment {
             ("割り切れたら", &["割り切れたら"]),
             ("あり得なかったり", &["あり得なかったり"]),
             ("代わり映え", &["代わり映え"]),
-            (
-                "器用なのですぐ上達しますよ",
-                &["器用", "なので", "すぐ", "上達します", "よ"],
-            ),
             ("おにいちゃん", &["おにいちゃん"]),
             ("動画につまってる", &["動画", "に", "つまってる"]),
             ("出来そう", &["出来そう"]),
@@ -2374,6 +2353,152 @@ mod simple_segment {
             ("けんかを引分ける", &["けんか", "を", "引分ける"]),
             ("取り計らいましょう", &["取り計らいましょう"]),
             ("一日置いただけで", &["一日", "置いた", "だけ", "で"]),
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for (input, expected) in cases {
+            let result = simple_segment(&ctx, input, None).unwrap();
+            let actual = segmentation(&result);
+            if actual != *expected {
+                failures.push(format!(
+                    "{:?}: rust={:?} expected={:?}",
+                    input, actual, expected
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} of {} segmentation cases diverged:\n{}",
+            failures.len(),
+            cases.len(),
+            failures.join("\n")
+        );
+    }
+
+    /// かと cases parked out of [`segmentation_test`] because the current
+    /// dictionary no longer produces the か+と split they expect. Same body as
+    /// `segmentation_test`, but intentionally **left failing** — not
+    /// `#[ignore]`d — so the red is a standing reminder that かと still needs a
+    /// followup. Once that lands (a quotative-と synergy to restore the split,
+    /// or a decision to re-baseline these to the merged かと), fold the cases
+    /// back into `segmentation_test` and delete this test.
+    ///
+    /// Cause: JMdict entry 2871200 かと was added 2026-05-27 (submitted
+    /// 2026-05-16, edrdg jmdictdb seq 2871200) with
+    /// a `spec1` priority tag, which ichiran loads as `common = 0`. That
+    /// commonality bonus makes the merged かと outscore splitting it into か
+    /// (question
+    /// particle) + と (quotative particle) before a quotative verb. Re-evaluate
+    /// when 2871200 is reclassified upstream, or if a quotative-と synergy
+    /// is added to favour the split contextually.
+    #[test]
+    fn segmentation_test_failures_kato_todo() {
+        let ctx = ctx_from_env();
+        let cases: &[(&str, &[&str])] = &[
+            // か (question) + と (quotative) before 言われる — now merges to かと.
+            (
+                "戻りたいかと言われる",
+                &["戻りたい", "か", "と", "言われる"],
+            ),
+            // Same quotative-と split at the tail — now merges to かと.
+            ("要素はないかと", &["要素", "は", "ない", "か", "と"]),
+            // のか + と (quotative) before 思う — now merges the と into かと.
+            (
+                "気を遣ってくれてるのかと思ってました",
+                &["気を遣ってくれてる", "のか", "と", "思ってました"],
+            ),
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for (input, expected) in cases {
+            let result = simple_segment(&ctx, input, None).unwrap();
+            let actual = segmentation(&result);
+            if actual != *expected {
+                failures.push(format!(
+                    "{:?}: rust={:?} expected={:?}",
+                    input, actual, expected
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} of {} segmentation cases diverged:\n{}",
+            failures.len(),
+            cases.len(),
+            failures.join("\n")
+        );
+    }
+
+    /// なので cases parked out of [`segmentation_test`], same pattern as
+    /// [`segmentation_test_failures_kato_todo`]: intentionally **left
+    /// failing** as a standing reminder, not `#[ignore]`d.
+    ///
+    /// Cause: JMdict reclassified entry 2827864 なので from particle (`prt`)
+    /// to conjunction (`conj`) on 2026-02-20. The scorer gives
+    /// particles a length-amplified bonus conjunctions don't get, so なので's
+    /// score fell (~54→36 for a 3-char kana word). The `*no-kanji-break-
+    /// penalty*` errata still shields なので from the kanji-boundary score-
+    /// halving, but the lowered base loses anyway.
+    ///
+    /// Mixed outcome vs the old merged-なので fixture: 期待されがちなので now
+    /// splits to the grammatical な+ので (an improvement), while 器用なので
+    /// over-splits to な+の+で — a の-da synergy beats the correct な+ので by
+    /// 8 points (a real scoring bug; the right split is reachable but
+    /// under-scored).
+    #[test]
+    fn segmentation_test_failures_nanode_todo() {
+        let ctx = ctx_from_env();
+        let cases: &[(&str, &[&str])] = &[
+            // Now splits to the grammatical な+ので (improvement over the merge).
+            (
+                "期待されがちなので男女",
+                &["期待されがち", "なので", "男女"],
+            ),
+            // Now over-splits to な+の+で (regression; correct な+ので loses by 8).
+            (
+                "器用なのですぐ上達しますよ",
+                &["器用", "なので", "すぐ", "上達します", "よ"],
+            ),
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for (input, expected) in cases {
+            let result = simple_segment(&ctx, input, None).unwrap();
+            let actual = segmentation(&result);
+            if actual != *expected {
+                failures.push(format!(
+                    "{:?}: rust={:?} expected={:?}",
+                    input, actual, expected
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} of {} segmentation cases diverged:\n{}",
+            failures.len(),
+            cases.len(),
+            failures.join("\n")
+        );
+    }
+
+    /// どなた様 case parked out of [`segmentation_test`], same pattern as
+    /// [`segmentation_test_failures_kato_todo`]: intentionally **left
+    /// failing**, not `#[ignore]`d.
+    ///
+    /// Cause: JMdict added entry 2870224 (どなたさま / どなた様 / 何方様) on
+    /// 2026-03-22 (submitted 2026-03-19,
+    /// jmdictdb seq 2870224), absent from the older dictionary the fixtures
+    /// were captured against. The single 3-char entry outscores
+    /// どなた+様, so the segmenter merges どなた様. Same lever as the かと cases
+    /// (a new entry forcing a merge); unlike かと, どなた様 is a legitimate
+    /// single word, so the merge is arguably correct — a re-baseline candidate
+    /// rather than a bug.
+    #[test]
+    fn segmentation_test_failures_donatasama_todo() {
+        let ctx = ctx_from_env();
+        let cases: &[(&str, &[&str])] = &[
+            // Now merges to どなた様 via the new entry 2870224.
+            (
+                "どなた様でございましょうか",
+                &["どなた", "様", "でございましょう", "か"],
+            ),
         ];
         let mut failures: Vec<String> = Vec::new();
         for (input, expected) in cases {
