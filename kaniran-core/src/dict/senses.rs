@@ -98,6 +98,20 @@ pub fn get_senses(ctx: &KaniranContext, seq: i32) -> Result<Vec<SenseEntry>, cra
     Ok(out)
 }
 
+/// The primary part-of-speech for `seq`: the first `pos` tag of the entry's
+/// lowest-ordinal sense. Reads the pos props alone — no glosses — so it is far
+/// cheaper than [`get_senses_json`]. The v2-minimal serializer uses it to carry
+/// a pos on every word without paying for gloss lookups. No Lisp counterpart.
+pub fn get_first_pos(
+    ctx: &KaniranContext,
+    seq: i32,
+) -> Result<Option<String>, crate::conn::KaniDbError> {
+    // Rows arrive ordered by (sense.ord, tag, sense_prop.ord) on both backends,
+    // so the first row is the lowest-ord sense's first pos tag.
+    let rows = ctx.store.sense_prop_rows_tagged(seq, &["pos"])?;
+    Ok(rows.into_iter().next().map(|(_, _, text)| text.into_owned()))
+}
+
 /// Port of `ichiran/dict:get-senses-str` (`dict.lisp:1495`).
 ///
 /// Renders an entry's senses as a numbered, newline-separated string,

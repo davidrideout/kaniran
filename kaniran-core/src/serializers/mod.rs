@@ -1,12 +1,10 @@
 //! Output serializers, one file per format, behind a single [`render`].
 //!
 //! The segmentation pipeline runs once (via [`segment`]); the chosen
-//! [`Format`] selects how its result is turned into the string we print. Each
-//! format file owns its rendering and the helpers only it uses; the shared
-//! machinery — the dispatch and the one pipeline run — lives here.
+//! [`Format`] selects how its result is turned into the string we print.\
 //!
 //! The format-version split lives in the serializers: [`json_v1`] mirrors
-//! ichiran's nested output, [`json_v2`] builds the flat view-model with real
+//! ichiran's nested output, [`json_v2`] builds a flat view-model with
 //! JMdict sequence numbers.
 
 mod json_v1;
@@ -45,6 +43,8 @@ pub enum Format {
 /// Render `input` in the chosen `format`, returning the string to print.
 ///
 /// `limit` is the segmentation beam width; it only affects the JSON formats.
+/// `include_paths` toggles the v2 `paths` array (every kept reading); it only
+/// affects `v2` / `v2-minimal`.
 ///
 /// # Errors
 ///
@@ -55,13 +55,16 @@ pub fn render(
     method: KaniRomanizeMethod<'_>,
     format: Format,
     limit: usize,
+    include_paths: bool,
 ) -> Result<String, Box<dyn Error>> {
     match format {
         Format::Romanize => romanize::render(ctx, input, method),
         Format::RomanizeInfo => romanize::render_with_info(ctx, input, method),
         Format::V1 => json_v1::render(ctx, input, method, limit),
-        Format::V2 => json_v2::render(ctx, input, method, limit, Detail::Full),
-        Format::V2Minimal => json_v2::render(ctx, input, method, limit, Detail::Minimal),
+        Format::V2 => json_v2::render(ctx, input, method, limit, Detail::Full, include_paths),
+        Format::V2Minimal => {
+            json_v2::render(ctx, input, method, limit, Detail::Minimal, include_paths)
+        }
     }
 }
 

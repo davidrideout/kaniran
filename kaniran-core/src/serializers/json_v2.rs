@@ -1,19 +1,9 @@
-//! v2 JSON — a flat, named-field view of a segmentation result, with real
-//! JMdict sequence numbers.
-//!
-//! v1 ([`super::json_v1`]) mirrors ichiran's nested positional output and stays
-//! byte-faithful. v2 is new work — a typed view-model built directly from the
-//! [`WordInfo`] tree, so it resolves every conjugated form back to its real
-//! JMdict sequence number instead of the synthetic id v1 carries.
+//! v2 JSON — a flat, named-field view of a segmentation result
 //!
 //! Two things make it cheaper than it looks:
 //! - Glosses are pulled on demand. Nothing here stores senses; they are
 //!   fetched by [`get_senses_json`] only when [`Detail::Full`] asks, so
 //!   [`Detail::Minimal`] does no gloss work at all.
-//! - The real `seq` for a conjugated form falls out of flattening its
-//!   conjugation chain — the base of the chain (`seq_via == None`) holds the
-//!   root entry's `seq_from`. Resolving the seq and building `conjugations`
-//!   are the same walk.
 //!
 //! The conjugation walk mirrors the data access of
 //! [`crate::dict::conj::conj_info_json_star_`] but accumulates a flat
@@ -35,7 +25,7 @@ use crate::dict::dao::{ConjProp, WordConjugations};
 use crate::dict::grammar::suffix::init::get_suffix_description;
 use crate::dict::kani_word::KaniWordDispatchEnum;
 use crate::dict::load::conj_rules::get_conj_description;
-use crate::dict::senses::get_senses_json;
+use crate::dict::senses::{get_first_pos, get_senses_json};
 use crate::dict::word_info::{WordInfo, WordInfoKana, WordInfoSeq, WordInfoType};
 use crate::dict::word_info_str::reading_str_seq;
 
@@ -46,9 +36,10 @@ pub(super) fn render(
     method: KaniRomanizeMethod<'_>,
     limit: usize,
     detail: Detail,
+    include_paths: bool,
 ) -> Result<String, Box<dyn Error>> {
     let result = super::segment(ctx, input, method, limit)?;
-    let document = to_v2(ctx, input, &result, method, detail)?;
+    let document = to_v2(ctx, input, &result, method, detail, include_paths)?;
     Ok(serde_json::to_string(&document)?)
 }
 
@@ -70,11 +61,11 @@ pub enum Detail {
 /// Top-level v2 result: the whole input as one flat ordered `words` array.
 ///
 /// `words`/`romanization`/`score` describe the single best segmentation. When
-/// the search kept more than one beam path (`limit > 1` and the input is
-/// genuinely ambiguous), `paths` carries every reading — `paths[0]` is the same
-/// data as the top-level best path, and later entries are the alternatives,
-/// each a full flat word list with its own score and romanization. `paths` is
-/// omitted entirely when only one reading exists.
+/// the caller opts in (`include_paths`) and the search kept more than one beam
+/// path (`limit > 1` and the input is genuinely ambiguous), `paths` carries
+/// every reading — `paths[0]` is the same data as the top-level best path, and
+/// later entries are the alternatives, each a full flat word list with its own
+/// score and romanization. `paths` is omitted entirely otherwise.
 #[derive(Debug, Clone, Serialize)]
 struct V2Document {
     text: String,
@@ -195,6 +186,7 @@ fn to_v2<P>(
     segments: &[RomanizeStarSegment<P>],
     method: KaniRomanizeMethod<'_>,
     detail: Detail,
+    include_paths: bool,
 ) -> Result<V2Document, KaniDbError> {
     let builder = V2Builder {
         ctx,
@@ -216,9 +208,10 @@ fn to_v2<P>(
     // Build the best reading once; it always supplies the top-level fields.
     let best = build_path(&builder, segments, 0)?;
 
-    // Emit `paths` only when the search kept more than one reading. The best
-    // path appears both at top level and as paths[0], so it is cloned once.
-    let paths = if n_paths > 1 {
+    // Emit `paths` only when the caller opts in (`include_paths`) and the
+    // search kept more than one reading. The best path appears both at top
+    // level and as paths[0], so it is cloned once.
+    let paths = if include_paths && n_paths > 1 {
         let mut paths = Vec::with_capacity(n_paths);
         paths.push(best.clone());
         for rank in 1..n_paths {
@@ -411,10 +404,17 @@ impl V2Builder<'_> {
             None
         };
 
-        // pos: the surface step's pos, else the first tag of the first sense.
+        // pos: the surface step's pos for a conjugated form; otherwise the
+        // first pos tag of the entry's first sense. Full already has the senses
+        // in hand, so it reuses them; Minimal has none (it skips gloss fetches)
+        // and fetches the pos alone, so every word still carries a pos.
         let pos = match &conj {
             Some(summary) => summary.pos.clone(),
-            None => senses.as_deref().and_then(first_sense_pos),
+            None => match (&senses, seq) {
+                (Some(list), _) => first_sense_pos(list),
+                (None, Some(seq)) => get_first_pos(self.ctx, seq)?,
+                (None, None) => None,
+            },
         };
 
         let conjugations = (self.detail == Detail::Full).then(|| {
@@ -755,10 +755,12 @@ fn strip_value_prefix(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    //! Logic-only tests for the v2 reshaping helpers. None touch a context or
-    //! the database, so they are safe under `cargo test`. Every expected value
-    //! is real pipeline output documented in `docs/v2-api-spec.md`.
+    //! Logic-only tests for the v2 reshaping helpers, plus one DB-backed
+    //! regression (`v2_minimal_populates_pos_for_unconjugated_words`) that
+    //! renders against the configured snapshot. Every expected value is real
+    //! pipeline output.
     use super::*;
+    use crate::core::methods::{hepburn_traditional, RomanizationMethod};
     use serde_json::json;
 
     /// A conjugation step with a form name; `pos` is irrelevant to display.
@@ -902,5 +904,44 @@ mod tests {
     fn single_seq_only_resolves_a_single_sequence() {
         assert_eq!(single_seq(&Some(WordInfoSeq::Single(1358280))), Some(1358280));
         assert_eq!(single_seq(&None), None);
+    }
+
+    fn ctx() -> std::sync::Arc<KaniranContext> {
+        KaniranContext::from_env()
+            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
+    }
+
+    fn method() -> KaniRomanizeMethod<'static> {
+        KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(hepburn_traditional()))
+    }
+
+    /// The `pos` of every word in a rendered document, in order.
+    fn word_pos(document: &str) -> Vec<Option<String>> {
+        let value: Value = serde_json::from_str(document).unwrap();
+        value["words"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|word| word["pos"].as_str().map(str::to_owned))
+            .collect()
+    }
+
+    #[test]
+    fn v2_minimal_populates_pos_for_unconjugated_words() {
+        // Regression: v2-minimal left `pos` null on every unconjugated word,
+        // because it derives pos from senses and Minimal skips gloss fetches.
+        // 食べたい = 食べ (conjugated — pos from the conjugation step) + たい
+        // (a suffix, unconjugated — pos comes from its first sense). Minimal
+        // now fetches the pos alone, so both words carry one and it matches Full.
+        let ctx = ctx();
+        let minimal = render(&ctx, "食べたい", method(), 1, Detail::Minimal, false).unwrap();
+        let full = render(&ctx, "食べたい", method(), 1, Detail::Full, false).unwrap();
+
+        let minimal_pos = word_pos(&minimal);
+        assert_eq!(
+            minimal_pos,
+            vec![Some("v1".to_owned()), Some("aux-adj".to_owned())],
+        );
+        assert_eq!(minimal_pos, word_pos(&full));
     }
 }

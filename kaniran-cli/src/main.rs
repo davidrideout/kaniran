@@ -70,12 +70,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // (join " " free-args)
     let input = join(" ", &options.input);
     // The pipeline runs once inside `render`; the format picks the rendering.
+    // `include_paths = true` keeps the CLI's all-readings v2 output (the HTTP
+    // API defaults it off).
     let output = render(
         &ctx,
         &input,
         method,
         options.resolved_format(),
         options.limit,
+        true,
     )?;
     print!("{output}");
     // (terpri) (finish-output)

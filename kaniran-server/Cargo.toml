@@ -1,0 +1,29 @@
+[package]
+name = "kaniran-server"
+description = "Axum HTTP server exposing kaniran segmentation/romanization over the rkyv dictionary snapshot."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+kaniran-core = { path = "../kaniran-core" }
+
+axum = "0.8"
+tokio = { workspace = true, features = ["net", "signal"] }
+tower-http = { version = "0.6", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+envconfig = "0.11"
+anyhow = "1"
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+mimalloc = { workspace = true }
+
+# OpenAPI spec generation + bundled Swagger UI. `utoipa` is proc-macro
+# driven and shares the existing syn/serde toolchain; `utoipa-swagger-ui`
+# embeds the UI assets into the binary.
+utoipa = { version = "5", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
