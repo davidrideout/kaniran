@@ -108,7 +108,6 @@ async fn run_segment(state: AppState, params: SegmentParams) -> Result<Response,
 
     // render() is sync and CPU-bound; keep it off the async workers. Its
     // error is `Box<dyn Error>` (not `Send`), so flatten it to a String
-    // inside the closure before it crosses the task boundary.
     let rendered = tokio::task::spawn_blocking(move || {
         let method = KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(
             hepburn_traditional(),

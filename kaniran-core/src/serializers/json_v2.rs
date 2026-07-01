@@ -318,7 +318,11 @@ impl V2Builder<'_> {
         out: &mut Vec<V2Word>,
     ) -> Result<(), KaniDbError> {
         let score = word_info.score.unwrap_or(0);
-        if word_info.components.is_empty() {
+        // An alternative wrapper carries components but is one word at one span,
+        // not a compound; route it here so `build_word` promotes the best entry
+        // and fills `alternatives`, instead of exploding the ties as members
+        // with fabricated advancing spans.
+        if word_info.components.is_empty() || word_info.alternative {
             let placement = WordPlacement {
                 start: base + word_info.start.unwrap_or(0),
                 end: base + word_info.end.unwrap_or(0),
@@ -906,11 +910,6 @@ mod tests {
         assert_eq!(single_seq(&None), None);
     }
 
-    fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
-    }
-
     fn method() -> KaniRomanizeMethod<'static> {
         KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(hepburn_traditional()))
     }
@@ -933,7 +932,7 @@ mod tests {
         // 食べたい = 食べ (conjugated — pos from the conjugation step) + たい
         // (a suffix, unconjugated — pos comes from its first sense). Minimal
         // now fetches the pos alone, so both words carry one and it matches Full.
-        let ctx = ctx();
+        let ctx = crate::test_support::shared_ctx();
         let minimal = render(&ctx, "食べたい", method(), 1, Detail::Minimal, false).unwrap();
         let full = render(&ctx, "食べたい", method(), 1, Detail::Full, false).unwrap();
 
@@ -943,5 +942,64 @@ mod tests {
             vec![Some("v1".to_owned()), Some("aux-adj".to_owned())],
         );
         assert_eq!(minimal_pos, word_pos(&full));
+    }
+
+    /// The surface text of every word in a rendered document, in order.
+    fn word_texts(value: &Value) -> Vec<String> {
+        value["words"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|word| word["text"].as_str().unwrap().to_owned())
+            .collect()
+    }
+
+    #[test]
+    fn v2_tied_alternatives_collapse_into_one_word() {
+        // Regression: a span with several tied dictionary entries (an
+        // `alternative` wrapper) was exploded as a bogus compound — the same
+        // surface repeated as separate words with fabricated, overlapping spans
+        // and a shared compound_id. It must collapse into one word whose ties
+        // live in `alternatives`.
+        let ctx = crate::test_support::shared_ctx();
+
+        // Kana homophones: がくせい = 学生 (1206900) and 学制 (1761180). Before
+        // the fix, がくせい appeared twice; the second ran to char 12 in a
+        // 10-char input.
+        let document = render(&ctx, "わたしはがくせいです", method(), 1, Detail::Full, false).unwrap();
+        let value: Value = serde_json::from_str(&document).unwrap();
+        assert_eq!(word_texts(&value), ["わたし", "は", "がくせい", "です"]);
+
+        let gakusei = &value["words"][2];
+        assert_eq!(gakusei["seq"].as_i64(), Some(1206900));
+        assert_eq!(gakusei["start"].as_u64(), Some(4));
+        assert_eq!(gakusei["end"].as_u64(), Some(8));
+        assert!(gakusei["compound_id"].is_null());
+        let alts = gakusei["alternatives"].as_array().unwrap();
+        assert_eq!(alts.len(), 1);
+        assert_eq!(alts[0]["seq"].as_i64(), Some(1761180));
+
+        // No span may run past the input — catches the old advancing offsets.
+        let input_len = value["text"].as_str().unwrap().chars().count() as u64;
+        for word in value["words"].as_array().unwrap() {
+            assert!(word["end"].as_u64().unwrap() <= input_len);
+        }
+
+        // v2-minimal collapses the tie too (it just omits `alternatives`).
+        let minimal = render(&ctx, "わたしはがくせいです", method(), 1, Detail::Minimal, false).unwrap();
+        let minimal: Value = serde_json::from_str(&minimal).unwrap();
+        assert_eq!(word_texts(&minimal), ["わたし", "は", "がくせい", "です"]);
+
+        // Not kana-specific: 一日 is a kanji homograph — いちにち (1576260) /
+        // ついたち (2225040) — and collapses the same way.
+        let document = render(&ctx, "一日", method(), 1, Detail::Full, false).unwrap();
+        let value: Value = serde_json::from_str(&document).unwrap();
+        let words = value["words"].as_array().unwrap();
+        assert_eq!(words.len(), 1);
+        assert_eq!(words[0]["seq"].as_i64(), Some(1576260));
+        assert!(words[0]["compound_id"].is_null());
+        let alts = words[0]["alternatives"].as_array().unwrap();
+        assert_eq!(alts.len(), 1);
+        assert_eq!(alts[0]["seq"].as_i64(), Some(2225040));
     }
 }

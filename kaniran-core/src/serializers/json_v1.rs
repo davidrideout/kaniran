@@ -70,18 +70,13 @@ mod tests {
     use crate::core::methods::{hepburn_traditional, RomanizationMethod};
     use crate::core::romanize::romanize_star_;
 
-    fn ctx() -> std::sync::Arc<KaniranContext> {
-        KaniranContext::from_env()
-            .expect("KaniranContext::from_env — DATABASE_URL / kaniran.toml required")
-    }
-
     fn method() -> KaniRomanizeMethod<'static> {
         KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(hepburn_traditional()))
     }
 
     #[test]
     fn full_json_matches_cli() {
-        let ctx = ctx();
+        let ctx = crate::test_support::shared_ctx();
         // (input, limit, expected jsown:to-json output)
         let cases: &[(&str, usize, &str)] = &[
             // single word split, one alternative.
