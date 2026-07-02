@@ -51,14 +51,22 @@ curl -X POST http://127.0.0.1:3000/segment \
 | Parameter | Type | Default | Meaning |
 |---|---|---|---|
 | `text` | string | *(required)* | Japanese text to process. Empty/whitespace → `400` |
-| `format` | string | `v2` | One of `romanize`, `romanize-info`, `v1`, `v2`, `v2-minimal`; aliases `romaji`, `info`, `full`, `minimal`. Unknown → `400` |
+| `format` | string | `v2` | One of `romanize`, `romanize-info`, `v1`, `v2`; aliases `romaji`, `info`, `full`. Unknown → `400` |
 | `limit` | integer | server default (`5`) | Segmentation beam width; affects the JSON formats only |
-| `include_paths` | boolean | `false` | Add the `paths` array (every kept reading) to `v2` / `v2-minimal` when the input is ambiguous and `limit > 1` |
+| `include_paths` | boolean | `false` | Add the `paths` array (every kept reading) to `v2` |
 | `include_entries` | boolean | `true` | Include the `entries` table in `v2`; `false` keeps tokens at full detail but drops the dictionary table |
+| `include_furigana` | boolean | `true` | Include `furigana` ruby segments on `v2` tokens and entry kanji forms |
 
 `Content-Type` of the response follows the format: `application/json` for
-`v1` / `v2` / `v2-minimal`, `text/plain; charset=utf-8` for `romanize` /
-`romanize-info`.
+`v1` / `v2`, `text/plain; charset=utf-8` for `romanize` / `romanize-info`.
+
+**`include_paths` and `limit` work together.** `limit` sets how many
+readings the search *keeps*; `include_paths` makes the kept readings
+*visible* as the `paths` array. `paths` renders only when both hold —
+`include_paths=true` and `limit > 1` — and the input is genuinely
+ambiguous. Raising `limit` alone changes nothing visible (the beam runs
+wider but only the winner is rendered), and same-span dictionary ties
+(`alternatives` on a token) appear at any `limit` with no flags.
 
 ### `format=romanize` — plain romaji
 
@@ -97,9 +105,8 @@ $ curl '…/segment?text=橋&format=v1&limit=1'
 
 The structured format for new consumers: flat `tokens` (verbatim input
 slices, in order) referencing a dictionary `entries` table by JMdict sequence
-number. Specified field by field in
-[`v2-api-spec-pt2.md`](./v2-api-spec-pt2.md). Absent fields mean
-null/empty/false.
+number. Field-level reference in [`output_formats.md`](./output_formats.md).
+Absent fields mean null/empty/false.
 
 `GET /segment?text=食べたい&format=v2&limit=1` (pretty-printed):
 
@@ -262,57 +269,6 @@ null/empty/false.
 }
 ```
 
-### `format=v2-minimal` — tokens only
-
-`v2` without the `entries` table and without `furigana`; token-local data
-(conjugation analyses, `suffix`, `counter`, `compound`) stays.
-
-`GET /segment?text=食べたい&format=v2-minimal&limit=1` (pretty-printed):
-
-```json
-{
-  "text": "食べたい",
-  "romanization": "tabetai",
-  "score": 378,
-  "tokens": [
-    {
-      "text": "食べ",
-      "reading": "たべ",
-      "romanization": "tabe",
-      "entry": 1358280,
-      "score": 378,
-      "conjugation": [
-        {
-          "entry": 1358280,
-          "steps": [
-            {
-              "form": "Continuative (~i)",
-              "pos": "v1"
-            }
-          ],
-          "base_form": "食べる",
-          "base_reading": "たべる",
-          "description": "Continuative (~i)"
-        }
-      ],
-      "compound": 1
-    },
-    {
-      "text": "たい",
-      "reading": "たい",
-      "romanization": "tai",
-      "entry": 2017560,
-      "score": 378,
-      "compound": 1,
-      "suffix": {
-        "class": "tai",
-        "description": "want to... / would like to..."
-      }
-    }
-  ]
-}
-```
-
 ## Errors
 
 JSON body `{"error": "<message>"}` with the status code:
@@ -327,7 +283,7 @@ JSON body `{"error": "<message>"}` with the status code:
 $ curl '…/segment?text='
 {"error":"`text` must not be empty"}                                        # 400
 $ curl '…/segment?text=あ&format=v9'
-{"error":"unknown format `v9` (expected: romanize, romanize-info, v1, v2, v2-minimal)"}  # 400
+{"error":"unknown format `v9` (expected: romanize, romanize-info, v1, v2)"}  # 400
 ```
 
 ## `/docs` — interactive documentation

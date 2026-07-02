@@ -1,6 +1,6 @@
 //! Logic tests for the v2 reshaping helpers, plus DB-backed tests that
 //! render real sentences against the configured backend and assert the
-//! tokens + entries contract (`docs/v2-api-spec-pt2.md`). Expected values
+//! tokens + entries contract (`docs/output_formats.md`). Expected values
 //! are real pipeline output / ichiran_latest rows.
 
 use super::*;
@@ -102,10 +102,14 @@ fn method() -> KaniRomanizeMethod<'static> {
     KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(hepburn_traditional()))
 }
 
-fn render_value(input: &str, detail: Detail) -> Value {
+fn render_value_with(input: &str, options: V2Options) -> Value {
     let ctx = crate::test_support::shared_ctx();
-    let document = render(&ctx, input, method(), 1, detail, false, true).unwrap();
+    let document = render(&ctx, input, method(), 1, options).unwrap();
     serde_json::from_str(&document).unwrap()
+}
+
+fn render_value(input: &str) -> Value {
+    render_value_with(input, V2Options::default())
 }
 
 fn token_texts(value: &Value) -> Vec<String> {
@@ -148,7 +152,7 @@ fn assert_entry_integrity(value: &Value) {
 fn verbatim_tokens_reconstruct_the_input() {
     // 、 and 。 normalize to ", " / ". " in the romanization, but token text
     // must quote the input; concatenating tokens[].text reproduces it exactly.
-    let value = render_value("はい、そうです。", Detail::Full);
+    let value = render_value("はい、そうです。");
     assert_eq!(token_texts(&value).concat(), "はい、そうです。");
 
     let tokens = value["tokens"].as_array().unwrap();
@@ -164,7 +168,7 @@ fn verbatim_tokens_reconstruct_the_input() {
 
     // Full-width digits: dictionary matching runs on the normalized "10本",
     // the token quotes the input, and the counter carries the bare value.
-    let value = render_value("１０本ください。", Detail::Full);
+    let value = render_value("１０本ください。");
     assert_eq!(token_texts(&value).concat(), "１０本ください。");
     let counter_token = &value["tokens"][0];
     assert_eq!(counter_token["text"], "１０本");
@@ -174,7 +178,7 @@ fn verbatim_tokens_reconstruct_the_input() {
 #[test]
 fn compound_members_share_an_id_and_carry_suffix_and_analysis() {
     // 食べている = 食べて + いる, one suffix compound.
-    let value = render_value("食べている", Detail::Full);
+    let value = render_value("食べている");
     let tokens = value["tokens"].as_array().unwrap();
     assert_eq!(token_texts(&value), ["食べて", "いる"]);
     assert_eq!(tokens[0]["compound"], 1);
@@ -214,7 +218,7 @@ fn compound_members_share_an_id_and_carry_suffix_and_analysis() {
 
 #[test]
 fn entries_carry_forms_commonness_senses_and_headword_furigana() {
-    let value = render_value("食べている", Detail::Full);
+    let value = render_value("食べている");
     let entries = value["entries"].as_object().unwrap();
     assert_eq!(
         entries.keys().collect::<Vec<_>>(),
@@ -276,7 +280,7 @@ fn reading_restricted_senses_expose_their_restrictions() {
     // entries are shared per entry, so the senses say so instead of being
     // pre-filtered (ichiran_latest sense_prop stagr rows). Bare 頭 resolves
     // to the とう counter entry (1450690), so give it a clause.
-    let value = render_value("頭を洗う", Detail::Full);
+    let value = render_value("頭を洗う");
     let token = &value["tokens"][0];
     assert_eq!(token["entry"], 1582310);
     assert_eq!(token["reading"], "あたま");
@@ -301,7 +305,7 @@ fn tied_alternatives_are_slim_refs_with_their_own_scores() {
     // がくせい ties 学生 (1206900) and 学制 (1761180) at one span. The token
     // holds the winner; the tie is an entry reference with its own score —
     // not the winner's (the v1 scores are 240 vs 176).
-    let value = render_value("わたしはがくせいです", Detail::Full);
+    let value = render_value("わたしはがくせいです");
     assert_eq!(token_texts(&value), ["わたし", "は", "がくせい", "です"]);
 
     let gakusei = &value["tokens"][2];
@@ -317,7 +321,7 @@ fn tied_alternatives_are_slim_refs_with_their_own_scores() {
 
     // Kanji homograph ties collapse the same way: 一日 = いちにち (1576260)
     // with ついたち (2225040) as the alternative.
-    let value = render_value("一日", Detail::Full);
+    let value = render_value("一日");
     let tokens = value["tokens"].as_array().unwrap();
     assert_eq!(tokens.len(), 1);
     assert_eq!(tokens[0]["entry"], 1576260);
@@ -329,28 +333,37 @@ fn tied_alternatives_are_slim_refs_with_their_own_scores() {
 }
 
 #[test]
-fn minimal_detail_omits_entries_and_furigana_but_keeps_analyses() {
-    let value = render_value("食べている", Detail::Minimal);
-    assert!(value.get("entries").is_none());
-
-    let tokens = value["tokens"].as_array().unwrap();
-    assert!(tokens[0].get("furigana").is_none());
-    // Token-local data stays: analyses with the dictionary form, and the
-    // suffix annotation.
-    assert_eq!(tokens[0]["conjugation"][0]["base_form"], "食べる");
-    assert_eq!(tokens[1]["suffix"]["class"], "iru");
-}
-
-#[test]
 fn include_entries_false_drops_only_the_entries_table() {
-    // Unlike Minimal, the tokens stay at full detail — furigana included.
-    let ctx = crate::test_support::shared_ctx();
-    let document =
-        render(&ctx, "食べている", method(), 1, Detail::Full, false, false).unwrap();
-    let value: Value = serde_json::from_str(&document).unwrap();
-
+    // The tokens stay at full detail — furigana included.
+    let value = render_value_with(
+        "食べている",
+        V2Options {
+            include_entries: false,
+            ..V2Options::default()
+        },
+    );
     assert!(value.get("entries").is_none());
     let tokens = value["tokens"].as_array().unwrap();
     assert_eq!(tokens[0]["furigana"][0]["text"], "食");
     assert_eq!(tokens[0]["conjugation"][0]["base_form"], "食べる");
+}
+
+#[test]
+fn include_furigana_false_drops_ruby_everywhere_else_stays() {
+    let value = render_value_with(
+        "食べている",
+        V2Options {
+            include_furigana: false,
+            ..V2Options::default()
+        },
+    );
+    let tokens = value["tokens"].as_array().unwrap();
+    assert!(tokens[0].get("furigana").is_none());
+    // Analyses, suffix, and the entries table are untouched — including
+    // kanji forms, just without their ruby.
+    assert_eq!(tokens[0]["conjugation"][0]["base_form"], "食べる");
+    assert_eq!(tokens[1]["suffix"]["class"], "iru");
+    let taberu_kanji = &value["entries"]["1358280"]["kanji"][0];
+    assert_eq!(taberu_kanji["text"], "食べる");
+    assert!(taberu_kanji.get("furigana").is_none());
 }

@@ -12,7 +12,7 @@ use axum::Json;
 
 use kaniran_core::core::kani_romanize_method::KaniRomanizeMethod;
 use kaniran_core::core::methods::{hepburn_traditional, RomanizationMethod};
-use kaniran_core::serializers::{render, Format};
+use kaniran_core::serializers::{render, Format, V2Options};
 use serde::Deserialize;
 use utoipa::{IntoParams, ToSchema};
 
@@ -27,8 +27,8 @@ pub struct SegmentParams {
     #[schema(example = "一覧は最高だぞ")]
     #[param(example = "一覧は最高だぞ")]
     pub text: String,
-    /// Output format. One of `romanize`, `romanize-info`, `v1`, `v2`,
-    /// `v2-minimal`; defaults to `v2` when omitted.
+    /// Output format. One of `romanize`, `romanize-info`, `v1`, `v2`;
+    /// defaults to `v2` when omitted.
     #[serde(default)]
     #[schema(example = "v2")]
     #[param(example = "v2")]
@@ -38,19 +38,26 @@ pub struct SegmentParams {
     #[schema(example = 5)]
     #[param(example = 5)]
     pub limit: Option<usize>,
-    /// Include the `paths` array — every kept segmentation reading — in `v2` /
-    /// `v2-minimal` output. Defaults to `false`; has no effect on other formats.
+    /// Include the `paths` array — every kept segmentation reading — in `v2`
+    /// output. Defaults to `false`. `paths` renders only when `limit > 1` as
+    /// well (the beam kept several readings); on its own this flag shows
+    /// nothing.
     #[serde(default)]
     #[schema(example = false)]
     #[param(example = false)]
     pub include_paths: Option<bool>,
     /// Include the `entries` table (referenced dictionary entries) in `v2`
-    /// output. Defaults to `true`; has no effect on other formats
-    /// (`v2-minimal` never renders entries).
+    /// output. Defaults to `true`.
     #[serde(default)]
     #[schema(example = true)]
     #[param(example = true)]
     pub include_entries: Option<bool>,
+    /// Include `furigana` ruby segments on `v2` tokens and entry kanji
+    /// forms. Defaults to `true`.
+    #[serde(default)]
+    #[schema(example = true)]
+    #[param(example = true)]
+    pub include_furigana: Option<bool>,
 }
 
 /// Liveness probe.
@@ -71,7 +78,7 @@ pub async fn health() -> &'static str {
     tag = "segment",
     params(SegmentParams),
     responses(
-        (status = 200, description = "Rendered segmentation: JSON for v1/v2/v2-minimal, plain text for romanize/romanize-info"),
+        (status = 200, description = "Rendered segmentation: JSON for v1/v2, plain text for romanize/romanize-info"),
         (status = 400, description = "Empty text or unknown format", body = ErrorBody),
     )
 )]
@@ -89,7 +96,7 @@ pub async fn segment_get(
     tag = "segment",
     request_body = SegmentParams,
     responses(
-        (status = 200, description = "Rendered segmentation: JSON for v1/v2/v2-minimal, plain text for romanize/romanize-info"),
+        (status = 200, description = "Rendered segmentation: JSON for v1/v2, plain text for romanize/romanize-info"),
         (status = 400, description = "Empty text or unknown format", body = ErrorBody),
         (status = 422, description = "Malformed JSON body"),
     )
@@ -109,8 +116,11 @@ async fn run_segment(state: AppState, params: SegmentParams) -> Result<Response,
     }
     let format = parse_format(params.format.as_deref())?;
     let limit = params.limit.unwrap_or(state.default_limit);
-    let include_paths = params.include_paths.unwrap_or(false);
-    let include_entries = params.include_entries.unwrap_or(true);
+    let options = V2Options {
+        include_paths: params.include_paths.unwrap_or(false),
+        include_entries: params.include_entries.unwrap_or(true),
+        include_furigana: params.include_furigana.unwrap_or(true),
+    };
     let ctx = state.ctx.clone();
     let text = params.text;
 
@@ -120,8 +130,7 @@ async fn run_segment(state: AppState, params: SegmentParams) -> Result<Response,
         let method = KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(
             hepburn_traditional(),
         ));
-        render(&ctx, &text, method, format, limit, include_paths, include_entries)
-            .map_err(|err| err.to_string())
+        render(&ctx, &text, method, format, limit, options).map_err(|err| err.to_string())
     })
     .await
     .map_err(|join_err| ApiError::Internal(join_err.to_string()))?
@@ -145,9 +154,8 @@ fn parse_format(raw: Option<&str>) -> Result<Format, ApiError> {
         "romanize-info" | "info" => Ok(Format::RomanizeInfo),
         "v1" | "full" => Ok(Format::V1),
         "v2" => Ok(Format::V2),
-        "v2-minimal" | "minimal" => Ok(Format::V2Minimal),
         other => Err(ApiError::BadRequest(format!(
-            "unknown format `{other}` (expected: romanize, romanize-info, v1, v2, v2-minimal)"
+            "unknown format `{other}` (expected: romanize, romanize-info, v1, v2)"
         ))),
     }
 }
@@ -155,7 +163,7 @@ fn parse_format(raw: Option<&str>) -> Result<Format, ApiError> {
 /// Whether a format renders JSON (vs. plain text), used to set the
 /// response content type.
 fn is_json(format: Format) -> bool {
-    matches!(format, Format::V1 | Format::V2 | Format::V2Minimal)
+    matches!(format, Format::V1 | Format::V2)
 }
 
 #[cfg(test)]
@@ -172,13 +180,16 @@ mod tests {
     fn parse_format_is_case_and_alias_tolerant() {
         assert!(matches!(parse_format(Some("V1")), Ok(Format::V1)));
         assert!(matches!(parse_format(Some("full")), Ok(Format::V1)));
-        assert!(matches!(parse_format(Some("Minimal")), Ok(Format::V2Minimal)));
         assert!(matches!(parse_format(Some("romaji")), Ok(Format::Romanize)));
     }
 
     #[test]
-    fn parse_format_rejects_unknown() {
+    fn parse_format_rejects_unknown_including_dropped_v2_minimal() {
         assert!(matches!(parse_format(Some("v3")), Err(ApiError::BadRequest(_))));
+        assert!(matches!(
+            parse_format(Some("v2-minimal")),
+            Err(ApiError::BadRequest(_))
+        ));
     }
 
     #[test]

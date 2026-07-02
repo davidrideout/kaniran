@@ -18,7 +18,7 @@ use crate::conn::KaniDbError;
 use crate::core::kani_romanize_method::KaniRomanizeMethod;
 use crate::core::romanize::{romanize_star_, RomanizeStarSegment};
 
-use json_v2::Detail;
+pub use json_v2::V2Options;
 
 /// One output flavor, as selected by `--format` (or the legacy `-i` / `-f`).
 ///
@@ -34,18 +34,16 @@ pub enum Format {
     RomanizeInfo,
     /// ichiran-compatible nested JSON (legacy `-f`).
     V1,
-    /// Flat v2 JSON: every field, real JMdict sequence numbers.
+    /// Tokens + entries JSON: flat tokens referencing a dictionary-entries
+    /// table by real JMdict sequence number.
     V2,
-    /// Flat v2 JSON, segmentation skeleton only — no glosses.
-    V2Minimal,
 }
 
 /// Render `input` in the chosen `format`, returning the string to print.
 ///
 /// `limit` is the segmentation beam width; it only affects the JSON formats.
-/// `include_paths` toggles the v2 `paths` array (every kept reading);
-/// `include_entries` toggles the v2 `entries` table. Both only affect
-/// `v2` / `v2-minimal` (`v2-minimal` never renders entries).
+/// `options` toggles the optional v2 sections (`paths`, `entries`,
+/// `furigana`) and is ignored by the other formats.
 ///
 /// # Errors
 ///
@@ -56,25 +54,13 @@ pub fn render(
     method: KaniRomanizeMethod<'_>,
     format: Format,
     limit: usize,
-    include_paths: bool,
-    include_entries: bool,
+    options: V2Options,
 ) -> Result<String, Box<dyn Error>> {
     match format {
         Format::Romanize => romanize::render(ctx, input, method),
         Format::RomanizeInfo => romanize::render_with_info(ctx, input, method),
         Format::V1 => json_v1::render(ctx, input, method, limit),
-        Format::V2 => json_v2::render(
-            ctx,
-            input,
-            method,
-            limit,
-            Detail::Full,
-            include_paths,
-            include_entries,
-        ),
-        Format::V2Minimal => {
-            json_v2::render(ctx, input, method, limit, Detail::Minimal, include_paths, false)
-        }
+        Format::V2 => json_v2::render(ctx, input, method, limit, options),
     }
 }
 

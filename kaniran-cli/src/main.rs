@@ -8,7 +8,7 @@ use std::io::Write;
 
 use clap::Parser;
 
-use kaniran_core::serializers::{render, Format};
+use kaniran_core::serializers::{render, Format, V2Options};
 
 // mimalloc over the system allocator: measured 1.57x end-to-end on the
 // allocation-bound segmentation pipeline (perf pass 2026-06-10).
@@ -32,7 +32,7 @@ use kaniran_core::core::methods::RomanizationMethod;
         Examples:\n  \
         kaniran-cli \"一覧は最高だぞ\"\n  \
         kaniran-cli --format v2 \"食べたい\"\n  \
-        kaniran-cli --format v2-minimal -l 5 \"食べたくなかった\""
+        kaniran-cli --format v2 -l 5 \"食べたくなかった\""
 )]
 struct Cli {
     /// full split info as JSON (alias for --format v1)
@@ -71,15 +71,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = join(" ", &options.input);
     // The pipeline runs once inside `render`; the format picks the rendering.
     // `include_paths = true` keeps the CLI's all-readings v2 output (the HTTP
-    // API defaults it off); `include_entries = true` matches the API default.
+    // API defaults it off); the other toggles match the API defaults.
     let output = render(
         &ctx,
         &input,
         method,
         options.resolved_format(),
         options.limit,
-        true,
-        true,
+        V2Options {
+            include_paths: true,
+            ..V2Options::default()
+        },
     )?;
     print!("{output}");
     // (terpri) (finish-output)

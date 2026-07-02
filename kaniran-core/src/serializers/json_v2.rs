@@ -37,32 +37,41 @@ use crate::dict::word_info::{WordInfo, WordInfoKana, WordInfoSeq};
 use crate::dict::word_info_str::reading_str_seq;
 use crate::kanji::matching::{match_readings, MatchedSegment};
 
-/// Render `input` as v2 tokens + entries JSON at the given `detail` level.
-/// `include_entries` drops the `entries` table without touching the tokens
-/// (unlike [`Detail::Minimal`], which also drops furigana).
+/// Render `input` as v2 tokens + entries JSON, shaped by `options`.
 pub(super) fn render(
     ctx: &KaniranContext,
     input: &str,
     method: KaniRomanizeMethod<'_>,
     limit: usize,
-    detail: Detail,
-    include_paths: bool,
-    include_entries: bool,
+    options: V2Options,
 ) -> Result<String, Box<dyn Error>> {
     let result = super::segment(ctx, input, method, limit)?;
-    let document = to_v2(ctx, input, &result, method, detail, include_paths, include_entries)?;
+    let document = to_v2(ctx, input, &result, method, options)?;
     Ok(serde_json::to_string(&document)?)
 }
 
-/// How much of the document to render.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Detail {
-    /// Tokens only: no `entries` table and no `furigana` — the segmentation
-    /// skeleton without dictionary reads beyond scoring.
-    Minimal,
-    /// Everything: the `entries` table (forms, senses) plus furigana
-    /// alignment on tokens and kanji forms.
-    Full,
+/// The v2 document toggles. Each drops one optional section without touching
+/// the rest; `Default` matches the HTTP API defaults.
+#[derive(Debug, Clone, Copy)]
+pub struct V2Options {
+    /// Render `paths` (every kept beam reading). Even when set, `paths`
+    /// appears only if the search kept more than one reading — `limit > 1`
+    /// and a genuinely ambiguous input.
+    pub include_paths: bool,
+    /// Render the `entries` table.
+    pub include_entries: bool,
+    /// Run the ruby alignment: `furigana` on tokens and on entry kanji forms.
+    pub include_furigana: bool,
+}
+
+impl Default for V2Options {
+    fn default() -> Self {
+        Self {
+            include_paths: false,
+            include_entries: true,
+            include_furigana: true,
+        }
+    }
 }
 
 /// Top-level v2 result: the segmentation as one flat ordered `tokens` array,
@@ -248,9 +257,7 @@ fn to_v2<P>(
     text: &str,
     segments: &[RomanizeStarSegment<P>],
     method: KaniRomanizeMethod<'_>,
-    detail: Detail,
-    include_paths: bool,
-    include_entries: bool,
+    options: V2Options,
 ) -> Result<V2Document, KaniDbError> {
     // Context choice mirrors `romanize_star_`'s own normalize call
     // (core/romanize.rs) — keep in sync, or spans desync from segments.
@@ -264,7 +271,7 @@ fn to_v2<P>(
     let builder = V2Builder {
         ctx,
         method,
-        detail,
+        include_furigana: options.include_furigana,
         spans: &spans,
         original_chars: &original_chars,
     };
@@ -283,7 +290,7 @@ fn to_v2<P>(
 
     let best = build_path(&builder, segments, 0, &mut entry_seqs)?;
 
-    let paths = if include_paths && n_paths > 1 {
+    let paths = if options.include_paths && n_paths > 1 {
         let mut paths = Vec::with_capacity(n_paths);
         paths.push(best.clone());
         for rank in 1..n_paths {
@@ -294,9 +301,10 @@ fn to_v2<P>(
         None
     };
 
-    let entries = match detail {
-        Detail::Full if include_entries => Some(build_entries(ctx, &entry_seqs)?),
-        Detail::Full | Detail::Minimal => None,
+    let entries = if options.include_entries {
+        Some(build_entries(ctx, &entry_seqs, options.include_furigana)?)
+    } else {
+        None
     };
 
     Ok(V2Document {
@@ -376,7 +384,7 @@ fn build_path<P>(
 struct V2Builder<'a> {
     ctx: &'a KaniranContext,
     method: KaniRomanizeMethod<'a>,
-    detail: Detail,
+    include_furigana: bool,
     spans: &'a KaniNormalizedSpans,
     original_chars: &'a [char],
 }
@@ -506,7 +514,7 @@ impl V2Builder<'_> {
         // fallback paths) skip too — with no dictionary reading, the aligner
         // would only "match" the kanji against itself as an irregular.
         let furigana =
-            if self.detail == Detail::Full && entry.is_some() && text == word_info.text {
+            if self.include_furigana && entry.is_some() && text == word_info.text {
                 self.align_furigana(&word_info.text, &reading)?
             } else {
                 Vec::new()
@@ -690,10 +698,12 @@ fn is_kanji_char(c: char) -> bool {
 const ENTRY_SENSE_TAGS: &[&str] = &["pos", "s_inf", "stagk", "stagr", "field", "misc", "dial"];
 
 /// Resolve every referenced entry id into a `V2Entry`: forms with
-/// commonness, structured senses, and headword furigana on kanji forms.
+/// commonness, structured senses, and (with `include_furigana`) headword
+/// furigana on kanji forms.
 fn build_entries(
     ctx: &KaniranContext,
     entry_seqs: &BTreeSet<i32>,
+    include_furigana: bool,
 ) -> Result<BTreeMap<i32, V2Entry>, KaniDbError> {
     let seq_list: Vec<i32> = entry_seqs.iter().copied().collect();
 
@@ -730,7 +740,10 @@ fn build_entries(
 
         let mut kanji: Vec<V2Form> = Vec::with_capacity(entry_kanji.len());
         for row in entry_kanji {
-            let furigana = match reading_for_kanji_form(&row.text, &entry_kana, &restricted) {
+            let paired_reading = include_furigana
+                .then(|| reading_for_kanji_form(&row.text, &entry_kana, &restricted))
+                .flatten();
+            let furigana = match paired_reading {
                 Some(reading) => {
                     match match_readings(ctx, &row.text, reading)? {
                         Some(segments) => {
