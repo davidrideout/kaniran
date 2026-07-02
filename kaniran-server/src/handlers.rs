@@ -44,6 +44,13 @@ pub struct SegmentParams {
     #[schema(example = false)]
     #[param(example = false)]
     pub include_paths: Option<bool>,
+    /// Include the `entries` table (referenced dictionary entries) in `v2`
+    /// output. Defaults to `true`; has no effect on other formats
+    /// (`v2-minimal` never renders entries).
+    #[serde(default)]
+    #[schema(example = true)]
+    #[param(example = true)]
+    pub include_entries: Option<bool>,
 }
 
 /// Liveness probe.
@@ -103,6 +110,7 @@ async fn run_segment(state: AppState, params: SegmentParams) -> Result<Response,
     let format = parse_format(params.format.as_deref())?;
     let limit = params.limit.unwrap_or(state.default_limit);
     let include_paths = params.include_paths.unwrap_or(false);
+    let include_entries = params.include_entries.unwrap_or(true);
     let ctx = state.ctx.clone();
     let text = params.text;
 
@@ -112,7 +120,8 @@ async fn run_segment(state: AppState, params: SegmentParams) -> Result<Response,
         let method = KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(
             hepburn_traditional(),
         ));
-        render(&ctx, &text, method, format, limit, include_paths).map_err(|err| err.to_string())
+        render(&ctx, &text, method, format, limit, include_paths, include_entries)
+            .map_err(|err| err.to_string())
     })
     .await
     .map_err(|join_err| ApiError::Internal(join_err.to_string()))?

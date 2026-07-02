@@ -1,35 +1,45 @@
-//! v2 JSON — a flat, named-field view of a segmentation result
+//! v2 JSON — the tokens + entries view of a segmentation result
+//! (`docs/v2-api-spec-pt2.md`).
 //!
-//! Two things make it cheaper than it looks:
-//! - Glosses are pulled on demand. Nothing here stores senses; they are
-//!   fetched by [`get_senses_json`] only when [`Detail::Full`] asks, so
-//!   [`Detail::Minimal`] does no gloss work at all.
+//! Two flat collections joined by JMdict sequence number: `tokens` say where
+//! things are in the text, `entries` say what the dictionary knows about
+//! them. Dictionary facts (forms, senses) exist once, in the entry; tokens,
+//! conjugation analyses, and tied alternatives all reference entries by id.
+//!
+//! Token `text` is the verbatim input slice: segmentation runs on the
+//! normalized stream, and [`kani_normalize_spanned`] maps each token's
+//! normalized span back to the input chars it came from, so concatenating
+//! `tokens[].text` reproduces the input exactly.
 //!
 //! The conjugation walk mirrors the data access of
 //! [`crate::dict::conj::conj_info_json_star_`] but accumulates a flat
-//! `steps` list instead of nesting `via` chains. Field-level parity with the
-//! spec is not yet verified against the corpus (the `cli_full` byte-compare any
-//! new serializer needs); the structural shape and data sources are.
+//! `steps` list instead of nesting `via` chains, and fetches no senses —
+//! an analysis points at its root entry instead.
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 
 use serde::Serialize;
-use serde_json::Value;
 
+use crate::characters::kana::NormalizationContext;
+use crate::characters::kani_spanned_normalize::{kani_normalize_spanned, KaniNormalizedSpans};
+use crate::conn::kani_backend::KaniBackend;
 use crate::conn::kani_context::KaniranContext;
 use crate::conn::KaniDbError;
 use crate::core::kani_romanize_method::KaniRomanizeMethod;
 use crate::core::romanize::{join_parts, romanize_word_info, RomanizeStarSegment};
 use crate::dict::conj::{select_conjs_and_props, FilterPropsText};
-use crate::dict::dao::{ConjProp, WordConjugations};
+use crate::dict::dao::{ConjProp, KanaText, WordConjugations};
+use crate::dict::grammar::suffix::constants::suffix_class;
 use crate::dict::grammar::suffix::init::get_suffix_description;
-use crate::dict::kani_word::KaniWordDispatchEnum;
 use crate::dict::load::conj_rules::get_conj_description;
-use crate::dict::senses::{get_first_pos, get_senses_json};
-use crate::dict::word_info::{WordInfo, WordInfoKana, WordInfoSeq, WordInfoType};
+use crate::dict::word_info::{WordInfo, WordInfoKana, WordInfoSeq};
 use crate::dict::word_info_str::reading_str_seq;
+use crate::kanji::matching::{match_readings, MatchedSegment};
 
-/// Render `input` as flat v2 JSON at the given `detail` level.
+/// Render `input` as v2 tokens + entries JSON at the given `detail` level.
+/// `include_entries` drops the `entries` table without touching the tokens
+/// (unlike [`Detail::Minimal`], which also drops furigana).
 pub(super) fn render(
     ctx: &KaniranContext,
     input: &str,
@@ -37,110 +47,101 @@ pub(super) fn render(
     limit: usize,
     detail: Detail,
     include_paths: bool,
+    include_entries: bool,
 ) -> Result<String, Box<dyn Error>> {
     let result = super::segment(ctx, input, method, limit)?;
-    let document = to_v2(ctx, input, &result, method, detail, include_paths)?;
+    let document = to_v2(ctx, input, &result, method, detail, include_paths, include_entries)?;
     Ok(serde_json::to_string(&document)?)
 }
 
-/// How much of each word to render.
-///
-/// The variants are nested supersets: everything `Minimal` emits, `Full`
-/// emits too. The difference is the gloss-bearing sections (`senses`,
-/// `conjugations`, `alternatives`), which `Minimal` omits — and, with them,
-/// the sense lookups that dominate serialization cost.
+/// How much of the document to render.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Detail {
-    /// Segmentation skeleton plus the cheap conjugation summary
-    /// (`conjugation`, `base_form`, `base_reading`). No glosses.
+    /// Tokens only: no `entries` table and no `furigana` — the segmentation
+    /// skeleton without dictionary reads beyond scoring.
     Minimal,
-    /// Every field, including senses and the full `conjugations` array.
+    /// Everything: the `entries` table (forms, senses) plus furigana
+    /// alignment on tokens and kanji forms.
     Full,
 }
 
-/// Top-level v2 result: the whole input as one flat ordered `words` array.
-///
-/// `words`/`romanization`/`score` describe the single best segmentation. When
-/// the caller opts in (`include_paths`) and the search kept more than one beam
-/// path (`limit > 1` and the input is genuinely ambiguous), `paths` carries
-/// every reading — `paths[0]` is the same data as the top-level best path, and
-/// later entries are the alternatives, each a full flat word list with its own
-/// score and romanization. `paths` is omitted entirely otherwise.
+/// Top-level v2 result: the segmentation as one flat ordered `tokens` array,
+/// plus the `entries` those tokens reference, keyed by JMdict sequence
+/// number. `paths` appears only when the caller opts in (`include_paths`)
+/// and the search kept more than one reading; all paths share the one
+/// entries table.
 #[derive(Debug, Clone, Serialize)]
 struct V2Document {
     text: String,
     romanization: String,
     score: i32,
-    words: Vec<V2Word>,
+    tokens: Vec<V2Token>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    entries: Option<BTreeMap<i32, V2Entry>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     paths: Option<Vec<V2Path>>,
 }
 
-/// One full segmentation reading: a complete flat word list with its own score
-/// and romanization. Same `words` shape as the top-level document; `paths[0]`
-/// equals the top-level best path.
+/// One full segmentation reading. `paths[0]` equals the top-level best path.
 #[derive(Debug, Clone, Serialize)]
 struct V2Path {
     score: i32,
     romanization: String,
-    words: Vec<V2Word>,
+    tokens: Vec<V2Token>,
 }
 
-/// One word (or gap) in the best segmentation path.
-///
-/// Field order matches the spec's word-object table. Nullable scalars
-/// serialize as `null` when absent (always present in both detail levels);
-/// the three gloss-bearing arrays are `Option`-wrapped and skipped entirely
-/// under [`Detail::Minimal`].
-///
-/// `Default` (all fields empty/`None`/`0`) backs [`V2Builder::gap_word`], which
-/// names only the fields a gap sets and leaves the rest at their defaults.
+/// One token — a word or a gap — in a segmentation path. Absent means
+/// empty: null/empty/false fields are omitted, so a gap token is three keys
+/// and a particle five.
 #[derive(Debug, Clone, Default, Serialize)]
-struct V2Word {
+struct V2Token {
     text: String,
-    reading: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reading: Option<String>,
     romanization: String,
-    start: usize,
-    end: usize,
-    seq: Option<i32>,
-    score: i32,
-    pos: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    furigana: Vec<V2Furigana>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    senses: Option<Vec<V2Sense>>,
-    conjugation: Option<String>,
-    base_form: Option<String>,
-    base_reading: Option<String>,
+    entry: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    conjugations: Option<Vec<V2Conjugation>>,
-    suffix: Option<String>,
+    score: Option<i32>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    conjugation: Vec<V2Analysis>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    compound: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    suffix: Option<V2Suffix>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     counter: Option<V2Counter>,
-    compound_id: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    alternatives: Option<Vec<V2Word>>,
-    alt_readings: Vec<V2AltReading>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    alternatives: Vec<V2Alternative>,
+    #[serde(skip_serializing_if = "is_false")]
+    gap: bool,
 }
 
-/// A dictionary sense, with v1's `pos`/`field` bracket decoration stripped.
+/// One ruby segment: `reading` is present only over kanji runs, and the
+/// segment `text`s concatenate to the owning token's (or form's) text.
 #[derive(Debug, Clone, Serialize)]
-struct V2Sense {
-    pos: String,
-    gloss: String,
+struct V2Furigana {
+    text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    info: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    field: Option<String>,
+    reading: Option<String>,
 }
 
-/// One conjugation analysis: a root entry plus the ordered steps that produce
-/// the surface form. The flat replacement for v1's recursive `conj`/`via`.
+/// One conjugation analysis: the root entry plus the ordered steps that
+/// produce the surface form. `base_reading` is the specific root reading
+/// this derivation used — not derivable from the entry's form list.
 #[derive(Debug, Clone, Serialize)]
-struct V2Conjugation {
-    seq: i32,
+struct V2Analysis {
+    entry: i32,
     steps: Vec<V2Step>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     base_form: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     base_reading: Option<String>,
+    description: String,
+    #[serde(skip_serializing_if = "is_true")]
     reading_matched: bool,
-    senses: Vec<V2Sense>,
 }
 
 /// One conjugation step. `steps[0]` applies to the dictionary form; the last
@@ -149,37 +150,99 @@ struct V2Conjugation {
 struct V2Step {
     form: String,
     pos: String,
+    #[serde(skip_serializing_if = "is_false")]
     negative: bool,
+    #[serde(skip_serializing_if = "is_false")]
     formal: bool,
+}
+
+/// The suffix grammar that matched a compound member: machine `class` plus
+/// the display description.
+#[derive(Debug, Clone, Serialize)]
+struct V2Suffix {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    class: Option<String>,
+    description: String,
 }
 
 /// Number+counter info, with v1's `"Value: "` prefix stripped.
 #[derive(Debug, Clone, Serialize)]
 struct V2Counter {
     value: String,
+    #[serde(skip_serializing_if = "is_false")]
     ordinal: bool,
 }
 
-/// An additional kana reading of the same entry.
+/// A dictionary analysis tied at the same span as the winning token — a slim
+/// reference, not a nested token. Carries its own score, not the winner's.
 #[derive(Debug, Clone, Serialize)]
-struct V2AltReading {
+struct V2Alternative {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    entry: Option<i32>,
+    score: i32,
     reading: String,
     romanization: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    conjugation: Vec<V2Analysis>,
 }
 
-/// `get_senses_json` takes an optional reading-getter closure; v2 always uses
-/// the default reading, so it needs a concrete type to pin the `None`.
-type NoGetter = fn() -> Result<Option<KaniWordDispatchEnum>, KaniDbError>;
-const NO_GETTER: Option<NoGetter> = None;
+/// One dictionary entry: its writings, readings, and senses, in JMdict order.
+#[derive(Debug, Clone, Serialize)]
+struct V2Entry {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    kanji: Vec<V2Form>,
+    kana: Vec<V2Form>,
+    senses: Vec<V2Sense>,
+}
+
+/// One writing or reading of an entry. `common` is JMdict priority data:
+/// `0` = common but unranked, `1`–`48` = newspaper frequency bucket.
+#[derive(Debug, Clone, Serialize)]
+struct V2Form {
+    text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    common: Option<i32>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    tags: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    furigana: Vec<V2Furigana>,
+}
+
+/// One sense. `restrict_kanji`/`restrict_kana` name the forms the sense
+/// applies to (JMdict `stagk`/`stagr`); absent = all forms.
+#[derive(Debug, Clone, Serialize)]
+struct V2Sense {
+    pos: Vec<String>,
+    gloss: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    info: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    misc: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    field: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    dial: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    restrict_kanji: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    restrict_kana: Vec<String>,
+}
+
+fn is_false(flag: &bool) -> bool {
+    !*flag
+}
+
+fn is_true(flag: &bool) -> bool {
+    *flag
+}
 
 /// Build the v2 document from a `romanize*` result.
 ///
-/// `text` is the original input (the top-level `text` field). The top-level
-/// `words`/`score`/`romanization` come from the best path (beam rank 0). When
-/// more than one beam path survives — the search kept several and at least one
-/// word segment has alternatives — every reading is rendered into `paths`.
-/// `method` romanizes compound members and alternate readings, whose
-/// romanizations `romanize*` does not precompute.
+/// `text` is the original input. The top-level `tokens`/`score`/
+/// `romanization` come from the best path (beam rank 0); with
+/// `include_paths` and a genuinely ambiguous input, every kept reading is
+/// rendered into `paths`. Entry ids are collected across all rendered paths
+/// and resolved once into `entries` (Full only).
 fn to_v2<P>(
     ctx: &KaniranContext,
     text: &str,
@@ -187,15 +250,26 @@ fn to_v2<P>(
     method: KaniRomanizeMethod<'_>,
     detail: Detail,
     include_paths: bool,
+    include_entries: bool,
 ) -> Result<V2Document, KaniDbError> {
+    // Context choice mirrors `romanize_star_`'s own normalize call
+    // (core/romanize.rs) — keep in sync, or spans desync from segments.
+    let context = match method {
+        KaniRomanizeMethod::Kana => NormalizationContext::Kana,
+        KaniRomanizeMethod::Method(_) => NormalizationContext::Default,
+    };
+    let (_normalized, spans) = kani_normalize_spanned(text, context);
+    let original_chars: Vec<char> = text.chars().collect();
+
     let builder = V2Builder {
         ctx,
         method,
         detail,
+        spans: &spans,
+        original_chars: &original_chars,
     };
 
     // Beam ranks available = the most alternatives any one word segment kept.
-    // The search already caps this at `limit`; Misc gaps add no alternatives.
     let n_paths = segments
         .iter()
         .map(|segment| match segment {
@@ -205,54 +279,58 @@ fn to_v2<P>(
         .max()
         .unwrap_or(0);
 
-    // Build the best reading once; it always supplies the top-level fields.
-    let best = build_path(&builder, segments, 0)?;
+    let mut entry_seqs: BTreeSet<i32> = BTreeSet::new();
 
-    // Emit `paths` only when the caller opts in (`include_paths`) and the
-    // search kept more than one reading. The best path appears both at top
-    // level and as paths[0], so it is cloned once.
+    let best = build_path(&builder, segments, 0, &mut entry_seqs)?;
+
     let paths = if include_paths && n_paths > 1 {
         let mut paths = Vec::with_capacity(n_paths);
         paths.push(best.clone());
         for rank in 1..n_paths {
-            paths.push(build_path(&builder, segments, rank)?);
+            paths.push(build_path(&builder, segments, rank, &mut entry_seqs)?);
         }
         Some(paths)
     } else {
         None
     };
 
+    let entries = match detail {
+        Detail::Full if include_entries => Some(build_entries(ctx, &entry_seqs)?),
+        Detail::Full | Detail::Minimal => None,
+    };
+
     Ok(V2Document {
         text: text.to_owned(),
         romanization: best.romanization,
         score: best.score,
-        words: best.words,
+        tokens: best.tokens,
+        entries,
         paths,
     })
 }
 
-/// Render one beam path (rank `rank`) across all segments into a flat word
+/// Render one beam path (rank `rank`) across all segments into a flat token
 /// list. Each word segment contributes its `rank`-th alternative, clamped to
-/// its last when it kept fewer (shorter beams reuse their best). Misc gaps pass
-/// through on every path. `compound_id` restarts per path, so ids are
-/// path-local.
+/// its last when it kept fewer. `compound` ids restart per path.
 fn build_path<P>(
     builder: &V2Builder<'_>,
     segments: &[RomanizeStarSegment<P>],
     rank: usize,
+    entry_seqs: &mut BTreeSet<i32>,
 ) -> Result<V2Path, KaniDbError> {
-    let mut words = Vec::new();
+    let mut tokens = Vec::new();
     let mut romaji_parts: Vec<String> = Vec::new();
     let mut base = 0usize; // running char offset into the normalized stream
     let mut score_total = 0i32;
-    let mut compound_id = 0u32;
+    let mut compound_counter = 0u32;
 
     for segment in segments {
         match segment {
             RomanizeStarSegment::Misc(misc) => {
-                words.push(builder.gap_word(misc, base));
+                let len = misc.chars().count();
+                tokens.push(builder.gap_token(misc, base, len));
                 romaji_parts.push(misc.clone());
-                base += misc.chars().count();
+                base += len;
             }
             RomanizeStarSegment::Word(alternatives) => {
                 if alternatives.is_empty() {
@@ -269,8 +347,9 @@ fn build_path<P>(
                         word_info,
                         romanized,
                         base,
-                        &mut compound_id,
-                        &mut words,
+                        &mut compound_counter,
+                        &mut tokens,
+                        entry_seqs,
                     )?;
                 }
                 base += chunk_len;
@@ -278,157 +357,135 @@ fn build_path<P>(
         }
     }
 
+    // Every path must account for the whole normalized stream, or the
+    // verbatim slices above indexed the wrong input chars.
+    assert_eq!(
+        base,
+        builder.spans.normalized_len(),
+        "v2 token spans desynced from the normalized input"
+    );
+
     Ok(V2Path {
         score: score_total,
         romanization: join_parts(&romaji_parts),
-        words,
+        tokens,
     })
 }
 
-/// The constants threaded through every word: the backend handle, the
-/// romanization method, and the detail level.
+/// The constants threaded through every token.
 struct V2Builder<'a> {
     ctx: &'a KaniranContext,
     method: KaniRomanizeMethod<'a>,
     detail: Detail,
+    spans: &'a KaniNormalizedSpans,
+    original_chars: &'a [char],
 }
 
-/// What a word inherits from its place in the segmentation: its character
-/// span, compound group, suffix flag, and score. Tied analyses of one span
-/// share a placement, so it threads through `build_word` unchanged.
+/// What a token inherits from its place in the segmentation: its normalized
+/// char span, compound group, suffix flag, and score. Tied analyses of one
+/// span share a placement.
 #[derive(Debug, Clone, Copy)]
-struct WordPlacement {
+struct TokenPlacement {
     start: usize,
     end: usize,
-    compound_id: Option<u32>,
+    compound: Option<u32>,
     is_suffix: bool,
     score: i32,
 }
 
 impl V2Builder<'_> {
-    /// Emit a top-level word as one or more `V2Word`s: a compound explodes
-    /// into adjacent members sharing a fresh `compound_id`; everything else is
-    /// one word.
+    /// The verbatim input slice behind the normalized char range
+    /// `[start, end)`.
+    fn original_slice(&self, start: usize, end: usize) -> String {
+        let norm_len = self.spans.normalized_len();
+        let (from, to) = self.spans.source_range(start.min(norm_len), end.min(norm_len));
+        self.original_chars[from..to].iter().collect()
+    }
+
+    /// Emit a top-level word as one or more tokens: a compound explodes into
+    /// adjacent members sharing a fresh `compound` id; everything else is one
+    /// token.
     fn explode_word(
         &self,
         word_info: &WordInfo,
         romanized: &str,
         base: usize,
-        compound_id: &mut u32,
-        out: &mut Vec<V2Word>,
+        compound_counter: &mut u32,
+        out: &mut Vec<V2Token>,
+        entry_seqs: &mut BTreeSet<i32>,
     ) -> Result<(), KaniDbError> {
         let score = word_info.score.unwrap_or(0);
-        // An alternative wrapper carries components but is one word at one span,
-        // not a compound; route it here so `build_word` promotes the best entry
-        // and fills `alternatives`, instead of exploding the ties as members
-        // with fabricated advancing spans.
+        // An alternative wrapper carries components but is one word at one
+        // span, not a compound; route it to `build_token`, which promotes the
+        // best entry and fills `alternatives`.
         if word_info.components.is_empty() || word_info.alternative {
-            let placement = WordPlacement {
+            let placement = TokenPlacement {
                 start: base + word_info.start.unwrap_or(0),
                 end: base + word_info.end.unwrap_or(0),
-                compound_id: None,
+                compound: None,
                 is_suffix: false,
                 score,
             };
-            out.push(self.build_word(word_info, romanized.to_owned(), placement)?);
+            out.push(self.build_token(word_info, romanized.to_owned(), placement, entry_seqs)?);
             return Ok(());
         }
 
         // Members carry the compound's score (v1 gives them none of their
-        // own), and their romanization is computed from each member's reading.
-        // They carry no offsets of their own either, so distribute the
-        // compound's span across them by each member's character length.
-        *compound_id += 1;
-        let id = *compound_id;
+        // own). They carry no offsets of their own either, so distribute the
+        // compound's span across them by each member's normalized length.
+        *compound_counter += 1;
+        let id = *compound_counter;
         let mut member_start = base + word_info.start.unwrap_or(0);
         for member in &word_info.components {
             let member_end = member_start + member.text.chars().count();
-            let placement = WordPlacement {
+            let placement = TokenPlacement {
                 start: member_start,
                 end: member_end,
-                compound_id: Some(id),
+                compound: Some(id),
                 is_suffix: !member.primary,
                 score,
             };
             let member_romaji = romanize_word_info(member, self.method);
-            out.push(self.build_word(member, member_romaji, placement)?);
+            out.push(self.build_token(member, member_romaji, placement, entry_seqs)?);
             member_start = member_end;
         }
         Ok(())
     }
 
-    /// Build one `V2Word` from a single `WordInfo`.
-    fn build_word(
+    /// Build one token from a single `WordInfo`.
+    fn build_token(
         &self,
         word_info: &WordInfo,
         romanization: String,
-        placement: WordPlacement,
-    ) -> Result<V2Word, KaniDbError> {
-        // A tied-analyses wrapper: promote the best entry into the word itself
-        // and place the rest in `alternatives` (bounded at one level — their
-        // own `alternatives` stays empty). All tied entries share the span.
+        placement: TokenPlacement,
+        entry_seqs: &mut BTreeSet<i32>,
+    ) -> Result<V2Token, KaniDbError> {
+        // A tied-analyses wrapper: promote the best entry into the token
+        // itself and reference the rest as slim alternatives. All tied
+        // entries share the span.
         if word_info.alternative && !word_info.components.is_empty() {
             let (best, rest) = word_info.components.split_first().expect("non-empty");
-            let mut word =
-                self.build_word(best, romanize_word_info(best, self.method), placement)?;
-            if self.detail == Detail::Full {
-                let mut alts = Vec::with_capacity(rest.len());
-                for alt in rest {
-                    let mut alt_word =
-                        self.build_word(alt, romanize_word_info(alt, self.method), placement)?;
-                    alt_word.alternatives = None; // bound nesting at one level
-                    alts.push(alt_word);
-                }
-                word.alternatives = Some(alts);
-            }
-            return Ok(word);
+            let mut token =
+                self.build_token(best, romanize_word_info(best, self.method), placement, entry_seqs)?;
+            token.alternatives = rest
+                .iter()
+                .map(|tied| self.build_alternative(tied, entry_seqs))
+                .collect::<Result<_, _>>()?;
+            return Ok(token);
         }
 
-        let (reading, alt_readings) = self.split_kana_readings(word_info);
-
-        let conj = self.analyze_conjugations(word_info)?;
-        // Synthetic seq for a conjugated form; real root seq once resolved.
-        let raw_seq = single_seq(&word_info.seq);
-        let seq = conj.as_ref().map(|summary| summary.seq).or(raw_seq);
-
-        // Full only: the word's own senses, or a copy of the root entry's
-        // senses when the word is a conjugated form.
-        let senses = if self.detail == Detail::Full {
-            let list = match &conj {
-                Some(summary) => summary.senses.clone(),
-                None => match seq {
-                    Some(seq) => {
-                        reshape_senses(&get_senses_json(self.ctx, seq, &[], None, NO_GETTER)?)
-                    }
-                    None => Vec::new(),
-                },
-            };
-            Some(list)
-        } else {
-            None
-        };
-
-        // pos: the surface step's pos for a conjugated form; otherwise the
-        // first pos tag of the entry's first sense. Full already has the senses
-        // in hand, so it reuses them; Minimal has none (it skips gloss fetches)
-        // and fetches the pos alone, so every word still carries a pos.
-        let pos = match &conj {
-            Some(summary) => summary.pos.clone(),
-            None => match (&senses, seq) {
-                (Some(list), _) => first_sense_pos(list),
-                (None, Some(seq)) => get_first_pos(self.ctx, seq)?,
-                (None, None) => None,
-            },
-        };
-
-        let conjugations = (self.detail == Detail::Full).then(|| {
-            conj.as_ref()
-                .map(|summary| summary.analyses.clone())
-                .unwrap_or_default()
-        });
+        let reading = first_reading(word_info);
+        let analyses = self.analyze(word_info, entry_seqs)?;
+        let entry = analyses
+            .first()
+            .map(|analysis| analysis.entry)
+            .or_else(|| single_seq(&word_info.seq));
+        if let Some(entry) = entry {
+            entry_seqs.insert(entry);
+        }
 
         let suffix = if placement.is_suffix {
-            seq.and_then(|seq| get_suffix_description(self.ctx, seq).map(str::to_owned))
+            entry.and_then(|seq| self.suffix_info(seq))
         } else {
             None
         };
@@ -441,116 +498,101 @@ impl V2Builder<'_> {
                 ordinal: *ordinal,
             });
 
-        Ok(V2Word {
-            text: word_info.text.clone(),
-            reading,
+        let text = self.original_slice(placement.start, placement.end);
+
+        // Ruby alignment runs on the normalized word text; when the verbatim
+        // slice differs (exotic input), skip rather than emit segments that
+        // don't concatenate to `text`. Entry-less tokens (raw-character
+        // fallback paths) skip too — with no dictionary reading, the aligner
+        // would only "match" the kanji against itself as an irregular.
+        let furigana =
+            if self.detail == Detail::Full && entry.is_some() && text == word_info.text {
+                self.align_furigana(&word_info.text, &reading)?
+            } else {
+                Vec::new()
+            };
+
+        Ok(V2Token {
+            text,
+            reading: Some(reading),
             romanization,
-            start: placement.start,
-            end: placement.end,
-            seq,
-            score: placement.score,
-            pos,
-            senses,
-            conjugation: conj.as_ref().map(|summary| summary.display.clone()),
-            base_form: conj.as_ref().and_then(|summary| summary.base_form.clone()),
-            base_reading: conj
-                .as_ref()
-                .and_then(|summary| summary.base_reading.clone()),
-            conjugations,
+            furigana,
+            entry,
+            score: Some(placement.score),
+            conjugation: analyses,
+            compound: placement.compound,
             suffix,
             counter,
-            compound_id: placement.compound_id,
-            alternatives: (self.detail == Detail::Full).then(Vec::new),
-            alt_readings,
+            alternatives: Vec::new(),
+            gap: false,
         })
     }
 
-    /// A word with no dictionary match: punctuation, latin, unrecognized spans.
-    fn gap_word(&self, text: &str, base: usize) -> V2Word {
-        let len = text.chars().count();
-        let full = self.detail == Detail::Full;
-        V2Word {
-            text: text.to_owned(),
-            reading: text.to_owned(),
-            romanization: text.to_owned(),
-            start: base,
-            end: base + len,
-            senses: full.then(Vec::new),
-            conjugations: full.then(Vec::new),
-            alternatives: full.then(Vec::new),
+    /// A gap token: text with no dictionary match (punctuation, latin,
+    /// unrecognized spans). `romanization` is the normalized/romanized form;
+    /// `text` stays verbatim.
+    fn gap_token(&self, romanization: &str, base: usize, len: usize) -> V2Token {
+        V2Token {
+            text: self.original_slice(base, base + len),
+            romanization: romanization.to_owned(),
+            gap: true,
             ..Default::default()
         }
     }
 
-    /// First kana reading as the word's `reading`; any further readings become
-    /// `alt_readings` (with their own romanization).
-    fn split_kana_readings(&self, word_info: &WordInfo) -> (String, Vec<V2AltReading>) {
-        match &word_info.kana {
-            None => (strip_marks(&word_info.text), Vec::new()),
-            Some(WordInfoKana::Single(kana)) => (strip_marks(kana), Vec::new()),
-            Some(WordInfoKana::Multi(list)) => {
-                let mut readings = list.iter().flatten().filter_map(first_kana);
-                let reading = readings
-                    .next()
-                    .map(|kana| strip_marks(&kana))
-                    .unwrap_or_else(|| strip_marks(&word_info.text));
-                let alts = readings
-                    .map(|kana| {
-                        let clean = strip_marks(&kana);
-                        let romanization = romanize_kana(&clean, self.method);
-                        V2AltReading {
-                            reading: clean,
-                            romanization,
-                        }
-                    })
-                    .collect();
-                (reading, alts)
-            }
-        }
-    }
-
-    /// Resolve a word's conjugation chain, or `None` if it is a dictionary form.
-    fn analyze_conjugations(
+    /// A tied analysis as a slim entry reference with its own score.
+    fn build_alternative(
         &self,
         word_info: &WordInfo,
-    ) -> Result<Option<ConjSummary>, KaniDbError> {
+        entry_seqs: &mut BTreeSet<i32>,
+    ) -> Result<V2Alternative, KaniDbError> {
+        let analyses = self.analyze(word_info, entry_seqs)?;
+        let entry = analyses
+            .first()
+            .map(|analysis| analysis.entry)
+            .or_else(|| single_seq(&word_info.seq));
+        if let Some(entry) = entry {
+            entry_seqs.insert(entry);
+        }
+        Ok(V2Alternative {
+            entry,
+            score: word_info.score.unwrap_or(0),
+            reading: first_reading(word_info),
+            romanization: romanize_word_info(word_info, self.method),
+            conjugation: analyses,
+        })
+    }
+
+    /// Resolve a word's conjugation analyses, empty if it is a dictionary
+    /// form.
+    fn analyze(
+        &self,
+        word_info: &WordInfo,
+        entry_seqs: &mut BTreeSet<i32>,
+    ) -> Result<Vec<V2Analysis>, KaniDbError> {
         let Some(seq) = single_seq(&word_info.seq) else {
-            return Ok(None);
+            return Ok(Vec::new());
         };
         let text = match &word_info.true_text {
             Some(true_text) => FilterPropsText::One(true_text),
             None => FilterPropsText::None,
         };
-        let flats = self.flatten_conj(seq, word_info.conjugations.as_ref(), text)?;
-        let Some(first) = flats.first() else {
-            return Ok(None);
-        };
-
-        let pos = first.steps.last().map(|step| step.pos.clone());
-        let display = build_display(&first.steps);
-        Ok(Some(ConjSummary {
-            seq: first.seq,
-            pos,
-            display,
-            base_form: first.base_form.clone(),
-            base_reading: first.base_reading.clone(),
-            senses: first.senses.clone().unwrap_or_default(),
-            analyses: flats.iter().map(to_v2_conjugation).collect(),
-        }))
+        self.flatten_conj(seq, word_info.conjugations.as_ref(), text, entry_seqs)
     }
 
-    /// Walk the conjugation rows for `seq`, flattening each via chain into one
-    /// `FlatConj` whose `steps` run root-to-surface.
+    /// Walk the conjugation rows for `seq`, flattening each via chain into
+    /// one analysis whose `steps` run root-to-surface.
     ///
     /// Mirrors the data access of `conj_info_json_star_`: the base level
-    /// (`seq_via == None`) holds the root `seq_from` and its senses; a `via`
-    /// level recurses and appends its own step after the deeper ones.
+    /// (`seq_via == None`) holds the root `seq_from`; a `via` level recurses
+    /// and appends its own steps after the deeper ones.
     fn flatten_conj(
         &self,
         seq: i32,
         conjugations: Option<&WordConjugations>,
         text: FilterPropsText<'_>,
-    ) -> Result<Vec<FlatConj>, KaniDbError> {
+        entry_seqs: &mut BTreeSet<i32>,
+    ) -> Result<Vec<V2Analysis>, KaniDbError> {
         let mut out = Vec::new();
         let mut via_used: Vec<i32> = Vec::new();
 
@@ -566,30 +608,24 @@ impl V2Builder<'_> {
                 None => {
                     let (base_form, base_reading) =
                         split_reading(reading_str_seq(self.ctx, conj.seq_from)?);
-                    let senses = if self.detail == Detail::Full {
-                        let pos_list: Vec<String> =
-                            props.iter().map(|prop| prop.pos.clone()).collect();
-                        let json =
-                            get_senses_json(self.ctx, conj.seq_from, &pos_list, None, NO_GETTER)?;
-                        Some(reshape_senses(&json))
-                    } else {
-                        None
-                    };
-                    out.push(FlatConj {
-                        seq: conj.seq_from,
+                    entry_seqs.insert(conj.seq_from);
+                    let description = build_display(&surface_steps);
+                    out.push(V2Analysis {
+                        entry: conj.seq_from,
                         steps: surface_steps,
                         base_form,
                         base_reading,
+                        description,
                         reading_matched: true,
-                        senses,
                     });
                 }
                 Some(via) => {
-                    let deeper = self.flatten_conj(via, None, FilterPropsText::None)?;
-                    for chain in deeper {
-                        let mut steps = chain.steps;
-                        steps.extend(surface_steps.iter().cloned());
-                        out.push(FlatConj { steps, ..chain });
+                    let deeper =
+                        self.flatten_conj(via, None, FilterPropsText::None, entry_seqs)?;
+                    for mut chain in deeper {
+                        chain.steps.extend(surface_steps.iter().cloned());
+                        chain.description = build_display(&chain.steps);
+                        out.push(chain);
                     }
                     via_used.push(via);
                 }
@@ -598,39 +634,220 @@ impl V2Builder<'_> {
 
         Ok(out)
     }
-}
 
-/// The derived per-word conjugation summary plus, in `Full`, every analysis.
-struct ConjSummary {
-    seq: i32,
-    pos: Option<String>,
-    display: String,
-    base_form: Option<String>,
-    base_reading: Option<String>,
-    senses: Vec<V2Sense>,
-    analyses: Vec<V2Conjugation>,
-}
+    /// The suffix-grammar annotation for a suffix member's entry: machine
+    /// class plus display description.
+    fn suffix_info(&self, seq: i32) -> Option<V2Suffix> {
+        let description = get_suffix_description(self.ctx, seq)?;
+        let class = suffix_class(self.ctx).get(&seq).cloned();
+        Some(V2Suffix {
+            class,
+            description: description.to_owned(),
+        })
+    }
 
-/// One flattened analysis as it accumulates through the via chain.
-struct FlatConj {
-    seq: i32,
-    steps: Vec<V2Step>,
-    base_form: Option<String>,
-    base_reading: Option<String>,
-    reading_matched: bool,
-    senses: Option<Vec<V2Sense>>,
-}
-
-fn to_v2_conjugation(flat: &FlatConj) -> V2Conjugation {
-    V2Conjugation {
-        seq: flat.seq,
-        steps: flat.steps.clone(),
-        base_form: flat.base_form.clone(),
-        base_reading: flat.base_reading.clone(),
-        reading_matched: flat.reading_matched,
-        senses: flat.senses.clone().unwrap_or_default(),
+    /// Ruby segments for `text` against `reading` via the ported kanji
+    /// reading alignment; empty when there is nothing to align or no
+    /// alignment exists.
+    fn align_furigana(
+        &self,
+        text: &str,
+        reading: &str,
+    ) -> Result<Vec<V2Furigana>, KaniDbError> {
+        if !text.chars().any(is_kanji_char) {
+            return Ok(Vec::new());
+        }
+        let Some(segments) = match_readings(self.ctx, text, reading)? else {
+            return Ok(Vec::new());
+        };
+        Ok(segments.into_iter().map(furigana_from_segment).collect())
     }
 }
+
+fn furigana_from_segment(segment: MatchedSegment) -> V2Furigana {
+    match segment {
+        MatchedSegment::Kanji { kanji, reading } => V2Furigana {
+            text: kanji,
+            reading: Some(reading.reading),
+        },
+        MatchedSegment::NonKanji(text) => V2Furigana {
+            text,
+            reading: None,
+        },
+    }
+}
+
+/// `*kanji-regex*` membership — same range as `kanji::matching::is_kanji`
+/// (private there; keep in sync).
+fn is_kanji_char(c: char) -> bool {
+    matches!(c, '々' | 'ヶ' | '〆' | '\u{4e00}'..='\u{9faf}')
+}
+
+// --- entries table ---
+
+/// The sense_prop tags the entries table surfaces. Superset of the ported
+/// senses layer's TAGS (`dict/senses.rs`): adds `misc` and `dial`.
+const ENTRY_SENSE_TAGS: &[&str] = &["pos", "s_inf", "stagk", "stagr", "field", "misc", "dial"];
+
+/// Resolve every referenced entry id into a `V2Entry`: forms with
+/// commonness, structured senses, and headword furigana on kanji forms.
+fn build_entries(
+    ctx: &KaniranContext,
+    entry_seqs: &BTreeSet<i32>,
+) -> Result<BTreeMap<i32, V2Entry>, KaniDbError> {
+    let seq_list: Vec<i32> = entry_seqs.iter().copied().collect();
+
+    let mut kanji_rows = ctx.store.kanji_texts_by_seq_any(&seq_list)?;
+    kanji_rows.sort_by_key(|row| (row.seq, row.ord));
+    let mut kana_rows = ctx.store.kana_texts_by_seq_any(&seq_list)?;
+    kana_rows.sort_by_key(|row| (row.seq, row.ord));
+
+    let mut entries: BTreeMap<i32, V2Entry> = BTreeMap::new();
+    for &seq in &seq_list {
+        let entry_kana: Vec<&KanaText> =
+            kana_rows.iter().filter(|row| row.seq == seq).collect();
+
+        let kana: Vec<V2Form> = entry_kana
+            .iter()
+            .map(|row| V2Form {
+                text: row.text.clone().into_owned(),
+                common: row.common,
+                tags: parse_common_tags(&row.common_tags),
+                furigana: Vec::new(),
+            })
+            .collect();
+
+        let entry_kanji: Vec<_> = kanji_rows.iter().filter(|row| row.seq == seq).collect();
+        let restricted: Vec<(String, String)> = if entry_kanji.is_empty() {
+            Vec::new()
+        } else {
+            ctx.store
+                .restricted_readings_by_seq(seq)?
+                .into_iter()
+                .map(|(reading, text)| (reading.into_owned(), text.into_owned()))
+                .collect()
+        };
+
+        let mut kanji: Vec<V2Form> = Vec::with_capacity(entry_kanji.len());
+        for row in entry_kanji {
+            let furigana = match reading_for_kanji_form(&row.text, &entry_kana, &restricted) {
+                Some(reading) => {
+                    match match_readings(ctx, &row.text, reading)? {
+                        Some(segments) => {
+                            segments.into_iter().map(furigana_from_segment).collect()
+                        }
+                        None => Vec::new(),
+                    }
+                }
+                None => Vec::new(),
+            };
+            kanji.push(V2Form {
+                text: row.text.clone().into_owned(),
+                common: row.common,
+                tags: parse_common_tags(&row.common_tags),
+                furigana,
+            });
+        }
+
+        entries.insert(
+            seq,
+            V2Entry {
+                kanji,
+                kana,
+                senses: fetch_senses(ctx, seq)?,
+            },
+        );
+    }
+    Ok(entries)
+}
+
+/// The first kana form a kanji writing pairs with: skips `nokanji` readings
+/// and honors restricted-reading rows; falls back to the entry's first kana.
+fn reading_for_kanji_form<'a>(
+    kanji_text: &str,
+    entry_kana: &[&'a KanaText],
+    restricted: &[(String, String)],
+) -> Option<&'a str> {
+    entry_kana
+        .iter()
+        .filter(|kana| !kana.nokanji)
+        .find(|kana| {
+            let mut restrictions = restricted
+                .iter()
+                .filter(|(reading, _)| reading == kana.text.as_ref())
+                .peekable();
+            restrictions.peek().is_none()
+                || restrictions.any(|(_, restricted_kanji)| restricted_kanji == kanji_text)
+        })
+        .or_else(|| entry_kana.first())
+        .map(|kana| kana.text.as_ref())
+}
+
+/// Structured senses for one entry, straight off the gloss and sense_prop
+/// rows. Diverges from the ported senses layer deliberately: arrays instead
+/// of joined strings, `misc`/`dial` included, restrictions exposed instead
+/// of pre-filtered, and prop groups in row order (no final-group reversal).
+fn fetch_senses(ctx: &KaniranContext, seq: i32) -> Result<Vec<V2Sense>, KaniDbError> {
+    let gloss_rows = ctx.store.sense_gloss_rows(seq)?;
+    let prop_rows = ctx.store.sense_prop_rows_tagged(seq, ENTRY_SENSE_TAGS)?;
+
+    let mut senses: Vec<(i32, V2Sense)> = gloss_rows
+        .into_iter()
+        .map(|(ord, gloss)| {
+            (
+                ord,
+                V2Sense {
+                    pos: Vec::new(),
+                    gloss: split_glosses(gloss.as_deref().unwrap_or_default()),
+                    info: None,
+                    misc: Vec::new(),
+                    field: Vec::new(),
+                    dial: Vec::new(),
+                    restrict_kanji: Vec::new(),
+                    restrict_kana: Vec::new(),
+                },
+            )
+        })
+        .collect();
+
+    for (sense_ord, tag, text) in prop_rows {
+        let Some((_, sense)) = senses.iter_mut().find(|(ord, _)| *ord == sense_ord) else {
+            continue;
+        };
+        let text = text.into_owned();
+        match tag.as_ref() {
+            "pos" => sense.pos.push(text),
+            "s_inf" => match &mut sense.info {
+                Some(info) => {
+                    info.push_str("; ");
+                    info.push_str(&text);
+                }
+                None => sense.info = Some(text),
+            },
+            "misc" => sense.misc.push(text),
+            "field" => sense.field.push(text),
+            "dial" => sense.dial.push(text),
+            "stagk" => sense.restrict_kanji.push(text),
+            "stagr" => sense.restrict_kana.push(text),
+            _ => {}
+        }
+    }
+
+    // JMdict pos carry-forward: a sense without pos props inherits the
+    // previous sense's (same rule as the ported get-senses-json rpos walk).
+    let mut prev_pos: Vec<String> = Vec::new();
+    for (_, sense) in &mut senses {
+        if sense.pos.is_empty() {
+            sense.pos = prev_pos.clone();
+        } else {
+            prev_pos = sense.pos.clone();
+        }
+    }
+
+    Ok(senses.into_iter().map(|(_, sense)| sense).collect())
+}
+
+// --- shared helpers ---
 
 fn step_from_prop(prop: &ConjProp) -> V2Step {
     V2Step {
@@ -681,49 +898,25 @@ fn split_reading(reading: Option<String>) -> (Option<String>, Option<String>) {
     }
 }
 
+/// First kana reading of a word, marks stripped.
+fn first_reading(word_info: &WordInfo) -> String {
+    match &word_info.kana {
+        None => strip_marks(&word_info.text),
+        Some(WordInfoKana::Single(kana)) => strip_marks(kana),
+        Some(WordInfoKana::Multi(list)) => list
+            .iter()
+            .flatten()
+            .find_map(first_kana)
+            .map(|kana| strip_marks(&kana))
+            .unwrap_or_else(|| strip_marks(&word_info.text)),
+    }
+}
+
 fn first_kana(kana: &WordInfoKana) -> Option<String> {
     match kana {
         WordInfoKana::Single(text) => Some(text.clone()),
         WordInfoKana::Multi(list) => list.iter().flatten().find_map(first_kana),
     }
-}
-
-/// Romanize a bare kana string via a throwaway kana word-info.
-fn romanize_kana(kana: &str, method: KaniRomanizeMethod<'_>) -> String {
-    let word_info = WordInfo {
-        kind: WordInfoType::Kana,
-        text: kana.to_owned(),
-        ..WordInfo::default()
-    };
-    romanize_word_info(&word_info, method)
-}
-
-/// Reshape v1 sense JSON into `V2Sense`, stripping the `[pos]` / `{field}`
-/// decoration. The sense data itself is unchanged.
-fn reshape_senses(senses: &[Value]) -> Vec<V2Sense> {
-    senses
-        .iter()
-        .map(|sense| V2Sense {
-            pos: sense
-                .get("pos")
-                .and_then(Value::as_str)
-                .map(strip_brackets)
-                .unwrap_or_default(),
-            gloss: sense
-                .get("gloss")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_owned(),
-            info: sense.get("info").and_then(Value::as_str).map(str::to_owned),
-            field: sense.get("field").and_then(Value::as_str).map(strip_braces),
-        })
-        .collect()
-}
-
-fn first_sense_pos(senses: &[V2Sense]) -> Option<String> {
-    senses
-        .first()
-        .map(|sense| sense.pos.split(',').next().unwrap_or_default().to_owned())
 }
 
 fn single_seq(seq: &Option<WordInfoSeq>) -> Option<i32> {
@@ -742,264 +935,25 @@ fn strip_marks(reading: &str) -> String {
         .collect()
 }
 
-fn strip_brackets(pos: &str) -> String {
-    pos.trim_start_matches('[').trim_end_matches(']').to_owned()
-}
-
-fn strip_braces(field: &str) -> String {
-    field
-        .trim_start_matches('{')
-        .trim_end_matches('}')
-        .to_owned()
-}
-
 fn strip_value_prefix(value: &str) -> String {
     value.strip_prefix("Value: ").unwrap_or(value).to_owned()
 }
 
-#[cfg(test)]
-mod tests {
-    //! Logic-only tests for the v2 reshaping helpers, plus one DB-backed
-    //! regression (`v2_minimal_populates_pos_for_unconjugated_words`) that
-    //! renders against the configured snapshot. Every expected value is real
-    //! pipeline output.
-    use super::*;
-    use crate::core::methods::{hepburn_traditional, RomanizationMethod};
-    use serde_json::json;
-
-    /// A conjugation step with a form name; `pos` is irrelevant to display.
-    fn step(form: &str, negative: bool, formal: bool) -> V2Step {
-        V2Step {
-            form: form.to_owned(),
-            pos: "v1".to_owned(),
-            negative,
-            formal,
-        }
-    }
-
-    #[test]
-    fn build_display_single_step_is_just_the_form() {
-        // 食べ → "Continuative (~i)" (spec, 食べたくなかった example).
-        let steps = [step("Continuative (~i)", false, false)];
-        assert_eq!(build_display(&steps), "Continuative (~i)");
-    }
-
-    #[test]
-    fn build_display_via_chain_appends_deeper_steps_reversed() {
-        // 食べさせられ: steps run root→surface [Causative-Passive, Continuative],
-        // and display is surface-first, deeper trailing after " via " (spec).
-        let steps = [
-            step("Causative-Passive", false, false),
-            step("Continuative (~i)", false, false),
-        ];
-        assert_eq!(
-            build_display(&steps),
-            "Continuative (~i) via Causative-Passive"
-        );
-    }
-
-    #[test]
-    fn build_display_marks_negative_and_formal_on_the_surface_step() {
-        // たくなかった → "Past (~ta), negative"; いました → "Past (~ta), formal".
-        assert_eq!(
-            build_display(&[step("Past (~ta)", true, false)]),
-            "Past (~ta), negative"
-        );
-        assert_eq!(
-            build_display(&[step("Past (~ta)", false, true)]),
-            "Past (~ta), formal"
-        );
-    }
-
-    #[test]
-    fn build_display_empty_steps_is_empty_string() {
-        assert_eq!(build_display(&[]), "");
-    }
-
-    #[test]
-    fn split_reading_splits_composite_into_kanji_and_kana() {
-        // The conjugation base reading arrives as "食べる 【たべる】".
-        let (base_form, base_reading) = split_reading(Some("食べる 【たべる】".to_owned()));
-        assert_eq!(base_form.as_deref(), Some("食べる"));
-        assert_eq!(base_reading.as_deref(), Some("たべる"));
-    }
-
-    #[test]
-    fn split_reading_kana_only_is_its_own_base_form() {
-        // たい has no kanji head, so it is both the form and the reading.
-        let (base_form, base_reading) = split_reading(Some("たい".to_owned()));
-        assert_eq!(base_form.as_deref(), Some("たい"));
-        assert_eq!(base_reading.as_deref(), Some("たい"));
-    }
-
-    #[test]
-    fn split_reading_none_yields_none_pair() {
-        assert_eq!(split_reading(None), (None, None));
-    }
-
-    #[test]
-    fn strip_marks_drops_zero_width_markers() {
-        // The は particle reading carries a leading zero-width non-joiner; the
-        // こんにちは reading carries one mid-string. v2 readings are clean.
-        assert_eq!(strip_marks("\u{200c}は"), "は");
-        assert_eq!(strip_marks("こんにち\u{200c}は"), "こんにちは");
-    }
-
-    #[test]
-    fn reshape_senses_strips_decoration_and_carries_info_and_field() {
-        // Real 世界 senses: plain entry, then one with {Buddh} field + info note.
-        let input = [
-            json!({ "pos": "[n]", "gloss": "the world; society; the universe" }),
-            json!({
-                "pos": "[n]",
-                "gloss": "realm governed by one Buddha; space",
-                "field": "{Buddh}",
-                "info": "original meaning"
-            }),
-        ];
-        let senses = reshape_senses(&input);
-
-        assert_eq!(senses.len(), 2);
-        assert_eq!(senses[0].pos, "n");
-        assert_eq!(senses[0].gloss, "the world; society; the universe");
-        assert_eq!(senses[0].info, None);
-        assert_eq!(senses[0].field, None);
-
-        assert_eq!(senses[1].pos, "n");
-        assert_eq!(senses[1].field.as_deref(), Some("Buddh"));
-        assert_eq!(senses[1].info.as_deref(), Some("original meaning"));
-    }
-
-    #[test]
-    fn reshape_senses_keeps_multi_tag_pos_intact() {
-        // Only the surrounding brackets are stripped; the comma list stays.
-        let input = [json!({ "pos": "[n,adv]", "gloss": "today; this day" })];
-        assert_eq!(reshape_senses(&input)[0].pos, "n,adv");
-    }
-
-    #[test]
-    fn first_sense_pos_takes_the_first_comma_segment_of_the_first_sense() {
-        let senses = [
-            V2Sense {
-                pos: "n,adv".to_owned(),
-                gloss: "today; this day".to_owned(),
-                info: None,
-                field: None,
-            },
-            V2Sense {
-                pos: "pn".to_owned(),
-                gloss: "she; her".to_owned(),
-                info: None,
-                field: None,
-            },
-        ];
-        assert_eq!(first_sense_pos(&senses).as_deref(), Some("n"));
-        assert_eq!(first_sense_pos(&[]), None);
-    }
-
-    #[test]
-    fn strip_value_prefix_removes_the_counter_value_label() {
-        // v1 counters arrive as "Value: 35"; v2 exposes the bare number.
-        assert_eq!(strip_value_prefix("Value: 35"), "35");
-        assert_eq!(strip_value_prefix("35"), "35");
-    }
-
-    #[test]
-    fn single_seq_only_resolves_a_single_sequence() {
-        assert_eq!(single_seq(&Some(WordInfoSeq::Single(1358280))), Some(1358280));
-        assert_eq!(single_seq(&None), None);
-    }
-
-    fn method() -> KaniRomanizeMethod<'static> {
-        KaniRomanizeMethod::Method(RomanizationMethod::TraditionalHepburn(hepburn_traditional()))
-    }
-
-    /// The `pos` of every word in a rendered document, in order.
-    fn word_pos(document: &str) -> Vec<Option<String>> {
-        let value: Value = serde_json::from_str(document).unwrap();
-        value["words"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|word| word["pos"].as_str().map(str::to_owned))
-            .collect()
-    }
-
-    #[test]
-    fn v2_minimal_populates_pos_for_unconjugated_words() {
-        // Regression: v2-minimal left `pos` null on every unconjugated word,
-        // because it derives pos from senses and Minimal skips gloss fetches.
-        // 食べたい = 食べ (conjugated — pos from the conjugation step) + たい
-        // (a suffix, unconjugated — pos comes from its first sense). Minimal
-        // now fetches the pos alone, so both words carry one and it matches Full.
-        let ctx = crate::test_support::shared_ctx();
-        let minimal = render(&ctx, "食べたい", method(), 1, Detail::Minimal, false).unwrap();
-        let full = render(&ctx, "食べたい", method(), 1, Detail::Full, false).unwrap();
-
-        let minimal_pos = word_pos(&minimal);
-        assert_eq!(
-            minimal_pos,
-            vec![Some("v1".to_owned()), Some("aux-adj".to_owned())],
-        );
-        assert_eq!(minimal_pos, word_pos(&full));
-    }
-
-    /// The surface text of every word in a rendered document, in order.
-    fn word_texts(value: &Value) -> Vec<String> {
-        value["words"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|word| word["text"].as_str().unwrap().to_owned())
-            .collect()
-    }
-
-    #[test]
-    fn v2_tied_alternatives_collapse_into_one_word() {
-        // Regression: a span with several tied dictionary entries (an
-        // `alternative` wrapper) was exploded as a bogus compound — the same
-        // surface repeated as separate words with fabricated, overlapping spans
-        // and a shared compound_id. It must collapse into one word whose ties
-        // live in `alternatives`.
-        let ctx = crate::test_support::shared_ctx();
-
-        // Kana homophones: がくせい = 学生 (1206900) and 学制 (1761180). Before
-        // the fix, がくせい appeared twice; the second ran to char 12 in a
-        // 10-char input.
-        let document = render(&ctx, "わたしはがくせいです", method(), 1, Detail::Full, false).unwrap();
-        let value: Value = serde_json::from_str(&document).unwrap();
-        assert_eq!(word_texts(&value), ["わたし", "は", "がくせい", "です"]);
-
-        let gakusei = &value["words"][2];
-        assert_eq!(gakusei["seq"].as_i64(), Some(1206900));
-        assert_eq!(gakusei["start"].as_u64(), Some(4));
-        assert_eq!(gakusei["end"].as_u64(), Some(8));
-        assert!(gakusei["compound_id"].is_null());
-        let alts = gakusei["alternatives"].as_array().unwrap();
-        assert_eq!(alts.len(), 1);
-        assert_eq!(alts[0]["seq"].as_i64(), Some(1761180));
-
-        // No span may run past the input — catches the old advancing offsets.
-        let input_len = value["text"].as_str().unwrap().chars().count() as u64;
-        for word in value["words"].as_array().unwrap() {
-            assert!(word["end"].as_u64().unwrap() <= input_len);
-        }
-
-        // v2-minimal collapses the tie too (it just omits `alternatives`).
-        let minimal = render(&ctx, "わたしはがくせいです", method(), 1, Detail::Minimal, false).unwrap();
-        let minimal: Value = serde_json::from_str(&minimal).unwrap();
-        assert_eq!(word_texts(&minimal), ["わたし", "は", "がくせい", "です"]);
-
-        // Not kana-specific: 一日 is a kanji homograph — いちにち (1576260) /
-        // ついたち (2225040) — and collapses the same way.
-        let document = render(&ctx, "一日", method(), 1, Detail::Full, false).unwrap();
-        let value: Value = serde_json::from_str(&document).unwrap();
-        let words = value["words"].as_array().unwrap();
-        assert_eq!(words.len(), 1);
-        assert_eq!(words[0]["seq"].as_i64(), Some(1576260));
-        assert!(words[0]["compound_id"].is_null());
-        let alts = words[0]["alternatives"].as_array().unwrap();
-        assert_eq!(alts.len(), 1);
-        assert_eq!(alts[0]["seq"].as_i64(), Some(2225040));
-    }
+/// `"[ichi1][news2][nf25]"` → `["ichi1", "news2", "nf25"]`; empty → empty.
+fn parse_common_tags(raw: &str) -> Vec<String> {
+    raw.split(['[', ']'])
+        .filter(|tag| !tag.is_empty())
+        .map(str::to_owned)
+        .collect()
 }
+
+/// Invert the `"; "` gloss join into one string per gloss.
+fn split_glosses(joined: &str) -> Vec<String> {
+    if joined.is_empty() {
+        return Vec::new();
+    }
+    joined.split("; ").map(str::to_owned).collect()
+}
+
+#[cfg(test)]
+mod tests;

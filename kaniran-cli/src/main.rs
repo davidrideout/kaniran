@@ -71,13 +71,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = join(" ", &options.input);
     // The pipeline runs once inside `render`; the format picks the rendering.
     // `include_paths = true` keeps the CLI's all-readings v2 output (the HTTP
-    // API defaults it off).
+    // API defaults it off); `include_entries = true` matches the API default.
     let output = render(
         &ctx,
         &input,
         method,
         options.resolved_format(),
         options.limit,
+        true,
         true,
     )?;
     print!("{output}");

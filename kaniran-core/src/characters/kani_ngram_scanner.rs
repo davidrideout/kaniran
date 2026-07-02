@@ -71,4 +71,56 @@ impl KaniNgramScanner {
             })
             .into_owned()
     }
+
+    /// [`Self::simplify`] with provenance: alongside the rewritten string,
+    /// returns one `(source_start, source_end)` char range per output char,
+    /// naming the input chars it came from. Replacement chars all carry their
+    /// whole match's range (`、` → `", "` gives both output chars the `、`
+    /// range); passthrough chars carry their own one-char range. Both walks
+    /// visit the same leftmost-first match sequence, so the string returned
+    /// here equals `simplify`'s byte for byte.
+    pub fn simplify_spanned(&self, s: &str) -> (String, Vec<(usize, usize)>) {
+        fn push_verbatim(
+            run: &str,
+            out: &mut String,
+            spans: &mut Vec<(usize, usize)>,
+            char_pos: &mut usize,
+        ) {
+            for ch in run.chars() {
+                out.push(ch);
+                spans.push((*char_pos, *char_pos + 1));
+                *char_pos += 1;
+            }
+        }
+
+        let mut out = String::new();
+        let mut spans: Vec<(usize, usize)> = Vec::new();
+        let mut char_pos = 0usize;
+
+        let Some(regex) = &self.regex else {
+            push_verbatim(s, &mut out, &mut spans, &mut char_pos);
+            return (out, spans);
+        };
+
+        let mut last_byte = 0usize;
+        for hit in regex.find_iter(s) {
+            let hit = hit.expect("alternation match never errors");
+            push_verbatim(&s[last_byte..hit.start()], &mut out, &mut spans, &mut char_pos);
+            let matched_len = hit.as_str().chars().count();
+            let replacement = self
+                .table
+                .iter()
+                .find(|(from, _)| from.as_str() == hit.as_str())
+                .map(|(_, to)| to.as_str())
+                .unwrap_or_default();
+            for ch in replacement.chars() {
+                out.push(ch);
+                spans.push((char_pos, char_pos + matched_len));
+            }
+            char_pos += matched_len;
+            last_byte = hit.end();
+        }
+        push_verbatim(&s[last_byte..], &mut out, &mut spans, &mut char_pos);
+        (out, spans)
+    }
 }

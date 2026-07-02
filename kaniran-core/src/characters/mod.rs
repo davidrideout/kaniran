@@ -5,6 +5,7 @@
 pub mod kani_char_class_bare_scanners;
 pub mod kani_kana_class;
 pub mod kani_ngram_scanner;
+pub mod kani_spanned_normalize;
 pub mod char_class;
 pub mod kana;
 pub mod kanji;

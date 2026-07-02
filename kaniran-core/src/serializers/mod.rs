@@ -43,8 +43,9 @@ pub enum Format {
 /// Render `input` in the chosen `format`, returning the string to print.
 ///
 /// `limit` is the segmentation beam width; it only affects the JSON formats.
-/// `include_paths` toggles the v2 `paths` array (every kept reading); it only
-/// affects `v2` / `v2-minimal`.
+/// `include_paths` toggles the v2 `paths` array (every kept reading);
+/// `include_entries` toggles the v2 `entries` table. Both only affect
+/// `v2` / `v2-minimal` (`v2-minimal` never renders entries).
 ///
 /// # Errors
 ///
@@ -56,14 +57,23 @@ pub fn render(
     format: Format,
     limit: usize,
     include_paths: bool,
+    include_entries: bool,
 ) -> Result<String, Box<dyn Error>> {
     match format {
         Format::Romanize => romanize::render(ctx, input, method),
         Format::RomanizeInfo => romanize::render_with_info(ctx, input, method),
         Format::V1 => json_v1::render(ctx, input, method, limit),
-        Format::V2 => json_v2::render(ctx, input, method, limit, Detail::Full, include_paths),
+        Format::V2 => json_v2::render(
+            ctx,
+            input,
+            method,
+            limit,
+            Detail::Full,
+            include_paths,
+            include_entries,
+        ),
         Format::V2Minimal => {
-            json_v2::render(ctx, input, method, limit, Detail::Minimal, include_paths)
+            json_v2::render(ctx, input, method, limit, Detail::Minimal, include_paths, false)
         }
     }
 }
