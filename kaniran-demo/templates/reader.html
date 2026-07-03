@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="layout">
+  <section class="reader">
+    <form id="analyzeForm" class="input-area" method="post" action="/">
+      <textarea id="textInput" name="q" spellcheck="false"
+        placeholder="ここに日本語を貼り付けてください…">{{ view.text }}</textarea>
+      <div class="input-actions">
+        <button id="analyzeBtn" type="submit">Analyze</button>
+        <span class="hint">⌘/Ctrl + Enter</span>
+        <span id="status" class="status"></span>
+      </div>
+    </form>
+    {#- The gear and popup live outside #output: the re-analyze swap replaces
+        #output's children, and these must survive it. -#}
+    <div class="output-wrap">
+      <button id="displayBtn" class="gear-btn" type="button"
+        aria-label="Display options" aria-expanded="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+      <div id="displayMenu" class="display-menu" hidden>
+        <label class="toggle"><input type="checkbox" id="optFurigana" checked> Furigana</label>
+        <label class="toggle"><input type="checkbox" id="optGloss" checked> Glosses under words</label>
+        <label class="toggle"><input type="checkbox" id="optSpaces"> Spaces between words</label>
+        <label class="toggle"><input type="checkbox" id="optShowParticles"> Show particle glosses</label>
+      </div>
+      <article id="output" class="output" aria-live="polite">{% include "_output.html" %}</article>
+    </div>
+  </section>
+
+  <aside class="sidebar">
+    {#- data-* carry the parse numbers for the status line next to the
+        Analyze button; app.js reads them off the freshly fetched region. -#}
+    <div id="stats" class="stats" data-words="{{ view.word_count }}"
+      data-parse-ms="{{ view.parse_ms }}">{% include "_stats.html" %}</div>
+  </aside>
+</main>
+{% endblock %}

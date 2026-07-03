@@ -80,161 +80,161 @@ impl Default for V2Options {
 /// and the search kept more than one reading; all paths share the one
 /// entries table.
 #[derive(Debug, Clone, Serialize)]
-struct V2Document {
-    text: String,
-    romanization: String,
-    score: i32,
-    tokens: Vec<V2Token>,
+pub struct V2Document {
+    pub text: String,
+    pub romanization: String,
+    pub score: i32,
+    pub tokens: Vec<V2Token>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    entries: Option<BTreeMap<i32, V2Entry>>,
+    pub entries: Option<BTreeMap<i32, V2Entry>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    paths: Option<Vec<V2Path>>,
+    pub paths: Option<Vec<V2Path>>,
 }
 
 /// One full segmentation reading. `paths[0]` equals the top-level best path.
 #[derive(Debug, Clone, Serialize)]
-struct V2Path {
-    score: i32,
-    romanization: String,
-    tokens: Vec<V2Token>,
+pub struct V2Path {
+    pub score: i32,
+    pub romanization: String,
+    pub tokens: Vec<V2Token>,
 }
 
 /// One token — a word or a gap — in a segmentation path. Absent means
 /// empty: null/empty/false fields are omitted, so a gap token is three keys
 /// and a particle five.
 #[derive(Debug, Clone, Default, Serialize)]
-struct V2Token {
-    text: String,
+pub struct V2Token {
+    pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    reading: Option<String>,
-    romanization: String,
+    pub reading: Option<String>,
+    pub romanization: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    furigana: Vec<V2Furigana>,
+    pub furigana: Vec<V2Furigana>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    entry: Option<i32>,
+    pub entry: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    score: Option<i32>,
+    pub score: Option<i32>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    conjugation: Vec<V2Analysis>,
+    pub conjugation: Vec<V2Analysis>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    compound: Option<u32>,
+    pub compound: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    suffix: Option<V2Suffix>,
+    pub suffix: Option<V2Suffix>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    counter: Option<V2Counter>,
+    pub counter: Option<V2Counter>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    alternatives: Vec<V2Alternative>,
+    pub alternatives: Vec<V2Alternative>,
     #[serde(skip_serializing_if = "is_false")]
-    gap: bool,
+    pub gap: bool,
 }
 
 /// One ruby segment: `reading` is present only over kanji runs, and the
 /// segment `text`s concatenate to the owning token's (or form's) text.
 #[derive(Debug, Clone, Serialize)]
-struct V2Furigana {
-    text: String,
+pub struct V2Furigana {
+    pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    reading: Option<String>,
+    pub reading: Option<String>,
 }
 
 /// One conjugation analysis: the root entry plus the ordered steps that
 /// produce the surface form. `base_reading` is the specific root reading
 /// this derivation used — not derivable from the entry's form list.
 #[derive(Debug, Clone, Serialize)]
-struct V2Analysis {
-    entry: i32,
-    steps: Vec<V2Step>,
+pub struct V2Analysis {
+    pub entry: i32,
+    pub steps: Vec<V2Step>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    base_form: Option<String>,
+    pub base_form: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    base_reading: Option<String>,
-    description: String,
+    pub base_reading: Option<String>,
+    pub description: String,
     #[serde(skip_serializing_if = "is_true")]
-    reading_matched: bool,
+    pub reading_matched: bool,
 }
 
 /// One conjugation step. `steps[0]` applies to the dictionary form; the last
 /// step produces the surface form.
 #[derive(Debug, Clone, Serialize)]
-struct V2Step {
-    form: String,
-    pos: String,
+pub struct V2Step {
+    pub form: String,
+    pub pos: String,
     #[serde(skip_serializing_if = "is_false")]
-    negative: bool,
+    pub negative: bool,
     #[serde(skip_serializing_if = "is_false")]
-    formal: bool,
+    pub formal: bool,
 }
 
 /// The suffix grammar that matched a compound member: machine `class` plus
 /// the display description.
 #[derive(Debug, Clone, Serialize)]
-struct V2Suffix {
+pub struct V2Suffix {
     #[serde(skip_serializing_if = "Option::is_none")]
-    class: Option<String>,
-    description: String,
+    pub class: Option<String>,
+    pub description: String,
 }
 
 /// Number+counter info, with v1's `"Value: "` prefix stripped.
 #[derive(Debug, Clone, Serialize)]
-struct V2Counter {
-    value: String,
+pub struct V2Counter {
+    pub value: String,
     #[serde(skip_serializing_if = "is_false")]
-    ordinal: bool,
+    pub ordinal: bool,
 }
 
 /// A dictionary analysis tied at the same span as the winning token — a slim
 /// reference, not a nested token. Carries its own score, not the winner's.
 #[derive(Debug, Clone, Serialize)]
-struct V2Alternative {
+pub struct V2Alternative {
     #[serde(skip_serializing_if = "Option::is_none")]
-    entry: Option<i32>,
-    score: i32,
-    reading: String,
-    romanization: String,
+    pub entry: Option<i32>,
+    pub score: i32,
+    pub reading: String,
+    pub romanization: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    conjugation: Vec<V2Analysis>,
+    pub conjugation: Vec<V2Analysis>,
 }
 
 /// One dictionary entry: its writings, readings, and senses, in JMdict order.
 #[derive(Debug, Clone, Serialize)]
-struct V2Entry {
+pub struct V2Entry {
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    kanji: Vec<V2Form>,
-    kana: Vec<V2Form>,
-    senses: Vec<V2Sense>,
+    pub kanji: Vec<V2Form>,
+    pub kana: Vec<V2Form>,
+    pub senses: Vec<V2Sense>,
 }
 
 /// One writing or reading of an entry. `common` is JMdict priority data:
 /// `0` = common but unranked, `1`–`48` = newspaper frequency bucket.
 #[derive(Debug, Clone, Serialize)]
-struct V2Form {
-    text: String,
+pub struct V2Form {
+    pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    common: Option<i32>,
+    pub common: Option<i32>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    tags: Vec<String>,
+    pub tags: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    furigana: Vec<V2Furigana>,
+    pub furigana: Vec<V2Furigana>,
 }
 
 /// One sense. `restrict_kanji`/`restrict_kana` name the forms the sense
 /// applies to (JMdict `stagk`/`stagr`); absent = all forms.
 #[derive(Debug, Clone, Serialize)]
-struct V2Sense {
-    pos: Vec<String>,
-    gloss: Vec<String>,
+pub struct V2Sense {
+    pub pos: Vec<String>,
+    pub gloss: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    info: Option<String>,
+    pub info: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    misc: Vec<String>,
+    pub misc: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    field: Vec<String>,
+    pub field: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    dial: Vec<String>,
+    pub dial: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    restrict_kanji: Vec<String>,
+    pub restrict_kanji: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    restrict_kana: Vec<String>,
+    pub restrict_kana: Vec<String>,
 }
 
 fn is_false(flag: &bool) -> bool {
@@ -252,7 +252,7 @@ fn is_true(flag: &bool) -> bool {
 /// `include_paths` and a genuinely ambiguous input, every kept reading is
 /// rendered into `paths`. Entry ids are collected across all rendered paths
 /// and resolved once into `entries` (Full only).
-fn to_v2<P>(
+pub(super) fn to_v2<P>(
     ctx: &KaniranContext,
     text: &str,
     segments: &[RomanizeStarSegment<P>],

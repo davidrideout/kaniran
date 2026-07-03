@@ -18,7 +18,10 @@ use crate::conn::KaniDbError;
 use crate::core::kani_romanize_method::KaniRomanizeMethod;
 use crate::core::romanize::{romanize_star_, RomanizeStarSegment};
 
-pub use json_v2::V2Options;
+pub use json_v2::{
+    V2Alternative, V2Analysis, V2Counter, V2Document, V2Entry, V2Form, V2Furigana, V2Options,
+    V2Path, V2Sense, V2Step, V2Suffix, V2Token,
+};
 
 /// One output flavor, as selected by `--format` (or the legacy `-i` / `-f`).
 ///
@@ -62,6 +65,24 @@ pub fn render(
         Format::V1 => json_v1::render(ctx, input, method, limit),
         Format::V2 => json_v2::render(ctx, input, method, limit, options),
     }
+}
+
+/// Build the typed v2 document ([`V2Document`]) instead of its JSON string —
+/// for in-process consumers (the web demo) that render the same view-model
+/// through templates rather than over the wire.
+///
+/// # Errors
+///
+/// Propagates backend errors from segmentation and entry resolution.
+pub fn v2_document(
+    ctx: &KaniranContext,
+    input: &str,
+    method: KaniRomanizeMethod<'_>,
+    limit: usize,
+    options: V2Options,
+) -> Result<V2Document, KaniDbError> {
+    let segments = segment(ctx, input, method, limit)?;
+    json_v2::to_v2(ctx, input, &segments, method, options)
 }
 
 /// Run the segmentation pipeline once. Shared by the JSON serializers, which

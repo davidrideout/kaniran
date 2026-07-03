@@ -1,0 +1,30 @@
+[package]
+name = "kaniran-demo"
+description = "Server-rendered web demo for kaniran — annotated Japanese reader (axum + minijinja)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+# Default features pull in the rkyv backend, so the server is fully
+# synchronous and reuses one memory-mapped dictionary across requests.
+kaniran-core = { path = "../kaniran-core" }
+
+axum = "0.8"
+tokio = { workspace = true, features = ["net", "signal"] }
+tower-http = { version = "0.6", features = ["fs", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+envconfig = "0.11"
+anyhow = "1"
+
+# Runtime Jinja templates; the autoreload wrapper re-parses on file change so
+# template edits show on refresh without a rebuild.
+minijinja = { version = "2", features = ["loader"] }
+minijinja-autoreload = "2"
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+mimalloc = { workspace = true }

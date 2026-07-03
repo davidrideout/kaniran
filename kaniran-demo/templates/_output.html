@@ -1,0 +1,19 @@
+{#- The annotated token stream. Whitespace between word cells is meaningful
+    (inline layout), so tags trim aggressively; gap tokens render verbatim
+    inside a pre-wrap span. -#}
+{%- for chunk in view.chunks -%}
+  {%- if chunk.compound -%}
+    <span class="compound">
+      {%- for token in chunk.tokens -%}
+        {%- include "_word.html" -%}
+      {%- endfor -%}
+    </span>
+  {%- else -%}
+    {%- set token = chunk.tokens[0] -%}
+    {%- if token.gap -%}
+      <span class="misc">{{ token.text }}</span>
+    {%- else -%}
+      {%- include "_word.html" -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endfor -%}

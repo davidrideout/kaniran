@@ -1,0 +1,333 @@
+:root {
+  /* Warm "paper" neutrals */
+  --bg: #fbf4ea;
+  --panel: #fffdf9;
+  --ink: #36291f;
+  --muted: #a3917f;
+  --line: #ece0d0;
+
+  /* Rust-crab accents: Ferris coral, with rusty-brown for depth */
+  --crab: #d24a31;
+  --crab-deep: #b7410e;
+  --crab-soft: #fbe7df;
+
+  --radius: 14px;
+  --shadow: 0 6px 20px rgba(120, 72, 40, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 600px at 80% -10%, #fdeee0 0%, rgba(253, 238, 224, 0) 60%),
+    var(--bg);
+  min-height: 100vh;
+}
+
+/* ---- top bar: light & friendly, not a saturated band ---- */
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  padding: 1rem 1.5rem;
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--crab);
+}
+.nav { display: flex; gap: 0.6rem; }
+.nav a {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+}
+.nav a.active { color: var(--crab-deep); background: var(--crab-soft); }
+.tagline { font-size: 0.85rem; color: var(--muted); margin-left: auto; }
+
+/* ---- layout ---- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1.5rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+/* ---- input ---- */
+.input-area { margin-bottom: 1.3rem; }
+#textInput {
+  width: 100%;
+  min-height: 6.5rem;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  line-height: 1.6;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  resize: vertical;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+#textInput:focus {
+  outline: none;
+  border-color: var(--crab);
+  box-shadow: 0 0 0 3px var(--crab-soft);
+}
+.input-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 0.7rem;
+}
+#analyzeBtn {
+  padding: 0.55rem 1.5rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--crab);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(210, 74, 49, 0.3);
+  transition: background 0.15s, transform 0.05s;
+}
+#analyzeBtn:hover { background: var(--crab-deep); }
+#analyzeBtn:active { transform: translateY(1px); }
+#analyzeBtn:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
+.hint { font-size: 0.75rem; color: var(--muted); }
+.status { font-size: 0.8rem; color: var(--muted); margin-left: auto; }
+
+/* ---- display-options popup: gear pinned to the output box's top right ---- */
+.output-wrap { position: relative; }
+.gear-btn {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 5;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.gear-btn:hover,
+.gear-btn[aria-expanded="true"] {
+  color: var(--crab);
+  background: var(--crab-soft);
+}
+.display-menu {
+  position: absolute;
+  top: 2.7rem;
+  right: 0.6rem;
+  z-index: 20;
+  min-width: 230px;
+  padding: 0.55rem 0.9rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 28px rgba(120, 72, 40, 0.18);
+}
+.display-menu[hidden] { display: none; }
+
+/* ---- reading output: NHK-News-style article body on a paper card ----
+   Noto Sans JP (loaded from Google Fonts in base.html), with Hiragino as
+   the local fallback. Color/size/leading follow NHK's article body. */
+.output {
+  font-family: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    Meiryo, sans-serif;
+  font-size: 1.9rem;
+  line-height: 1.75;
+  color: #333;
+  min-height: 5rem;
+  padding: 1.2rem 1.4rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* Each word is a vertical cell: furigana (ruby rt) on top, the surface in
+   the middle (the ruby base), and the first gloss underneath. */
+.word {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: top;
+  margin: 0 0.02em 0.15em;
+  padding: 0 0.08em;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.word:hover { background: var(--crab-soft); }
+body.show-spaces .word { margin-left: 0.16em; margin-right: 0.16em; }
+
+.ruby-line { white-space: nowrap; }
+ruby rt {
+  font-size: 0.5em;
+  color: #666;
+  font-weight: 400;
+  user-select: none;
+  line-height: 1.1;
+}
+.wgloss {
+  display: block;
+  max-width: 11em;
+  /* Exactly one line tall and pulled up by that height, so the gloss adds
+     nothing to the word cell — it paints in the leading the ruby line's
+     line-height (1.75) leaves under the base text, which at these font
+     sizes is almost exactly one gloss line. Showing/hiding glosses can
+     therefore reflow horizontally but never moves a line vertically. */
+  height: 1.2em;
+  margin-top: -1.2em;
+  font-size: 0.6rem;
+  line-height: 1.2;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.word.particle .ruby-line { color: #c06a4a; }
+.misc { white-space: pre-wrap; }
+
+/* A compound's members are separate word cells; the group underline makes
+   them read as one word. */
+.compound {
+  display: inline-flex;
+  vertical-align: top;
+  border-bottom: 2px solid var(--crab-soft);
+  border-radius: 0 0 5px 5px;
+}
+
+/* display toggles (classes flipped on <body>) */
+/* visibility (not display) keeps the rt's space reserved, so toggling
+   furigana never reflows the article — NHK News Easy behaves the same. */
+body.hide-furigana ruby rt { visibility: hidden; }
+/* Glosses take no vertical space (see .wgloss), so display:none here only
+   narrows the word cells — hiding/showing shifts nothing vertically. */
+body.hide-gloss .wgloss { display: none; }
+/* Particles are well-known, so this hides only their gloss line — the
+   word itself (and its furigana) stays visible. */
+body.hide-particles .word.particle .wgloss { display: none; }
+
+/* ---- sidebar ---- */
+.sidebar { display: flex; flex-direction: column; gap: 1.1rem; }
+.stats { display: flex; flex-direction: column; gap: 1.1rem; }
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  box-shadow: var(--shadow);
+}
+.panel h2 {
+  margin: 0 0 0.7rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.panel h2 .sub { font-weight: 400; color: var(--muted); font-size: 0.78rem; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; }
+.panel-head h2 { margin-bottom: 0.7rem; }
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.3rem 0;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.toggle input { accent-color: var(--crab); width: 1rem; height: 1rem; }
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 0.7rem;
+}
+.segmented button {
+  border: none;
+  background: var(--panel);
+  padding: 0.28rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  color: var(--ink);
+}
+/* The active mode is a class on <body> (wk-mode), not on the buttons, so
+   the state survives region swaps. */
+body:not(.wk-mode) .segmented button[data-mode="grade"],
+body.wk-mode .segmented button[data-mode="wk"] {
+  background: var(--crab);
+  color: #fff;
+}
+
+/* Both kanji histograms are server-rendered; wk-mode picks one. The doubled
+   class outranks the plain `.hist { display: flex }` base rule. */
+.hist.hist-wk { display: none; }
+body.wk-mode .hist.hist-wk { display: flex; }
+body.wk-mode .hist.hist-grade { display: none; }
+
+/* ---- histograms ---- */
+.hist { display: flex; flex-direction: column; gap: 0.34rem; }
+.bar-row { display: grid; grid-template-columns: 4em 1fr 2em; align-items: center; gap: 0.5rem; }
+.bar-label { font-size: 0.78rem; color: var(--ink); white-space: nowrap; }
+.bar-track { height: 0.85rem; background: #f1e7da; border-radius: 999px; overflow: hidden; }
+.bar-fill { display: block; height: 100%; background: var(--crab); border-radius: 999px; min-width: 3px; }
+/* JLPT difficulty ramp, warmed to sit with the paper palette */
+.bar-fill.lvl5 { background: #7aae72; }
+.bar-fill.lvl4 { background: #a9bd58; }
+.bar-fill.lvl3 { background: #e3b14e; }
+.bar-fill.lvl2 { background: #e1854a; }
+.bar-fill.lvl1 { background: #cc4b37; }
+.bar-fill.none { background: #d8cabb; }
+.bar-count { font-size: 0.74rem; color: var(--muted); text-align: right; }
+.hist-empty { font-size: 0.8rem; color: var(--muted); }
+
+/* ---- tooltip ---- */
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  max-width: 320px;
+  background: #2e2620;
+  color: #faf3ea;
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  box-shadow: 0 12px 30px rgba(46, 38, 32, 0.35);
+}
+.tooltip[hidden] { display: none; }
+.tt-head { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.1rem; }
+.tt-sub { font-size: 0.78rem; color: #d8c7b6; margin-bottom: 0.45rem; }
+.tt-sense { margin: 0.25rem 0; }
+.tt-pos { color: #f0a98c; font-size: 0.72rem; }
+.tt-info { color: #b8a795; font-style: italic; font-size: 0.78rem; }
+.tt-more { margin-top: 0.35rem; color: #b8a795; font-style: italic; font-size: 0.74rem; }
+.tt-conj { margin-top: 0.35rem; font-size: 0.78rem; color: #e8d5c2; }
+.tt-tags { margin-top: 0.5rem; font-size: 0.72rem; color: #d8c7b6; }

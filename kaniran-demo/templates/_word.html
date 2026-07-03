@@ -1,0 +1,46 @@
+{#- One word cell: furigana line, surface, under-word gloss, plus the
+    pre-rendered tooltip body in an inert <template> the client script
+    clones on click. Expects `token` in context. -#}
+<span class="word{% if token.is_particle %} particle{% endif %}">
+  <span class="ruby-line">
+    {%- for cell in token.furigana -%}
+      {%- if cell.reading -%}
+        <ruby>{{ cell.text }}<rt>{{ cell.reading }}</rt></ruby>
+      {%- else -%}
+        {{ cell.text }}
+      {%- endif -%}
+    {%- endfor -%}
+  </span>
+  <span class="wgloss">{% if token.gloss %}{{ token.gloss }}{% endif %}</span>
+  <template class="tt">
+    <div class="tt-head">{{ token.text }}</div>
+    {%- if token.reading or token.romanization -%}
+    <div class="tt-sub">
+      {%- if token.reading %}{{ token.reading }}{% if token.romanization %}  ·  {% endif %}{% endif -%}
+      {{- token.romanization -}}
+    </div>
+    {%- endif -%}
+    {%- for sense in token.senses -%}
+    <div class="tt-sense">
+      {%- if sense.pos %}<span class="tt-pos">[{{ sense.pos }}] </span>{% endif -%}
+      {{- sense.gloss -}}
+      {%- if sense.info %}<span class="tt-info"> — {{ sense.info }}</span>{% endif -%}
+    </div>
+    {%- endfor -%}
+    {%- if token.extra_senses -%}
+    <div class="tt-more">+{{ token.extra_senses }} more senses</div>
+    {%- endif -%}
+    {%- for conj in token.conjugation -%}
+    <div class="tt-conj">{{ conj.description }}{% if conj.base %} of {{ conj.base }}{% endif %}</div>
+    {%- endfor -%}
+    {%- if token.suffix -%}
+    <div class="tt-conj">suffix: {{ token.suffix }}</div>
+    {%- endif -%}
+    {%- if token.jlpt or token.seq -%}
+    <div class="tt-tags">
+      {%- if token.jlpt %}JLPT N{{ token.jlpt }}{% if token.seq %}  ·  {% endif %}{% endif -%}
+      {%- if token.seq %}seq {{ token.seq }}{% endif -%}
+    </div>
+    {%- endif -%}
+  </template>
+</span>

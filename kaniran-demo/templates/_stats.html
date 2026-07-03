@@ -1,0 +1,46 @@
+{#- Sidebar statistics, fully server-rendered. Both kanji histograms are in
+    the page; the `wk-mode` class on <body> picks which one shows. -#}
+<div class="panel">
+  <h2>JLPT <span class="sub">by word</span></h2>
+  <div class="hist">
+    {%- for row in view.jlpt_rows %}
+    <div class="bar-row">
+      <span class="bar-label">{{ row.label }}</span>
+      <span class="bar-track"><span class="bar-fill {{ row.class }}" style="width: {{ row.percent }}%"></span></span>
+      <span class="bar-count">{{ row.count }}</span>
+    </div>
+    {%- endfor %}
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <h2>Kanji</h2>
+    <div class="segmented" id="kanjiMode">
+      <button type="button" data-mode="grade">Jōyō grade</button>
+      <button type="button" data-mode="wk">WaniKani</button>
+    </div>
+  </div>
+  <div class="hist hist-grade">
+    {%- for row in view.grade_rows %}
+    <div class="bar-row">
+      <span class="bar-label">{{ row.label }}</span>
+      <span class="bar-track"><span class="bar-fill {{ row.class }}" style="width: {{ row.percent }}%"></span></span>
+      <span class="bar-count">{{ row.count }}</span>
+    </div>
+    {%- else %}
+    <div class="hist-empty">no kanji</div>
+    {%- endfor %}
+  </div>
+  <div class="hist hist-wk">
+    {%- for row in view.wk_rows %}
+    <div class="bar-row">
+      <span class="bar-label">{{ row.label }}</span>
+      <span class="bar-track"><span class="bar-fill {{ row.class }}" style="width: {{ row.percent }}%"></span></span>
+      <span class="bar-count">{{ row.count }}</span>
+    </div>
+    {%- else %}
+    <div class="hist-empty">no kanji</div>
+    {%- endfor %}
+  </div>
+</div>
