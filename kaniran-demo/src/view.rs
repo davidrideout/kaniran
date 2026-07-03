@@ -63,8 +63,8 @@ pub struct TokenView {
     pub furigana: Vec<FuriCell>,
     /// First sense's gloss line, shown under the word.
     pub gloss: Option<String>,
-    /// Senses for the tooltip, capped at [`MAX_TOOLTIP_SENSES`].
-    pub senses: Vec<SenseView>,
+    /// Tooltip definition groups, capped at [`MAX_TOOLTIP_SENSES`] lines total.
+    pub sense_groups: Vec<SenseGroupView>,
     /// How many senses the cap hid.
     pub extra_senses: usize,
     /// Conjugation analyses (root + derivation description), for the tooltip.
@@ -89,10 +89,20 @@ pub struct FuriCell {
     pub reading: Option<String>,
 }
 
-/// One tooltip sense line: `[prt] indicates sentence topic — pronounced わ…`.
+/// One tooltip definition group: a row of part-of-speech chips followed by
+/// the numbered glosses sharing those tags (consecutive senses with the same
+/// tag set collapse into one group, the way JMdict lists them). `start` keeps
+/// the visible numbering continuous across groups.
 #[derive(Debug, Serialize)]
-pub struct SenseView {
-    pub pos: String,
+pub struct SenseGroupView {
+    pub pos: Vec<String>,
+    pub start: usize,
+    pub senses: Vec<SenseLineView>,
+}
+
+/// One numbered gloss line: `indicates sentence topic — pronounced わ…`.
+#[derive(Debug, Serialize)]
+pub struct SenseLineView {
     pub gloss: String,
     pub info: Option<String>,
 }
@@ -195,7 +205,7 @@ fn token_view(token: &V2Token, entries: &BTreeMap<i32, V2Entry>, levels: &Levels
             romanization: token.romanization.clone(),
             furigana: Vec::new(),
             gloss: None,
-            senses: Vec::new(),
+            sense_groups: Vec::new(),
             extra_senses: 0,
             conjugation: Vec::new(),
             suffix: None,
@@ -215,17 +225,10 @@ fn token_view(token: &V2Token, entries: &BTreeMap<i32, V2Entry>, levels: &Levels
         .iter()
         .any(|sense| sense.pos.iter().any(|pos_tag| pos_tag == "prt"));
 
-    let senses: Vec<SenseView> = all_senses
-        .iter()
-        .take(MAX_TOOLTIP_SENSES)
-        .map(|sense| SenseView {
-            pos: sense.pos.join(", "),
-            gloss: sense.gloss.join("; "),
-            info: sense.info.clone(),
-        })
-        .collect();
-    let extra_senses = all_senses.len().saturating_sub(senses.len());
-    let gloss = senses.first().map(|sense| sense.gloss.clone());
+    let shown = &all_senses[..all_senses.len().min(MAX_TOOLTIP_SENSES)];
+    let sense_groups = group_senses(shown);
+    let extra_senses = all_senses.len() - shown.len();
+    let gloss = shown.first().map(|sense| sense.gloss.join("; "));
 
     let conjugation: Vec<ConjView> = token
         .conjugation
@@ -245,7 +248,7 @@ fn token_view(token: &V2Token, entries: &BTreeMap<i32, V2Entry>, levels: &Levels
         gap: false,
         furigana: furigana_cells(token, reading.as_deref()),
         gloss,
-        senses,
+        sense_groups,
         extra_senses,
         conjugation,
         suffix: token
@@ -259,6 +262,27 @@ fn token_view(token: &V2Token, entries: &BTreeMap<i32, V2Entry>, levels: &Levels
         romanization: token.romanization.clone(),
         reading,
     }
+}
+
+/// Fold consecutive senses with identical part-of-speech tags into one
+/// tooltip group; `start` is the 1-based number of the group's first sense.
+fn group_senses(senses: &[V2Sense]) -> Vec<SenseGroupView> {
+    let mut groups: Vec<SenseGroupView> = Vec::new();
+    for (index, sense) in senses.iter().enumerate() {
+        let line = SenseLineView {
+            gloss: sense.gloss.join("; "),
+            info: sense.info.clone(),
+        };
+        match groups.last_mut() {
+            Some(group) if group.pos == sense.pos => group.senses.push(line),
+            _ => groups.push(SenseGroupView {
+                pos: sense.pos.clone(),
+                start: index + 1,
+                senses: vec![line],
+            }),
+        }
+    }
+    groups
 }
 
 /// Ruby cells for a word. The aligned segments come from the v2 document;

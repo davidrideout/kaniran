@@ -12,34 +12,54 @@
     {%- endfor -%}
   </span>
   <span class="wgloss">{% if token.gloss %}{{ token.gloss }}{% endif %}</span>
+  {#- Popup layout follows Yomitan's term card: headword with furigana and
+      badge pills on one row, reading/romaji under it, the deinflection
+      trail, then part-of-speech chips over numbered glosses. -#}
   <template class="tt">
-    <div class="tt-head">{{ token.text }}</div>
+    <div class="tt-head">
+      <span class="tt-term">
+        {%- for cell in token.furigana -%}
+          {%- if cell.reading -%}
+            <ruby>{{ cell.text }}<rt>{{ cell.reading }}</rt></ruby>
+          {%- else -%}
+            {{ cell.text }}
+          {%- endif -%}
+        {%- endfor -%}
+      </span>
+      {%- if token.jlpt %}<span class="tt-pill lvl{{ token.jlpt }}">N{{ token.jlpt }}</span>{% endif -%}
+      {%- if token.seq %}<span class="tt-pill dict">JMdict {{ token.seq }}</span>{% endif -%}
+    </div>
     {%- if token.reading or token.romanization -%}
     <div class="tt-sub">
-      {%- if token.reading %}{{ token.reading }}{% if token.romanization %}  ·  {% endif %}{% endif -%}
+      {%- if token.reading %}{{ token.reading }}{% if token.romanization %} · {% endif %}{% endif -%}
       {{- token.romanization -}}
     </div>
     {%- endif -%}
-    {%- for sense in token.senses -%}
-    <div class="tt-sense">
-      {%- if sense.pos %}<span class="tt-pos">[{{ sense.pos }}] </span>{% endif -%}
-      {{- sense.gloss -}}
-      {%- if sense.info %}<span class="tt-info"> — {{ sense.info }}</span>{% endif -%}
-    </div>
-    {%- endfor -%}
-    {%- if token.extra_senses -%}
-    <div class="tt-more">+{{ token.extra_senses }} more senses</div>
-    {%- endif -%}
     {%- for conj in token.conjugation -%}
-    <div class="tt-conj">{{ conj.description }}{% if conj.base %} of {{ conj.base }}{% endif %}</div>
+    <div class="tt-conj">« {{ conj.description }}{% if conj.base %} of <span class="tt-base">{{ conj.base }}</span>{% endif %}</div>
     {%- endfor -%}
     {%- if token.suffix -%}
-    <div class="tt-conj">suffix: {{ token.suffix }}</div>
+    <div class="tt-conj">« suffix: {{ token.suffix }}</div>
     {%- endif -%}
-    {%- if token.jlpt or token.seq -%}
-    <div class="tt-tags">
-      {%- if token.jlpt %}JLPT N{{ token.jlpt }}{% if token.seq %}  ·  {% endif %}{% endif -%}
-      {%- if token.seq %}seq {{ token.seq }}{% endif -%}
+    {%- if token.sense_groups -%}
+    <div class="tt-defs">
+      {%- for group in token.sense_groups -%}
+      <div class="tt-group">
+        {%- if group.pos -%}
+        <div class="tt-poses">
+          {%- for tag in group.pos %}<span class="tt-pos">{{ tag }}</span>{% endfor -%}
+        </div>
+        {%- endif -%}
+        <ol class="tt-glosses" start="{{ group.start }}">
+          {%- for sense in group.senses -%}
+          <li>{{ sense.gloss }}{% if sense.info %}<span class="tt-info"> — {{ sense.info }}</span>{% endif %}</li>
+          {%- endfor -%}
+        </ol>
+      </div>
+      {%- endfor -%}
+      {%- if token.extra_senses -%}
+      <div class="tt-more">+{{ token.extra_senses }} more senses</div>
+      {%- endif -%}
     </div>
     {%- endif -%}
   </template>

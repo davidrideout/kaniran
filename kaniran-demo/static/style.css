@@ -309,25 +309,81 @@ body.wk-mode .hist.hist-grade { display: none; }
 .bar-count { font-size: 0.74rem; color: var(--muted); text-align: right; }
 .hist-empty { font-size: 0.8rem; color: var(--muted); }
 
-/* ---- tooltip ---- */
+/* ---- word popup ----
+   Yomitan-style dictionary card, restyled onto the paper palette: big
+   headword with furigana and badge pills, reading line, « deinflection
+   trail, then pos chips over numbered glosses. */
 .tooltip {
   position: fixed;
   z-index: 50;
-  max-width: 320px;
-  background: #2e2620;
-  color: #faf3ea;
-  border-radius: 12px;
-  padding: 0.75rem 0.9rem;
+  max-width: 380px;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.8rem 1rem 0.85rem;
   font-size: 0.85rem;
-  line-height: 1.45;
-  box-shadow: 0 12px 30px rgba(46, 38, 32, 0.35);
+  line-height: 1.5;
+  box-shadow: 0 14px 40px rgba(46, 38, 32, 0.2);
 }
 .tooltip[hidden] { display: none; }
-.tt-head { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.1rem; }
-.tt-sub { font-size: 0.78rem; color: #d8c7b6; margin-bottom: 0.45rem; }
-.tt-sense { margin: 0.25rem 0; }
-.tt-pos { color: #f0a98c; font-size: 0.72rem; }
-.tt-info { color: #b8a795; font-style: italic; font-size: 0.78rem; }
-.tt-more { margin-top: 0.35rem; color: #b8a795; font-style: italic; font-size: 0.74rem; }
-.tt-conj { margin-top: 0.35rem; font-size: 0.78rem; color: #e8d5c2; }
-.tt-tags { margin-top: 0.5rem; font-size: 0.72rem; color: #d8c7b6; }
+
+.tt-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.tt-term {
+  font-family: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    Meiryo, sans-serif;
+  font-size: 1.65rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.tt-term ruby rt { font-size: 0.42em; font-weight: 400; color: var(--muted); }
+
+/* Badge pills on the head row: JLPT level (histogram ramp colors) and the
+   JMdict sequence. */
+.tt-pill {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--muted);
+  white-space: nowrap;
+}
+.tt-pill.lvl5 { background: #7aae72; }
+.tt-pill.lvl4 { background: #a9bd58; }
+.tt-pill.lvl3 { background: #e3b14e; }
+.tt-pill.lvl2 { background: #e1854a; }
+.tt-pill.lvl1 { background: #cc4b37; }
+.tt-pill.dict { background: #f1e7da; color: #8a7460; }
+
+.tt-sub { font-size: 0.78rem; color: var(--muted); }
+
+.tt-conj { margin-top: 0.3rem; font-size: 0.78rem; color: var(--crab-deep); }
+.tt-conj .tt-base { font-weight: 600; }
+
+.tt-defs {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--line);
+}
+.tt-group + .tt-group { margin-top: 0.5rem; }
+.tt-poses { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.tt-pos {
+  padding: 0.02rem 0.4rem;
+  border-radius: 5px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--crab-deep);
+  background: var(--crab-soft);
+  white-space: nowrap;
+}
+.tt-glosses { margin: 0.2rem 0 0; padding-left: 1.5rem; }
+.tt-glosses li { margin: 0.12rem 0; }
+.tt-glosses li::marker { color: var(--muted); font-size: 0.8rem; }
+.tt-info { color: var(--muted); font-style: italic; font-size: 0.78rem; }
+.tt-more { margin-top: 0.4rem; font-size: 0.74rem; font-style: italic; color: var(--muted); }
