@@ -48,6 +48,13 @@ struct DenseIdIndex(Vec<u32>);
 impl DenseIdIndex {
     const SENTINEL: u32 = u32::MAX;
 
+    /// Pre-size the slot vector to the table's largest id, so filling
+    /// it never reallocates.
+    fn for_max_id(max_id: i32) -> Self {
+        let slots = if max_id < 0 { 0 } else { max_id as usize + 1 };
+        Self(vec![Self::SENTINEL; slots])
+    }
+
     fn insert(&mut self, id: i32, ordinal: u32) {
         debug_assert!(id >= 0, "Postgres serial ids are non-negative");
         let slot = id as usize;
@@ -80,15 +87,61 @@ pub struct KaniRkyvBackend {
 }
 
 struct KaniRkyvInner {
-    mmap: memmap2::Mmap,
+    mmap: &'static memmap2::Mmap,
     indexes: KaniRkyvIndexes,
 }
 
+/// One key's run inside its index's `ordinals` arena.
+#[derive(Clone, Copy)]
+struct KaniOrdinalSpan {
+    start: u32,
+    len: u32,
+}
+
+/// Integer-keyed index from key to an ascending (physical-order) run
+/// of row ordinals. The runs sit end to end in one `ordinals` arena
+/// and each key stores only its `(start, len)`, so an index costs one
+/// allocation rather than one per key.
+#[derive(Default)]
+struct KaniIntOrdinalIndex {
+    spans: FxIntMap<i32, KaniOrdinalSpan>,
+    ordinals: Vec<u32>,
+}
+
+impl KaniIntOrdinalIndex {
+    #[inline]
+    fn get(&self, key: &i32) -> Option<&[u32]> {
+        let span = self.spans.get(key)?;
+        Some(&self.ordinals[span.start as usize..(span.start + span.len) as usize])
+    }
+
+    #[inline]
+    fn contains_key(&self, key: &i32) -> bool {
+        self.spans.contains_key(key)
+    }
+}
+
+/// Text-keyed counterpart of [`KaniIntOrdinalIndex`]. Keys borrow from
+/// the leaked archive instead of copying its text onto the heap.
+#[derive(Default)]
+struct KaniTextOrdinalIndex {
+    spans: HashMap<&'static str, KaniOrdinalSpan>,
+    ordinals: Vec<u32>,
+}
+
+impl KaniTextOrdinalIndex {
+    #[inline]
+    fn get(&self, key: &str) -> Option<&[u32]> {
+        let span = self.spans.get(key)?;
+        Some(&self.ordinals[span.start as usize..(span.start + span.len) as usize])
+    }
+}
+
 /// Index maps from key to row ordinal(s) in the archived table
-/// vectors. Every ordinal vector is ascending = physical row order.
+/// vectors. Every ordinal run is ascending = physical row order.
 ///
 /// Integer-keyed maps use [`FxIntMap`] (FxHash) instead of std SipHash.
-/// The 5 maps keyed by Postgres-serial primary keys (`*_by_id`) use
+/// The maps keyed by Postgres-serial primary keys (`*_by_id`) use
 /// [`DenseIdIndex`] — direct `vec[id]` indexing with no hash at all.
 /// `_by_text` maps stay on std HashMap; string keys are not on the hot
 /// integer-lookup path.
@@ -96,157 +149,231 @@ struct KaniRkyvInner {
 struct KaniRkyvIndexes {
     entry_by_seq: FxIntMap<i32, u32>,
     kanji_text_by_id: DenseIdIndex,
-    kanji_text_by_seq: FxIntMap<i32, Vec<u32>>,
-    kanji_text_by_text: HashMap<String, Vec<u32>>,
+    kanji_text_by_seq: KaniIntOrdinalIndex,
+    kanji_text_by_text: KaniTextOrdinalIndex,
     kana_text_by_id: DenseIdIndex,
-    kana_text_by_seq: FxIntMap<i32, Vec<u32>>,
-    kana_text_by_text: HashMap<String, Vec<u32>>,
+    kana_text_by_seq: KaniIntOrdinalIndex,
+    kana_text_by_text: KaniTextOrdinalIndex,
     conj_by_id: DenseIdIndex,
-    conj_by_seq: FxIntMap<i32, Vec<u32>>,
-    conj_by_from: FxIntMap<i32, Vec<u32>>,
-    conj_prop_by_conj_id: FxIntMap<i32, Vec<u32>>,
-    csr_by_conj_id: FxIntMap<i32, Vec<u32>>,
+    conj_by_seq: KaniIntOrdinalIndex,
+    conj_by_from: KaniIntOrdinalIndex,
+    conj_prop_by_conj_id: KaniIntOrdinalIndex,
+    csr_by_conj_id: KaniIntOrdinalIndex,
     sense_by_id: DenseIdIndex,
-    sense_by_seq: FxIntMap<i32, Vec<u32>>,
-    gloss_by_sense_id: FxIntMap<i32, Vec<u32>>,
-    sense_prop_by_seq: FxIntMap<i32, Vec<u32>>,
-    sense_prop_by_sense_id: FxIntMap<i32, Vec<u32>>,
-    restricted_by_seq: FxIntMap<i32, Vec<u32>>,
-    kanji_by_id: DenseIdIndex,
-    kanji_by_text: HashMap<String, Vec<u32>>,
-    reading_by_kanji_id: FxIntMap<i32, Vec<u32>>,
-    okurigana_by_reading_id: FxIntMap<i32, Vec<u32>>,
-    meaning_by_kanji_id: FxIntMap<i32, Vec<u32>>,
+    sense_by_seq: KaniIntOrdinalIndex,
+    gloss_by_sense_id: KaniIntOrdinalIndex,
+    sense_prop_by_seq: KaniIntOrdinalIndex,
+    sense_prop_by_sense_id: KaniIntOrdinalIndex,
+    restricted_by_seq: KaniIntOrdinalIndex,
+    kanji_by_text: KaniTextOrdinalIndex,
+    reading_by_kanji_id: KaniIntOrdinalIndex,
+    okurigana_by_reading_id: KaniIntOrdinalIndex,
+    meaning_by_kanji_id: KaniIntOrdinalIndex,
 }
 
-fn build_indexes(tables: &ArchivedKaniSnapshot) -> KaniRkyvIndexes {
-    let mut indexes = KaniRkyvIndexes::default();
+/// Build one integer-keyed index in two passes over `rows`: count each
+/// key's rows, lay the runs out end to end, then fill them in ordinal
+/// order so every run comes out ascending. `reserve` is an upper bound
+/// on the distinct key count (0 = don't reserve, for key spaces small
+/// enough that growth churn is irrelevant).
+fn build_int_index<R, I, F>(rows: I, key_of: F, reserve: usize) -> KaniIntOrdinalIndex
+where
+    I: Iterator<Item = R> + Clone,
+    F: Fn(&R) -> i32,
+{
+    let mut spans: FxIntMap<i32, KaniOrdinalSpan> =
+        FxIntMap::with_capacity_and_hasher(reserve, BuildHasherDefault::default());
+    for row in rows.clone() {
+        spans
+            .entry(key_of(&row))
+            .or_insert(KaniOrdinalSpan { start: 0, len: 0 })
+            .len += 1;
+    }
+    let mut running: u32 = 0;
+    for span in spans.values_mut() {
+        span.start = running;
+        running += span.len;
+        span.len = 0;
+    }
+    let mut ordinals = vec![0u32; running as usize];
+    for (ordinal, row) in rows.enumerate() {
+        let span = spans
+            .get_mut(&key_of(&row))
+            .expect("every key was counted in the first pass");
+        ordinals[(span.start + span.len) as usize] = ordinal as u32;
+        span.len += 1;
+    }
+    KaniIntOrdinalIndex { spans, ordinals }
+}
+
+/// [`build_int_index`] for text keys. The keys borrow from the leaked
+/// archive, so none of the row text is copied onto the heap.
+fn build_text_index<R, I, F>(rows: I, text_of: F, reserve: usize) -> KaniTextOrdinalIndex
+where
+    I: Iterator<Item = R> + Clone,
+    F: Fn(&R) -> &'static str,
+{
+    let mut spans: HashMap<&'static str, KaniOrdinalSpan> = HashMap::with_capacity(reserve);
+    for row in rows.clone() {
+        spans
+            .entry(text_of(&row))
+            .or_insert(KaniOrdinalSpan { start: 0, len: 0 })
+            .len += 1;
+    }
+    let mut running: u32 = 0;
+    for span in spans.values_mut() {
+        span.start = running;
+        running += span.len;
+        span.len = 0;
+    }
+    let mut ordinals = vec![0u32; running as usize];
+    for (ordinal, row) in rows.enumerate() {
+        let span = spans
+            .get_mut(text_of(&row))
+            .expect("every key was counted in the first pass");
+        ordinals[(span.start + span.len) as usize] = ordinal as u32;
+        span.len += 1;
+    }
+    KaniTextOrdinalIndex { spans, ordinals }
+}
+
+/// Largest id in a table, for [`DenseIdIndex::for_max_id`].
+fn max_id<R, I, F>(rows: I, id_of: F) -> i32
+where
+    I: Iterator<Item = R>,
+    F: Fn(&R) -> i32,
+{
+    rows.map(|row| id_of(&row)).max().unwrap_or(-1)
+}
+
+fn build_indexes(tables: &'static ArchivedKaniSnapshot) -> KaniRkyvIndexes {
+    // Distinct-key upper bounds for the reserves below: every
+    // `*_by_seq` key is an entry seq, every `*_by_conj_id` key a
+    // conjugation id, every `*_by_sense_id` key a sense id, and a text
+    // index has at most one key per row. The bounds land within a few
+    // percent of the real counts, so reserving costs nothing and skips
+    // the rehash churn of growing from empty.
+    let entry_count = tables.entries.len();
+    let conj_count = tables.conjugations.len();
+    let sense_count = tables.senses.len();
+
+    let mut entry_by_seq: FxIntMap<i32, u32> =
+        FxIntMap::with_capacity_and_hasher(entry_count, BuildHasherDefault::default());
     for (ordinal, row) in tables.entries.iter().enumerate() {
-        indexes.entry_by_seq.insert(row.seq.to_native(), ordinal as u32);
+        entry_by_seq.insert(row.seq.to_native(), ordinal as u32);
     }
+
+    let mut kanji_text_by_id =
+        DenseIdIndex::for_max_id(max_id(tables.kanji_texts.iter(), |row| row.id.to_native()));
     for (ordinal, row) in tables.kanji_texts.iter().enumerate() {
-        let ordinal = ordinal as u32;
-        indexes.kanji_text_by_id.insert(row.id.to_native(), ordinal);
-        indexes
-            .kanji_text_by_seq
-            .entry(row.seq.to_native())
-            .or_default()
-            .push(ordinal);
-        indexes
-            .kanji_text_by_text
-            .entry(row.text.as_str().to_string())
-            .or_default()
-            .push(ordinal);
+        kanji_text_by_id.insert(row.id.to_native(), ordinal as u32);
     }
+    let mut kana_text_by_id =
+        DenseIdIndex::for_max_id(max_id(tables.kana_texts.iter(), |row| row.id.to_native()));
     for (ordinal, row) in tables.kana_texts.iter().enumerate() {
-        let ordinal = ordinal as u32;
-        indexes.kana_text_by_id.insert(row.id.to_native(), ordinal);
-        indexes
-            .kana_text_by_seq
-            .entry(row.seq.to_native())
-            .or_default()
-            .push(ordinal);
-        indexes
-            .kana_text_by_text
-            .entry(row.text.as_str().to_string())
-            .or_default()
-            .push(ordinal);
+        kana_text_by_id.insert(row.id.to_native(), ordinal as u32);
     }
+    let mut conj_by_id =
+        DenseIdIndex::for_max_id(max_id(tables.conjugations.iter(), |row| row.id.to_native()));
     for (ordinal, row) in tables.conjugations.iter().enumerate() {
-        let ordinal = ordinal as u32;
-        indexes.conj_by_id.insert(row.id.to_native(), ordinal);
-        indexes
-            .conj_by_seq
-            .entry(row.seq.to_native())
-            .or_default()
-            .push(ordinal);
-        indexes
-            .conj_by_from
-            .entry(row.seq_from.to_native())
-            .or_default()
-            .push(ordinal);
+        conj_by_id.insert(row.id.to_native(), ordinal as u32);
     }
-    for (ordinal, row) in tables.conj_props.iter().enumerate() {
-        indexes
-            .conj_prop_by_conj_id
-            .entry(row.conj_id.to_native())
-            .or_default()
-            .push(ordinal as u32);
-    }
-    for (ordinal, row) in tables.conj_source_readings.iter().enumerate() {
-        indexes
-            .csr_by_conj_id
-            .entry(row.conj_id.to_native())
-            .or_default()
-            .push(ordinal as u32);
-    }
+    let mut sense_by_id =
+        DenseIdIndex::for_max_id(max_id(tables.senses.iter(), |row| row.id.to_native()));
     for (ordinal, row) in tables.senses.iter().enumerate() {
-        let ordinal = ordinal as u32;
-        indexes.sense_by_id.insert(row.id.to_native(), ordinal);
-        indexes
-            .sense_by_seq
-            .entry(row.seq.to_native())
-            .or_default()
-            .push(ordinal);
+        sense_by_id.insert(row.id.to_native(), ordinal as u32);
     }
-    for (ordinal, row) in tables.glosses.iter().enumerate() {
-        indexes
-            .gloss_by_sense_id
-            .entry(row.sense_id.to_native())
-            .or_default()
-            .push(ordinal as u32);
+
+    KaniRkyvIndexes {
+        entry_by_seq,
+        kanji_text_by_id,
+        kanji_text_by_seq: build_int_index(
+            tables.kanji_texts.iter(),
+            |row| row.seq.to_native(),
+            entry_count,
+        ),
+        kanji_text_by_text: build_text_index(
+            tables.kanji_texts.iter(),
+            |row| row.text.as_str(),
+            tables.kanji_texts.len(),
+        ),
+        kana_text_by_id,
+        kana_text_by_seq: build_int_index(
+            tables.kana_texts.iter(),
+            |row| row.seq.to_native(),
+            entry_count,
+        ),
+        kana_text_by_text: build_text_index(
+            tables.kana_texts.iter(),
+            |row| row.text.as_str(),
+            tables.kana_texts.len(),
+        ),
+        conj_by_id,
+        conj_by_seq: build_int_index(
+            tables.conjugations.iter(),
+            |row| row.seq.to_native(),
+            entry_count,
+        ),
+        // seq_from is a root seq: tens of thousands of keys over
+        // millions of rows, so no reserve.
+        conj_by_from: build_int_index(
+            tables.conjugations.iter(),
+            |row| row.seq_from.to_native(),
+            0,
+        ),
+        conj_prop_by_conj_id: build_int_index(
+            tables.conj_props.iter(),
+            |row| row.conj_id.to_native(),
+            conj_count,
+        ),
+        csr_by_conj_id: build_int_index(
+            tables.conj_source_readings.iter(),
+            |row| row.conj_id.to_native(),
+            conj_count,
+        ),
+        sense_by_id,
+        sense_by_seq: build_int_index(
+            tables.senses.iter(),
+            |row| row.seq.to_native(),
+            sense_count,
+        ),
+        gloss_by_sense_id: build_int_index(
+            tables.glosses.iter(),
+            |row| row.sense_id.to_native(),
+            sense_count,
+        ),
+        sense_prop_by_seq: build_int_index(
+            tables.sense_props.iter(),
+            |row| row.seq.to_native(),
+            sense_count,
+        ),
+        sense_prop_by_sense_id: build_int_index(
+            tables.sense_props.iter(),
+            |row| row.sense_id.to_native(),
+            sense_count,
+        ),
+        restricted_by_seq: build_int_index(
+            tables.restricted_readings.iter(),
+            |row| row.seq.to_native(),
+            0,
+        ),
+        kanji_by_text: build_text_index(tables.kanji.iter(), |row| row.text.as_str(), 0),
+        reading_by_kanji_id: build_int_index(
+            tables.readings.iter(),
+            |row| row.kanji_id.to_native(),
+            0,
+        ),
+        okurigana_by_reading_id: build_int_index(
+            tables.okurigana.iter(),
+            |row| row.reading_id.to_native(),
+            0,
+        ),
+        meaning_by_kanji_id: build_int_index(
+            tables.meanings.iter(),
+            |row| row.kanji_id.to_native(),
+            0,
+        ),
     }
-    for (ordinal, row) in tables.sense_props.iter().enumerate() {
-        let ordinal = ordinal as u32;
-        indexes
-            .sense_prop_by_seq
-            .entry(row.seq.to_native())
-            .or_default()
-            .push(ordinal);
-        indexes
-            .sense_prop_by_sense_id
-            .entry(row.sense_id.to_native())
-            .or_default()
-            .push(ordinal);
-    }
-    for (ordinal, row) in tables.restricted_readings.iter().enumerate() {
-        indexes
-            .restricted_by_seq
-            .entry(row.seq.to_native())
-            .or_default()
-            .push(ordinal as u32);
-    }
-    for (ordinal, row) in tables.kanji.iter().enumerate() {
-        let ordinal = ordinal as u32;
-        indexes.kanji_by_id.insert(row.id.to_native(), ordinal);
-        indexes
-            .kanji_by_text
-            .entry(row.text.as_str().to_string())
-            .or_default()
-            .push(ordinal);
-    }
-    for (ordinal, row) in tables.readings.iter().enumerate() {
-        indexes
-            .reading_by_kanji_id
-            .entry(row.kanji_id.to_native())
-            .or_default()
-            .push(ordinal as u32);
-    }
-    for (ordinal, row) in tables.okurigana.iter().enumerate() {
-        indexes
-            .okurigana_by_reading_id
-            .entry(row.reading_id.to_native())
-            .or_default()
-            .push(ordinal as u32);
-    }
-    for (ordinal, row) in tables.meanings.iter().enumerate() {
-        indexes
-            .meaning_by_kanji_id
-            .entry(row.kanji_id.to_native())
-            .or_default()
-            .push(ordinal as u32);
-    }
-    indexes
 }
 
 impl KaniRkyvBackend {
@@ -262,7 +389,9 @@ impl KaniRkyvBackend {
         // artifacts of the dumper.
         let mmap = unsafe { memmap2::Mmap::map(&file) }
             .map_err(|map_error| format!("mmap {}: {map_error}", path.display()))?;
-        let indexes = {
+        // Validate and version-check through a borrow, before the leak
+        // below, so a rejected archive is dropped rather than leaked.
+        {
             let tables = rkyv::access::<ArchivedKaniSnapshot, rkyv::rancor::Error>(&mmap[..])
                 .map_err(|validate_error| {
                     format!("validate {}: {validate_error}", path.display())
@@ -274,23 +403,25 @@ impl KaniRkyvBackend {
                      this build reads v{KANI_SNAPSHOT_FORMAT_VERSION}",
                 ));
             }
-            let validated_at = load_started.elapsed().as_secs_f64();
-            let index_started = Instant::now();
-            let indexes = build_indexes(tables);
-            eprintln!(
-                "kaniran: rkyv snapshot {} ({} bytes, source {}): \
-                 validated in {validated_at:.1}s, indexed in {:.1}s",
-                path.display(),
-                mmap.len(),
-                tables.meta.source_db_name.as_str(),
-                index_started.elapsed().as_secs_f64(),
-            );
-            indexes
-        };
-        // Leak the inner so the mmap lives at a fixed address for the
-        // whole process. A snapshot is single and process-lifetime, so
-        // never unloading it costs nothing operationally — and it lets
-        // `tables()` yield `&'static`, the borrow the `Cow` rows need.
+        }
+        let validated_at = load_started.elapsed().as_secs_f64();
+        let index_started = Instant::now();
+        // Leak the mapping so it lives at a fixed address for the whole
+        // process. A snapshot is single and process-lifetime, so never
+        // unloading it costs nothing operationally — and it lets
+        // `tables()` yield `&'static`, the borrow the `Cow` rows need
+        // and the borrow the text index keys point into.
+        let mmap: &'static memmap2::Mmap = Box::leak(Box::new(mmap));
+        let tables = unsafe { rkyv::access_unchecked::<ArchivedKaniSnapshot>(&mmap[..]) };
+        let indexes = build_indexes(tables);
+        eprintln!(
+            "kaniran: rkyv snapshot {} ({} bytes, source {}): \
+             validated in {validated_at:.1}s, indexed in {:.1}s",
+            path.display(),
+            mmap.len(),
+            tables.meta.source_db_name.as_str(),
+            index_started.elapsed().as_secs_f64(),
+        );
         Ok(Self {
             inner: Box::leak(Box::new(KaniRkyvInner { mmap, indexes })),
         })
@@ -412,10 +543,10 @@ fn dao_meaning(row: &<Meaning as rkyv::Archive>::Archived) -> Meaning {
 /// Merge per-key ordinal lists into one ascending (physical-order)
 /// list. Sort + dedup also absorbs duplicate input keys, matching
 /// `= ANY(array)` predicate semantics (a row matches once).
-fn merged_i32(map: &FxIntMap<i32, Vec<u32>>, keys: &[i32]) -> Vec<u32> {
+fn merged_i32(index: &KaniIntOrdinalIndex, keys: &[i32]) -> Vec<u32> {
     let mut ordinals: Vec<u32> = Vec::new();
     for key in keys {
-        if let Some(list) = map.get(key) {
+        if let Some(list) = index.get(key) {
             ordinals.extend_from_slice(list);
         }
     }
@@ -424,10 +555,10 @@ fn merged_i32(map: &FxIntMap<i32, Vec<u32>>, keys: &[i32]) -> Vec<u32> {
     ordinals
 }
 
-fn merged_str<S: AsRef<str>>(map: &HashMap<String, Vec<u32>>, keys: &[S]) -> Vec<u32> {
+fn merged_str<S: AsRef<str>>(index: &KaniTextOrdinalIndex, keys: &[S]) -> Vec<u32> {
     let mut ordinals: Vec<u32> = Vec::new();
     for key in keys {
-        if let Some(list) = map.get(key.as_ref()) {
+        if let Some(list) = index.get(key.as_ref()) {
             ordinals.extend_from_slice(list);
         }
     }
@@ -998,7 +1129,7 @@ impl KaniBackend for KaniRkyvBackend {
         let mut ordinals: Vec<u32> = indexes
             .kana_text_by_seq
             .get(&seq)
-            .cloned()
+            .map(<[u32]>::to_vec)
             .unwrap_or_default();
         if let Some(conj_list) = indexes.conj_by_from.get(&seq) {
             for &conj_ordinal in conj_list {
